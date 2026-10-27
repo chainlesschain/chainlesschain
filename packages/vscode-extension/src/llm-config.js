@@ -1,8 +1,8 @@
 /**
  * Guided LLM configuration for the chat panel — the extension is only a
- * thin wizard: all reads/writes/tests go through the CLI (`cc config
- * get/set`, `cc llm test`), so there is exactly one source of truth
- * (~/.chainlesschain/config.json) and zero home-dir resolution here.
+ * thin wizard: writes and connection tests go through the CLI. First-run
+ * detection reads the shared config file first and uses the CLI's read-only
+ * capability diagnostic for relocated/legacy configuration.
  *
  * Pure Node (no `vscode`); `deps.execFile` injectable for tests.
  */
@@ -25,20 +25,35 @@ const path = require("path");
  * even though config.json was intact. That is the recurring "更新npm后又要重新
  * 配置LLM" bug. Reading the file makes detection independent of cc's health.
  *
- * Returns the llm object, or null when the file is missing/corrupt/has no llm.
+ * Returns an inspection state; callers decide whether a CLI fallback is safe.
  */
-function readLlmConfigFromFile(deps) {
+function inspectLlmConfigFile(deps) {
   const env = deps?.env || process.env;
-  if (env.CHAINLESSCHAIN_HOME || env.CLAUDE_CONFIG_DIR) return null;
+  if (env.CHAINLESSCHAIN_HOME || env.CLAUDE_CONFIG_DIR)
+    return { status: "defer" };
   const readFileSync = deps?.readFileSync || fs.readFileSync;
   const homedir = deps?.homedir || os.homedir;
   try {
     const file = path.join(homedir(), ".chainlesschain", "config.json");
     const cfg = JSON.parse(readFileSync(file, "utf8"));
-    return cfg && typeof cfg.llm === "object" && cfg.llm ? cfg.llm : null;
-  } catch (_e) {
-    return null; // missing / unreadable / invalid JSON → defer to CLI fallback
+    if (!cfg || typeof cfg !== "object" || Array.isArray(cfg))
+      return { status: "unavailable" };
+    if (!Object.hasOwn(cfg, "llm")) return { status: "defer" };
+    if (!cfg.llm || typeof cfg.llm !== "object" || Array.isArray(cfg.llm))
+      return { status: "unavailable" };
+    return { status: "available", llm: cfg.llm };
+  } catch (error) {
+    return {
+      status: ["ENOENT", "ENOTDIR"].includes(error?.code)
+        ? "defer"
+        : "unavailable",
+    };
   }
+}
+
+function readLlmConfigFromFile(deps) {
+  const result = inspectLlmConfigFile(deps);
+  return result.status === "available" ? result.llm : null;
 }
 
 /** Normalize a config value → non-empty trimmed string, or null. */
@@ -48,79 +63,13 @@ function cleanConfigValue(v) {
   return s && !/^(undefined|null)$/i.test(s) ? s : null;
 }
 
-/** Curated provider presets (ids must match the CLI's BUILT_IN_PROVIDERS). */
-const PROVIDER_PRESETS = [
-  {
-    id: "volcengine",
-    label: "Volcengine / Doubao (volcengine)",
-    baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
-    defaultModel: "deepseek-v4-1-flash-260910",
-    needsKey: true,
-  },
-  {
-    id: "ollama",
-    label: "Ollama (local, no key)",
-    baseUrl: "http://localhost:11434",
-    defaultModel: "qwen2.5:7b",
-    needsKey: false,
-  },
-  {
-    id: "anthropic",
-    label: "Anthropic Claude",
-    baseUrl: "https://api.anthropic.com/v1",
-    defaultModel: "claude-sonnet-4-6",
-    needsKey: true,
-  },
-  {
-    id: "openai",
-    label: "OpenAI",
-    baseUrl: "https://api.openai.com/v1",
-    defaultModel: "gpt-4o",
-    needsKey: true,
-  },
-  {
-    id: "deepseek",
-    label: "DeepSeek",
-    baseUrl: "https://api.deepseek.com/v1",
-    defaultModel: "deepseek-chat",
-    needsKey: true,
-  },
-  {
-    id: "dashscope",
-    label: "Aliyun Bailian / Tongyi (dashscope)",
-    baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    defaultModel: "qwen-max",
-    needsKey: true,
-  },
-  {
-    id: "kimi",
-    label: "Moonshot Kimi",
-    baseUrl: "https://api.moonshot.cn/v1",
-    defaultModel: "moonshot-v1-auto",
-    needsKey: true,
-  },
-  {
-    id: "gemini",
-    label: "Google Gemini",
-    baseUrl: "https://generativelanguage.googleapis.com/v1beta",
-    defaultModel: "gemini-2.0-flash",
-    needsKey: true,
-  },
-  {
-    id: "mistral",
-    label: "Mistral",
-    baseUrl: "https://api.mistral.ai/v1",
-    defaultModel: "mistral-large-latest",
-    needsKey: true,
-  },
-  {
-    id: "minimax",
-    label: "MiniMax",
-    baseUrl: "https://api.minimax.chat/v1",
-    defaultModel: "abab6.5s-chat",
-    needsKey: true,
-  },
-];
+// Generated from the CLI onboarding catalog; sync with
+// node packages/cli/scripts/sync-llm-onboarding.mjs.
+const PROVIDER_PRESETS = Object.freeze(
+  require("./vendor/llm-onboarding-presets.json").providers.map((preset) =>
+    Object.freeze(preset),
+  ),
+);
 
 /**
  * Values are passed to `cc config set` as argv items through a Windows shell
@@ -155,7 +104,10 @@ function buildConfigSetArgs({ provider, model, baseUrl, visionModel } = {}) {
 function suggestVisionModel(providerId) {
   // Mirror the CLI's DEFAULT_VISION_MODEL (image-input.js) so the prefilled
   // suggestion equals what `cc agent --image` would use by default.
-  return providerId === "volcengine" ? "doubao-seed-2-0-lite-260215" : "";
+  return (
+    PROVIDER_PRESETS.find((preset) => preset.id === providerId)?.visionModel ||
+    ""
+  );
 }
 
 /**
@@ -204,7 +156,7 @@ function withLlmErrorGuidance(message) {
   );
 }
 
-function runCli(command, args, deps, { stdin } = {}) {
+function runCli(command, args, deps, { stdin, timeoutMs = 60000 } = {}) {
   const run = deps?.execFile || execFile;
   const executable =
     typeof command === "string" && command.trim()
@@ -216,11 +168,11 @@ function runCli(command, args, deps, { stdin } = {}) {
       script ? process.execPath : executable,
       script ? [executable, ...args] : args,
       {
-        timeout: 60000,
+        timeout: timeoutMs,
         windowsHide: true,
         // Hardened so cmd.exe doesn't resolve a repo-local `cc.bat` before PATH.
         env: hardenedEnv({
-          ...process.env,
+          ...(deps?.env || process.env),
           ...(script ? { ELECTRON_RUN_AS_NODE: "1" } : {}),
         }),
         shell: !script && process.platform === "win32",
@@ -251,6 +203,67 @@ function runCli(command, args, deps, { stdin } = {}) {
       child.stdin.end(String(stdin));
     }
   });
+}
+
+function configurationState(
+  provider,
+  source,
+  { requireProvider = false } = {},
+) {
+  if (provider != null && typeof provider !== "string")
+    return unavailableConfiguration(source);
+  const value = cleanConfigValue(provider);
+  if (
+    (requireProvider && !value) ||
+    (value && (value.length > 256 || /[\u0000-\u001f\u007f]/.test(value)))
+  )
+    return unavailableConfiguration(source);
+  return {
+    status: value ? "configured" : "unconfigured",
+    provider: value,
+    source,
+  };
+}
+
+function unavailableConfiguration(source) {
+  return {
+    status: "unavailable",
+    provider: null,
+    source,
+    code: "LLM_CONFIG_READ_FAILED",
+  };
+}
+
+/**
+ * First-run detection is distinct from connection verification. A corrupt file
+ * must not be read through a CLI command that repairs it or falls back to defaults.
+ * `llm capabilities` is an existing strict, secret-free, network-free diagnostic.
+ */
+async function getLlmConfigurationState({ command, deps } = {}) {
+  const file = inspectLlmConfigFile(deps);
+  if (file.status === "available")
+    return configurationState(file.llm.provider, "file");
+  if (file.status === "unavailable") return unavailableConfiguration("file");
+  try {
+    const result = await runCli(
+      command,
+      ["llm", "capabilities", "--json"],
+      deps,
+      { timeoutMs: 12000 },
+    );
+    if (!result.ok) return unavailableConfiguration("cli");
+    const profile = JSON.parse(result.stdout);
+    if (
+      !profile ||
+      profile.schema !== "chainlesschain.model-capability-profile/v1"
+    )
+      return unavailableConfiguration("cli");
+    return configurationState(profile.provider, "cli", {
+      requireProvider: true,
+    });
+  } catch {
+    return unavailableConfiguration("cli");
+  }
 }
 
 /**
@@ -405,6 +418,7 @@ module.exports = {
   looksLikeLlmConfigError,
   withLlmErrorGuidance,
   readLlmConfigFromFile,
+  getLlmConfigurationState,
   getConfiguredProvider,
   getConfiguredVisionModel,
   getConfiguredModel,

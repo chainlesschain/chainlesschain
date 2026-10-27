@@ -67,4 +67,37 @@ class LlmConnectionPanelTest {
             assertTrue(panel.needsNewKey());
         });
     }
+
+    @Test void providerIdentityAndCredentialsSurviveSavedRelayLoad() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            LlmConnectionPanel panel = new LlmConnectionPanel(key -> key);
+            for (LlmConfig.Preset preset : LlmConfig.PRESETS) {
+                panel.load(new LlmConfig.Connection(preset.id, "team/alias", "https://relay.example/v1", "saved-vision", true));
+                assertEquals(preset.id, panel.connection().provider);
+                assertEquals("team/alias", panel.connection().model);
+                assertEquals("https://relay.example/v1", panel.connection().baseUrl);
+                assertFalse(panel.needsNewKey());
+                assertFalse(find(panel, "llm.save").isEnabled());
+            }
+        });
+    }
+
+    @Test void sharedRecommendationsNeverReplaceSavedGatewayAliasesOnLoad() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            LlmConnectionPanel panel = new LlmConnectionPanel(key -> key);
+            panel.load(new LlmConfig.Connection("openai", "team/custom-alias", "https://relay.example/v1", "saved-vision", true));
+            JComboBox<?> providers = (JComboBox<?>) find(panel, "llm.provider");
+            assertEquals(LlmConfig.PRESETS.length, providers.getSelectedIndex());
+            assertEquals("team/custom-alias", panel.connection().model);
+            assertEquals("https://relay.example/v1", panel.connection().baseUrl);
+            assertEquals("saved-vision", panel.connection().visionModel);
+            assertFalse(find(panel, "llm.save").isEnabled());
+            for (int i = 0; i < LlmConfig.PRESETS.length; i++) {
+                if ("openai".equals(LlmConfig.PRESETS[i].id)) providers.setSelectedIndex(i);
+            }
+            assertEquals("gpt-6.1-sol", panel.connection().model);
+            assertEquals("https://api.openai.com/v1", panel.connection().baseUrl);
+            assertTrue(panel.needsNewKey());
+        });
+    }
 }

@@ -26,95 +26,21 @@ export const DEFAULT_PORTS = {
   wsServer: 18800,
 };
 
-export const LLM_PROVIDERS = {
-  volcengine: {
-    name: "Volcengine (火山引擎/豆包)",
-    defaultBaseUrl: "https://ark.cn-beijing.volces.com/api/v3",
-    defaultModel: "deepseek-v4-1-flash-260910",
-    requiresApiKey: true,
-  },
-  openai: {
-    name: "OpenAI",
-    defaultBaseUrl: "https://api.openai.com/v1",
-    defaultModel: "gpt-4o",
-    requiresApiKey: true,
-  },
-  anthropic: {
-    name: "Anthropic (Claude)",
-    defaultBaseUrl: "https://api.anthropic.com/v1",
-    defaultModel: "claude-sonnet-4-6",
-    requiresApiKey: true,
-  },
-  deepseek: {
-    name: "DeepSeek",
-    defaultBaseUrl: "https://api.deepseek.com/v1",
-    defaultModel: "deepseek-chat",
-    requiresApiKey: true,
-  },
-  dashscope: {
-    name: "DashScope (阿里通义)",
-    defaultBaseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    defaultModel: "qwen-max",
-    requiresApiKey: true,
-  },
-  gemini: {
-    name: "Google Gemini",
-    defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
-    defaultModel: "gemini-2.0-flash",
-    requiresApiKey: true,
-  },
-  kimi: {
-    name: "Kimi (月之暗面)",
-    defaultBaseUrl: "https://api.moonshot.cn/v1",
-    defaultModel: "moonshot-v1-auto",
-    requiresApiKey: true,
-  },
-  minimax: {
-    name: "MiniMax (海螺AI)",
-    defaultBaseUrl: "https://api.minimax.chat/v1",
-    defaultModel: "MiniMax-Text-01",
-    requiresApiKey: true,
-  },
-  mistral: {
-    name: "Mistral AI",
-    defaultBaseUrl: "https://api.mistral.ai/v1",
-    defaultModel: "mistral-large-latest",
-    requiresApiKey: true,
-  },
-  ollama: {
-    name: "Ollama (本地部署)",
-    defaultBaseUrl: "http://localhost:11434",
-    defaultModel: "qwen2:7b",
-    requiresApiKey: false,
-  },
-  "openai-proxy": {
-    name: "OpenAI 中转站 (API2D/CloseAI等)",
-    defaultBaseUrl: "",
-    defaultModel: "gpt-4o",
-    requiresApiKey: true,
-    isProxy: true,
-  },
-  "anthropic-proxy": {
-    name: "Anthropic 中转站 (Claude代理)",
-    defaultBaseUrl: "",
-    defaultModel: "claude-sonnet-4-6",
-    requiresApiKey: true,
-    isProxy: true,
-  },
-  "gemini-proxy": {
-    name: "Gemini 中转站 (Google代理)",
-    defaultBaseUrl: "",
-    defaultModel: "gemini-2.0-flash",
-    requiresApiKey: true,
-    isProxy: true,
-  },
-  custom: {
-    name: "自定义 Provider (自建服务/vLLM/TGI等)",
-    defaultBaseUrl: "",
-    defaultModel: "",
-    requiresApiKey: true,
-  },
-};
+// New-connection suggestions are shared with both IDEs. Runtime fallbacks and
+// existing persisted models are deliberately independent of this catalog.
+const onboardingCatalog = require("./lib/llm-onboarding-catalog.json");
+export const LLM_PROVIDERS = Object.fromEntries(
+  onboardingCatalog.providers.map((preset) => [
+    preset.id,
+    {
+      name: preset.cliLabel || preset.label,
+      defaultBaseUrl: preset.baseUrl,
+      defaultModel: preset.defaultModel,
+      requiresApiKey: preset.needsKey,
+      ...(preset.isProxy ? { isProxy: true } : {}),
+    },
+  ]),
+);
 
 export const EDITIONS = {
   personal: {

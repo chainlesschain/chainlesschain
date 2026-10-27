@@ -37,6 +37,7 @@ public final class ConversationManager {
         public volatile String mode = "default"; // approval mode (default|acceptEdits|bypassPermissions)
         public final PermissionModeState modeState = new PermissionModeState();
         public volatile String thinking = "off"; // extended thinking (off|on|ultra)
+        public volatile String modelOverride = ""; // this conversation only
         public volatile String goalCondition = ""; // completion condition passed to cc agent
 
         Conversation(String id, String title, String sessionId, Object turnState) {

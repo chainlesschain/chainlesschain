@@ -134,6 +134,7 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
         private String lastClosedSessionId; // §6 reopen-closed
         private String lastClosedTitle;
         private String lastClosedDraftKey;
+        private String lastClosedModelOverride = "";
         private final com.chainlesschain.ide.ChatDraftStore drafts;
         private final JPanel root = new JPanel(new BorderLayout(0, 2));
         private final JBTabbedPane tabs = new JBTabbedPane();
@@ -271,11 +272,13 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
             ConversationManager.Conversation conv =
                     conversations.create(lastClosedTitle, lastClosedSessionId, true);
             if (lastClosedDraftKey != null) conv.draftKey = lastClosedDraftKey;
+            conv.modelOverride = lastClosedModelOverride;
             addTabFor(conv, true);
             persistSessionIds();
             lastClosedSessionId = null;
             lastClosedTitle = null;
             lastClosedDraftKey = null;
+            lastClosedModelOverride = "";
         }
 
         private void recoverDrafts() {
@@ -331,6 +334,7 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
                 lastClosedSessionId = r.conv.sessionId;
                 lastClosedTitle = r.conv.title;
                 lastClosedDraftKey = r.conv.draftKey;
+                lastClosedModelOverride = r.conv.modelOverride;
             }
             ConversationView view = views.remove(id);
             if (view != null) view.dispose();
@@ -384,6 +388,7 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
                 if (c != null) {
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("key", c.draftKey); row.put("sessionId", c.sessionId); row.put("title", c.title);
+                    row.put("modelOverride", c.modelOverride);
                     savedTabs.add(row);
                 }
             }
@@ -408,6 +413,8 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
                             String sid = row.get("sessionId") instanceof String s ? s : null;
                             ConversationManager.Conversation conv = conversations.create(
                                     row.get("title") instanceof String title ? title : null, sid, false);
+                            if (row.get("modelOverride") instanceof String model
+                                    && com.chainlesschain.ide.SessionModel.valid(model)) conv.modelOverride = model;
                             conv.draftKey = key; addTabFor(conv, false);
                         }
                     }

@@ -454,6 +454,9 @@ jobs:
       - name: Verify generated command help index
         working-directory: packages/cli
         run: npm run commands:help-index:check
+      - name: Verify shared CLI and IDE onboarding presets
+        working-directory: packages/cli
+        run: node scripts/sync-llm-onboarding.mjs --check
       - name: Verify generated shell completions
         working-directory: packages/cli
         run: npm run commands:completions:check

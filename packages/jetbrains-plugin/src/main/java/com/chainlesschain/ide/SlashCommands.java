@@ -78,6 +78,8 @@ public final class SlashCommands {
                     command("/handoff", "hand off to a background agent (web/mobile)",
                             Route.LOCAL, null),
                     command("/review", "review the current git diff", Route.LOCAL, null),
+                    command("/model", "set this conversation's model (use /model --default to reset)",
+                            Route.LOCAL, null),
                     command("/goal", "set or show the session completion goal",
                             Route.LOCAL, null),
                     command("/loop",

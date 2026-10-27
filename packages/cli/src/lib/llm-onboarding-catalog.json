@@ -1,0 +1,131 @@
+{
+  "schema": "chainlesschain.llm-onboarding-catalog/v1",
+  "capabilityCatalogVersion": "2026-10-15",
+  "scope": "new-connections",
+  "runtimeVerified": false,
+  "accountVerified": false,
+  "providers": [
+    {
+      "id": "volcengine",
+      "label": "Volcengine / Doubao (volcengine)",
+      "cliLabel": "Volcengine (火山引擎/豆包)",
+      "baseUrl": "https://ark.cn-beijing.volces.com/api/v3",
+      "defaultModel": "deepseek-v4-1-flash-260910",
+      "needsKey": true,
+      "visionModel": "doubao-seed-2-0-lite-260215"
+    },
+    {
+      "id": "ollama",
+      "label": "Ollama (local, no key)",
+      "cliLabel": "Ollama (本地部署)",
+      "baseUrl": "http://localhost:11434",
+      "defaultModel": "qwen2.5:7b",
+      "needsKey": false,
+      "visionModel": ""
+    },
+    {
+      "id": "anthropic",
+      "label": "Anthropic Claude",
+      "cliLabel": "Anthropic (Claude)",
+      "baseUrl": "https://api.anthropic.com/v1",
+      "defaultModel": "claude-sonnet-5-5",
+      "needsKey": true,
+      "visionModel": ""
+    },
+    {
+      "id": "openai",
+      "label": "OpenAI",
+      "baseUrl": "https://api.openai.com/v1",
+      "defaultModel": "gpt-6.1-sol",
+      "needsKey": true,
+      "visionModel": ""
+    },
+    {
+      "id": "deepseek",
+      "label": "DeepSeek",
+      "baseUrl": "https://api.deepseek.com/v1",
+      "defaultModel": "deepseek-chat",
+      "needsKey": true,
+      "visionModel": ""
+    },
+    {
+      "id": "dashscope",
+      "label": "Aliyun Bailian / Tongyi (dashscope)",
+      "cliLabel": "DashScope (阿里通义)",
+      "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "defaultModel": "qwen-max",
+      "needsKey": true,
+      "visionModel": ""
+    },
+    {
+      "id": "kimi",
+      "label": "Moonshot Kimi",
+      "cliLabel": "Kimi (月之暗面)",
+      "baseUrl": "https://api.moonshot.cn/v1",
+      "defaultModel": "moonshot-v1-auto",
+      "needsKey": true,
+      "visionModel": ""
+    },
+    {
+      "id": "gemini",
+      "label": "Google Gemini",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "defaultModel": "gemini-2.0-flash",
+      "needsKey": true,
+      "visionModel": ""
+    },
+    {
+      "id": "mistral",
+      "label": "Mistral",
+      "cliLabel": "Mistral AI",
+      "baseUrl": "https://api.mistral.ai/v1",
+      "defaultModel": "mistral-large-latest",
+      "needsKey": true,
+      "visionModel": ""
+    },
+    {
+      "id": "minimax",
+      "label": "MiniMax",
+      "cliLabel": "MiniMax (海螺AI)",
+      "baseUrl": "https://api.minimax.chat/v1",
+      "defaultModel": "MiniMax-Text-01",
+      "needsKey": true,
+      "visionModel": ""
+    },
+    {
+      "id": "openai-proxy",
+      "label": "OpenAI compatible gateway",
+      "cliLabel": "OpenAI 中转站 (API2D/CloseAI等)",
+      "baseUrl": "",
+      "defaultModel": "gpt-4o",
+      "needsKey": true,
+      "isProxy": true
+    },
+    {
+      "id": "anthropic-proxy",
+      "label": "Anthropic compatible gateway",
+      "cliLabel": "Anthropic 中转站 (Claude代理)",
+      "baseUrl": "",
+      "defaultModel": "claude-sonnet-4-6",
+      "needsKey": true,
+      "isProxy": true
+    },
+    {
+      "id": "gemini-proxy",
+      "label": "Gemini compatible gateway",
+      "cliLabel": "Gemini 中转站 (Google代理)",
+      "baseUrl": "",
+      "defaultModel": "gemini-2.0-flash",
+      "needsKey": true,
+      "isProxy": true
+    },
+    {
+      "id": "custom",
+      "label": "Custom provider (vLLM / TGI / compatible service)",
+      "cliLabel": "自定义 Provider (自建服务/vLLM/TGI等)",
+      "baseUrl": "",
+      "defaultModel": "",
+      "needsKey": true
+    }
+  ]
+}

@@ -15,6 +15,79 @@ import org.junit.jupiter.api.Test;
 /** Real JUnit 5 coverage for the pure (parse/build) parts of {@link LlmConfig}. */
 class LlmConfigTest {
 
+    private LlmConfig.CliRunner forbiddenFallback() {
+        return (args, stdin) -> { throw new AssertionError("CLI fallback must not run for an authoritative file"); };
+    }
+
+    @Test
+    void onboardingKeepsConfiguredProviderWhenCliIsBrokenAndDoesNotExposeKey() {
+        LlmConfig.ConfigurationState result = LlmConfig.getConfigurationState(java.util.Map.of(),
+                () -> "{\"llm\":{\"provider\":\"custom-relay\",\"apiKey\":\"private-key\"}}", forbiddenFallback());
+        assertEquals(LlmConfig.ConfigurationStatus.CONFIGURED, result.status);
+        assertEquals("custom-relay", result.provider);
+        assertEquals("file", result.source);
+    }
+
+    @Test
+    void onboardingOnlyAnAuthoritativeUnsetProviderMeansUnconfigured() {
+        for (String json : List.of("{\"llm\":{}}", "{\"llm\":{\"provider\":null}}", "{\"llm\":{\"provider\":\" \"}}")) {
+            LlmConfig.ConfigurationState result = LlmConfig.getConfigurationState(java.util.Map.of(),
+                    () -> json, forbiddenFallback());
+            assertEquals(LlmConfig.ConfigurationStatus.UNCONFIGURED, result.status);
+            assertNull(result.provider);
+        }
+    }
+
+    @Test
+    void onboardingUnreadableAndCorruptFilesNeverRunARepairingFallback() {
+        for (String json : List.of("{private-key broken", "[]", "{\"llm\":[]}",
+                "{\"llm\":{\"provider\":{\"apiKey\":\"private-key\"}}}")) {
+            LlmConfig.ConfigurationState result = LlmConfig.getConfigurationState(java.util.Map.of(),
+                    () -> json, forbiddenFallback());
+            assertEquals(LlmConfig.ConfigurationStatus.UNAVAILABLE, result.status);
+            assertNull(result.provider);
+        }
+        LlmConfig.ConfigurationState result = LlmConfig.getConfigurationState(java.util.Map.of(),
+                () -> { throw new java.nio.file.AccessDeniedException("private-key /secret/config.json"); },
+                forbiddenFallback());
+        assertEquals(LlmConfig.ConfigurationStatus.UNAVAILABLE, result.status);
+    }
+
+    @Test
+    void overriddenRootsSkipDefaultFileAndUseReadOnlyCapabilities() {
+        for (String variable : List.of("CHAINLESSCHAIN_HOME", "CLAUDE_CONFIG_DIR")) {
+            for (String value : List.of("isolated", " ")) {
+                LlmConfig.ConfigurationState result = LlmConfig.getConfigurationState(java.util.Map.of(variable, value),
+                        () -> { throw new AssertionError("default profile must not be read"); }, (args, stdin) -> {
+                            assertEquals(List.of("llm", "capabilities", "--json"), args);
+                            assertNull(stdin);
+                            return new LlmConfig.CliResult(true,
+                                    "{\"schema\":\"chainlesschain.model-capability-profile/v1\",\"provider\":\"openai\"}");
+                        });
+                assertEquals(LlmConfig.ConfigurationStatus.CONFIGURED, result.status);
+                assertEquals("cli", result.source);
+            }
+        }
+    }
+
+    @Test
+    void missingFileCanUseCliButUnknownResponsesNeverMeanUnconfigured() {
+        LlmConfig.ConfigReader missing = () -> { throw new java.nio.file.NoSuchFileException("config.json"); };
+        for (LlmConfig.CliResult response : List.of(
+                new LlmConfig.CliResult(false, "private-key"),
+                new LlmConfig.CliResult(true, "private-key invalid json"),
+                new LlmConfig.CliResult(true, "{\"provider\":\"openai\"}"),
+                new LlmConfig.CliResult(true, "{\"schema\":\"chainlesschain.model-capability-profile/v1\",\"provider\":null}"))) {
+            LlmConfig.ConfigurationState result = LlmConfig.getConfigurationState(java.util.Map.of(), missing,
+                    (args, stdin) -> response);
+            assertEquals(LlmConfig.ConfigurationStatus.UNAVAILABLE, result.status);
+            assertNull(result.provider);
+        }
+        assertEquals(LlmConfig.ConfigurationStatus.CONFIGURED, LlmConfig.getConfigurationState(java.util.Map.of(), missing,
+                (args, stdin) -> new LlmConfig.CliResult(true,
+                        "{\"schema\":\"chainlesschain.model-capability-profile/v1\",\"provider\":\"ollama\"}")).status);
+    }
+
     /** Real pipes exercise stdout/stderr separation and concurrent draining. */
     public static class ConfigProcess {
         public static void main(String[] args) {

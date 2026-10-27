@@ -9,6 +9,7 @@ import {
 } from "../constants.js";
 import { ensureHomeDir, getConfigPath } from "../lib/paths.js";
 import {
+  loadConfig,
   setSecretConfigValue,
   updateConfigAtomically,
 } from "../lib/config-manager.js";
@@ -59,6 +60,26 @@ export function assertRequiredProviderCredential(providerInfo, apiKey) {
   }
 }
 
+export function resolveSetupLlmDefaults(provider, existing = {}) {
+  const preset = LLM_PROVIDERS[provider];
+  if (!preset) throw new Error("Unknown setup provider");
+  const sameProvider = existing?.provider === provider;
+  return {
+    baseUrl:
+      sameProvider &&
+      typeof existing.baseUrl === "string" &&
+      existing.baseUrl.trim()
+        ? existing.baseUrl
+        : preset.defaultBaseUrl,
+    model:
+      sameProvider &&
+      typeof existing.model === "string" &&
+      existing.model.trim()
+        ? existing.model
+        : preset.defaultModel,
+  };
+}
+
 async function runSetup(options) {
   logger.log(chalk.bold("\n  ChainlessChain Setup Wizard\n"));
   logger.log(`  Version: ${VERSION}`);
@@ -104,6 +125,17 @@ async function runSetup(options) {
   ]);
 
   // Step 5: Configure LLM
+  let existingLlm;
+  try {
+    existingLlm = loadConfig({
+      resolveSecrets: false,
+      failIfUnavailable: true,
+    }).llm;
+  } catch {
+    throw new Error(
+      "Could not read existing LLM configuration; repair it before running setup",
+    );
+  }
   const providerChoices = Object.entries(LLM_PROVIDERS).map(([key, info]) => ({
     name: info.name,
     value: key,
@@ -112,8 +144,7 @@ async function runSetup(options) {
   const providerInfo = LLM_PROVIDERS[provider];
 
   let apiKey = null;
-  let baseUrl = providerInfo.defaultBaseUrl;
-  let model = providerInfo.defaultModel;
+  let { baseUrl, model } = resolveSetupLlmDefaults(provider, existingLlm);
 
   if (providerInfo.requiresApiKey) {
     apiKey = await askPassword(`Enter ${providerInfo.name} API key:`);
@@ -123,14 +154,8 @@ async function runSetup(options) {
   }
 
   if (provider === "custom" || providerInfo.isProxy) {
-    baseUrl = await askInput(
-      "Enter API base URL:",
-      providerInfo.defaultBaseUrl || "",
-    );
-    model = await askInput(
-      "Enter model name:",
-      providerInfo.defaultModel || "",
-    );
+    baseUrl = await askInput("Enter API base URL:", baseUrl || "");
+    model = await askInput("Enter model name:", model || "");
   } else {
     const customizeModel = await askConfirm(
       `Use default model (${model})?`,

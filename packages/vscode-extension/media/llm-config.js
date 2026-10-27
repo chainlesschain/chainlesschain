@@ -53,7 +53,11 @@ function update() {
 function fill(c) {
   const preset = presets.find(
     (p) =>
-      p.id === c.provider && normalized(p.baseUrl) === normalized(c.baseUrl),
+      p.id === c.provider &&
+      // Provider-specific IDs carry credential and pricing identity. Keep
+      // those IDs when their saved endpoint uses a relay.
+      (!protocols.includes(c.provider) ||
+        normalized(p.baseUrl) === normalized(c.baseUrl)),
   );
   $("preset").value = preset ? preset.id : "custom";
   $("protocol").value = protocols.includes(c.provider) ? c.provider : "openai";
@@ -79,8 +83,7 @@ $("preset").onchange = () => {
   if (p) {
     $("baseUrl").value = p.baseUrl;
     $("model").value = p.defaultModel;
-    $("visionModel").value =
-      p.id === "volcengine" ? "doubao-seed-2-0-lite-260215" : "";
+    $("visionModel").value = p.visionModel || "";
   }
   $("apiKey").value = "";
   dirty = true;

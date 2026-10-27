@@ -498,6 +498,97 @@ test("custom relays require a scoped key, allow arbitrary model aliases, and rej
     /基础地址/,
   );
 });
+test("LLM webview preserves saved aliases and applies recommendations only on preset selection", () => {
+  const elements = new Map();
+  const messages = [];
+  let receive;
+  const element = (id) => {
+    if (!elements.has(id))
+      elements.set(id, {
+        value: "",
+        textContent: "",
+        checked: false,
+        disabled: false,
+        addEventListener() {},
+        replaceChildren() {},
+        append() {},
+      });
+    return elements.get(id);
+  };
+  require("node:vm").runInNewContext(
+    require("node:fs").readFileSync(
+      require("node:path").join(__dirname, "../media/llm-config.js"),
+      "utf8",
+    ),
+    {
+      URL,
+      acquireVsCodeApi: () => ({
+        postMessage: (message) => messages.push(message),
+      }),
+      document: { getElementById: element, createElement: () => ({}) },
+      window: {
+        addEventListener: (_name, handler) => {
+          receive = handler;
+        },
+      },
+    },
+  );
+  assert.deepEqual(
+    messages.map((message) => message.type),
+    ["ready"],
+  );
+  for (const [provider, baseUrl, expectedPreset] of [
+    ...PROVIDER_PRESETS.map((preset) => [
+      preset.id,
+      "https://relay.example/v1",
+      ["openai", "anthropic", "gemini", "ollama"].includes(preset.id)
+        ? "custom"
+        : preset.id,
+    ]),
+    ["openai", "https://api.openai.com/v1/", "openai"],
+  ]) {
+    receive({
+      data: {
+        type: "config",
+        presets: PROVIDER_PRESETS,
+        current: {
+          provider,
+          model: "team/custom-model",
+          baseUrl,
+          visionModel: "team/vision",
+          hasKey: true,
+        },
+      },
+    });
+    assert.equal(element("preset").value, expectedPreset);
+    assert.equal(element("model").value, "team/custom-model");
+    assert.equal(element("baseUrl").value, baseUrl);
+    assert.equal(element("visionModel").value, "team/vision");
+    assert.equal(element("save").disabled, true);
+    element("form").onsubmit({ preventDefault() {} });
+    assert.equal(messages.at(-1).type, "save");
+    const validated = validateAnswers(messages.at(-1).answers, {
+      provider,
+      baseUrl,
+      hasKey: true,
+    });
+    assert.equal(validated.provider, provider);
+    assert.equal(validated.apiKey, "");
+  }
+  element("preset").value = "openai";
+  element("preset").onchange();
+  assert.equal(element("model").value, "gpt-6.1-sol");
+  assert.equal(element("baseUrl").value, "https://api.openai.com/v1");
+  assert.equal(element("visionModel").value, "");
+  assert.equal(element("save").disabled, false);
+  element("preset").value = "volcengine";
+  element("preset").onchange();
+  assert.equal(
+    element("visionModel").value,
+    PROVIDER_PRESETS.find((p) => p.id === "volcengine").visionModel,
+  );
+});
+
 test("LLM panel never returns an existing or newly submitted key to the webview", async (t) => {
   const h = host(t),
     calls = [];

@@ -55,6 +55,7 @@ class ConversationManager {
       pendingApproval: null,
       mode: "default", // approval mode (default | acceptEdits | bypassPermissions)
       thinking: "off", // extended thinking (off | on | ultra)
+      modelOverride: "", // this tab only; empty follows connection defaults
       goalCondition: "", // optional --goal-condition applied on next spawn
     };
     this._conversations.set(id, conv);

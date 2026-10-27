@@ -4,6 +4,321 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const { ChatViewProvider } = require("../src/chat/chat-view");
 
+function makeConfigurationProbe(probe) {
+  const posts = [];
+  const provider = new ChatViewProvider(
+    {},
+    { deps: { getLlmConfigurationState: probe } },
+  );
+  provider.view = {};
+  provider._cliCommand = () => "cc";
+  provider._post = (message) => posts.push(message);
+  return { provider, posts };
+}
+
+test("first-run onboarding distinguishes an unset provider from unreadable configuration", async () => {
+  for (const status of ["configured", "unconfigured", "unavailable"]) {
+    const { provider, posts } = makeConfigurationProbe(async () => ({
+      status,
+    }));
+    await provider._probeLlmConfiguration(provider.view);
+    assert.equal(
+      posts.some((message) => message.kind === "setup"),
+      status === "unconfigured",
+    );
+    if (status === "unavailable") {
+      assert.equal(posts.length, 1);
+      assert.equal(posts[0].kind, "info");
+      assert.match(posts[0].text, /could not be read/i);
+    }
+    if (status === "configured") assert.equal(posts.length, 0);
+  }
+});
+
+test("a failed config probe reports fixed guidance without leaking its diagnostic", async () => {
+  const { provider, posts } = makeConfigurationProbe(async () => {
+    throw new Error("private-key /profile/config.json");
+  });
+  await provider._probeLlmConfiguration(provider.view);
+  assert.equal(posts.length, 1);
+  assert.equal(posts[0].kind, "info");
+  assert.ok(!JSON.stringify(posts).includes("private-key"));
+  assert.ok(!JSON.stringify(posts).includes("/profile"));
+});
+
+test("a view closing during onboarding delivery cannot reject panel initialization", async () => {
+  const { provider } = makeConfigurationProbe(async () => ({
+    status: "unconfigured",
+  }));
+  provider._post = () => {
+    throw new Error("webview was disposed");
+  };
+  await assert.doesNotReject(provider._probeLlmConfiguration(provider.view));
+});
+
+test("late onboarding results are ignored after the view or connection changes", async () => {
+  for (const change of ["replace", "dispose", "configure"]) {
+    let settle;
+    const { provider, posts } = makeConfigurationProbe(
+      () =>
+        new Promise((resolve) => {
+          settle = resolve;
+        }),
+    );
+    const pending = provider._probeLlmConfiguration(provider.view);
+    if (change === "replace") provider.view = {};
+    if (change === "dispose") provider.view = null;
+    if (change === "configure") provider._reloadLlmConfig();
+    settle({ status: "unconfigured" });
+    await pending;
+    assert.ok(!posts.some((message) => message.kind === "setup"));
+  }
+});
+
+test("global connection changes report every affected running conversation", () => {
+  const { provider, posts } = makeConfigurationProbe(async () => ({
+    status: "configured",
+  }));
+  const first = provider._activeConv();
+  const second = provider._convs.create({});
+  provider._convs.setSession(first.id, { running: true });
+  provider._convs.setSession(second.id, { running: true });
+  const stopped = [];
+  provider._stopSession = (conversation) => stopped.push(conversation.id);
+  provider._reloadLlmConfig();
+  assert.deepEqual(new Set(stopped), new Set([first.id, second.id]));
+  assert.match(posts.at(-1).text, /2 running conversations/);
+});
+
+function makeModelConversations(saved = new Map()) {
+  const records = [],
+    posts = [],
+    contextCalls = [];
+  const opts = {
+    state: {
+      get: (key) => saved.get(key),
+      update: (key, value) => saved.set(key, value),
+    },
+    deps: {
+      resolveChatLlm: ({ model } = {}) => ({
+        provider: "openai",
+        model: model || "configured-model",
+        baseUrl: "https://relay.example/v1",
+        apiKey: "",
+      }),
+      draftStore: {
+        prepare: async (_key, sessionId) => ({ sessionId, paths: [] }),
+        settle: async () => {},
+      },
+      runCliText: async ({ args }) => {
+        contextCalls.push(args);
+        return JSON.stringify({ contextWindow: 200000, totalTokens: 10 });
+      },
+      createSession: (options) => {
+        const record = { options, stops: 0, sent: [] };
+        const session = {
+          running: true,
+          sendEvent: (event) => {
+            record.sent.push(event);
+            return true;
+          },
+          stopAndWait: async () => {
+            record.stops++;
+            session.running = false;
+          },
+        };
+        record.session = session;
+        records.push(record);
+        queueMicrotask(() =>
+          options.onEvent({
+            type: "system",
+            subtype: "init",
+            session_id: options.args[options.args.indexOf("--resume") + 1],
+            input_receipts: { version: 1 },
+          }),
+        );
+        return session;
+      },
+    },
+  };
+  const provider = new ChatViewProvider(
+    {
+      commands: { executeCommand() {} },
+      workspace: {
+        getConfiguration: () => ({ get: () => undefined }),
+        workspaceFolders: [],
+      },
+    },
+    opts,
+  );
+  provider._post = (message) => posts.push(message);
+  provider._updateModeStatus = () => {};
+  provider._restoreDraft = async () => {};
+  provider._restoreTranscript = () => {};
+  provider._cliCommand = () => "cc";
+  return { provider, records, posts, saved, contextCalls };
+}
+
+test("a conversation model switch preserves running work and restarts only its idle child", async () => {
+  const { provider, records } = makeModelConversations();
+  const a = provider._activeConv();
+  const b = provider._convs.create({});
+  const oldA = provider._ensureSession(a);
+  const oldB = provider._ensureSession(b);
+  a.turnActive = true;
+  provider._convs.switchTo(a.id);
+  provider._handleMessage({ type: "sessionModel", spec: "team/custom-alias" });
+  assert.equal(provider._ensureSession(a), oldA);
+  assert.equal(records[0].stops, 0);
+  assert.equal(records[1].stops, 0);
+  assert.equal(b.modelOverride, "");
+  a.turnActive = false;
+  assert.equal(
+    await provider._sendDurableMessage(
+      { text: "continue", clientMessageId: "model-switch" },
+      a,
+    ),
+    true,
+  );
+  assert.equal(records[0].stops, 1);
+  assert.equal(records[1].stops, 0);
+  assert.equal(b.session, oldB);
+  assert.equal(records.length, 3);
+  assert.ok(records[2].options.args.includes("team/custom-alias"));
+  assert.ok(records[2].options.args.includes("https://relay.example/v1"));
+  assert.ok(records[2].options.args.includes(a.sessionId));
+  assert.ok(!records[2].options.args.includes("--api-key"));
+  assert.equal(
+    records[2].sent.filter((event) => event.type === "user").length,
+    1,
+  );
+  a.turnActive = false;
+  provider._setSessionModel("--default");
+  assert.equal(
+    await provider._sendDurableMessage(
+      { text: "continue", clientMessageId: "model-reset" },
+      a,
+    ),
+    true,
+  );
+  assert.ok(records[3].options.args.includes("configured-model"));
+  assert.equal(records[1].stops, 0);
+});
+
+test("closing and reopening a tab retains its model without spawning a child", () => {
+  const { provider, records } = makeModelConversations();
+  const conv = provider._activeConv();
+  provider._setSessionModel("team/alias");
+  provider._handleMessage({ type: "closeTab", id: conv.id });
+  provider.reopenClosedSession();
+  const pending = provider._pendingReopen;
+  provider._reopenInto(
+    pending.sessionId,
+    pending.draftKey,
+    pending.modelOverride,
+  );
+  assert.equal(provider._activeConv().modelOverride, "team/alias");
+  assert.equal(records.length, 0);
+});
+
+test("model overrides and resets survive tab restore without changing another conversation", () => {
+  const { provider, saved } = makeModelConversations();
+  const a = provider._activeConv();
+  const b = provider._convs.create({});
+  provider._convs.switchTo(a.id);
+  provider._setSessionModel("team/alias");
+  const restored = makeModelConversations(saved).provider;
+  assert.equal(restored._activeConv().modelOverride, "team/alias");
+  restored._setSessionModel("--default");
+  assert.equal(restored._activeConv().modelOverride, "");
+  assert.equal(b.modelOverride, "");
+  saved.get("chainlesschain.chat.tabs").tabs[0].modelOverride =
+    "unsafe & command";
+  assert.equal(
+    makeModelConversations(saved).provider._activeConv().modelOverride,
+    "",
+  );
+});
+
+test("invalid model input cannot mutate the selection or leak its text in a diagnostic", () => {
+  const { provider, posts } = makeModelConversations();
+  provider._setSessionModel("team/valid");
+  for (const value of [
+    undefined,
+    {},
+    "bad & command",
+    "x\ny",
+    "a".repeat(257),
+    "x%PATH%",
+    "x\u0000y",
+  ]) {
+    provider._setSessionModel(value);
+    assert.equal(provider._activeConv().modelOverride, "team/valid");
+    assert.equal(posts.at(-1).kind, "error");
+    assert.ok(!posts.at(-1).text.includes("bad & command"));
+  }
+});
+
+test("a context response from the previous model cannot overwrite the new child's indicator", async () => {
+  const { provider, posts } = makeModelConversations();
+  const conv = provider._activeConv();
+  provider._ensureSession(conv);
+  let finish;
+  provider.opts.deps.runCliText = () =>
+    new Promise((resolve) => {
+      finish = resolve;
+    });
+  provider._refreshContextStatus(conv.id);
+  provider._setSessionModel("team/new-model");
+  await provider._sendDurableMessage(
+    { text: "continue", clientMessageId: "late-context" },
+    conv,
+  );
+  const count = posts.filter((message) => message.kind === "ctxStatus").length;
+  finish(JSON.stringify({ contextWindow: 1000, totalTokens: 900 }));
+  await new Promise(setImmediate);
+  assert.equal(
+    posts.filter((message) => message.kind === "ctxStatus").length,
+    count,
+  );
+  assert.equal(provider._ctxWindowCache, null);
+});
+
+test("pending approvals and prepared inputs retain their original child during a model change", () => {
+  const { provider, records } = makeModelConversations();
+  const conv = provider._activeConv();
+  const session = provider._ensureSession(conv);
+  provider._setSessionModel("team/new-model");
+  provider._convs.setPendingApproval(conv.id, {
+    kind: "approval",
+    id: "keep-approval",
+  });
+  assert.equal(provider._ensureSession(conv), session);
+  assert.equal(provider._convs.pendingInteractions(conv.id).length, 1);
+  provider._convs.clearApproval(conv.id);
+  conv.preparingSubmission = true;
+  assert.equal(provider._ensureSession(conv), session);
+  assert.equal(records[0].stops, 0);
+});
+
+test("context queries follow the running model until the selected model is launched", async () => {
+  const { provider, records, contextCalls } = makeModelConversations();
+  const conv = provider._activeConv();
+  provider._ensureSession(conv);
+  provider._setSessionModel("team/new-model");
+  provider._refreshContextStatus(conv.id);
+  await new Promise(setImmediate);
+  assert.ok(contextCalls[0].includes("configured-model"));
+  await provider._sendDurableMessage(
+    { text: "continue", clientMessageId: "context-switch" },
+    conv,
+  );
+  provider._refreshContextStatus(conv.id);
+  await new Promise(setImmediate);
+  assert.ok(contextCalls.at(-1).includes("team/new-model"));
+  assert.equal(records[0].stops, 1);
+});
+
 function makeSubmission() {
   const writes = [];
   const settlements = [];

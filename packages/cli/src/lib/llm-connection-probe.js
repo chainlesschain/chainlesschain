@@ -3,6 +3,12 @@ import { estimateCost } from "./llm-pricing.js";
 import { providerFetch } from "./formal-budget-provider-scope.js";
 import { isFormalBudgetError } from "./formal-budget-errors.js";
 import { normalizeOllamaBaseUrl } from "./ollama-base-url.js";
+import { resolveModelCapabilityProfile } from "./model-capabilities.js";
+import {
+  createOpenAIResponsesBody,
+  normalizeOpenAIResponsesResponse,
+  normalizeOpenAIResponsesUsage,
+} from "./openai-responses.js";
 
 // Reasoning models spend the same output allowance on thinking before the
 // final answer. A 16-token probe can therefore receive HTTP 200 with only
@@ -13,10 +19,16 @@ export const LLM_PROBE_SCHEMA = "chainlesschain.llm-connection-probe/v1";
 const count = (value) => Number.isSafeInteger(value) && value >= 0;
 
 /** Preserve missing/malformed usage as unknown, including cached prompt tokens. */
-export function normalizeLlmProbeUsage(provider, data) {
+export function normalizeLlmProbeUsage(provider, data, runtimeProtocol = null) {
   if (!data || typeof data !== "object" || Array.isArray(data)) return null;
   let usage;
-  if (provider === "ollama") {
+  if (provider === "openai" && runtimeProtocol === "openai-responses") {
+    // The existing Responses codec owns cached/reasoning token accounting.
+    // Do not invent a priced cache-write split that the probe has not verified.
+    const writes = data.usage?.input_tokens_details?.cache_write_tokens;
+    if (writes !== undefined && writes !== 0) return null;
+    usage = normalizeOpenAIResponsesUsage(data.usage);
+  } else if (provider === "ollama") {
     usage = {
       input_tokens: data.prompt_eval_count,
       output_tokens: data.eval_count,
@@ -145,6 +157,15 @@ export async function probeLlmConnection(
       ? normalizeOllamaBaseUrl(target.baseUrl)
       : target.baseUrl.replace(/\/+$/, "");
   const headers = { "Content-Type": "application/json" };
+  const profile =
+    target.provider === "openai"
+      ? resolveModelCapabilityProfile({
+          provider: target.provider,
+          model: target.model,
+          baseUrl: target.baseUrl,
+        })
+      : null;
+  const nativeResponses = profile?.runtimeProtocol === "openai-responses";
   let url, body;
   if (target.provider === "ollama") {
     url = `${base}/api/generate`;
@@ -172,6 +193,15 @@ export async function probeLlmConnection(
         contents: [{ parts: [{ text: "Say hi in one word." }] }],
         generationConfig: { maxOutputTokens: PROBE_OUTPUT_TOKENS },
       };
+    } else if (nativeResponses) {
+      url = `${base}/responses`;
+      headers.Authorization = `Bearer ${target.apiKey}`;
+      body = createOpenAIResponsesBody({
+        model: target.model,
+        messages: [{ role: "user", content: "Say hi in one word." }],
+        maxOutputTokens: PROBE_OUTPUT_TOKENS,
+        modelProfile: profile,
+      });
     } else {
       url = `${base}/chat/completions`;
       headers.Authorization = `Bearer ${target.apiKey}`;
@@ -204,7 +234,19 @@ export async function probeLlmConnection(
         }),
       );
     const data = await response.json();
-    usage = normalizeLlmProbeUsage(target.provider, data);
+    usage = normalizeLlmProbeUsage(
+      target.provider,
+      data,
+      profile?.runtimeProtocol,
+    );
+    if (nativeResponses && (data?.error || data?.status !== "completed")) {
+      throw new Error(
+        data?.status === "incomplete" &&
+        data?.incomplete_details?.reason === "max_output_tokens"
+          ? "The model responded but exhausted the test output limit before a final answer; this does not mean the connection settings are invalid"
+          : "The Responses endpoint did not complete the connection test",
+      );
+    }
     const text =
       target.provider === "ollama"
         ? data.response
@@ -218,7 +260,9 @@ export async function probeLlmConnection(
                 ?.filter((p) => p.thought !== true)
                 ?.map((p) => p.text || "")
                 .join("")
-            : data.choices?.[0]?.message?.content;
+            : nativeResponses
+              ? normalizeOpenAIResponsesResponse(data).message.content
+              : data.choices?.[0]?.message?.content;
     if (typeof text !== "string" || !text.trim()) {
       const reachedLimit =
         data.choices?.[0]?.finish_reason === "length" ||

@@ -127,6 +127,14 @@
       route: "local",
     },
     {
+      name: "/model",
+      description:
+        "set this conversation's model (use /model --default to reset)",
+      route: "message",
+      message: { type: "sessionModel" },
+      argField: "spec",
+    },
+    {
       name: "/goal",
       description: "set or show the session completion goal",
       route: "message",

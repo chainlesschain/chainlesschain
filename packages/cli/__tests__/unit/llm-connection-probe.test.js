@@ -12,6 +12,150 @@ const target = {
   apiKey: "test-only-key",
 };
 
+describe("catalog-selected OpenAI Responses probes", () => {
+  const native = {
+    provider: "openai",
+    model: "gpt-6.1-sol",
+    baseUrl: "https://api.openai.com/v1",
+    apiKey: "test-only-key",
+  };
+  const response = {
+    status: "completed",
+    output: [
+      { type: "message", content: [{ type: "output_text", text: "Hi" }] },
+    ],
+    usage: {
+      input_tokens: 20,
+      output_tokens: 8,
+      input_tokens_details: { cached_tokens: 5 },
+      output_tokens_details: { reasoning_tokens: 6 },
+    },
+  };
+
+  it("uses the existing Responses codec and retains billed reasoning/cache usage", async () => {
+    const fetchImpl = vi.fn(async (url, options) => {
+      expect(url).toBe("https://api.openai.com/v1/responses");
+      expect(options.headers.Authorization).toBe("Bearer test-only-key");
+      expect(JSON.parse(options.body)).toMatchObject({
+        model: native.model,
+        max_output_tokens: 1024,
+        store: false,
+      });
+      expect(JSON.parse(options.body)).not.toHaveProperty("max_tokens");
+      return { ok: true, json: async () => response };
+    });
+    const result = await probeLlmConnection(native, {
+      fetchImpl,
+      includeUsage: true,
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      reply: "Hi",
+      usage: {
+        input_tokens: 15,
+        output_tokens: 8,
+        cache_read_input_tokens: 5,
+        cache_creation_input_tokens: 0,
+      },
+      billingVerified: false,
+    });
+    expect(result.totalCostUsd).toBeGreaterThan(0);
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    undefined,
+    {},
+    {
+      input_tokens: 1,
+      output_tokens: 2,
+      input_tokens_details: { cached_tokens: 3 },
+    },
+    ...[5, null, "0", false].map((cache_write_tokens) => ({
+      input_tokens: 20,
+      output_tokens: 8,
+      input_tokens_details: { cache_write_tokens },
+    })),
+  ])(
+    "keeps missing or unsupported usage unknown instead of reporting a free test",
+    async (usage) => {
+      const result = await probeLlmConnection(native, {
+        includeUsage: true,
+        fetchImpl: async () => ({
+          ok: true,
+          json: async () => ({ ...response, usage }),
+        }),
+      });
+      expect(result.usage).toBeNull();
+      expect(result.totalCostUsd).toBeNull();
+    },
+  );
+
+  it("keeps billed usage when an incomplete response has no trustworthy final answer", async () => {
+    const fetchImpl = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        ...response,
+        status: "incomplete",
+        incomplete_details: { reason: "max_output_tokens" },
+      }),
+    }));
+    const failure = await probeLlmConnection(native, {
+      fetchImpl,
+      includeUsage: true,
+    }).catch((error) => error);
+    expect(failure.message).toContain("exhausted the test output limit");
+    expect(failure.probe).toMatchObject({
+      ok: false,
+      usage: { input_tokens: 15, output_tokens: 8 },
+    });
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
+  it("does not apply official Responses support to a custom gateway", async () => {
+    const fetchImpl = vi.fn(async (url, options) => {
+      expect(url).toBe("https://relay.example/v1/chat/completions");
+      expect(JSON.parse(options.body)).toHaveProperty("messages");
+      return {
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: "gateway reply" } }],
+        }),
+      };
+    });
+    await expect(
+      probeLlmConnection(
+        { ...native, baseUrl: "https://relay.example/v1" },
+        { fetchImpl },
+      ),
+    ).resolves.toBe("gateway reply");
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
+  it("keeps HTTP-200 provider errors private and retains reported usage", async () => {
+    const fetchImpl = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        ...response,
+        error: { code: native.apiKey, message: "private reasoning" },
+      }),
+    }));
+    const failure = await probeLlmConnection(native, {
+      fetchImpl,
+      includeUsage: true,
+    }).catch((error) => error);
+    expect(failure.message).toBe(
+      "The Responses endpoint did not complete the connection test",
+    );
+    expect(failure.message).not.toContain(native.apiKey);
+    expect(failure.probe).toMatchObject({
+      ok: false,
+      usage: { input_tokens: 15, output_tokens: 8 },
+    });
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+});
+
 describe("reasoning model connection probes", () => {
   it("redacts a provider-echoed credential before truncating error details", async () => {
     const apiKey = "test-only-sensitive-" + "x".repeat(80);

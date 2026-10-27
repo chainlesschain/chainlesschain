@@ -22,6 +22,7 @@ import com.chainlesschain.ide.PlanReview;
 import com.chainlesschain.ide.RemoteHandoff;
 import com.chainlesschain.ide.RewindCommands;
 import com.chainlesschain.ide.SessionArgs;
+import com.chainlesschain.ide.SessionModel;
 import com.chainlesschain.ide.SessionList;
 import com.chainlesschain.ide.SlashCommands;
 import com.intellij.ide.util.PropertiesComponent;
@@ -196,6 +197,8 @@ final class ConversationView {
     // usage is EDT-only; the window cache is cleared on LLM reconfigure.
     private Map<String, Object> lastCallUsage;
     private volatile long cachedContextWindow;
+    private volatile String appliedModelOverride = "";
+    private volatile String[] sessionLlm = {"", "", "", ""};
     // Live per-turn token tally (token_usage events); reset at turn end. EDT-only.
     private ChatEvents.TokenTally turnTokens;
     // Stop escalation: the session interrupt was already sent to — a second Stop
@@ -432,17 +435,22 @@ final class ConversationView {
                 });
                 return;
             }
-            String provider;
+            final long configurationRevision = LlmConfig.configurationRevision();
+            LlmConfig.ConfigurationState state;
             try {
-                provider = LlmConfig.getConfiguredProvider();
+                state = LlmConfig.getConfigurationState();
             } catch (Throwable t) {
-                return; // never block the panel on the probe
+                state = null;
             }
-            if (provider == null || provider.trim().isEmpty()) {
-                SwingUtilities.invokeLater(() -> {
-                    if (identity.isCurrent()) appendThinking(CcBundle.message("chat.noLlm") + "\n");
-                });
-            }
+            final LlmConfig.ConfigurationState result = state;
+            SwingUtilities.invokeLater(() -> {
+                if (disposed || project.isDisposed() || !identity.isCurrent()
+                        || configurationRevision != LlmConfig.configurationRevision()) return;
+                if (result != null && result.status == LlmConfig.ConfigurationStatus.UNCONFIGURED)
+                    appendThinking(CcBundle.message("chat.noLlm") + "\n");
+                else if (result == null || result.status == LlmConfig.ConfigurationStatus.UNAVAILABLE)
+                    appendThinking(CcBundle.message("chat.llmReadUnavailable") + "\n");
+            });
         });
     }
 
@@ -908,6 +916,9 @@ final class ConversationView {
             case "/goal":
                 setGoal(parts.length > 1 ? parts[1] : "");
                 return;
+            case "/model":
+                setSessionModel(rawArgs);
+                return;
             case "/loop":
                 setLoop(parts.length > 1 ? parts[1] : "");
                 return;
@@ -1018,6 +1029,21 @@ final class ConversationView {
             default:
                 append("ℹ unknown command " + cmd + " — try /help\n");
         }
+    }
+
+    private void setSessionModel(String spec) {
+        final String model;
+        try { model = SessionModel.parse(spec); }
+        catch (IllegalArgumentException error) { append(error.getMessage() + "\n"); return; }
+        if (model == null) {
+            append("Conversation model: " + (conv.modelOverride.isEmpty() ? "connection default" : conv.modelOverride)
+                    + ". Use /model <model-id> or /model --default. Global provider, endpoint and credentials are retained.\n");
+            return;
+        }
+        conv.modelOverride = model;
+        if (sessionIdSink != null) sessionIdSink.onSessionId(conv.id, conv.sessionId);
+        append("Conversation model → " + (model.isEmpty() ? "connection default" : model)
+                + "; applies to the next idle input. Running work continues with its current model. Other conversations are unaffected.\n");
     }
 
     private void setGoal(String spec) {
@@ -1349,13 +1375,15 @@ final class ConversationView {
             return;
         }
         final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
+        final Object generation = sessionGeneration;
+        final String[] llm = sessionLlm;
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            List<String> args = IntrospectArgs.build(kind, sid, null, null, true);
+            List<String> args = IntrospectArgs.build(kind, sid, llm[1], llm[0], true);
             String out = AgentChatSession.runCapture(args, cwd, 8000);
             final String line = (out == null || out.trim().isEmpty())
                     ? "ℹ /" + kind + " unavailable\n"
                     : "ℹ " + kind + ": " + out.trim().replace('\n', ' ') + "\n";
-            SwingUtilities.invokeLater(() -> append(line));
+            SwingUtilities.invokeLater(() -> { if (!disposed && sessionGeneration == generation) append(line); });
         });
     }
 
@@ -2042,8 +2070,11 @@ final class ConversationView {
         AgentChatSession existing = liveSession();
         long configurationRevision = com.chainlesschain.ide.LlmConfig.configurationRevision();
         boolean failedInitialization = receiptSupport != null && receiptSupport.isCompletedExceptionally();
+        final String modelOverride = conv.modelOverride;
         boolean reload = existing != null && existing.isRunning()
                 && !turnActive && existing.shouldReloadConfiguration(configurationRevision);
+        reload = reload || SessionModel.needsRestart(modelOverride, appliedModelOverride,
+                existing != null && existing.isRunning(), turnActive || (existing != null && existing.hasPendingTurns()));
         if (existing != null && existing.isRunning() && !reload && !failedInitialization) return;
 
         if (existing != null) stopCurrentSession(modeRevision);
@@ -2054,12 +2085,13 @@ final class ConversationView {
         receiptSupport = capabilities;
         worklogSupported = false;
         worklogSourceSent = false;
-        if (reload) {
+        if (reload || !java.util.Objects.equals(modelOverride, appliedModelOverride)) {
             cachedContextWindow = 0;
             conv.turnState = new ChatEvents.TurnState();
             SwingUtilities.invokeLater(() -> {
                 if (disposed || sessionGeneration != generation) return;
                 invalidateApprovalCards();
+                lastCallUsage = null;
                 append(CcBundle.message("chat.llmUpdated") + "\n");
             });
         }
@@ -2079,7 +2111,7 @@ final class ConversationView {
         // actually configured). Pass only provider/model/endpoint; the CLI
         // resolves the matching provider's key from its secure config store.
         final String[] llm;
-        try { llm = com.chainlesschain.ide.LlmConfig.readConfiguredLlmBlock(); }
+        try { llm = SessionModel.apply(com.chainlesschain.ide.LlmConfig.readConfiguredLlmBlock(), modelOverride); }
         catch (RuntimeException error) {
             throw new IOException(CcBundle.message("llm.form.readFailed") + " " + error.getMessage(), error);
         }
@@ -2118,6 +2150,8 @@ final class ConversationView {
         o.extraArgs = SessionArgs.build(
                 llm[0], llm[1], llm[2], llm[3], conv.sessionId, requestedMode, conv.thinking,
                 conv.goalCondition);
+        sessionLlm = llm;
+        appliedModelOverride = modelOverride;
 
         IdeBridgeService bridge = IdeBridgeService.getInstance(project);
         if (bridge != null && bridge.getPort() > 0) {
@@ -3242,15 +3276,20 @@ final class ConversationView {
             return;
         }
         final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
+        final Object generation = sessionGeneration;
+        final String[] llm = sessionLlm;
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             try {
-                List<String> args = IntrospectArgs.build("context", sid, null, null, true);
+                List<String> args = IntrospectArgs.build("context", sid, llm[1], llm[0], true);
                 String json = AgentChatSession.runCapture(args, cwd, 8000);
                 final IntrospectArgs.ContextStatus st = IntrospectArgs.parseContextStatus(json);
                 if (st == null) return;
                 // Remember the window so later turns derive the status locally.
-                cachedContextWindow = st.window;
-                SwingUtilities.invokeLater(() -> paintContextStatus(st));
+                SwingUtilities.invokeLater(() -> {
+                    if (disposed || sessionGeneration != generation) return;
+                    cachedContextWindow = st.window;
+                    paintContextStatus(st);
+                });
             } catch (Throwable ignored) {
                 // best-effort — context line is non-essential
             }

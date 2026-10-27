@@ -1,0 +1,60 @@
+{
+  "schema": "chainlesschain.native-task-followup-results/v1",
+  "baselineAcceptedDeliverables": 32,
+  "plannedSamples": 45,
+  "paidReady": false,
+  "nativeAdmission": "NOT_ADMITTED",
+  "automaticPromotion": "HOLD",
+  "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027-unicode-plan.json",
+  "samples": [
+    {
+      "sampleId": "verify-10",
+      "attempt": "unicode-fix",
+      "runId": "40468780496",
+      "executionSourceCommit": "5696eb87d5a2420aa7b9da2ab567d0fde9b3189a",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40468780496",
+      "versions": {
+        "cli": "0.166.127",
+        "vscode": "0.37.165",
+        "jetbrains": "0.4.182",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "setup": {
+        "pass": true,
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 2,
+            "passed": 2,
+            "failed": 0
+          }
+        ],
+        "receiptDigest": "sha256:772758a4b2daf96b97683c5a5fd9b9e858c15dd1dc7720dab3eb23b9da6fd4b5"
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate or baseline regression failed",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 2,
+            "passed": 2,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:905a229ee70a5fe6fe478f55f334e8677baf922fa9cb9d44ce008ac1b8574e7e"
+      },
+      "physicalRequestsStarted": 9,
+      "usageCompleteRequests": 9,
+      "tokenOnlyEstimateCny": 0.18861840000000002,
+      "actualBilledCostCny": null,
+      "billingAssessed": false,
+      "formalSample": false
+    }
+  ]
+}

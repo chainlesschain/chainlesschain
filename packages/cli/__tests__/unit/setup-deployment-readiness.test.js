@@ -6,6 +6,7 @@ vi.mock("../../src/lib/paths.js", () => ({
   getConfigPath: () => "isolated-setup-config.json",
 }));
 vi.mock("../../src/lib/config-manager.js", () => ({
+  loadConfig: vi.fn(() => ({ llm: {} })),
   setSecretConfigValue: vi.fn(),
   updateConfigAtomically: vi.fn(),
 }));
@@ -40,11 +41,41 @@ vi.mock(
   }),
 );
 
-import { registerSetupCommand } from "../../src/commands/setup.js";
+import {
+  registerSetupCommand,
+  resolveSetupLlmDefaults,
+} from "../../src/commands/setup.js";
 import { askSelect } from "../../src/lib/prompts.js";
 import { updateConfigAtomically } from "../../src/lib/config-manager.js";
 import { getEvolutionDeploymentStatus } from "../../src/lib/evolution/evolution-deployment-config.js";
 import logger from "../../src/lib/logger.js";
+
+it("new setup defaults follow the shared catalog while preserving existing models and gateway aliases", () => {
+  expect(resolveSetupLlmDefaults("openai")).toEqual({
+    model: "gpt-6.1-sol",
+    baseUrl: "https://api.openai.com/v1",
+  });
+  expect(
+    resolveSetupLlmDefaults("openai", {
+      provider: "openai",
+      model: "team/custom-alias",
+      baseUrl: "https://relay.example/v1",
+    }),
+  ).toEqual({
+    model: "team/custom-alias",
+    baseUrl: "https://relay.example/v1",
+  });
+  expect(
+    resolveSetupLlmDefaults("anthropic", {
+      provider: "openai",
+      model: "unrelated-model",
+      baseUrl: "https://relay.example/v1",
+    }),
+  ).toEqual({
+    model: "claude-sonnet-5-5",
+    baseUrl: "https://api.anthropic.com/v1",
+  });
+});
 
 beforeEach(() => {
   vi.clearAllMocks();

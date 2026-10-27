@@ -134,7 +134,13 @@ public final class LlmConnectionPanel extends JPanel {
         filling = true;
         current = value;
         int index = LlmConfig.PRESETS.length;
-        for (int i = 0; i < LlmConfig.PRESETS.length; i++) if (LlmConfig.PRESETS[i].id.equals(value.provider)) index = i;
+        for (int i = 0; i < LlmConfig.PRESETS.length; i++) {
+            LlmConfig.Preset preset = LlmConfig.PRESETS[i];
+            // Provider-specific IDs retain credential and pricing identity on relays.
+            if (preset.id.equals(value.provider) && (!Arrays.asList(protocols).contains(value.provider)
+                    || LlmConfig.normalizedBaseUrl(preset.baseUrl)
+                    .equals(LlmConfig.normalizedBaseUrl(value.baseUrl)))) index = i;
+        }
         provider.setSelectedIndex(index);
         for (int i = 0; i < protocols.length; i++) if (protocols[i].equals(value.provider)) protocol.setSelectedIndex(i);
         baseUrl.setText(value.baseUrl); model.setText(value.model); vision.setText(value.visionModel);

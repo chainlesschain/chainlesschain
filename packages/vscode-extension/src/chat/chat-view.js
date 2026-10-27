@@ -9,6 +9,7 @@
  * feedback, and native diff reviews against THIS editor.
  */
 const crypto = require("crypto");
+const { validSessionModel, parseSessionModel } = require("./session-model");
 const { DraftStore } = require("./draft-store");
 const { QuestionDrafts } = require("./question-drafts");
 const {
@@ -241,6 +242,8 @@ class ChatViewProvider {
         conv.draftKey = t.draftKey;
       if (t.mode) this._convs.setMode(conv.id, String(t.mode));
       if (t.thinking) this._convs.setThinking(conv.id, String(t.thinking));
+      if (validSessionModel(t.modelOverride))
+        conv.modelOverride = t.modelOverride;
       conv.worklogSource =
         typeof t.worklogSource === "string" ? t.worklogSource : null;
       if (t.goalCondition)
@@ -268,6 +271,7 @@ class ChatViewProvider {
         title: c.title,
         mode: c.mode || "default",
         thinking: c.thinking || "off",
+        modelOverride: c.modelOverride || "",
         goalCondition: c.goalCondition || "",
         ...(c.worklogSource ? { worklogSource: c.worklogSource } : {}),
       };
@@ -506,13 +510,16 @@ class ChatViewProvider {
     let dispatched = false;
     try {
       if (
-        conv.inputInitError &&
-        conv.inputInitErrorReported &&
-        conv.session?.running
+        conv.session?.running &&
+        ((conv.inputInitError && conv.inputInitErrorReported) ||
+          (!conv.turnActive &&
+            !this._convs.pendingInteractions(conv.id).length &&
+            (conv.modelOverride || "") !== (conv.appliedModelOverride || "")))
       ) {
-        // Stop a failed initializer before this explicit retry prepares its
-        // draft. A later Stop still cancels this retry during termination.
+        // Retire a failed initializer or an idle child with an older model
+        // before preparing the draft. A later Stop still cancels this input.
         this._stopSession(conv, { requireConfirmation: true });
+        this._lastCallUsage.delete(conv.id);
         inputCancelRevision = conv.inputCancelRevision || 0;
         await conv.stoppingSession?.completion;
         assertInputNotCancelled();
@@ -678,10 +685,10 @@ class ChatViewProvider {
       this._post({ kind: "insertText", text: t });
     }
     if (this._pendingReopen) {
-      const { sessionId, draftKey } = this._pendingReopen;
+      const { sessionId, draftKey, modelOverride } = this._pendingReopen;
       this._pendingReopen = null;
       this._pendingNewTab = false; // reopen subsumes a plain new tab
-      this._reopenInto(sessionId, draftKey);
+      this._reopenInto(sessionId, draftKey, modelOverride);
     } else if (this._pendingNewTab) {
       this._pendingNewTab = false;
       this._openNewTab();
@@ -2285,8 +2292,17 @@ class ChatViewProvider {
       }
       // Apply a changed cap on the next idle turn, preserving the resume id.
       // A setting edit must never interrupt work or a pending approval.
-      if (conv.turnActive || conv.maxTurns === maxTurns) return conv.session;
+      if (
+        conv.turnActive ||
+        ((conv.appliedModelOverride || "") !== (conv.modelOverride || "") &&
+          (conv.preparingSubmission ||
+            this._convs.pendingInteractions(conv.id).length)) ||
+        (conv.maxTurns === maxTurns &&
+          (conv.appliedModelOverride || "") === (conv.modelOverride || ""))
+      )
+        return conv.session;
       this._stopSession(conv);
+      this._lastCallUsage.delete(conv.id);
       if (conv.stoppingSession)
         return { running: false, send: () => false, sendEvent: () => false };
     }
@@ -2302,8 +2318,13 @@ class ChatViewProvider {
     // terminal `cc` — never drifts to a stale ambient default.
     const llm = this._resolveChatLlm({
       provider: this._safeLlmSetting("provider", chatCfg.get("provider")),
-      model: this._safeLlmSetting("model", chatCfg.get("model")),
+      model:
+        conv.modelOverride ||
+        this._safeLlmSetting("model", chatCfg.get("model")),
     });
+    if ((conv.appliedModelOverride || "") !== (conv.modelOverride || "")) {
+      this._lastCallUsage.delete(conv.id);
+    }
     // Declare the session id UP FRONT: anonymous stream sessions are
     // persistence-free by CLI design, so a first conversation spawned
     // without an id was never written — an IDE reload's --resume of the id
@@ -2448,6 +2469,8 @@ class ChatViewProvider {
     }
     if (exited || conv._sessionToken !== sessionToken) return session;
     conv.maxTurns = maxTurns;
+    conv.appliedModelOverride = conv.modelOverride || "";
+    conv.sessionLlm = llm;
     this._convs.setSession(conv.id, session);
     this._indexConversation(conv, "running");
     if (typeof this.opts.log === "function") {
@@ -2717,6 +2740,42 @@ class ChatViewProvider {
     this._persistTabs();
   }
 
+  _setSessionModel(spec) {
+    const conv = this._activeConv();
+    let model;
+    try {
+      model = parseSessionModel(spec);
+    } catch (error) {
+      this._postFrom(conv.id, { kind: "error", text: error.message });
+      return;
+    }
+    if (model === null) {
+      this._postFrom(conv.id, {
+        kind: "info",
+        text: `Conversation model: ${conv.modelOverride || "connection default"}. Use /model <model-id> or /model --default. Global provider, endpoint and credentials are retained.`,
+      });
+      return;
+    }
+    conv.modelOverride = model;
+    this._persistTabs();
+    this._postFrom(conv.id, {
+      kind: "info",
+      text: `Conversation model → ${model || "connection default"}; applies to the next idle input. Running work continues with its current model. Other conversations are unaffected.`,
+    });
+  }
+
+  _conversationLlm(conv, chatCfg) {
+    // While a switch is pending, context inspection must describe the child
+    // that is actually running rather than its next requested model.
+    if (conv.session?.running && conv.sessionLlm) return conv.sessionLlm;
+    return this._resolveChatLlm({
+      provider: this._safeLlmSetting("provider", chatCfg.get("provider")),
+      model:
+        conv.modelOverride ||
+        this._safeLlmSetting("model", chatCfg.get("model")),
+    });
+  }
+
   _setGoalCondition(spec) {
     const conv = this._activeConv();
     const value = String(spec || "").trim();
@@ -2805,10 +2864,11 @@ class ChatViewProvider {
    * message respawns with the new config (session id preserved → context kept).
    */
   _reloadLlmConfig() {
+    this._llmConfigProbe = null;
     // The model (hence its context-window size) may have changed — drop the
     // cached window so the next indicator refresh re-probes the CLI.
     this._ctxWindowCache = null;
-    let restartedActive = false;
+    let affectedConversations = 0;
     for (const summary of this._convs.list()) {
       const conv = this._convs.get(summary.id);
       if (!conv) continue;
@@ -2816,23 +2876,26 @@ class ChatViewProvider {
       this._lastCallUsage.delete(conv.id);
       if (conv.session && conv.session.running) {
         this._stopSession(conv);
-        if (conv.id === this._convs.activeId()) restartedActive = true;
+        affectedConversations++;
       }
     }
     this._post({
       kind: "info",
       text:
         "LLM config updated" +
-        (restartedActive ? " — applies on your next message" : ""),
+        (affectedConversations
+          ? ` — requested stop for ${affectedConversations} running conversation${affectedConversations === 1 ? "" : "s"}; the new connection applies to their next messages`
+          : " — applies to new agent sessions"),
     });
   }
 
   /** Open a fresh conversation tab (becomes active); its child spawns on the
    * first message. `sessionId` resumes an existing session (reopen-closed);
    * null starts blank. No "reset" is posted, so other tabs stay buffered. */
-  _openNewTab(sessionId = null, draftKey = null) {
+  _openNewTab(sessionId = null, draftKey = null, modelOverride = "") {
     this._activeConv(); // ensure at least the bootstrap exists first
     const created = this._convs.create({ sessionId: sessionId || null });
+    if (validSessionModel(modelOverride)) created.modelOverride = modelOverride;
     if (draftKey) created.draftKey = draftKey;
     this._rememberSessionId(sessionId || null);
     this._fileCache = null; // pick up files created since the last scan
@@ -2842,8 +2905,8 @@ class ChatViewProvider {
   }
 
   /** Reopen the most recently closed chat as a new tab, resuming its session. */
-  _reopenInto(sessionId, draftKey = null) {
-    this._openNewTab(sessionId, draftKey);
+  _reopenInto(sessionId, draftKey = null, modelOverride = "") {
+    this._openNewTab(sessionId, draftKey, modelOverride);
     this._post({
       kind: "info",
       text: sessionId
@@ -2904,10 +2967,17 @@ class ChatViewProvider {
     }
     const sessionId = this._lastClosed.sessionId || null;
     const draftKey = this._lastClosed.draftKey || null;
+    const modelOverride = this._lastClosed.modelOverride || "";
     this._lastClosed = null;
     this.vscode.commands.executeCommand("chainlesschainIdeChat.focus");
-    if (this._webviewReady && this.view) this._reopenInto(sessionId, draftKey);
-    else this._pendingReopen = { sessionId, ...(draftKey ? { draftKey } : {}) };
+    if (this._webviewReady && this.view)
+      this._reopenInto(sessionId, draftKey, modelOverride);
+    else
+      this._pendingReopen = {
+        sessionId,
+        ...(draftKey ? { draftKey } : {}),
+        ...(modelOverride ? { modelOverride } : {}),
+      };
   }
 
   /**
@@ -3267,6 +3337,9 @@ class ChatViewProvider {
     const conv = this._activeConv();
     const convId = conv.id;
     const asyncToken = this._asyncToken(conv);
+    const sessionToken = conv._sessionToken;
+    const current = () =>
+      this._convs.get(convId) === conv && conv._sessionToken === sessionToken;
     const id = conv.sessionId;
     if (!id) {
       this._postFrom(
@@ -3292,10 +3365,7 @@ class ChatViewProvider {
     const args = introspect.buildIntrospectArgs(
       kind,
       id,
-      this._resolveChatLlm({
-        model: this._safeLlmSetting("model", chatCfg.get("model")),
-        provider: this._safeLlmSetting("provider", chatCfg.get("provider")),
-      }),
+      this._conversationLlm(conv, chatCfg),
     );
     try {
       const options = {
@@ -3317,6 +3387,7 @@ class ChatViewProvider {
       } else {
         result = await introspect.runCliResult(options);
       }
+      if (!current()) return;
       if (result?.ok === true) {
         this._postFrom(
           convId,
@@ -3337,6 +3408,7 @@ class ChatViewProvider {
         asyncToken,
       );
     } catch (err) {
+      if (!current()) return;
       this._postFrom(
         convId,
         {
@@ -3662,6 +3734,7 @@ class ChatViewProvider {
     const conv = this._convs.get(convId);
     if (!conv) return;
     const asyncToken = this._asyncToken(conv);
+    const sessionToken = conv._sessionToken;
     const id = conv?.sessionId;
     if (!id) return;
     const chatCfg = this.vscode.workspace.getConfiguration(
@@ -3669,9 +3742,8 @@ class ChatViewProvider {
     );
     if (chatCfg.get("contextIndicator") === false) return;
     const introspect = require("./introspect-commands");
-    const model = this._safeLlmSetting("model", chatCfg.get("model"));
-    const provider = this._safeLlmSetting("provider", chatCfg.get("provider"));
-    const cacheKey = `${provider}::${model}`;
+    const { model, provider, baseUrl } = this._conversationLlm(conv, chatCfg);
+    const cacheKey = JSON.stringify([provider, model, baseUrl]);
     const usage = this._lastCallUsage.get(convId);
     const requestStatus = introspect.contextStatusFromUsage(
       usage,
@@ -3727,7 +3799,11 @@ class ChatViewProvider {
       (text) => {
         const status = introspect.parseContextStatus(text);
         if (!status) return;
-        if (this._convs.get(convId)?._asyncToken !== asyncToken) return;
+        if (
+          this._convs.get(convId)?._asyncToken !== asyncToken ||
+          conv._sessionToken !== sessionToken
+        )
+          return;
         // Remember the window so later turns derive the status locally.
         this._ctxWindowCache = { key: cacheKey, window: status.window };
         const live = introspect.contextStatusFromUsage(
@@ -4093,6 +4169,48 @@ class ChatViewProvider {
     this._reloadLlmConfig();
   }
 
+  async _probeLlmConfiguration(view) {
+    const token = {};
+    this._llmConfigProbe = token;
+    const current = () => this.view === view && this._llmConfigProbe === token;
+    let state;
+    try {
+      const deps = this.opts.deps || {};
+      if (deps.getLlmConfigurationState) {
+        state = await deps.getLlmConfigurationState({
+          command: this._cliCommand(),
+        });
+      } else if (deps.getConfiguredProvider) {
+        // Preserve the existing embedding/test seam; production uses the
+        // explicit three-state contract below.
+        const provider = await deps.getConfiguredProvider({
+          command: this._cliCommand(),
+        });
+        state = { status: provider ? "configured" : "unconfigured" };
+      } else {
+        state = await require("../llm-config").getLlmConfigurationState({
+          command: this._cliCommand(),
+        });
+      }
+    } catch {
+      state = { status: "unavailable" };
+    }
+    if (!current()) return;
+    try {
+      if (state?.status === "unconfigured") {
+        this._post({ kind: "setup", reason: "" });
+      } else if (state?.status !== "configured") {
+        this._post({
+          kind: "info",
+          text: "LLM configuration could not be read. Check CLI diagnostics and the configuration file before changing saved settings or re-entering the API key.",
+        });
+      }
+    } catch {
+      // The host may dispose the webview before its close callback runs.
+      // This advisory probe must not reject panel initialization.
+    }
+  }
+
   resolveWebviewView(view) {
     this.view = view;
     this._hostDomRevealRequested = false;
@@ -4105,20 +4223,7 @@ class ChatViewProvider {
     // it executes, and fast Webview hosts must not win that race.
     view.webview.onDidReceiveMessage((m) => this._handleMessage(m));
     this._renderChatWebview(view);
-    // First-run onboarding: no llm.provider configured → show the setup card.
-    (async () => {
-      try {
-        const getConfiguredProvider =
-          this.opts.deps?.getConfiguredProvider ||
-          require("../llm-config").getConfiguredProvider;
-        const provider = await getConfiguredProvider({
-          command: this._cliCommand(),
-        });
-        if (!provider) this._post({ kind: "setup", reason: "" });
-      } catch {
-        /* onboarding check is best-effort */
-      }
-    })();
+    void this._probeLlmConfiguration(view);
     // Approval-mode indicator in the status bar (auto-accept / bypass are
     // otherwise invisible once set). Guarded: the unit-test vscode mock has no
     // window.createStatusBarItem, so this stays inert there.
@@ -4751,6 +4856,8 @@ class ChatViewProvider {
       this._setMode(String(m.mode || "default"));
     } else if (m.type === "think") {
       this._setThinking(String(m.level || "off"));
+    } else if (m.type === "sessionModel") {
+      this._setSessionModel(m.spec);
     } else if (m.type === "goal") {
       this._setGoalCondition(m.spec);
     } else if (m.type === "loop") {
@@ -4899,6 +5006,7 @@ class ChatViewProvider {
             sessionId: res.conv.sessionId || null,
             draftKey: res.conv.draftKey || null,
             title: res.conv.title,
+            modelOverride: res.conv.modelOverride || "",
           };
           this._indexConversation(res.conv, "stopped");
         }
