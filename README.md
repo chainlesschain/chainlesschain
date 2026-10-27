@@ -4,6 +4,8 @@
 
 目标版本 **0.166.128** 包含 Goal 验收与检查点恢复、双 IDE 共享模型推荐及会话模型隔离、MCP / Skills 多语言检索、可选 MCP 紧凑目录和 Memory 索引优化。当前仍为源码候选；最新核验公开版本为下方的 `.127`。按准确提交的三系统 CLI CI / Strict Sandbox → Actions OIDC → 公开归档与来源回读 → 配套 IDE → 客户端顺序发布，见[发布进度](docs/research/cli-ide-release128-progress-2026-10-27.md)。本地测试及合成性能结果不替代真实任务与费用验收。
 
+最新候选纳入显式 `--review-changes`：在原预算与权限内复查写入/编辑交付，默认关闭，开启时仅输出最终文本。相关 36+9 原生复测在公开发行与安装核验后进行，当前仍为 **32/45**。
+
 ## CLI 0.166.127 自进化开关（已公开，2026-10-27）
 
 本次将新安装与旧自动生成本地部署的自进化默认关闭，支持通过 `config.json` 中的 `evolution.enabled`、CLI、cc ui、VS Code 和 JetBrains 重新开启或关闭。普通 Agent 与聊天可在关闭后继续使用；已有手动部署的主动选择保留。见[完整配置说明](docs/cli/SELF_EVOLUTION_CONFIGURATION.md)。

@@ -4,6 +4,14 @@
 
 ## 当前阶段
 
+### RC5：纳入复测修复，发布后再执行 36+9
+
+用户随后明确要求“那就先发布吧”“等发布完成再测试”。本次发布需包含 `5def22e364` 的通用契约覆盖指导和显式 `--review-changes`，因此此前 RC4 排除该提交的范围不再作为最新发布目标。新候选以已合入 Goal 夹具修复的主线 `ca9a66a87f9be52d8727438db624c17771ce08e0` 为基线，保留 CLI `.128` 与 IDE `.166` / `.183` 的目标版本。
+
+Astra 核对发现，新复查测试仅使组织策略映射所绑定的 `headless-runner.test.js` 字节摘要变化；组织策略拒绝测试及断言未改。仅更新该 producer 摘要，映射静态校验通过。CLI README、根中英文 README 与离线 changelog 同步描述可选复查的范围、费用预算和 final-text-only 行为。
+
+准备固定新引用 `cli-candidate-v0.166.128-rc5` 并为该准确提交运行完整 CLI CI 与 Strict Sandbox。此前 RC4 检查仅保留为历史证据，不能用于 RC5 发布；RC4 本地 watcher 已核实只验证门禁、不自动发布。所有原候选引用保留，不移动已有标签。发布仍使用 GitHub Actions OIDC，并在公开归档、来源与 child pins 核验成功后才进入 IDE 和客户端阶段。36+9 原生生成复测安排在相关公开版本安装核验完成后，当前不派发付费样本。
+
 ### RC4：Goal 集成夹具修复与固定发布范围
 
 固定源码为 `944c6e321ca0e65d03b9b4b2e1fa61720ac522cf`，候选引用 `cli-candidate-v0.166.128-rc4`。隔离工作树的 4 项定向测试再次全部通过，安全映射 producer 内容绑定有效且无需刷新。完整门禁：[CLI CI 40509241325](https://github.com/chainlesschain/chainlesschain/actions/runs/40509241325)、[Strict Sandbox 40509259153](https://github.com/chainlesschain/chainlesschain/actions/runs/40509259153)。见 [RC4 预检记录](./cli/evidence/release128-public/rc4-preflight.json)。

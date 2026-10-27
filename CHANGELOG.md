@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Share new-connection model recommendations and protocol-aware probes across CLI and IDE integrations; retain existing model aliases and per-conversation model overrides.
 - Improve multilingual MCP and Skills descriptor discovery. Add an opt-in compact MCP provider catalog while retaining the full host execution ceiling, permission checks and revoked-schema handling.
 - Avoid unnecessary Memory posting unions when a narrower filter is already available. Preserve ordering, pagination, scope/sink filters, disk verification and generation-bound caches.
+- Add explicit headless `--review-changes` for a one-shot completion review after successful write/edit changes, with subsequent repairs inside the existing request and cost budgets. Suppress provisional text/thinking deltas and do not append review after incomplete usage. Default off; self-review is not independent task acceptance.
 - Retain published child package pins. Publish only through GitHub Actions OIDC after exact-source Linux, Windows and macOS CLI CI and Strict Sandbox pass; publish paired IDEs and clients only after upstream public readback.
 - Keep real task and billing acceptance separate from local synthetic benchmarks. Cumulative acceptance remains 32/45; NOT_PAID_READY / NOT_ADMITTED / HOLD remain.
 
