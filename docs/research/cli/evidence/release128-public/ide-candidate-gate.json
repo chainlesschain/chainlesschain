@@ -1,0 +1,9 @@
+{
+  "schema": "chainlesschain.release128-workflow-observation/v1",
+  "observedAt": "2026-10-27T13:38:23.324Z",
+  "name": "IDE Extensions",
+  "sourceSha": "6551a06c2f694bb93d0197fa8b82becd25a83173",
+  "runId": 40506935492,
+  "conclusion": "success",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40506935492"
+}

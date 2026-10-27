@@ -6,6 +6,10 @@
 
 ### RC5：纳入复测修复，发布后再执行 36+9
 
+发布执行已收敛到固定源码 `7742d53340788904a1f7e88003d8b60899aa6e29`，CLI CI 为 [40515103060](https://github.com/chainlesschain/chainlesschain/actions/runs/40515103060)。RC4 的只读门禁等待器和进度监视器均已停止，未自动发布；旧 RC4 CI 已请求取消，避免与 RC5 重复占用 runner。本次不从 RC4 创建发行标签，不再为同一修复新建候选。
+
+IDE 固定候选 `6551a06c2f694bb93d0197fa8b82becd25a83173` 的 [40506935492](https://github.com/chainlesschain/chainlesschain/actions/runs/40506935492) 已完整成功；当前主线与该提交的两个 IDE 源码目录无差异。RC4 Strict Sandbox 的成功仅作为历史证据，不能用于放行 RC5。客户端准备继续隔离在 RC5 源码之上，保留 npm 包目录与最终授权 CLI 标签的字节一致性。
+
 用户随后明确要求“那就先发布吧”“等发布完成再测试”。本次发布需包含 `5def22e364` 的通用契约覆盖指导和显式 `--review-changes`，因此此前 RC4 排除该提交的范围不再作为最新发布目标。新候选以已合入 Goal 夹具修复的主线 `ca9a66a87f9be52d8727438db624c17771ce08e0` 为基线，保留 CLI `.128` 与 IDE `.166` / `.183` 的目标版本。
 
 Astra 核对发现，新复查测试仅使组织策略映射所绑定的 `headless-runner.test.js` 字节摘要变化；组织策略拒绝测试及断言未改。仅更新该 producer 摘要，映射静态校验通过。CLI README、根中英文 README 与离线 changelog 同步描述可选复查的范围、费用预算和 final-text-only 行为。

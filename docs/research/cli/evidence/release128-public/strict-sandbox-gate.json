@@ -1,0 +1,9 @@
+{
+  "schema": "chainlesschain.release128-workflow-observation/v1",
+  "observedAt": "2026-10-27T13:38:27.142Z",
+  "name": "CLI Strict Sandbox",
+  "sourceSha": "944c6e321ca0e65d03b9b4b2e1fa61720ac522cf",
+  "runId": 40509259153,
+  "conclusion": "success",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40509259153"
+}
