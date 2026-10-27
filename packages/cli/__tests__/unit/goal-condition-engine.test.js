@@ -49,6 +49,22 @@ describe("goal usage and terminal recovery", () => {
     });
     expect(restored.snapshot()).toEqual(before);
   });
+
+  it("rejects a damaged checkpoint instead of resetting recorded usage", () => {
+    const engine = new GoalConditionEngine({ condition: "contains:DONE" });
+    for (const patch of [
+      { tokens: null },
+      { outerTurns: -1 },
+      { costUsd: "0" },
+      { startedAtMs: null },
+    ]) {
+      const snapshot = engine.snapshot();
+      Object.assign(snapshot.state, patch);
+      expect(() => GoalConditionEngine.fromSnapshot(snapshot)).toThrow(
+        /checkpoint/,
+      );
+    }
+  });
 });
 
 describe("parseGoalCondition", () => {
@@ -153,6 +169,17 @@ describe("checkDeterministicCondition (pure)", () => {
     expect(checkDeterministicCondition(cond, { exitCode: 1 }).met).toBe(false);
   });
 
+  it.each([null, undefined, false, "", "0", NaN])(
+    "does not treat an unknown or coerced exit code (%s) as success",
+    (exitCode) => {
+      const result = checkDeterministicCondition(
+        parseGoalCondition("exit-zero:npm test"),
+        { exitCode },
+      );
+      expect(result.met).toBe(false);
+    },
+  );
+
   it("file-exists uses the injected predicate", () => {
     const cond = parseGoalCondition("file-exists:dist/app.js");
     expect(
@@ -176,6 +203,18 @@ describe("checkDeterministicCondition (pure)", () => {
 });
 
 describe("runDeterministicCheck", () => {
+  it.each([
+    { status: null, signal: "SIGTERM" },
+    { status: 0, error: new Error("spawn failed") },
+    undefined,
+  ])("rejects incomplete command results: %j", (result) => {
+    expect(
+      runDeterministicCheck(parseGoalCondition("exit-zero:npm test"), {
+        spawnSync: () => result,
+      }).met,
+    ).toBe(false);
+  });
+
   it("runs exit-zero via a REAL spawn and reads the exit code", () => {
     const zero = runDeterministicCheck(
       parseGoalCondition("exit-zero:node -e 0"),

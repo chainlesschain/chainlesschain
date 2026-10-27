@@ -157,7 +157,7 @@ export function checkDeterministicCondition(condition, evidence = {}) {
       };
     }
     case "exit-zero": {
-      const met = Number(evidence.exitCode) === 0;
+      const met = evidence.exitCode === 0;
       return {
         met,
         reason: `\`${condition.command}\` exited ${evidence.exitCode}`,
@@ -205,7 +205,10 @@ export function runDeterministicCheck(condition, deps = {}) {
       encoding: "utf8",
       windowsHide: true,
     });
-    evidence.exitCode = res?.status ?? (res?.error ? 1 : null);
+    // A timeout/signal or spawn error has no successful process exit, even if
+    // an adapter also supplies a status. Never coerce null/false/"0" to zero.
+    evidence.exitCode =
+      res?.error || res?.signal ? null : (res?.status ?? null);
   } else if (condition.kind === "file-exists") {
     const existsSync = deps.existsSync;
     evidence.fileExists = (p) =>
@@ -381,6 +384,25 @@ export class GoalConditionEngine {
 
   /** Restore a prior run (same clock injection contract). */
   static fromSnapshot(snap, { now } = {}) {
+    const state = snap?.state;
+    if (
+      !snap?.condition ||
+      !["model", "exit-zero", "file-exists", "contains", "regex"].includes(
+        snap.condition.kind,
+      ) ||
+      !state ||
+      !Number.isSafeInteger(state.outerTurns) ||
+      state.outerTurns < 0 ||
+      !Number.isSafeInteger(state.tokens) ||
+      state.tokens < 0 ||
+      typeof state.costUsd !== "number" ||
+      !Number.isFinite(state.costUsd) ||
+      state.costUsd < 0 ||
+      typeof state.startedAtMs !== "number" ||
+      !Number.isFinite(state.startedAtMs) ||
+      typeof state.done !== "boolean"
+    )
+      throw new TypeError("Invalid goal checkpoint state");
     const engine = new GoalConditionEngine({
       condition: snap.condition,
       budget: snap.budget,

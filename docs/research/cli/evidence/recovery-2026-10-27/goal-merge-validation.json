@@ -1,0 +1,55 @@
+{
+  "schema": "chainlesschain.goal-merge-validation/v1",
+  "recordedAt": "2026-10-27T06:02:54.698Z",
+  "baseCommit": "67db629cb9",
+  "testedTree": "working tree with goal completion and recovery changes",
+  "sourceBindings": [
+    {
+      "file": "packages/cli/src/lib/goal-condition-engine.js",
+      "sha256": "550b05328f9f493dfbb78c385dd65cc6423bcf0d2c4f54479ce39c3285c0aa0a"
+    },
+    {
+      "file": "packages/cli/src/lib/goal-check-evidence.js",
+      "sha256": "d43f51cb3909dc07cd32d2d41bcbe204ce77ba11a29d4c423f4c5d1946861885"
+    },
+    {
+      "file": "packages/cli/src/runtime/headless-runner.js",
+      "sha256": "a14997fac4ae1b4161771010944e129481277b3d573260a47950c6d66c1e84a0"
+    },
+    {
+      "file": "packages/cli/src/commands/agent.js",
+      "sha256": "cd6651aa174e75853bfdc93388c72c3c1552438dfe81ab7b1d04fdddd80c89a1"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/goal-condition-engine.test.js",
+      "sha256": "eb4b053ad4a0fc70183d159d0f00f48be17b309c261a5b5989f52ad139f0f7d7"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/goal-check-evidence.test.js",
+      "sha256": "72fb5b5a5d0dd6e6098f9f46fd35b2e221b30758e99f15ca0e64d210fb852bf9"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/headless-runner.test.js",
+      "sha256": "dd6738de102c99b0e521fd46bc60acea6992b1f17ab48278ef69a7bcc0cc8d46"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/headless-runner-cost-budget.test.js",
+      "sha256": "1ed444c3edb0f6de1d57a8a9eabccfedf84081563200f8f906c1910cd00a191f"
+    }
+  ],
+  "sourceUnchangedThroughValidation": true,
+  "node": "v22.22.2",
+  "platform": "win32",
+  "files": 6,
+  "tests": 187,
+  "passed": 187,
+  "failed": 0,
+  "pending": 0,
+  "report": {
+    "path": "goal-merge-tests.json.gz",
+    "digest": "sha256:1abf39bb292496ad1660915b4cad5b2e58dc56b29c5e5b1e983aa03811c2604b",
+    "rawDigest": "sha256:426afe2372392ddfabedc381221e2350cac58cf1b1726f63475b12cc5ff73f5e"
+  },
+  "newModelCalls": 0,
+  "newAcceptedSamples": 0
+}

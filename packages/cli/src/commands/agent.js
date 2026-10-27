@@ -584,6 +584,10 @@ export function registerAgentCommand(program, dependencies = {}) {
       "Session completion condition; re-drives outer turns until met. Prefix exit-zero:/file-exists:/contains:/regex: (deterministic) or model:<desc> (model-judged)",
     )
     .option(
+      "--goal-recovery-reviewed",
+      "Resume an interrupted goal after reviewing prior effects and usage (requires --resume/--continue and --goal-condition)",
+    )
+    .option(
       "--max-outer-turns <n>",
       "Max outer re-drive turns for --goal-condition (default 10, hard cap 100)",
       (v) => parseInt(v, 10),
@@ -1949,6 +1953,16 @@ export function registerAgentCommand(program, dependencies = {}) {
             process.exit(1);
           }
         }
+        if (
+          options.goalRecoveryReviewed === true &&
+          (!options.goalCondition || !options.session)
+        ) {
+          process.stderr.write(
+            "--goal-recovery-reviewed requires a resumed session and --goal-condition\n",
+          );
+          await _finishWorktree();
+          process.exit(1);
+        }
         const maxTurns = options.maxTurns
           ? parseInt(options.maxTurns, 10)
           : undefined;
@@ -2049,6 +2063,7 @@ export function registerAgentCommand(program, dependencies = {}) {
           // --goal-condition: session-level completion-condition engine — drives
           // outer turns until the condition is met or a budget is exhausted.
           goalCondition: options.goalCondition || null,
+          goalRecoveryReviewed: options.goalRecoveryReviewed === true,
           maxOuterTurns: Number.isFinite(options.maxOuterTurns)
             ? options.maxOuterTurns
             : undefined,

@@ -169,6 +169,19 @@ export const _goalProcessDeps = {
 export const RUNTIME_LEDGER_PERSISTENCE_FAILURE_MESSAGE =
   "CC_RUNTIME_USAGE_LEDGER_FAILED: runtime usage telemetry was not durably persisted";
 
+export const GOAL_CHECKPOINT_FAILURE_CODE = "CC_GOAL_CHECKPOINT_FAILED";
+export const GOAL_CHECKPOINT_FAILURE_MESSAGE =
+  `${GOAL_CHECKPOINT_FAILURE_CODE}: goal state could not be safely saved or restored; ` +
+  "verify prior effects and usage before continuing; for an interrupted goal, " +
+  "resume with --goal-recovery-reviewed only after that review";
+
+function goalCheckpointFailure(cause, phase) {
+  const error = new Error(GOAL_CHECKPOINT_FAILURE_MESSAGE, { cause });
+  error.code = GOAL_CHECKPOINT_FAILURE_CODE;
+  error.goalCheckpointPhase = phase;
+  return error;
+}
+
 export function resolveHeadlessMeteredSessionId(persist, sessionId) {
   return persist && sessionId ? sessionId : null;
 }
@@ -230,6 +243,12 @@ import {
   runtimeToolCallId,
 } from "../lib/runtime-usage-ledger.js";
 import { runMeteredDirectModelCall } from "../lib/direct-model-usage.js";
+import {
+  GoalCheckEvidence,
+  buildGoalJudgePrompt,
+  usableGoalEvidence,
+  validateGoalJudgeVerdict,
+} from "../lib/goal-check-evidence.js";
 import { resolveTeamMessageToolBundle } from "../lib/agent-team/team-message-tools.js";
 import { normalizeDecisionMode } from "../lib/decision-layer/contracts.js";
 import { createSkillDecisionRuntime } from "../lib/decision-layer/runtime.js";
@@ -3363,17 +3382,25 @@ async function runAgentHeadlessInWorkspace(
   let _goalHelpers = null;
   let _goalTokensSeen = 0; // per-turn usage deltas (engine totals == run total)
   let _goalCostSeen = 0;
+  let goalSetupFailure = null;
+  let goalRecoveryReviewed = false;
+  const goalEvidence = options.goalCondition
+    ? new GoalCheckEvidence({ readOnlyTools: READ_ONLY_TOOLS })
+    : null;
   // Model-judged conditions reuse the run's own model as an independent
   // evaluator (mirrors --goal-assess). Overridable via deps for tests.
   const _defaultGoalJudge = async (cond, transcript) => {
+    if (!usableGoalEvidence(transcript.goalEvidence).length) {
+      return {
+        met: false,
+        reason:
+          "No current successful tool evidence; run an explicit check for the goal condition",
+        evidence: { kind: "model", source: "current-turn-tools", toolIds: [] },
+      };
+    }
     const { chatWithTools } = await import("./agent-core.js");
     const { firstBalancedJson } = await import("../lib/json-schema-output.js");
-    const judgePrompt =
-      `You are judging whether a coding session met a completion condition.\n` +
-      `Condition: ${cond.text || cond.source}\n\n` +
-      `Latest assistant output:\n${String(transcript.finalText || "").slice(0, 2000)}\n\n` +
-      `Reply with STRICT JSON only, for example: {"met": false, "reason": "<short>"}. ` +
-      `Set met to true only when the condition is satisfied; otherwise false.`;
+    const judgePrompt = buildGoalJudgePrompt(cond, transcript);
     const r = await runMeteredDirectModelCall({
       sessionId: resolveHeadlessMeteredSessionId(persist, sessionId),
       persist: persist
@@ -3394,37 +3421,33 @@ async function runAgentHeadlessInWorkspace(
         }),
     });
     const text = r?.message?.content || "";
-    let met = false;
-    let reason = "model judge returned no verdict";
+    let verdict = null;
     const block = firstBalancedJson(text, "{");
     if (block) {
       try {
-        const parsed = JSON.parse(block);
-        met = parsed.met === true;
-        if (typeof parsed.reason === "string" && parsed.reason.trim())
-          reason = parsed.reason.trim();
-        else reason = met ? "condition met" : "condition not met";
+        verdict = JSON.parse(block);
       } catch {
         /* tolerant: a non-JSON verdict stays unmet */
       }
     }
-    return {
-      met,
-      reason,
-      evidence: { kind: "model", raw: text.slice(0, 200) },
-    };
+    return validateGoalJudgeVerdict(verdict, transcript.goalEvidence);
   };
-  // Persist the engine snapshot as a hash-chained `goal_snapshot` session event
-  // (best-effort, only when persisting). Re-read on --resume so an unfinished
-  // goal continues across processes with its outerTurns/tokens/cost/startedAtMs
-  // intact. rebuildMessages ignores this event type, so it never pollutes model
-  // context. Defined here so the outer loop can call it after each evaluate().
-  const persistGoalSnapshot = () => {
+  // A running checkpoint precedes model/tool effects; an evaluated checkpoint
+  // precedes publishing the decision. An interrupted running phase requires
+  // reconciliation on resume instead of silently replaying the old goal state.
+  const persistGoalSnapshot = (phase, failurePhase = "after-model") => {
     if (!persist || !goalEngine) return;
     try {
-      store.appendEvent(sessionId, "goal_snapshot", goalEngine.snapshot());
-    } catch {
-      // best-effort — never fail the run over persistence
+      store.appendEvent(sessionId, "goal_snapshot", {
+        ...goalEngine.snapshot(),
+        checkpoint: {
+          schema: "chainlesschain.goal-checkpoint/v1",
+          phase,
+          ...(goalRecoveryReviewed ? { recoveryReviewed: true } : {}),
+        },
+      });
+    } catch (error) {
+      throw goalCheckpointFailure(error, failurePhase);
     }
   };
   if (options.goalCondition) {
@@ -3442,17 +3465,41 @@ async function runAgentHeadlessInWorkspace(
         try {
           const event = store.findLatestEvent(resumeId, "goal_snapshot");
           const snap = event?.data;
+          if (
+            event &&
+            (!snap?.state ||
+              typeof snap.state.done !== "boolean" ||
+              (snap.checkpoint != null &&
+                (snap.checkpoint.schema !==
+                  "chainlesschain.goal-checkpoint/v1" ||
+                  !["ready", "running", "evaluated"].includes(
+                    snap.checkpoint.phase,
+                  ))))
+          ) {
+            throw goalCheckpointFailure(null, "before-model");
+          }
+          if (snap?.checkpoint?.phase === "running") {
+            if (options.goalRecoveryReviewed !== true)
+              throw goalCheckpointFailure(null, "before-model");
+            goalRecoveryReviewed = true;
+          }
           if (snap && snap.state && snap.state.done !== true) {
             restoredSnap = snap;
           }
-        } catch {
-          restoredSnap = null; // unreadable transcript → start fresh
+        } catch (error) {
+          throw error?.code === GOAL_CHECKPOINT_FAILURE_CODE
+            ? error
+            : goalCheckpointFailure(error, "before-model");
         }
       }
       if (restoredSnap) {
-        goalEngine = eng.GoalConditionEngine.fromSnapshot(restoredSnap, {
-          now: goalNow,
-        });
+        try {
+          goalEngine = eng.GoalConditionEngine.fromSnapshot(restoredSnap, {
+            now: goalNow,
+          });
+        } catch (error) {
+          throw goalCheckpointFailure(error, "before-model");
+        }
       } else {
         goalEngine = new eng.GoalConditionEngine({
           condition: options.goalCondition,
@@ -3471,13 +3518,14 @@ async function runAgentHeadlessInWorkspace(
         GOAL_DECISION: eng.GOAL_DECISION,
       };
       const started = goalEngine.start();
+      persistGoalSnapshot("ready", "before-model");
       emitStream({
         type: started.type,
         condition: started.condition,
         budget: started.budget,
         resumed: Boolean(restoredSnap),
+        ...(goalRecoveryReviewed ? { recovery_reviewed: true } : {}),
       });
-      persistGoalSnapshot(); // checkpoint the starting/restored state
       if (isText)
         writeErr(
           `  ◎ goal-condition ${restoredSnap ? "resumed" : "active"}: ` +
@@ -3486,10 +3534,15 @@ async function runAgentHeadlessInWorkspace(
             `${goalEngine.budget.maxOuterTurns})\n`,
         );
     } catch (err) {
-      // A bad spec should have been rejected at the command layer; fail-open so
-      // a malformed condition never aborts an otherwise-valid run.
-      goalEngine = null;
-      if (isText) writeErr(`  goal-condition ignored: ${err.message}\n`);
+      if (err?.code === GOAL_CHECKPOINT_FAILURE_CODE) {
+        // Surface through the main failure/cleanup path before any agent call.
+        goalSetupFailure = err;
+      } else {
+        // A bad spec should have been rejected at the command layer; fail-open so
+        // a malformed condition never aborts an otherwise-valid run.
+        goalEngine = null;
+        if (isText) writeErr(`  goal-condition ignored: ${err.message}\n`);
+      }
     }
   }
 
@@ -3522,8 +3575,11 @@ async function runAgentHeadlessInWorkspace(
   let loopFailureOutcome = null;
   let cleanupFailure = null;
   try {
+    if (goalSetupFailure) throw goalSetupFailure;
     while (true) {
       sessionHostLease?.assert?.();
+      persistGoalSnapshot("running", "before-model");
+      goalEvidence?.beginTurn();
       // P1 turn→checkpoint binding: one drain of the loop = one turn. Anchor
       // the conversation offset before the model sees the new user turn. A
       // `--worktree` run stamps its isolation worktree (branch name, threaded
@@ -3586,6 +3642,7 @@ async function runAgentHeadlessInWorkspace(
               args: event.args,
             };
             toolCalls.push(toolCall);
+            goalEvidence?.started(toolCall);
             toolStartedAt.set(
               telemetryToolId,
               deps.now ? deps.now() : Date.now(),
@@ -3713,6 +3770,7 @@ async function runAgentHeadlessInWorkspace(
               if (policyEvent) emitStream(policyEvent);
             }
             if (settledCall) {
+              goalEvidence?.settled(settledCall, event.result, Boolean(err));
               settledCall.is_error = Boolean(err);
               settledCall.durationMs =
                 event.result?.toolTelemetryRecord?.durationMs ??
@@ -4069,6 +4127,7 @@ async function runAgentHeadlessInWorkspace(
               prompt: options.prompt,
               finalText,
               toolCalls,
+              goalEvidence: goalEvidence.snapshot(),
             });
           }
         } catch (err) {
@@ -4082,6 +4141,8 @@ async function runAgentHeadlessInWorkspace(
         }
 
         const { decision, events } = goalEngine.evaluate(evaluation);
+        // Publish only after the decision and accumulated usage are durable.
+        persistGoalSnapshot("evaluated");
         for (const ev of events) {
           emitStream(ev);
           if (isText) {
@@ -4097,10 +4158,6 @@ async function runAgentHeadlessInWorkspace(
               );
           }
         }
-        // Checkpoint the post-evaluate state (outerTurns incremented, and
-        // done/outcome on a terminal decision) so a crash or Ctrl-C between here
-        // and the next turn still resumes at the right point.
-        persistGoalSnapshot();
         if (decision === _goalHelpers.GOAL_DECISION.CONTINUE) {
           messages.push(
             markRuntimeOnlySessionMessage({
@@ -4119,6 +4176,8 @@ async function runAgentHeadlessInWorkspace(
             );
           continue; // re-drive: run another outer turn
         }
+        if (decision === _goalHelpers.GOAL_DECISION.EXHAUSTED)
+          endReason = "goal-exhausted";
         // complete | exhausted → fall through to the break below.
       }
       break;
@@ -4126,13 +4185,16 @@ async function runAgentHeadlessInWorkspace(
   } catch (err) {
     const runtimeLedgerPersistenceFailed =
       err?.runtimeLedgerPersistence === true;
-    const persistence = runtimeLedgerPersistenceFailed
+    const goalCheckpointFailed = err?.code === GOAL_CHECKPOINT_FAILURE_CODE;
+    const persistenceFailed =
+      runtimeLedgerPersistenceFailed || goalCheckpointFailed;
+    const persistence = persistenceFailed
       ? projectSessionPersistenceFailure(
           createSessionPersistenceFailure(err, {
             sessionId,
             operation: "append-event",
           }),
-          { phase: "after-model" },
+          { phase: err.goalCheckpointPhase || "after-model" },
         )
       : null;
     if (persistence) {
@@ -4146,17 +4208,19 @@ async function runAgentHeadlessInWorkspace(
       err?.code === "CC_SESSION_BUDGET_EXHAUSTED" ||
       err?.code === "CC_SESSION_BUDGET_USAGE_UNKNOWN" ||
       options.sessionBudget?.signal?.aborted === true;
-    const message = runtimeLedgerPersistenceFailed
-      ? RUNTIME_LEDGER_PERSISTENCE_FAILURE_MESSAGE
-      : err?.code === "CC_SESSION_BUDGET_USAGE_UNKNOWN"
-        ? err.message
-        : sessionBudgetFailed
-          ? sessionBudgetAdmissionError(
-              options.sessionBudget?.reason?.() || err?.budgetReason,
-              "run",
-            ).message
-          : err?.message || String(err);
-    const errorSubtype = runtimeLedgerPersistenceFailed
+    const message = goalCheckpointFailed
+      ? GOAL_CHECKPOINT_FAILURE_MESSAGE
+      : runtimeLedgerPersistenceFailed
+        ? RUNTIME_LEDGER_PERSISTENCE_FAILURE_MESSAGE
+        : err?.code === "CC_SESSION_BUDGET_USAGE_UNKNOWN"
+          ? err.message
+          : sessionBudgetFailed
+            ? sessionBudgetAdmissionError(
+                options.sessionBudget?.reason?.() || err?.budgetReason,
+                "run",
+              ).message
+            : err?.message || String(err);
+    const errorSubtype = persistenceFailed
       ? "error_persistence"
       : sessionBudgetFailed
         ? "error_session_budget"
@@ -4166,9 +4230,7 @@ async function runAgentHeadlessInWorkspace(
     const diagnosticFields = transportDetails
       ? { error_details: transportDetails }
       : {
-          ...(runtimeLedgerPersistenceFailed && err.code
-            ? { code: err.code }
-            : {}),
+          ...(persistenceFailed && err.code ? { code: err.code } : {}),
           ...(persistence ? { persistence } : {}),
         };
     if (isStream) {
@@ -4204,13 +4266,11 @@ async function runAgentHeadlessInWorkspace(
     // "the model call failed" from "the run itself errored" (1).
     loopFailureOutcome = {
       exitCode:
-        runtimeLedgerPersistenceFailed || sessionBudgetFailed
-          ? 1
-          : classifyLoopError(err),
+        persistenceFailed || sessionBudgetFailed ? 1 : classifyLoopError(err),
       result: message,
       isError: true,
       ...(persistence ? { persistence } : {}),
-      ...(runtimeLedgerPersistenceFailed && err.code ? { code: err.code } : {}),
+      ...(persistenceFailed && err.code ? { code: err.code } : {}),
     };
   } finally {
     // Capture body-cache hits/misses caused by list_skills/run_skill during the
@@ -4380,18 +4440,22 @@ async function runAgentHeadlessInWorkspace(
   const exhausted =
     endReason === "budget-exhausted" || endReason === "max_turns";
   const costStopped = endReason === "cost-budget-exhausted";
+  const goalExhausted = endReason === "goal-exhausted";
   let isError =
     exhausted ||
     costStopped ||
+    goalExhausted ||
     endReason === "no-response" ||
     endReason === "deferred-mutation-unresolved";
   let subtype = exhausted
     ? "error_max_turns"
     : costStopped
       ? "error_max_budget"
-      : isError
-        ? "error"
-        : "success";
+      : goalExhausted
+        ? "error_goal_condition"
+        : isError
+          ? "error"
+          : "success";
   const durationMs = (deps.now ? deps.now() : Date.now()) - startedAt;
   let persistenceFailure = null;
   let sessionPersistenceCode = null;

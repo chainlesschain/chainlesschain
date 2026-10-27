@@ -5,7 +5,12 @@
  * subtype:error_max_budget. Bootstrap / approval gate / MCP are injected.
  */
 import { describe, it, expect } from "vitest";
-import { runAgentHeadless } from "../helpers/test-model-egress.js";
+import { runAgentHeadless as runHeadless } from "../helpers/test-model-egress.js";
+
+// This suite checks injected usage events, not repository skills/settings.
+// Avoid real user configuration scans consuming the budget assertion timeout.
+const runAgentHeadless = (options, deps) =>
+  runHeadless({ hermeticExecution: true, ...options }, deps);
 
 function makeDeps(agentLoop) {
   const out = [];

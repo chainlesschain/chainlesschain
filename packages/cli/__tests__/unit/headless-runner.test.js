@@ -2468,7 +2468,7 @@ describe("headless-runner — goal-condition outer-turn re-drive", () => {
     const seen = {};
     const { deps, out } = makeDeps(replyText("x"));
     deps.agentLoop = scriptedLoop(["nope"], seen);
-    await runAgentHeadless(
+    const result = await runAgentHeadless(
       {
         prompt: "try",
         outputFormat: "stream-json",
@@ -2482,6 +2482,12 @@ describe("headless-runner — goal-condition outer-turn re-drive", () => {
     const ex = events.find((e) => e.type === "goal_exhausted");
     expect(ex).toBeTruthy();
     expect(ex.limit).toBe("max_outer_turns");
+    expect(result).toMatchObject({ isError: true, exitCode: 1 });
+    expect(events.at(-1)).toMatchObject({
+      type: "result",
+      is_error: true,
+      subtype: "error_goal_condition",
+    });
   });
 
   it("evaluates exit-zero via injected spawnSync (met → complete, one turn)", async () => {
@@ -2561,6 +2567,92 @@ describe("headless-runner — goal-condition outer-turn re-drive", () => {
     expect(seen.turns).toBe(2);
     expect(calls).toBe(2);
     expect(types).toContain("goal_completed");
+  });
+
+  it("rejects an assistant-only success claim without sending another model request", async () => {
+    const { deps, out } = makeDeps(replyText("unused"));
+    deps.agentLoop = scriptedLoop(
+      ["All tests passed; the work is finished."],
+      {},
+    );
+    const result = await runAgentHeadless(
+      {
+        prompt: "fix tests",
+        outputFormat: "stream-json",
+        goalCondition: "model:all tests pass",
+        maxOuterTurns: 1,
+        evolutionIngress: null,
+      },
+      deps,
+    );
+    expect(result).toMatchObject({ isError: true, exitCode: 1 });
+    expect(deps.chatFn).not.toHaveBeenCalled();
+    const events = parseLines(out);
+    expect(
+      events.find((event) => event.type === "goal_evaluated"),
+      JSON.stringify(events),
+    ).toMatchObject({
+      met: false,
+      evidence: { toolIds: [] },
+    });
+    expect(events.some((event) => event.type === "goal_completed")).toBe(false);
+  });
+
+  it("pairs observed tool results by invocation and resets evidence on each outer turn", async () => {
+    const { deps } = makeDeps(replyText("unused"));
+    let turn = 0;
+    deps.agentLoop = async function* () {
+      turn++;
+      yield {
+        type: "tool-executing",
+        tool: "read_file",
+        tool_use_id: `read-${turn}`,
+        args: { path: "app.js" },
+      };
+      // An unrelated explicit ID must not settle the active invocation.
+      yield {
+        type: "tool-result",
+        tool: "read_file",
+        tool_use_id: "unmatched",
+        result: { content: "wrong evidence" },
+      };
+      yield {
+        type: "tool-result",
+        tool: "read_file",
+        tool_use_id: `read-${turn}`,
+        result: { content: `observed turn ${turn}` },
+      };
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    deps.goalConditionJudge = vi.fn(async (_cond, transcript) => {
+      expect(transcript.goalEvidence.pending).toBe(0);
+      expect(transcript.goalEvidence.tools).toHaveLength(1);
+      expect(transcript.goalEvidence.tools[0]).toMatchObject({
+        tool: "read_file",
+        settled: true,
+        successful: true,
+        current: true,
+      });
+      expect(transcript.goalEvidence.tools[0].result).toContain(
+        `observed turn ${turn}`,
+      );
+      expect(JSON.stringify(transcript.goalEvidence)).not.toContain(
+        "wrong evidence",
+      );
+      return { met: turn === 2, reason: "observed current turn" };
+    });
+    await runAgentHeadless(
+      {
+        prompt: "inspect",
+        outputFormat: "stream-json",
+        goalCondition: "model:inspection is complete",
+        evolutionIngress: null,
+        ephemeral: true,
+      },
+      deps,
+    );
+    expect(deps.goalConditionJudge).toHaveBeenCalledTimes(2);
   });
 
   it("is inert when --goal-condition is unset (single turn, no goal_* events)", async () => {
@@ -2730,6 +2822,202 @@ describe("headless-runner — goal-condition cross-process resume", () => {
     const last = (store.snapshots["sess-D"] || []).slice(-1)[0];
     expect(last.state.outerTurns).toBe(1); // fresh count, not continued from 4
   });
+
+  it.each(["stream-json", "json", "text"])(
+    "reports an opening checkpoint failure before running the agent (%s)",
+    async (outputFormat) => {
+      const store = makeGoalStore();
+      const { deps, out, err } = makeDeps(replyText("x"));
+      Object.assign(deps, store.deps);
+      const appendEvent = deps.appendEvent;
+      deps.appendEvent = (id, type, data) => {
+        if (type === "goal_snapshot")
+          throw Object.assign(new Error("private storage path"), {
+            code: "ENOSPC",
+          });
+        return appendEvent(id, type, data);
+      };
+      deps.agentLoop = vi.fn(scriptedLoop(["DONE"]));
+      const result = await runAgentHeadless(
+        {
+          prompt: "finish",
+          outputFormat,
+          goalCondition: "contains:DONE",
+          sessionId: "goal-disk-full",
+          persistSession: true,
+        },
+        deps,
+      );
+      expect(result).toMatchObject({
+        exitCode: 1,
+        isError: true,
+        code: "CC_GOAL_CHECKPOINT_FAILED",
+        persistence: { phase: "before-model", fs_code: "ENOSPC" },
+      });
+      expect(deps.agentLoop).not.toHaveBeenCalled();
+      expect(out.join("") + err.join("")).not.toContain("private storage path");
+      if (outputFormat !== "text") {
+        const terminal = parseLines(out).at(-1);
+        expect(terminal).toMatchObject({
+          subtype: "error_persistence",
+          is_error: true,
+          code: "CC_GOAL_CHECKPOINT_FAILED",
+        });
+      }
+    },
+  );
+
+  it.each(["DONE", "still working"])(
+    "never publishes a goal decision or starts another turn after its checkpoint fails (%s)",
+    async (answer) => {
+      const store = makeGoalStore();
+      const { deps, out } = makeDeps(replyText("x"));
+      Object.assign(deps, store.deps);
+      const appendEvent = deps.appendEvent;
+      deps.appendEvent = (id, type, data) => {
+        if (type === "goal_snapshot" && data.state.outerTurns > 0)
+          throw Object.assign(new Error("storage is read-only"), {
+            code: "EROFS",
+          });
+        return appendEvent(id, type, data);
+      };
+      deps.agentLoop = vi.fn(scriptedLoop([answer]));
+      const options = {
+        prompt: "finish",
+        outputFormat: "stream-json",
+        goalCondition: "contains:DONE",
+        sessionId: "goal-post-turn-failure",
+        persistSession: true,
+      };
+      const result = await runAgentHeadless(options, deps);
+      expect(result).toMatchObject({
+        exitCode: 1,
+        isError: true,
+        code: "CC_GOAL_CHECKPOINT_FAILED",
+        persistence: { phase: "after-model" },
+      });
+      expect(deps.agentLoop).toHaveBeenCalledOnce();
+      expect(
+        parseLines(out).some((e) =>
+          ["goal_evaluated", "goal_completed", "goal_exhausted"].includes(
+            e.type,
+          ),
+        ),
+      ).toBe(false);
+      expect(store.snapshots[options.sessionId].at(-1).checkpoint.phase).toBe(
+        "running",
+      );
+
+      const resumed = makeDeps(replyText("x"));
+      Object.assign(resumed.deps, store.deps);
+      resumed.deps.agentLoop = vi.fn(scriptedLoop(["DONE"]));
+      const recovery = await runAgentHeadless(
+        { ...options, resume: options.sessionId },
+        resumed.deps,
+      );
+      expect(recovery).toMatchObject({
+        exitCode: 1,
+        code: "CC_GOAL_CHECKPOINT_FAILED",
+      });
+      expect(resumed.deps.agentLoop).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not reset a resumed goal when its checkpoint cannot be read", async () => {
+    const store = makeGoalStore({
+      "goal-read-failure": [seedSnapshot({ outerTurns: 2, done: false })],
+    });
+    const { deps } = makeDeps(replyText("x"));
+    Object.assign(deps, store.deps);
+    deps.findLatestEvent = (_id, type) => {
+      if (type === "goal_snapshot")
+        throw Object.assign(new Error("unreadable checkpoint"), {
+          code: "EIO",
+        });
+      return null;
+    };
+    deps.agentLoop = vi.fn(scriptedLoop(["DONE"]));
+    const result = await runAgentHeadless(
+      {
+        prompt: "continue",
+        resume: "goal-read-failure",
+        goalCondition: "contains:DONE",
+        outputFormat: "stream-json",
+      },
+      deps,
+    );
+    expect(result).toMatchObject({
+      exitCode: 1,
+      code: "CC_GOAL_CHECKPOINT_FAILED",
+    });
+    expect(deps.agentLoop).not.toHaveBeenCalled();
+  });
+
+  it("allows explicitly reviewed recovery while preserving the recorded goal and budget", async () => {
+    const seed = seedSnapshot({ outerTurns: 2, done: false });
+    seed.data.checkpoint = {
+      schema: "chainlesschain.goal-checkpoint/v1",
+      phase: "running",
+    };
+    const store = makeGoalStore({ "goal-reviewed": [seed] });
+    const { deps, out } = makeDeps(replyText("unused"));
+    Object.assign(deps, store.deps);
+    deps.agentLoop = vi.fn(scriptedLoop(["DONE"]));
+    const result = await runAgentHeadless(
+      {
+        prompt: "I verified the prior effects; continue",
+        resume: "goal-reviewed",
+        goalCondition: "contains:DIFFERENT",
+        maxOuterTurns: 99,
+        goalRecoveryReviewed: true,
+        outputFormat: "stream-json",
+      },
+      deps,
+    );
+    expect(result.isError).toBe(false);
+    const last = store.snapshots["goal-reviewed"].at(-1);
+    expect(last.condition.source).toBe("contains:DONE");
+    expect(last.budget.maxOuterTurns).toBe(5);
+    expect(last.state).toMatchObject({
+      outerTurns: 3,
+      tokens: 100,
+      startedAtMs: 500,
+      done: true,
+    });
+    expect(
+      parseLines(out).find((event) => event.type === "goal_started"),
+    ).toMatchObject({ resumed: true, recovery_reviewed: true });
+  });
+
+  it.each(["missing-state", "invalid-usage", "unknown-schema"])(
+    "does not run a resumed goal with a damaged or unsupported checkpoint (%s)",
+    async (damage) => {
+      const seed = seedSnapshot({ outerTurns: 2, done: false });
+      if (damage === "missing-state") delete seed.data.state;
+      if (damage === "invalid-usage") seed.data.state.tokens = null;
+      if (damage === "unknown-schema")
+        seed.data.checkpoint = { schema: "future/v2", phase: "ready" };
+      const store = makeGoalStore({ "goal-damaged": [seed] });
+      const { deps } = makeDeps(replyText("unused"));
+      Object.assign(deps, store.deps);
+      deps.agentLoop = vi.fn(scriptedLoop(["DONE"]));
+      const result = await runAgentHeadless(
+        {
+          prompt: "continue",
+          resume: "goal-damaged",
+          goalCondition: "contains:DONE",
+          goalRecoveryReviewed: true,
+          outputFormat: "stream-json",
+        },
+        deps,
+      );
+      expect(result).toMatchObject({
+        exitCode: 1,
+        code: "CC_GOAL_CHECKPOINT_FAILED",
+      });
+      expect(deps.agentLoop).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("headless-runner — background phase reporter wiring", () => {
