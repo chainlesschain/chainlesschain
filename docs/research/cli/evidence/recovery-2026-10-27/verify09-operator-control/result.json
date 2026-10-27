@@ -1,0 +1,58 @@
+{
+  "scope": "operator-only-offline-diagnostic",
+  "nativeSample": false,
+  "countsTowardAcceptance": false,
+  "frozenCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "runtime": {
+    "node": "v22.22.2",
+    "platform": "win32",
+    "sdk": "0.1.5"
+  },
+  "limitations": [
+    "Local Node test runner on Windows, not the independent pinned Linux Docker acceptance or native model generation."
+  ],
+  "frozenFilesUnchanged": true,
+  "manifest": [
+    {
+      "file": "packages/cli/src/lib/session-history-origins.js",
+      "sha256": "98235ac374ddc6fa8a9bc2de2c251cad9b3caa6527680ec211e8d1868c5ffb31"
+    },
+    {
+      "file": "packages/cli/src/lib/context-memory-kernel/message-adapter.js",
+      "sha256": "6774505d2504e90a96b042bcf1a74909c4b38c65df29bdbf25f125d5229a6519"
+    },
+    {
+      "file": "packages/cli/src/lib/session-message-provenance.js",
+      "sha256": "0fda8d036c2d29b41b6afcca1c97a2907ec137465d1d77457de6a0def8705523"
+    },
+    {
+      "file": "packages/cli/src/lib/checkpoint-summary-projection.js",
+      "sha256": "cb41bbb8a487daf6f8616149e95959436b0dd781f0793881e3fbb7e37ee7ca27"
+    },
+    {
+      "file": "packages/cli/src/harness/structured-handoff.js",
+      "sha256": "4c650dd0631eaabd9295c29ff1ea53caa330fa1d320aca47b46a413602b96c66"
+    }
+  ],
+  "outcomes": [
+    {
+      "variant": "original",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "sourceSha256": "98235ac374ddc6fa8a9bc2de2c251cad9b3caa6527680ec211e8d1868c5ffb31",
+      "stdout": "original.stdout.log",
+      "stderr": "original.stderr.log"
+    },
+    {
+      "variant": "mutant",
+      "exitCode": 1,
+      "signal": null,
+      "error": null,
+      "sourceSha256": "a2f64f40d837a6057a50571cdff8768152b671e3bada75f9f5b915ae08304f5b",
+      "stdout": "mutant.stdout.log",
+      "stderr": "mutant.stderr.log"
+    }
+  ],
+  "validated": true
+}

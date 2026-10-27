@@ -15,13 +15,256 @@ import {
 } from "../../src/runtime/coding-agent-contract.js";
 import { SessionResourceBudget } from "../../src/lib/session-resource-budget.js";
 import { ReadFileLoopGuard } from "../../src/lib/read-file-loop-guard.js";
+import { IterationBudget } from "../../src/lib/iteration-budget.js";
+import { CODING_CHANGE_REVIEW_PROMPT } from "../../src/lib/coding-task-guidance.js";
 import { snapshotAgentModelRequest } from "../../src/lib/evolution/agent-model-projection.js";
 import {
   DURABLE_SYSTEM_MESSAGE_KINDS,
   markDurableSystemMessage,
   SESSION_MESSAGE_PROVENANCE_FIELD,
   SESSION_MESSAGE_PROVENANCE_SCHEMA,
+  projectCanonicalResumeMessages,
 } from "../../src/lib/session-message-provenance.js";
+
+describe("opt-in change review in the real file-tool loop", () => {
+  let reviewDirectory;
+  beforeEach(() => {
+    reviewDirectory = mkdtempSync(join(tmpdir(), "cc-change-review-"));
+    writeFileSync(join(reviewDirectory, "review.test.js"), "// placeholder\n");
+  });
+  afterEach(() => {
+    rmSync(reviewDirectory, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  const text = (content) => ({ message: { role: "assistant", content } });
+  const tool = (name, args) => ({
+    message: {
+      role: "assistant",
+      content: "",
+      tool_calls: [
+        {
+          id: `review-${name}`,
+          type: "function",
+          function: { name, arguments: JSON.stringify(args) },
+        },
+      ],
+    },
+  });
+  const write = () =>
+    tool("write_file", {
+      path: "review.test.js",
+      content: "// initial deliverable\n",
+    });
+  async function runScript(steps, options = {}) {
+    const requests = [];
+    const chatFn = vi.fn(async (messages, callOptions) => {
+      requests.push({
+        messages: structuredClone(messages),
+        options: callOptions,
+      });
+      const step = steps[requests.length - 1];
+      if (!step) throw new Error("Unexpected extra model request");
+      callOptions.onToken?.("provisional delta");
+      callOptions.onThinking?.("provisional thinking");
+      return {
+        usage: { input_tokens: 2, output_tokens: 1 },
+        ...(typeof step === "function" ? step() : step),
+      };
+    });
+    const messages = [
+      {
+        role: "user",
+        content: "Add regression coverage for the requested behavior.",
+      },
+    ];
+    const budget = options.iterationBudget || new IterationBudget({ limit: 8 });
+    const events = [];
+    for await (const event of agentLoop(messages, {
+      provider: "ollama",
+      model: "test",
+      cwd: reviewDirectory,
+      chatFn,
+      runnableProviderFallback: false,
+      hermeticExecution: true,
+      exactToolNames: true,
+      enabledToolNames: [
+        "read_file",
+        "write_file",
+        "edit_file",
+        "edit_file_hashed",
+        "search_files",
+        "list_dir",
+      ],
+      fileMutationScope: {
+        exact: true,
+        worktreeRoot: reviewDirectory,
+        allowedPaths: ["review.test.js"],
+      },
+      iterationBudget: budget,
+      reviewChanges: true,
+      ...options,
+    }))
+      events.push(event);
+    return { requests, events, messages, budget, chatFn };
+  }
+
+  it("allows inspection and repair before emitting a single final result", async () => {
+    const onToken = vi.fn();
+    const onThinking = vi.fn();
+    const result = await runScript(
+      [
+        write(),
+        text("provisional completion"),
+        tool("read_file", { path: "review.test.js" }),
+        tool("edit_file", {
+          path: "review.test.js",
+          old_string: "initial",
+          new_string: "checked",
+        }),
+        text("Delivered; execution was unavailable."),
+      ],
+      { onToken, onThinking },
+    );
+    expect(readFileSync(join(reviewDirectory, "review.test.js"), "utf8")).toBe(
+      "// checked deliverable\n",
+    );
+    expect(result.requests).toHaveLength(5);
+    expect(result.budget.consumed).toBe(5);
+    expect(onToken).not.toHaveBeenCalled();
+    expect(onThinking).not.toHaveBeenCalled();
+    expect(
+      result.requests[2].messages.findLast(
+        (message) => message.role === "user",
+      ),
+    ).toMatchObject({
+      role: "user",
+      content: CODING_CHANGE_REVIEW_PROMPT,
+    });
+    expect(
+      result.events.filter((event) => event.type === "response-complete"),
+    ).toEqual([
+      {
+        type: "response-complete",
+        content: "Delivered; execution was unavailable.",
+      },
+    ]);
+    expect(
+      result.events.filter((event) => event.type === "run-ended"),
+    ).toHaveLength(1);
+    for (const request of result.requests) {
+      expect(request.options.iterationBudget).toBe(result.budget);
+      expect(request.options.enabledToolNames).not.toContain("run_shell");
+    }
+    const canonical = JSON.stringify(
+      projectCanonicalResumeMessages(result.messages),
+    );
+    expect(canonical).not.toContain(CODING_CHANGE_REVIEW_PROMPT);
+    expect(canonical).not.toContain("provisional completion");
+  });
+
+  it("asks once even if the model immediately ends again", async () => {
+    const result = await runScript([
+      write(),
+      text("draft"),
+      text("Unverified deliverable"),
+    ]);
+    expect(result.requests).toHaveLength(3);
+    expect(
+      result.events.filter((event) => event.type === "response-complete"),
+    ).toEqual([
+      { type: "response-complete", content: "Unverified deliverable" },
+    ]);
+  });
+
+  it.each([undefined, false, "true"])(
+    "does not add requests without exact opt-in (%s)",
+    async (reviewChanges) => {
+      const result = await runScript([write(), text("done")], {
+        reviewChanges,
+      });
+      expect(result.requests).toHaveLength(2);
+    },
+  );
+
+  it("does not review an explanation or a denied file mutation", async () => {
+    expect((await runScript([text("Explanation only")])).requests).toHaveLength(
+      1,
+    );
+    const result = await runScript([
+      tool("write_file", { path: "outside.test.js", content: "denied" }),
+      text("Blocked"),
+    ]);
+    expect(result.requests).toHaveLength(2);
+    expect(fs.existsSync(join(reviewDirectory, "outside.test.js"))).toBe(false);
+  });
+
+  it("preserves the exhausted request budget", async () => {
+    const budget = new IterationBudget({ limit: 2 });
+    const result = await runScript([write(), text("Unverified")], {
+      iterationBudget: budget,
+    });
+    expect(result.requests).toHaveLength(2);
+    expect(budget.consumed).toBe(2);
+  });
+
+  it("does not add a review request after missing usage, even with only a cost cap", async () => {
+    const result = await runScript(
+      [{ ...write(), usage: null }, text("Unverified")],
+      { maxCostUsd: 1 },
+    );
+    expect(result.requests).toHaveLength(2);
+    expect(
+      result.events.some((event) => event.type === "model-usage-unknown"),
+    ).toBe(true);
+    expect(
+      result.events.filter((event) => event.type === "response-complete"),
+    ).toEqual([{ type: "response-complete", content: "Unverified" }]);
+  });
+
+  it("cannot bypass session admission for the review request", async () => {
+    let turns = 0;
+    const sessionBudget = {
+      consumeTurn: vi.fn(() =>
+        ++turns < 3
+          ? { ok: true }
+          : { ok: false, reason: "turn-budget-exhausted" },
+      ),
+    };
+    await expect(
+      runScript([write(), text("draft")], { sessionBudget }),
+    ).rejects.toThrow();
+    expect(sessionBudget.consumeTurn).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not resume after cancellation", async () => {
+    const controller = new AbortController();
+    await expect(
+      runScript(
+        [
+          write(),
+          () => {
+            controller.abort();
+            return text("draft");
+          },
+        ],
+        { signal: controller.signal },
+      ),
+    ).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("shares the one-shot state across headless outer turns", async () => {
+    const state = { requested: false };
+    await runScript([write(), text("draft"), text("done")], {
+      _changeReviewState: state,
+    });
+    expect(state.requested).toBe(true);
+    const second = await runScript([write(), text("done")], {
+      _changeReviewState: state,
+    });
+    expect(second.requests).toHaveLength(2);
+  });
+});
 
 vi.mock("../../src/lib/logger.js", () => ({
   logger: new Proxy({}, { get: () => () => {} }),
@@ -150,8 +393,9 @@ const agentLoop = (messages, options = {}) =>
   });
 
 const { getPlanModeManager } = await import("../../src/lib/plan-mode.js");
-const { executeHooksV2Event } =
-  await import("../../src/lib/hooks-v2-producers.js");
+const { executeHooksV2Event } = await import(
+  "../../src/lib/hooks-v2-producers.js"
+);
 
 const ALLOWING_APPROVAL_GATE = Object.freeze({
   decide: async () => ({
@@ -1845,7 +2089,9 @@ describe("chatWithTools", () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        choices: [{ message: { role: "assistant", content: "Hi from Gemini" } }],
+        choices: [
+          { message: { role: "assistant", content: "Hi from Gemini" } },
+        ],
       }),
     });
     await chatWithTools([{ role: "user", content: "test" }], {

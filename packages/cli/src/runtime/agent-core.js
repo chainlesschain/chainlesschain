@@ -65,7 +65,10 @@ import {
   copyHostToolOutputIdentity,
 } from "../lib/tool-result-preview.js";
 import { DIAGNOSTIC_WORKFLOW_GUIDANCE } from "../lib/diagnostic-workflow.js";
-import { CODING_TASK_QUALITY_GUIDANCE } from "../lib/coding-task-guidance.js";
+import {
+  CODING_TASK_QUALITY_GUIDANCE,
+  CODING_CHANGE_REVIEW_PROMPT,
+} from "../lib/coding-task-guidance.js";
 import { RemoteReadLoopGuard } from "../lib/remote-read-loop-guard.js";
 import {
   isPrActionRequest,
@@ -14717,6 +14720,9 @@ export async function* agentLoop(messages, options) {
   // obligation outside transcript compaction and never replay it automatically.
   const pendingSubtreeMutations = new Map();
   let subtreeMutationReprompted = false;
+  let hasFileContentChanges = false;
+  // Headless outer turns share this object; a new user turn gets a fresh one.
+  const changeReviewState = options._changeReviewState || { requested: false };
   const recordSubtreeMutation = (tool, args, result) => {
     if (!GUARDED_FILE_MUTATION_TOOLS.has(tool)) return;
     if (!args || typeof args !== "object" || Array.isArray(args)) return;
@@ -14760,6 +14766,7 @@ export async function* agentLoop(messages, options) {
       result.mutationPerformed !== false
     ) {
       pendingSubtreeMutations.delete(key);
+      if (effect === "file-content") hasFileContentChanges = true;
     }
   };
   const signal = options.signal || null;
@@ -16250,15 +16257,29 @@ export async function* agentLoop(messages, options) {
       "model",
       budget.consumed,
     );
+    // A review may replace the first completion. Keep streaming transport but
+    // discard live text/thinking in this opt-in mode; only the accepted final
+    // response is published. This avoids concatenating drafts in IDE clients
+    // without buffering unbounded provider output or changing the protocol.
+    const outputOptions =
+      options.reviewChanges === true
+        ? {
+            ...iterationToolOptions,
+            onToken:
+              typeof options.onToken === "function" ? () => {} : undefined,
+            onThinking:
+              typeof options.onThinking === "function" ? () => {} : undefined,
+          }
+        : iterationToolOptions;
     const plannedProviderOptions = canonicalProviderContext?.plan
       ? {
-          ...iterationToolOptions,
+          ...outputOptions,
           contextEngine: null,
           contextMemoryPreplanned: true,
           contextMemorySelectedToolNames:
             canonicalProviderContext.selectedToolNames,
         }
-      : iterationToolOptions;
+      : outputOptions;
     const requestOptions = providerRequestId
       ? { ...plannedProviderOptions, providerRequestId }
       : plannedProviderOptions;
@@ -16444,6 +16465,7 @@ export async function* agentLoop(messages, options) {
         contextWindow: requestContextWindow,
       };
     } else {
+      changeReviewState.usageKnown = false;
       yield {
         type: "model-usage-unknown",
         callId: modelUsageCall.callId,
@@ -16631,6 +16653,34 @@ export async function* agentLoop(messages, options) {
           pendingMutations: pending,
         };
         return;
+      }
+      // Opt-in review uses the same loop, tools, usage settlement and budget.
+      // Never emit a provisional completion or turn this self-check into an
+      // acceptance verdict. Failed/deferred writes do not arm the review.
+      if (
+        options.reviewChanges === true &&
+        hasFileContentChanges &&
+        !changeReviewState.requested &&
+        changeReviewState.usageKnown !== false &&
+        budget.hasRemaining()
+      ) {
+        throwIfAborted(signal);
+        changeReviewState.requested = true;
+        messages.push(
+          markRuntimeOnlySessionMessage({
+            role: "assistant",
+            content: msg.content || "",
+          }),
+          markRuntimeOnlySessionMessage({
+            role: "user",
+            content: CODING_CHANGE_REVIEW_PROMPT,
+          }),
+        );
+        yield {
+          type: "iteration-warning",
+          message: "Reviewing changed files against the task before finishing.",
+        };
+        continue;
       }
       // Surface the final answer's extended-thinking reasoning (Anthropic, when
       // --think is on) so non-streaming consumers (the REPL) can show it. The

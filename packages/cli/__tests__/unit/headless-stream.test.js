@@ -275,6 +275,7 @@ describe("runAgentHeadlessStream", () => {
     await runAgentHeadlessStream(
       {
         permissionRulesProvider: provider,
+        reviewChanges: true,
         expandFileRefs: false,
         useRegisteredMcp: false,
       },
@@ -282,6 +283,7 @@ describe("runAgentHeadlessStream", () => {
     );
     expect(captured.permissionRules.deny).toContain("Bash");
     expect(captured.permissionRulesProvider).toBe(provider);
+    expect(captured.reviewChanges).toBe(true);
   });
 
   const parseEmitted = (lines) =>

@@ -83,6 +83,7 @@ chainlesschain agent -p "review @src/x.js"                # 支持 @path 文件�
 echo "task" | chainlesschain agent -p                     # 从 stdin 读取任务
 chainlesschain agent -p "..." --output-format json        # text(默认) | json | stream-json
 chainlesschain agent -p "..." --max-turns 5               # 限制 agent 循环迭代上限
+chainlesschain agent -p "补充回归测试" --review-changes   # 主线源码：结束前复查写入/编辑结果
 chainlesschain agent -p "..." --allowed-tools "read_file,git"     # 工具白名单
 chainlesschain agent -p "..." --disallowed-tools "run_shell"      # 工具黑名单
 chainlesschain agent -p "..." --permission-mode bypassPermissions # 见下表
@@ -100,6 +101,10 @@ chainlesschain agent -p "..." --ultrathink                # = --think ultra (最
 chainlesschain agent -p "..." --think --thinking-budget 8000  # legacy Claude 的思考 token 预算
 chainlesschain agent --image shot.png -p "这张图里是什么?"     # 多模态 / 图像输入 (可重复 --image,见下)
 ```
+
+**变更复查**（`--review-changes`，当前主线源码新增，公开包可用性以实际发行版本为准）：默认关闭，支持单任务 headless 和 `--input-format stream-json`，不支持交互 REPL。成功使用 `write_file`、`edit_file` 或 `edit_file_hashed` 后，首次准备结束时会在原工具、权限、模型和剩余预算内追加一次通用自查机会，允许读回并修补遗漏；不会因为 shell、删除、移动或 notebook 操作而触发。headless 的外层续做共享一次性状态，stream-json 的新用户任务独立计算。
+
+复查会消耗正常模型请求预算。预算已尽、费用触顶、用量不完整、取消或持久化错误不会启动额外复查。开启时仅发布最终文本，即使同时指定 `--include-partial-messages` 也不发出文本或思考增量，工具和预算事件仍正常输出。复查属于模型自查，不等同于测试通过或独立验收通过；执行工具不可用时仍应明确报告未运行测试。
 
 **输出格式**(`--output-format`):
 

@@ -773,6 +773,7 @@ describe("headless-runner — exact delivery fixer authority", () => {
           fileMutationScope,
           hermeticExecution: true,
           hostResourceBudget,
+          reviewChanges: true,
           additionalDirectories: [tmpdir()],
           settingsHooks: { PreToolUse: [{ matcher: "*", hooks: [] }] },
           toolAdmission: { enforce: true },
@@ -784,6 +785,8 @@ describe("headless-runner — exact delivery fixer authority", () => {
         enabledToolNames: ["read_file", "write_file"],
         exactToolNames: true,
         hermeticExecution: true,
+        reviewChanges: true,
+        _changeReviewState: { requested: false },
         fileMutationScope: {
           exact: true,
           worktreeRoot,

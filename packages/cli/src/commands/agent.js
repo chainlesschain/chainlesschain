@@ -510,6 +510,10 @@ export function registerAgentCommand(program, dependencies = {}) {
       "Cap agent loop iterations (0 = unlimited; interactive streams default to unlimited, unattended runs to 50)",
     )
     .option(
+      "--review-changes",
+      "Headless: review write/edit tool changes once within remaining budgets; final text only (no partial deltas)",
+    )
+    .option(
       "--json-schema <file>",
       "Headless structured output: final reply must be JSON validating against this schema (invalid replies retried)",
     )
@@ -1712,6 +1716,7 @@ export function registerAgentCommand(program, dependencies = {}) {
             maxTurns: options.maxTurns
               ? parseInt(options.maxTurns, 10)
               : undefined,
+            reviewChanges: options.reviewChanges === true,
             expandFileRefs: options.fileRefs !== false,
             slashMacros: options.slashMacros !== false,
             systemPrompt: resolvePromptText(options.systemPrompt, { cwd }),
@@ -2039,6 +2044,7 @@ export function registerAgentCommand(program, dependencies = {}) {
             ? options.maxRewakes
             : undefined,
           maxTurns,
+          reviewChanges: options.reviewChanges === true,
           // commander maps --no-file-refs 鈫?options.fileRefs === false
           expandFileRefs: options.fileRefs !== false,
           slashMacros: options.slashMacros !== false,
@@ -2220,6 +2226,14 @@ export function registerAgentCommand(program, dependencies = {}) {
       if (decisionMode !== "off") {
         process.stderr.write(
           "--decision-mode shadow/suggest is only used in single-prompt headless mode (-p / a task / piped stdin).\n",
+        );
+        await _finishWorktree();
+        process.exitCode = 1;
+        return;
+      }
+      if (options.reviewChanges === true) {
+        process.stderr.write(
+          "--review-changes requires a headless prompt or --input-format stream-json.\n",
         );
         await _finishWorktree();
         process.exitCode = 1;

@@ -1,0 +1,53 @@
+{
+  "schema": "chainlesschain.native-sample-operator-review/v1",
+  "sampleId": "verify-09",
+  "runId": "40499013236",
+  "scope": "Operator diagnosis requested by the user, with independent Astra review",
+  "frozenCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "findings": {
+    "baselinePassed": "11/11",
+    "candidatePassed": "6/6",
+    "candidateRejectedBehavioralMutant": false,
+    "candidateCallPaths": ["snapshot", "appendMappedPersisted", "rewind"],
+    "sourceIdentityValidationEntryPoint": "compact",
+    "candidateExercisesSourceIdentityEntryPoint": false,
+    "implementationReadBytes": 9470,
+    "existingTestsReadBytes": 10944,
+    "sourceReadTruncationObserved": false,
+    "contextExhaustionDemonstratedAsCause": false,
+    "turnLimitDemonstratedAsCause": false,
+    "independentAcceptanceBugFound": false
+  },
+  "operatorControl": {
+    "resultPath": "verify09-operator-control/result.json",
+    "normalSource": { "passed": 2, "failed": 0, "exitCode": 0 },
+    "independentlyMutatedCopy": { "passed": 1, "failed": 1, "exitCode": 1 },
+    "validFixturesFromPublicBuilders": true,
+    "frozenSdkVersion": "0.1.5",
+    "frozenSourcesUnchanged": true,
+    "nativeSample": false,
+    "countsTowardAcceptance": false,
+    "limitations": [
+      "Operator-authored Windows Node tests, not native model generation or the fixed Linux Docker acceptance."
+    ]
+  },
+  "repair": {
+    "genericContractCoverageGuidance": true,
+    "explicitOptInFlag": "--review-changes",
+    "enabledByDefault": false,
+    "hiddenMutationDetailsAddedToProductionPrompts": false,
+    "originalCandidatesModified": false,
+    "frozenAcceptanceChanged": false,
+    "nativeLaunchParametersChanged": false,
+    "newExternalProviderRequests": 0,
+    "qualityImprovementDemonstratedByNativeSamples": false
+  },
+  "qualification": {
+    "ordinary": "26/36",
+    "firstRun": "6/9",
+    "cumulative": "32/45",
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD"
+  }
+}

@@ -2995,6 +2995,8 @@ async function runAgentHeadlessInWorkspace(
     exactToolNames: options.exactToolNames === true,
     fileMutationScope,
     hermeticExecution,
+    reviewChanges: options.reviewChanges === true,
+    _changeReviewState: { requested: false },
     iterationBudget: budget,
     toolAdmission: hermeticExecution ? null : options.toolAdmission || null,
     unattendedActionPolicy: hermeticExecution

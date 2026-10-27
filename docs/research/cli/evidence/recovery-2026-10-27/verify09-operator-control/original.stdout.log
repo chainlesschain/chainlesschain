@@ -1,0 +1,22 @@
+TAP version 13
+# Subtest: same-session compaction preserves the readable origin cutoff
+ok 1 - same-session compaction preserves the readable origin cutoff
+  ---
+  duration_ms: 12.6298
+  type: 'test'
+  ...
+# Subtest: foreign-session compaction cannot inherit same-content source origins
+ok 2 - foreign-session compaction cannot inherit same-content source origins
+  ---
+  duration_ms: 2.4016
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 333.8143

@@ -1,0 +1,33 @@
+{
+  "schema": "chainlesschain.change-review-source-audit/v1",
+  "scope": "Working tree source classification, not an exact release-commit OS matrix",
+  "auditExitCode": 1,
+  "reviewedBaseCommit": "b32eda51f4de0c5c3f77ea61b273399297ecf3dd",
+  "reviewedCoreDigest": "sha256:9b564929be95efadfd099d8d300d65212d1c46f8b6b978df3468bf6435fd0dec",
+  "reviewedCoreCategory": "MODEL_REQUEST",
+  "sourceReviewPassed": false,
+  "reviewIssues": [
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/Artifacts-D4DeQQ89.js",
+      "status": "UNREVIEWED"
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/index-CI07XFwr.js",
+      "status": "UNREVIEWED"
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/MtcAudit-CwJzv9a9.js",
+      "status": "UNREVIEWED"
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/RemoteSession-DyCisp2M.js",
+      "status": "UNREVIEWED"
+    },
+    {
+      "path": "packages/cli/src/lib/llm-connection-probe.js",
+      "status": "STALE"
+    }
+  ],
+  "paidReady": false,
+  "runtimeCoverageVerified": false
+}

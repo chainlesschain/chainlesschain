@@ -1,0 +1,165 @@
+{
+  "schema": "chainlesschain.coding-change-review-repair/v1",
+  "status": "LOCAL_ENGINEERING_VERIFIED_NATIVE_QUALITY_UNVERIFIED",
+  "parentCommit": "6551a06c2f694bb93d0197fa8b82becd25a83173",
+  "runtime": {
+    "node": "v22.22.2",
+    "platform": "win32"
+  },
+  "sources": [
+    {
+      "file": "packages/cli/src/commands/agent.js",
+      "digest": "sha256:d4f2f3dcd9eb223703e7dfcd3bc0f4ba16ddfee6a887c6b70f2152f2ae756372"
+    },
+    {
+      "file": "packages/cli/src/lib/coding-task-guidance.js",
+      "digest": "sha256:9341e53ac1d90bf418fa4b3bcc7ab0861e673ddc0c52aeb4b517622c69646d3d"
+    },
+    {
+      "file": "packages/cli/src/runtime/agent-core.js",
+      "digest": "sha256:9b564929be95efadfd099d8d300d65212d1c46f8b6b978df3468bf6435fd0dec"
+    },
+    {
+      "file": "packages/cli/src/runtime/headless-runner.js",
+      "digest": "sha256:78333360fa72237460ed37e8f2536cad036398fa46eb1837d51ea1849629f77b"
+    },
+    {
+      "file": "packages/cli/src/runtime/headless-stream.js",
+      "digest": "sha256:f116b4402639a69532bdb28123b833ca6a25afab9e50477275e4de64c5d0b8e8"
+    }
+  ],
+  "review": {
+    "independentAstraReview": true,
+    "unresolvedImplementationBlockers": [],
+    "enabledByDefault": false,
+    "explicitFlag": "--review-changes",
+    "sameToolsPermissionsAndBudgets": true,
+    "reviewMayUseMultipleExistingBudgetRequests": true,
+    "liveDraftDeltasSuppressed": true,
+    "incompleteUsagePreventsAdditionalReview": true
+  },
+  "localTests": {
+    "success": true,
+    "passed": 414,
+    "failed": 0,
+    "skipped": 0,
+    "serialWorkers": 1,
+    "suites": [
+      {
+        "path": "packages/cli/__tests__/unit/agent-core.test.js",
+        "status": "passed",
+        "passed": 170,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "path": "packages/cli/__tests__/unit/agent-unattended-command.test.js",
+        "status": "passed",
+        "passed": 10,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "path": "packages/cli/__tests__/unit/headless-change-review.test.js",
+        "status": "passed",
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "path": "packages/cli/__tests__/unit/headless-runner-cost-budget.test.js",
+        "status": "passed",
+        "passed": 10,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "path": "packages/cli/__tests__/unit/headless-runner.test.js",
+        "status": "passed",
+        "passed": 111,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "path": "packages/cli/__tests__/unit/headless-stream-cost-replay.test.js",
+        "status": "passed",
+        "passed": 32,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "path": "packages/cli/__tests__/unit/headless-stream.test.js",
+        "status": "passed",
+        "passed": 77,
+        "failed": 0,
+        "skipped": 0
+      }
+    ]
+  },
+  "priorParallelBatch": {
+    "passed": 408,
+    "failed": 2,
+    "failures": [
+      "headless-stream-cost-replay: accepted-user-message replay timeout",
+      "headless-stream: identical-answer canonical storage returned zero turns"
+    ],
+    "focusedSerialRerun": {
+      "passed": 2,
+      "failed": 0,
+      "sourceChangedToFixTheseFailures": false
+    },
+    "causeConclusive": false
+  },
+  "generatedCommandArtifactsChecked": true,
+  "formattingChecked": true,
+  "operatorControlArtifacts": [
+    {
+      "file": "control.test.mjs",
+      "digest": "sha256:ff892aa15886caa3d7f1d5a684c87f3cc7e62e9378ea41adb01cd63629cd3c77"
+    },
+    {
+      "file": "mutant.stderr.log",
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "mutant.stdout.log",
+      "digest": "sha256:ef78f35c46738798d6b21d90204c2db5bb25231252c23e933d77488bc98a3fd8"
+    },
+    {
+      "file": "original.stderr.log",
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "original.stdout.log",
+      "digest": "sha256:77be667d804ee3a8e05c59691d3c65cae80df3337cdeaa8522fa0aa3578c7542"
+    },
+    {
+      "file": "result.json",
+      "digest": "sha256:8313f282ee4d64c797c5e3f6d22d61861c14bf785e3da8e9cff485462419c524"
+    },
+    {
+      "file": "run-control.snapshot.mjs",
+      "digest": "sha256:a8e38852bbdadf41057c4be28c3a1475f9b1156436f4d7e9dc3b21d4bb30ca76"
+    }
+  ],
+  "nativeQualification": {
+    "ordinary": "26/36",
+    "firstRun": "6/9",
+    "cumulative": "32/45",
+    "newQualified": 0,
+    "operatorControlsCountAsNative": false
+  },
+  "newExternalProviderRequests": 0,
+  "originalFrozenPlanOrAcceptanceChanged": false,
+  "originalCandidateTestsChanged": false,
+  "releaseMatrixVerified": false,
+  "publicPackagePublished": false,
+  "paidReady": false,
+  "nativeAdmission": "NOT_ADMITTED",
+  "automaticPromotion": "HOLD",
+  "limits": [
+    "Mock provider responses verify runtime behavior, not actual model semantic coverage.",
+    "The complete source audit still has separate unresolved issues; see change-review-source-audit.json.",
+    "No new native generation, Linux acceptance or public-install result is claimed."
+  ]
+}

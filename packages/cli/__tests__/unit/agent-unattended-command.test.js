@@ -72,6 +72,27 @@ async function invoke(args) {
 }
 
 describe("cc agent unattended command dispatch", () => {
+  it("forwards explicit change review to headless and stream input", async () => {
+    await invoke(["-p", "add coverage", "--review-changes"]);
+    expect(entry.headless.mock.calls[0][0].reviewChanges).toBe(true);
+    await invoke(["--input-format", "stream-json", "--review-changes"]);
+    expect(entry.stream.mock.calls[0][0].reviewChanges).toBe(true);
+  });
+
+  it("rejects change review for the interactive REPL", async () => {
+    const priorExitCode = process.exitCode;
+    try {
+      await invoke(["--review-changes"]);
+      expect(entry.interactive).not.toHaveBeenCalled();
+      expect(process.exitCode).toBe(1);
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        expect.stringContaining("--review-changes requires a headless prompt"),
+      );
+    } finally {
+      process.exitCode = priorExitCode;
+    }
+  });
+
   it.each(["text", "json", "stream-json"])(
     "passes frozen authority to %s output",
     async (format) => {
