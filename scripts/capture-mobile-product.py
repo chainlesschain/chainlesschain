@@ -175,6 +175,14 @@ def capture():
             'images': images,
         }
         (OUT / 'capture.json').write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    except Exception as error:
+        (OUT / 'failure.json').write_text(json.dumps({'status': 'capture-failed', 'error': str(error)}, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        try:
+            (OUT / 'failure-screen.png').write_bytes(adb('exec-out', 'screencap', '-p', binary=True))
+            hierarchy('failure-screen')
+        except (subprocess.SubprocessError, OSError, ValueError):
+            pass
+        raise
     finally:
         try:
             (OUT / 'crash-logcat.txt').write_text(adb('logcat', '-d', '-b', 'crash'), encoding='utf-8')
