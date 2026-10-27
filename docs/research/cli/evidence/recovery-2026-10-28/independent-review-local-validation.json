@@ -1,0 +1,58 @@
+{
+  "schema": "chainlesschain.independent-change-review-local-validation/v1",
+  "sourceCommit": "a9bce7818ccf3aff625e6273511b0390bb494dae",
+  "scope": "Local source/runtime verification only; unpublished source, not native task acceptance or an OS release matrix",
+  "runtime": {
+    "command": "npm test -- __tests__/unit/agent-core.test.js __tests__/unit/headless-runner.test.js __tests__/unit/headless-stream.test.js __tests__/unit/coding-change-review-context.test.js",
+    "passed": 383,
+    "total": 383
+  },
+  "contextMemory": {
+    "command": "node --test packages/cli/test-node/context-memory-kernel.node-test.mjs",
+    "passed": 26,
+    "total": 26,
+    "limitation": "Existing Windows symlink assertion reports EPERM where unavailable"
+  },
+  "staticSecurityMap": {
+    "command": "validateSecurityMap()",
+    "passed": true,
+    "producerDigestsUnchanged": true
+  },
+  "formatAndSyntaxPassed": true,
+  "sourceAudit": {
+    "path": "docs/research/cli/evidence/recovery-2026-10-28/independent-review-clean-source-audit.json",
+    "digest": "sha256:8b92b3622a79374fcb239dbd06a5fe646223a0a3dfdd3a387590d267f766129a",
+    "candidateFiles": 78,
+    "reviewIssues": 0,
+    "parseErrors": 0,
+    "sourceArchiveDigest": "sha256:83d6308ecca940c34f5a4ada46aa55913f8d4401e8a6cb4402eb46c52e00de7e",
+    "archivedPaths": [
+      "packages/cli/src",
+      "packages/cli/scripts",
+      "packages/cli/package.json",
+      "package.json"
+    ],
+    "localUntrackedGeneratedAssetsExcludedByGitArchive": 4
+  },
+  "reviewer": {
+    "kind": "AI",
+    "name": "Astra",
+    "scope": "Read-only implementation review; no financial, OS or task acceptance attestation"
+  },
+  "nativeTaskAcceptance": {
+    "newQualified": 0,
+    "cumulativeQualified": 32,
+    "plannedTotal": 45
+  },
+  "newPaidModelCallsForLocalValidation": 0,
+  "published": false,
+  "paidReady": false,
+  "nativeAdmission": "NOT_ADMITTED",
+  "automaticPromotion": "HOLD",
+  "limitations": [
+    "Independent review is enabled only for explicit hermetic reviewChanges=true; normal review keeps existing behavior.",
+    "Review judgments do not replace independent task acceptance.",
+    "Interrupted same-process review state stops before falling back to author context; cross-process review reconstruction is not implemented.",
+    "Exact release-commit Linux/Windows/macOS CLI CI and CLI Strict Sandbox remain required before any new npm publication."
+  ]
+}
