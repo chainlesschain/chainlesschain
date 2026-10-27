@@ -1,0 +1,28 @@
+{
+  "schema": "chainlesschain.release128-runner-capacity-observation/v1",
+  "observedAt": "2026-10-27T15:10:39.307Z",
+  "sourceSha": "ba446d4c6bc9f7ca17fd18a599cc714a6ea12c88",
+  "runId": 40518693223,
+  "jobId": 122240521295,
+  "conclusion": "cancelled",
+  "executedSteps": 0,
+  "messages": [
+    {
+      "level": "failure",
+      "message": "The job was not acquired by Runner of type hosted even after multiple attempts"
+    },
+    {
+      "level": "notice",
+      "message": "Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times."
+    },
+    {
+      "level": "notice",
+      "message": "Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times."
+    },
+    {
+      "level": "notice",
+      "message": "Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times."
+    }
+  ],
+  "releaseAllowed": false
+}
