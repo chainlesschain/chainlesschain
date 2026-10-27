@@ -2,6 +2,14 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## CLI 0.166.128 — verification and discovery (release candidate, 2026-10-27)
+
+This candidate adds evidence-based goal evaluation, visible checkpoint persistence failures, multilingual MCP / Skills discovery, opt-in compact MCP catalogs and reduced Memory index merging. The full internal tool inventory and execution permissions remain enforced. Compact catalogs use `mcp.toolSearch.catalogMode: "compact"`; the default remains `stubs`. Synthetic token and latency measurements do not establish real billing or task-quality gains.
+
+Target installation after public verification: `npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`. The current verified public CLI is **0.166.127**, paired with Open VSX **0.37.165** and JetBrains **0.4.182**. Planned successor IDE versions **0.37.166** / **0.4.183** will recommend `.128` only after the CLI is public. Child package pins are unchanged. [Release progress](../../docs/research/cli-ide-release128-progress-2026-10-27.md).
+
+Publication requires the exact candidate commit's complete Linux, Windows and macOS CLI CI and Strict Sandbox results, followed by GitHub Actions OIDC and registry/provenance readback. This candidate is not yet published. Microsoft Marketplace remains unpublished; cumulative task acceptance **32/45**, **13** unfinished, and **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
+
 ## CLI 0.166.127 — optional self-evolution (2026-10-27)
 
 完整中文说明见[CLI 与 IDE 自进化开关配置](../../docs/cli/SELF_EVOLUTION_CONFIGURATION.md)，包括默认行为、配置优先级、界面入口与生效时机。

@@ -1,5 +1,9 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## CLI 0.166.128 release preparation (2026-10-27)
+
+Candidate **0.166.128** includes goal/checkpoint reliability, shared IDE model onboarding and conversation model overrides, multilingual MCP / Skills discovery, opt-in compact MCP catalogs and Memory index improvements. It is not yet public; the last verified public CLI remains `.127` below. Release order: exact-commit three-OS CLI CI / Strict Sandbox → Actions OIDC → registry bytes/provenance readback → paired IDEs → clients. [Release progress](docs/research/cli-ide-release128-progress-2026-10-27.md). Local tests and synthetic measurements do not establish real task or billing acceptance.
+
 ## CLI 0.166.127 optional self-evolution (public, 2026-10-27)
 
 Defaults self-evolution to off for fresh installations and older automatically generated local deployments, with a shared `evolution.enabled` setting in config.json, CLI, cc ui, VS Code and JetBrains. Ordinary Agent and chat remain available while off; existing manually selected deployments retain their opt-in. See the [configuration guide](docs/cli/SELF_EVOLUTION_CONFIGURATION.md).

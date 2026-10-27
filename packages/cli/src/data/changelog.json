@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.128",
+      "cliVersions": ["0.166.128"],
+      "date": "2026-10-27",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.128: goal verification, tool discovery and memory queries (candidate, 2026-10-27)",
+          "body": "- Bind default goal evaluation to tool and artifact evidence, and stop automatic continuation when a reliable goal checkpoint cannot be saved.\n- Share new-connection model recommendations and protocol-aware probes across CLI and IDE integrations; retain existing model aliases and per-conversation model overrides.\n- Improve multilingual MCP and Skills descriptor discovery. Add an opt-in compact MCP provider catalog while retaining the full host execution ceiling, permission checks and revoked-schema handling.\n- Avoid unnecessary Memory posting unions when a narrower filter is already available. Preserve ordering, pagination, scope/sink filters, disk verification and generation-bound caches.\n- Retain published child package pins. Publish only through GitHub Actions OIDC after exact-source Linux, Windows and macOS CLI CI and Strict Sandbox pass; publish paired IDEs and clients only after upstream public readback.\n- Keep real task and billing acceptance separate from local synthetic benchmarks. Cumulative acceptance remains 32/45; NOT_PAID_READY / NOT_ADMITTED / HOLD remain."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.127",
       "cliVersions": ["0.166.127"],
       "date": "2026-10-27",
@@ -10,7 +23,7 @@
       "sections": [
         {
           "heading": "Added - cc CLI 0.166.127: optional self-evolution controls (2026-10-27)",
-          "body": "- Default fresh installations and older automatically generated local deployments to self-evolution off. Share the boolean `evolution.enabled` setting across CLI, cc ui, VS Code and JetBrains; explicit false overrides inherited deployment environment variables, while absent settings preserve manually selected deployments.\n- Enable and disable through configuration or deployment commands, initialize the local signed runtime on explicit enable, and retain deployment and trust history when disabled. Require a restart for running Agent sessions and reread the setting for new UI model requests.\n- Keep ordinary Agent, ask, chat, session resume and UI intent confirmation available while off. Retain strict signature and evidence checks for enabled deployments and prevent unrelated configuration writes from changing an absent Evolution choice.\n- Add shared configuration documentation and regression coverage. Pair IDE candidates VS Code 0.37.164 and JetBrains 0.4.180 with CLI 0.166.127; publish them only after verified public CLI availability. Child dependency pins are unchanged.\n- Require exact-source Linux, Windows and macOS CLI CI and Strict Sandbox before GitHub Actions OIDC publication and public package readback. Automatic candidate promotion remains HOLD; this switch does not start a full RRSI campaign or claim new live model-task acceptance."
+          "body": "- Default fresh installations and older automatically generated local deployments to self-evolution off. Share the boolean `evolution.enabled` setting across CLI, cc ui, VS Code and JetBrains; explicit false overrides inherited deployment environment variables, while absent settings preserve manually selected deployments.\n- Enable and disable through configuration or deployment commands, initialize the local signed runtime on explicit enable, and retain deployment and trust history when disabled. Require a restart for running Agent sessions and reread the setting for new UI model requests.\n- Keep ordinary Agent, ask, chat, session resume and UI intent confirmation available while off. Retain strict signature and evidence checks for enabled deployments and prevent unrelated configuration writes from changing an absent Evolution choice.\n- Add shared configuration documentation and regression coverage. CLI 0.166.127 is public through OIDC after exact-source three-OS CLI CI and Strict Sandbox. Public Open VSX 0.37.165 and JetBrains 0.4.182 recommend .127; archive readback passed. Child dependency pins are unchanged. Microsoft Marketplace remains unpublished.\n- Publish mobile and PC v5.0.3.142 from frozen source c9881a2b71 after verified CLI and IDE releases. Five-platform builds, 22 public assets and three desktop updater metadata sets passed verification. No new live model-task acceptance: 32/45 accepted, 13 unfinished; NOT_PAID_READY / NOT_ADMITTED / HOLD remain.\n- Require exact-source Linux, Windows and macOS CLI CI and Strict Sandbox before GitHub Actions OIDC publication and public package readback. Automatic candidate promotion remains HOLD; this switch does not start a full RRSI campaign or claim new live model-task acceptance."
         }
       ]
     },

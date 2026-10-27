@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.128: goal verification, tool discovery and memory queries (candidate, 2026-10-27)
+
+- Bind default goal evaluation to tool and artifact evidence, and stop automatic continuation when a reliable goal checkpoint cannot be saved.
+- Share new-connection model recommendations and protocol-aware probes across CLI and IDE integrations; retain existing model aliases and per-conversation model overrides.
+- Improve multilingual MCP and Skills descriptor discovery. Add an opt-in compact MCP provider catalog while retaining the full host execution ceiling, permission checks and revoked-schema handling.
+- Avoid unnecessary Memory posting unions when a narrower filter is already available. Preserve ordering, pagination, scope/sink filters, disk verification and generation-bound caches.
+- Retain published child package pins. Publish only through GitHub Actions OIDC after exact-source Linux, Windows and macOS CLI CI and Strict Sandbox pass; publish paired IDEs and clients only after upstream public readback.
+- Keep real task and billing acceptance separate from local synthetic benchmarks. Cumulative acceptance remains 32/45; NOT_PAID_READY / NOT_ADMITTED / HOLD remain.
+
 ### Added - cc CLI 0.166.127: optional self-evolution controls (2026-10-27)
 
 - Default fresh installations and older automatically generated local deployments to self-evolution off. Share the boolean `evolution.enabled` setting across CLI, cc ui, VS Code and JetBrains; explicit false overrides inherited deployment environment variables, while absent settings preserve manually selected deployments.
