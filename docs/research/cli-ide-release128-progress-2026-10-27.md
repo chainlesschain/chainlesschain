@@ -6,6 +6,8 @@
 
 ### RC6：修正 macOS 真实路径夹具
 
+RC6 Strict Sandbox 已完整成功。CLI CI 的 macOS unit shard 4/4（job `122240521295`）被 GitHub 取消，检查注释明确为 hosted runner 多次分配未成功，并提示 macOS ARM64 容量不足；`runner_id:0`、`steps:[]`，无测试执行。一次定向重跑命令返回 `job cannot be rerun`，未认定重跑已启动；继续等待该 workflow 的其余任务及重试条件，发布仍需补齐这一分片。源码及候选引用不因此改动，未发布或启动 36+9 原生复测。
+
 固定源码 `ba446d4c6bc9f7ca17fd18a599cc714a6ea12c88`，引用 `cli-candidate-v0.166.128-rc6`。完整门禁为 [CLI CI 40518693223](https://github.com/chainlesschain/chainlesschain/actions/runs/40518693223) 与 [Strict Sandbox 40518705767](https://github.com/chainlesschain/chainlesschain/actions/runs/40518705767)，尚待完成。预检记录：[rc6-preflight.json](./cli/evidence/release128-public/rc6-preflight.json)。候选推送不代表 npm 或市场发布。
 
 RC6 Strict Sandbox 已完整成功。CLI CI 的 macOS unit shard 4（job `122240521295`）在执行测试前被托管平台取消，步骤为空。GitHub 注释明确为 `The job was not acquired by Runner of type hosted even after multiple attempts`，并重复提示 macOS ARM64 runner 容量受限。已保存平台注释；不会将取消项计为通过。GitHub 在全工作流仍运行时拒绝单格重跑（HTTP 403：`The workflow run containing this job is already running`），因此等待其余任务结束后，再在同一准确提交重跑未成功项，不为容量问题修改源码或创建新候选。
