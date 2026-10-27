@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 import test from "node:test";
 import { adapterArgv } from "./verify01-native-task-adapter.mjs";
 
-function run(t, body, capture = {}, preload = "") {
+function run(t, body, capture = {}, preload = "", reviewChanges = false) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-stderr-test-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const cli = path.join(root, "cli.cjs");
@@ -20,6 +20,7 @@ function run(t, body, capture = {}, preload = "") {
       adapterArgv(
         cli,
         capture === null ? undefined : { captureDir, ...capture },
+        { reviewChanges },
       ),
   );
   const result = spawnSync(
@@ -54,6 +55,30 @@ function run(t, body, capture = {}, preload = "") {
 }
 
 const echo = `const fs=require('node:fs');process.stdout.write(JSON.stringify({args:process.argv.slice(2),stdin:fs.readFileSync(0,'utf8'),worklog:process.env.CC_TASK_WORKLOG}));process.exitCode=7;`;
+
+test("review opt-in survives both plain and stderr capture wrappers without changing limits", (t) => {
+  for (const capture of [null, {}]) {
+    const plain = run(t, echo, capture);
+    const reviewed = run(t, echo, capture, "", true);
+    const baseline = JSON.parse(plain.stdout);
+    const output = JSON.parse(reviewed.stdout);
+    assert.equal(reviewed.status, plain.status);
+    assert.ok(!baseline.args.includes("--review-changes"));
+    assert.deepEqual(
+      output.args.filter((arg) => arg !== "--review-changes"),
+      baseline.args,
+    );
+    assert.equal(
+      output.args.filter((arg) => arg === "--review-changes").length,
+      1,
+    );
+    assert.equal(output.stdin, baseline.stdin);
+    assert.equal(output.worklog, "0");
+  }
+  assert.throws(() =>
+    adapterArgv("unused", undefined, { reviewChanges: "true" }),
+  );
+});
 
 test("optional capture preserves stdout, stdin, tool arguments and nonzero exit", (t) => {
   const plain = run(t, echo, null);

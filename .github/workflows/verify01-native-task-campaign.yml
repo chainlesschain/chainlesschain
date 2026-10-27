@@ -45,6 +45,11 @@ on:
         type: boolean
         required: false
         default: false
+      review_changes:
+        description: "Opt in to generic change review within the existing model/request budgets; not acceptance evidence"
+        type: boolean
+        required: false
+        default: false
       accept_existing_run:
         description: "Optional completed delivery artifact run ID; performs acceptance only without paid model calls"
         type: string
@@ -220,11 +225,16 @@ jobs:
           EXECUTION_SOURCE_SHA: ${{ github.sha }}
           NATIVE_SAMPLES: ${{ inputs.sample_ids }}
           FETCH_DIAGNOSTICS: ${{ inputs.fetch_diagnostics && 'true' || 'false' }}
+          REVIEW_CHANGES: ${{ inputs.review_changes && 'true' || 'false' }}
         run: |
           display=()
           selection=()
           package=()
           diagnostics=()
+          review=()
+          if [[ "$REVIEW_CHANGES" == "true" ]]; then
+            review=(--review-changes)
+          fi
           if [[ "$FETCH_DIAGNOSTICS" == "true" ]]; then
             diagnostics=(--fetch-diagnostics)
           fi
@@ -239,7 +249,7 @@ jobs:
           fi
           "${display[@]}" node packages/cli/scripts/verify01-native-task-campaign.mjs \
             --entry "$NATIVE_ENTRY" --source-sha "$EXECUTION_SOURCE_SHA" \
-            --confirm-live --output-dir "$RUNNER_TEMP/verify01-native-tasks" "${selection[@]}" "${package[@]}" "${diagnostics[@]}"
+            --confirm-live --output-dir "$RUNNER_TEMP/verify01-native-tasks" "${selection[@]}" "${package[@]}" "${diagnostics[@]}" "${review[@]}"
       - name: Preserve all candidates, native traces, UI and broker failures
         timeout-minutes: 15
         if: always()

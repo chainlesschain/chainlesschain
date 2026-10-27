@@ -311,8 +311,35 @@ export function nativeEnvironment(
   return env;
 }
 
-export function nativeCliAdapterSource(cliPath) {
+export function nativeReviewFlags(reviewChanges = false) {
+  assert.equal(typeof reviewChanges, "boolean");
+  return reviewChanges ? ["--review-changes"] : [];
+}
+
+export function inspectNativeChangeReview(stream, requested = false) {
+  nativeReviewFlags(requested);
+  const events = stream.split(/\r?\n/u).filter(Boolean).map(JSON.parse);
+  const reminders = events.filter(
+    (event) =>
+      event.type === "iteration_warning" &&
+      event.message ===
+        "Reviewing changed files against the task before finishing.",
+  );
+  return {
+    requested,
+    observed: reminders.length > 0,
+    reminderCount: reminders.length,
+    evidence: "model-stream.ndjson:iteration_warning",
+    completed: null,
+  };
+}
+
+export function nativeCliAdapterSource(
+  cliPath,
+  { reviewChanges = false } = {},
+) {
   const flags = [
+    ...nativeReviewFlags(reviewChanges),
     "--allowed-tools",
     FILE_TOOLS,
     "--no-ide",
@@ -338,6 +365,7 @@ export async function runVSCodeNativeTask({
   pluginArchive,
   pluginDigest,
   versions,
+  reviewChanges = false,
 }) {
   const root = path.dirname(profileHome),
     captureDir = path.join(root, "capture"),
@@ -349,7 +377,7 @@ export async function runVSCodeNativeTask({
       root,
       process.platform === "win32" ? "cli.cmd" : "cli",
     );
-  fs.writeFileSync(adapter, nativeCliAdapterSource(cliPath));
+  fs.writeFileSync(adapter, nativeCliAdapterSource(cliPath, { reviewChanges }));
   const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
   fs.writeFileSync(
     launcher,
@@ -521,9 +549,11 @@ export async function runNativeCampaign(options) {
     sampleIds,
     versionsFile,
     fetchDiagnostics = false,
+    reviewChanges = false,
     key = process.env.VOLCENGINE_API_KEY,
   } = options;
   assert.equal(typeof fetchDiagnostics, "boolean");
+  nativeReviewFlags(reviewChanges);
   assert.ok(
     !fetchDiagnostics || entry === "cli",
     "fetch diagnostics require CLI entry",
@@ -657,6 +687,7 @@ export async function runNativeCampaign(options) {
     actualPlatform: process.platform,
     actualArch: process.arch,
     actualEntry: entry,
+    changeReview: { requested: reviewChanges, observed: null },
     startedAt: stamp(),
     samples: [],
     selectionScope:
@@ -729,6 +760,11 @@ export async function runNativeCampaign(options) {
       declaredActualEntry: { platform: process.platform, entry },
       actualPlatform: process.platform,
       actualEntry: entry,
+      changeReview: {
+        requested: reviewChanges,
+        observed: null,
+        completed: null,
+      },
       executionSourceCommit: sourceSha,
       projectCommit: DIAGNOSTIC.projectCommit,
       planDigest: DIAGNOSTIC.planDigest,
@@ -978,6 +1014,7 @@ export async function runNativeCampaign(options) {
         pluginArchive,
         pluginDigest,
         versions,
+        reviewChanges,
         ...packageBinding,
       };
       let result;
@@ -985,6 +1022,7 @@ export async function runNativeCampaign(options) {
         result = await run("model", [
           cliPath,
           "agent",
+          ...nativeReviewFlags(reviewChanges),
           "-p",
           prompt,
           "--provider",
@@ -1036,6 +1074,7 @@ export async function runNativeCampaign(options) {
       }
       const stream = result.stdout || protocolStream(result.captureDir);
       save(`${sample.id}/model-stream.ndjson`, redact(stream));
+      row.changeReview = inspectNativeChangeReview(stream, reviewChanges);
       const inspected = inspectionStream(stream, workspace);
       row.model = inspectModelTrace(
         inspected.stream,
@@ -1142,6 +1181,13 @@ export async function runNativeCampaign(options) {
   summary.generationPassed =
     summary.samples.length === samples.length &&
     summary.samples.every((s) => s.generationPassed);
+  summary.changeReview.observed = summary.samples.some(
+    (sample) => sample.changeReview.observed === true,
+  )
+    ? true
+    : summary.samples.every((sample) => sample.changeReview.observed === false)
+      ? false
+      : null;
   summary.finishedAt = stamp();
   save("summary.json", summary);
   return summary;
@@ -1160,6 +1206,7 @@ if (
       samples: { type: "string" },
       "versions-file": { type: "string" },
       "fetch-diagnostics": { type: "boolean", default: false },
+      "review-changes": { type: "boolean", default: false },
     },
   });
   const summary = await runNativeCampaign({
@@ -1170,6 +1217,7 @@ if (
     sampleIds: parseNativeSampleIds(values.samples),
     versionsFile: values["versions-file"],
     fetchDiagnostics: values["fetch-diagnostics"],
+    reviewChanges: values["review-changes"],
   });
   console.log(
     JSON.stringify({

@@ -242,10 +242,12 @@ def unique_run(intent, runs, url=None):
 
 def dispatch_args(context, shard):
     platform, entry = shard['group'].split('-')
+    review_changes = context.get('reviewChanges', False)
+    require(type(review_changes) is bool, 'reviewChanges must be boolean')
     return ['gh', 'workflow', 'run', WORKFLOW, '--repo', REPO, '--ref', context['branch'],
             '-f', 'confirm_live=true', '-f', 'hosts=' + {'win32': 'windows', 'linux': 'linux', 'darwin': 'macos'}[platform],
             '-f', 'entries=' + entry, '-f', 'package_set=latest', '-f', 'package_set_file=' + context['packageSetPath'],
-            '-f', 'sample_ids=' + ','.join(sorted(shard['sampleIds']))]
+            '-f', 'sample_ids=' + ','.join(sorted(shard['sampleIds']))] + (['-f', 'review_changes=true'] if review_changes else [])
 
 
 def resolve_intent(directory, context, shard, runs):
@@ -332,6 +334,8 @@ def execute(context, directory, submit=False, resolve=False, dispatch=None, max_
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--plan', required=True)
+    parser.add_argument('--review-changes', action='store_true',
+                        help='Opt in to generic change review within existing budgets; binds this mode into the dispatch journal.')
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument('--submit', action='store_true')
     mode.add_argument('--resolve', action='store_true')
@@ -341,6 +345,9 @@ def main():
     if args.max_new_dispatches is not None and (not args.submit or args.max_new_dispatches <= 0):
         parser.error('--max-new-dispatches requires --submit and a positive integer')
     context, manifest = load_context(args.plan)
+    # Omit false to preserve historical journal bindings and dispatch arguments.
+    if args.review_changes:
+        context['reviewChanges'] = True
     directory = WORK / 'next-package-dispatch' / context['planDigest'].split(':')[1]
     if directory.exists() and (directory / 'context.json').exists():
         require(json.loads((directory / 'context.json').read_bytes()) == context, 'Existing journal belongs to another evaluation HEAD/context')

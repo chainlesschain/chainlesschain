@@ -12,6 +12,8 @@ import {
   snapshotNativeTree,
   inspectNativeScope,
   nativeCliAdapterSource,
+  nativeReviewFlags,
+  inspectNativeChangeReview,
   protocolStream,
   inspectionStream,
   VERSIONS,
@@ -255,6 +257,95 @@ test("adapter preserves protocol identity and forces six-file tools/worklog off"
   assert.equal(observed.worklog, "0");
   assert.ok(observed.args.includes("--no-ide"));
   assert.ok(!observed.args.includes("--ephemeral"));
+  assert.ok(!observed.args.includes("--review-changes"));
+  fs.writeFileSync(
+    adapter,
+    nativeCliAdapterSource(cli, { reviewChanges: true }),
+  );
+  const reviewed = JSON.parse(
+    execFileSync(process.execPath, [adapter, ...original], {
+      encoding: "utf8",
+    }),
+  );
+  assert.deepEqual(
+    reviewed.args.filter((arg) => arg !== "--review-changes"),
+    observed.args,
+  );
+  assert.equal(
+    reviewed.args.filter((arg) => arg === "--review-changes").length,
+    1,
+  );
+  const nonAgent = JSON.parse(
+    execFileSync(process.execPath, [adapter, "--version"], {
+      encoding: "utf8",
+    }),
+  );
+  assert.deepEqual(nonAgent.args, ["--version"]);
+});
+
+test("native review opt-in is strict and observation requires a runtime event", () => {
+  assert.deepEqual(nativeReviewFlags(), []);
+  assert.deepEqual(nativeReviewFlags(false), []);
+  assert.deepEqual(nativeReviewFlags(true), ["--review-changes"]);
+  assert.throws(() => nativeReviewFlags("true"));
+  const message = "Reviewing changed files against the task before finishing.";
+  assert.deepEqual(inspectNativeChangeReview("", true), {
+    requested: true,
+    observed: false,
+    reminderCount: 0,
+    evidence: "model-stream.ndjson:iteration_warning",
+    completed: null,
+  });
+  assert.equal(
+    inspectNativeChangeReview(JSON.stringify({ type: "result", message }), true)
+      .observed,
+    false,
+  );
+  const evidence = inspectNativeChangeReview(
+    JSON.stringify({ type: "iteration_warning", message }),
+    true,
+  );
+  assert.equal(evidence.observed, true);
+  assert.equal(evidence.completed, null);
+  assert.throws(() => inspectNativeChangeReview("not json", true));
+});
+
+test("dispatcher review opt-in preserves legacy argv and is journal-bound", () => {
+  const dispatcher = new URL(
+    "../scripts/verify01-dispatch-native-retest.py",
+    import.meta.url,
+  );
+  const script = String.raw`
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location('review_dispatch', sys.argv[1])
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+context = {'branch': 'review-test', 'packageSetPath': 'exact.json'}
+shard = {'group': 'linux-cli', 'sampleIds': ['verify-09']}
+base = m.dispatch_args(context, shard)
+assert not any('review_changes' in arg for arg in base)
+assert m.dispatch_args({**context, 'reviewChanges': False}, shard) == base
+assert m.dispatch_args({**context, 'reviewChanges': True}, shard) == base + ['-f', 'review_changes=true']
+try:
+    m.dispatch_args({**context, 'reviewChanges': 'true'}, shard)
+except RuntimeError:
+    pass
+else:
+    raise AssertionError('string flag accepted')
+print('review dispatcher argv passed')
+`;
+  const { fileURLToPath } = createRequire(import.meta.url)("node:url");
+  const output = execFileSync(
+    process.platform === "win32" ? "python" : "python3",
+    ["-B", "-c", script, fileURLToPath(dispatcher)],
+    { encoding: "utf8", timeout: 30000 },
+  );
+  assert.match(output, /review dispatcher argv passed/);
+  const source = fs.readFileSync(dispatcher, "utf8");
+  assert.ok(
+    source.indexOf("context['reviewChanges'] = True") <
+      source.indexOf("directory = WORK / 'next-package-dispatch'"),
+  );
 });
 test("VSCode prompt preserves full UTF8 content up to 1 MiB and first-run deadline up to 30 minutes", () => {
   const root = path.resolve(os.tmpdir(), "cc-native-config");

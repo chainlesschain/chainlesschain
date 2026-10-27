@@ -215,7 +215,8 @@ function captureCliStderr(node, cli, args, options) {
   });
 }
 
-export function adapterArgv(cliPath, capture) {
+export function adapterArgv(cliPath, capture, { reviewChanges = false } = {}) {
+  assert.equal(typeof reviewChanges, "boolean");
   if (capture) {
     const options = {
       maxBytes: 1024 * 1024,
@@ -226,13 +227,13 @@ export function adapterArgv(cliPath, capture) {
     for (const key of ["maxBytes", "maxLineBytes"])
       assert.ok(Number.isSafeInteger(options[key]) && options[key] > 0);
     return (
-      adapterArgv(cliPath).replace(
+      adapterArgv(cliPath, undefined, { reviewChanges }).replace(
         "const child=spawn(",
         `if(args[0]==='agent'){(${captureCliStderr.toString()})(${JSON.stringify(process.execPath)},${JSON.stringify(cliPath)},args,${JSON.stringify(options)});}else{const child=spawn(`,
       ) + "}"
     );
   }
-  return `const {spawn}=require('node:child_process');const args=process.argv.slice(2);if(args[0]==='agent')args.push('--allowed-tools','read_file,search_files,list_dir,write_file,edit_file,edit_file_hashed','--no-ide','--no-mcp','--no-pdh','--no-jetbrains','--no-project-memory','--no-file-refs','--no-slash-macros','--max-turns','20');const child=spawn(${JSON.stringify(process.execPath)},[${JSON.stringify(cliPath)},...args],{stdio:'inherit',env:{...process.env,CC_TASK_WORKLOG:'0'}});child.on('error',e=>{console.error(e.message);process.exitCode=1});child.on('exit',code=>{process.exitCode=code??1});`;
+  return `const {spawn}=require('node:child_process');const args=process.argv.slice(2);if(args[0]==='agent')args.push('--allowed-tools','read_file,search_files,list_dir,write_file,edit_file,edit_file_hashed','--no-ide','--no-mcp','--no-pdh','--no-jetbrains','--no-project-memory','--no-file-refs','--no-slash-macros','--max-turns','20');${reviewChanges ? "if(args[0]==='agent')args.push('--review-changes');" : ""}const child=spawn(${JSON.stringify(process.execPath)},[${JSON.stringify(cliPath)},...args],{stdio:'inherit',env:{...process.env,CC_TASK_WORKLOG:'0'}});child.on('error',e=>{console.error(e.message);process.exitCode=1});child.on('exit',code=>{process.exitCode=code??1});`;
 }
 
 export async function runJetBrainsNativeTask({
@@ -249,6 +250,7 @@ export async function runJetBrainsNativeTask({
   pluginArchive,
   pluginDigest,
   versions,
+  reviewChanges = false,
 }) {
   assert.equal(profile, path.join(profileHome, ".chainlesschain"));
   assert.ok(deadline > Date.now() && deadline - Date.now() <= 30 * 60 * 1000);
@@ -269,9 +271,13 @@ export async function runJetBrainsNativeTask({
   const adapter = path.join(bin, "public-cli.cjs");
   fs.writeFileSync(
     adapter,
-    adapterArgv(cliPath, {
-      captureDir: path.join(outputDir, "cli-stderr-diagnostics"),
-    }),
+    adapterArgv(
+      cliPath,
+      {
+        captureDir: path.join(outputDir, "cli-stderr-diagnostics"),
+      },
+      { reviewChanges },
+    ),
     { flag: "wx" },
   );
   fs.writeFileSync(
