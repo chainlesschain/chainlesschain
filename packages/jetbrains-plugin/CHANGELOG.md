@@ -1,5 +1,12 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.183] - Model configuration and conversation isolation (candidate, 2026-10-27)
+
+- Distinguish configured, missing and unreadable LLM settings and reject late configuration detection results.
+- Reuse shared model recommendations and protocol-aware connection tests while retaining user-selected models and gateway aliases.
+- Add conversation-local `/model` selection and reset, including tab restoration and process-bound context reads.
+- Recommend CLI 0.166.128 and pair with VS Code 0.37.166. Keep offline upgrade guidance aligned with the recommended CLI; publish only after CLI readback and exact-source IDE gates.
+
 ## [0.4.182] - Optional self-evolution (2026-10-27)
 
 - Add a prominent self-evolution switch usable before a deployment exists, backed by the shared CLI `evolution.enabled` setting.

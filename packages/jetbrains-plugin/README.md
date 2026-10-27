@@ -13,7 +13,7 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 ## Release pairing
 
-Plugin **0.4.182** recommends CLI **`0.166.127`** and pairs with VS Code **0.37.165**. It adds the shared self-evolution switch. CLI 0.166.127 and both paired IDEs are public; exact-source checks and public artifact readback passed. Version 0.4.180 stopped before publication because an offline upgrade-floor test still expected CLI 0.166.123; its tag is retained.
+Plugin **0.4.183** recommends CLI **`0.166.128`** and pairs with VS Code **0.37.166**. This source candidate adds tri-state connection diagnostics, shared model recommendations and conversation-local `/model` selection. It has not been published. CLI `.128` publication and readback must complete before the exact-source IDE release gates and marketplace upload. The verified public `.182` / `.127` / `.165` pairing remains recorded below.
 
 Plugin **0.4.179** recommends public CLI **`0.166.123`** and pairs with VS Code **0.37.162**. These IDE source candidates have not been published. The paired CLI repairs Python f-string evidence projection and Ollama endpoint aliases while reducing repeated Windows ACL startup work. Exact-source IDE gates and public artifact readback remain pending. Previously verified public releases are retained below.
 
@@ -112,7 +112,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.182** is the current public release. It recommends `chainlesschain@0.166.127`. Exact-source release gates and public artifact readback passed. This release adds the shared self-evolution switch and preserves unknown delivery handling. Native task quality and restart acceptance still require separate published-package evidence.
+Plugin **0.4.183** is the current release candidate. It recommends `chainlesschain@0.166.128`. It adds shared model onboarding, tri-state connection diagnostics and conversation-local model selection. Publication requires the paired public CLI followed by the exact-source IDE gates and marketplace readback. Native task quality and restart acceptance remain independent.
 
 ## Previous candidates and development notes
 

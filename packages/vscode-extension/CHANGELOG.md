@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.166] - Model configuration and conversation isolation (candidate, 2026-10-27)
+
+- Distinguish configured, missing and unreadable LLM settings; protect configuration views from late results and show the scope of global connection changes.
+- Reuse the CLI's shared model recommendation catalog and protocol-aware connection probes without replacing existing aliases.
+- Add conversation-local `/model` selection and reset, retaining task/tab restoration and guarding context responses by process generation.
+- Recommend CLI 0.166.128 and pair with JetBrains 0.4.183. Publish only after verified public CLI release and exact-source IDE gates; marketplace readback remains required.
+
 ## [0.37.165] - Optional self-evolution (2026-10-27)
 
 - Add a self-evolution enable/disable control that works before a deployment exists and shares the CLI `evolution.enabled` setting with cc ui and JetBrains.

@@ -4,6 +4,10 @@
 
 ## 当前阶段
 
+CLI 候选提交 `8d529879971d9fb9b0f569238cebd12cc04e73bb` 已推送至 `origin/main`。准确提交的 [CLI CI 40498497152](https://github.com/chainlesschain/chainlesschain/actions/runs/40498497152) 和 [CLI Strict Sandbox 40498496937](https://github.com/chainlesschain/chainlesschain/actions/runs/40498496937) 已创建，当前等待 GitHub runner 调度。尚未创建 npm 发布标签，不以排队状态认定门禁通过。
+
+另固定候选引用 `cli-candidate-v0.166.128` 到同一 SHA，并在该引用上独立调度两套门禁，避免后续主线提交取消候选验证。发布等待器仅在该 SHA 的两套完整门禁均成功、且全部配置平台任务核验通过后，才允许创建并推送 `v-npm-0-166-128`；仍由现有 OIDC 工作流再次核验后发布。
+
 - CLI `0.166.128`：候选版本，准备准确提交的 Linux / Windows / macOS `CLI CI` 与 `CLI Strict Sandbox` 验证；尚未创建发行标签或公开发布。
 - 子 npm 包：源码与 `.127` 发行依赖一致，版本固定不变；已下载 10 个固定版本的公开归档并核对 registry 元数据及 SHA-512，见[子包预检](./cli/evidence/release128-public/child-registry-preflight.json)。发布工作流仍需完成干净安装与 provenance 核验后才能发布 CLI。
 - 配套 IDE 目标：VS Code / Open VSX `0.37.166`、JetBrains `0.4.183`，计划推荐 CLI `.128`；在 CLI 发布并核验前不触发 IDE 发布。
@@ -18,6 +22,8 @@ Goal 证据判定及持久检查点、首次连接三态诊断、共享模型推
 发布使用现有 GitHub Actions OIDC Trusted Publishing。不得以本地测试、旧 SHA 的 CI 或部分平台通过替代准确提交门禁；子包 → CLI → IDE → 客户端的依赖顺序保留。原不可变发行标签不移动。
 
 候选预检：离线 changelog 已重新生成；命令 manifest、help、completions 和协议文档无漂移；6 个发布 / changelog 测试套件、55 项通过。本地结果仅为补充，等待候选准确提交的 GitHub Actions 矩阵。
+
+IDE 后续候选已准备版本、推荐 CLI、changelog、README 和 JetBrains 离线升级提示。VS Code Marketplace overview、JetBrains 元数据检查与 VS Code 完整 327 项单元测试通过；缓存 JBR `21.0.3` 下 Kotlin / Java / 测试编译及 5 个 JUnit 类、50 项测试通过，0 失败 / 跳过。源码推送只触发构建验证，不触发市场发布；CLI 公开制品核验前不推送 IDE 发布标签。
 
 ## 独立验收边界
 
