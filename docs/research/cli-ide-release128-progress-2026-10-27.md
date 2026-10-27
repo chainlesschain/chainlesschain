@@ -4,6 +4,12 @@
 
 ## 当前阶段
 
+### 正式发布流程已启动（2026-10-28）
+
+RC7 准确提交 `dfa158e36171e347a40e23356c2ed7bd04e0c061` 的 CLI CI 与 Strict Sandbox 已完整成功，覆盖 Linux、Windows、macOS。CLI CI 的 71 个必需任务成功，只有既定可选 `dry-run-publish` 跳过；严格沙箱 6 个任务全部成功。核验回执见 [gates.json](./cli/evidence/release128-public/gates.json)。
+
+正式标签 `v-npm-0-166-128` 已固定到该提交并推送，已启动 [GitHub Actions OIDC 发布 40552876222](https://github.com/chainlesschain/chainlesschain/actions/runs/40552876222)。当前仅表示发布流程启动，尚不能称为 npm 公开版本；仍需等待工作流成功及公开归档、签名来源和 child pins 回读。CLI 核验完成后才推送 IDE 发行标签，客户端继续最后发布。
+
 ### RC7：同步已复核连接探测器的源码审计摘要
 
 固定提交 `dfa158e36171e347a40e23356c2ed7bd04e0c061`、引用 `cli-candidate-v0.166.128-rc7` 已推送。完整门禁为 [CLI CI 40538904177](https://github.com/chainlesschain/chainlesschain/actions/runs/40538904177) 和 [Strict Sandbox 40538930581](https://github.com/chainlesschain/chainlesschain/actions/runs/40538930581)。隔离工作树已快进至该准确提交，出口审查通过（78 个候选、0 个未分类、0 个解析错误）；预算出口审查 19 项与连接探针 39 项离线测试通过，没有真实模型请求。见 [RC7 隔离预检](./cli/evidence/release128-public/rc7-isolated-preflight.json)。以上本地结果不能替代完整云端矩阵。
