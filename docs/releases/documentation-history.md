@@ -4,6 +4,18 @@
 
 以下内容从原文档中心导航迁出，保留当时的版本更新记录。当前项目版本与发布状态请参阅[项目更新日志](../../CHANGELOG.md)。
 
+## 2026-10-27：CLI .127、配套 IDE 与产品 .142 文档上线
+
+根据主线 `6589d0fa33` 的源码及发行记录，更新设计源、用户升级指南、自进化配置、官网中英文页面、下载元数据和中英文 README。当前公开版本为 CLI **0.166.127**、Open VSX **0.37.165**、JetBrains **0.4.182**、移动与 PC 产品 **v5.0.3.142**；各软件渠道保留独立发行源码和验收范围。
+
+- [用户升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-27.html)与[自进化开关配置](https://docs.chainlesschain.com/chainlesschain/self-evolution-configuration.html)：默认行为、配置优先级、界面入口、生效时机与恢复排查。
+- [本轮设计](../design/release-runtime-update-2026-10-27.md)：可选模型入口、完整恢复摘要、IDE 附件保护与跨端发行边界。
+- 用户文档 **655** 页、设计文档 **287** 页、官网 **20** 页构建成功；322 份用户文档结构检查通过，23 个重点页面的站内链接检查无失效项。
+- 三站部署源码为 `8981162db30a7e4e6cad39afa8b04c5eecdb18f7`，部署编号 `20261027-034512-8981162db3-docs`。用户文档构建自 `fe400dd28c`，其相关源目录与部署提交的 Git 树完全一致；设计站和官网从部署提交构建。
+- 公网 **30** 个 HTML / 静态资源与本地构建的字节数、SHA-256 一致，三个部署清单均匹配提交和部署编号；旧站点备份保留。详见[部署核验回执](../research/cli/evidence/documentation-deployment-2026-10-27.json)。
+
+本轮没有新增真实模型任务验收，累计 **32/45**、**13** 项未完成，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留；Microsoft Marketplace 未发布。
+
 ## v1.1.0-alpha (2026-02-28)
 
 **Phase 46-51 (Q3 2026) 企业版 Phase 2**:
