@@ -23,7 +23,7 @@
 
 提交 [d9f2511b95](https://github.com/chainlesschain/chainlesschain/commit/d9f2511b953ca08a7b5013c177250474b3d6fb4e) 为 CLI / VS Code / JetBrains 的复测适配器增加显式 `--review-changes` 转发与观察标记，工作流参数默认关闭。此提交发生在正式发行之后，不进入既有 npm、VSIX、JetBrains ZIP 或客户端冻结源。
 
-当前计划为 [next-package-128-review-20261028-plan.json](./cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028-plan.json)，状态 **PREPARED_NOT_DISPATCHED**，`billingAssessed: false`。观察到复查提示不等于完成复查、任务合格或账单核验；未新增独立验收。
+当前计划为 [next-package-128-review-20261028-plan.json](./cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028-plan.json)。文档初次核对时为 **PREPARED_NOT_DISPATCHED**；后续提交 `f0d4f2e9e8` 已记录原生复测执行，最新状态以[独立复测跟踪](./cli-ide-review128-task-progress-2026-10-28.md)为准。该变化不修改公开制品的冻结源。观察到复查提示不等于完成复查、任务合格或账单核验；本轮文档更新不增加独立验收。
 
 ## 文档更新范围
 
@@ -32,6 +32,7 @@
 - 站点入口：两个 VitePress 首页的当前版本、卡片、导航阅读入口，以及官网的代码核对基线和命令参考链接。
 - README：根中英文与 CLI README 增加当前参考入口，历史发行段落保留。
 - 当前升级/设计页：补齐常用命令和模块入口，纠正旧版本被称为当前版本的段落与错误发布证据链接。
+- 官网产品页后续：同步更新 Web、桌面与移动版的中英文页面、安装指引及图片说明；截图来源和移动端设备边界见[官网产品页更新记录](../../docs-website-v2/PRODUCT-PAGES-UPDATE-2026-10-28.md)。
 
 ## 验证边界
 
