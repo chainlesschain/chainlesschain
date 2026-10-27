@@ -1,0 +1,42 @@
+{
+  "schema": "chainlesschain.release128-rc6-preflight/v1",
+  "sourceSha": "ba446d4c6bc9f7ca17fd18a599cc714a6ea12c88",
+  "candidateRef": "cli-candidate-v0.166.128-rc6",
+  "status": "AWAITING_COMPLETE_EXACT_SOURCE_GATES",
+  "published": false,
+  "repair": {
+    "file": "packages/cli/__tests__/unit/agent-core.test.js",
+    "behavior": "Canonicalize the temporary test workspace before passing the exact file mutation scope.",
+    "productionChecksRelaxed": false,
+    "previousFailedJobId": 122229167909,
+    "previousFailedRunId": 40515244727,
+    "previousFailure": "mutation scope worktree root must be its real path",
+    "previousFailedTests": 11
+  },
+  "localVerification": {
+    "operatingSystem": "windows",
+    "command": "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/agent-core.test.js -t 'opt-in change review in the real file-tool loop' --maxWorkers 1",
+    "passed": 11,
+    "failed": 0,
+    "notSelected": 159,
+    "durationSeconds": 9.52,
+    "realModelRequests": false
+  },
+  "securityMap": {
+    "producerContentBindingsValid": true,
+    "mapDigest": "sha256:d31cb8df3581cbe81209f32055d96c4470db5ae86db6b50fef74e743897c61fb",
+    "changedByRc6": false
+  },
+  "gates": {
+    "cliCiRunId": 40518693223,
+    "strictSandboxRunId": 40518705767,
+    "ideCandidateSha": "6551a06c2f694bb93d0197fa8b82becd25a83173",
+    "ideCandidateRunId": 40506935492,
+    "ideCandidateConclusion": "success"
+  },
+  "limits": [
+    "The Windows local result does not prove the macOS runner result.",
+    "Complete exact-source three-OS GitHub Actions matrices remain mandatory.",
+    "Unselected tests are not counted as passing."
+  ]
+}

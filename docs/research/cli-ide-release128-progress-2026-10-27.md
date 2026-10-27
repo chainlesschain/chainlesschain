@@ -6,6 +6,8 @@
 
 ### RC6：修正 macOS 真实路径夹具
 
+固定源码 `ba446d4c6bc9f7ca17fd18a599cc714a6ea12c88`，引用 `cli-candidate-v0.166.128-rc6`。完整门禁为 [CLI CI 40518693223](https://github.com/chainlesschain/chainlesschain/actions/runs/40518693223) 与 [Strict Sandbox 40518705767](https://github.com/chainlesschain/chainlesschain/actions/runs/40518705767)，尚待完成。预检记录：[rc6-preflight.json](./cli/evidence/release128-public/rc6-preflight.json)。候选推送不代表 npm 或市场发布。
+
 RC5 的 Strict Sandbox 在 macOS 15 的新复查测试中出现 11 项失败，统一原因是 `mutation scope worktree root must be its real path`。macOS 临时目录可经 `/var` 指向 `/private/var`，夹具直接传入未规范化的 `mkdtempSync` 路径，未到达被测复查行为。失败任务为 [122229167909](https://github.com/chainlesschain/chainlesschain/actions/runs/40515244727/job/122229167909)。
 
 修复仅将 `agent-core.test.js` 中复查夹具目录经 `fs.realpathSync` 规范化，生产路径约束、预算、来源校验和断言均保留。Windows 本地模拟模型定向测试 11 项全部通过，159 项未选中；未调用真实或付费模型。该测试文件不属于安全映射 producer，现有映射无需更新。RC5 CLI CI 已请求取消，失败版本不发布；准备固定 RC6，为修复后的准确提交重新执行完整 CLI CI 与 Strict Sandbox。
