@@ -6,6 +6,8 @@
 
 ### RC4：Goal 集成夹具修复与固定发布范围
 
+固定源码为 `944c6e321ca0e65d03b9b4b2e1fa61720ac522cf`，候选引用 `cli-candidate-v0.166.128-rc4`。隔离工作树的 4 项定向测试再次全部通过，安全映射 producer 内容绑定有效且无需刷新。完整门禁：[CLI CI 40509241325](https://github.com/chainlesschain/chainlesschain/actions/runs/40509241325)、[Strict Sandbox 40509259153](https://github.com/chainlesschain/chainlesschain/actions/runs/40509259153)。见 [RC4 预检记录](./cli/evidence/release128-public/rc4-preflight.json)。
+
 RC2 的 CLI CI Linux unit shard 4 发现集成夹具仍仅回复 `done`，未提供新的 Goal model judge 所需的成功工具证据。修复让夹具真实读取工作区 `inspection.txt`，并要求 judge 引用本轮 `goal-tool-1`；同时验证辅助模型调用仍处于同一个未完成 Run，以及来源拒绝时不完成 Run。生产完成条件、来源校验和权限检查均未放宽。
 
 Windows 本地沙箱首次运行在 native ACL 初始化阶段失败；在沙箱外执行相同的本地模拟模型测试后，4 项全部通过，263 项未选中，不计为通过。该测试不调用真实或付费模型。

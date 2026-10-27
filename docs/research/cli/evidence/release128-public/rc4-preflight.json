@@ -1,0 +1,38 @@
+{
+  "schema": "chainlesschain.release128-rc4-preflight/v1",
+  "sourceSha": "944c6e321ca0e65d03b9b4b2e1fa61720ac522cf",
+  "candidateRef": "cli-candidate-v0.166.128-rc4",
+  "baseSha": "6551a06c2f694bb93d0197fa8b82becd25a83173",
+  "mainTestFixSha": "ca9a66a87f",
+  "status": "AWAITING_COMPLETE_EXACT_SOURCE_GATES",
+  "published": false,
+  "localGoalCompositionTests": {
+    "command": "node C:/code/chainlesschain/node_modules/vitest/vitest.mjs run __tests__/unit/agent-evolution-runtime-composition.test.js -t 'real headless.*unfinished Run|headless Run after.*source denial' --maxWorkers 1",
+    "operatingSystem": "windows",
+    "workspace": "isolated RC4 worktree",
+    "nativeAclChecks": "enabled",
+    "passed": 4,
+    "failed": 0,
+    "notSelected": 263,
+    "durationSeconds": 43.37,
+    "realModelRequests": false
+  },
+  "securityMap": {
+    "producerContentBindingsValid": true,
+    "mapDigest": "sha256:4fda2d780100398ec5f0ca62a6597418777139eab841f86412ea083e3cb23554",
+    "changedByRc4": false
+  },
+  "gates": {
+    "cliCiRunId": 40509241325,
+    "strictSandboxRunId": 40509259153,
+    "ideCandidateSha": "6551a06c2f694bb93d0197fa8b82becd25a83173",
+    "ideCandidateRunId": 40506935492,
+    "oldRc2PublicationControllerStopped": true
+  },
+  "concurrentCommitExcluded": "5def22e364e6c89704ea2436b2fd198263ebf5a2",
+  "limits": [
+    "Local tests supplement but do not replace complete GitHub Actions matrices.",
+    "Unselected tests are not counted as passing.",
+    "No new live or paid model-task acceptance is claimed."
+  ]
+}
