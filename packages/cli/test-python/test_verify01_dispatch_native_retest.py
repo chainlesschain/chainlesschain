@@ -300,6 +300,20 @@ class DispatcherTests(unittest.TestCase):
                     m.shared_work_directory(self.directory)
         self.assertEqual(m.TREE, pathlib.Path(__file__).resolve().parents[3])
 
+    def test_live_branch_ref_is_checked_without_git_credential_helpers(self):
+        remote = {'ref': 'refs/heads/' + self.context['branch'],
+                  'object': {'type': 'commit', 'sha': self.context['sourceCommit']}}
+        with patch.object(m, 'gh', return_value=remote) as query, \
+             patch.object(m, 'git', side_effect=AssertionError('Git transport invoked')):
+            self.old_head(self.context)
+        query.assert_called_once_with('api', 'repos/' + m.REPO + '/git/ref/heads/feature/evaluation')
+        for changed in [dict(remote, ref='refs/tags/feature/evaluation'),
+                        dict(remote, object={'type': 'commit', 'sha': 'b' * 40}),
+                        dict(remote, object={'type': 'tag', 'sha': self.context['sourceCommit']}), {}]:
+            with self.subTest(remote=changed), patch.object(m, 'gh', return_value=changed):
+                with self.assertRaisesRegex(RuntimeError, 'branch SHA changed'):
+                    self.old_head(self.context)
+
 
 if __name__ == '__main__':
     unittest.main()

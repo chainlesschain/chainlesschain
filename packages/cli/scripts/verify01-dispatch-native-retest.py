@@ -22,6 +22,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import urllib.parse
 import urllib.request
 import uuid
 
@@ -139,9 +140,14 @@ def load_context(plan_file):
 
 
 def assert_remote_head(context):
-    # ls-remote avoids trusting a stale local remote-tracking ref.
-    lines = git('ls-remote', '--heads', 'origin', 'refs/heads/' + context['branch']).decode().splitlines()
-    require(len(lines) == 1 and lines[0].split()[0] == context['sourceCommit'], 'Remote evaluation branch SHA changed')
+    # Read the live ref through the authenticated API rather than invoking a
+    # Git credential helper, whose descendants can outlive a Windows timeout.
+    reference = 'heads/' + context['branch']
+    remote = gh('api', f'repos/{REPO}/git/ref/' + urllib.parse.quote(reference, safe='/'))
+    require(remote.get('ref') == 'refs/' + reference and
+            remote.get('object', {}).get('type') == 'commit' and
+            remote['object'].get('sha') == context['sourceCommit'],
+            'Remote evaluation branch SHA changed')
 
 
 def public_json(url):
