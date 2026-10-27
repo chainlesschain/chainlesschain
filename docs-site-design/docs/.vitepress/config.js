@@ -152,8 +152,8 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
-            text: "2026-10-27 可选自进化与完整恢复摘要",
-            link: "/release-runtime-update-2026-10-27",
+            text: "2026-10-28 Goal 证据与交付复查",
+            link: "/release-runtime-update-2026-10-28",
           },
           {
             text: "2026-10-26 v6 文本投影（历史）",

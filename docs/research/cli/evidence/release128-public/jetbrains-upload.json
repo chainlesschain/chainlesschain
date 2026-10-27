@@ -1,0 +1,129 @@
+{
+  "schema": "chainlesschain.release128-jetbrains-upload/v1",
+  "observedAt": "2026-10-27T18:48:16.405Z",
+  "version": "0.4.183",
+  "sourceSha": "6551a06c2f694bb93d0197fa8b82becd25a83173",
+  "runId": 40557015160,
+  "status": "uploaded_public_listing_pending",
+  "workflowStatus": "completed",
+  "workflowConclusion": "success",
+  "uploadJobId": 122388701947,
+  "uploadJobConclusion": "success",
+  "jobs": [
+    {
+      "id": 122375667592,
+      "name": "Public IDE capability manifest (drift gate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122375945154,
+      "name": "Browser evidence (linux)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122375945200,
+      "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122375945235,
+      "name": "Browser evidence (macos)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122375945357,
+      "name": "Browser evidence (windows)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122375945389,
+      "name": "JetBrains real host (macos-latest, 2024.2)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122375945440,
+      "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122375945601,
+      "name": "JetBrains real host (windows-latest, 2024.2)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122375945641,
+      "name": "JetBrains real host (macos-latest, 2025.2)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122375945674,
+      "name": "JetBrains real host (windows-latest, 2025.2)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122375947938,
+      "name": "VS Code extension (immutable candidate)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 122375948877,
+      "name": "VS Code extension (macOS host gate)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 122375949113,
+      "name": "VS Code Remote-SSH container (scoped trusted cell)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 122375949479,
+      "name": "VS Code extension (Windows host gate)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 122375951087,
+      "name": "IDE roadmap evidence (trusted scoped aggregate)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 122382426753,
+      "name": "Browser evidence (three-OS required aggregate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122384789925,
+      "name": "VS Code extension (Linux host gate + publish)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 122388701947,
+      "name": "JetBrains plugin (build + publish)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122393949087,
+      "name": "JetBrains Marketplace (post-publish verification)",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "publicReadbackVerified": false
+}

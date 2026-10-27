@@ -13,7 +13,7 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 ## Release pairing
 
-Plugin **0.4.183** recommends CLI **`0.166.128`** and pairs with VS Code **0.37.166**. This source candidate adds tri-state connection diagnostics, shared model recommendations and conversation-local `/model` selection. It has not been published. CLI `.128` publication and readback must complete before the exact-source IDE release gates and marketplace upload. The verified public `.182` / `.127` / `.165` pairing remains recorded below.
+Plugin **0.4.183** recommends public CLI **`0.166.128`** and pairs with public Open VSX **0.37.166**. It adds tri-state connection diagnostics, shared model recommendations and conversation-local `/model` selection. Exact-source host, browser, JUnit, build and compatibility gates passed, and Marketplace upload succeeded in [40557015160](https://github.com/chainlesschain/chainlesschain/actions/runs/40557015160). Public listing and download readback are pending; the verified public `.182` pairing is retained below.
 
 Plugin **0.4.179** recommends public CLI **`0.166.123`** and pairs with VS Code **0.37.162**. These IDE source candidates have not been published. The paired CLI repairs Python f-string evidence projection and Ollama endpoint aliases while reducing repeated Windows ACL startup work. Exact-source IDE gates and public artifact readback remain pending. Previously verified public releases are retained below.
 
@@ -112,7 +112,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.183** is the current release candidate. It recommends `chainlesschain@0.166.128`. It adds shared model onboarding, tri-state connection diagnostics and conversation-local model selection. Publication requires the paired public CLI followed by the exact-source IDE gates and marketplace readback. Native task quality and restart acceptance remain independent.
+Plugin **0.4.183** has been uploaded and recommends `chainlesschain@0.166.128`. It adds shared model onboarding, tri-state connection diagnostics and conversation-local model selection. Public listing and download verification are still pending. Native task quality and restart acceptance remain independent.
 
 ## Previous candidates and development notes
 

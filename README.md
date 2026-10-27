@@ -2,7 +2,7 @@
 
 ## CLI 0.166.128 已公开（2026-10-28）
 
-CLI **0.166.128** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40552876222) 发布，准确提交 `dfa158e36171e347a40e23356c2ed7bd04e0c061` 的三系统 CLI CI / Strict Sandbox 全部通过。[独立公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/40556529770) 确认 npm 归档与不可变 CI 制品逐字节一致，签名来源和十个直接子依赖均已核验。安装：`npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`。包含 Goal 验收与检查点恢复、双 IDE 模型配置支持、MCP / Skills 多语言检索、可选紧凑目录和 Memory 索引优化。配套 Open VSX `.166` / JetBrains `.183` 正在发布，客户端 `.143` 尚在准备，见[发布进度](docs/research/cli-ide-release128-progress-2026-10-27.md)和[公开状态](docs/research/cli/evidence/release128-public/publication.json)。
+CLI **0.166.128** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40552876222) 发布，准确提交 `dfa158e36171e347a40e23356c2ed7bd04e0c061` 的三系统 CLI CI / Strict Sandbox 全部通过。[独立公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/40556529770) 确认 npm 归档与不可变 CI 制品逐字节一致，签名来源和十个直接子依赖均已核验。安装：`npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`。包含 Goal 验收与检查点恢复、双 IDE 模型配置支持、MCP / Skills 多语言检索、可选紧凑目录和 Memory 索引优化。配套 Open VSX `0.37.166` 已公开并完成下载包回读，JetBrains `.183` 上传成功、等待公开上架，客户端 `.143` 尚在准备，见[发布进度](docs/research/cli-ide-release128-progress-2026-10-27.md)和[公开状态](docs/research/cli/evidence/release128-public/publication.json)。
 
 本版加入显式 `--review-changes`：在原预算与权限内复查写入/编辑交付，默认关闭，开启时仅输出最终文本。相关 36+9 原生复测在配套公开发行与安装核验后进行，当前仍为 **32/45**；本地测试及合成性能结果不替代真实任务与费用验收。
 
