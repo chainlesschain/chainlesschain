@@ -1,0 +1,602 @@
+{
+  "schema": "chainlesschain.memory-posting-selection-measurement/v1",
+  "measuredAt": "2026-10-27T11:31:12.868Z",
+  "fixtureId": "memory-posting-selection-v1",
+  "baselineCommit": "6b76d4fd5486f44c8cc662512edbb8db45b64266",
+  "sourceDigests": {
+    "src/lib/context-memory-kernel/memory-query-index.js": "sha256:f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721",
+    "__tests__/fixtures/memory-query-eager-selection-v1.mjs": "sha256:374989c7c9e34881e4423dd784ccdd62286be827bbcf1c093e7e74a6d30edb28",
+    "scripts/memory-posting-selection-benchmark.mjs": "sha256:8fa60e8647379e46d4d2fa1a758d86b754610224e511efbb408792bb2cfbd3ef"
+  },
+  "environment": {
+    "node": "v22.22.2",
+    "icu": "78.2",
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz"
+  },
+  "samplesPerCase": 100,
+  "measurementScope": "in-memory posting selection and page merge across hash shards only",
+  "fullStoreSloVerified": false,
+  "providerCalls": 0,
+  "notes": [
+    "Both algorithms use the same compiled metadata, matching, order and cursor; each result is checked against a full scan.",
+    "Records are split by the production SHA-256 two-hex bucket rule across up to 256 compiled indexes.",
+    "Fixture setup, index compilation, file IO, locking, authoritative shard validation and kernel ranking are excluded from timings.",
+    "The reference retains the eager union algorithm at the baseline commit; it is used only in this offline benchmark.",
+    "Samples alternate execution order after warmup; no hardware-independent timing gate is claimed."
+  ],
+  "tiers": [
+    {
+      "recordCount": 1000,
+      "shardCount": 254,
+      "fixtureDigest": "sha256:8744781575fc6dedaf2d52cd32c915c821e4a00ea73fdb2b4191110d247cd6c0",
+      "cases": [
+        {
+          "id": "selective-category-broad-sink",
+          "query": {
+            "includeTombstones": false,
+            "category": "selective",
+            "sink": "provider.local"
+          },
+          "after": null,
+          "limit": 20,
+          "resultCount": 1,
+          "resultDigest": "sha256:dd5c54bebd62e8f0f6cc2015649ebddf2faeca01485dcc132cfa98da01939ac9",
+          "fullScanEqual": true,
+          "eager": {
+            "sampleCount": 100,
+            "p50Ms": 0.7381000000000313,
+            "p95Ms": 1.5258999999999787,
+            "maxMs": 2.8560999999999694
+          },
+          "selective": {
+            "sampleCount": 100,
+            "p50Ms": 0.1904999999999859,
+            "p95Ms": 0.8524999999999636,
+            "maxMs": 1.290200000000027
+          }
+        },
+        {
+          "id": "selective-category-broad-tags-scopes",
+          "query": {
+            "includeTombstones": false,
+            "category": "selective",
+            "scopeAdmissions": [
+              {
+                "scope": "project",
+                "scopeId": "project-0"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-1"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-2"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-3"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-4"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-5"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-6"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-7"
+              }
+            ],
+            "tags": [
+              "all",
+              "tag-1",
+              "tag-2"
+            ]
+          },
+          "after": null,
+          "limit": 20,
+          "resultCount": 1,
+          "resultDigest": "sha256:dd5c54bebd62e8f0f6cc2015649ebddf2faeca01485dcc132cfa98da01939ac9",
+          "fullScanEqual": true,
+          "eager": {
+            "sampleCount": 100,
+            "p50Ms": 1.594600000000014,
+            "p95Ms": 3.2387999999999693,
+            "maxMs": 5.61099999999999
+          },
+          "selective": {
+            "sampleCount": 100,
+            "p50Ms": 1.1935000000000855,
+            "p95Ms": 2.6160999999999603,
+            "maxMs": 2.872000000000071
+          }
+        },
+        {
+          "id": "sparse-tag-union-with-cursor",
+          "query": {
+            "includeTombstones": false,
+            "sink": "provider.local",
+            "tags": [
+              "tag-1",
+              "tag-2"
+            ]
+          },
+          "after": {
+            "memoryId": "record-000511",
+            "category": "general",
+            "scope": "project",
+            "scopeId": "project-7",
+            "state": "active",
+            "importance": 5,
+            "updatedAt": "2026-10-27T00:00:00.000Z",
+            "tags": [
+              "all",
+              "tag-63"
+            ],
+            "allowedSinks": [
+              "provider.local"
+            ]
+          },
+          "limit": 20,
+          "resultCount": 16,
+          "resultDigest": "sha256:04fea399c5dc3c8b773ae93dedfe38438202c20688b7574ff0dac289de86d350",
+          "fullScanEqual": true,
+          "eager": {
+            "sampleCount": 100,
+            "p50Ms": 0.9296999999999116,
+            "p95Ms": 1.8215999999999894,
+            "maxMs": 3.061900000000037
+          },
+          "selective": {
+            "sampleCount": 100,
+            "p50Ms": 0.3990999999999758,
+            "p95Ms": 0.9309000000000651,
+            "maxMs": 1.3519999999999754
+          }
+        },
+        {
+          "id": "empty-admissions",
+          "query": {
+            "includeTombstones": false,
+            "sink": "provider.local",
+            "scopeAdmissions": [],
+            "tags": [
+              "all",
+              "tag-1"
+            ]
+          },
+          "after": null,
+          "limit": 20,
+          "resultCount": 0,
+          "resultDigest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "fullScanEqual": true,
+          "eager": {
+            "sampleCount": 100,
+            "p50Ms": 0.8316999999999553,
+            "p95Ms": 1.6650999999999385,
+            "maxMs": 3.393299999999954
+          },
+          "selective": {
+            "sampleCount": 100,
+            "p50Ms": 0.5373999999999342,
+            "p95Ms": 1.042599999999993,
+            "maxMs": 1.3371999999999389
+          }
+        },
+        {
+          "id": "unfiltered-page",
+          "query": {
+            "includeTombstones": false
+          },
+          "after": null,
+          "limit": 20,
+          "resultCount": 20,
+          "resultDigest": "sha256:e06229e41df5c735021b8aaadb866ca4a85bea92fb341f642f2958b0670b8878",
+          "fullScanEqual": true,
+          "eager": {
+            "sampleCount": 100,
+            "p50Ms": 0.3523999999999887,
+            "p95Ms": 0.896900000000187,
+            "maxMs": 1.3974000000000615
+          },
+          "selective": {
+            "sampleCount": 100,
+            "p50Ms": 0.39259999999990214,
+            "p95Ms": 0.9822000000001481,
+            "maxMs": 1.1871000000001004
+          }
+        }
+      ]
+    },
+    {
+      "recordCount": 10000,
+      "shardCount": 256,
+      "fixtureDigest": "sha256:bd1b039ad9b8a30e1679e101b2e2c19a83d563927181b537b846cb366de7e6c7",
+      "cases": [
+        {
+          "id": "selective-category-broad-sink",
+          "query": {
+            "includeTombstones": false,
+            "category": "selective",
+            "sink": "provider.local"
+          },
+          "after": null,
+          "limit": 20,
+          "resultCount": 10,
+          "resultDigest": "sha256:c846f09ef872b24215b69664859cdc73ee66503a47cafeb17107c86af16b7c12",
+          "fullScanEqual": true,
+          "eager": {
+            "sampleCount": 100,
+            "p50Ms": 3.3463999999999032,
+            "p95Ms": 4.992300000000114,
+            "maxMs": 5.795599999999922
+          },
+          "selective": {
+            "sampleCount": 100,
+            "p50Ms": 0.3225999999999658,
+            "p95Ms": 0.7505999999998494,
+            "maxMs": 1.335800000000063
+          }
+        },
+        {
+          "id": "selective-category-broad-tags-scopes",
+          "query": {
+            "includeTombstones": false,
+            "category": "selective",
+            "scopeAdmissions": [
+              {
+                "scope": "project",
+                "scopeId": "project-0"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-1"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-2"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-3"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-4"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-5"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-6"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-7"
+              }
+            ],
+            "tags": [
+              "all",
+              "tag-1",
+              "tag-2"
+            ]
+          },
+          "after": null,
+          "limit": 20,
+          "resultCount": 10,
+          "resultDigest": "sha256:c846f09ef872b24215b69664859cdc73ee66503a47cafeb17107c86af16b7c12",
+          "fullScanEqual": true,
+          "eager": {
+            "sampleCount": 100,
+            "p50Ms": 4.148799999999937,
+            "p95Ms": 7.16359999999986,
+            "maxMs": 10.369200000000092
+          },
+          "selective": {
+            "sampleCount": 100,
+            "p50Ms": 1.2086999999996806,
+            "p95Ms": 2.151100000000042,
+            "maxMs": 3.6734999999998763
+          }
+        },
+        {
+          "id": "sparse-tag-union-with-cursor",
+          "query": {
+            "includeTombstones": false,
+            "sink": "provider.local",
+            "tags": [
+              "tag-1",
+              "tag-2"
+            ]
+          },
+          "after": {
+            "memoryId": "record-005010",
+            "category": "general",
+            "scope": "project",
+            "scopeId": "project-2",
+            "state": "active",
+            "importance": 5,
+            "updatedAt": "2026-10-27T00:00:00.000Z",
+            "tags": [
+              "all",
+              "tag-18"
+            ],
+            "allowedSinks": [
+              "*",
+              "provider.local"
+            ]
+          },
+          "limit": 20,
+          "resultCount": 20,
+          "resultDigest": "sha256:b2f8eea5a4da27716cb502f322b9916200fe25eb610a9c85cfa8838797ac4c0d",
+          "fullScanEqual": true,
+          "eager": {
+            "sampleCount": 100,
+            "p50Ms": 3.297399999999925,
+            "p95Ms": 5.457300000000032,
+            "maxMs": 8.814899999999852
+          },
+          "selective": {
+            "sampleCount": 100,
+            "p50Ms": 0.6778000000003885,
+            "p95Ms": 1.1768000000001848,
+            "maxMs": 1.9309000000002925
+          }
+        },
+        {
+          "id": "empty-admissions",
+          "query": {
+            "includeTombstones": false,
+            "sink": "provider.local",
+            "scopeAdmissions": [],
+            "tags": [
+              "all",
+              "tag-1"
+            ]
+          },
+          "after": null,
+          "limit": 20,
+          "resultCount": 0,
+          "resultDigest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "fullScanEqual": true,
+          "eager": {
+            "sampleCount": 100,
+            "p50Ms": 3.4833000000003267,
+            "p95Ms": 6.562600000000202,
+            "maxMs": 8.5621000000001
+          },
+          "selective": {
+            "sampleCount": 100,
+            "p50Ms": 0.30470000000013897,
+            "p95Ms": 0.536200000000008,
+            "maxMs": 0.8560999999999694
+          }
+        },
+        {
+          "id": "unfiltered-page",
+          "query": {
+            "includeTombstones": false
+          },
+          "after": null,
+          "limit": 20,
+          "resultCount": 20,
+          "resultDigest": "sha256:e06229e41df5c735021b8aaadb866ca4a85bea92fb341f642f2958b0670b8878",
+          "fullScanEqual": true,
+          "eager": {
+            "sampleCount": 100,
+            "p50Ms": 0.4155000000000655,
+            "p95Ms": 0.9108000000001084,
+            "maxMs": 1.3719999999998436
+          },
+          "selective": {
+            "sampleCount": 100,
+            "p50Ms": 0.4293999999999869,
+            "p95Ms": 0.8359000000000378,
+            "maxMs": 1.7683000000001812
+          }
+        }
+      ]
+    },
+    {
+      "recordCount": 100000,
+      "shardCount": 256,
+      "fixtureDigest": "sha256:4e234b2000420dc16cca9d7722e099737111b5eff85b1e61a7aa88d3e98be3ca",
+      "cases": [
+        {
+          "id": "selective-category-broad-sink",
+          "query": {
+            "includeTombstones": false,
+            "category": "selective",
+            "sink": "provider.local"
+          },
+          "after": null,
+          "limit": 20,
+          "resultCount": 20,
+          "resultDigest": "sha256:2c76df0a3ed9e79d396d04e590565728541d7b724d7e92326df6898efd375c77",
+          "fullScanEqual": true,
+          "eager": {
+            "sampleCount": 100,
+            "p50Ms": 21.629799999999705,
+            "p95Ms": 28.868899999999485,
+            "maxMs": 33.572400000000016
+          },
+          "selective": {
+            "sampleCount": 100,
+            "p50Ms": 0.44620000000031723,
+            "p95Ms": 0.7998999999999796,
+            "maxMs": 1.1835000000000946
+          }
+        },
+        {
+          "id": "selective-category-broad-tags-scopes",
+          "query": {
+            "includeTombstones": false,
+            "category": "selective",
+            "scopeAdmissions": [
+              {
+                "scope": "project",
+                "scopeId": "project-0"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-1"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-2"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-3"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-4"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-5"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-6"
+              },
+              {
+                "scope": "project",
+                "scopeId": "project-7"
+              }
+            ],
+            "tags": [
+              "all",
+              "tag-1",
+              "tag-2"
+            ]
+          },
+          "after": null,
+          "limit": 20,
+          "resultCount": 20,
+          "resultDigest": "sha256:2c76df0a3ed9e79d396d04e590565728541d7b724d7e92326df6898efd375c77",
+          "fullScanEqual": true,
+          "eager": {
+            "sampleCount": 100,
+            "p50Ms": 40.97849999999926,
+            "p95Ms": 60.353800000000774,
+            "maxMs": 65.81180000000131
+          },
+          "selective": {
+            "sampleCount": 100,
+            "p50Ms": 1.8161000000000058,
+            "p95Ms": 3.683999999999287,
+            "maxMs": 5.150700000000143
+          }
+        },
+        {
+          "id": "sparse-tag-union-with-cursor",
+          "query": {
+            "includeTombstones": false,
+            "sink": "provider.local",
+            "tags": [
+              "tag-1",
+              "tag-2"
+            ]
+          },
+          "after": {
+            "memoryId": "record-050011",
+            "category": "general",
+            "scope": "project",
+            "scopeId": "project-3",
+            "state": "active",
+            "importance": 5,
+            "updatedAt": "2026-10-27T00:00:00.000Z",
+            "tags": [
+              "all",
+              "tag-27"
+            ],
+            "allowedSinks": [
+              "provider.local"
+            ]
+          },
+          "limit": 20,
+          "resultCount": 20,
+          "resultDigest": "sha256:227689138783f903a535b431183534f84d33393b6ad883144c8741149bbb5a13",
+          "fullScanEqual": true,
+          "eager": {
+            "sampleCount": 100,
+            "p50Ms": 22.8137999999999,
+            "p95Ms": 31.666299999998955,
+            "maxMs": 39.63879999999881
+          },
+          "selective": {
+            "sampleCount": 100,
+            "p50Ms": 2.097200000000157,
+            "p95Ms": 3.59559999999874,
+            "maxMs": 4.559499999999389
+          }
+        },
+        {
+          "id": "empty-admissions",
+          "query": {
+            "includeTombstones": false,
+            "sink": "provider.local",
+            "scopeAdmissions": [],
+            "tags": [
+              "all",
+              "tag-1"
+            ]
+          },
+          "after": null,
+          "limit": 20,
+          "resultCount": 0,
+          "resultDigest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "fullScanEqual": true,
+          "eager": {
+            "sampleCount": 100,
+            "p50Ms": 37.065200000000914,
+            "p95Ms": 48.283299999999144,
+            "maxMs": 60.1807000000008
+          },
+          "selective": {
+            "sampleCount": 100,
+            "p50Ms": 0.5370000000002619,
+            "p95Ms": 0.9206000000012864,
+            "maxMs": 1.6435999999994237
+          }
+        },
+        {
+          "id": "unfiltered-page",
+          "query": {
+            "includeTombstones": false
+          },
+          "after": null,
+          "limit": 20,
+          "resultCount": 20,
+          "resultDigest": "sha256:e06229e41df5c735021b8aaadb866ca4a85bea92fb341f642f2958b0670b8878",
+          "fullScanEqual": true,
+          "eager": {
+            "sampleCount": 100,
+            "p50Ms": 0.4826000000030035,
+            "p95Ms": 0.6314999999995052,
+            "maxMs": 1.014999999999418
+          },
+          "selective": {
+            "sampleCount": 100,
+            "p50Ms": 0.36639999999897555,
+            "p95Ms": 0.692800000000716,
+            "maxMs": 1.3184000000001106
+          }
+        }
+      ]
+    }
+  ]
+}

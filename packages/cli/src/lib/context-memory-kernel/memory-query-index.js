@@ -125,31 +125,49 @@ export function matchesListQuery(row, query) {
 // before applying the remaining predicates; no full-record scan or top-k before
 // permission filtering. Recall uses these gates but retains kernel ranking.
 export function* selectQueryRows(index, query, after = null) {
-  const candidates = [];
-  const union = (field, keys) => {
+  let positions = null;
+  let shortest = index.rows.length;
+  const unions = [];
+  const consider = (posting) => {
+    if (posting.length < shortest) {
+      positions = posting;
+      shortest = posting.length;
+    }
+  };
+  const considerUnion = (field, keys) => {
     const lists = keys
       .map((key) => index.postings[field].get(key))
       .filter(Boolean);
-    return lists.length < 2
-      ? lists[0] || []
-      : [...new Set(lists.flat())].sort((a, b) => a - b);
+    if (lists.length < 2) consider(lists[0] || []);
+    else unions.push(lists);
   };
   if (query.category)
-    candidates.push(index.postings.category.get(query.category) || []);
+    consider(index.postings.category.get(query.category) || []);
   if (query.scopeAdmissions)
-    candidates.push(
-      union(
-        "scope",
-        query.scopeAdmissions.map((scope) =>
-          scopeKey(scope.scope, scope.scopeId),
-        ),
+    considerUnion(
+      "scope",
+      query.scopeAdmissions.map((scope) =>
+        scopeKey(scope.scope, scope.scopeId),
       ),
     );
-  if (query.states) candidates.push(union("state", query.states));
-  if (query.tags?.length) candidates.push(union("tag", query.tags));
-  if (query.sink) candidates.push(union("sink", ["*", query.sink]));
-  candidates.sort((a, b) => a.length - b.length);
-  const positions = candidates[0];
+  if (query.states) considerUnion("state", query.states);
+  if (query.tags?.length) considerUnion("tag", query.tags);
+  if (query.sink) considerUnion("sink", ["*", query.sink]);
+  // A union cannot be shorter than its longest constituent. Inspect lengths
+  // before expanding broad permissions/tags when a selective posting exists.
+  // Stop building a union as soon as it cannot improve the current choice.
+  nextUnion: for (const lists of unions) {
+    if (shortest === 0) return;
+    if (lists.some((list) => list.length >= shortest)) continue;
+    const unique = new Set();
+    for (const list of lists) {
+      for (const position of list) {
+        unique.add(position);
+        if (unique.size >= shortest) continue nextUnion;
+      }
+    }
+    consider([...unique].sort((a, b) => a - b));
+  }
   const length = positions ? positions.length : index.rows.length;
   const rowAt = (offset) => index.rows[positions ? positions[offset] : offset];
   let start = 0;
