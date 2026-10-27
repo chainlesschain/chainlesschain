@@ -59,7 +59,7 @@ export function legacyMcpKeywordSearch(registry, query) {
     .slice(0, 5);
 }
 
-function wiring(fixture, size) {
+export function buildMcpSearchBenchmarkWiring(fixture, size) {
   const externalToolExecutors = Object.create(null);
   const externalToolDescriptors = Object.create(null);
   const extraToolDefinitions = [];
@@ -207,7 +207,7 @@ export function runMcpToolSearchBenchmark({
     tiers: [],
   };
   for (const size of sizes) {
-    const mcp = wiring(fixture, size);
+    const mcp = buildMcpSearchBenchmarkWiring(fixture, size);
     const started = performance.now();
     const { registry } = applyToolSearchDeferral(mcp);
     const deferralMs = performance.now() - started;

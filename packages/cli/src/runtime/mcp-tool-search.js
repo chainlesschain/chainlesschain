@@ -30,9 +30,11 @@
  *       "enabled": "auto" | true | false,   // default "auto" (threshold)
  *       "thresholdRatio": 0.1,              // auto: defer when schemas > 10% window
  *       "maxResults": 5,                    // tool_search default result cap
+ *       "catalogMode": "stubs" | "compact", // compact provider projection (opt-in)
  *       "alwaysLoad": ["serverName", "mcp__srv__tool", "mcp__srv__*"]
  *   } } }
  *   env CC_TOOL_SEARCH=1|0|auto             // overrides settings.enabled
+ *   env CC_TOOL_SEARCH_CATALOG=compact|stubs // provider projection only
  *
  * OFF / below-threshold path is byte-identical: `maybeApplyToolSearch` returns
  * null without touching the mcp wiring object.
@@ -53,6 +55,7 @@ export const TOOL_SEARCH_DEFAULTS = Object.freeze({
   enabled: "auto",
   thresholdRatio: 0.1,
   maxResults: 5,
+  catalogMode: "stubs",
   alwaysLoad: Object.freeze([]),
 });
 
@@ -103,6 +106,9 @@ function sanitizeToolSearchSettings(raw, into) {
       (p) => typeof p === "string" && p.length > 0,
     );
   }
+  if (raw.catalogMode === "stubs" || raw.catalogMode === "compact") {
+    out.catalogMode = raw.catalogMode;
+  }
   return out;
 }
 
@@ -111,7 +117,7 @@ function sanitizeToolSearchSettings(raw, into) {
  * + managed settings + the CC_TOOL_SEARCH env override. Never throws.
  *
  * @param {object} [opts] { env, cwd, settingsFile, onWarn }
- * @returns {{enabled:(boolean|"auto"), thresholdRatio:number, maxResults:number, alwaysLoad:string[]}}
+ * @returns {{enabled:(boolean|"auto"), thresholdRatio:number, maxResults:number, catalogMode:string, alwaysLoad:string[]}}
  */
 export function resolveToolSearchConfig(opts = {}) {
   const env = opts.env || process.env;
@@ -120,6 +126,7 @@ export function resolveToolSearchConfig(opts = {}) {
     enabled: TOOL_SEARCH_DEFAULTS.enabled,
     thresholdRatio: TOOL_SEARCH_DEFAULTS.thresholdRatio,
     maxResults: TOOL_SEARCH_DEFAULTS.maxResults,
+    catalogMode: TOOL_SEARCH_DEFAULTS.catalogMode,
     alwaysLoad: [...TOOL_SEARCH_DEFAULTS.alwaysLoad],
   };
   try {
@@ -143,6 +150,11 @@ export function resolveToolSearchConfig(opts = {}) {
   if (flag === "1" || flag === "true") effective.enabled = true;
   else if (flag === "0" || flag === "false") effective.enabled = false;
   else if (flag === "auto") effective.enabled = "auto";
+  const catalogMode = String(env.CC_TOOL_SEARCH_CATALOG || "")
+    .trim()
+    .toLowerCase();
+  if (catalogMode === "stubs" || catalogMode === "compact")
+    effective.catalogMode = catalogMode;
   return effective;
 }
 
@@ -233,8 +245,8 @@ function buildStubDefinition(fullDef) {
   };
 }
 
-export function buildToolSearchDefinition() {
-  return {
+export function buildToolSearchDefinition({ catalogMode = "stubs" } = {}) {
+  const definition = {
     type: "function",
     function: {
       name: TOOL_SEARCH_TOOL_NAME,
@@ -263,6 +275,60 @@ export function buildToolSearchDefinition() {
       },
     },
   };
+  if (catalogMode === "compact") {
+    definition.function.description =
+      "Discover connected MCP tools that are omitted from the initial tool list. " +
+      'Search tool names and descriptions with keywords, or use "select:<exact_name>". ' +
+      'Use "servers:" with offset/max_results for a paged server directory. ' +
+      "Search returns full schemas and makes the selected tools available in the next model request. " +
+      "Search first, then call the selected tool by its returned name in a later request. " +
+      "Discovery does not grant execution permission.";
+    definition.function.parameters.properties.offset = {
+      type: "integer",
+      minimum: 0,
+      description: 'Server directory offset, used only with query "servers:".',
+    };
+  }
+  return definition;
+}
+
+/** Provider-only projection. The host's complete capability ceiling stays intact. */
+export function projectMcpToolDefinitions(definitions, executors) {
+  const search = executors?.[TOOL_SEARCH_TOOL_NAME];
+  const registry = search?.kind === "tool-search" ? search.registry : null;
+  if (
+    registry?.catalogMode !== "compact" ||
+    !definitions.some((def) => def?.function?.name === TOOL_SEARCH_TOOL_NAME)
+  )
+    return definitions;
+  const allowed = new Set(definitions.map((def) => def?.function?.name));
+  const projected = definitions
+    .filter((def) => {
+      const name = def?.function?.name;
+      const exec = executors[name];
+      return (
+        !registry.deferred.has(name) &&
+        !(exec?.deferred === true && exec.registry === registry) &&
+        !(name?.startsWith("mcp__") && !exec)
+      );
+    })
+    .map((def) =>
+      def?.function?.name === TOOL_SEARCH_TOOL_NAME
+        ? registry.compactSearchDefinition
+        : def,
+    );
+  // Insertion order keeps already-discovered schemas ahead of later additions.
+  for (const name of registry.loaded) {
+    const entry = registry.deferred.get(name);
+    if (
+      allowed.has(name) &&
+      entry &&
+      entry.stale !== true &&
+      entry.executor === executors[name]
+    )
+      projected.push(entry.definition);
+  }
+  return projected;
 }
 
 // ─── deferral transform ────────────────────────────────────────────────────
@@ -297,6 +363,13 @@ export function applyToolSearchDeferral(mcp, opts = {}) {
         : {},
   };
   const firstApplication = !mcp.toolSearchRegistry;
+  registry.catalogMode =
+    opts.catalogMode === "compact" || opts.catalogMode === "stubs"
+      ? opts.catalogMode
+      : registry.catalogMode || "stubs";
+  registry.compactSearchDefinition ||= buildToolSearchDefinition({
+    catalogMode: "compact",
+  });
 
   const activeNames = new Set(
     mcp.extraToolDefinitions.map((def) => def?.function?.name),
@@ -398,6 +471,11 @@ export function applyToolSearchDeferral(mcp, opts = {}) {
     mcp.extraToolDefinitions.push(...remaining, ...newStubs);
   }
 
+  if (registry.catalogMode === "compact") {
+    savedTokens =
+      describeMcpToolContext(mcp, { estimate, config: TOOL_SEARCH_DEFAULTS })
+        ?.savedTokens || 0;
+  }
   return { registry, deferredCount: newStubs.length, savedTokens };
 }
 
@@ -437,6 +515,7 @@ export function maybeApplyToolSearch(mcp, opts = {}) {
   const summary = applyToolSearchDeferral(mcp, {
     estimate,
     alwaysLoad: config.alwaysLoad,
+    catalogMode: config.catalogMode,
   });
   if (summary) {
     summary.maxResults = config.maxResults;
@@ -456,35 +535,34 @@ export function maybeApplyToolSearch(mcp, opts = {}) {
 
 // ─── search ────────────────────────────────────────────────────────────────
 
+function searchResultLimit(registry, requested) {
+  const configuredMaxResults = registry?.maxResults;
+  return Number.isInteger(requested) && requested > 0
+    ? Math.min(requested, 50)
+    : Number.isInteger(configuredMaxResults) && configuredMaxResults > 0
+      ? Math.min(configuredMaxResults, 50)
+      : TOOL_SEARCH_DEFAULTS.maxResults;
+}
+
 /**
- * Search the deferred-tool registry. Two modes:
- *   - `select:name1,name2` — exact names; a bare (un-prefixed) tool name is
- *     accepted when it matches exactly one deferred tool.
- *   - keyword — segments Chinese phrases, ranks intent coverage, then name
- *     hits (×3) over description hits (×1); a `+term` must appear in the name.
- * Does NOT mutate the loaded set — callers (executeToolSearch) mark results.
- *
- * @returns {{mode:string, results:Array<{name:string,entry:object}>, notFound:string[]}}
+ * Search exact `select:` names or ranked keywords without marking schemas
+ * loaded. Optional allowedToolNames restricts discovery to the host ceiling.
  */
 export function searchDeferredTools(registry, query, opts = {}) {
   const q = String(query || "").trim();
-  const configuredMaxResults = registry?.maxResults;
-  const maxResults =
-    Number.isInteger(opts.maxResults) && opts.maxResults > 0
-      ? Math.min(opts.maxResults, 50)
-      : Number.isInteger(configuredMaxResults) && configuredMaxResults > 0
-        ? Math.min(configuredMaxResults, 50)
-        : TOOL_SEARCH_DEFAULTS.maxResults;
+  const maxResults = searchResultLimit(registry, opts.maxResults);
   const selectMode = /^select:/i.test(q);
+  const allowed =
+    opts.allowedToolNames == null ? null : new Set(opts.allowedToolNames);
+  const eligible = function* () {
+    for (const [name, entry] of registry?.deferred || []) {
+      if (entry.stale !== true && (!allowed || allowed.has(name)))
+        yield [name, entry];
+    }
+  };
   // Keyword ranking already checks liveness while scanning. Avoid cloning the
   // whole directory on every query; only exact selection needs keyed lookup.
-  const entries = selectMode
-    ? new Map(
-        [...(registry?.deferred || [])].filter(
-          ([, entry]) => entry.stale !== true,
-        ),
-      )
-    : registry?.deferred || [];
+  const entries = selectMode ? new Map(eligible()) : eligible();
 
   if (selectMode) {
     const wanted = q
@@ -534,7 +612,7 @@ export function searchDeferredTools(registry, query, opts = {}) {
  * prompt-cache-friendly delivery channel — conversation content, not the
  * tools array).
  */
-export function executeToolSearch(registry, args = {}) {
+export function executeToolSearch(registry, args = {}, options = {}) {
   const query = typeof args.query === "string" ? args.query : "";
   if (!query.trim()) {
     return {
@@ -548,12 +626,62 @@ export function executeToolSearch(registry, args = {}) {
         "tool_search query is too long; select fewer tool names or use shorter keywords.",
     };
   }
+  if (registry.catalogMode === "compact" && /^servers:$/i.test(query.trim())) {
+    const offset = args.offset === undefined ? 0 : args.offset;
+    if (!Number.isSafeInteger(offset) || offset < 0)
+      return {
+        error: "Server directory offset must be a non-negative integer.",
+      };
+    const allowed =
+      options.allowedToolNames == null
+        ? null
+        : new Set(options.allowedToolNames);
+    const servers = new Map();
+    for (const [name, entry] of registry.deferred) {
+      if (entry.stale === true || (allowed && !allowed.has(name))) continue;
+      if (typeof entry.serverName !== "string" || !entry.serverName) continue;
+      const previous = servers.get(entry.serverName);
+      if (previous) previous.toolCount++;
+      else
+        servers.set(entry.serverName, { toolCount: 1, exampleToolName: name });
+    }
+    const names = [...servers.keys()].sort();
+    const limit = searchResultLimit(
+      registry,
+      typeof args.max_results === "number"
+        ? Math.floor(args.max_results)
+        : undefined,
+    );
+    const page = names.slice(offset, offset + limit).map((name) => {
+      const entry = servers.get(name);
+      if (name.length <= 192) return { name, toolCount: entry.toolCount };
+      let label = name.slice(0, 191);
+      if (/[\uD800-\uDBFF]$/.test(label)) label = label.slice(0, -1);
+      return {
+        name: label + "…",
+        nameTruncated: true,
+        toolCount: entry.toolCount,
+        ...(entry.exampleToolName.length <= 128
+          ? { exampleToolName: entry.exampleToolName }
+          : {}),
+      };
+    });
+    return {
+      servers: page,
+      totalServers: names.length,
+      offset,
+      nextOffset:
+        offset + page.length < names.length ? offset + page.length : null,
+      note: "Directory only; no schemas loaded. Search keywords across all permitted servers or select an exact tool name. Offsets address the current live directory.",
+    };
+  }
   const {
     mode,
     results,
     notFound,
     omittedCount = 0,
   } = searchDeferredTools(registry, query, {
+    allowedToolNames: options.allowedToolNames,
     maxResults:
       typeof args.max_results === "number"
         ? Math.floor(args.max_results)
@@ -589,13 +717,27 @@ export function executeToolSearch(registry, args = {}) {
       mode === "select"
         ? "No deferred tool matched those names. Names must be the full mcp__<server>__<tool> form (or a unique bare tool name)."
         : "No deferred tool matched. Try different keywords, or select by exact name.";
-    payload.available = [...(registry?.deferred || [])]
-      .filter(([, entry]) => entry.stale !== true)
-      .map(([name]) => name)
-      .slice(0, 100);
+    if (registry.catalogMode === "compact") {
+      payload.note +=
+        ' Use query "servers:" to inspect the permitted server directory.';
+    } else {
+      const allowed =
+        options.allowedToolNames == null
+          ? null
+          : new Set(options.allowedToolNames);
+      payload.available = [...(registry?.deferred || [])]
+        .filter(
+          ([name, entry]) =>
+            entry.stale !== true && (!allowed || allowed.has(name)),
+        )
+        .map(([name]) => name)
+        .slice(0, 100);
+    }
   } else {
     payload.note =
-      "Schemas loaded — call these tools directly with arguments matching `parameters`." +
+      (registry.catalogMode === "compact"
+        ? "Schemas loaded — these tools are available by their returned names in the next model request. Call them with arguments matching `parameters`."
+        : "Schemas loaded — call these tools directly with arguments matching `parameters`.") +
       (omittedCount > 0
         ? " Some selected tools were omitted by max_results; select those tools in a separate search before calling them."
         : "");
@@ -661,6 +803,11 @@ export function describeMcpToolContext(mcp, opts = {}) {
   const window = getContextWindow(opts.model, opts.provider);
 
   const servers = new Map(); // server → {tools, sentTokens, fullTokens, deferred}
+  const projected = projectMcpToolDefinitions(
+    mcp.extraToolDefinitions,
+    mcp.externalToolExecutors,
+  );
+  const visible = new Map(projected.map((def) => [def?.function?.name, def]));
   let sentTokens = 0;
   let fullTokens = 0;
   for (const def of mcp.extraToolDefinitions) {
@@ -676,10 +823,11 @@ export function describeMcpToolContext(mcp, opts = {}) {
         : isSearchTool
           ? "(tool_search)"
           : "(resources)";
-    const sent = estimateToolDefTokens(def, estimate);
+    const sentDef = visible.get(name);
+    const sent = sentDef ? estimateToolDefTokens(sentDef, estimate) : 0;
     const fullDef = registry?.deferred?.get(name)?.definition || def;
     const full =
-      fullDef === def ? sent : estimateToolDefTokens(fullDef, estimate);
+      fullDef === sentDef ? sent : estimateToolDefTokens(fullDef, estimate);
     const row = servers.get(server) || {
       server,
       tools: 0,
@@ -740,7 +888,19 @@ export function describeMcpToolContext(mcp, opts = {}) {
     savedTokens: Math.max(0, fullTokens - sentTokens),
     window,
     servers: rows,
-    toolSearch: { active, deferredCount, loadedCount },
+    toolSearch: {
+      active,
+      deferredCount,
+      loadedCount,
+      ...(registry?.catalogMode === "compact"
+        ? {
+            catalogMode: "compact",
+            visibleDeferredCount: projected.filter((def) =>
+              registry.deferred.has(def?.function?.name),
+            ).length,
+          }
+        : {}),
+    },
     advice,
   };
 }

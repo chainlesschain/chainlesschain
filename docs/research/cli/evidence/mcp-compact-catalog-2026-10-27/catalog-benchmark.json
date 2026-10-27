@@ -1,0 +1,108 @@
+{
+  "schema": "chainlesschain.mcp-compact-catalog-benchmark/v1",
+  "measuredAt": "2026-10-27T09:56:42.996Z",
+  "fixtureId": "synthetic-bilingual-tool-discovery-v1",
+  "fixtureDigest": "sha256:b92a22ddb479e605e2d32a9976f3e4a935a4adffffde8658a4758cefd36d80c4",
+  "sourceDigests": {
+    "mcp-tool-search.js": "sha256:d986b698dc406e260f95dd8c699c1c4546ed7883cf759ccf13e55cc91498a2f0",
+    "agent-core.js": "sha256:9c4a3b5db2193d6bc2ebe383fe29721323db1a416ca245c88a6df8b5ba9ae2f8",
+    "headless-runner.js": "sha256:a56062de29c83cac53ae0f73c71fc338f240bbe7b20092219fdd375d6215873f"
+  },
+  "environment": {
+    "node": "v22.22.2",
+    "icu": "78.2",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "costBasis": "estimated-extra-tool-definitions",
+  "providerCalls": 0,
+  "providerUsageMeasured": false,
+  "billingVerified": false,
+  "taskQualityVerified": false,
+  "notes": [
+    "Only the MCP tool-definition component is estimated; built-ins, messages, returned schemas, cache billing and real provider usage are excluded.",
+    "Compact mode retains the complete host capability ceiling, and exposes full schemas only after discovery.",
+    "Loaded schemas accumulate; compact mode does not evict them or promise a constant size across a long session.",
+    "The fixed bilingual search fixture is reused. This is not a live task or quality evaluation."
+  ],
+  "tiers": [
+    {
+      "toolCount": 200,
+      "initialStubs": {
+        "visibleExtraToolCount": 201,
+        "estimatedExtraToolTokens": 11402,
+        "fullInventoryTokens": 69512,
+        "loadedSchemaCount": 0
+      },
+      "initialCompact": {
+        "visibleExtraToolCount": 1,
+        "estimatedExtraToolTokens": 225,
+        "fullInventoryTokens": 69512,
+        "loadedSchemaCount": 0
+      },
+      "afterFiveSchemas": {
+        "visibleExtraToolCount": 6,
+        "estimatedExtraToolTokens": 1955,
+        "fullInventoryTokens": 69512,
+        "loadedSchemaCount": 5
+      },
+      "estimatedInitialReductionRatio": 0.9802666198912472,
+      "firstDirectoryPageSize": 5,
+      "serverCount": 194,
+      "lexicalResultsUnchanged": true,
+      "hostDefinitionCount": 201
+    },
+    {
+      "toolCount": 1000,
+      "initialStubs": {
+        "visibleExtraToolCount": 1001,
+        "estimatedExtraToolTokens": 56202,
+        "fullInventoryTokens": 347112,
+        "loadedSchemaCount": 0
+      },
+      "initialCompact": {
+        "visibleExtraToolCount": 1,
+        "estimatedExtraToolTokens": 225,
+        "fullInventoryTokens": 347112,
+        "loadedSchemaCount": 0
+      },
+      "afterFiveSchemas": {
+        "visibleExtraToolCount": 6,
+        "estimatedExtraToolTokens": 1955,
+        "fullInventoryTokens": 347112,
+        "loadedSchemaCount": 5
+      },
+      "estimatedInitialReductionRatio": 0.9959965837514679,
+      "firstDirectoryPageSize": 5,
+      "serverCount": 994,
+      "lexicalResultsUnchanged": true,
+      "hostDefinitionCount": 1001
+    },
+    {
+      "toolCount": 5000,
+      "initialStubs": {
+        "visibleExtraToolCount": 5001,
+        "estimatedExtraToolTokens": 284202,
+        "fullInventoryTokens": 1735112,
+        "loadedSchemaCount": 0
+      },
+      "initialCompact": {
+        "visibleExtraToolCount": 1,
+        "estimatedExtraToolTokens": 225,
+        "fullInventoryTokens": 1735112,
+        "loadedSchemaCount": 0
+      },
+      "afterFiveSchemas": {
+        "visibleExtraToolCount": 6,
+        "estimatedExtraToolTokens": 1955,
+        "fullInventoryTokens": 1735112,
+        "loadedSchemaCount": 5
+      },
+      "estimatedInitialReductionRatio": 0.9992083095826209,
+      "firstDirectoryPageSize": 5,
+      "serverCount": 4994,
+      "lexicalResultsUnchanged": true,
+      "hostDefinitionCount": 5001
+    }
+  ]
+}

@@ -42,7 +42,10 @@ import {
   resolvePermissionPromptTool,
   makePermissionPromptConfirmer,
 } from "./mcp-config.js";
-import { maybeApplyToolSearch } from "./mcp-tool-search.js";
+import {
+  maybeApplyToolSearch,
+  projectMcpToolDefinitions,
+} from "./mcp-tool-search.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
 import { HostResourceBudget } from "../lib/host-resource-budget.js";
 import {
@@ -2659,7 +2662,10 @@ async function runAgentHeadlessInWorkspace(
     }
     try {
       store.appendEvent(sessionId, "context_sources", {
-        mcp: (mcp?.extraToolDefinitions || []).map((definition) => ({
+        mcp: projectMcpToolDefinitions(
+          mcp?.extraToolDefinitions || [],
+          mcp?.externalToolExecutors,
+        ).map((definition) => ({
           function: {
             name: definition?.function?.name || null,
             description: definition?.function?.description || "",

@@ -9,7 +9,7 @@
  *      dispatched to mcpClient.callTool() and its result flows back.
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { afterAll, beforeAll, describe, it, expect, vi } from "vitest";
 import {
   parseMcpServers,
   mcpToolName,
@@ -22,8 +22,24 @@ import {
   parsePermissionDecision,
   makePermissionPromptConfirmer,
 } from "../../src/runtime/mcp-config.js";
-import { runAgentHeadless } from "../helpers/test-model-egress.js";
+import {
+  runAgentHeadless,
+  _environmentProcessDeps,
+} from "../helpers/test-model-egress.js";
 import { agentLoop as coreAgentLoop } from "../helpers/test-model-egress.js";
+
+// MCP wiring tests do not exercise workstation interpreter/version probes.
+vi.mock("../../src/lib/cli-anything-bridge.js", async (original) => ({
+  ...(await original()),
+  detectPython: vi.fn(() => ({ found: false })),
+}));
+let environmentProbe;
+beforeAll(() => {
+  environmentProbe = vi
+    .spyOn(_environmentProcessDeps, "run")
+    .mockReturnValue("");
+});
+afterAll(() => environmentProbe?.mockRestore());
 
 // setupMcpFromConfig dynamically imports mcp-oauth to discover a stored bearer
 // for url-based servers. A file-scoped mock returns a token so the injection

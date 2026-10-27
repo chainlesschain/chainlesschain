@@ -198,7 +198,11 @@ import {
   toOllamaMessages,
   imageUrlBlockToAnthropic,
 } from "../lib/image-input.js";
-import { executeToolSearch, gateDeferredMcpCall } from "./mcp-tool-search.js";
+import {
+  executeToolSearch,
+  gateDeferredMcpCall,
+  projectMcpToolDefinitions,
+} from "./mcp-tool-search.js";
 import {
   emitHooksV2Event,
   executeHooksV2Event,
@@ -9669,7 +9673,9 @@ async function executeToolInner(
       // local — same risk class as list_skills, so no approval gate.
       if (localToolExecutor?.kind === "tool-search") {
         return attachDescriptor(
-          executeToolSearch(localToolExecutor.registry, args || {}),
+          executeToolSearch(localToolExecutor.registry, args || {}, {
+            allowedToolNames: effectiveAllowedToolNames,
+          }),
         );
       }
 
@@ -12010,6 +12016,13 @@ function getEffectiveToolDefinitions(options = {}) {
   });
 }
 
+function getProviderToolDefinitions(options = {}) {
+  return projectMcpToolDefinitions(
+    getEffectiveToolDefinitions(options),
+    options.externalToolExecutors,
+  );
+}
+
 const PROVIDER_REQUEST_ID_RE = /^[\x21-\x7e]{1,512}$/;
 
 function _normalizeProviderRequestId(value) {
@@ -12109,7 +12122,7 @@ export async function chatWithTools(rawMessages, options) {
     options.providerRequestId,
   );
 
-  let tools = getEffectiveToolDefinitions(options);
+  let tools = getProviderToolDefinitions(options);
   if (Array.isArray(options.contextMemorySelectedToolNames)) {
     const selected = new Set(options.contextMemorySelectedToolNames);
     tools = tools.filter((tool) => selected.has(tool?.function?.name));
@@ -16209,7 +16222,7 @@ export async function* agentLoop(messages, options) {
         {
           ...options,
           contextMemoryToolDefinitions:
-            getEffectiveToolDefinitions(iterationToolOptions),
+            getProviderToolDefinitions(iterationToolOptions),
           contextMemoryTrustedSystemIndexes,
         },
       );
@@ -16258,6 +16271,23 @@ export async function* agentLoop(messages, options) {
         ? { ...requestOptions, evolutionIngress }
         : requestOptions),
     };
+    const originalExtraTools = requestOptions.extraToolDefinitions;
+    if (Array.isArray(originalExtraTools)) {
+      const projectedExtraTools = projectMcpToolDefinitions(
+        originalExtraTools,
+        requestOptions.externalToolExecutors,
+      );
+      if (projectedExtraTools !== originalExtraTools) {
+        const admittedNames = new Set(
+          getEffectiveToolDefinitions(requestOptions).map(
+            (tool) => tool.function.name,
+          ),
+        );
+        providerCallOptions.extraToolDefinitions = projectedExtraTools.filter(
+          (tool) => admittedNames.has(tool.function.name),
+        );
+      }
+    }
     const modelUsageCall = {
       type: "model-usage-started",
       callId: _newModelUsageCallId("model"),

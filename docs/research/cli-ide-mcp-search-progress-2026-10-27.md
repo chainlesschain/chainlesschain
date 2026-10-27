@@ -85,3 +85,5 @@ node ../../node_modules/vitest/vitest.mjs run __tests__/unit/mcp-tool-search.tes
 ```
 
 本批为尚未发布的源码及本地离线证据。正式任务 campaign 的数量、付费与 native 准入、跨平台准确提交发布门禁继续分别跟踪，不据此关闭整份 MCP 或上下文验收。
+
+后续进展：新增显式启用的紧凑目录请求投影及分页发现，见[第六批实施记录](./cli-ide-mcp-compact-catalog-progress-2026-10-27.md)。本记录及其测量 JSON 保留第五批基线。

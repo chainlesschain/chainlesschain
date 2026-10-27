@@ -4430,11 +4430,15 @@ async function startAgentReplInWorkspaceOwned(
   // for this session via the shared mcp-config engine. Holds {mcpClient,
   // extraToolDefinitions, externalToolExecutors, externalToolDescriptors}.
   let _adhocMcp = null;
+  let _projectMcpToolDefinitions = (definitions) => definitions;
   const _persistReplContextSources = () => {
     if (!useJsonl || !sessionId) return false;
     _replSkillCacheLedger =
       _replSkillLoader.getCacheLedger?.() || _replSkillCacheLedger;
-    const mcpDefinitions = _adhocMcp?.extraToolDefinitions || [];
+    const mcpDefinitions = _projectMcpToolDefinitions(
+      _adhocMcp?.extraToolDefinitions || [],
+      _adhocMcp?.externalToolExecutors,
+    );
     if (
       mcpDefinitions.length === 0 &&
       _loadedReplPersonaSkills.length === 0 &&
@@ -4656,9 +4660,9 @@ async function startAgentReplInWorkspaceOwned(
         // MCP tool search (context scaling): defer big tool schemas behind the
         // internal tool_search tool. Below-threshold / disabled → no-op.
         try {
-          const { maybeApplyToolSearch } = await import(
-            "../runtime/mcp-tool-search.js"
-          );
+          const { maybeApplyToolSearch, projectMcpToolDefinitions } =
+            await import("../runtime/mcp-tool-search.js");
+          _projectMcpToolDefinitions = projectMcpToolDefinitions;
           const ts = maybeApplyToolSearch(_adhocMcp, {
             model,
             provider,
