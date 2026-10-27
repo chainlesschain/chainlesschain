@@ -935,6 +935,90 @@
           ]
         }
       ]
+    },
+    {
+      "sampleId": "verify-09",
+      "attempt": "initial",
+      "runId": "40499013236",
+      "executionSourceCommit": "8d529879971d9fb9b0f569238cebd12cc04e73bb",
+      "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027-preflight-plan.json",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40499013236",
+      "versions": {
+        "cli": "0.166.127",
+        "vscode": "0.37.165",
+        "jetbrains": "0.4.182",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "generationPassed": true,
+      "generationAssessment": {
+        "pass": true,
+        "settled": true,
+        "failureCategory": null,
+        "preExecutionDenials": [],
+        "brokerErrorCode": null,
+        "hostPassed": true,
+        "hostFailure": null,
+        "compactionDegradations": []
+      },
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "setup": {
+        "pass": true,
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 11,
+            "passed": 11,
+            "failed": 0
+          }
+        ],
+        "receiptDigest": "sha256:e609270279c7e54fab8db2d52cc2230a2c189028c3454202da35cb5fd7da9567"
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate tests did not reject the behavioral mutant",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 11,
+            "passed": 11,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:901d64e49e0fc18abf008811e53f3f3db56489482dd5111c9114468daa703fd5"
+      },
+      "physicalRequestsStarted": 6,
+      "usageCompleteRequests": 6,
+      "tokenOnlyEstimateCny": 0.144408,
+      "actualBilledCostCny": null,
+      "billingAssessed": false,
+      "formalSample": false,
+      "candidateTestExecutions": [
+        {
+          "total": 6,
+          "passed": 6,
+          "failed": 0,
+          "pending": 0,
+          "todo": 0,
+          "failures": []
+        },
+        {
+          "total": 6,
+          "passed": 6,
+          "failed": 0,
+          "pending": 0,
+          "todo": 0,
+          "failures": []
+        }
+      ]
     }
   ],
   "planPaths": [

@@ -130,3 +130,13 @@ Windows 解包改用 Python 标准库显式 UTF-8 解码及 Unicode 文件系统
 普通 verify-09 的[单次新尝试方案](./cli/evidence/recovery-2026-10-27/verify09-explicit-retry-proposal.json)已准备并向用户请求明确授权，旧请求记录保持未结清；不会因首次安装样本使用相同冻结任务而改写普通样本的状态。verify-04 此前授权的一次重试已用完。本次无新版本发布，原 **$99** 不重置，`paidReady:false`、native `NOT_ADMITTED`、晋升 `HOLD` 不变。
 
 提交前补跑了包含 scripts 的源码出口审计：本轮 campaign 因本地 Python 解包改动产生的摘要漂移已复核并更新，模型与网络派发分类仍为 `MODEL_REQUEST`。当前工作区仍有另外 **6 个**审计条目未通过：4 个生成的 Web Panel bundle 尚未复核，`llm-connection-probe.js` 与 `runtime/agent-core.js` 的审查摘要已过期。完整结果见[源码审计回执](./cli/evidence/recovery-2026-10-27/resolved-round-source-audit.json)。该检查未宣称全通过，不替代干净发行提交的跨平台门禁。
+
+### 普通 verify-09 的单次授权追加
+
+用户随后明确回复“允许”，授权普通 verify-09 新增一次尝试；[授权与派发记录](./cli/evidence/recovery-2026-10-27/verify09-authorized-retry.json)绑定原[方案](./cli/evidence/recovery-2026-10-27/verify09-explicit-retry-proposal.json)摘要。[新运行 40499013236](https://github.com/chainlesschain/chainlesschain/actions/runs/40499013236)的脚本源为 `8d529879971d9fb9b0f569238cebd12cc04e73bb`，派发前已核实与方案参考提交的评测脚本、工作流、公开包清单和冻结验收一致。实际安装仍固定为公开 CLI **0.166.127**、JetBrains **0.4.182**，宿主 **2025.2**，任务项目仍为原 `b2aa3aba082873570e85dce39b00754e5504ff37`。
+
+此次授权只允许一个新的普通样本尝试，自动重派仍关闭；原请求的用量和逐笔账务状态保持未结清，历史共享 **$99** 不重置。前 12 个运行的用量已完整收集，才派发本次请求。
+
+追加运行已结束：公开安装、原生生成、冻结来源检查通过；新运行的 **6 笔请求用量完整**，broker 未污染。独立基线 **11/11**、候选 **6/6** 通过，但候选未能拒绝行为变异体，`candidateAcceptancePassed:false`、`endToEndPassed:false`。本次单次授权已经执行完毕，没有自动重试；token-only 费用估计为 **¥0.144408**，实际账单金额仍未逐笔认定。
+
+至此，剩余 13 个样本的本轮尝试均已执行并完成独立验收收集，新增合格 **0**，累计仍为 **32/45**。13 个已解析运行合计 **158 笔已知物理请求**，这些新运行的用量全部完整，token-only 估计合计 **¥4.266643**；旧未决请求不包含在这些已知用量合计中。完整新增回执及候选已归档至原独立复测账本，汇总状态表示尝试收集完成，不表示 45 项已全部合格。原模型、思考开关、20 回合、24 请求、8,192 单次输出上限及冻结验收条件均保持不变；正式准入和自动晋升仍为原停线状态。
