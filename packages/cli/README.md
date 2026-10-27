@@ -2,15 +2,15 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.128 — verification and discovery (release candidate, 2026-10-27)
+## CLI 0.166.128 — verification and discovery (public, 2026-10-28)
 
-This candidate adds evidence-based goal evaluation, visible checkpoint persistence failures, multilingual MCP / Skills discovery, opt-in compact MCP catalogs and reduced Memory index merging. The full internal tool inventory and execution permissions remain enforced. Compact catalogs use `mcp.toolSearch.catalogMode: "compact"`; the default remains `stubs`. Synthetic token and latency measurements do not establish real billing or task-quality gains.
+This release adds evidence-based goal evaluation, visible checkpoint persistence failures, multilingual MCP / Skills discovery, opt-in compact MCP catalogs and reduced Memory index merging. The full internal tool inventory and execution permissions remain enforced. Compact catalogs use `mcp.toolSearch.catalogMode: "compact"`; the default remains `stubs`. Synthetic token and latency measurements do not establish real billing or task-quality gains.
 
 It also adds explicit `cc agent -p "task" --review-changes` for one completion-review opportunity after successful write/edit tool changes. Inspection and repairs use the same remaining request, permission and cost budgets; incomplete usage blocks additional review. This mode publishes final text only, including when partial messages were requested. It is off by default, supports headless and stream-json input, and does not claim test or native acceptance success.
 
-Target installation after public verification: `npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`. The current verified public CLI is **0.166.127**, paired with Open VSX **0.37.165** and JetBrains **0.4.182**. Planned successor IDE versions **0.37.166** / **0.4.183** will recommend `.128` only after the CLI is public. Child package pins are unchanged. [Release progress](../../docs/research/cli-ide-release128-progress-2026-10-27.md).
+Install the verified public CLI: `npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`. Paired IDE release versions **0.37.166** / **0.4.183** recommend `.128`; their marketplace publication and readback are in progress. Child package pins are unchanged. [Release progress](../../docs/research/cli-ide-release128-progress-2026-10-27.md).
 
-Publication requires the exact candidate commit's complete Linux, Windows and macOS CLI CI and Strict Sandbox results, followed by GitHub Actions OIDC and registry/provenance readback. This candidate is not yet published. Microsoft Marketplace remains unpublished; cumulative task acceptance **32/45**, **13** unfinished, and **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
+Exact source `dfa158e36171e347a40e23356c2ed7bd04e0c061` passed complete Linux, Windows and macOS CLI CI and Strict Sandbox. [GitHub Actions OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/40552876222) and [independent public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/40556529770) passed: registry bytes match the immutable CI artifact, with signed provenance and ten direct child pins verified. [Publication evidence](../../docs/research/cli/evidence/release128-public/publication.json). Client `v5.0.3.143` is still in preparation. Microsoft Marketplace remains unpublished; cumulative task acceptance **32/45**, **13** unfinished, and **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
 
 ## CLI 0.166.127 — optional self-evolution (2026-10-27)
 

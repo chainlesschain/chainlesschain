@@ -1,10 +1,10 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## CLI 0.166.128 release preparation (2026-10-27)
+## CLI 0.166.128 (public, 2026-10-28)
 
-Candidate **0.166.128** includes goal/checkpoint reliability, shared IDE model onboarding and conversation model overrides, multilingual MCP / Skills discovery, opt-in compact MCP catalogs and Memory index improvements. It is not yet public; the last verified public CLI remains `.127` below. Release order: exact-commit three-OS CLI CI / Strict Sandbox → Actions OIDC → registry bytes/provenance readback → paired IDEs → clients. [Release progress](docs/research/cli-ide-release128-progress-2026-10-27.md). Local tests and synthetic measurements do not establish real task or billing acceptance.
+CLI **0.166.128** is public through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40552876222), from exact source `dfa158e36171e347a40e23356c2ed7bd04e0c061`. Complete three-OS CLI CI and Strict Sandbox passed. [Independent public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/40556529770) verified byte identity with the immutable CI artifact, signed provenance and ten direct child pins. Install: `npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`. Includes goal/checkpoint reliability, IDE model configuration support, multilingual MCP / Skills discovery, opt-in compact MCP catalogs and Memory index improvements. Paired Open VSX `.166` / JetBrains `.183` releases are in progress; client `.143` is still being prepared. [Release progress](docs/research/cli-ide-release128-progress-2026-10-27.md) and [public status](docs/research/cli/evidence/release128-public/publication.json).
 
-The latest candidate includes explicit `--review-changes` to inspect write/edit deliverables within existing permissions and budgets. It is off by default and emits final text only when enabled. Native 36+9 retests follow verified public release and installation; acceptance currently remains **32/45**.
+This release includes explicit `--review-changes` to inspect write/edit deliverables within existing permissions and budgets. It is off by default and emits final text only when enabled. Native 36+9 retests follow the paired public releases and installation verification; acceptance currently remains **32/45**. Local tests and synthetic measurements do not establish real task or billing acceptance.
 
 ## CLI 0.166.127 optional self-evolution (public, 2026-10-27)
 

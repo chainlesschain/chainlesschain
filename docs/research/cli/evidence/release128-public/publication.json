@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.release128-publication/v1",
-  "observedAt": "2026-10-27T18:11:30.046Z",
+  "observedAt": "2026-10-27T18:21:12.467Z",
   "status": "CLI_PUBLIC_IDES_AND_CLIENTS_PENDING",
   "repository": "chainlesschain/chainlesschain",
   "channels": {
@@ -63,7 +63,11 @@
     "cliVersion": "0.166.128",
     "androidBundleRunId": 40556532158,
     "androidBundleBuildConclusion": "success",
-    "publicRelease": false
+    "publicRelease": false,
+    "candidateSourceSha": "036d2b8be2048c98e56e917c93380f169e6a9d7b",
+    "androidBundleReceipt": "android-cli-bundle.json",
+    "androidBundleSha256": "65d6d3d7e89e3637ecf784f3d3509253538f64e4fc7684818360039285e389f2",
+    "plannedAndroidBinaries": "20261028-1"
   },
   "acceptance": {
     "accepted": 32,
