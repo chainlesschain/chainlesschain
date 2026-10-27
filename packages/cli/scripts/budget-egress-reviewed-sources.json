@@ -330,9 +330,9 @@
     },
     {
       "path": "packages/cli/src/lib/llm-connection-probe.js",
-      "digest": "sha256:869a71f754f674af577f5191adb8688deddd9bd716adb0c97b1eada7df28127b",
+      "digest": "sha256:df4253e799c0ae810d1dac45c7b1f75e5aca83fbe75fa516c18494b82d6ee694",
       "category": "MODEL_REQUEST",
-      "rationale": "A connectivity probe sends inference, not a free health GET; provider scope governs the physical request."
+      "rationale": "A connectivity probe sends inference, not a free health GET; provider scope governs the physical request. Reviewed changes since 6b3e946f32: OpenAI protocol selection uses the shared capability profile and Responses codecs, with one POST through the existing providerFetch scope. The existing output allowance, timeout, redirect refusal, budget-error propagation and credential redaction remain. Responses usage is normalized before completion validation; incomplete or malformed usage stays unknown, and failure receipts retain any known usage. No retry or separate network dispatch is introduced. This classification does not establish billing, paid admission or release readiness."
     },
     {
       "path": "packages/cli/src/lib/llm-providers.js",
