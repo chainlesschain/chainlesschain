@@ -22,7 +22,7 @@
 
 # Public CLI 0.166.127, source 0377050191b61894ccfa9566394560c3d1425fbe.
 # Hydration evidence: android-cli-bundle-refresh.yml run 40401180829.
-a3568a943faa810a521c15f081f0f691f245b012b7ce38c049b9bf2a820e0781  cc-cli.tgz                       android-app/feature-local-terminal/src/main/assets/local-terminal/cc-cli.tgz
+65d6d3d7e89e3637ecf784f3d3509253538f64e4fc7684818360039285e389f2  cc-cli.tgz                       android-app/feature-local-terminal/src/main/assets/local-terminal/cc-cli.tgz
 47e6c97d178c00e3d0ba6d695d5d14bf94bf749b2f6170a789f480cf4021af2f  libnode.so                       android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libnode.so
 b74d37b407a9092573671dd031ccaa8c36576bb067d21c9effa2edb748526400  libicudata.so                    android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libicudata.so
 5c08255d1f0ca3529ec79daab5b3cd8d0064ed27efc66b2937415460e02522b1  libicui18n.so                    android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libicui18n.so
