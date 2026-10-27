@@ -88,3 +88,15 @@ Windows x64，Node **22.22.2**。可机读结果、命令、源码摘要及验�
 已从 [run 39139263000](https://github.com/chainlesschain/chainlesschain/actions/runs/39139263000) 的原始生成制品找回 `verify-09` 第三笔物理请求回执。原响应 **1,149,179 字节、3,992 个完整 SSE JSON 事件**，HTTP 200，已确认派发，但没有 `finish_reason`、usage 或 `[DONE]`。provider response ID 为 `021792336925419cd483641bd2945773645203cda9eaa13b9041f`，UTC 请求窗口为 **2026-10-18 15:19:46.821 至 15:22:46.836**。原候选文件只有 27 字节，未形成完整交付；旧验收结果不变。[核对记录](./cli/evidence/recovery-2026-10-27/verify09-request-reconciliation.json)及原始脱敏回执保留原摘要，没有保存请求正文或响应正文。
 
 下一步需先用账户记录核对原共享 **$99** 的历史实付/剩余额度，并核对上述未决请求，再按原分片执行生成和独立验收。已向用户询问账单金额或本地证据路径。当前没有新模型调用、新合格样本或发布；`paidReady:false`、native `NOT_ADMITTED`、自动晋升 `HOLD` 及原正式评测窗口不因准备工作改变。
+
+### 2026-10-27 实际复测及 Windows 解包修复
+
+用户随后授权直接在 `main` 提交并继续执行。原 13 项计划按单样本顺序派发，未派发的行保持 `PENDING_DISPATCH`；部分轮次不能晋升历史基线。已合格 32 项不重生成，分母保持 45。
+
+- [verify-04 授权重试](https://github.com/chainlesschain/chainlesschain/actions/runs/40459874678)：生成完成，独立基线 22/22 通过，候选 0/7 通过；存在价格假设和 API 字段不符。20 笔请求用量完整，不增加合格数，也不继续自动重试此项。见[结果](./cli/evidence/recovery-2026-10-27/verify04-retry-result.json)。
+- [verify-13](https://github.com/chainlesschain/chainlesschain/actions/runs/40463204565)：独立基线 13/13、候选 6/6 通过，但候选未能拒绝行为变异体，仍未合格；9 笔请求用量完整。见[结果](./cli/evidence/recovery-2026-10-27/verify13-attempt-result.json)。
+- [verify-10](https://github.com/chainlesschain/chainlesschain/actions/runs/40466023791)：Windows 系统 bsdtar 即使设置 `hdrcharset=UTF-8`，仍拒绝冻结项目中的非 ASCII 文件名，在 CLI 安装及 broker 创建前失败，模型调用为 0。原失败运行和账本绑定保留。见[失败与零调用依据](./cli/evidence/recovery-2026-10-27/verify10-attempt-result.json)。
+
+Windows 解包改用 Python 标准库显式 UTF-8 解码及 Unicode 文件系统调用，先验证完整路径集合，拒绝链接、越界路径、设备名、大小写冲突和重复文件。Linux/macOS 继续原解包路径。中文普通头、PAX 长路径、逐字节一致性和错误路径负对照均已回归。Windows 本地用实际冻结提交归档核对 **22,564 个条目、19,381 个文件、252 个非 ASCII 路径**，文件名和内容摘要全部一致；归档摘要也与上述 GitHub 失败运行一致，见[完整树核对](./cli/evidence/recovery-2026-10-27/windows-frozen-archive-check.json)。工作流增加模型执行前的 Windows 解包回归。
+
+修复后的 verify-10 使用[独立重试计划](./cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027-unicode-plan.json)，保持相同 13 个未合格 ID、32 个历史合格项、公开包版本和冻结验收条件；原失败轮次不可被新运行覆盖。当前累计仍为普通 **26/36**、首次 **6/9**，共 **32/45**。verify-09 的旧请求仍待核对；`paidReady:false`、native `NOT_ADMITTED`、晋升 `HOLD` 不变，无新发布。

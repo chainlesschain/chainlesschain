@@ -1,0 +1,11 @@
+{
+  "schema": "chainlesschain.frozen-archive-unicode-check/v1",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "archiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "entries": 22564,
+  "files": 19381,
+  "nonAsciiPaths": 252,
+  "exactPathsAndFileBytes": true,
+  "newModelCalls": 0,
+  "actualPlatform": "win32"
+}

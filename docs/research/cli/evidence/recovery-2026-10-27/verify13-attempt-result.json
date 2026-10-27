@@ -1,0 +1,51 @@
+{
+  "schema": "chainlesschain.native-task-attempt-result/v1",
+  "sampleId": "verify-13",
+  "runId": "40463204565",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40463204565",
+  "executionSourceCommit": "fab335bcc59ea3fd19376c73ce399573fe099835",
+  "versions": {
+    "cli": "0.166.127",
+    "vscode": "0.37.165",
+    "jetbrains": "0.4.182",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "generationPassed": true,
+  "candidateAcceptancePassed": false,
+  "endToEndPassed": false,
+  "formalSample": false,
+  "billingAssessed": false,
+  "actualBilledCostCny": null,
+  "cumulativeAcceptedDeliverables": 32,
+  "plannedSamples": 45,
+  "ledgerPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027.json",
+  "status": "CANDIDATE_FAILED_BEHAVIORAL_CONTROL",
+  "setupTests": [
+    {
+      "kind": "baseline",
+      "total": 13,
+      "passed": 13,
+      "failed": 0
+    }
+  ],
+  "candidateTests": [
+    {
+      "kind": "baseline",
+      "total": 13,
+      "passed": 13,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "reason": "candidate tests did not reject the behavioral mutant",
+  "physicalRequestsStarted": 9,
+  "usageCompleteRequests": 9,
+  "tokenOnlyEstimateCny": 0.1503902,
+  "checkReceiptDigest": "sha256:9b629e9a01937a98d49f88d82df1b4d689225df6c5ee91bdfdf8a1689afbe568"
+}

@@ -1,0 +1,37 @@
+{
+  "schema": "chainlesschain.native-task-attempt-result/v1",
+  "sampleId": "verify-10",
+  "runId": "40466023791",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40466023791",
+  "executionSourceCommit": "30a466160720e845996928273e94de7d69e75406",
+  "versions": {
+    "cli": "0.166.127",
+    "vscode": "0.37.165",
+    "jetbrains": "0.4.182",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "generationPassed": false,
+  "candidateAcceptancePassed": false,
+  "endToEndPassed": false,
+  "formalSample": false,
+  "billingAssessed": false,
+  "actualBilledCostCny": null,
+  "cumulativeAcceptedDeliverables": 32,
+  "plannedSamples": 45,
+  "ledgerPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027.json",
+  "status": "PRE_MODEL_ARCHIVE_EXTRACTION_FAILED",
+  "failureStage": "archive-extraction",
+  "physicalRequestsStarted": 0,
+  "newModelCalls": 0,
+  "tokenOnlyEstimateCny": 0,
+  "zeroModelEvidence": {
+    "sourceCommit": "30a466160720e845996928273e94de7d69e75406",
+    "controlFlow": "extractNativeArchive throws before tree-before snapshot, public CLI install and broker construction",
+    "candidates": 0,
+    "treeBeforePresent": false,
+    "brokerPresent": false
+  },
+  "reason": "Windows system bsdtar rejected UTF-8 header filenames before model startup.",
+  "retryScope": "one infrastructure retry after Unicode extraction fix; keep this failed attempt immutable"
+}

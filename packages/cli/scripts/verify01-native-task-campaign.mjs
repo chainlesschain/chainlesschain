@@ -107,15 +107,28 @@ export function archiveExtractor(
 }
 
 export function extractNativeArchive(archive, workspace) {
-  // git archive stores UTF-8 paths; Windows bsdtar otherwise uses the active
-  // code page for ordinary tar headers (silently corrupting non-ASCII names).
-  const options =
-    process.platform === "win32" ? ["--options", "hdrcharset=UTF-8"] : [];
-  execFileSync(
-    archiveExtractor(),
-    [...options, "-xf", archive, "-C", workspace],
-    { timeout: 120000 },
-  );
+  // Windows bsdtar can corrupt header paths or reject them depending on its
+  // version and active code page, even with hdrcharset=UTF-8. Decode the frozen
+  // git archive explicitly and use Unicode filesystem calls instead.
+  if (process.platform === "win32") {
+    execFileSync(
+      "python",
+      [
+        "-X",
+        "utf8",
+        fileURLToPath(
+          new URL("./verify01-extract-windows-archive.py", import.meta.url),
+        ),
+        archive,
+        workspace,
+      ],
+      { timeout: 120000 },
+    );
+  } else {
+    execFileSync(archiveExtractor(), ["-xf", archive, "-C", workspace], {
+      timeout: 120000,
+    });
+  }
 }
 
 export function parseNativeSampleIds(value) {
