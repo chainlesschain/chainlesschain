@@ -1,0 +1,226 @@
+{
+  "schema": "chainlesschain.release127-product-publication/v1",
+  "observedAt": "2026-10-27T01:23:49.736Z",
+  "version": "v5.0.3.142",
+  "sourceSha": "c9881a2b710cf49f0ad3d63673e0998ecc608514",
+  "runId": 40418182439,
+  "workflowConclusion": "success",
+  "jobs": [
+    {
+      "id": 121905643434,
+      "name": "Verify authorized CLI release precondition",
+      "conclusion": "success"
+    },
+    {
+      "id": 121906212896,
+      "name": "Verify public workspace dependencies (no publishing)",
+      "conclusion": "success"
+    },
+    {
+      "id": 121906564268,
+      "name": "build-linux",
+      "conclusion": "success"
+    },
+    {
+      "id": 121906564282,
+      "name": "build-android",
+      "conclusion": "success"
+    },
+    {
+      "id": 121906564306,
+      "name": "build-windows",
+      "conclusion": "success"
+    },
+    {
+      "id": 121906564349,
+      "name": "build-macos",
+      "conclusion": "success"
+    },
+    {
+      "id": 121906564423,
+      "name": "build-ios",
+      "conclusion": "success"
+    },
+    {
+      "id": 121925701044,
+      "name": "create-release",
+      "conclusion": "success"
+    },
+    {
+      "id": 121927640595,
+      "name": "update-changelog",
+      "conclusion": "success"
+    },
+    {
+      "id": 121928432856,
+      "name": "finalize-release",
+      "conclusion": "success"
+    }
+  ],
+  "release": {
+    "id": 424900704,
+    "url": "https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.142",
+    "draft": false,
+    "immutable": true,
+    "publishedAt": "2026-10-27T00:14:31Z",
+    "assetCount": 22,
+    "assets": [
+      {
+        "name": "app-arm64-v8a-release.apk",
+        "size": 314439517,
+        "digest": "sha256:41afea4d2cf6416e2f72c95d1527a352b24d4eb8784051e613a7e60812b8e961",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/app-arm64-v8a-release.apk"
+      },
+      {
+        "name": "app-armeabi-v7a-release.apk",
+        "size": 272238328,
+        "digest": "sha256:25799587d97cecca92c2378cd40101554e8f23a317e4091e8481d2dd955cca24",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/app-armeabi-v7a-release.apk"
+      },
+      {
+        "name": "app-release.aab",
+        "size": 272666140,
+        "digest": "sha256:6cca4d962562ae5fb627793c831ba5e5c7358b941233b34030286f4eb453e8b5",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/app-release.aab"
+      },
+      {
+        "name": "app-universal-release.apk",
+        "size": 344346701,
+        "digest": "sha256:2956bd9148cc98cb09f87b53f8bc14b6d808a83b54e3e1ec0be6efaebc640fed",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/app-universal-release.apk"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.142-arm64-mac.zip",
+        "size": 609020993,
+        "digest": "sha256:702e87848ee34067c1d35cdb0f01302752ad2d405ce2b035ecc5cf64d63acb34",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/ChainlessChain-5.0.3-alpha.142-arm64-mac.zip"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.142-arm64-mac.zip.blockmap",
+        "size": 609805,
+        "digest": "sha256:a7b85532ba9f560bcc187178a0e9a61f6595de904122980c2655f65105ca3169",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/ChainlessChain-5.0.3-alpha.142-arm64-mac.zip.blockmap"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.142-arm64.dmg",
+        "size": 626829451,
+        "digest": "sha256:fe81557271696d51ca5ed73d29522b4e9c85305641d2e0275ffe9eb65eb5937b",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/ChainlessChain-5.0.3-alpha.142-arm64.dmg"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.142-arm64.dmg.blockmap",
+        "size": 651506,
+        "digest": "sha256:2ca78fcab159946145483825f169a838432b0393b259b97cb5118688b491acb9",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/ChainlessChain-5.0.3-alpha.142-arm64.dmg.blockmap"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.142-mac.zip",
+        "size": 614491027,
+        "digest": "sha256:234bc713a43730c66d73af2ef9167ef848a1eb0e5026c6b5d30edfd3630b6560",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/ChainlessChain-5.0.3-alpha.142-mac.zip"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.142-mac.zip.blockmap",
+        "size": 616405,
+        "digest": "sha256:e48b12b84af87562933c80020faf963e52a9af6811252a3c04f380caaee0cbc6",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/ChainlessChain-5.0.3-alpha.142-mac.zip.blockmap"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.142.AppImage",
+        "size": 891904910,
+        "digest": "sha256:e1dc943388eead9c3d2d6e00ed7c6b1225a2b2efda3f0557e81c4863f1bc7f73",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/ChainlessChain-5.0.3-alpha.142.AppImage"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.142.dmg",
+        "size": 632024751,
+        "digest": "sha256:2bb7d30d1a438565255761beb62927f965b4744cab7310062b95cc8d66af0f75",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/ChainlessChain-5.0.3-alpha.142.dmg"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.142.dmg.blockmap",
+        "size": 652774,
+        "digest": "sha256:110eaccb0653c1ade69fd60c2c159412724fff4268d72c3a3499a394f4694c30",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/ChainlessChain-5.0.3-alpha.142.dmg.blockmap"
+      },
+      {
+        "name": "chainlesschain-desktop-vue-5.0.3-alpha.142.x86_64.rpm",
+        "size": 473568021,
+        "digest": "sha256:2466270bcb045c8f6d7168c30213ccf8f046c104309fc55086d06908e9f7b9e9",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/chainlesschain-desktop-vue-5.0.3-alpha.142.x86_64.rpm"
+      },
+      {
+        "name": "chainlesschain-desktop-vue_5.0.3-alpha.142_amd64.deb",
+        "size": 471916570,
+        "digest": "sha256:13b6f0f278bd411cbd4122a4379df5e4b67bc0321b386ee0a93408a83b77d23a",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/chainlesschain-desktop-vue_5.0.3-alpha.142_amd64.deb"
+      },
+      {
+        "name": "ChainlessChain-Portable-5.0.3-alpha.142.exe",
+        "size": 527715815,
+        "digest": "sha256:1ea86d18f58fe1961b535b9d19a081ac78ef08cc6959ea7ed3865403b98e20bc",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/ChainlessChain-Portable-5.0.3-alpha.142.exe"
+      },
+      {
+        "name": "ChainlessChain-Setup-5.0.3-alpha.142.exe",
+        "size": 528035493,
+        "digest": "sha256:c8b65753a0ae268b0d1bba0981016ddc921ae28979cb4b91865b635e51335625",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/ChainlessChain-Setup-5.0.3-alpha.142.exe"
+      },
+      {
+        "name": "ChainlessChain-Setup-5.0.3-alpha.142.exe.blockmap",
+        "size": 522248,
+        "digest": "sha256:9c93aebffbad4fc1119e0816a61e6af3071269c630d595c9ec601418fb35a991",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/ChainlessChain-Setup-5.0.3-alpha.142.exe.blockmap"
+      },
+      {
+        "name": "ChainlessChain.ipa",
+        "size": 10054840,
+        "digest": "sha256:b3c3f3d611fd19616fff03f3b728d771cac9c5d82b49c72139cd827a70bd95e4",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/ChainlessChain.ipa"
+      },
+      {
+        "name": "latest-linux.yml",
+        "size": 777,
+        "digest": "sha256:3dd0e35aca09787050a22dcc2400349f1c09a43b10c8519da880197c515b8694",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/latest-linux.yml"
+      },
+      {
+        "name": "latest-mac.yml",
+        "size": 894,
+        "digest": "sha256:799ca43fc2e8e860de8de05bb38acb7c5b4b92cbc78bd132f599f8c8bf8f1f58",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/latest-mac.yml"
+      },
+      {
+        "name": "latest.yml",
+        "size": 387,
+        "digest": "sha256:06e4bbc4ae8ba4d995eeb703a380c905c3db1398f01a5ee27c7a542bb752db8d",
+        "state": "uploaded",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.142/latest.yml"
+      }
+    ]
+  },
+  "ciManifest": "product-release-assets.json",
+  "publicUpdateMetadata": "product-public-downloads.json"
+}

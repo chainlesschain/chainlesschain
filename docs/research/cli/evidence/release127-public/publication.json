@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.release127-publication/v1",
-  "observedAt": "2026-10-26T23:11:52.190Z",
-  "status": "CLI_AND_IDES_PUBLIC_CLIENTS_PENDING",
+  "observedAt": "2026-10-27T01:23:49.736Z",
+  "status": "CLI_IDES_AND_CLIENTS_PUBLIC",
   "repository": "chainlesschain/chainlesschain",
   "channels": {
     "cli": {
@@ -88,7 +88,7 @@
   },
   "clients": {
     "productVersion": "v5.0.3.142",
-    "status": "building",
+    "status": "public",
     "cliVersion": "0.166.127",
     "androidBundleRunId": 40401180829,
     "androidRuntimeAssets": {
@@ -102,7 +102,14 @@
     },
     "runId": 40418182439,
     "sourceSha": "c9881a2b710cf49f0ad3d63673e0998ecc608514",
-    "tag": "v5.0.3.142"
+    "tag": "v5.0.3.142",
+    "releaseId": 424900704,
+    "releaseUrl": "https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.142",
+    "receipt": "product-publication.json",
+    "assetCount": 22,
+    "immutable": true,
+    "publicAssetsMatchCiManifest": true,
+    "publicUpdaterMetadataVerified": true
   },
   "acceptance": {
     "accepted": 32,

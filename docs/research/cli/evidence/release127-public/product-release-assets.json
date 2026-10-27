@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "version": "v5.0.3.142",
+  "sourceSha": "c9881a2b710cf49f0ad3d63673e0998ecc608514",
+  "linuxName": "chainlesschain-desktop-vue",
+  "required": [
+    "ChainlessChain-Setup-5.0.3-alpha.142.exe",
+    "ChainlessChain-Setup-5.0.3-alpha.142.exe.blockmap",
+    "ChainlessChain-Portable-5.0.3-alpha.142.exe",
+    "latest.yml",
+    "ChainlessChain-5.0.3-alpha.142.dmg",
+    "ChainlessChain-5.0.3-alpha.142.dmg.blockmap",
+    "ChainlessChain-5.0.3-alpha.142-arm64.dmg",
+    "ChainlessChain-5.0.3-alpha.142-arm64.dmg.blockmap",
+    "ChainlessChain-5.0.3-alpha.142-mac.zip",
+    "ChainlessChain-5.0.3-alpha.142-mac.zip.blockmap",
+    "ChainlessChain-5.0.3-alpha.142-arm64-mac.zip",
+    "ChainlessChain-5.0.3-alpha.142-arm64-mac.zip.blockmap",
+    "latest-mac.yml",
+    "ChainlessChain-5.0.3-alpha.142.AppImage",
+    "chainlesschain-desktop-vue_5.0.3-alpha.142_amd64.deb",
+    "chainlesschain-desktop-vue-5.0.3-alpha.142.x86_64.rpm",
+    "latest-linux.yml",
+    "app-arm64-v8a-release.apk",
+    "app-armeabi-v7a-release.apk",
+    "app-universal-release.apk",
+    "app-release.aab",
+    "ChainlessChain.ipa"
+  ],
+  "assets": [
+    {
+      "name": "app-arm64-v8a-release.apk",
+      "size": 314439517,
+      "sha256": "41afea4d2cf6416e2f72c95d1527a352b24d4eb8784051e613a7e60812b8e961",
+      "sha512": "8o7sInqmcVn9PmibfiKqV8y0YbtpuV+rFxLx4hwDuPiTM82qgfjRxdWAm6i0Ytf03gKcSquxwgWnLdvMXIVISw=="
+    },
+    {
+      "name": "app-armeabi-v7a-release.apk",
+      "size": 272238328,
+      "sha256": "25799587d97cecca92c2378cd40101554e8f23a317e4091e8481d2dd955cca24",
+      "sha512": "Bjp1+DD1qsDMQwlI72SBmcHGYfAqYQ/KTlHPGQCAbPqo/3XcvYyGY9U0/nhRavw9gUBZxQ9QAkkMaAAMGOOiBQ=="
+    },
+    {
+      "name": "app-release.aab",
+      "size": 272666140,
+      "sha256": "6cca4d962562ae5fb627793c831ba5e5c7358b941233b34030286f4eb453e8b5",
+      "sha512": "RhxybAB4Dl2d72ZA2OJukbNLDWTo/PFeReYJyzPjzZ/v4M2WsbIbroFmz22/I3fVJ7+CxSmwk9oyODvKNwfijQ=="
+    },
+    {
+      "name": "app-universal-release.apk",
+      "size": 344346701,
+      "sha256": "2956bd9148cc98cb09f87b53f8bc14b6d808a83b54e3e1ec0be6efaebc640fed",
+      "sha512": "hGPZechDCKPkftvdgYZK5E58oxqpksJwuulnAo3MHbSNqg/1pffmJHx8NADBDF8ouxAnPek+HrJF6HpQAuX5Jw=="
+    },
+    {
+      "name": "ChainlessChain-5.0.3-alpha.142-arm64-mac.zip",
+      "size": 609020993,
+      "sha256": "702e87848ee34067c1d35cdb0f01302752ad2d405ce2b035ecc5cf64d63acb34",
+      "sha512": "zj4Qh3SjYQ1JcwEjHgM5EBGPo5P9d8NeSU/DiAYKblY0m2AwtsUs88zUljUEmKs7zrgsdipZjr3k2Yautc7lkw=="
+    },
+    {
+      "name": "ChainlessChain-5.0.3-alpha.142-arm64-mac.zip.blockmap",
+      "size": 609805,
+      "sha256": "a7b85532ba9f560bcc187178a0e9a61f6595de904122980c2655f65105ca3169",
+      "sha512": "7T1Sa5pr6Uly8eYD2WtpB6j14jB/lyle+qpdSvLvMih8svxMnLBoNr8UIs2E1D2svzdSncJ2E+duJDjspEGsMQ=="
+    },
+    {
+      "name": "ChainlessChain-5.0.3-alpha.142-arm64.dmg",
+      "size": 626829451,
+      "sha256": "fe81557271696d51ca5ed73d29522b4e9c85305641d2e0275ffe9eb65eb5937b",
+      "sha512": "vH2rEsUzb8H4RvReJejaPaqD0gzB0AMUZmIdj79K2jFl1feC5cYQX6JNlkpzQyOsZRRbW9xSyjBTO+rcxyNi9w=="
+    },
+    {
+      "name": "ChainlessChain-5.0.3-alpha.142-arm64.dmg.blockmap",
+      "size": 651506,
+      "sha256": "2ca78fcab159946145483825f169a838432b0393b259b97cb5118688b491acb9",
+      "sha512": "4f2evHvJyAWs7mCWP5gQR5zjExC3pzvb9+NiabFKpOeQVIW8GOmXZyARHXAkRhKw7R6xqXjHMvUmIUe8S1rASQ=="
+    },
+    {
+      "name": "ChainlessChain-5.0.3-alpha.142-mac.zip",
+      "size": 614491027,
+      "sha256": "234bc713a43730c66d73af2ef9167ef848a1eb0e5026c6b5d30edfd3630b6560",
+      "sha512": "2h4UZX62CaYj3wB7yLpLHuD2Q/KKx0LTAwvwrl4D3lJXYGiwHa5nsDU0U2A7ZCWY/vCzrWHGZRQej6D0ObtznA=="
+    },
+    {
+      "name": "ChainlessChain-5.0.3-alpha.142-mac.zip.blockmap",
+      "size": 616405,
+      "sha256": "e48b12b84af87562933c80020faf963e52a9af6811252a3c04f380caaee0cbc6",
+      "sha512": "bR2fxIM/SR6RnqPucZGLcu/UuacVs6R/MuCaDxy6bzRvD88Ve5b/WMy4AAFD0i4KfJ7rrz8gKGH9g/qtZhCfNA=="
+    },
+    {
+      "name": "ChainlessChain-5.0.3-alpha.142.AppImage",
+      "size": 891904910,
+      "sha256": "e1dc943388eead9c3d2d6e00ed7c6b1225a2b2efda3f0557e81c4863f1bc7f73",
+      "sha512": "by6/krCmIy1vnd2zHB6ng17QX/mE+FxZ/PAp96UL3E+7nY9J6o1JLcmryWI1FFHjVYCwjxpB6greHnns+ZgHbQ=="
+    },
+    {
+      "name": "ChainlessChain-5.0.3-alpha.142.dmg",
+      "size": 632024751,
+      "sha256": "2bb7d30d1a438565255761beb62927f965b4744cab7310062b95cc8d66af0f75",
+      "sha512": "SkI9aaFCnneZdq1UAyiPqp5KmwITh1MEcPFzNkHOj+JW664uOIKeRnmXzLhN+g3d5nCfMaJD51mAUNArplz0Gg=="
+    },
+    {
+      "name": "ChainlessChain-5.0.3-alpha.142.dmg.blockmap",
+      "size": 652774,
+      "sha256": "110eaccb0653c1ade69fd60c2c159412724fff4268d72c3a3499a394f4694c30",
+      "sha512": "+Xhzi3HpSMQV/OtnzAeWllKzdqMwCVMjVLyo2WaAaHzIe/Xzq3wEPTZi/cmmbmdUEI3ZpR/ZbYZ644WXHy09Yg=="
+    },
+    {
+      "name": "chainlesschain-desktop-vue_5.0.3-alpha.142_amd64.deb",
+      "size": 471916570,
+      "sha256": "13b6f0f278bd411cbd4122a4379df5e4b67bc0321b386ee0a93408a83b77d23a",
+      "sha512": "LhtyTWsooEgpvBrJjxe7VeUoFB65SQQCNNcUKgXXV6BOQqrR2d+YhYRLxo0BbZ4KOFEEjj1ufAqj5/i5MNhwTw=="
+    },
+    {
+      "name": "chainlesschain-desktop-vue-5.0.3-alpha.142.x86_64.rpm",
+      "size": 473568021,
+      "sha256": "2466270bcb045c8f6d7168c30213ccf8f046c104309fc55086d06908e9f7b9e9",
+      "sha512": "X7tKgjtgB1WDDBGWNDtohKT3MdbVxcROQOCZzTgdi+l0/uPghdNRaXsowTK/srjEr5smUFHLJeztrxQX1uW7Vg=="
+    },
+    {
+      "name": "ChainlessChain-Portable-5.0.3-alpha.142.exe",
+      "size": 527715815,
+      "sha256": "1ea86d18f58fe1961b535b9d19a081ac78ef08cc6959ea7ed3865403b98e20bc",
+      "sha512": "M9vyzuFcELtgR8k7ZMl1uDN+RB1QXnK551HE/+0n22gj/ENldPY43PVHYrgCvQnhzI2lx+RqlbuW8LraeCiblA=="
+    },
+    {
+      "name": "ChainlessChain-Setup-5.0.3-alpha.142.exe",
+      "size": 528035493,
+      "sha256": "c8b65753a0ae268b0d1bba0981016ddc921ae28979cb4b91865b635e51335625",
+      "sha512": "d0qPeQrvOoGCOQ7WA3FwIKk7MBHcUh+/porqI2GTTzL11y94Y38310ILY+n4O14xRlYKniN/aYAN+4wIfZOlrw=="
+    },
+    {
+      "name": "ChainlessChain-Setup-5.0.3-alpha.142.exe.blockmap",
+      "size": 522248,
+      "sha256": "9c93aebffbad4fc1119e0816a61e6af3071269c630d595c9ec601418fb35a991",
+      "sha512": "3B70w1TsOwMBCFGx0+G11MLMbjD/aoEaGZGkLxkbAAQMN3B9yk+cLAS17iuLlkLciaK/FZM09C598EN9cx2WYg=="
+    },
+    {
+      "name": "ChainlessChain.ipa",
+      "size": 10054840,
+      "sha256": "b3c3f3d611fd19616fff03f3b728d771cac9c5d82b49c72139cd827a70bd95e4",
+      "sha512": "wVNhdnA0UD/qX2tRwmtnq0/ear2m2+NQ+7C2vHwVXMyBaPCyUhQ/oGkny7WhFSZCk9DHMBjybyo4hGAN411wSQ=="
+    },
+    {
+      "name": "latest-linux.yml",
+      "size": 777,
+      "sha256": "3dd0e35aca09787050a22dcc2400349f1c09a43b10c8519da880197c515b8694",
+      "sha512": "lVVAJkkKSF2ayVZ/jIpVQqrjnFrPBT9zsFXI5orKN6JXt6Dt93p1m67dpSgiFDcH00yPBBuz44yrL6djNsDzoQ=="
+    },
+    {
+      "name": "latest-mac.yml",
+      "size": 894,
+      "sha256": "799ca43fc2e8e860de8de05bb38acb7c5b4b92cbc78bd132f599f8c8bf8f1f58",
+      "sha512": "i0wjzm63UG+U7IbKlJoO+X4sTYOQGXHGViai6QnFyfHV4ioO4K+OIc6EAyOVLdFaB9IPnLItLoEDrQHysKGpCQ=="
+    },
+    {
+      "name": "latest.yml",
+      "size": 387,
+      "sha256": "06e4bbc4ae8ba4d995eeb703a380c905c3db1398f01a5ee27c7a542bb752db8d",
+      "sha512": "JMdWU3sTozbQYmENPEPpo5gZc/XeJiKQQ5Tvu2/lbGVKCLbRjfPtJwckVRiRk/5DQCtaz0DY24by+u4l/+fjZw=="
+    }
+  ]
+}
