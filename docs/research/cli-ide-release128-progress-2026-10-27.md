@@ -4,6 +4,16 @@
 
 ## 当前阶段
 
+### RC4：Goal 集成夹具修复与固定发布范围
+
+RC2 的 CLI CI Linux unit shard 4 发现集成夹具仍仅回复 `done`，未提供新的 Goal model judge 所需的成功工具证据。修复让夹具真实读取工作区 `inspection.txt`，并要求 judge 引用本轮 `goal-tool-1`；同时验证辅助模型调用仍处于同一个未完成 Run，以及来源拒绝时不完成 Run。生产完成条件、来源校验和权限检查均未放宽。
+
+Windows 本地沙箱首次运行在 native ACL 初始化阶段失败；在沙箱外执行相同的本地模拟模型测试后，4 项全部通过，263 项未选中，不计为通过。该测试不调用真实或付费模型。
+
+旧 RC2 自动发布等待器已核对父进程与固定 SHA 后停止，旧失败 CI 已请求取消，未创建 npm 发行标签。后续候选从 `6551a06c2f694bb93d0197fa8b82becd25a83173` 建立隔离工作树，仅带入本次测试修复和发布记录；并发提交 `5def22e364` 的 opt-in change review 不自动纳入本次发行，也不覆盖或撤销。新候选必须重新通过自身准确提交的完整 CLI CI 与 Strict Sandbox，RC2 的成功项不能替代。
+
+IDE 修复候选的完整工作流为 [40506935492](https://github.com/chainlesschain/chainlesschain/actions/runs/40506935492)，当前仍在运行，尚未发布市场版本。
+
 RC2 的 IDE Linux / IntelliJ 2025.2 原生旅程发现测试预期过期：canonical peer 对 `llm capabilities --json` 只返回空回复，真实界面正确显示“无法读取配置”，原生性能探针却仍等待旧的“未配置”提示。修复仅将测试探针绑定到该夹具应出现的 `chat.llmReadUnavailable` 诊断；生产配置逻辑、就绪位、60 秒截止及采样标准不变。IDE 修复使用独立候选重跑实机矩阵；CLI 发布源码继续固定在 RC2，不受此 UI 测试修改影响。
 
 该 IDE 修复的 `compileUiTestJava` 与 32 项原生证据 / 实机旅程驱动校验通过，保留迟到提示污染拒绝和所有就绪检查。准备固定引用 `ide-candidate-cli128-rc3` 重跑完整 IDE 工作流，仍未推送市场发布标签。

@@ -1020,12 +1020,15 @@ describe("Agent evolution runtime production composition", () => {
   function auxiliaryTransport(f, responseForCall = () => auxiliarySummary) {
     f.transport.mockImplementation(async (_url, request) => {
       f.seen.push(JSON.parse(request.body));
+      const response = responseForCall(f.seen.length);
       return {
         ok: true,
         json: async () => ({
           message: {
             role: "assistant",
-            content: responseForCall(f.seen.length),
+            ...(typeof response === "string"
+              ? { content: response }
+              : response),
           },
           prompt_eval_count: 20,
           eval_count: 5,
@@ -1127,13 +1130,39 @@ describe("Agent evolution runtime production composition", () => {
         progress: 0,
         keyResults: [],
       };
-      auxiliaryTransport(f, (call) =>
-        call === 1
-          ? "done"
-          : kind === "condition"
-            ? '{"met":true,"reason":"inspection complete"}'
-            : "No assessment available.",
-      );
+      if (kind === "condition")
+        fs.writeFileSync(
+          path.join(f.root, "inspection.txt"),
+          "INSPECTION_EVIDENCE\n",
+        );
+      auxiliaryTransport(f, (call) => {
+        expect(f.composition.loadRun().projection?.status).not.toBe(
+          "completed",
+        );
+        if (kind === "condition" && call === 1)
+          return {
+            content: "Inspecting the workspace",
+            tool_calls: [
+              {
+                id: "goal-inspection",
+                type: "function",
+                function: {
+                  name: "read_file",
+                  arguments: JSON.stringify({ path: "inspection.txt" }),
+                },
+              },
+            ],
+          };
+        if (call === (kind === "condition" ? 2 : 1)) return "done";
+        if (kind === "condition") {
+          expect(JSON.stringify(f.seen.at(-1))).toContain(
+            "INSPECTION_EVIDENCE",
+          );
+          expect(JSON.stringify(f.seen.at(-1))).toContain("goal-tool-1");
+          return '{"met":true,"reason":"inspection complete","evidenceIds":["goal-tool-1"]}';
+        }
+        return "No assessment available.";
+      });
       const result = await runAgentHeadless(
         {
           ...f.callOptions,
@@ -1143,7 +1172,11 @@ describe("Agent evolution runtime production composition", () => {
           hermeticExecution: true,
           cwd: f.root,
           ...(kind === "condition"
-            ? { goalCondition: "model:inspection complete" }
+            ? {
+                goalCondition: "model:inspection complete",
+                enabledToolNames: ["read_file"],
+                maxOuterTurns: 1,
+              }
             : { goal: goal.id, goalAssess: true }),
         },
         {
@@ -1156,7 +1189,8 @@ describe("Agent evolution runtime production composition", () => {
         },
       );
       expect(result).toMatchObject({ exitCode: 0, result: "done" });
-      expect(f.transport).toHaveBeenCalledTimes(2);
+      const modelCalls = kind === "condition" ? 3 : 2;
+      expect(f.transport).toHaveBeenCalledTimes(modelCalls);
       expect(JSON.stringify(f.seen)).not.toContain(
         "sk-abcdefghijklmnopqrstuvwxyz1234567890",
       );
@@ -1164,7 +1198,7 @@ describe("Agent evolution runtime production composition", () => {
         f.composition
           .loadRun()
           .events.filter((event) => event.data.evidenceKind === "model-input"),
-      ).toHaveLength(2);
+      ).toHaveLength(modelCalls);
       expect(f.composition.loadRun().projection.status).toBe("completed");
     },
     60_000,
@@ -1181,10 +1215,32 @@ describe("Agent evolution runtime production composition", () => {
         progress: 0,
         keyResults: [],
       };
-      auxiliaryTransport(f, () => "done");
+      if (kind === "condition")
+        fs.writeFileSync(
+          path.join(f.root, "inspection.txt"),
+          "INSPECTION_EVIDENCE\n",
+        );
+      auxiliaryTransport(f, (call) =>
+        kind === "condition" && call === 1
+          ? {
+              content: "Inspecting the workspace",
+              tool_calls: [
+                {
+                  id: "goal-inspection",
+                  type: "function",
+                  function: {
+                    name: "read_file",
+                    arguments: JSON.stringify({ path: "inspection.txt" }),
+                  },
+                },
+              ],
+            }
+          : "done",
+      );
       f.config.authorities.sourceEnvelope.issue.mockImplementation(
         async ({ kind: evidenceKind }) =>
-          evidenceKind === "model-input" && f.seen.length > 0
+          evidenceKind === "model-input" &&
+          f.seen.length > (kind === "condition" ? 1 : 0)
             ? "denied-source"
             : `signed-source:${evidenceKind}`,
       );
@@ -1198,7 +1254,11 @@ describe("Agent evolution runtime production composition", () => {
             hermeticExecution: true,
             cwd: f.root,
             ...(kind === "condition"
-              ? { goalCondition: "model:inspection complete" }
+              ? {
+                  goalCondition: "model:inspection complete",
+                  enabledToolNames: ["read_file"],
+                  maxOuterTurns: 1,
+                }
               : { goal: goal.id, goalAssess: true }),
           },
           {
@@ -1217,7 +1277,7 @@ describe("Agent evolution runtime production composition", () => {
         expect(outcome[0].reason.code).toBe(
           "CC_AGENT_EVOLUTION_INGRESS_FAILED",
         );
-      expect(f.transport).toHaveBeenCalledOnce();
+      expect(f.transport).toHaveBeenCalledTimes(kind === "condition" ? 2 : 1);
       expect(f.composition.loadRun().projection.status).not.toBe("completed");
     },
     60_000,
