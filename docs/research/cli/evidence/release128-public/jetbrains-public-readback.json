@@ -1,0 +1,30 @@
+{
+  "schema": "chainlesschain.release128-jetbrains-public-readback/v1",
+  "observedAt": "2026-10-27T18:53:13.854Z",
+  "sourceSha": "6551a06c2f694bb93d0197fa8b82becd25a83173",
+  "runId": 40557015160,
+  "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+  "version": "0.4.183",
+  "status": "public",
+  "updateId": 1204580,
+  "approve": true,
+  "listed": true,
+  "hidden": false,
+  "downloadUrl": "https://plugins.jetbrains.com/files/32208/1204580/chainlesschain-ide-bridge-0.4.183.zip",
+  "identity": {
+    "schema": "chainlesschain.release128-ide-artifact-identity/v1",
+    "observedAt": "2026-10-27T18:53:13.826Z",
+    "channel": "jetbrains",
+    "bytes": 1561065,
+    "sha256": "5461e2c103a4b27384f0e0658a2d3a5c228fd9fc1996f22f3b16b2cecb7e1344",
+    "jar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.183.jar",
+    "version": "0.4.183",
+    "recommendedCliVersion": "0.166.128"
+  },
+  "taggedPayloadVerified": true,
+  "taggedArchiveSha256": "8b3cf288e74bc748922cac801e30ce2b2b26c9c9e5b2cc9d1ffa7851503f4a69",
+  "taggedPayloadComparisonLimit": null,
+  "verifiedOriginalEntryCount": 4,
+  "additionalMarketplaceEntries": [],
+  "nestedJarComparisons": []
+}

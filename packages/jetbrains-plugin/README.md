@@ -13,7 +13,7 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 ## Release pairing
 
-Plugin **0.4.183** recommends public CLI **`0.166.128`** and pairs with public Open VSX **0.37.166**. It adds tri-state connection diagnostics, shared model recommendations and conversation-local `/model` selection. Exact-source host, browser, JUnit, build and compatibility gates passed, and Marketplace upload succeeded in [40557015160](https://github.com/chainlesschain/chainlesschain/actions/runs/40557015160). Public listing and download readback are pending; the verified public `.182` pairing is retained below.
+Plugin **0.4.183** is public, recommends CLI **`0.166.128`** and pairs with public Open VSX **0.37.166**. It adds tri-state connection diagnostics, shared model recommendations and conversation-local `/model` selection. Exact-source host, browser, JUnit, build and compatibility gates passed in [40557015160](https://github.com/chainlesschain/chainlesschain/actions/runs/40557015160). Public approval, listing and ZIP payload readback are verified.
 
 Plugin **0.4.179** recommends public CLI **`0.166.123`** and pairs with VS Code **0.37.162**. These IDE source candidates have not been published. The paired CLI repairs Python f-string evidence projection and Ollama endpoint aliases while reducing repeated Windows ACL startup work. Exact-source IDE gates and public artifact readback remain pending. Previously verified public releases are retained below.
 
@@ -22,6 +22,10 @@ Plugin **0.4.176** recommends CLI **`0.166.117`** and pairs with VS Code **0.37.
 The .173 Marketplace upload succeeded before its workflow was cancelled after discovering the paired CLI .114 Agent error. Public approval and ZIP download have not been verified; the historical .172 / CLI .112 pairing is retained below.
 
 ## Current release
+
+JetBrains **0.4.183** is approved, listed and publicly downloadable. Immutable tag `ide-jetbrains-v0.4.183` selects source `6551a06c2f694bb93d0197fa8b82becd25a83173`. The public [plugin ZIP](https://plugins.jetbrains.com/files/32208/1204580/chainlesschain-ide-bridge-0.4.183.zip) contains version **0.4.183** and compiled CLI recommendation **0.166.128**. All four original ZIP entries match the formal CI payload; no entries were added. Its outer ZIP was repackaged by the marketplace: public SHA-256 `5461e2c103a4b27384f0e0658a2d3a5c228fd9fc1996f22f3b16b2cecb7e1344`, 1,561,065 bytes. [Public readback](../../docs/research/cli/evidence/release128-public/jetbrains-public-readback.json). Install the paired CLI with `npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`.
+
+### Previous verified release (.182 / .127)
 
 <!-- release182-status -->
 
@@ -112,7 +116,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.183** has been uploaded and recommends `chainlesschain@0.166.128`. It adds shared model onboarding, tri-state connection diagnostics and conversation-local model selection. Public listing and download verification are still pending. Native task quality and restart acceptance remain independent.
+Plugin **0.4.183** is public and recommends `chainlesschain@0.166.128`. It adds shared model onboarding, tri-state connection diagnostics and conversation-local model selection. Public listing and download verification passed. Native task quality and restart acceptance remain independent.
 
 ## Previous candidates and development notes
 

@@ -32,7 +32,7 @@ for site in docs design www; do
   if [ "$site" = www ]; then
     grep -Fq '0.166.128' "$dist/index.html"
     grep -Fq '0.37.166' "$dist/index.html"
-    grep -Fq '0.4.182' "$dist/index.html"
+    grep -Fq '0.4.183' "$dist/index.html"
     grep -Fq 'v5.0.3.142' "$dist/index.html"
     grep -Fq '6 万+' "$dist/index.html"
   fi
@@ -130,7 +130,7 @@ while IFS=$'\t' read -r site sha html files; do
   case "$site" in
     docs) test -f "$stage/chainlesschain/cli-ide-update-2026-10-28.html"; grep -Fq '0.166.128' "$stage/chainlesschain/cli-ide-update-2026-10-28.html"; test -f "$stage/chainlesschain/agent-input-and-recovery.html" ;;
     design) test -f "$stage/release-runtime-update-2026-10-28.html"; grep -Fq '0.166.128' "$stage/release-runtime-update-2026-10-28.html" ;;
-    www) grep -Fq '0.166.128' "$stage/index.html"; grep -Fq '0.37.166' "$stage/index.html"; grep -Fq '0.4.182' "$stage/index.html"; grep -Fq 'v5.0.3.142' "$stage/index.html"; grep -Fq '6 万+' "$stage/index.html" ;;
+    www) grep -Fq '0.166.128' "$stage/index.html"; grep -Fq '0.37.166' "$stage/index.html"; grep -Fq '0.4.183' "$stage/index.html"; grep -Fq 'v5.0.3.142' "$stage/index.html"; grep -Fq '6 万+' "$stage/index.html" ;;
   esac
   # Keep operational files, old pages, and hashed assets still used by cached HTML.
   # New build files win where the paths are identical.
@@ -164,7 +164,7 @@ grep -Fq '0.166.128' "$prefix-origin-docs.html"
 grep -Fq '0.166.128' "$prefix-origin-design.html"
 grep -Fq '0.166.128' "$prefix-origin-www.html"
 grep -Fq '0.37.166' "$prefix-origin-www.html"
-grep -Fq '0.4.182' "$prefix-origin-www.html"
+grep -Fq '0.4.183' "$prefix-origin-www.html"
 grep -Fq 'v5.0.3.142' "$prefix-origin-www.html"
 grep -Fq '6 万+' "$prefix-origin-www.html"
 trap - EXIT

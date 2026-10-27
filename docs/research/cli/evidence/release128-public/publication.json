@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.release128-publication/v1",
-  "observedAt": "2026-10-27T18:46:15.497Z",
-  "status": "CLI_AND_OPEN_VSX_PUBLIC_JETBRAINS_AND_CLIENTS_PENDING",
+  "observedAt": "2026-10-27T19:01:48.866Z",
+  "status": "CLI_AND_IDES_PUBLIC_CLIENTS_PENDING",
   "repository": "chainlesschain/chainlesschain",
   "channels": {
     "cli": {
@@ -35,12 +35,17 @@
     },
     "jetbrains": {
       "version": "0.4.183",
-      "status": "uploaded_public_listing_pending",
+      "status": "public",
       "sourceSha": "6551a06c2f694bb93d0197fa8b82becd25a83173",
       "runId": 40557015160,
       "recommendedCliVersion": "0.166.128",
-      "receipt": "jetbrains-upload.json",
-      "publicReadbackVerified": false
+      "receipt": "jetbrains-public-readback.json",
+      "publicReadbackVerified": true,
+      "updateId": 1204580,
+      "downloadUrl": "https://plugins.jetbrains.com/files/32208/1204580/chainlesschain-ide-bridge-0.4.183.zip",
+      "sha256": "5461e2c103a4b27384f0e0658a2d3a5c228fd9fc1996f22f3b16b2cecb7e1344",
+      "archiveBytes": 1561065,
+      "taggedPayloadVerified": true
     },
     "microsoftMarketplace": {
       "status": "unpublished",
@@ -61,7 +66,7 @@
   },
   "clients": {
     "productVersion": "v5.0.3.143",
-    "status": "preparing",
+    "status": "building",
     "cliVersion": "0.166.128",
     "androidBundleRunId": 40556532158,
     "androidBundleBuildConclusion": "success",
@@ -69,7 +74,21 @@
     "candidateSourceSha": "036d2b8be2048c98e56e917c93380f169e6a9d7b",
     "androidBundleReceipt": "android-cli-bundle.json",
     "androidBundleSha256": "65d6d3d7e89e3637ecf784f3d3509253538f64e4fc7684818360039285e389f2",
-    "plannedAndroidBinaries": "20261028-1"
+    "plannedAndroidBinaries": "20261028-1",
+    "androidBinariesRolloverRunId": 40564206069,
+    "androidBinariesRolloverStatus": "success",
+    "runId": 40565272034,
+    "sourceSha": "036d2b8be2048c98e56e917c93380f169e6a9d7b",
+    "tag": "v5.0.3.143",
+    "androidRuntimeAssets": {
+      "releaseId": 425864871,
+      "tag": "internal-binaries-android-v20261028-1",
+      "status": "public-verified",
+      "assetCount": 27,
+      "totalBytes": 304255038,
+      "receipt": "android-runtime-assets.json",
+      "cliArchiveSha256": "65d6d3d7e89e3637ecf784f3d3509253538f64e4fc7684818360039285e389f2"
+    }
   },
   "acceptance": {
     "accepted": 32,

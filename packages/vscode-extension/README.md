@@ -12,7 +12,7 @@ Open **Skill 自进化配置** from the command palette to enable or disable sel
 
 ## Release pairing
 
-Open VSX **0.37.166** is public and recommends CLI **`0.166.128`**. It adds tri-state connection diagnostics, shared model recommendations and conversation-local `/model` selection. Its exact-source release gates and public artifact readback passed. Paired JetBrains **0.4.183** has been uploaded; public listing is pending. Microsoft Marketplace remains unpublished.
+Open VSX **0.37.166** is public and recommends CLI **`0.166.128`**. It adds tri-state connection diagnostics, shared model recommendations and conversation-local `/model` selection. Its exact-source release gates and public artifact readback passed. Paired JetBrains **0.4.183** is approved, listed and publicly downloadable; its original CI payload entries were verified against the public ZIP. Microsoft Marketplace remains unpublished.
 
 The preceding public pairing recorded in the [CLI .125 publication receipt](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release125-public/publication.json) is Open VSX **0.37.162**, JetBrains **0.4.179**, and recommended CLI **0.166.123**. The CLI .125 follow-up did not compare IDE archive bytes or publish new IDE versions.
 

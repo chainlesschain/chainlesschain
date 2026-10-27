@@ -1,0 +1,158 @@
+{
+  "schema": "chainlesschain.release128-android-runtime-assets/v1",
+  "releaseId": 425864871,
+  "tag": "internal-binaries-android-v20261028-1",
+  "fromTag": "internal-binaries-android-v20261027-1",
+  "runId": 40564206069,
+  "draft": false,
+  "immutable": true,
+  "assets": 27,
+  "totalBytes": 304255038,
+  "verified": true,
+  "failures": [],
+  "observedAt": "2026-10-27T19:00:25.517Z",
+  "manifestPinsVerified": 25,
+  "carriedAssetsVerified": 26,
+  "publicCliBundleDownload": {
+    "bytes": 98890449,
+    "sha256": "65d6d3d7e89e3637ecf784f3d3509253538f64e4fc7684818360039285e389f2",
+    "verified": true
+  },
+  "assetsIdentity": [
+    {
+      "name": "android-cli-bundle.json",
+      "size": 11677,
+      "digest": "sha256:3cef936bf8a17041962d40ee7eb05bb5249d9e7233b7ea32cc0126b7b1daf225"
+    },
+    {
+      "name": "capi.so",
+      "size": 131753,
+      "digest": "sha256:cba8d5e35b5e02a151a000c2a619f3ba0182db260a634fa88a78869e135aa94f"
+    },
+    {
+      "name": "cc-cli.tgz",
+      "size": 98890449,
+      "digest": "sha256:65d6d3d7e89e3637ecf784f3d3509253538f64e4fc7684818360039285e389f2"
+    },
+    {
+      "name": "frida-inject-arm",
+      "size": 27101680,
+      "digest": "sha256:a4293c6948685d6ce66b92d97c680e7fd944d97b738e3151806d43e6464743e6"
+    },
+    {
+      "name": "frida-inject-arm64",
+      "size": 56453232,
+      "digest": "sha256:eb76e487846301ae4c7563cb1a908a3c3c3f0472430af472047d1a9552a79412"
+    },
+    {
+      "name": "legacy.so",
+      "size": 264217,
+      "digest": "sha256:e4d8b87c19be0721f64b213d7195903d2ee6dbee4178fdcee86889006aca808a"
+    },
+    {
+      "name": "libandroid-support.so",
+      "size": 132657,
+      "digest": "sha256:a143fe89698bf203a24d7d62627cb737bcc2b6303c11288d66b25e1f9ecd75fb"
+    },
+    {
+      "name": "libcares.so",
+      "size": 274953,
+      "digest": "sha256:f5110bd7e942463daaaa2c7562bf3b9cf71b552afada1c8ae456673c4d456a0d"
+    },
+    {
+      "name": "libcrypto.so",
+      "size": 5644209,
+      "digest": "sha256:0ddf20b5306b6597cd378d3d463193baab2f3c8304f34309b3c9d563a1dd6545"
+    },
+    {
+      "name": "libffi.so",
+      "size": 132873,
+      "digest": "sha256:3e5311aadb86b2eb36e9edfc077b03ac7feed04be7911663351fee1400a233c5"
+    },
+    {
+      "name": "libicudata.so",
+      "size": 33226841,
+      "digest": "sha256:b74d37b407a9092573671dd031ccaa8c36576bb067d21c9effa2edb748526400"
+    },
+    {
+      "name": "libicui18n.so",
+      "size": 6489465,
+      "digest": "sha256:5c08255d1f0ca3529ec79daab5b3cd8d0064ed27efc66b2937415460e02522b1"
+    },
+    {
+      "name": "libicuio.so",
+      "size": 397137,
+      "digest": "sha256:4b0bad70f99b7e81ce1e8e6de4a33c678646818440f272b53f2432910b1f625f"
+    },
+    {
+      "name": "libicutest.so",
+      "size": 402753,
+      "digest": "sha256:8857885bfcb96f9de5e548b33f980e132f3e121b456a8272c175df3dc2b6851c"
+    },
+    {
+      "name": "libicutu.so",
+      "size": 547273,
+      "digest": "sha256:31ce7ebad0f459b5f95cafe717769e2aa0d9d4bbe61aea15c5ca5fea840781fc"
+    },
+    {
+      "name": "libicuuc.so",
+      "size": 2939033,
+      "digest": "sha256:e25c1163a3a76074c04fa2e358dc3b9c6ce97a7c69f37f0effda4fa872b16b44"
+    },
+    {
+      "name": "libnode.so",
+      "size": 63558601,
+      "digest": "sha256:47e6c97d178c00e3d0ba6d695d5d14bf94bf749b2f6170a789f480cf4021af2f"
+    },
+    {
+      "name": "libsqlite3.53.1.so",
+      "size": 1451049,
+      "digest": "sha256:e79119de562dec0dd41c09c1045faf9e75d3b1a0ad5ff4bd44a52807a3dabf99"
+    },
+    {
+      "name": "libsqlite3.so",
+      "size": 1385153,
+      "digest": "sha256:02a12e9520b9a2526429ccf74c0e2d5c49032e95e4b87a6ce8fa225575f2ec4f"
+    },
+    {
+      "name": "libssl.so",
+      "size": 1073433,
+      "digest": "sha256:5baa265f2ce98a5e1bf3d6a10ed9cd9aa20c2574b598a208afedbbe9062284ab"
+    },
+    {
+      "name": "libtermux_cxx.so",
+      "size": 1691673,
+      "digest": "sha256:e7e1b3d0b5f5945cf439c83214060372804c497b45d49441b131a881277e9525"
+    },
+    {
+      "name": "libtoybox-armeabi-v7a.so",
+      "size": 573224,
+      "digest": "sha256:a0298b9f275102d0e830ef379058e7a53d29789384b7125df9fc0f820ed9c8cf"
+    },
+    {
+      "name": "libtoybox-x86_64.so",
+      "size": 496976,
+      "digest": "sha256:474a5547b72eb12fccb9d29ae8b5a4c20ccf83bb16c5405f627cbe208451dd0b"
+    },
+    {
+      "name": "libtoybox.so",
+      "size": 581688,
+      "digest": "sha256:da604a504c7292dc11bd929e2c691385b18297cf1e6f9b149e84fcad0cfbaab9"
+    },
+    {
+      "name": "libz.so",
+      "size": 201025,
+      "digest": "sha256:6493fcd6a0ba244f1067b6e97ae5d03d3ae3b83eb014e0a457424da09ef07a25"
+    },
+    {
+      "name": "loader_attic.so",
+      "size": 199921,
+      "digest": "sha256:c946c2452f531794a21f0dd38976805f6b9247e4531a71c69f6c7d99fcd97c4e"
+    },
+    {
+      "name": "SHA256SUMS",
+      "size": 2093,
+      "digest": "sha256:6cccf433a31313129f60f606581f17ea48a764963d16f9ea35757962ec18534a"
+    }
+  ]
+}

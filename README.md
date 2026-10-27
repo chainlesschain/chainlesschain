@@ -2,9 +2,11 @@
 
 ## CLI 0.166.128 已公开（2026-10-28）
 
-CLI **0.166.128** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40552876222) 发布，准确提交 `dfa158e36171e347a40e23356c2ed7bd04e0c061` 的三系统 CLI CI / Strict Sandbox 全部通过。[独立公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/40556529770) 确认 npm 归档与不可变 CI 制品逐字节一致，签名来源和十个直接子依赖均已核验。安装：`npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`。包含 Goal 验收与检查点恢复、双 IDE 模型配置支持、MCP / Skills 多语言检索、可选紧凑目录和 Memory 索引优化。配套 Open VSX `0.37.166` 已公开并完成下载包回读，JetBrains `.183` 上传成功、等待公开上架，客户端 `.143` 尚在准备，见[发布进度](docs/research/cli-ide-release128-progress-2026-10-27.md)和[公开状态](docs/research/cli/evidence/release128-public/publication.json)。
+CLI **0.166.128** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40552876222) 发布，准确提交 `dfa158e36171e347a40e23356c2ed7bd04e0c061` 的三系统 CLI CI / Strict Sandbox 全部通过。[独立公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/40556529770) 确认 npm 归档与不可变 CI 制品逐字节一致，签名来源和十个直接子依赖均已核验。安装：`npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`。包含 Goal 验收与检查点恢复、双 IDE 模型配置支持、MCP / Skills 多语言检索、可选紧凑目录和 Memory 索引优化。配套 Open VSX `0.37.166` / JetBrains `0.4.183` 已公开并完成下载包回读，客户端 `.143` 正在五平台构建，见[发布进度](docs/research/cli-ide-release128-progress-2026-10-27.md)和[公开状态](docs/research/cli/evidence/release128-public/publication.json)。
 
 本版加入显式 `--review-changes`：在原预算与权限内复查写入/编辑交付，默认关闭，开启时仅输出最终文本。相关 36+9 原生复测在配套公开发行与安装核验后进行，当前仍为 **32/45**；本地测试及合成性能结果不替代真实任务与费用验收。
+
+[当前升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-28.html) · [运行时与发行设计](https://design.chainlesschain.com/release-runtime-update-2026-10-28.html)。Microsoft Marketplace 仍未发布。
 
 ## CLI 0.166.127 自进化开关（已公开，2026-10-27）
 
@@ -12,7 +14,7 @@ CLI **0.166.128** 已通过 [GitHub Actions OIDC](https://github.com/chainlessch
 
 CLI **0.166.127** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40399252204) 发布，准确源码为 `0377050191b61894ccfa9566394560c3d1425fbe`。Linux、Windows、macOS CLI CI 与 Strict Sandbox 均已通过，公开 npm 归档与固定 CI 制品逐字节一致，签名来源和十个直接子依赖已核验。[发布证据](docs/research/cli/evidence/release127-public/publication.json)。安装：`npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`。子包版本不变。配套 Open VSX **0.37.165** / JetBrains **0.4.182** 已公开上架并完成制品回读，均推荐 `.127`；移动端与 PC 安装包 [v5.0.3.142](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.142) 已公开发布，22 个资产均匹配 CI 完整性记录。未新增模型任务验收，累计 **32/45**、**13** 项未完成及 **NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
-[当前升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-27.html) · [自进化开关配置](https://docs.chainlesschain.com/chainlesschain/self-evolution-configuration.html) · [本轮设计](https://design.chainlesschain.com/release-runtime-update-2026-10-27.html)。VS Code 扩展已在 Open VSX 发布，Microsoft Marketplace 仍未发布。下方带日期章节保留历史版本信息。
+[上一轮升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-27.html) · [自进化开关配置](https://docs.chainlesschain.com/chainlesschain/self-evolution-configuration.html) · [本轮设计](https://design.chainlesschain.com/release-runtime-update-2026-10-27.html)。VS Code 扩展已在 Open VSX 发布，Microsoft Marketplace 仍未发布。下方带日期章节保留历史版本信息。
 
 ## CLI 0.166.126（已公开，2026-10-26）
 

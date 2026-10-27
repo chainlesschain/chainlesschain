@@ -2,12 +2,12 @@
 
 ## 发行来源与当前状态
 
-| 渠道      | 版本与状态                    | 固定源码                                   | 工作流                                                                                        |
-| --------- | ----------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| CLI       | `0.166.128`，公开且回读通过   | `dfa158e36171e347a40e23356c2ed7bd04e0c061` | [OIDC 40552876222](https://github.com/chainlesschain/chainlesschain/actions/runs/40552876222) |
-| Open VSX  | `0.37.166`，公开且回读通过    | `6551a06c2f694bb93d0197fa8b82becd25a83173` | [40557016206](https://github.com/chainlesschain/chainlesschain/actions/runs/40557016206)      |
-| JetBrains | `0.4.183`，已上传、待公开上架 | `6551a06c2f694bb93d0197fa8b82becd25a83173` | [40557015160](https://github.com/chainlesschain/chainlesschain/actions/runs/40557015160)      |
-| 移动 / PC | `v5.0.3.143`，冻结准备中      | `036d2b8be2048c98e56e917c93380f169e6a9d7b` | 尚未触发客户端发行                                                                            |
+| 渠道      | 版本与状态                         | 固定源码                                   | 工作流                                                                                        |
+| --------- | ---------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| CLI       | `0.166.128`，公开且回读通过        | `dfa158e36171e347a40e23356c2ed7bd04e0c061` | [OIDC 40552876222](https://github.com/chainlesschain/chainlesschain/actions/runs/40552876222) |
+| Open VSX  | `0.37.166`，公开且回读通过         | `6551a06c2f694bb93d0197fa8b82becd25a83173` | [40557016206](https://github.com/chainlesschain/chainlesschain/actions/runs/40557016206)      |
+| JetBrains | `0.4.183`，公开且 payload 回读通过 | `6551a06c2f694bb93d0197fa8b82becd25a83173` | [40557015160](https://github.com/chainlesschain/chainlesschain/actions/runs/40557015160)      |
+| 移动 / PC | `v5.0.3.143`，五平台构建中         | `036d2b8be2048c98e56e917c93380f169e6a9d7b` | [40565272034](https://github.com/chainlesschain/chainlesschain/actions/runs/40565272034)      |
 
 当前客户端公开版本仍为 `.142`。最新事实与后续上架结果见[公开状态回执](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/publication.json)。Microsoft Marketplace 仍未发布。
 
