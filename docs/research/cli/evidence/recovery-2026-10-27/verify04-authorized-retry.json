@@ -1,0 +1,49 @@
+{
+  "schema": "chainlesschain.native-task-authorized-retry/v1",
+  "recordedAt": "2026-10-27T06:20:40.266Z",
+  "status": "DISPATCHED_PENDING_ACCEPTANCE",
+  "sampleIds": [
+    "verify-04"
+  ],
+  "runId": "40459874678",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40459874678",
+  "executionSourceCommit": "67c085115b662988242311ccfdf2d723b66a9242",
+  "entry": "linux-cli",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-27-remaining-127.json",
+  "priorDispatch": {
+    "status": "UNRESOLVED_NOT_REPLAYED_AUTOMATICALLY",
+    "sourceCommit": "67db629cb9",
+    "intentDigest": "sha256:8cba293204edbae29cc673132dd8041c2e11db5f24cbaf26832d95d1fd228b2e",
+    "recordPreserved": true
+  },
+  "authorization": "User explicitly allowed one additional verify-04 dispatch after the unresolved first dispatch was explained.",
+  "authorizationAllowsAutomaticFurtherRetries": false,
+  "accountFreeTransportCheck": {
+    "runId": "40458128196",
+    "conclusion": "skipped",
+    "confirmLive": false
+  },
+  "validationJob": {
+    "status": "completed",
+    "conclusion": "success",
+    "jobId": "122041676946"
+  },
+  "generationJob": {
+    "status": "in_progress",
+    "jobId": "122042431818"
+  },
+  "baselineAccepted": {
+    "ordinary": 26,
+    "firstRun": 6,
+    "total": 32,
+    "plannedTotal": 45
+  },
+  "newAcceptedSamples": 0,
+  "billingAssessed": false,
+  "formalSample": false,
+  "limits": [
+    "Only verify-04 was selected; existing accepted files were not regenerated.",
+    "Prior verify-09 request remains unresolved; no redispatch is authorized by this retry.",
+    "Workflow submission and a passing validation job are not task acceptance."
+  ]
+}
