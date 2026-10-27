@@ -1,0 +1,65 @@
+{
+  "schema": "chainlesschain.remaining-native-local-validation/v1",
+  "recordedAt": "2026-10-27T04:53:56.755Z",
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.22.2",
+  "baseCommit": "dc3576fbddb88633310e81c6c7715a06e1fd456e",
+  "testedTree": "working tree with selector-test fix; base SHA alone is not the tested source",
+  "sourceBindings": [
+    {
+      "path": "packages/cli/test-node/verify01-native-subset.node-test.mjs",
+      "digest": "sha256:b2cfb53a9fd313fdf8d540d273804fb06e88091dee18bc7dcf4c8033a983a56a"
+    },
+    {
+      "path": "docs/research/cli/evidence/recovery-2026-10-27/prepare-retest.mjs",
+      "digest": "sha256:09485d1265f0a986666a401e0553d0dce568f5279aa03befdc388af8ab9531b0"
+    },
+    {
+      "path": "docs/research/cli/evidence/recovery-2026-10-27/inspect-pending-request.mjs",
+      "digest": "sha256:b3bc04fd2d427472fb222be179577d227f9e3b23a652c5155985cefc270e9413"
+    }
+  ],
+  "workflowValidation": {
+    "files": 11,
+    "tests": 85,
+    "passed": 85,
+    "failed": 0,
+    "skipped": 0,
+    "scope": "Exact eleven Node test files listed in verify01-native-task-campaign.yml validate job",
+    "log": {
+      "path": "workflow-validation.log.gz",
+      "digest": "sha256:8cacce2854eb0104c5359490e716044337272a6f11eb2817d173672d7d3ad0ee",
+      "rawDigest": "sha256:a4408764115c6f79e80095d414fdc3f66abba2e64609fdebf5f84cec99b4ef07",
+      "rawBytes": 19058,
+      "encoding": "utf8"
+    }
+  },
+  "priorFailure": {
+    "tests": 46,
+    "passed": 45,
+    "failed": 1,
+    "reason": "Selector test still expected node -e after workflow changed to heredoc",
+    "log": {
+      "path": "adapter-before.log.gz",
+      "digest": "sha256:f41c231c87d7d63a0be06b078108c0b827b7a169b0209bacb6ac22386d2dd3f1",
+      "rawDigest": "sha256:04bbafac86035211ac4add8baacca1bc617a6a604181caa7461294a51f35403b",
+      "rawBytes": 22242,
+      "encoding": "utf16le"
+    }
+  },
+  "pythonValidation": {
+    "command": "python -m unittest discover -s packages/cli/test-python -p 'test_verify01*retest.py'",
+    "tests": 27,
+    "passed": 27,
+    "exitCode": 0
+  },
+  "publicByteVerification": "public-readback.json",
+  "pendingRequestInspection": "verify09-request-reconciliation.json",
+  "newModelCalls": 0,
+  "newAcceptedSamples": 0,
+  "limitations": [
+    "Local checks only; no remote operating-system matrix or new native/model acceptance.",
+    "Shared historical billing and the pending request remain unreconciled."
+  ]
+}

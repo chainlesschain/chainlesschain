@@ -1,0 +1,41 @@
+{
+  "id": 3,
+  "taskId": "verify-09",
+  "startedAt": "2026-10-18T15:19:46.821Z",
+  "usage": null,
+  "tokenOnlyEstimateCny": null,
+  "actualBilledCostCny": null,
+  "errorCode": "DIAGNOSTIC_TIMEOUT_USAGE_UNKNOWN",
+  "responseMode": "sse",
+  "finishedAt": "2026-10-18T15:22:46.836Z",
+  "transport": {
+    "socketAssignedMs": 1,
+    "dnsLookupMs": 15,
+    "tcpConnectedMs": 191,
+    "tlsConnectedMs": 138256,
+    "dispatchStartedMs": 138256,
+    "requestFinishedMs": 138259,
+    "responseStartedMs": 141464,
+    "dispatchStarted": true,
+    "failureCategory": "DIAGNOSTIC_TIMEOUT_USAGE_UNKNOWN",
+    "connectionAttempts": [
+      {
+        "event": "start",
+        "family": 4,
+        "elapsedMs": 16,
+        "errorCode": null
+      }
+    ],
+    "nestedErrorCodes": [],
+    "errorCode": null,
+    "errorSyscall": null
+  },
+  "response": {
+    "storedSha256": "702db640930f42430be70716a00e6a29a901ba800d7a87935db7a67b9bfa79c3",
+    "storedBytes": 1149179,
+    "status": 200,
+    "originalSha256": "702db640930f42430be70716a00e6a29a901ba800d7a87935db7a67b9bfa79c3",
+    "originalBytes": 1149179,
+    "sensitiveValueRedacted": false
+  }
+}

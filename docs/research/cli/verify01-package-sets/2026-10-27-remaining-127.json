@@ -1,0 +1,30 @@
+{
+  "schema": "chainlesschain.native-package-set/v1",
+  "resolvedAt": "2026-10-27T04:41:13.858Z",
+  "versions": {
+    "cli": "0.166.127",
+    "vscode": "0.37.165",
+    "jetbrains": "0.4.182",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "origin": {
+    "cli": {
+      "url": "https://registry.npmjs.org/chainlesschain/latest",
+      "integrity": "sha512-T1Nang2BYpllumdMHSBXO74QwkDs175KlBHajHkDDmx354yT7fhps1t6gj+mLDcPrg39jioutsoRzbACTIwl2A==",
+      "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.127.tgz"
+    },
+    "vscode": {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/latest",
+      "download": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.165/file/chainlesschain.chainlesschain-ide-0.37.165.vsix"
+    },
+    "jetbrains": {
+      "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100",
+      "updateId": 1203654,
+      "file": "32208/1203654/chainlesschain-ide-bridge-0.4.182.zip",
+      "approved": true,
+      "listed": true,
+      "hidden": false
+    }
+  }
+}

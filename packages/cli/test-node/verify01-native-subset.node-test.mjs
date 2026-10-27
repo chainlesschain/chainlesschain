@@ -139,7 +139,7 @@ test("workflow validates a single matching host and entry before subset dispatch
     "utf8",
   );
   const script = workflow.match(
-    /node --input-type=module -e '([\s\S]*?)\n          '/,
+    /node --input-type=module <<'NODE'\n([\s\S]*?)\n          NODE/,
   )?.[1];
   assert.ok(script, "workflow selector script is required");
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "native-subset-select-"));

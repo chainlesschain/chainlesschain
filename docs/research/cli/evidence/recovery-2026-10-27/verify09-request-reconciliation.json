@@ -1,0 +1,32 @@
+{
+  "schema": "chainlesschain.pending-native-request-inspection/v1",
+  "status": "RECONCILIATION_REQUIRED_BEFORE_RETRY",
+  "sampleId": "verify-09",
+  "runId": 39139263000,
+  "artifactId": 12141416860,
+  "sourceCommit": "eab51516a1ac00cc521b5279ee6eee6e8874fee7",
+  "artifactMetadata": {
+    "path": "verify09-artifact.json",
+    "digest": "sha256:3dd7170d4313a2a1208384eebc46799b56623e79c652682590a31d8d2fe2613e"
+  },
+  "recoveredReceipt": {
+    "path": "verify09-request-3.receipt.json",
+    "digest": "sha256:4125ebe287b902d1cfbd3e5c114e2e47579a8511d36d9d8325cd008dd39ab95b"
+  },
+  "response": {
+    "digest": "sha256:702db640930f42430be70716a00e6a29a901ba800d7a87935db7a67b9bfa79c3",
+    "bytes": 1149179,
+    "eventCount": 3992,
+    "providerResponseId": "021792336925419cd483641bd2945773645203cda9eaa13b9041f",
+    "finishReasons": [],
+    "usageEvents": 0,
+    "doneEvents": 0
+  },
+  "physicalDispatchConfirmed": true,
+  "actualBilledCostCny": null,
+  "requestStartedAt": "2026-10-18T15:19:46.821Z",
+  "requestStoppedAt": "2026-10-18T15:22:46.836Z",
+  "newModelCalls": 0,
+  "originalVerdictUnchanged": true,
+  "nextStep": "Reconcile this provider response ID and the shared historical $99 budget with account records before retrying. A fresh broker allowance does not resolve the original request."
+}

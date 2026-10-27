@@ -1,0 +1,30 @@
+{
+  "schema": "chainlesschain.remaining-native-public-metadata/v1",
+  "observedAt": "2026-10-27T04:41:13.858Z",
+  "records": [
+    {
+      "file": "npm.json",
+      "url": "https://registry.npmjs.org/chainlesschain/latest",
+      "bytes": 7713,
+      "digest": "sha256:3f9a8a0732a22a71ddd99a2ba4a9887bf9ec0de77861045b910ce0a76ae10e2f",
+      "archivedFile": "npm.json.gz",
+      "archivedDigest": "sha256:47cde2c4397d5a1c2afb6a03c4dec2c37dbf4175fcb255e06106e0dc30ebd9a6"
+    },
+    {
+      "file": "open-vsx.json",
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/latest",
+      "bytes": 10966,
+      "digest": "sha256:5ec8536fa742e82eaf8760b2b6e911ba743f9e297d6f6da66ac17b7caafafa4c",
+      "archivedFile": "open-vsx.json.gz",
+      "archivedDigest": "sha256:9fb45a0b9383af6500fa28db00e5aac399d8d844a18e9b061c63fcfe3997aead"
+    },
+    {
+      "file": "jetbrains.json",
+      "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100",
+      "bytes": 430828,
+      "digest": "sha256:61acd75567fe30ba5e0fb4efaf1730bd75174ffaa02d6b8283e34317d487f009",
+      "archivedFile": "jetbrains.json.gz",
+      "archivedDigest": "sha256:31f86533d67fe5da385046cf026cc6f4a009e7fe43d9067f5e3caf047ba4d3d4"
+    }
+  ]
+}

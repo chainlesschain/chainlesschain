@@ -1,0 +1,74 @@
+{
+  "schema": "chainlesschain.remaining-native-public-readback/v1",
+  "observedAt": "2026-10-27T04:41:13.858Z",
+  "status": "PUBLIC_BYTES_VERIFIED_NOT_DISPATCHED",
+  "versions": {
+    "cli": "0.166.127",
+    "vscode": "0.37.165",
+    "jetbrains": "0.4.182",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "publication": {
+    "path": "docs/research/cli/evidence/release127-public/publication.json",
+    "digest": "sha256:a6f492eaaf3dd3c91de13e087e451e34e165c66ea644ae928153a54e4c8b7c51"
+  },
+  "vscodePublication": {
+    "path": "docs/research/cli/evidence/release127-public/open-vsx.json",
+    "digest": "sha256:bd64f0672b784cad3eb7fd2695c99d8439699be14aaebb63b1f237f65a2c9685"
+  },
+  "packageSet": {
+    "path": "docs/research/cli/verify01-package-sets/2026-10-27-remaining-127.json",
+    "digest": "sha256:edf7de8b5a71ef98e29534d7d5740be4f8bc3b092da7c1715756965653c32829"
+  },
+  "plan": {
+    "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-20261027-plan.json",
+    "digest": "sha256:3c671aa8cf4b16b18f87500c8a8402b5951349f7d6610278a43b71f568318881"
+  },
+  "records": [
+    {
+      "file": "npm.json",
+      "url": "https://registry.npmjs.org/chainlesschain/latest",
+      "bytes": 7713,
+      "digest": "sha256:3f9a8a0732a22a71ddd99a2ba4a9887bf9ec0de77861045b910ce0a76ae10e2f"
+    },
+    {
+      "file": "open-vsx.json",
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/latest",
+      "bytes": 10966,
+      "digest": "sha256:5ec8536fa742e82eaf8760b2b6e911ba743f9e297d6f6da66ac17b7caafafa4c"
+    },
+    {
+      "file": "jetbrains.json",
+      "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100",
+      "bytes": 430828,
+      "digest": "sha256:61acd75567fe30ba5e0fb4efaf1730bd75174ffaa02d6b8283e34317d487f009"
+    },
+    {
+      "file": "chainlesschain.tgz",
+      "url": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.127.tgz",
+      "bytes": 9550973,
+      "digest": "sha256:1b71532d108ff199dc62e372fd574ab7e9f503606c14bdb63f72746d7f7bacf5"
+    },
+    {
+      "file": "chainlesschain.vsix",
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.165/file/chainlesschain.chainlesschain-ide-0.37.165.vsix",
+      "bytes": 738644,
+      "digest": "sha256:b3e2bf61ee725b33c5496fcca730397074304878ad720eb641da5d2ec551673f"
+    },
+    {
+      "file": "chainlesschain-jetbrains.zip",
+      "url": "https://plugins.jetbrains.com/files/32208/1203654/chainlesschain-ide-bridge-0.4.182.zip",
+      "bytes": 1555711,
+      "digest": "sha256:62798d61a8ff2efd3ac3f783b12b8bd2ef5996d1ad8f85a408bcb034a83b3323"
+    }
+  ],
+  "reusedAcceptedDeliverables": 32,
+  "plannedNewSamples": 13,
+  "newModelCalls": 0,
+  "newAcceptedSamples": 0,
+  "limitations": [
+    "Public package bytes match existing release receipts; package code was not executed.",
+    "No native host, model generation, billing reconciliation, or formal sample admission is asserted."
+  ]
+}

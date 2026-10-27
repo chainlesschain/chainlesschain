@@ -72,3 +72,17 @@ Windows x64，Node **22.22.2**。可机读结果、命令、源码摘要及验�
 | 新修复发行            | 从本分支最终准确提交完成相关门禁；按必要子 npm 包 → CLI → IDE → 移动端 / PC 顺序核验与发行，不以本地通过替代 Actions |
 
 本轮完成保存输入删除的工程修复和本地回归，整份研究实施计划仍在进行。
+
+## 2026-10-27 剩余 13 项复测准备
+
+用户要求继续完成 36 项任务与 9 次首次安装。新工作分支为 `feature/verify01-remaining-20261027`，起点为主线 `dc3576fbddb88633310e81c6c7715a06e1fd456e`。严格重验既有证据链后，累计合格仍为普通 **26/36**、首次 **6/9**，共 **32/45**；本次不重新生成已合格文件。
+
+已重新获取公共 npm、Open VSX、JetBrains 元数据及完整公开制品，确认 CLI **0.166.127**、VS Code **0.37.165**、JetBrains **0.4.182**。CLI tarball、VSIX 与 JetBrains ZIP 的 SHA-256 均与既有 .127 发行证据相符；CLI 的 SHA-512 和 npm integrity 也一致，JetBrains 为批准、列出且未隐藏的最新稳定版本。原始公共元数据压缩归档及摘要见[公开回读](./cli/evidence/recovery-2026-10-27/public-readback.json)和[元数据索引](./cli/evidence/recovery-2026-10-27/public-metadata-index.json)。这一步不执行下载的包代码，也不构成原生宿主验收。
+
+独立[包清单](./cli/verify01-package-sets/2026-10-27-remaining-127.json)及[复测计划](./cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-20261027-plan.json)保留原项目提交、任务、宿主版本和验收条件，选择剩余 13 项、9 个互不重叠的执行分片。计划严格校验通过，状态为 `PREPARED_NOT_DISPATCHED`；旧计划、结果和轮次链保持原字节。
+
+前置测试发现 `verify01-native-subset.node-test.mjs` 仍提取旧 `node -e` 工作流文本，而实际工作流已使用 heredoc。修复只更新脚本提取格式，继续实际执行工作流中的选择器，保留跨宿主、跨入口、已合格样本、未知包集合及历史包付费生成的拒绝断言。修复前 46 项中 1 项失败；修复后工作流列出的全部 11 个测试文件 **85 项通过、0 跳过**，Python 派发与收集器 **27 项通过**。这些是本地前置检查，不是正式任务通过或远端系统矩阵。
+
+已从 [run 39139263000](https://github.com/chainlesschain/chainlesschain/actions/runs/39139263000) 的原始生成制品找回 `verify-09` 第三笔物理请求回执。原响应 **1,149,179 字节、3,992 个完整 SSE JSON 事件**，HTTP 200，已确认派发，但没有 `finish_reason`、usage 或 `[DONE]`。provider response ID 为 `021792336925419cd483641bd2945773645203cda9eaa13b9041f`，UTC 请求窗口为 **2026-10-18 15:19:46.821 至 15:22:46.836**。原候选文件只有 27 字节，未形成完整交付；旧验收结果不变。[核对记录](./cli/evidence/recovery-2026-10-27/verify09-request-reconciliation.json)及原始脱敏回执保留原摘要，没有保存请求正文或响应正文。
+
+下一步需先用账户记录核对原共享 **$99** 的历史实付/剩余额度，并核对上述未决请求，再按原分片执行生成和独立验收。已向用户询问账单金额或本地证据路径。当前没有新模型调用、新合格样本或发布；`paidReady:false`、native `NOT_ADMITTED`、自动晋升 `HOLD` 及原正式评测窗口不因准备工作改变。
