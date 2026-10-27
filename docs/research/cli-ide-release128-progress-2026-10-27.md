@@ -12,6 +12,8 @@ Astra 核对发现，新复查测试仅使组织策略映射所绑定的 `headle
 
 准备固定新引用 `cli-candidate-v0.166.128-rc5` 并为该准确提交运行完整 CLI CI 与 Strict Sandbox。此前 RC4 检查仅保留为历史证据，不能用于 RC5 发布；RC4 本地 watcher 已核实只验证门禁、不自动发布。所有原候选引用保留，不移动已有标签。发布仍使用 GitHub Actions OIDC，并在公开归档、来源与 child pins 核验成功后才进入 IDE 和客户端阶段。36+9 原生生成复测安排在相关公开版本安装核验完成后，当前不派发付费样本。
 
+RC5 已固定为 `7742d53340788904a1f7e88003d8b60899aa6e29`，对应 [CLI CI 40515103060](https://github.com/chainlesschain/chainlesschain/actions/runs/40515103060) 和 [Strict Sandbox 40515244727](https://github.com/chainlesschain/chainlesschain/actions/runs/40515244727)。两套完整门禁正在排队/执行，尚未发布。相同 SHA 的 main push 重复矩阵已请求取消，固定引用上的手动矩阵保留。安全映射 7 项、changelog 与发布门禁 30 项本地补充检查通过；详见 [RC5 预检](./cli/evidence/release128-public/rc5-preflight.json)。
+
 ### RC4：Goal 集成夹具修复与固定发布范围
 
 固定源码为 `944c6e321ca0e65d03b9b4b2e1fa61720ac522cf`，候选引用 `cli-candidate-v0.166.128-rc4`。隔离工作树的 4 项定向测试再次全部通过，安全映射 producer 内容绑定有效且无需刷新。完整门禁：[CLI CI 40509241325](https://github.com/chainlesschain/chainlesschain/actions/runs/40509241325)、[Strict Sandbox 40509259153](https://github.com/chainlesschain/chainlesschain/actions/runs/40509259153)。见 [RC4 预检记录](./cli/evidence/release128-public/rc4-preflight.json)。

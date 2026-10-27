@@ -1,0 +1,48 @@
+{
+  "schema": "chainlesschain.release128-rc5-preflight/v1",
+  "status": "EXACT_SOURCE_GATES_RUNNING_NOT_PUBLISHED",
+  "sourceSha": "7742d53340788904a1f7e88003d8b60899aa6e29",
+  "candidateRef": "cli-candidate-v0.166.128-rc5",
+  "containsChangeReviewCommit": "5def22e364e6c89704ea2436b2fd198263ebf5a2",
+  "containsGoalFixtureRepairCommit": "ca9a66a87f9be52d8727438db624c17771ce08e0",
+  "cliVersion": "0.166.128",
+  "requiredGates": [
+    {
+      "workflow": "CLI CI",
+      "runId": 40515103060,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40515103060",
+      "requiredPlatforms": ["linux", "windows", "macos"]
+    },
+    {
+      "workflow": "CLI Strict Sandbox",
+      "runId": 40515244727,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40515244727",
+      "requiredPlatforms": ["linux", "windows", "macos"]
+    }
+  ],
+  "duplicateMainPushRunsCancellationRequested": [40514870987, 40514870941],
+  "duplicateCancellationReason": "Preserve fixed-ref exact-source validation and avoid running the same two matrices twice for the identical commit.",
+  "localSupplementaryChecks": {
+    "securityMapTestsPassed": 7,
+    "changelogAndReleaseGateTestsPassed": 30,
+    "producerBindingValidated": true,
+    "generatedChangelogRebuilt": true,
+    "formattingAndDiffChecksPassed": true
+  },
+  "priorRuntimeLocalVerification": "../recovery-2026-10-27/change-review-repair.json",
+  "publicationMethod": "GitHub Actions OIDC Trusted Publishing from an immutable v-npm tag only after both complete exact-source gates pass",
+  "childrenChanged": false,
+  "childRegistryPreflight": "child-registry-preflight.json",
+  "expectedIdePairing": {
+    "openVsx": "0.37.166",
+    "jetbrains": "0.4.183",
+    "recommendedCli": "0.166.128"
+  },
+  "userRequestedNativeRetestsAfterPublication": true,
+  "newExternalModelRequests": 0,
+  "nativeAcceptance": "32/45",
+  "paidReady": false,
+  "nativeAdmission": "NOT_ADMITTED",
+  "automaticPromotion": "HOLD",
+  "publicPackagePublished": false
+}
