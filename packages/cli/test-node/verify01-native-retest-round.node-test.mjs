@@ -12,6 +12,8 @@ import {
   validateRetestPlanBinding,
   nativeRetestExecutionShards,
   validateNativeRetestRunBindings,
+  loadNativeRetestPlanWithBaseline,
+  verifyNativeRetestRoundWithContext,
 } from "../scripts/verify01-native-retest-round.mjs";
 import {
   NATIVE_EVIDENCE_ROOT,
@@ -373,6 +375,72 @@ function chainFixture() {
   return { plan, ledger, reference, refresh, read, verify, baseline };
 }
 
+test("explicit partial collection retains unrequested samples and cannot become a completed round", () => {
+  const sample = chainFixture();
+  const extra = frozenPlan.samples.find((row) =>
+    sample.baseline.acceptedIds.has(row.id),
+  );
+  sample.baseline.acceptedIds.delete(extra.id);
+  sample.plan.groups = unfinishedNativeGroups(
+    frozenPlan,
+    sample.baseline.acceptedIds,
+  );
+  sample.plan.plannedNewSamples++;
+  sample.plan.reusedAcceptedSampleIds = [...sample.baseline.acceptedIds].sort();
+  sample.ledger.plannedNewSamples = sample.plan.plannedNewSamples;
+  sample.ledger.reusedAcceptedSampleIds = sample.plan.reusedAcceptedSampleIds;
+  sample.ledger.partialDispatch = true;
+  sample.ledger.status = "IN_PROGRESS";
+  const pending = {
+    sampleId: extra.id,
+    taskId: extra.taskId,
+    kind: extra.kind,
+    group: extra.stratum.replace(/-volcengine$/u, ""),
+    status: "PENDING_DISPATCH",
+    generationObserved: false,
+  };
+  sample.ledger.samples.push(pending);
+  sample.ledger.counts.reusedAcceptedDeliverables--;
+  sample.ledger.counts.cumulativeAcceptedDeliverables--;
+  sample.refresh();
+  const context = loadNativeRetestPlanWithBaseline(
+    sample.reference.planPath,
+    repository,
+    sample.baseline,
+    sample.read,
+  );
+  const verify = (ledger = sample.ledger, options = {}) =>
+    verifyNativeRetestRoundWithContext(context, { ledger, ...options });
+  assert.equal(verify().status, "IN_PROGRESS");
+  assert.equal(sample.ledger.samples.length, sample.plan.plannedNewSamples);
+  assert.throws(() => verify(sample.ledger, { requireComplete: true }));
+  assert.throws(
+    sample.verify,
+    "partial evidence cannot advance the registered baseline",
+  );
+  for (const mutate of [
+    (ledger) => {
+      delete ledger.partialDispatch;
+    },
+    (ledger) => {
+      ledger.status = "COMPLETED";
+    },
+    (ledger) => {
+      ledger.samples.pop();
+    },
+    (ledger) => {
+      ledger.samples.at(-1).candidateAcceptancePassed = true;
+    },
+    (ledger) => {
+      ledger.samples.at(-1).generationObserved = true;
+    },
+  ]) {
+    const changed = structuredClone(sample.ledger);
+    mutate(changed);
+    assert.throws(() => verify(changed));
+  }
+});
+
 test("complete archive-backed prior round adds accepted deliveries and advances the version floor", () => {
   const sample = chainFixture();
   const baseline = sample.verify();
@@ -641,7 +709,7 @@ with tempfile.TemporaryDirectory() as directory:
         except AssertionError:
             pass
     c = m.Collector.__new__(m.Collector)
-    c.plan = {'ledgerPath': 'old-ledger.json'}
+    c.plan = {'ledgerPath': 'old-ledger.json', 'groups': []}
     c.plan_file = 'plan.json'
     c.previous = None
     c.data = {'runs': [], 'samples': [], 'reusedAcceptedSampleIds': []}

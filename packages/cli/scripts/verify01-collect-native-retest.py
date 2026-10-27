@@ -111,7 +111,7 @@ def generation_diagnostic_members(sample_id, listing):
     return sorted(selected)
 
 
-def validate_bindings(bindings, plan):
+def validate_bindings(bindings, plan, allow_partial=False):
     assert isinstance(bindings, list)
     shards = plan.get('executionShards', [dict(group, shardId=group['group']) for group in plan['groups']])
     expected = {shard['shardId']: shard for shard in shards}
@@ -119,8 +119,14 @@ def validate_bindings(bindings, plan):
     ids = [sample for shard in shards for sample in shard['sampleIds']]
     assert len(set(ids)) == len(ids), 'overlapping shards'
     assert sorted(ids) == sorted(sample for group in plan['groups'] for sample in group['sampleIds'])
-    assert len(bindings) == len(expected)
-    assert set(row.get('shardId', row['group']) for row in bindings) == set(expected)
+    actual = [row.get('shardId', row['group']) for row in bindings]
+    assert len(set(actual)) == len(actual), 'duplicate bound shard IDs'
+    if allow_partial:
+        assert 0 < len(bindings) <= len(expected), 'partial collection requires dispatched runs'
+        assert set(actual).issubset(expected), 'bound shard outside plan'
+    else:
+        assert len(bindings) == len(expected)
+        assert set(actual) == set(expected)
     assert len(set(row['runId'] for row in bindings)) == len(bindings)
     for row in bindings:
         assert set(row) == ({'shardId', 'group', 'runId', 'sourceCommit'} if 'executionShards' in plan else {'group', 'runId', 'sourceCommit'})
@@ -131,23 +137,26 @@ def validate_bindings(bindings, plan):
     return {row.get('shardId', row['group']): row for row in bindings}
 
 
-def initialize(plan, plan_file, plan_digest, bindings):
+def initialize(plan, plan_file, plan_digest, bindings, allow_partial=False):
     assert plan['plannedNewSamples'] > 0, 'all candidates accepted; no new generation is needed'
-    selected = validate_bindings(bindings, plan)
+    selected = validate_bindings(bindings, plan, allow_partial)
     frozen = json.loads(safe_file(TREE, 'docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json').read_bytes())
     samples = {row['id']: row for row in frozen['samples']}
     data = {key: plan[key] for key in ['packageSetPath', 'packageSetDigest', 'versions',
         'frozenProjectCommit', 'ledgerPath', 'archivePrefix', 'plannedNewSamples', 'reusedAcceptedSampleIds']}
     data.update(schema='chainlesschain.native-package-retest-round/v1', billingAssessed=False,
                 planPath=plan_file, planDigest=plan_digest, status='IN_PROGRESS', runs=[], samples=[])
+    if allow_partial:
+        data['partialDispatch'] = True
     for group in plan.get('executionShards', [dict(group, shardId=group['group']) for group in plan['groups']]):
-        binding = selected[group['shardId']]
-        data['runs'].append({**binding, 'selectedSampleIds': group['sampleIds'], 'status': 'IN_PROGRESS'})
+        binding = selected.get(group['shardId'])
+        if binding:
+            data['runs'].append({**binding, 'selectedSampleIds': group['sampleIds'], 'status': 'IN_PROGRESS'})
         for sample_id in group['sampleIds']:
             sample = samples[sample_id]
             data['samples'].append({'sampleId': sample_id, 'taskId': sample['taskId'],
                 'kind': sample['kind'], 'group': group['group'],
-                'status': 'PENDING_EXECUTION', 'generationObserved': False})
+                'status': 'PENDING_EXECUTION' if binding else 'PENDING_DISPATCH', 'generationObserved': False})
     return data
 
 
@@ -173,7 +182,7 @@ def copy_generation_fields(sample, native):
 
 
 class Collector:
-    def __init__(self, plan_file, runs_file):
+    def __init__(self, plan_file, runs_file, allow_partial=False):
         validated = verify(plan_file, plan_only=True)
         self.plan, self.plan_digest = validated['plan'], validated['planDigest']
         self.plan_file = plan_file
@@ -188,13 +197,23 @@ class Collector:
             self.data = json.loads(self.previous)
             verify(plan_file, self.data)
             if bindings is not None:
-                declared = validate_bindings(bindings, self.plan)
+                declared = validate_bindings(bindings, self.plan, allow_partial)
                 for run in self.data['runs']:
                     keys = ('shardId', 'group', 'runId', 'sourceCommit') if 'executionShards' in self.plan else ('group', 'runId', 'sourceCommit')
                     assert {key: run[key] for key in keys} == declared[run.get('shardId', run['group'])]
+                existing = {run.get('shardId', run['group']) for run in self.data['runs']}
+                added = initialize(self.plan, plan_file, self.plan_digest, bindings, allow_partial)
+                for run in added['runs']:
+                    if run.get('shardId', run['group']) not in existing:
+                        self.data['runs'].append(run)
+                        for sample in self.data['samples']:
+                            if sample['sampleId'] in run['selectedSampleIds']:
+                                sample['status'] = 'PENDING_EXECUTION'
+                if allow_partial:
+                    self.data['partialDispatch'] = True
         else:
             assert bindings is not None, '--runs-file is required for a new ledger'
-            self.data = initialize(self.plan, plan_file, self.plan_digest, bindings)
+            self.data = initialize(self.plan, plan_file, self.plan_digest, bindings, allow_partial)
 
     def archive(self, raw, run_id):
         assert re.fullmatch(r'[1-9][0-9]*', run_id)
@@ -205,7 +224,8 @@ class Collector:
 
     def checkpoint(self):
         self.data['counts'] = counts(self.data)
-        self.data['status'] = 'COMPLETED' if all(run['status'] == 'COMPLETED' for run in self.data['runs']) else 'IN_PROGRESS'
+        shards = self.plan.get('executionShards', self.plan['groups'])
+        self.data['status'] = 'COMPLETED' if len(self.data['runs']) == len(shards) and all(run['status'] == 'COMPLETED' for run in self.data['runs']) else 'IN_PROGRESS'
         verify(self.plan_file, self.data)
         raw = encoded(self.data)
         target = safe_file(TREE, self.plan['ledgerPath'])
@@ -344,6 +364,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--plan', required=True)
     parser.add_argument('--runs-file')
+    parser.add_argument('--allow-partial', action='store_true',
+                        help='Collect only dispatched shards while retaining every planned sample as pending; cannot satisfy --require-complete')
     args = parser.parse_args()
     WORK.mkdir(exist_ok=True)
     work_info = WORK.lstat()
@@ -354,7 +376,7 @@ def main():
     with disk(lock).open('x', encoding='utf-8') as output:
         output.write(str(os.getpid()) + '\n')
     try:
-        Collector(args.plan, args.runs_file).collect()
+        Collector(args.plan, args.runs_file, args.allow_partial).collect()
     finally:
         disk(lock).unlink()
 

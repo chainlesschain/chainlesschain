@@ -99,17 +99,28 @@ export function nativeRetestExecutionShards(plan) {
   return shards;
 }
 
-export function validateNativeRetestRunBindings(plan, runs) {
+export function validateNativeRetestRunBindings(
+  plan,
+  runs,
+  { requireComplete = true } = {},
+) {
   const shards = nativeRetestExecutionShards(plan);
-  assert.deepEqual(
-    sorted(
-      unique(
-        runs.map((run) => run.shardId ?? run.group),
-        "run shard IDs",
-      ),
+  const actual = sorted(
+    unique(
+      runs.map((run) => run.shardId ?? run.group),
+      "run shard IDs",
     ),
-    sorted(shards.map((shard) => shard.shardId)),
   );
+  const expected = sorted(shards.map((shard) => shard.shardId));
+  if (requireComplete) assert.deepEqual(actual, expected);
+  else {
+    assert.ok(
+      actual.length > 0,
+      "partial collection requires a dispatched run",
+    );
+    for (const id of actual)
+      assert.ok(expected.includes(id), "run shard outside plan");
+  }
   unique(
     runs.map((run) => run.runId),
     "run IDs",
@@ -592,7 +603,11 @@ export function verifyNativeRetestRoundWithContext(
     assert.equal(sample.kind, frozen.kind);
     assert.equal(sample.group, frozen.stratum.replace(/-volcengine$/u, ""));
   }
-  validateNativeRetestRunBindings(plan, data.runs);
+  if (data.partialDispatch !== undefined)
+    assert.equal(typeof data.partialDispatch, "boolean");
+  validateNativeRetestRunBindings(plan, data.runs, {
+    requireComplete: requireComplete || data.partialDispatch !== true,
+  });
   unique(
     data.runs.map((run) => run.runId),
     "run IDs",
@@ -601,6 +616,24 @@ export function verifyNativeRetestRoundWithContext(
     data.runs.flatMap((run) => run.selectedSampleIds),
     "ledger run samples",
   );
+  const requested = new Set(data.runs.flatMap((run) => run.selectedSampleIds));
+  for (const sample of samples.values()) {
+    if (requested.has(sample.sampleId)) continue;
+    assert.equal(sample.status, "PENDING_DISPATCH");
+    assert.equal(sample.generationObserved, false);
+    for (const key of [
+      "generationPassed",
+      "candidateAcceptancePassed",
+      "endToEndPassed",
+      "generationRunId",
+      "sourceSummaryDigest",
+    ])
+      assert.equal(
+        Object.hasOwn(sample, key),
+        false,
+        "unrequested sample cannot claim execution or acceptance",
+      );
+  }
   const counts = {
     generationRecordsCollected: 0,
     acceptanceRecordsCollected: 0,
@@ -626,7 +659,9 @@ export function verifyNativeRetestRoundWithContext(
   counts.cumulativeAcceptedDeliverables =
     counts.reusedAcceptedDeliverables + counts.candidateAcceptancePassed;
   assert.deepEqual(data.counts, counts);
-  const complete = data.runs.every((run) => run.status === "COMPLETED");
+  const complete =
+    data.runs.length === nativeRetestExecutionShards(plan).length &&
+    data.runs.every((run) => run.status === "COMPLETED");
   assert.equal(data.status, complete ? "COMPLETED" : "IN_PROGRESS");
   if (complete || requireComplete) {
     assert.equal(complete, true, "new package round incomplete");

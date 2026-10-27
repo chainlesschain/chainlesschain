@@ -28,6 +28,33 @@ class CollectorContractTests(unittest.TestCase):
         result = collector.validate_bindings(self.bindings, self.plan)
         self.assertEqual(set(result), {row['shardId'] for row in self.bindings})
 
+    def test_partial_collection_requires_opt_in_and_keeps_binding_checks(self):
+        partial = self.bindings[:1]
+        with self.assertRaises(AssertionError):
+            collector.validate_bindings(partial, self.plan)
+        self.assertEqual(set(collector.validate_bindings(partial, self.plan, True)),
+                         {partial[0]['shardId']})
+        for bad in [[], partial * 2,
+                    [dict(partial[0], shardId='unplanned')],
+                    [dict(partial[0], group='linux-cli')]]:
+            with self.subTest(bindings=bad), self.assertRaises(AssertionError):
+                collector.validate_bindings(bad, self.plan, True)
+
+    def test_partial_initialization_retains_the_full_planned_sample_list(self):
+        self.plan.update(plannedNewSamples=2, reusedAcceptedSampleIds=[],
+                         packageSetPath='docs/manifest.json', packageSetDigest='sha256:' + 'a' * 64,
+                         versions={}, frozenProjectCommit='b' * 40,
+                         ledgerPath='docs/round.json', archivePrefix='docs/round')
+        result = collector.initialize(self.plan, 'docs/plan.json', 'sha256:' + 'c' * 64,
+                                      self.bindings[:1], True)
+        self.assertTrue(result['partialDispatch'])
+        self.assertEqual(len(result['runs']), 1)
+        self.assertEqual(len(result['samples']), 2)
+        pending = next(row for row in result['samples'] if row['sampleId'] == 'verify-30')
+        self.assertEqual(pending['status'], 'PENDING_DISPATCH')
+        self.assertFalse(pending['generationObserved'])
+        self.assertNotIn('candidateAcceptancePassed', pending)
+
     def test_run_cannot_be_reused_by_two_shards(self):
         self.bindings[1]['runId'] = self.bindings[0]['runId']
         with self.assertRaises(AssertionError):
