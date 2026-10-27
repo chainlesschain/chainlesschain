@@ -1,8 +1,8 @@
 # CLI Runtime 当前公开实现与历史记录
 
-> 2026-10-26 当前核对：CLI **0.166.121**、Open VSX **0.37.161**、JetBrains **0.4.178** 均已公开并验证下载，两个 IDE 推荐 CLI `.121`。本轮修复普通状态、Git、Shell、日志与说明文字的 JSON 误判，保留敏感信息保护和历史证据校验。跨版本累计 **32/45**、**13** 项未完成；没有新增真实模型任务验收，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 不变。
+> 2026-10-27 当前公开：CLI **0.166.127**、Open VSX **0.37.165**、JetBrains **0.4.182**，两个 IDE 推荐 `.127`；移动与 PC 产品 **v5.0.3.142** 已公开，22 个资产通过回读。自进化改为可选开启，新安装与旧自动本地部署默认关闭。跨版本累计 **32/45**、**13** 项未完成，本轮未新增模型任务验收；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
-当前安装：`npm i -g chainlesschain@0.166.121 --registry https://registry.npmjs.org`。升级后重启聊天宿主并运行 Doctor。详见[本轮升级指南](./cli-ide-update-2026-10-26)和[图片预算与恢复](./agent-input-and-recovery)。Microsoft Marketplace 仍未发布；原版 VS Code 可以安装已验证的 Open VSX 版本化 VSIX。
+当前安装：`npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`。升级后重启聊天宿主并运行 Doctor。详见[本轮升级指南](./cli-ide-update-2026-10-27)、[开关配置](./self-evolution-configuration)和[图片预算与恢复](./agent-input-and-recovery)。Microsoft Marketplace 仍未发布；VS Code 可安装 Open VSX 的版本化 VSIX。
 
 ## 历史版本与架构记录
 

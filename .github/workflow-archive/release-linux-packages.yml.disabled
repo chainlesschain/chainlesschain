@@ -1,3 +1,5 @@
+# Retired: release.yml is the sole product publisher. Keep this historical
+# workflow outside .github/workflows so no release or manual event can run it.
 name: Release Linux Packages
 
 on:

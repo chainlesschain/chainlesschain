@@ -475,7 +475,7 @@ const packs = [
           175 条顶层命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
         </p>
         <p class="mt-4 text-sm text-muted max-w-3xl">
-          npm latest 为 Agent Platform <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>，标签 <code class="font-mono">{CLI_RELEASE_TAG}</code> 对应提交 <code class="font-mono">{CLI_RELEASE_COMMIT}</code>。本版包含有界流式重试、可见输出防重放、工作树登记重读和任务交付修复，并保留默认关闭的 TypeSafe、Laya 本地与通用 System One Skill 决策提供方；普通 Agent 聊天无需决策服务或演进部署。已配置治理链仍验证认证入口，错误不降级，自动晋升保持 HOLD。TypeScript Agent SDK 为 {AGENT_SDK_VERSION}。
+          npm latest 为 Agent Platform <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>，标签 <code class="font-mono">{CLI_RELEASE_TAG}</code> 对应提交 <code class="font-mono">{CLI_RELEASE_COMMIT}</code>。本版提供 CLI、cc ui 和 IDE 共享的自进化开关，新安装与旧自动本地部署默认关闭；显式 false 覆盖部署环境变量，已运行 Agent 需停止再启动。继承完整恢复摘要、代码投影、模型配置与 Windows 启动修复。普通 Agent 无需决策服务；开启的治理链仍严格验签，自动晋升保持 HOLD。TypeScript Agent SDK 为 {AGENT_SDK_VERSION}。
         </p>
 
         <!-- Install tabs -->
@@ -565,7 +565,7 @@ const packs = [
         <article class="card"><h3 class="text-xl">加密知识合并</h3><p class="mt-3 text-sm text-muted">撤销沿多级跨 Wiki 来源追踪，分别处理候选隔离、拒绝、已发布 Skill 回滚和 Wiki tombstone。</p></article>
         <article class="card"><h3 class="text-xl">目标矩阵 Eval</h3><p class="mt-3 text-sm text-muted">target、grader、safety 和 verifier 分权；所有必需 cell 合取通过。</p></article>
         <article class="card"><h3 class="text-xl">可恢复发布</h3><p class="mt-3 text-sm text-muted">市场安装写入可核验的真实候选；每步试运行、晋升与撤销均需当前状态和独立回执。</p></article>
-        <article class="card"><h3 class="text-xl">签名部署配置</h3><p class="mt-3 text-sm text-muted"><code class="font-mono">cc evolution deployment</code> 验签后原子保存 owner-only profile；环境覆盖优先，自动晋升保持 HOLD。</p></article>
+        <article class="card"><h3 class="text-xl">可选自进化与签名部署</h3><p class="mt-3 text-sm text-muted">新安装与旧自动本地部署默认关闭。<code class="font-mono">evolution.enabled</code> 为共享开关；显式 false 覆盖环境变量。开启后仍验签，自动晋升保持 HOLD。</p></article>
       </div>
       <p class="mt-8 text-sm text-muted"><code class="font-mono">cc evolution deployment init-test/replace-test/status/configure/enable/disable</code>、Workbench、knowledge 与 Skill search 已进入公开 CLI。正式部署前可一键生成明确标记的本机 TEST 签名凭据，正式 descriptor/trust root 到位后安全轮换；测试入口不授予审核或发布权限，生产 KMS/PKI/witness/grader 仍由部署方提供。<a class="text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/governed-skill-evolution.html">查看命令示例与限制 →</a></p>
     </div>

@@ -1,6 +1,16 @@
 # ChainlessChain 文档网站
 
-## 当前文档（2026-10-26）
+## 当前文档（2026-10-27）
+
+2026-10-27 当前公开：CLI **0.166.127**、Open VSX **0.37.165**、JetBrains **0.4.182**，两个 IDE 推荐 `.127`；移动与 PC 产品 **v5.0.3.142** 已公开，22 个资产通过回读。自进化改为可选开启，新安装与旧自动本地部署默认关闭。跨版本累计 **32/45**、**13** 项未完成，本轮未新增模型任务验收；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+
+- [升级指南](docs/chainlesschain/cli-ide-update-2026-10-27.md)
+- [自进化开关](docs/chainlesschain/self-evolution-configuration.md)
+- [权威设计源](../docs/design/release-runtime-update-2026-10-27.md)
+
+构建运行 `npm run build`，包含设计同步和用户文档结构检查。部署使用 [三站快照流程](../scripts/deploy-docs-snapshot.ps1)，先提交并构建同一源码快照。
+
+## 历史文档（2026-10-26）
 
 公开版本为 CLI **0.166.121**、Open VSX **0.37.161**、JetBrains **0.4.178**，两个 IDE 均推荐 CLI `.121`，公共包与下载已核验。本轮更新 v6 普通文本投影、敏感表达式边界、历史证据兼容与升级恢复说明。原生产品 **v5.0.3.141** 已独立正式公开，源码为 `a024f3c672`，不属于 CLI `.121` 的发行树，也不增加本轮验收。
 

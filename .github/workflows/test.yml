@@ -372,11 +372,19 @@ jobs:
           node packages/cli/scripts/verify-installed-evolution-runtime.mjs "$CLI_INSTALLED_ROOT"
           CC_FIXTURE_DEPENDENCY_ROOT="$CLI_INSTALLED_ROOT" node --test scripts/__tests__/isolated-cli-fixture-storage.test.mjs
           # Source-only test authorities import the checkout's deployment
-          # loader and secure-fs. Give them the exact shared storage package;
+          # loader, secure-fs and plugin scopes. Give them shared storage and
+          # the exact semver dependency from the installed candidate;
           # runtime constructors still load from CLI_INSTALLED_ROOT below.
           mkdir -p packages/cli/node_modules/@chainlesschain/session-core
           cp packages/session-core/package.json packages/cli/node_modules/@chainlesschain/session-core/
           cp -r packages/session-core/lib packages/cli/node_modules/@chainlesschain/session-core/
+          CLI_INSTALLED_ROOT="$CLI_INSTALLED_ROOT" node --input-type=module <<'NODE'
+          import { cpSync } from 'node:fs';
+          import { createRequire } from 'node:module';
+          import { dirname, join } from 'node:path';
+          const installedRequire = createRequire(join(process.env.CLI_INSTALLED_ROOT, 'package.json'));
+          cpSync(dirname(installedRequire.resolve('semver/package.json')), 'packages/cli/node_modules/semver', { recursive: true });
+          NODE
           node packages/cli/scripts/pr-recovery-smoke.mjs "$CLI_INSTALLED_ROOT"
 
   # 数据库测试（仅 Linux，需要 SQLite）

@@ -1,6 +1,10 @@
 # 设计文档
 
-- 当前核对：[CLI .117 / Open VSX .159 / JetBrains .176：Evolution 输入、图片预算与工具轮次恢复](./release-runtime-update-2026-10-23.md)。
+> 2026-10-27 当前公开：CLI **0.166.127**、Open VSX **0.37.165**、JetBrains **0.4.182**，两个 IDE 推荐 `.127`；移动与 PC 产品 **v5.0.3.142** 已公开，22 个资产通过回读。自进化改为可选开启，新安装与旧自动本地部署默认关闭。跨版本累计 **32/45**、**13** 项未完成，本轮未新增模型任务验收；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。 详见[本轮设计](./release-runtime-update-2026-10-27.md)与[开关配置](https://docs.chainlesschain.com/chainlesschain/self-evolution-configuration.html)。下方较早日期内容保留历史范围。
+
+- 当前核对：[CLI .127 / Open VSX .165 / JetBrains .182：可选自进化与完整恢复摘要](./release-runtime-update-2026-10-27.md)。
+
+- 10 月 23 日历史核对：[CLI .117 / Open VSX .159 / JetBrains .176：Evolution 输入、图片预算与工具轮次恢复](./release-runtime-update-2026-10-23.md)。
 
 - 10 月 18 日历史核对：[CLI .106 / Open VSX .151 / JetBrains .167、目标草稿互通与存储边界](./release-runtime-update-2026-10-18.md)。
 

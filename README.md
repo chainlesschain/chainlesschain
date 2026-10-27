@@ -6,6 +6,8 @@
 
 CLI **0.166.127** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40399252204) 发布，准确源码为 `0377050191b61894ccfa9566394560c3d1425fbe`。Linux、Windows、macOS CLI CI 与 Strict Sandbox 均已通过，公开 npm 归档与固定 CI 制品逐字节一致，签名来源和十个直接子依赖已核验。[发布证据](docs/research/cli/evidence/release127-public/publication.json)。安装：`npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`。子包版本不变。配套 Open VSX **0.37.165** / JetBrains **0.4.182** 已公开上架并完成制品回读，均推荐 `.127`；移动端与 PC 安装包 [v5.0.3.142](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.142) 已公开发布，22 个资产均匹配 CI 完整性记录。未新增模型任务验收，累计 **32/45**、**13** 项未完成及 **NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
+[当前升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-27.html) · [自进化开关配置](https://docs.chainlesschain.com/chainlesschain/self-evolution-configuration.html) · [本轮设计](https://design.chainlesschain.com/release-runtime-update-2026-10-27.html)。VS Code 扩展已在 Open VSX 发布，Microsoft Marketplace 仍未发布。下方带日期章节保留历史版本信息。
+
 ## CLI 0.166.126（已公开，2026-10-26）
 
 本次修复恢复摘要按字符截断 JSON，导致 Agent 下一轮请求反复报 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 并退出的问题。文件摘要、任务检查点、远端查询摘要、旧会话恢复和 `WORKLOG.md` 派生视图统一使用有界、完整的表示；原始会话记录与严格校验保持不变。
@@ -325,7 +327,7 @@ CLI 制品源码边界为 `815fdbc0c4`；VS Code 与 JetBrains 制品源码边�
 
 > npm `latest` `0.166.43` 对应不可变 tag `v-npm-0-166-43` 与精确提交 [`7528bfb81d`](https://github.com/chainlesschain/chainlesschain/commit/7528bfb81ddb45427b5eb5d1281498cf65e8ab0c)。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34476406749)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34476405180)、[IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/34476405124) 三平台门禁及 [npm Trusted Publishing 与公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/34479754264) 均成功。
 >
-> 管理员现在可用 `cc evolution deployment status/configure/enable/disable` 验签、保存和切换受治理演进部署。配置先校验 Ed25519 descriptor、trust-root 与模块摘要，再原子写入 owner-only profile；环境变量仍可用于集中管理且优先级更高。配置只装载部署方 authority，automatic active promotion 始终为 `HOLD`，不会因打开开关而自动改写 active Skill。
+> 管理员可用 `cc evolution deployment status/configure/enable/disable` 验签、保存和切换受治理演进部署。配置先校验 Ed25519 descriptor、trust-root 与模块摘要，再原子写入 owner-only profile；总开关允许开启后，环境部署选择优先于保存的 profile，显式 `evolution.enabled: false` 会关闭自进化并覆盖继承的环境变量。配置只装载部署方 authority，automatic active promotion 保持 `HOLD`，不会因打开开关而自动改写 active Skill。
 >
 > VS Code、JetBrains 与 `cc ui` 共用同一 CLI-owned 配置面：IDE 不保存治理私钥，也不获得审核或发布权限。`0.166.39`～`0.166.42` 同时收敛重复日志、GitHub/PR 调查与显式 PR 关闭请求，保留压缩前证据并把停滞调查导向实际操作；Windows secure pipe、消息容量和锁竞争验证也已加固。
 >

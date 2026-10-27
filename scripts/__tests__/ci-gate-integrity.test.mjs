@@ -2425,11 +2425,24 @@ test("PDH workflow bounds native test concurrency on Windows", () => {
   );
 });
 
-test("legacy Linux release builds the embedded web panel before packaging", () => {
+test("retired Linux publisher cannot run and preserves its packaging history", () => {
+  assert.equal(
+    fs.existsSync(
+      path.join(repoRoot, ".github", "workflows", "release-linux-packages.yml"),
+    ),
+    false,
+    "the superseded publisher must remain outside executable workflows",
+  );
   const workflow = fs.readFileSync(
-    path.join(repoRoot, ".github", "workflows", "release-linux-packages.yml"),
+    path.join(
+      repoRoot,
+      ".github",
+      "workflow-archive",
+      "release-linux-packages.yml.disabled",
+    ),
     "utf8",
   );
+  assert.match(workflow, /if: \$\{\{ false \}\}/);
   const installPanel = workflow.indexOf(
     "name: Install embedded web panel dependencies",
   );

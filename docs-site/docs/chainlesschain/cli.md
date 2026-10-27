@@ -1,8 +1,10 @@
 # CLI 命令行工具
 
+> 2026-10-27 当前公开配对：CLI **0.166.127**、Open VSX **0.37.165**、JetBrains **0.4.182**；产品 **v5.0.3.142** 已公开。自进化可选开启，新安装及旧自动本地部署默认关闭。详见[当前升级指南](./cli-ide-update-2026-10-27)与[共享开关配置](./self-evolution-configuration)。Microsoft Marketplace 未发布；下方带日期说明为历史范围。本轮未新增模型验收，累计 **32/45**、**13** 项未完成，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+
 > 2026-10-18 实时核对：npm CLI **0.166.106**、Open VSX **0.37.151** 已公开，Open VSX 推荐 CLI `.106`，发行提交 `dca47fd91a`。JetBrains 当前已核验公开 **0.4.167**，仍推荐 CLI `.105`；`.168` 的公开上架与下载待核验。公开 `.105/.150/.167` 任务补测已收齐生成与独立验收各 **20/20**，新增 **6** 项候选及全流程通过；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项。`.106/.151/.168` 新轮模型补测尚未运行，累计覆盖不等于新版单轮成功率。Microsoft Marketplace 未发布。
 
-当前安装：`npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`。新版 IDE 公开核验后升级并重启宿主，运行 Doctor 核对实际 CLI。详见[本轮升级指南](./cli-ide-update-2026-10-18)。
+当前安装：`npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`。配套 IDE 已公开，升级后重启宿主，运行 Doctor 核对实际 CLI。详见[本轮升级指南](./cli-ide-update-2026-10-27)。
 
 以下带日期的发布和验收记录为历史快照。
 

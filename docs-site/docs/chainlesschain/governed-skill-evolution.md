@@ -1,5 +1,7 @@
 # 受治理的 Skill 自进化
 
+> 2026-10-27 当前公开配对：CLI **0.166.127**、Open VSX **0.37.165**、JetBrains **0.4.182**；产品 **v5.0.3.142** 已公开。自进化可选开启，新安装及旧自动本地部署默认关闭。详见[当前升级指南](./cli-ide-update-2026-10-27)与[共享开关配置](./self-evolution-configuration)。Microsoft Marketplace 未发布；下方带日期说明为历史范围。本轮未新增模型验收，累计 **32/45**、**13** 项未完成，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+
 > **2026-09-27 当前版本**：npm `latest` 为 CLI `0.166.77`，完整门禁与独立公开回读已完成。新增可选 Skill 决策请求/响应各 256 KiB 上限及未知用量失败闭合；此前的冻结 PM 效果计划、签名 Eval 证据、启动准入/cohort 登记，以及调查循环、循环导入和并发锁交接修复仍保留。参见[发布指南](./agent-platform-release)、[PM 效果评测](./pm-effect-evaluation)和[增量设计](/design/agent-runtime-update-2026-09-26)。下文旧版本段落保留历史行为与证据。
 
 > 适用版本：Agent Platform CLI `0.166.77`；更新：2026-09-27
@@ -84,7 +86,7 @@ cc evolution deployment configure \
 cc evolution deployment status
 ```
 
-`configure` 会先校验 descriptor schema、签名、信任根摘要、模块摘要和绝对路径，全部通过才原子写入 `$CHAINLESSCHAIN_HOME/evolution/deployment-profile.json`（默认 `~/.chainlesschain/evolution/deployment-profile.json`，owner-only）。之后所有 `cc` 命令自动读取该配置。可用 `cc evolution deployment disable` 暂停、`enable` 恢复；这两个命令只控制本机部署宿主，不会开启自动晋升。若同时设置环境变量，环境变量优先于持久配置。
+`configure` 会先校验 descriptor schema、签名、信任根摘要、模块摘要和绝对路径，全部通过才原子写入 `$CHAINLESSCHAIN_HOME/evolution/deployment-profile.json`（默认 `~/.chainlesschain/evolution/deployment-profile.json`，owner-only）。之后所有 `cc` 命令自动读取该配置。可用 `cc evolution deployment disable` 暂停、`enable` 恢复；这两个命令只控制本机部署宿主，不会开启自动晋升。在总开关允许开启时，环境变量指定的部署优先于持久 profile；显式 `evolution.enabled: false` 优先于继承的环境变量并关闭自进化。
 
 也可以从图形界面完成同一操作：
 

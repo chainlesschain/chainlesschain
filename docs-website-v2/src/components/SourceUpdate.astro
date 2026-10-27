@@ -8,30 +8,30 @@ const jetBrainsPending = ["pending-review", "pending-approval", "published-unver
 const items = english
   ? [
       [
-        "Ordinary text and strict JSON",
-        "Status markers, progress, dates, Git ranges and Shell text no longer trigger malformed JSON errors. Genuine malformed JSON and sensitive data still receive strict validation and redaction.",
+        "Optional self-evolution",
+        "Fresh installations and older automatically generated local deployments default to off. CLI, cc ui and IDEs share evolution.enabled; an explicit false overrides deployment environment variables. Restart running Agent sessions after switching.",
       ],
       [
-        "Separate image budgets",
-        "CLI accepts up to 8 images per input, and IDE composers accept 4. Images have a 20 MiB message budget and a 40 MiB model-request budget; provider usage determines actual token consumption.",
+        "Complete recovery summaries",
+        "File excerpts, remote reads, task checkpoints and worklog views retain complete bounded JSON or explicitly omit unsafe excerpts. Original session history, strict validation and redaction remain enforced.",
       ],
       [
-        "Completed tool-round recovery",
-        "The runtime settles completed tool rounds before error exits. Refresh the session and check actual tool effects before continuing; large persisted image bundles travel with session backups.",
+        "Mobile and PC release",
+        "Five-platform builds passed for v5.0.3.142. All 22 public assets match the CI manifest, and desktop updater metadata is verified. Android terminal controls share the CLI switch; platform signing and installation requirements still apply.",
       ],
     ]
   : [
       [
-        "普通文本与严格 JSON 校验",
-        "状态标记、进度、日期、Git 范围和 Shell 文本不再误报损坏 JSON。真正损坏的 JSON 仍严格校验，敏感数据继续脱敏。",
+        "自进化可选开启",
+        "新安装与旧自动本地部署默认关闭。CLI、cc ui 和 IDE 共享 evolution.enabled；显式 false 覆盖部署环境变量。切换后需重启运行中的 Agent。",
       ],
       [
-        "图片预算单独计算",
-        "CLI 单条输入最多 8 张，IDE 最多 4 张；单消息图片合计 20 MiB、单模型请求合计 40 MiB。视觉 token 做独立预留，实际消耗按服务商 usage 结算。",
+        "完整、有界的恢复摘要",
+        "文件摘录、远端读取、任务检查点与 WORKLOG 保留完整有界 JSON，无法安全表达时明确省略。原始会话历史、严格校验与脱敏继续保留。",
       ],
       [
-        "已完成工具轮次的恢复",
-        "运行时在异常退出前结算已完成的工具轮次。刷新会话后先核对实际执行结果再继续；较大的持久图片消息包应随会话一起备份。",
+        "移动与 PC 产品已公开",
+        "v5.0.3.142 五平台构建通过，22 个公开资产匹配 CI 清单，桌面更新元数据已核验。Android 本地终端提供共享开关；签名和安装仍遵循对应平台要求。",
       ],
     ];
 ---
@@ -42,7 +42,7 @@ const items = english
       {releaseStatus.checkedAt} · {english ? "Verified public release" : "已核验公开发行"} · CLI {releaseStatus.recommendedCliVersion}
     </p>
     <h2 id="source-update-title" class="mt-3 text-3xl font-bold">
-      {english ? "Evolution input compatibility and session recovery" : "Evolution 输入兼容与会话恢复"}
+      {english ? "Optional self-evolution and complete session recovery" : "可选自进化与完整会话恢复"}
     </h2>
     <p class="mt-4 text-muted leading-relaxed max-w-4xl">
       {english
@@ -71,6 +71,7 @@ const items = english
     </p>
     <div class="mt-6 flex flex-wrap gap-4">
       <a class="btn-ghost" href={releaseStatus.upgradeGuide}>{english ? "Upgrade guide ↗" : "升级指南 ↗"}</a>
+      <a class="btn-ghost" href={releaseStatus.evolutionConfigurationGuide}>{english ? "Self-evolution settings ↗" : "自进化开关配置 ↗"}</a>
       <a class="btn-ghost" href={releaseStatus.recoveryGuide}>{english ? "Image budgets and recovery ↗" : "图片预算与恢复 ↗"}</a>
       <a class="btn-ghost" href={releaseStatus.runtimeDesign}>{english ? "Runtime design ↗" : "运行时设计 ↗"}</a>
       <a class="btn-ghost" href={releaseStatus.releaseEvidence}>{english ? "Publication evidence ↗" : "发布核验回执 ↗"}</a>

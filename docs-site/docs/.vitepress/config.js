@@ -197,7 +197,15 @@ export default defineConfig({
               link: "/chainlesschain/rrsi-current",
             },
             {
-              text: "CLI .121 / IDE .161 与 .178 升级",
+              text: "CLI .127 / IDE .165 与 .182 升级",
+              link: "/chainlesschain/cli-ide-update-2026-10-27",
+            },
+            {
+              text: "CLI 与 IDE 自进化开关配置",
+              link: "/chainlesschain/self-evolution-configuration",
+            },
+            {
+              text: "CLI .121 普通文本投影（历史）",
               link: "/chainlesschain/cli-ide-update-2026-10-26",
             },
             {
@@ -209,7 +217,11 @@ export default defineConfig({
               link: "/chainlesschain/agent-input-and-recovery",
             },
             {
-              text: "2026-10-26 v6 文本投影与公开核验设计",
+              text: "2026-10-27 可选自进化与恢复设计",
+              link: "/design/release-runtime-update-2026-10-27",
+            },
+            {
+              text: "2026-10-26 v6 文本投影设计（历史）",
               link: "/design/release-runtime-update-2026-10-26",
             },
             {

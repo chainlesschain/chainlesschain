@@ -1,6 +1,12 @@
 # Agent Platform 发布与升级指南
 
-## 最新发布（2026-10-26）：CLI 0.166.125
+## 最新发布（2026-10-27）：CLI 0.166.127
+
+2026-10-27 当前公开：CLI **0.166.127**、Open VSX **0.37.165**、JetBrains **0.4.182**，两个 IDE 推荐 `.127`；移动与 PC 产品 **v5.0.3.142** 已公开，22 个资产通过回读。自进化改为可选开启，新安装与旧自动本地部署默认关闭。跨版本累计 **32/45**、**13** 项未完成，本轮未新增模型任务验收；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+
+安装：`npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version`、`cc doctor`。详见[本轮升级指南](./cli-ide-update-2026-10-27)与[自进化开关](./self-evolution-configuration)。Open VSX 和 JetBrains 已公开且均推荐 .127；Microsoft Marketplace 仍未发布。以下章节是历史发行记录。
+
+## 历史发布（2026-10-26）：CLI 0.166.125
 
 CLI **0.166.125** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40274009347) 公开发布。修复 Python `["git", *args]` 成功执行后，下一轮历史投影误报损坏 JSON 并退出的问题，同时覆盖已知代码路径中的 JavaScript 展开、对象解包及部分运算表达式。严格 JSON 校验、脱敏、预算及历史证据验证继续生效。
 
