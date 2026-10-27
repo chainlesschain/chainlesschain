@@ -1,0 +1,157 @@
+{
+  "schema": "chainlesschain.release128-mapped-security-preflight/v1",
+  "observedAt": "2026-10-27T12:16:05.793Z",
+  "success": true,
+  "selectedPassed": 29,
+  "failed": 0,
+  "notSelected": 960,
+  "rawReportSha256": "sha256:04f7210c9b81febc7feced543d08e3ac30a355b82e6343e7121963cf3cfaab6b",
+  "mapSha256": "sha256:4fda2d780100398ec5f0ca62a6597418777139eab841f86412ea083e3cb23554",
+  "selected": [
+    {
+      "file": "agent-core-destructive-git.test.js",
+      "name": "destructive-git guard requires live confirmation for destructive Git in the primary checkout despite a settings allow",
+      "status": "passed"
+    },
+    {
+      "file": "agent-core-hooks.test.js",
+      "name": "precedence: permission deny short-circuits before hooks spawn a settings deny blocks with [Permission] and the hook never runs",
+      "status": "passed"
+    },
+    {
+      "file": "agent-worktree.test.js",
+      "name": "finishAgentWorktree detects untracked work when status.showUntrackedFiles is disabled",
+      "status": "passed"
+    },
+    {
+      "file": "approval-authority-store.test.js",
+      "name": "ApprovalAuthorityStore binds mid-turn approval to operation fingerprint and record revision",
+      "status": "passed"
+    },
+    {
+      "file": "auto-mode-safety-classifier.test.js",
+      "name": "classifyAutoModeSafety detects a quoted PowerShell destination outside the workspace",
+      "status": "passed"
+    },
+    {
+      "file": "auto-mode-safety-classifier.test.js",
+      "name": "classifyAutoModeSafety fails closed on a PowerShell variable write target",
+      "status": "passed"
+    },
+    {
+      "file": "auto-mode-safety-classifier.test.js",
+      "name": "classifyAutoModeSafety keeps zsh conditional commands behind destructive safety classification",
+      "status": "passed"
+    },
+    {
+      "file": "background-session-transport.test.js",
+      "name": "background session transport rejects pre-positioned POSIX socket paths and authenticates Windows named pipes",
+      "status": "passed"
+    },
+    {
+      "file": "claude-security-map.test.js",
+      "name": "Claude Code 2.1.221-2.1.238 security map audits every non-applicable product boundary without claiming parity",
+      "status": "passed"
+    },
+    {
+      "file": "headless-runner.test.js",
+      "name": "headless-runner — permission wiring rejects bypassPermissions when managed policy disables it",
+      "status": "passed"
+    },
+    {
+      "file": "ide-context-redaction.test.js",
+      "name": "filterIdeFileEntry drops credential files (returns null)",
+      "status": "passed"
+    },
+    {
+      "file": "ide-diff-approval.test.js",
+      "name": "requestIdeDiffApproval rejects raw Git blob or object approval input before contacting the IDE",
+      "status": "passed"
+    },
+    {
+      "file": "ide-diff-approval.test.js",
+      "name": "executeTool — IDE diff approval wiring (settings ask) falls back to terminal confirm when the IDE dies mid-review",
+      "status": "passed"
+    },
+    {
+      "file": "mcp-client-stdin-error.test.js",
+      "name": "MCPClient stdio — runaway buffer is capped suppresses stderr content and coalesces bounded diagnostics",
+      "status": "passed"
+    },
+    {
+      "file": "mcp-headers-helper-runner.test.js",
+      "name": "MCP headersHelper runner runs with a clean environment and never inherits credential variables",
+      "status": "passed"
+    },
+    {
+      "file": "paths.test.js",
+      "name": "paths refuses filesystem, drive, UNC-share, and user-home roots",
+      "status": "passed"
+    },
+    {
+      "file": "paths.test.js",
+      "name": "paths keeps device-namespace rejection while Cygwin symlink parity remains reverted",
+      "status": "passed"
+    },
+    {
+      "file": "permission-prompt.test.js",
+      "name": "buildPermissionPrompt makes tabs and invisible Unicode explicit without changing the executed arguments",
+      "status": "passed"
+    },
+    {
+      "file": "permission-prompt.test.js",
+      "name": "buildPermissionPrompt keeps the complete source and destination visible in the grant",
+      "status": "passed"
+    },
+    {
+      "file": "permission-prompt.test.js",
+      "name": "buildPermissionPrompt redacts JWT and AWS credentials while preserving the complete approval target",
+      "status": "passed"
+    },
+    {
+      "file": "permission-prompt.test.js",
+      "name": "buildPermissionPrompt uses the rule name for settings/hook ask rules",
+      "status": "passed"
+    },
+    {
+      "file": "permission-rules.test.js",
+      "name": "wildcard `*` deny-all (Claude-Code 2.1.166 parity) bare `*` deny matches every tool",
+      "status": "passed"
+    },
+    {
+      "file": "permission-rules.test.js",
+      "name": "evaluatePermissionRules — traversal cannot bypass a deny rule treats a trailing slash deny target as the same canonical path",
+      "status": "passed"
+    },
+    {
+      "file": "plugin-runtime-trust.test.js",
+      "name": "trust / untrust store a version bump re-requires trust",
+      "status": "passed"
+    },
+    {
+      "file": "process-execution-broker-platform-sandbox.test.js",
+      "name": "ProcessExecutionBroker sandbox-plan consumption does not let CC_SANDBOX_DISABLE bypass strict mode",
+      "status": "passed"
+    },
+    {
+      "file": "remote-control-lib.test.js",
+      "name": "resolveRemoteControlOptions lets configuration disable Remote Control but never widen it",
+      "status": "passed"
+    },
+    {
+      "file": "scoped-permission-store.test.js",
+      "name": "ScopedPermissionStore isolates permission authority at the nearest nested repository",
+      "status": "passed"
+    },
+    {
+      "file": "settings-hooks.test.js",
+      "name": "Notification event collectHooks fires non-tool Notification hooks (matcher null/*)",
+      "status": "passed"
+    },
+    {
+      "file": "shell-approval.test.js",
+      "name": "evaluateShellCommandWithApproval keeps input redirection behind the shell approval gate",
+      "status": "passed"
+    }
+  ]
+}

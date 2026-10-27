@@ -4,6 +4,14 @@
 
 ## 当前阶段
 
+准备修复后的固定候选 `cli-candidate-v0.166.128-rc2`，重新调度准确提交的 CLI CI、Strict Sandbox 及 IDE 构建验证。首个候选未发布；过期的等待器已停止，旧验证任务已请求取消，原候选引用保留。
+
+安全映射预检已通过：实际选中的 29 项映射测试通过、0 失败，另 960 项未被该定向模式选中，不计为通过；完整安全映射单元套件另有 7 项通过。见[映射预检记录](./cli/evidence/release128-public/mapped-security-preflight.json)。内容摘要校验、过期摘要拒绝及组织策略拒绝测试继续生效。
+
+## 首个候选记录（未发布）
+
+首个 CLI 候选的 Strict Sandbox Linux 任务在映射安全测试前失败：`cc-2.1.223-agent-org-policy-ceiling` 绑定的 `headless-runner.test.js` 摘要仍为首批 Goal 新测试之前的字节。核对发现仅这一条 producer 摘要过期；安全场景、测试名称、组织策略断言及三系统门禁要求均保留。更新内容绑定后，需以新的固定候选重新执行完整门禁，原候选引用不移动。未创建 npm 发布标签。
+
 CLI 候选提交 `8d529879971d9fb9b0f569238cebd12cc04e73bb` 已推送至 `origin/main`。准确提交的 [CLI CI 40498497152](https://github.com/chainlesschain/chainlesschain/actions/runs/40498497152) 和 [CLI Strict Sandbox 40498496937](https://github.com/chainlesschain/chainlesschain/actions/runs/40498496937) 已创建，当前等待 GitHub runner 调度。尚未创建 npm 发布标签，不以排队状态认定门禁通过。
 
 另固定候选引用 `cli-candidate-v0.166.128` 到同一 SHA，并在该引用上独立调度两套门禁，避免后续主线提交取消候选验证。发布等待器仅在该 SHA 的两套完整门禁均成功、且全部配置平台任务核验通过后，才允许创建并推送 `v-npm-0-166-128`；仍由现有 OIDC 工作流再次核验后发布。
