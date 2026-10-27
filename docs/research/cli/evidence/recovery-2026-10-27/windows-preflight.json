@@ -1,0 +1,89 @@
+{
+  "schema": "chainlesschain.remaining-native-windows-preflight/v1",
+  "status": "PASSED_PUBLIC_WINDOWS_STARTUP_AND_CONFIGURATION_ONLY",
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.22.2",
+  "version": "0.166.127",
+  "profileOutsideGitWorktree": true,
+  "install": {
+    "passed": true,
+    "lifecycleScriptsEnabled": true,
+    "startedAt": "2026-10-27T04:50:47.593Z",
+    "finishedAt": "2026-10-27T04:55:07.901Z"
+  },
+  "stages": [
+    {
+      "stage": "version",
+      "passed": true,
+      "startedAt": "2026-10-27T04:57:14.525Z",
+      "finishedAt": "2026-10-27T04:57:14.752Z",
+      "exitCode": 0,
+      "timedOut": false
+    },
+    {
+      "stage": "capabilities",
+      "passed": true,
+      "startedAt": "2026-10-27T04:57:14.758Z",
+      "finishedAt": "2026-10-27T04:57:17.227Z",
+      "exitCode": 0,
+      "timedOut": false
+    },
+    {
+      "stage": "config-provider",
+      "passed": true,
+      "startedAt": "2026-10-27T04:57:17.232Z",
+      "finishedAt": "2026-10-27T04:57:18.359Z",
+      "exitCode": 0,
+      "timedOut": false
+    },
+    {
+      "stage": "config-model",
+      "passed": true,
+      "startedAt": "2026-10-27T04:57:18.364Z",
+      "finishedAt": "2026-10-27T04:57:19.429Z",
+      "exitCode": 0,
+      "timedOut": false
+    },
+    {
+      "stage": "config-baseUrl",
+      "passed": true,
+      "startedAt": "2026-10-27T04:57:19.432Z",
+      "finishedAt": "2026-10-27T04:57:20.391Z",
+      "exitCode": 0,
+      "timedOut": false
+    },
+    {
+      "stage": "config-readback",
+      "passed": true,
+      "startedAt": "2026-10-27T04:57:20.395Z",
+      "finishedAt": "2026-10-27T04:57:21.050Z",
+      "exitCode": 0,
+      "timedOut": false
+    }
+  ],
+  "newModelCalls": 0,
+  "newAcceptedSamples": 0,
+  "limitations": [
+    "Public Windows install, static capabilities and isolated configuration only; no IDE or model task.",
+    "Not an independent first-run sample or native/formal admission."
+  ],
+  "executionContext": "outside restricted Codex sandbox; ordinary current Windows user, isolated temporary home and workspace",
+  "operatorScript": {
+    "originalPath": ".work/verify01-remaining-20261027/windows-startup.mjs",
+    "archivedPath": "windows-startup-script.mjs.gz",
+    "digest": "sha256:1ef5d5b179902c6733ebfb1363385fdacfd31e76bd2dfa0c122e65346b7c2411"
+  },
+  "capture": {
+    "path": "windows-preflight-capture.json.gz",
+    "rawDigest": "sha256:d7efe6c164d23e862c94e99384cc0c9ef18ad0053f379cbf9ba37d92cbc5ce57",
+    "records": 39
+  },
+  "restrictedSandboxComparison": {
+    "status": "FAILED",
+    "staticCapabilitiesPassed": true,
+    "configurationPassed": false,
+    "stderr": "error: owner-only native ACL verification failed"
+  },
+  "historicalVerify30Unchanged": true
+}
