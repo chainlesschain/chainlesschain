@@ -124,7 +124,11 @@ public final class NativeTranscriptProbe {
         Method draftReady = drafts.getClass().getDeclaredMethod("ready");
         draftReady.setAccessible(true);
         Class<?> bundle = Class.forName("com.chainlesschain.ide.intellij.CcBundle", true, view.getClass().getClassLoader());
-        String onboarding = (String) bundle.getMethod("message", String.class, Object[].class).invoke(null, "chat.noLlm", new Object[0]);
+        // The canonical recovery peer intentionally has no llm-capabilities
+        // implementation. Its empty reply is unreadable, not an authoritative
+        // unset provider. Observe the actual tri-state diagnostic before timing
+        // so a late configuration hint cannot contaminate transcript samples.
+        String onboarding = (String) bundle.getMethod("message", String.class, Object[].class).invoke(null, "chat.llmReadUnavailable", new Object[0]);
         Map<String, Object> state = new LinkedHashMap<>();
         state.put("initialProbesStarted", read(view, "initialProbesStarted"));
         state.put("fixtureVersionObserved", fixtureIdentityObserved(identity));

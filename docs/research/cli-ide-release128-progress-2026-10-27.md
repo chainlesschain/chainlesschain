@@ -4,6 +4,12 @@
 
 ## 当前阶段
 
+RC2 的 IDE Linux / IntelliJ 2025.2 原生旅程发现测试预期过期：canonical peer 对 `llm capabilities --json` 只返回空回复，真实界面正确显示“无法读取配置”，原生性能探针却仍等待旧的“未配置”提示。修复仅将测试探针绑定到该夹具应出现的 `chat.llmReadUnavailable` 诊断；生产配置逻辑、就绪位、60 秒截止及采样标准不变。IDE 修复使用独立候选重跑实机矩阵；CLI 发布源码继续固定在 RC2，不受此 UI 测试修改影响。
+
+该 IDE 修复的 `compileUiTestJava` 与 32 项原生证据 / 实机旅程驱动校验通过，保留迟到提示污染拒绝和所有就绪检查。准备固定引用 `ide-candidate-cli128-rc3` 重跑完整 IDE 工作流，仍未推送市场发布标签。
+
+CLI RC2 源码 `750787a1393d4989d5de89abe7d62bcfe301b066` 的 [Strict Sandbox 40502727218](https://github.com/chainlesschain/chainlesschain/actions/runs/40502727218) 已完整成功；[CLI CI 40502715258](https://github.com/chainlesschain/chainlesschain/actions/runs/40502715258) 尚待完整结束。不以已通过的部分任务代替全矩阵。
+
 准备修复后的固定候选 `cli-candidate-v0.166.128-rc2`，重新调度准确提交的 CLI CI、Strict Sandbox 及 IDE 构建验证。首个候选未发布；过期的等待器已停止，旧验证任务已请求取消，原候选引用保留。
 
 安全映射预检已通过：实际选中的 29 项映射测试通过、0 失败，另 960 项未被该定向模式选中，不计为通过；完整安全映射单元套件另有 7 项通过。见[映射预检记录](./cli/evidence/release128-public/mapped-security-preflight.json)。内容摘要校验、过期摘要拒绝及组织策略拒绝测试继续生效。
