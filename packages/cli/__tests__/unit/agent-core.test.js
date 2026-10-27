@@ -29,7 +29,11 @@ import {
 describe("opt-in change review in the real file-tool loop", () => {
   let reviewDirectory;
   beforeEach(() => {
-    reviewDirectory = mkdtempSync(join(tmpdir(), "cc-change-review-"));
+    // macOS temporary paths can traverse /var -> /private/var. The exact
+    // mutation scope deliberately requires the canonical workspace path.
+    reviewDirectory = fs.realpathSync(
+      mkdtempSync(join(tmpdir(), "cc-change-review-")),
+    );
     writeFileSync(join(reviewDirectory, "review.test.js"), "// placeholder\n");
   });
   afterEach(() => {
