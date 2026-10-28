@@ -1,0 +1,23 @@
+{
+  "upstreamVersion": "0.164.0",
+  "schemaMatches": true,
+  "productionAdmission": false,
+  "files": {
+    "ClientRequest.json": {
+      "bytes": 216762,
+      "sha256": "9b89e2459362d20cec67a429ef9430fe6b0e9fb8bd87d445d4c9a6acccd87450"
+    },
+    "ServerNotification.json": {
+      "bytes": 214381,
+      "sha256": "0352806952c06bf4b802b45966ca8d6f6442464aeebd816db74158da784d3c1c"
+    },
+    "ServerRequest.json": {
+      "bytes": 49887,
+      "sha256": "f339be472737a0003efa25fba2e6e6c9237e621cd065b6d6995c51256e9dc1fb"
+    },
+    "CommandExecutionRequestApprovalResponse.json": {
+      "bytes": 3202,
+      "sha256": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7"
+    }
+  }
+}

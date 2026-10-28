@@ -1,0 +1,128 @@
+{
+  "schema": "chainlesschain.codex-history-probe/v1",
+  "status": "passed",
+  "commitSha": "949ab64b758b24155c0382c9dd34185b1110df84",
+  "platform": "win32",
+  "arch": "x64",
+  "upstream": {
+    "version": "0.160.0",
+    "reported": "codex-cli 0.160.0",
+    "binarySha256": "fdda5fa3cf3fb3d000b876720742857676293e4315e4b045fae6f8bd7e866d1d"
+  },
+  "provider": "synthetic-loopback-responses",
+  "realProviderAcceptance": false,
+  "productionAdmission": false,
+  "processRestarted": true,
+  "threadSource": "vscode",
+  "settingsRestored": true,
+  "completedRequestReplayed": false,
+  "threadPages": [
+    {
+      "ids": [
+        "01a1803e-e467-7610-bb15-55f130c2e45e"
+      ],
+      "nextCursor": "2026-10-28T10:02:47Z"
+    },
+    {
+      "ids": [
+        "01a1803e-e78b-7fa0-ac7b-7e600d9b4220"
+      ],
+      "nextCursor": null
+    }
+  ],
+  "turnPagesBeforeResume": [
+    {
+      "ids": [
+        "01a1803e-e51c-77e3-88ee-0ebaa0c15927"
+      ],
+      "nextCursor": null
+    }
+  ],
+  "turnPagesAfterResume": [
+    {
+      "ids": [
+        "01a1803e-e51c-77e3-88ee-0ebaa0c15927"
+      ],
+      "nextCursor": "{\"requestedThreadId\":\"01a1803e-e467-7610-bb15-55f130c2e45e\",\"rolloutOrdinal\":1,\"includeAnchor\":false,\"scope\":{\"kind\":\"turns\"}}"
+    },
+    {
+      "ids": [
+        "01a1803e-ef37-71d3-b9ec-17841679d2bb"
+      ],
+      "nextCursor": null
+    }
+  ],
+  "results": [
+    {
+      "threadId": "01a1803e-e467-7610-bb15-55f130c2e45e",
+      "turnId": "01a1803e-e51c-77e3-88ee-0ebaa0c15927",
+      "output": "history-main-1-result"
+    },
+    {
+      "threadId": "01a1803e-e78b-7fa0-ac7b-7e600d9b4220",
+      "turnId": "01a1803e-e7f6-7aa1-8641-35c4e666bf27",
+      "output": "history-other-1-result"
+    },
+    {
+      "threadId": "01a1803e-e467-7610-bb15-55f130c2e45e",
+      "turnId": "01a1803e-ef37-71d3-b9ec-17841679d2bb",
+      "output": "history-main-2-result"
+    }
+  ],
+  "providerRequests": [
+    {
+      "scenario": "history-main-1",
+      "authorization": false,
+      "retainedContext": false
+    },
+    {
+      "scenario": "history-other-1",
+      "authorization": false,
+      "retainedContext": false
+    },
+    {
+      "scenario": "history-main-2",
+      "authorization": false,
+      "retainedContext": true
+    }
+  ],
+  "officialSchema": {
+    "hashes": {
+      "request": "1c7fec8758deb95ffe967060130e8d1ddb7a0a5a437ee9b64086dddbed8f5831",
+      "notification": "d3479ecf59ca421a8b052d3d15e8196d23d297a0bd85ae5a270a34ddd9c865c9",
+      "server-request": "f339be472737a0003efa25fba2e6e6c9237e621cd065b6d6995c51256e9dc1fb",
+      "approval-response": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7"
+    },
+    "validatedMessages": {
+      "request:initialize": 2,
+      "request:thread/start": 2,
+      "notification:remoteControl/status/changed": 2,
+      "request:turn/start": 3,
+      "notification:thread/started": 2,
+      "notification:warning": 3,
+      "notification:thread/status/changed": 7,
+      "notification:turn/started": 3,
+      "notification:item/started": 6,
+      "notification:item/completed": 6,
+      "notification:thread/tokenUsage/updated": 4,
+      "notification:account/rateLimits/updated": 3,
+      "notification:turn/completed": 3,
+      "request:thread/list": 2,
+      "request:thread/read": 1,
+      "request:thread/resume": 1,
+      "request:thread/turns/list": 3,
+      "notification:thread/goal/cleared": 1
+    }
+  },
+  "processClosed": [
+    {
+      "code": 0,
+      "signal": null
+    },
+    {
+      "code": 0,
+      "signal": null
+    }
+  ],
+  "notificationsSha256": "e82522424012e568cec4229c809c081b76f75201b6b9bc4385acb3e8940540fb"
+}

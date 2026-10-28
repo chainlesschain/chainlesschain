@@ -1,0 +1,120 @@
+{
+  "schema": "chainlesschain.codex-version-history-verification/v1",
+  "createdAt": "2026-10-28T02:05:06.645Z",
+  "sourceCommit": "949ab64b758b24155c0382c9dd34185b1110df84",
+  "sourceTreeCleanDuringProbes": true,
+  "sourceFiles": [
+    {
+      "path": ".github/workflows/codex-app-server-compatibility.yml",
+      "sha256": "27742fe47e4b8417cf7f7304debd19b2974e1e157be748dde5b99b3330892f0c"
+    },
+    {
+      "path": "docs/cli/CODEX_APP_SERVER_SUPPORT.generated.md",
+      "sha256": "6012ed97287450288a94d68a6de5668a7836dc81e3236a87f0b59f4436acb198"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.164.0-approval-response.schema.json",
+      "sha256": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.164.0-notification.schema.json",
+      "sha256": "0352806952c06bf4b802b45966ca8d6f6442464aeebd816db74158da784d3c1c"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.164.0-provenance.json",
+      "sha256": "a0b4a8c07c9dc483bac3da24301ffbb5652398730778287fff513a9db0227313"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.164.0-request.schema.json",
+      "sha256": "9b89e2459362d20cec67a429ef9430fe6b0e9fb8bd87d445d4c9a6acccd87450"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.164.0-server-request.schema.json",
+      "sha256": "f339be472737a0003efa25fba2e6e6c9237e621cd065b6d6995c51256e9dc1fb"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/codex-app-server-history-probe.test.js",
+      "sha256": "ac851433b700bff48a220e9977af2219a66b1b6f050504b9375c7819792e3990"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/codex-app-server-support.test.js",
+      "sha256": "b5c8d63447d99540d5dfc2228086b2069bf12b9355db2514c7b987e0ef389a12"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/codex-app-server-turn-probe.test.js",
+      "sha256": "067db21685d359f024bb9e149ca57bcbb3d07fa7d99bf82c8d658edd21ff67ba"
+    },
+    {
+      "path": "packages/cli/scripts/codex-app-server-history-probe.mjs",
+      "sha256": "199ab0457ca67baa14188b9fc3265a053f9a133e5ec915a70acc66427c47da01"
+    },
+    {
+      "path": "packages/cli/scripts/codex-app-server-support.mjs",
+      "sha256": "c0be17d3bfbfa5d21301c10e3593a9c27cd25de79a9185d44291d5f43ba7280d"
+    },
+    {
+      "path": "packages/cli/scripts/codex-app-server-turn-probe.mjs",
+      "sha256": "3a524201cbcb91931a67bf58be137923ef186ca099431179b8ff3f5d1d588934"
+    },
+    {
+      "path": "packages/cli/scripts/verify-codex-app-server-schema.mjs",
+      "sha256": "cf4e4b99996bc12e5f1074697a692b0ce8b2b84026ebd49a7786d4ca506f3323"
+    },
+    {
+      "path": "packages/cli/src/lib/codex-app-server-support.js",
+      "sha256": "ba16c57a9ee529a64806eab4ead218d9c33750b1a8d2ad4f3418ac12c9209fc3"
+    }
+  ],
+  "environment": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2"
+  },
+  "unit": {
+    "filesPassed": 6,
+    "passed": 84,
+    "failed": 0,
+    "pending": 0,
+    "report": "unit-results.json",
+    "sha256": "60f93f3e49e6b740ec8ba0b362878304fe8190321513c697b989168b69273a6b"
+  },
+  "realProcessReports": [
+    {
+      "version": "0.160.0",
+      "turn": "0.160.0/turn.json",
+      "history": "0.160.0/history.json",
+      "localFixtureRequests": 8
+    },
+    {
+      "version": "0.164.0",
+      "turn": "0.164.0/turn.json",
+      "history": "0.164.0/history.json",
+      "localFixtureRequests": 8
+    }
+  ],
+  "checks": {
+    "schemaByteComparison": "passed",
+    "prettier": "passed",
+    "actionlint": "passed",
+    "generatedDocumentation": "passed",
+    "diffWhitespace": "passed",
+    "eslint": {
+      "status": "passed",
+      "version": "9.39.5",
+      "jsRulesVersion": "9.39.5",
+      "globalsVersion": "16.5.0",
+      "installation": "isolated-temporary-directory",
+      "repositoryConfigSha256": "3512741cdcea1f88563845f84ab74e8da2e96332d12d1dcca7afea7f1cd9afab",
+      "projectDependenciesChanged": false
+    }
+  },
+  "githubActionsExecuted": false,
+  "linuxVerified": false,
+  "macosVerified": false,
+  "crossPlatformMatrixVerified": false,
+  "localFixtureRequests": 16,
+  "externalProviderCalls": 0,
+  "experimentalAllowlistChanged": false,
+  "productionAdmissionChanged": false,
+  "publicationPerformed": false
+}
