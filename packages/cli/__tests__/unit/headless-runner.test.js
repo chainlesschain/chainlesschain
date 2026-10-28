@@ -2769,6 +2769,10 @@ describe("headless-runner — goal-condition cross-process resume", () => {
     expect(snaps[0].state.done).toBe(false); // starting checkpoint
     expect(snaps[snaps.length - 1].state.done).toBe(true);
     expect(snaps[snaps.length - 1].state.outcome).toBe("completed");
+    expect(snaps[snaps.length - 1].evaluation).toMatchObject({
+      met: true,
+      evidence: { kind: "contains", matched: true },
+    });
     const started = parseLines(out).find((e) => e.type === "goal_started");
     expect(started.resumed).toBe(false); // a fresh (non-resumed) run
   });

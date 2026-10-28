@@ -1,0 +1,60 @@
+{
+  "schema": "chainlesschain.goal-workspace-evidence-verification/v1",
+  "checkedAt": "2026-10-28T17:33:59.316Z",
+  "baseCommit": "ca58bfeae0f5be18a245e216a67e0cefd3f73bbf",
+  "platform": "win32",
+  "node": "v22.22.2",
+  "tests": {
+    "files": 10,
+    "passed": 240,
+    "failed": 0,
+    "pending": 0,
+    "rawDigest": "sha256:99b517641a2d34940910959b00305c73d1f7dac96dcfe9f3cc05f81f48173f73",
+    "archive": "unit-results.json.gz",
+    "archiveDigest": "sha256:ccdbf31d0c956df947479e3947f865af299d772534f2e2d923f7d34a550dfe29"
+  },
+  "sources": [
+    {
+      "path": "packages/cli/src/lib/goal-workspace-evidence.js",
+      "digest": "sha256:0848dca7e2528558310728a7ce40d247094d9f6628a0ef42ab9444f0f26a9560"
+    },
+    {
+      "path": "packages/cli/src/lib/goal-check-evidence.js",
+      "digest": "sha256:73cb0daec16bfb81b5794e3155b778c0e67cab489a880b4fcd3d860d5e845e0c"
+    },
+    {
+      "path": "packages/cli/src/runtime/headless-runner.js",
+      "digest": "sha256:32e3205c6b2dff3506cbf278722380cebf1a21fd8af761845377c025883a26b6"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/goal-workspace-evidence.test.js",
+      "digest": "sha256:1795f3603f9295a81ada545b3ed61a67d4b0a15d1b33c6f44d9d625d19053006"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/headless-goal-model-budget.test.js",
+      "digest": "sha256:00f9d771b88f39cde97cc0397ef434e5b13ee3d968ab7fb492bf3d4775ae4a17"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/headless-runner.test.js",
+      "digest": "sha256:78270b42437993c971512341ca17f693ac8c62c7eb589cdde00edbe56eff882c"
+    }
+  ],
+  "sourceAudit": {
+    "report": "source-audit.json",
+    "digest": "sha256:0ffd7367bf76f8a63075ab373415837c34098696fe2f3ec637463f18e4646343",
+    "filesScanned": 1701,
+    "candidateFiles": 78,
+    "passed": true
+  },
+  "timing": {
+    "report": "capture-timing.json",
+    "digest": "sha256:eee4c496674c2e364c3a007768f0f88d3748f8b89793d2b6c1dedd48e898fafd"
+  },
+  "eslint": {
+    "passed": false,
+    "reason": "Installed @eslint-community/eslint-utils missing; unchanged environment limitation from prior batch"
+  },
+  "liveProviderCalls": 0,
+  "crossPlatformGateRun": false,
+  "published": false
+}

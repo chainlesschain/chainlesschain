@@ -1,4 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+let workspace;
 
 const { judgeChat } = vi.hoisted(() => ({ judgeChat: vi.fn() }));
 vi.mock("../../src/runtime/agent-core.js", async (importOriginal) => ({
@@ -46,6 +51,7 @@ function setup({ afterWork, mainUsage } = {}) {
     runAgentHeadless(
       {
         prompt: "inspect the artifact",
+        cwd: workspace,
         provider: "anthropic",
         model: "claude-opus",
         outputFormat: "stream-json",
@@ -78,9 +84,47 @@ function verdict(met = true, usage = { input_tokens: 100, output_tokens: 7 }) {
 
 beforeEach(() => {
   judgeChat.mockReset();
+  workspace = mkdtempSync(join(tmpdir(), "cc-goal-budget-"));
+  writeFileSync(join(workspace, "result.txt"), "verified artifact");
 });
 
+afterEach(() => rmSync(workspace, { recursive: true, force: true }));
+
 describe("headless Goal model calls share the run budget", () => {
+  it("does not ask the judge to accept an artifact changed after inspection", async () => {
+    const { run, events } = setup({
+      afterWork: () =>
+        writeFileSync(join(workspace, "result.txt"), "externally changed"),
+    });
+    judgeChat.mockResolvedValue(verdict());
+    expect(await run({ maxOuterTurns: 1 })).toMatchObject({ isError: true });
+    expect(judgeChat).not.toHaveBeenCalled();
+    expect(events().some((event) => event.type === "goal_completed")).toBe(
+      false,
+    );
+  });
+
+  it.each(["overwrite", "delete"])(
+    "rejects a late positive verdict after artifact %s during judging",
+    async (change) => {
+      const { run, events } = setup();
+      judgeChat.mockImplementation(async () => {
+        if (change === "delete") unlinkSync(join(workspace, "result.txt"));
+        else
+          writeFileSync(join(workspace, "result.txt"), "changed while judging");
+        return verdict();
+      });
+      expect(await run({ maxTurns: 2, maxOuterTurns: 1 })).toMatchObject({
+        isError: true,
+      });
+      expect(judgeChat).toHaveBeenCalledOnce();
+      expect(events().some((event) => event.type === "goal_completed")).toBe(
+        false,
+      );
+      expect(events().at(-1).usage.input_tokens).toBe(107);
+    },
+  );
+
   it("does not send a judge request after the last permitted model turn", async () => {
     const { run, events, agentLoop } = setup();
     judgeChat.mockResolvedValue(verdict());

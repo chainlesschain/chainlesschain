@@ -14,6 +14,14 @@ Install `chainlesschain@0.166.128`. Paired public IDEs are Open VSX `0.37.166` a
 
 [Current user guide](https://docs.chainlesschain.com/chainlesschain/cli-agent.html) · [Published-source evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/publication.json).
 
+## Source checkout: Goal evidence freshness (unreleased)
+
+The default model Goal checker now binds `read_file` observations to the actual artifact bytes and `run_shell` checks to the source files under the run's working directory. It compares the bindings before and after the tool call, before judging, and after the model responds. A changed or deleted artifact, replaced workspace, incomplete scan, or cancelled scan cannot support a positive verdict. Cited scopes and SHA-256 digests are saved with the evaluated Goal checkpoint before completion is emitted.
+
+In Git workspaces, source coverage includes tracked and nonignored files under `cwd`; it excludes Git metadata, ignored dependencies/build outputs, and external files. An explicit `read_file` observation can bind an ignored artifact inside the workspace. Other tool types need a fresh supported observation or an explicit deterministic condition such as `--goal-condition "exit-zero:npm test"`. Digests establish freshness within their stated scope; they do not replace an independent quality check or make a file write proof that tests passed.
+
+Scanning is read-only and bounded to 50,000 entries, 512 MiB total, 64 MiB per file and 15 seconds per capture; Git enumeration has a 5-second process timeout. Non-Git folders cover regular files recursively. Links, unsupported entries and insufficient coverage stay unverified. Source checks require additional disk reads; a local Windows sample of 1,000 × 1 KiB files took 1.4–1.7 seconds per capture, not a production latency guarantee. Evidence protects against ordinary concurrent changes, not hostile filesystem replacement or mutations after the final check. See the [implementation and verification record](../research/cli-ide-goal-workspace-progress-2026-10-29.md).
+
 > Parent: [`../CLI_COMMANDS_REFERENCE.md`](CLI_COMMANDS_REFERENCE.md)
 
 ## Managed Agents Parity (session-core)

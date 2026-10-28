@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-10-28T17:31:08.211Z",
+  "platform": "win32",
+  "node": "v22.22.2",
+  "scope": "Synthetic directory; 1000 regular files of 1024 bytes; five sequential captures; not a production SLO",
+  "fileCount": 1000,
+  "totalBytes": 1024000,
+  "wallMs": [
+    1512.32,
+    1401.05,
+    1489.04,
+    1485.74,
+    1605.88
+  ]
+}

@@ -245,7 +245,11 @@ import {
   runtimeUsageEventType,
   runtimeToolCallId,
 } from "../lib/runtime-usage-ledger.js";
-import { runGoalModelCall } from "../lib/goal-model-call.js";
+import {
+  goalModelCallError,
+  runGoalModelCall,
+} from "../lib/goal-model-call.js";
+import { captureGoalWorkspace } from "../lib/goal-workspace-evidence.js";
 import {
   GoalCheckEvidence,
   buildGoalJudgePrompt,
@@ -3489,6 +3493,11 @@ async function runAgentHeadlessInWorkspace(
   // Model-judged conditions reuse the run's own model as an independent
   // evaluator (mirrors --goal-assess). Overridable via deps for tests.
   const _defaultGoalJudge = async (cond, transcript) => {
+    const checkCancellation = () => {
+      if (options.signal?.aborted || options.sessionBudget?.signal?.aborted)
+        throw goalModelCallError("cancelled");
+    };
+    checkCancellation();
     const goalBudget = goalEngine?.budget;
     const goalState = goalEngine?.state;
     if (
@@ -3507,10 +3516,18 @@ async function runAgentHeadlessInWorkspace(
       };
     }
     if (!usableGoalEvidence(transcript.goalEvidence).length) {
+      const bindingReasons = [
+        ...new Set(
+          (transcript.goalEvidence?.tools || [])
+            .map((record) => record.workspace?.reason)
+            .filter(Boolean),
+        ),
+      ];
       return {
         met: false,
-        reason:
-          "No current successful tool evidence; run an explicit check for the goal condition",
+        reason: bindingReasons.length
+          ? `Goal workspace evidence unavailable (${bindingReasons.join(", ")}); run a fresh artifact read or explicit check`
+          : "No current successful tool evidence; run an explicit check for the goal condition",
         evidence: { kind: "model", source: "current-turn-tools", toolIds: [] },
       };
     }
@@ -3527,16 +3544,25 @@ async function runAgentHeadlessInWorkspace(
         /* tolerant: a non-JSON verdict stays unmet */
       }
     }
-    return validateGoalJudgeVerdict(verdict, transcript.goalEvidence);
+    // A user or background writer can change files while the model evaluates.
+    // Re-read the bound inputs before accepting its cited observations.
+    await goalEvidence.refreshWorkspace();
+    checkCancellation();
+    return validateGoalJudgeVerdict(verdict, goalEvidence.snapshot());
   };
   // A running checkpoint precedes model/tool effects; an evaluated checkpoint
   // precedes publishing the decision. An interrupted running phase requires
   // reconciliation on resume instead of silently replaying the old goal state.
-  const persistGoalSnapshot = (phase, failurePhase = "after-model") => {
+  const persistGoalSnapshot = (
+    phase,
+    failurePhase = "after-model",
+    evaluation = null,
+  ) => {
     if (!persist || !goalEngine) return;
     try {
       store.appendEvent(sessionId, "goal_snapshot", {
         ...goalEngine.snapshot(),
+        ...(evaluation ? { evaluation } : {}),
         checkpoint: {
           schema: "chainlesschain.goal-checkpoint/v1",
           phase,
@@ -3608,6 +3634,15 @@ async function runAgentHeadlessInWorkspace(
           },
           now: goalNow,
         });
+      }
+      if (goalEngine.condition.kind === "model" && !deps.goalConditionJudge) {
+        const signals = [options.signal, options.sessionBudget?.signal].filter(
+          Boolean,
+        );
+        const signal =
+          signals.length > 1 ? AbortSignal.any(signals) : signals[0];
+        goalEvidence.captureWorkspace = (call) =>
+          captureGoalWorkspace(cwd, call, { signal });
       }
       _goalHelpers = {
         isDeterministicCondition: eng.isDeterministicCondition,
@@ -3739,7 +3774,7 @@ async function runAgentHeadlessInWorkspace(
               args: event.args,
             };
             toolCalls.push(toolCall);
-            goalEvidence?.started(toolCall);
+            await goalEvidence?.started(toolCall);
             toolStartedAt.set(
               telemetryToolId,
               deps.now ? deps.now() : Date.now(),
@@ -3867,7 +3902,11 @@ async function runAgentHeadlessInWorkspace(
               if (policyEvent) emitStream(policyEvent);
             }
             if (settledCall) {
-              goalEvidence?.settled(settledCall, event.result, Boolean(err));
+              await goalEvidence?.settled(
+                settledCall,
+                event.result,
+                Boolean(err),
+              );
               settledCall.is_error = Boolean(err);
               settledCall.durationMs =
                 event.result?.toolTelemetryRecord?.durationMs ??
@@ -4165,6 +4204,7 @@ async function runAgentHeadlessInWorkspace(
               throw error;
             }
             const judge = deps.goalConditionJudge || _defaultGoalJudge;
+            await goalEvidence.refreshWorkspace();
             evaluation = await judge(cond, {
               prompt: options.prompt,
               finalText,
@@ -4190,7 +4230,7 @@ async function runAgentHeadlessInWorkspace(
 
         const { decision, events } = goalEngine.evaluate(evaluation);
         // Publish only after the decision and accumulated usage are durable.
-        persistGoalSnapshot("evaluated");
+        persistGoalSnapshot("evaluated", "after-model", evaluation);
         for (const ev of events) {
           emitStream(ev);
           if (isText) {

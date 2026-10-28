@@ -1,7 +1,17 @@
 // Bounded, current-turn observations for the optional model goal checker.
-// These are tool observations, not an independent verification of the workspace.
+// Workspace binding verifies freshness, not the semantic truth of a verdict.
 const MAX_TOOLS = 24;
 const EXIT_CODE_TOOLS = new Set(["run_shell", "check_shell", "git"]);
+
+export function sameGoalWorkspace(left, right) {
+  return (
+    left?.verified === true &&
+    right?.verified === true &&
+    ["scope", "workspaceId", "digest", "freshnessDigest"].every(
+      (key) => left[key] === right[key],
+    )
+  );
+}
 
 function previewText(text, limit) {
   if (text.length <= limit) return text;
@@ -37,8 +47,9 @@ function preview(value, limit) {
 }
 
 export class GoalCheckEvidence {
-  constructor({ readOnlyTools = [] } = {}) {
+  constructor({ readOnlyTools = [], captureWorkspace = null } = {}) {
     this.readOnlyTools = new Set(readOnlyTools);
+    this.captureWorkspace = captureWorkspace;
     this.beginTurn();
   }
 
@@ -50,7 +61,7 @@ export class GoalCheckEvidence {
     this.tools = [];
   }
 
-  started(call) {
+  async started(call) {
     // Unknown tools may mutate state. A later mutator makes earlier evidence
     // stale, including reads/checks that were still running when it started.
     if (!this.readOnlyTools.has(call.tool)) this.revision++;
@@ -61,14 +72,17 @@ export class GoalCheckEvidence {
       revision: this.revision,
       settled: false,
       successful: false,
+      call,
     };
     this.pending.set(call, record);
     this.pendingCount++;
     this.tools.push(record);
     if (this.tools.length > MAX_TOOLS) this.tools.shift();
+    if (this.captureWorkspace)
+      record.workspaceBefore = await this.captureWorkspace(call);
   }
 
-  settled(call, result, isError) {
+  async settled(call, result, isError) {
     const record = this.pending.get(call);
     if (!record) return;
     this.pending.delete(call);
@@ -97,6 +111,41 @@ export class GoalCheckEvidence {
       ].includes(result.status) &&
       (hasExitCode ? result.exitCode === 0 : !EXIT_CODE_TOOLS.has(call.tool));
     if (hasExitCode) record.exitCode = result.exitCode ?? null;
+    if (this.captureWorkspace && record.successful) {
+      const after = await this.captureWorkspace(call);
+      record.workspace = {
+        ...after,
+        current: sameGoalWorkspace(record.workspaceBefore, after),
+        ...(!sameGoalWorkspace(record.workspaceBefore, after)
+          ? {
+              reason:
+                after.reason ||
+                record.workspaceBefore?.reason ||
+                "workspace-changed",
+            }
+          : {}),
+      };
+    }
+  }
+
+  async refreshWorkspace() {
+    if (!this.captureWorkspace) return;
+    const snapshots = new Map();
+    for (const record of this.tools) {
+      if (record.revision !== this.revision || !record.workspace?.current)
+        continue;
+      const key = JSON.stringify([
+        record.workspace.scope,
+        record.workspace.artifacts?.map((entry) => entry.path),
+      ]);
+      if (!snapshots.has(key))
+        snapshots.set(key, await this.captureWorkspace(record.call));
+      const current = snapshots.get(key);
+      if (!sameGoalWorkspace(record.workspace, current)) {
+        record.workspace.current = false;
+        record.workspace.reason = current.reason || "workspace-changed";
+      }
+    }
   }
 
   snapshot() {
@@ -105,10 +154,13 @@ export class GoalCheckEvidence {
       scope: "current-outer-turn",
       pending: this.pendingCount,
       omitted: Math.max(0, this.sequence - this.tools.length),
-      tools: this.tools.map(({ revision, ...record }) => ({
-        ...record,
-        current: revision === this.revision,
-      })),
+      ...(this.captureWorkspace ? { workspaceBindingRequired: true } : {}),
+      tools: this.tools.map(
+        ({ revision, call, workspaceBefore, ...record }) => ({
+          ...record,
+          current: revision === this.revision,
+        }),
+      ),
     };
   }
 }
@@ -116,7 +168,13 @@ export class GoalCheckEvidence {
 export function usableGoalEvidence(evidence) {
   if (!evidence || evidence.pending !== 0) return [];
   return (evidence.tools || []).filter(
-    (record) => record.current && record.settled && record.successful,
+    (record) =>
+      record.current &&
+      record.settled &&
+      record.successful &&
+      (!evidence.workspaceBindingRequired ||
+        (record.workspace?.verified === true &&
+          record.workspace.current === true)),
   );
 }
 
@@ -127,6 +185,7 @@ export function buildGoalJudgePrompt(condition, transcript) {
     "The assistant output is a claim, not proof. Do not infer tests passed from a file write or a claim.",
     "Earlier results marked current:false predate a possible mutation; they cannot verify the current workspace.",
     "Use only settled, successful, current tool observations relevant to the condition. Unknown exits are not success.",
+    "When workspaceBindingRequired is true, cite only workspace verified:true/current:true observations. Artifact scope proves only the named file; Git scope excludes ignored and external files. A digest proves freshness, not test success or independent quality.",
     "If evidence is missing, stale, contradictory, or insufficient, return met:false and say what check is needed.",
     'Reply with STRICT JSON: {"met": false, "reason": "...", "evidenceIds": []}.',
     "A true verdict must cite one or more relevant tool observation IDs in evidenceIds.",
@@ -154,6 +213,15 @@ export function validateGoalJudgeVerdict(verdict, evidence) {
       kind: "model",
       source: "current-turn-tools",
       toolIds: grounded ? [...new Set(ids)] : [],
+      ...(evidence?.workspaceBindingRequired
+        ? {
+            workspaceBindings: grounded
+              ? usableGoalEvidence(evidence)
+                  .filter((record) => ids.includes(record.id))
+                  .map((record) => ({ toolId: record.id, ...record.workspace }))
+              : [],
+          }
+        : {}),
     },
   };
 }
