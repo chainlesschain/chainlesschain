@@ -18,21 +18,21 @@ printf 'Deployment stamp: %s\nSource commit: %s\nLocal evidence: %s\n' "$stamp" 
 
 for site in docs design www; do
   case "$site" in
-    docs) dist="$repo_root/docs-site/docs/.vitepress/dist"; minimum=600; required="chainlesschain/cli-ide-update-2026-10-28.html" ;;
-    design) dist="$repo_root/docs-site-design/docs/.vitepress/dist"; minimum=250; required="release-runtime-update-2026-10-28.html" ;;
+    docs) dist="$repo_root/docs-site/docs/.vitepress/dist"; minimum=600; required="chainlesschain/cli-ide-update-2026-10-29.html" ;;
+    design) dist="$repo_root/docs-site-design/docs/.vitepress/dist"; minimum=250; required="release-runtime-update-2026-10-29.html" ;;
     www) dist="$repo_root/docs-website-v2/dist"; minimum=18; required="index.html" ;;
   esac
   test -f "$dist/index.html" && test -f "$dist/$required"
   if [ "$site" != www ]; then
-    grep -Fq '0.166.128' "$dist/$required"
+    grep -Fq '0.166.129' "$dist/$required"
   fi
   html_count="$(find "$dist" -type f -name '*.html' | wc -l | tr -d ' ')"
   file_count="$(find "$dist" -type f | wc -l | tr -d ' ')"
   test "$html_count" -ge "$minimum"
   if [ "$site" = www ]; then
-    grep -Fq '0.166.128' "$dist/index.html"
-    grep -Fq '0.37.166' "$dist/index.html"
-    grep -Fq '0.4.183' "$dist/index.html"
+    grep -Fq '0.166.129' "$dist/index.html"
+    grep -Fq '0.37.167' "$dist/index.html"
+    grep -Fq '0.4.184' "$dist/index.html"
     grep -Fq 'v5.0.3.143' "$dist/index.html"
     grep -Fq '6 万+' "$dist/index.html"
   fi
@@ -128,9 +128,9 @@ while IFS=$'\t' read -r site sha html files; do
   test "$(find "$stage" -type f -name '*.html' | wc -l)" -eq "$html"
   test "$(find "$stage" -type f | wc -l)" -eq "$files"
   case "$site" in
-    docs) test -f "$stage/chainlesschain/cli-ide-update-2026-10-28.html"; grep -Fq '0.166.128' "$stage/chainlesschain/cli-ide-update-2026-10-28.html"; test -f "$stage/chainlesschain/agent-input-and-recovery.html" ;;
-    design) test -f "$stage/release-runtime-update-2026-10-28.html"; grep -Fq '0.166.128' "$stage/release-runtime-update-2026-10-28.html" ;;
-    www) grep -Fq '0.166.128' "$stage/index.html"; grep -Fq '0.37.166' "$stage/index.html"; grep -Fq '0.4.183' "$stage/index.html"; grep -Fq 'v5.0.3.143' "$stage/index.html"; grep -Fq '6 万+' "$stage/index.html" ;;
+    docs) test -f "$stage/chainlesschain/cli-ide-update-2026-10-29.html"; grep -Fq '0.166.129' "$stage/chainlesschain/cli-ide-update-2026-10-29.html"; test -f "$stage/chainlesschain/agent-input-and-recovery.html" ;;
+    design) test -f "$stage/release-runtime-update-2026-10-29.html"; grep -Fq '0.166.129' "$stage/release-runtime-update-2026-10-29.html" ;;
+    www) grep -Fq '0.166.129' "$stage/index.html"; grep -Fq '0.37.167' "$stage/index.html"; grep -Fq '0.4.184' "$stage/index.html"; grep -Fq 'v5.0.3.143' "$stage/index.html"; grep -Fq '6 万+' "$stage/index.html" ;;
   esac
   # Keep operational files, old pages, and hashed assets still used by cached HTML.
   # New build files win where the paths are identical.

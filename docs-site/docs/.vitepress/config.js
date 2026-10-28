@@ -221,7 +221,11 @@ export default defineConfig({
               link: "/chainlesschain/agent-input-and-recovery",
             },
             {
-              text: "2026-10-28 Goal 证据与交付复查设计",
+              text: "2026-10-29 CLI .129 公开配对与源码范围",
+              link: "/design/release-runtime-update-2026-10-29",
+            },
+            {
+              text: "2026-10-28 Goal 证据与交付复查设计（历史）",
               link: "/design/release-runtime-update-2026-10-28",
             },
             {

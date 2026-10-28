@@ -1,0 +1,103 @@
+name: Documentation Snapshot Build
+
+# Build reviewable, source-bound archives for all three existing sites.
+# This workflow has no deployment credentials and never publishes a site.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Snapshot (${{ matrix.site }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - site: docs
+            directory: docs-site
+            dist: docs/.vitepress/dist
+            required: chainlesschain/cli-ide-update-2026-10-29.html
+            minimum: 600
+          - site: design
+            directory: docs-site-design
+            dist: docs/.vitepress/dist
+            required: release-runtime-update-2026-10-29.html
+            minimum: 250
+          - site: www
+            directory: docs-website-v2
+            dist: dist
+            required: index.html
+            minimum: 18
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.22.2"
+          cache: npm
+          cache-dependency-path: ${{ matrix.directory }}/package-lock.json
+      - name: Install locked site dependencies
+        working-directory: ${{ matrix.directory }}
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh" npm ci
+      - name: Build committed documentation
+        working-directory: ${{ matrix.directory }}
+        env:
+          SITE: ${{ matrix.site }}
+        run: |
+          set -euo pipefail
+          if [ "$SITE" = www ]; then
+            # Preserve the committed release snapshot; do not fetch new versions.
+            node node_modules/astro/astro.js build
+          else
+            npm run build
+          fi
+      - name: Verify rendered pages and archive the exact build
+        working-directory: ${{ matrix.directory }}
+        env:
+          SITE: ${{ matrix.site }}
+          DIST: ${{ matrix.dist }}
+          REQUIRED: ${{ matrix.required }}
+          MIN_HTML: ${{ matrix.minimum }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --exit-code
+          test -f "$DIST/index.html"
+          test -f "$DIST/$REQUIRED"
+          for version in 0.166.129 0.37.167 0.4.184 v5.0.3.143; do
+            grep -Fq "$version" "$DIST/$REQUIRED"
+          done
+          if [ "$SITE" = www ]; then
+            test -f "$DIST/en/index.html"
+            for version in 0.166.129 0.37.167 0.4.184 v5.0.3.143; do
+              grep -Fq "$version" "$DIST/en/index.html"
+            done
+          fi
+          if [ "$SITE" = docs ]; then
+            test "$(wc -c < "$DIST/changelog.html")" -ge 2000
+          fi
+          html_count=$(find "$DIST" -type f -name '*.html' | wc -l)
+          test "$html_count" -ge "$MIN_HTML"
+          if find "$DIST" ! -type f ! -type d -print -quit | grep -q .; then
+            echo 'Unexpected link or special file in built site' >&2
+            exit 1
+          fi
+          output="$RUNNER_TEMP/docs-snapshot-$SITE"
+          mkdir -p "$output"
+          tar -czf "$output/$SITE.tar.gz" -C "$DIST" .
+          archive_sha=$(sha256sum "$output/$SITE.tar.gz" | cut -d ' ' -f 1)
+          file_count=$(find "$DIST" -type f | wc -l)
+          printf '{"schema":"chainlesschain.docs-snapshot-build/v1","sourceCommit":"%s","runId":"%s","runAttempt":"%s","site":"%s","archive":"%s.tar.gz","archiveSha256":"%s","htmlPages":%s,"files":%s}\n' \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$SITE" "$SITE" "$archive_sha" "$html_count" "$file_count" > "$output/manifest.json"
+          printf '%s: %s HTML pages, %s files\n' "$SITE" "$html_count" "$file_count" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: docs-snapshot-${{ matrix.site }}-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/docs-snapshot-${{ matrix.site }}
+          if-no-files-found: error
+          retention-days: 30

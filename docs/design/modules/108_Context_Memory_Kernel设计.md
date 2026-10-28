@@ -1,6 +1,10 @@
 # 108 Context/Memory Kernel 设计
 
-<!-- docs-code-git-sync-2026-10-28 -->
+<!-- docs-code-git-sync-2026-10-29 -->
+
+## 2026-10-29 Memory 源码与测量范围
+
+当前公开 CLI **0.166.129** 继续配对 Context/Memory Kernel **0.1.10**；后续磁盘查询取消及分片解析缓存改动尚未发行。缓存复用前仍读取权威字节并校验 generation 与身份，不依赖时间戳。Linux 三档五场景各 100 次结果已核验一致，100K 热 / 冷 p95 为 72.194 / 486.836ms；Windows 本机 10K 为 354.161 / 1036.680ms，仍未达标。完整三系统、Stop / 并发和真实 IDE 验收继续进行，不能将单环境结果等同于整体 SLO。详见[来源与验收边界](../release-runtime-update-2026-10-29.md)，下方日期记录保留历史范围。
 
 ## 2026-10-28 CLI Memory 查询增量
 
