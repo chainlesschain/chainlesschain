@@ -4,17 +4,16 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { CODEX_APP_SERVER_SCHEMA_PROBE_VERSION as PROBE_VERSION } from "../src/lib/codex-app-server-support.js";
 
 const FIXTURE_ROOT = fileURLToPath(
   new URL("../__tests__/fixtures/external-agent/", import.meta.url),
 );
 const FILES = Object.freeze({
-  "ClientRequest.json": "codex-app-server-0.160.0-request.schema.json",
-  "ServerNotification.json":
-    "codex-app-server-0.160.0-notification.schema.json",
-  "ServerRequest.json": "codex-app-server-0.160.0-server-request.schema.json",
-  "CommandExecutionRequestApprovalResponse.json":
-    "codex-app-server-0.160.0-approval-response.schema.json",
+  "ClientRequest.json": `codex-app-server-${PROBE_VERSION}-request.schema.json`,
+  "ServerNotification.json": `codex-app-server-${PROBE_VERSION}-notification.schema.json`,
+  "ServerRequest.json": `codex-app-server-${PROBE_VERSION}-server-request.schema.json`,
+  "CommandExecutionRequestApprovalResponse.json": `codex-app-server-${PROBE_VERSION}-approval-response.schema.json`,
 });
 
 export function verifyGeneratedCodexSchemas(
@@ -35,7 +34,7 @@ export function verifyGeneratedCodexSchemas(
     };
   }
   return {
-    upstreamVersion: "0.160.0",
+    upstreamVersion: PROBE_VERSION,
     schemaMatches: true,
     productionAdmission: false,
     files,

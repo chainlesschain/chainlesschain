@@ -6,6 +6,10 @@ on:
     branches: [main, "feature/**"]
     paths:
       - "packages/cli/src/lib/codex-app-server-adapter.js"
+      - "packages/cli/src/lib/codex-app-server-support.js"
+      - "packages/cli/scripts/codex-app-server-support.mjs"
+      - "packages/cli/__tests__/unit/codex-app-server-support.test.js"
+      - "docs/cli/CODEX_APP_SERVER_SUPPORT.generated.md"
       - "packages/cli/src/lib/external-agent-adapters.js"
       - "packages/cli/scripts/codex-app-server-compatibility.mjs"
       - "packages/cli/scripts/verify-codex-app-server-schema.mjs"
@@ -19,6 +23,10 @@ on:
   pull_request:
     paths:
       - "packages/cli/src/lib/codex-app-server-adapter.js"
+      - "packages/cli/src/lib/codex-app-server-support.js"
+      - "packages/cli/scripts/codex-app-server-support.mjs"
+      - "packages/cli/__tests__/unit/codex-app-server-support.test.js"
+      - "docs/cli/CODEX_APP_SERVER_SUPPORT.generated.md"
       - "packages/cli/src/lib/external-agent-adapters.js"
       - "packages/cli/scripts/codex-app-server-compatibility.mjs"
       - "packages/cli/scripts/verify-codex-app-server-schema.mjs"
@@ -41,6 +49,28 @@ env:
   COMPAT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
+  support-config:
+    name: Read shared compatibility manifest
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      compatibility: ${{ steps.matrix.outputs.compatibility }}
+      schema: ${{ steps.matrix.outputs.schema }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.COMPAT_SHA }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${COMPAT_SHA}"
+      - id: matrix
+        run: node packages/cli/scripts/codex-app-server-support.mjs --github-output
+      - name: Check generated support documentation
+        run: node packages/cli/scripts/codex-app-server-support.mjs --check docs/cli/CODEX_APP_SERVER_SUPPORT.generated.md
+
   contracts:
     name: Adapter and fallback contracts
     runs-on: ubuntu-latest
@@ -68,16 +98,17 @@ jobs:
         run: >-
           npx vitest run
           packages/cli/__tests__/unit/codex-app-server-adapter.test.js
+          packages/cli/__tests__/unit/codex-app-server-support.test.js
           packages/cli/__tests__/unit/codex-app-server-official-schema.test.js
           packages/cli/__tests__/unit/codex-app-server-turn-probe.test.js
           packages/cli/__tests__/unit/external-agent-adapters.test.js
 
   upstream-schema:
-    name: Codex 0.160.0 schema and real turns (${{ matrix.runner }}, no admission)
+    name: Codex ${{ matrix.codex_version }} schema and real turns (${{ matrix.runner }}, no admission)
+    needs: support-config
     strategy:
       fail-fast: false
-      matrix:
-        runner: [ubuntu-latest, windows-latest, macos-latest]
+      matrix: ${{ fromJSON(needs.support-config.outputs.schema) }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
     steps:
@@ -93,9 +124,9 @@ jobs:
         shell: bash
         run: |
           test "$(git rev-parse HEAD)" = "${COMPAT_SHA}"
-          npm install --prefix "${RUNNER_TEMP}/codex-schema-install" --no-package-lock --no-save --ignore-scripts --no-audit --no-fund @openai/codex@0.160.0
+          npm install --prefix "${RUNNER_TEMP}/codex-schema-install" --no-package-lock --no-save --ignore-scripts --no-audit --no-fund "@openai/codex@${{ matrix.codex_version }}"
           CODEX_GENERATOR="${RUNNER_TEMP}/codex-schema-install/node_modules/@openai/codex/bin/codex.js"
-          test "$(node "${CODEX_GENERATOR}" --version)" = "codex-cli 0.160.0"
+          test "$(node "${CODEX_GENERATOR}" --version)" = "codex-cli ${{ matrix.codex_version }}"
           node "${CODEX_GENERATOR}" app-server generate-json-schema --out "${RUNNER_TEMP}/codex-generated-schema"
           node packages/cli/scripts/verify-codex-app-server-schema.mjs --schema-dir "${RUNNER_TEMP}/codex-generated-schema"
       - name: Exercise interleaved real turns, cancellation and admitted transport loss
@@ -109,32 +140,17 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: codex-real-turns-${{ matrix.runner }}-${{ env.COMPAT_SHA }}-${{ github.run_attempt }}
+          name: codex-real-turns-${{ matrix.codex_version }}-${{ matrix.runner }}-${{ env.COMPAT_SHA }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/codex-turn-probe/
           if-no-files-found: error
           retention-days: 90
 
   compatibility:
     name: ${{ matrix.platform }} / Codex ${{ matrix.codex_version }}
+    needs: support-config
     strategy:
       fail-fast: false
-      matrix:
-        platform:
-          - linux
-          - windows
-          - macos
-        codex_version:
-          - "0.149.0"
-          - "0.150.0"
-          - "0.150.1"
-          - "0.154.0"
-        include:
-          - platform: linux
-            runner: ubuntu-latest
-          - platform: windows
-            runner: windows-latest
-          - platform: macos
-            runner: macos-latest
+      matrix: ${{ fromJSON(needs.support-config.outputs.compatibility) }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
     steps:
@@ -191,6 +207,7 @@ jobs:
     name: Exact-SHA three-platform compatibility gate
     if: always() && (github.event_name != 'pull_request' && github.event_name != 'push' || !cancelled())
     needs:
+      - support-config
       - contracts
       - compatibility
       - upstream-schema
@@ -198,7 +215,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Refuse a partial or failed compatibility matrix
-        if: needs.contracts.result != 'success' || needs.compatibility.result != 'success' || needs.upstream-schema.result != 'success'
+        if: needs.support-config.result != 'success' || needs.contracts.result != 'success' || needs.compatibility.result != 'success' || needs.upstream-schema.result != 'success'
         shell: bash
         run: |
           echo "::error::Codex App Server compatibility matrix is incomplete"

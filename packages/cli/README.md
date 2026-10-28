@@ -2233,6 +2233,12 @@ chainlesschain orchestrate --webhook --webhook-port 9090   # Custom port
 
 **Auto-detected backends**: `claude` (CLI), `codex` (CLI), `gemini` / `openai` / `anthropic` (API key env vars), `ollama` (always included as local fallback).
 
+The external Codex backend uses `codex exec --json`. Its separate App Server
+adapter remains experimental and disabled by default. The
+[generated support matrix](../../docs/cli/CODEX_APP_SERVER_SUPPORT.generated.md)
+distinguishes the exact experimental allowlist, configured CI probes, and
+production admission. Probe configuration alone does not establish compatibility.
+
 **Notification channels** (configured via env vars):
 
 ```bash

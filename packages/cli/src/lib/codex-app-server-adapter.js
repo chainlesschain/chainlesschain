@@ -1,13 +1,17 @@
 import { EventEmitter } from "node:events";
-
-export const CODEX_APP_SERVER_PROTOCOL = "codex-app-server-experimental-v1";
-export const CODEX_APP_SERVER_FEATURE_FLAG = "CC_EXPERIMENTAL_CODEX_APP_SERVER";
-export const CODEX_APP_SERVER_COMPATIBILITY_MATRIX = Object.freeze([
-  Object.freeze({ version: "0.149.0" }),
-  Object.freeze({ version: "0.150.0" }),
-  Object.freeze({ version: "0.150.1" }),
-  Object.freeze({ version: "0.154.0" }),
-]);
+import {
+  CODEX_APP_SERVER_PROTOCOL,
+  CODEX_APP_SERVER_FEATURE_FLAG,
+  CODEX_APP_SERVER_FALLBACK_PROTOCOL,
+  CODEX_APP_SERVER_COMPATIBILITY_MATRIX,
+  getCodexAppServerSupport,
+  parseCodexVersion,
+} from "./codex-app-server-support.js";
+export {
+  CODEX_APP_SERVER_PROTOCOL,
+  CODEX_APP_SERVER_FEATURE_FLAG,
+  CODEX_APP_SERVER_COMPATIBILITY_MATRIX,
+} from "./codex-app-server-support.js";
 
 function adapterError(code, message, details = {}) {
   const error = new Error(message);
@@ -17,17 +21,10 @@ function adapterError(code, message, details = {}) {
   return error;
 }
 
-function parseVersion(value) {
-  const match = String(value || "")
-    .trim()
-    .match(/^(?:codex(?:-cli)?\s+)?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u);
-  return match ? match.slice(1).map(Number).join(".") : null;
-}
-
 export function isCodexAppServerVersionCompatible(version, matrix = []) {
-  const parsed = parseVersion(version);
+  const parsed = parseCodexVersion(version);
   if (!parsed || !Array.isArray(matrix) || matrix.length === 0) return false;
-  return matrix.some((entry) => parseVersion(entry?.version) === parsed);
+  return matrix.some((entry) => parseCodexVersion(entry?.version) === parsed);
 }
 
 function projectNotification(notification) {
@@ -182,11 +179,16 @@ export class CodexAppServerAdapter extends EventEmitter {
       productionCritical: false,
       featureFlag: CODEX_APP_SERVER_FEATURE_FLAG,
       enabled: this.enabled,
+      support: getCodexAppServerSupport(this.upstreamVersion),
+      compatibilitySource:
+        this.compatibilityMatrix === CODEX_APP_SERVER_COMPATIBILITY_MATRIX
+          ? "manifest"
+          : "override",
       versionCompatible: isCodexAppServerVersionCompatible(
         this.upstreamVersion,
         this.compatibilityMatrix,
       ),
-      fallback: "codex-exec-jsonl-v1",
+      fallback: CODEX_APP_SERVER_FALLBACK_PROTOCOL,
     });
   }
 
@@ -302,6 +304,7 @@ export class CodexAppServerAdapter extends EventEmitter {
     const buildResult = (terminalEvent) =>
       Object.freeze({
         protocol: CODEX_APP_SERVER_PROTOCOL,
+        support: claims.support,
         threadId: activeThreadId,
         turnId: activeTurnId,
         terminal: terminalEvent.terminal,
@@ -388,13 +391,23 @@ export class CodexAppServerAdapter extends EventEmitter {
         throw adapterError(
           "CC_CODEX_APP_SERVER_SUBMISSION_UNKNOWN",
           "Codex App Server turn submission outcome is unknown; fallback was suppressed to prevent duplicate effects",
-          { cause: error },
+          {
+            cause: error,
+            protocol: CODEX_APP_SERVER_PROTOCOL,
+            fallbackSuppressed: true,
+            support: claims.support,
+          },
         );
       }
       throw adapterError(
         "CC_CODEX_APP_SERVER_FAILED_AFTER_ADMISSION",
         "Codex App Server failed after the turn was admitted; fallback was suppressed to prevent duplicate effects",
-        { cause: error },
+        {
+          cause: error,
+          protocol: CODEX_APP_SERVER_PROTOCOL,
+          fallbackSuppressed: true,
+          support: claims.support,
+        },
       );
     } finally {
       clearTimeout(timer);
@@ -412,7 +425,8 @@ export class CodexAppServerAdapter extends EventEmitter {
     const result = await this.fallback({ prompt, ...options });
     return Object.freeze({
       ...result,
-      protocol: "codex-exec-jsonl-v1",
+      protocol: CODEX_APP_SERVER_FALLBACK_PROTOCOL,
+      support: getCodexAppServerSupport(this.upstreamVersion),
       fallback: true,
       fallbackReason: reason,
       authoritative: false,

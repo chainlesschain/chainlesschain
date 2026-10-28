@@ -20,8 +20,9 @@ import { StringDecoder } from "node:string_decoder";
 import { fileURLToPath } from "node:url";
 import Ajv from "ajv";
 import { CodexAppServerAdapter } from "../src/lib/codex-app-server-adapter.js";
+import { CODEX_APP_SERVER_SCHEMA_PROBE_VERSION } from "../src/lib/codex-app-server-support.js";
 
-export const PROBE_VERSION = "0.160.0";
+export const PROBE_VERSION = CODEX_APP_SERVER_SCHEMA_PROBE_VERSION;
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const SCENARIOS = [
   "completed",

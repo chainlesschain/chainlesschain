@@ -19,11 +19,16 @@ import {
   isCodexAppServerVersionCompatible,
 } from "../src/lib/codex-app-server-adapter.js";
 import { EXTERNAL_AGENT_PROTOCOL } from "../src/lib/external-agent-adapters.js";
+import { CODEX_APP_SERVER_SUPPORT } from "../src/lib/codex-app-server-support.js";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const PLATFORMS = Object.freeze(["linux", "macos", "windows"]);
+const PLATFORMS = Object.freeze(
+  CODEX_APP_SERVER_SUPPORT.platforms.map((entry) => entry.platform),
+);
 const VERSIONS = Object.freeze(
-  CODEX_APP_SERVER_COMPATIBILITY_MATRIX.map((entry) => entry.version),
+  CODEX_APP_SERVER_SUPPORT.versions
+    .filter((entry) => entry.compatibilityProbeConfigured)
+    .map((entry) => entry.version),
 );
 const REQUIRED_SCHEMA_METHODS = Object.freeze([
   "initialize",

@@ -1,0 +1,212 @@
+{
+  "schema": "chainlesschain.codex-support-manifest-local-verification/v1",
+  "createdAt": "2026-10-28T01:52:39.965Z",
+  "baseCommit": "b7616df7f423b33a36aa6ca09885efbee43795d7",
+  "branch": "feature/cli-codex-compatibility-manifest-20261028",
+  "sourceState": "uncommitted-working-tree",
+  "sourceFiles": [
+    {
+      "path": ".github/workflows/codex-app-server-compatibility.yml",
+      "sha256": "0139879625964f37fbfe0bc5f1824249300cec3c0ae272d727a80a125cecd7a2"
+    },
+    {
+      "path": "packages/cli/src/lib/codex-app-server-support.js",
+      "sha256": "459553c3ecab5c1cf26f94f1da5299e36fb6dfd8bebf91bcc8855975fa297997"
+    },
+    {
+      "path": "packages/cli/src/lib/codex-app-server-adapter.js",
+      "sha256": "2cbcdd47df66418a26ff3f7fe3392e75636f12c3167c89bb3112eaa688838afb"
+    },
+    {
+      "path": "packages/cli/scripts/codex-app-server-support.mjs",
+      "sha256": "f897dd52edae0c793e9b971207b24a1b27c0b2da04511545281515f00b2d8caf"
+    },
+    {
+      "path": "packages/cli/scripts/codex-app-server-compatibility.mjs",
+      "sha256": "02030c56ed39cbcf160b8ef89f12e186b019b44c21f39cb6fd990dc738eab2fd"
+    },
+    {
+      "path": "packages/cli/scripts/codex-app-server-turn-probe.mjs",
+      "sha256": "2c3b78c52839901f1e508fe8e26a0c69db4bcb47b52fb14242a71a7795824975"
+    },
+    {
+      "path": "packages/cli/scripts/verify-codex-app-server-schema.mjs",
+      "sha256": "ff572aac2332a42b62ae25e8285c13fd5a0e8c22c37295a6533e3464519bb106"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/codex-app-server-support.test.js",
+      "sha256": "fdfd2dc6a29a87acc163215eb0177447be759e23d2c8d6d45aecf58f0eb17d76"
+    },
+    {
+      "path": "packages/cli/README.md",
+      "sha256": "0dd1a143baa3459cd276fa34d5e29d2a06f399020b6830c17e78c63d7e02e0ed"
+    },
+    {
+      "path": "docs/cli/CODEX_APP_SERVER_SUPPORT.generated.md",
+      "sha256": "29ffe726a896210cb0ceec56db78bf6a76421dcc28522c4febe932ee5e5f9571"
+    },
+    {
+      "path": "docs/research/cli-ide-codex-claude-gap-review-2026-10-27.md",
+      "sha256": "b95e74471168c39be55f763054f4e353f363bb4a8fffe7d925e987fa611df589"
+    },
+    {
+      "path": "docs/research/cli-ide-codex-compatibility-progress-2026-10-28.md",
+      "sha256": "7f5f6d4aa5442395a0034741266a99cb1ec5e0da0fcd14a525129154651b2557"
+    }
+  ],
+  "environment": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2",
+    "vitest": "4.1.11"
+  },
+  "checks": {
+    "unit": {
+      "status": "passed",
+      "cwd": "packages/cli",
+      "command": "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/codex-app-server-support.test.js __tests__/unit/codex-app-server-adapter.test.js __tests__/unit/codex-app-server-official-schema.test.js __tests__/unit/codex-app-server-turn-probe.test.js __tests__/unit/external-agent-adapters.test.js --maxWorkers 1 --reporter=default --reporter=json --outputFile=../../docs/research/cli/evidence/codex-compatibility-manifest-2026-10-28/unit-results.json",
+      "filesPassed": 5,
+      "passed": 64,
+      "failed": 0,
+      "pending": 0,
+      "report": "unit-results.json",
+      "reportSha256": "35367f93a022302f6c56f44ac0ef57b6442934780ca7cc85b1eb4a9a49d21afe"
+    },
+    "syntax": {
+      "status": "passed",
+      "files": [
+        "packages/cli/src/lib/codex-app-server-support.js",
+        "packages/cli/src/lib/codex-app-server-adapter.js",
+        "packages/cli/scripts/codex-app-server-support.mjs",
+        "packages/cli/scripts/codex-app-server-compatibility.mjs",
+        "packages/cli/scripts/codex-app-server-turn-probe.mjs",
+        "packages/cli/scripts/verify-codex-app-server-schema.mjs",
+        "packages/cli/__tests__/unit/codex-app-server-support.test.js"
+      ]
+    },
+    "prettier": {
+      "status": "passed",
+      "files": [
+        ".github/workflows/codex-app-server-compatibility.yml",
+        "packages/cli/src/lib/codex-app-server-support.js",
+        "packages/cli/src/lib/codex-app-server-adapter.js",
+        "packages/cli/scripts/codex-app-server-support.mjs",
+        "packages/cli/scripts/codex-app-server-compatibility.mjs",
+        "packages/cli/scripts/codex-app-server-turn-probe.mjs",
+        "packages/cli/scripts/verify-codex-app-server-schema.mjs",
+        "packages/cli/__tests__/unit/codex-app-server-support.test.js",
+        "docs/cli/CODEX_APP_SERVER_SUPPORT.generated.md",
+        "docs/research/cli-ide-codex-claude-gap-review-2026-10-27.md",
+        "docs/research/cli-ide-codex-compatibility-progress-2026-10-28.md"
+      ]
+    },
+    "generatedSupportDocument": {
+      "status": "passed",
+      "command": "node packages/cli/scripts/codex-app-server-support.mjs --check docs/cli/CODEX_APP_SERVER_SUPPORT.generated.md"
+    },
+    "workflowLint": {
+      "status": "passed",
+      "command": "actionlint .github/workflows/codex-app-server-compatibility.yml"
+    },
+    "diffWhitespace": {
+      "status": "passed",
+      "command": "git diff --check"
+    },
+    "eslint": {
+      "status": "blocked_missing_local_dependency",
+      "missingModule": "@eslint-community/eslint-utils",
+      "exitCode": 1
+    }
+  },
+  "configuredMatrices": {
+    "compatibility": {
+      "include": [
+        {
+          "platform": "linux",
+          "runner": "ubuntu-latest",
+          "codex_version": "0.149.0"
+        },
+        {
+          "platform": "windows",
+          "runner": "windows-latest",
+          "codex_version": "0.149.0"
+        },
+        {
+          "platform": "macos",
+          "runner": "macos-latest",
+          "codex_version": "0.149.0"
+        },
+        {
+          "platform": "linux",
+          "runner": "ubuntu-latest",
+          "codex_version": "0.150.0"
+        },
+        {
+          "platform": "windows",
+          "runner": "windows-latest",
+          "codex_version": "0.150.0"
+        },
+        {
+          "platform": "macos",
+          "runner": "macos-latest",
+          "codex_version": "0.150.0"
+        },
+        {
+          "platform": "linux",
+          "runner": "ubuntu-latest",
+          "codex_version": "0.150.1"
+        },
+        {
+          "platform": "windows",
+          "runner": "windows-latest",
+          "codex_version": "0.150.1"
+        },
+        {
+          "platform": "macos",
+          "runner": "macos-latest",
+          "codex_version": "0.150.1"
+        },
+        {
+          "platform": "linux",
+          "runner": "ubuntu-latest",
+          "codex_version": "0.154.0"
+        },
+        {
+          "platform": "windows",
+          "runner": "windows-latest",
+          "codex_version": "0.154.0"
+        },
+        {
+          "platform": "macos",
+          "runner": "macos-latest",
+          "codex_version": "0.154.0"
+        }
+      ]
+    },
+    "schema": {
+      "include": [
+        {
+          "platform": "linux",
+          "runner": "ubuntu-latest",
+          "codex_version": "0.160.0"
+        },
+        {
+          "platform": "windows",
+          "runner": "windows-latest",
+          "codex_version": "0.160.0"
+        },
+        {
+          "platform": "macos",
+          "runner": "macos-latest",
+          "codex_version": "0.160.0"
+        }
+      ]
+    }
+  },
+  "githubActionsExecuted": false,
+  "crossPlatformMatrixVerified": false,
+  "upstreamCodexProcessesRun": 0,
+  "providerCalls": 0,
+  "publicationPerformed": false,
+  "productionAdmissionChanged": false
+}
