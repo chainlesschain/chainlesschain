@@ -286,9 +286,11 @@ export async function runHistoryProbe({
       sandbox: "read-only",
       approvalPolicy: "never",
     };
-    const main = await request("thread/start", startParams);
+    const [main, other] = await Promise.all([
+      request("thread/start", startParams),
+      request("thread/start", startParams),
+    ]);
     const first = await execute(main.thread.id, "history-main-1");
-    const other = await request("thread/start", startParams);
     const unrelated = await execute(other.thread.id, "history-other-1");
     closures.push(await client.stop());
     assert.equal(client.running, false);
@@ -299,6 +301,9 @@ export async function runHistoryProbe({
       modelProviders: ["fixture"],
       sourceKinds: [main.thread.source],
       sortDirection: "asc",
+      // The rollout-scan cursor can omit a same-second sibling. The state DB
+      // returns an opaque cursor containing the timestamp and thread identity.
+      useStateDbOnly: true,
     });
     assert.deepEqual(
       new Set(listed.data.map((entry) => entry.id)),
@@ -387,6 +392,10 @@ export async function runHistoryProbe({
       productionAdmission: false,
       processRestarted: true,
       threadSource: main.thread.source,
+      threadListMode: "state-db-only",
+      threadCreationTimes: [main.thread.createdAt, other.thread.createdAt],
+      sameCreatedAtSecond: main.thread.createdAt === other.thread.createdAt,
+      rolloutScanPaginationVerified: false,
       settingsRestored: true,
       completedRequestReplayed: false,
       threadPages: listed.pages,

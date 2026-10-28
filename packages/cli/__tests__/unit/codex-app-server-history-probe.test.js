@@ -6,16 +6,22 @@ describe("bounded Codex history pagination", () => {
     const request = vi
       .fn()
       .mockResolvedValueOnce({
-        data: [{ id: "old" }],
+        data: [{ id: "old", createdAt: 10 }],
         nextCursor: "opaque+/==",
       })
-      .mockResolvedValueOnce({ data: [{ id: "new" }], nextCursor: null });
+      .mockResolvedValueOnce({
+        data: [{ id: "new", createdAt: 10 }],
+        nextCursor: null,
+      });
     const result = await collectHistoryPages(request, "thread/turns/list", {
       threadId: "main",
       limit: 1,
       sortDirection: "asc",
     });
-    expect(result.data).toEqual([{ id: "old" }, { id: "new" }]);
+    expect(result.data).toEqual([
+      { id: "old", createdAt: 10 },
+      { id: "new", createdAt: 10 },
+    ]);
     expect(request.mock.calls).toEqual([
       [
         "thread/turns/list",
