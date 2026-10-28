@@ -157,7 +157,7 @@ def capture():
         tap_text(['个人助手', 'Personal Assistant', 'Assistant'], bottom=True)
         images.append(screenshot('android-assistant-5.0.3.143', ['个人助手', 'Personal Assistant', 'Assistant']))
         tap_text(['个人中心', 'Profile', 'Me'], bottom=True)
-        images.append(screenshot('android-profile-5.0.3.143', ['设置', 'Settings', '关于', 'About']))
+        images.append(screenshot('android-profile-5.0.3.143', ['Device ID:', '设备ID', 'AI Configuration', 'AI配置']))
         receipt = {
             'schema': 'chainlesschain.android-product-capture/v1',
             'status': 'captured-awaiting-visual-review',
