@@ -124,6 +124,56 @@ describe("agent-core auto-checkpoint (before mutating tools)", () => {
     expect(listCheckpoints(repo, { session: "t3" }).length).toBe(0);
   });
 
+  it.each([
+    "status --short",
+    "git diff --stat",
+    "log -n 1 --oneline",
+    "show --stat HEAD",
+    "rev-parse --show-toplevel",
+  ])(
+    "does not snapshot the workspace before read-only git: %s",
+    async (command) => {
+      // Dirty files must not turn a read into a whole-workspace checkpoint.
+      writeFileSync(join(repo, "seed.txt"), "changed\n", "utf8");
+      const events = await runLoop([{ role: "user", content: "inspect git" }], {
+        cwd: repo,
+        chatFn: scriptedChat("git", { command }),
+        autoCheckpoint: true,
+        managedCheckpoint: true,
+        managedCheckpointStateDir: managedStateDir,
+        checkpointSession: "git-read",
+      });
+      expect(events.some((e) => e.type === "tool-executing")).toBe(true);
+      expect(
+        events.find((e) => e.type === "tool-result")?.result.exitCode,
+      ).toBe(0);
+      expect(events.some((e) => e.type === "checkpoint")).toBe(false);
+      expect(events.some((e) => e.type === "managed-checkpoint")).toBe(false);
+      expect(listCheckpoints(repo, { session: "git-read" })).toEqual([]);
+      expect(readFileSync(join(repo, "seed.txt"), "utf8")).toBe("changed\n");
+    },
+  );
+
+  it.each([
+    "add seed.txt",
+    "diff --output=changes.diff",
+    "diff --out=changes.diff",
+  ])("retains the checkpoint for git writes: %s", async (command) => {
+    writeFileSync(join(repo, "seed.txt"), "changed\n", "utf8");
+    const events = await runLoop([{ role: "user", content: "run git" }], {
+      cwd: repo,
+      chatFn: scriptedChat("git", { command }),
+      autoCheckpoint: true,
+      checkpointSession: "git-write",
+    });
+    const cpIndex = events.findIndex((e) => e.type === "checkpoint");
+    expect(cpIndex).toBeGreaterThanOrEqual(0);
+    expect(cpIndex).toBeLessThan(
+      events.findIndex((e) => e.type === "tool-executing"),
+    );
+    expect(listCheckpoints(repo, { session: "git-write" })).toHaveLength(1);
+  });
+
   it("is a no-op outside a git work tree", async () => {
     const plain = mkdtempSync(join(tmpdir(), "cc-autocp-nogit-"));
     try {

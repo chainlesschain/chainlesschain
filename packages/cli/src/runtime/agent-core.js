@@ -13581,6 +13581,31 @@ const _CHECKPOINT_READ_ONLY = new Set([
   "search_sessions",
 ]);
 
+function isCheckpointReadOnly(toolContext, toolName, toolArgs) {
+  if (_CHECKPOINT_READ_ONLY.has(toolName)) return true;
+  if (
+    toolName !== "git" ||
+    toolContext.externalToolExecutors?.git ||
+    !isReadOnlyGitCommand(toolArgs?.command)
+  )
+    return false;
+  const command = normalizeGitCommand(toolArgs.command);
+  if (gitToolInputError(command)) return false;
+  // Read commands can explicitly write output or invoke external drivers.
+  // Keep their recovery snapshot, including abbreviated long options.
+  const args = tokenizeShellWords(command).slice(1);
+  const separator = args.indexOf("--");
+  return !(separator < 0 ? args : args.slice(0, separator)).some((arg) => {
+    const option = arg.split("=", 1)[0];
+    return (
+      option.startsWith("--") &&
+      ["--output", "--ext-diff", "--textconv"].some((flag) =>
+        flag.startsWith(option),
+      )
+    );
+  });
+}
+
 // Rolling cap on auto-checkpoints per agent session — the engine prunes the
 // oldest beyond this so a long run can't accumulate unbounded refs.
 const MAX_AUTO_CHECKPOINTS_PER_SESSION = 100;
@@ -13603,7 +13628,7 @@ function _loadCheckpointStore() {
  */
 async function _autoCheckpointBeforeTool(toolContext, toolName, toolArgs) {
   if (!toolContext?.autoCheckpoint) return null;
-  if (_CHECKPOINT_READ_ONLY.has(toolName)) return null;
+  if (isCheckpointReadOnly(toolContext, toolName, toolArgs)) return null;
   const cwd = toolContext.cwd || process.cwd();
   try {
     const store = await _loadCheckpointStore();
@@ -17279,6 +17304,7 @@ export async function* agentLoop(messages, options) {
       try {
         managedCheckpointHandle = beginManagedToolCheckpoint({
           enabled: toolContext.managedCheckpoint === true,
+          readOnly: isCheckpointReadOnly(toolContext, toolName, toolArgs),
           broker,
           workspaceRoot: toolContext.cwd || process.cwd(),
           stateDir: toolContext.managedCheckpointStateDir || undefined,
