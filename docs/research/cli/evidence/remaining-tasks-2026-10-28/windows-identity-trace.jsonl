@@ -1,0 +1,10 @@
+{"at":"2026-10-28T03:14:32.328Z","pid":3388,"identity":"global","args":["--version"],"mode":"valid"}
+{"at":"2026-10-28T03:14:32.693Z","pid":8500,"identity":"global","args":["--version"],"mode":"valid"}
+{"at":"2026-10-28T03:14:44.207Z","pid":8940,"identity":"global","args":["--version"],"mode":"valid"}
+{"at":"2026-10-28T03:14:44.243Z","pid":1336,"identity":"global","args":["--version"],"mode":"valid"}
+{"at":"2026-10-28T03:14:44.328Z","pid":4860,"identity":"global","args":["--version"],"mode":"valid"}
+{"at":"2026-10-28T03:14:44.339Z","pid":1976,"identity":"global","args":["--version"],"mode":"valid"}
+{"at":"2026-10-28T03:14:44.438Z","pid":5640,"identity":"global","args":["llm","capabilities","--json"],"mode":"valid"}
+{"at":"2026-10-28T03:14:48.335Z","pid":9228,"identity":"explicit","args":["--version"],"mode":"valid"}
+{"at":"2026-10-28T03:14:48.340Z","pid":7928,"identity":"explicit","args":["--version"],"mode":"valid"}
+{"at":"2026-10-28T03:14:48.582Z","pid":1352,"identity":"explicit","args":["llm","capabilities","--json"],"mode":"valid"}

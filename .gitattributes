@@ -195,6 +195,7 @@ docs/research/cli/evidence/recovery-2026-10-24/native-module-realms/preparation.
 docs/research/cli/evidence/recovery-2026-10-24/native-module-realms/README.md -linguist-generated
 
 # Canonical/bundled changelog parity failure and regeneration preserve raw bytes.
+docs/research/cli/evidence/remaining-tasks-2026-10-28/** -text !eol -whitespace
 docs/research/cli/evidence/recovery-2026-10-24/changelog-artifact-parity/** -text !eol -whitespace linguist-generated
 docs/research/cli/evidence/recovery-2026-10-24/changelog-artifact-parity/preparation.json -linguist-generated
 docs/research/cli/evidence/recovery-2026-10-24/changelog-artifact-parity/README.md -linguist-generated

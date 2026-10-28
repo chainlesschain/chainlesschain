@@ -1,0 +1,31 @@
+{
+  "scope": "real-intellij-onboarding-local-command-fixtures",
+  "formalSample": false,
+  "providerAssessed": false,
+  "publicInstallationAssessed": false,
+  "passed": false,
+  "root": "/private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/cc-onboard-dlMtIt",
+  "platform": "darwin",
+  "node": "v22.12.0",
+  "arch": "x64",
+  "hostVersion": "2024.2",
+  "source": {
+    "commit": "01df0c65f16d86031bb0d53f54ac9f137ba5fee9",
+    "dirty": false,
+    "files": {
+      "src/main/java/com/chainlesschain/ide/AgentChatSession.java": "sha256:3146b03c1967d372d0799cf717dec04d47d6ad1dfeff7e52ddaa9018978e9c01",
+      "src/main/java/com/chainlesschain/ide/CliLauncher.java": "sha256:6efad7e8f3e395196584c0d9f3fe99d0a01f6c59a1c2865415164463d81d9192",
+      "src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:18dd249d1b8209301ee8fcfc901384d182e4cbdb7996e85f3ecd8c992cd7eb3e",
+      "src/main/java/com/chainlesschain/ide/intellij/CcConfigurable.java": "sha256:e28245f23723bafc7bb1bd532213637b049ce70df83007fbcb950371a7976708",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.java": "sha256:47a9d3b71191489c17f834f1c127e080e48f3ee6cc70f6062df1c26f75d75db4",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java": "sha256:44cb87d4c64437b64204a4bca9d7faaec68a6cbbff8b7303c491e17e7597337b",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java": "sha256:29655e9a949948528018ad85baf368e5240445216caa747719c95d6c83903e0b",
+      "build.gradle.kts": "sha256:d8730db36d449c2f0e73a67335c20aa34cf90cbbb2c509955fc26c6c61f029a5",
+      "scripts/onboarding-diagnostic.mjs": "sha256:6a576f3c88c6a10e08bd4b67379993893d744a48fb8f745b10dfc863bf410a5b"
+    },
+    "fixtureDigest": "sha256:5575775278e8f2065d29b78c7fc4fa71cc888286292731221fc66148b6422238"
+  },
+  "pluginVersion": "0.4.183",
+  "pluginDigest": "sha256:be71d44895bf740fea0e9771e9b5d991ac8f468283208ee41752f579df5d29e1",
+  "error": "Error: onboarding UI journey exited 1/null\n    at file:///Users/runner/work/chainlesschain/chainlesschain/scripts/lib/verify01-diagnostic-process.mjs:500:15\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async preserveFailureDuringCleanup (file:///Users/runner/work/chainlesschain/chainlesschain/scripts/lib/verify01-diagnostic-process.mjs:457:14)\n    at async file:///Users/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/scripts/onboarding-diagnostic.mjs:215:3"
+}

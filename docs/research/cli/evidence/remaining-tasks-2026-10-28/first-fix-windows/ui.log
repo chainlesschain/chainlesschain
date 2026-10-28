@@ -1,0 +1,64 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :checkKotlinGradlePluginConfigurationErrors
+> Task :compileUiTestKotlin NO-SOURCE
+> Task :compileUiTestJava UP-TO-DATE
+> Task :initializeIntellijPlatformPlugin
+> Task :patchPluginXml UP-TO-DATE
+> Task :processUiTestResources UP-TO-DATE
+> Task :uiTestClasses UP-TO-DATE
+> Task :uiSmokeTest
+
+IdeUiSmokeTest > chainlessChainChatAndControlJourney() FAILED
+    java.lang.AssertionError: valid did not settle: {"initializationTimeoutSeconds":120,"processId":"2252","profile":"D:\\a\\chainlesschain\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\cc-onboard-z1idoA\\IC-2024.2\\config_runIdeForUiTests","id":"51e5bdc1-9344-48ea-a681-96b5b6ad56f9","sessionId":"panel-1793163147580-489c6e","tabs":[{"id":"8fc7cee9-9cd0-426f-b94a-a8024ef2d916","index":0,"selected":false},{"id":"51e5bdc1-9344-48ea-a681-96b5b6ad56f9","index":1,"selected":true}],"inputText":"","editable":true,"sendInFlight":false,"childRunning":false,"childProcessId":"","childProcessIds":[],"turnActive":false,"interruptPending":false,"receiptReady":false,"draftStatus":"Saved input restored for editing; it has not been sent","historyStatus":" ","binaryChoice":"null","text":"LLM configuration could not be read. Check Diagnose Bridge and the configuration file before changing saved settings or re-entering the API key.\n","visible":true,"savedRows":[],"observedAt":"2026-10-28T04:53:27.807688300Z"}
+        at com.chainlesschain.ide.uitest.ConversationRecoveryJourney.waitFor(ConversationRecoveryJourney.java:136)
+        at com.chainlesschain.ide.uitest.ConversationRecoveryJourney.waitFor(ConversationRecoveryJourney.java:126)
+        at com.chainlesschain.ide.uitest.OnboardingIdentityJourney.observe(OnboardingIdentityJourney.java:108)
+        at com.chainlesschain.ide.uitest.OnboardingIdentityJourney.run(OnboardingIdentityJourney.java:31)
+        at com.chainlesschain.ide.uitest.IdeUiSmokeTest.chainlessChainChatAndControlJourney(IdeUiSmokeTest.java:84)
+
+NativeTranscriptProbeTest > acceptsOnlyTheCurrentValidatedFixtureIdentity() PASSED
+
+NativeTranscriptProbeTest > rejectsEdtInvocationBeforeAttemptingAnyCliProbe() PASSED
+
+PluginStartupContractTest > doesNotTreatAnUnexpectedNullResponseAsStartupReadiness() PASSED
+
+PluginStartupContractTest > rejectsContractDriftImmediatelyAfterStartup() PASSED
+
+PluginStartupContractTest > propagatesRemoteClassLoadingFailuresWithoutRetry() PASSED
+
+PluginStartupContractTest > failsWithAReadinessDiagnosticIfTheLoaderNeverAppears() PASSED
+
+PluginStartupContractTest > waitsForThePluginLoaderAfterTheFrameAppears() PASSED
+
+Verify01HostJourneyTest > multipleGenerationsAndObserverErrorsFailClosed() PASSED
+
+Verify01HostJourneyTest > exitZeroWithoutInitStillCannotCountAsTaskCompletion() PASSED
+
+Verify01HostJourneyTest > initOrInputExcludesPreInitVerdictAndForeignInitIsNotOwned() PASSED
+
+Verify01HostJourneyTest > soleRealExitFailsImmediatelyAndRetainsExactOriginalBytes() PASSED
+
+Verify01HostJourneyTest > existingTerminalAndDrainedExitRequirementsRemainIntact() PASSED
+
+Verify01HostJourneyTest > diagnosticsKeepObservedTextAndReadinessWithoutInventingOutput() PASSED
+
+Verify01HostJourneyTest > diagnosticFailureOrTimeoutCannotBecomeTaskSuccess() PASSED
+
+Verify01HostJourneyTest > incompleteOrUndrainedExitIsNotPrematurelyAttributed() PASSED
+
+16 tests completed, 1 failed
+
+> Task :uiSmokeTest FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':uiSmokeTest'.
+> There were failing tests. See the report at: file:///D:/a/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/reports/tests/uiSmokeTest/index.html
+
+* Try:
+> Run with --scan to get full insights.
+
+BUILD FAILED in 1m 43s
+6 actionable tasks: 3 executed, 3 up-to-date
