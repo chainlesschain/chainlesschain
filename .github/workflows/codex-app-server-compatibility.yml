@@ -14,6 +14,8 @@ on:
       - "packages/cli/scripts/codex-app-server-compatibility.mjs"
       - "packages/cli/scripts/verify-codex-app-server-schema.mjs"
       - "packages/cli/scripts/codex-app-server-turn-probe.mjs"
+      - "packages/cli/scripts/codex-app-server-history-probe.mjs"
+      - "packages/cli/__tests__/unit/codex-app-server-history-probe.test.js"
       - "packages/cli/__tests__/unit/codex-app-server-turn-probe.test.js"
       - "packages/cli/__tests__/fixtures/external-agent/codex-app-server*"
       - "packages/cli/__tests__/unit/codex-app-server-official-schema.test.js"
@@ -31,6 +33,8 @@ on:
       - "packages/cli/scripts/codex-app-server-compatibility.mjs"
       - "packages/cli/scripts/verify-codex-app-server-schema.mjs"
       - "packages/cli/scripts/codex-app-server-turn-probe.mjs"
+      - "packages/cli/scripts/codex-app-server-history-probe.mjs"
+      - "packages/cli/__tests__/unit/codex-app-server-history-probe.test.js"
       - "packages/cli/__tests__/unit/codex-app-server-turn-probe.test.js"
       - "packages/cli/__tests__/fixtures/external-agent/codex-app-server*"
       - "packages/cli/__tests__/unit/codex-app-server-official-schema.test.js"
@@ -101,6 +105,7 @@ jobs:
           packages/cli/__tests__/unit/codex-app-server-support.test.js
           packages/cli/__tests__/unit/codex-app-server-official-schema.test.js
           packages/cli/__tests__/unit/codex-app-server-turn-probe.test.js
+          packages/cli/__tests__/unit/codex-app-server-history-probe.test.js
           packages/cli/__tests__/unit/external-agent-adapters.test.js
 
   upstream-schema:
@@ -128,14 +133,23 @@ jobs:
           CODEX_GENERATOR="${RUNNER_TEMP}/codex-schema-install/node_modules/@openai/codex/bin/codex.js"
           test "$(node "${CODEX_GENERATOR}" --version)" = "codex-cli ${{ matrix.codex_version }}"
           node "${CODEX_GENERATOR}" app-server generate-json-schema --out "${RUNNER_TEMP}/codex-generated-schema"
-          node packages/cli/scripts/verify-codex-app-server-schema.mjs --schema-dir "${RUNNER_TEMP}/codex-generated-schema"
+          node packages/cli/scripts/verify-codex-app-server-schema.mjs --schema-dir "${RUNNER_TEMP}/codex-generated-schema" --version "${{ matrix.codex_version }}"
       - name: Exercise interleaved real turns, cancellation and admitted transport loss
         shell: bash
         run: >-
           node packages/cli/scripts/codex-app-server-turn-probe.mjs
+          --version "${{ matrix.codex_version }}"
           --commit-sha "${COMPAT_SHA}"
           --codex-js "${RUNNER_TEMP}/codex-schema-install/node_modules/@openai/codex/bin/codex.js"
           --output "${RUNNER_TEMP}/codex-turn-probe/report.json"
+      - name: Verify restart, restored settings and thread and turn pagination
+        shell: bash
+        run: >-
+          node packages/cli/scripts/codex-app-server-history-probe.mjs
+          --version "${{ matrix.codex_version }}"
+          --commit-sha "${COMPAT_SHA}"
+          --codex-js "${RUNNER_TEMP}/codex-schema-install/node_modules/@openai/codex/bin/codex.js"
+          --output "${RUNNER_TEMP}/codex-turn-probe/history.json"
       - name: Retain real-process protocol evidence
         uses: actions/upload-artifact@v6
         if: always()

@@ -22,12 +22,14 @@ export const CODEX_APP_SERVER_SUPPORT = Object.freeze({
         schemaAndTurnProbeConfigured: false,
       }),
     ),
-    Object.freeze({
-      version: "0.160.0",
-      experimentalAllowed: false,
-      compatibilityProbeConfigured: false,
-      schemaAndTurnProbeConfigured: true,
-    }),
+    ...["0.160.0", "0.164.0"].map((version) =>
+      Object.freeze({
+        version,
+        experimentalAllowed: false,
+        compatibilityProbeConfigured: false,
+        schemaAndTurnProbeConfigured: true,
+      }),
+    ),
   ]),
 });
 
@@ -37,10 +39,14 @@ export const CODEX_APP_SERVER_COMPATIBILITY_MATRIX = Object.freeze(
     .map(({ version }) => Object.freeze({ version })),
 );
 
+export const CODEX_APP_SERVER_SCHEMA_PROBE_VERSIONS = Object.freeze(
+  CODEX_APP_SERVER_SUPPORT.versions
+    .filter((entry) => entry.schemaAndTurnProbeConfigured)
+    .map((entry) => entry.version),
+);
+// Keep the original default for callers that do not specify a probe version.
 export const CODEX_APP_SERVER_SCHEMA_PROBE_VERSION =
-  CODEX_APP_SERVER_SUPPORT.versions.find(
-    (entry) => entry.schemaAndTurnProbeConfigured,
-  ).version;
+  CODEX_APP_SERVER_SCHEMA_PROBE_VERSIONS[0];
 
 export function parseCodexVersion(value) {
   const match = String(value || "")

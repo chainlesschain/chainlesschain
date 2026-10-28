@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CODEX_APP_SERVER_COMPATIBILITY_MATRIX,
   CODEX_APP_SERVER_SCHEMA_PROBE_VERSION,
+  CODEX_APP_SERVER_SCHEMA_PROBE_VERSIONS,
   CODEX_APP_SERVER_SUPPORT,
   codexAppServerCiMatrices,
   getCodexAppServerSupport,
@@ -44,36 +45,39 @@ afterEach(() => {
 });
 
 describe("shared external Codex support boundary", () => {
-  it("keeps configured probes separate from experimental and production admission", () => {
-    const support = getCodexAppServerSupport("codex-cli 0.160.0");
-    expect(support).toMatchObject({
-      upstreamVersion: "0.160.0",
-      knownVersion: true,
-      defaultEnabled: false,
-      productionAdmitted: false,
-      experimentalAllowed: false,
-      compatibilityProbeConfigured: false,
-      schemaAndTurnProbeConfigured: true,
-    });
-    expect(
-      isCodexAppServerVersionCompatible(
-        "0.160.0",
-        CODEX_APP_SERVER_COMPATIBILITY_MATRIX,
-      ),
-    ).toBe(false);
-    expect(
-      Object.keys(support).some((key) => /passed|verified/i.test(key)),
-    ).toBe(false);
-    expect(PROBE_VERSION).toBe(CODEX_APP_SERVER_SCHEMA_PROBE_VERSION);
-    expect(
-      CODEX_APP_SERVER_SUPPORT.versions.filter(
-        (entry) => entry.schemaAndTurnProbeConfigured,
-      ),
-    ).toHaveLength(1);
-  });
+  it.each(CODEX_APP_SERVER_SCHEMA_PROBE_VERSIONS)(
+    "keeps %s probe configuration separate from experimental and production admission",
+    (version) => {
+      const support = getCodexAppServerSupport("codex-cli " + version);
+      expect(support).toMatchObject({
+        upstreamVersion: version,
+        knownVersion: true,
+        defaultEnabled: false,
+        productionAdmitted: false,
+        experimentalAllowed: false,
+        compatibilityProbeConfigured: false,
+        schemaAndTurnProbeConfigured: true,
+      });
+      expect(
+        isCodexAppServerVersionCompatible(
+          version,
+          CODEX_APP_SERVER_COMPATIBILITY_MATRIX,
+        ),
+      ).toBe(false);
+      expect(
+        Object.keys(support).some((key) => /passed|verified/i.test(key)),
+      ).toBe(false);
+      expect(PROBE_VERSION).toBe(CODEX_APP_SERVER_SCHEMA_PROBE_VERSION);
+      expect(
+        CODEX_APP_SERVER_SUPPORT.versions.filter(
+          (entry) => entry.schemaAndTurnProbeConfigured,
+        ),
+      ).toHaveLength(2);
+    },
+  );
 
   it.each([
-    "0.164.0",
+    "0.166.0",
     "0.165.0",
     "0.154.1",
     "0.154.0-beta.1",
@@ -102,7 +106,7 @@ describe("shared external Codex support boundary", () => {
   it("derives all CI cells from the manifest without silently losing an allowed version", () => {
     const matrices = codexAppServerCiMatrices();
     expect(matrices.compatibility.include).toHaveLength(12);
-    expect(matrices.schema.include).toHaveLength(3);
+    expect(matrices.schema.include).toHaveLength(6);
     for (const entry of CODEX_APP_SERVER_COMPATIBILITY_MATRIX) {
       const cells = matrices.compatibility.include.filter(
         (cell) => cell.codex_version === entry.version,
@@ -244,33 +248,40 @@ describe("shared external Codex support boundary", () => {
     }
   });
 
-  it("binds the schema verifier to the manifest version and still refuses modified upstream bytes", () => {
-    const path = temporaryDirectory();
-    const files = {
-      "ClientRequest.json": "request",
-      "ServerNotification.json": "notification",
-      "ServerRequest.json": "server-request",
-      "CommandExecutionRequestApprovalResponse.json": "approval-response",
-    };
-    for (const [file, kind] of Object.entries(files)) {
+  it.each(CODEX_APP_SERVER_SCHEMA_PROBE_VERSIONS)(
+    "binds %s schema verification to unchanged upstream bytes",
+    (version) => {
+      const path = temporaryDirectory();
+      const files = {
+        "ClientRequest.json": "request",
+        "ServerNotification.json": "notification",
+        "ServerRequest.json": "server-request",
+        "CommandExecutionRequestApprovalResponse.json": "approval-response",
+      };
+      for (const [file, kind] of Object.entries(files)) {
+        writeFileSync(
+          join(path, file),
+          readRepo(
+            `packages/cli/__tests__/fixtures/external-agent/codex-app-server-${version}-${kind}.schema.json`,
+          ),
+        );
+      }
+      expect(
+        verifyGeneratedCodexSchemas(path, undefined, version),
+      ).toMatchObject({
+        upstreamVersion: version,
+        schemaMatches: true,
+        productionAdmission: false,
+      });
       writeFileSync(
-        join(path, file),
-        readRepo(
-          `packages/cli/__tests__/fixtures/external-agent/codex-app-server-${PROBE_VERSION}-${kind}.schema.json`,
-        ),
+        join(path, "ClientRequest.json"),
+        `${readFileSync(join(path, "ClientRequest.json"), "utf8")}\n`,
       );
-    }
-    expect(verifyGeneratedCodexSchemas(path)).toMatchObject({
-      upstreamVersion: PROBE_VERSION,
-      schemaMatches: true,
-      productionAdmission: false,
-    });
-    writeFileSync(
-      join(path, "ClientRequest.json"),
-      `${readFileSync(join(path, "ClientRequest.json"), "utf8")}\n`,
-    );
-    expect(() => verifyGeneratedCodexSchemas(path)).toThrow(/schema differs/);
-  });
+      expect(() =>
+        verifyGeneratedCodexSchemas(path, undefined, version),
+      ).toThrow(/schema differs/);
+    },
+  );
 
   it("makes GitHub output and the JSON matrix agree and rejects unsupported arguments", () => {
     const outputPath = join(temporaryDirectory(), "output");

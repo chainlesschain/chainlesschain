@@ -8,6 +8,7 @@ import {
   officialValidators,
   ProbeClient,
 } from "../../scripts/codex-app-server-turn-probe.mjs";
+import { CODEX_APP_SERVER_SCHEMA_PROBE_VERSIONS } from "../../src/lib/codex-app-server-support.js";
 
 afterEach(() => vi.useRealTimers());
 
@@ -129,18 +130,26 @@ describe("pinned Codex real-turn probe boundaries", () => {
       expect(env).not.toHaveProperty(key);
   });
 
-  it("rejects unknown methods and invalid real notifications against the official schema", () => {
-    const validators = officialValidators();
-    expect(() =>
-      validators.check("notification", { method: "invented", params: {} }),
-    ).toThrow(/unknown official/);
-    expect(() =>
-      validators.check("notification", {
-        method: "item/agentMessage/delta",
-        params: { delta: "incomplete" },
-      }),
-    ).toThrow(/invalid official/);
-    expect(validators.counts).toEqual({});
+  it.each(CODEX_APP_SERVER_SCHEMA_PROBE_VERSIONS)(
+    "rejects unknown methods and invalid notifications against %s schema",
+    (version) => {
+      const validators = officialValidators(version);
+      expect(() =>
+        validators.check("notification", { method: "invented", params: {} }),
+      ).toThrow(/unknown official/);
+      expect(() =>
+        validators.check("notification", {
+          method: "item/agentMessage/delta",
+          params: { delta: "incomplete" },
+        }),
+      ).toThrow(/invalid official/);
+      expect(validators.counts).toEqual({});
+    },
+  );
+
+  it("rejects unconfigured versions before loading schema files", () => {
+    expect(() => officialValidators("0.165.0")).toThrow(/Unconfigured/);
+    expect(() => officialValidators("../0.164.0")).toThrow(/Unconfigured/);
   });
 
   it("preserves split UTF-8 and multiple JSONL frames", async () => {

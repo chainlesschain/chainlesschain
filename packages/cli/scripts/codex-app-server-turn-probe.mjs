@@ -20,7 +20,10 @@ import { StringDecoder } from "node:string_decoder";
 import { fileURLToPath } from "node:url";
 import Ajv from "ajv";
 import { CodexAppServerAdapter } from "../src/lib/codex-app-server-adapter.js";
-import { CODEX_APP_SERVER_SCHEMA_PROBE_VERSION } from "../src/lib/codex-app-server-support.js";
+import {
+  CODEX_APP_SERVER_SCHEMA_PROBE_VERSION,
+  CODEX_APP_SERVER_SCHEMA_PROBE_VERSIONS,
+} from "../src/lib/codex-app-server-support.js";
 
 export const PROBE_VERSION = CODEX_APP_SERVER_SCHEMA_PROBE_VERSION;
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
@@ -82,13 +85,17 @@ export function isolatedEnvironment(root, source = process.env) {
   });
 }
 
-function resolveBinary(codexJs) {
+export function resolveBinary(codexJs, version = PROBE_VERSION) {
+  assert.ok(
+    CODEX_APP_SERVER_SCHEMA_PROBE_VERSIONS.includes(version),
+    "Unconfigured Codex probe version",
+  );
   const launcher = resolve(codexJs);
   const meta = JSON.parse(
     readFileSync(join(dirname(launcher), "../package.json"), "utf8"),
   );
   assert.equal(meta.name, "@openai/codex");
-  assert.equal(meta.version, PROBE_VERSION);
+  assert.equal(meta.version, version);
   const architecture = { x64: "x86_64", arm64: "aarch64" }[process.arch];
   const suffix = {
     linux: "unknown-linux-musl",
@@ -110,7 +117,11 @@ function resolveBinary(codexJs) {
   return { binary, packageName, binarySha256: sha256(readFileSync(binary)) };
 }
 
-export function officialValidators() {
+export function officialValidators(version = PROBE_VERSION) {
+  assert.ok(
+    CODEX_APP_SERVER_SCHEMA_PROBE_VERSIONS.includes(version),
+    "Unconfigured Codex probe version",
+  );
   const ajv = new Ajv({
     strict: false,
     allErrors: true,
@@ -128,7 +139,7 @@ export function officialValidators() {
   ]) {
     const bytes = readFileSync(
       new URL(
-        `../__tests__/fixtures/external-agent/codex-app-server-${PROBE_VERSION}-${kind}.schema.json`,
+        `../__tests__/fixtures/external-agent/codex-app-server-${version}-${kind}.schema.json`,
         import.meta.url,
       ),
     );
@@ -511,7 +522,7 @@ function fixtureProvider(workspace) {
   };
 }
 
-function exactSource(commitSha) {
+export function exactSource(commitSha) {
   assert.match(commitSha, /^[a-f0-9]{40}$/u);
   const git = (args) =>
     execFileSync("git", args, {
@@ -527,7 +538,16 @@ function exactSource(commitSha) {
   );
 }
 
-export async function runTurnProbe({ codexJs, commitSha, output }) {
+export async function runTurnProbe({
+  codexJs,
+  commitSha,
+  output,
+  version = PROBE_VERSION,
+}) {
+  assert.ok(
+    CODEX_APP_SERVER_SCHEMA_PROBE_VERSIONS.includes(version),
+    "Unconfigured Codex probe version",
+  );
   exactSource(commitSha);
   const root = mkdtempSync(join(tmpdir(), "cc-codex-turn-probe-"));
   const fromRepository = relative(REPO_ROOT, root);
@@ -542,7 +562,7 @@ export async function runTurnProbe({ codexJs, commitSha, output }) {
     ...Object.values(env).filter((value) => value.startsWith(root)),
   ]))
     mkdirSync(directory, { recursive: true });
-  const upstream = resolveBinary(codexJs);
+  const upstream = resolveBinary(codexJs, version);
   const reported = execFileSync(upstream.binary, ["--version"], {
     cwd: workspace,
     env,
@@ -550,9 +570,9 @@ export async function runTurnProbe({ codexJs, commitSha, output }) {
     windowsHide: true,
     timeout: 15_000,
   }).trim();
-  assert.equal(reported, `codex-cli ${PROBE_VERSION}`);
+  assert.equal(reported, `codex-cli ${version}`);
   const provider = fixtureProvider(workspace),
-    validators = officialValidators();
+    validators = officialValidators(version);
   let client, shutdown, report, failure;
   try {
     await bounded(
@@ -625,8 +645,8 @@ export async function runTurnProbe({ codexJs, commitSha, output }) {
       const adapter = new CodexAppServerAdapter({
         client,
         enabled: true,
-        upstreamVersion: PROBE_VERSION,
-        compatibilityMatrix: [{ version: PROBE_VERSION }],
+        upstreamVersion: version,
+        compatibilityMatrix: [{ version }],
         timeoutMs: scenario === "transport-loss" ? 5000 : 30_000,
         fallback: () => {
           fallbackCalls.push(scenario);
@@ -763,7 +783,7 @@ export async function runTurnProbe({ codexJs, commitSha, output }) {
       status: "passed",
       commitSha,
       upstream: {
-        version: PROBE_VERSION,
+        version,
         reported,
         nativePackage: upstream.packageName,
         binarySha256: upstream.binarySha256,
@@ -867,6 +887,7 @@ if (
       "--codex-js": "codexJs",
       "--commit-sha": "commitSha",
       "--output": "output",
+      "--version": "version",
     };
     assert.ok(
       names[process.argv[i]] && process.argv[i + 1],
