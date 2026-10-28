@@ -120,7 +120,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.183** is the current public release. It recommends `chainlesschain@0.166.128`. It adds shared model onboarding, tri-state connection diagnostics and conversation-local model selection. Public listing and download verification passed. Native task quality and restart acceptance remain independent.
+Plugin **0.4.184** is the current release candidate. It recommends `chainlesschain@0.166.129` and pairs with VS Code **0.37.167**. Publication requires the verified public CLI, exact-source host gates and public Marketplace ZIP readback. Native task quality and restart acceptance remain independent.
 
 ## Previous candidates and development notes
 
