@@ -18,7 +18,9 @@
 
 第一版的 [VERIFY01 Host Diagnostics 40632791791](https://github.com/chainlesschain/chainlesschain/actions/runs/40632791791) 在 Windows 和 Linux 仍失败。进一步读取启动链发现 Gradle 在最终 IDE 进程重新注入了 `CHAINLESSCHAIN_HOME`，因此仅修改父进程环境不足。Windows 原始失败保留在[第一版失败目录](./cli/evidence/remaining-tasks-2026-10-28/first-fix-windows/)，该运行剩余作业在替代检查启动后取消，不能计为通过。
 
-后续提交 `253aeaa28f06400f3c9af1f8fb85be77a198272e` 仅在身份诊断旅程的 Gradle 启动处清除配置根覆盖，其他原生任务保留原隔离方式；UI 旅程新增实际 IDE 的 `user.home` 与两个环境覆盖断言并保存快照。JDK 21 离线 `compileUiTestJava` 成功，保留既有 API 弃用警告。固定验证引用 `eval-verify01-onboarding-20261028-r2` 的[三系统复查 40635239599](https://github.com/chainlesschain/chainlesschain/actions/runs/40635239599) 已启动；不是发布标签，完整结果仍待核对。
+后续提交 `253aeaa28f06400f3c9af1f8fb85be77a198272e` 仅在身份诊断旅程的 Gradle 启动处清除配置根覆盖，其他原生任务保留原隔离方式；UI 旅程新增实际 IDE 的 `user.home` 与两个环境覆盖断言并保存快照。JDK 21 离线 `compileUiTestJava` 成功，保留既有 API 弃用警告。固定验证引用 `eval-verify01-onboarding-20261028-r2` 的[三系统复查 40635239599](https://github.com/chainlesschain/chainlesschain/actions/runs/40635239599) 已 **7/7 作业通过**。
+
+制品回读核对三系统 JetBrains 各 8 项身份旅程、实际配置环境、源码提交和 VS Code 三系统诊断结果，保留 22 份压缩原始文件及双摘要，见[完整回读索引](./cli/evidence/remaining-tasks-2026-10-28/host-success-40635239599/verification.json)。Windows 配置路径包含长短文件名差异，等价性由真实 IDE 内的 `Path.toRealPath()` 断言验证，不以字符串相等替代。该运行是无模型宿主诊断，不增加 36+9 产物数量，也不代表发布门禁全部通过。
 
 ## 新增合格任务
 
@@ -32,6 +34,6 @@ Linux / JetBrains `verify-06` 的运行 [40634447041](https://github.com/chainle
 
 第 16 条请求回执记录 IPv4 连接超时、IPv6 `ENETUNREACH`，`dispatchStarted:false`，TCP / TLS / 响应时间均为空，响应为零字节，错误为 `DIAGNOSTIC_REQUEST_NOT_DISPATCHED`。前 15 条回执用量完整，token 估算合计 ¥0.3445642；第 16 条用量仍为空，保留原始账本，不将该条伪造成零用量，不自动重放。既有合格候选也不重新生成。
 
-纳入已知费用后，下一项保守资金预留已超过最近记录的可用余额；同时本项账本仍有未完整结算记录。新的付费派发停止，等待余额更新及独立请求核对，旧未知账单与共享预算责任保留。账户资金记录只保存在本地操作目录，不公开账户余额。无需模型的宿主修复继续验证。
+纳入已知费用后，下一项保守资金预留已超过最近记录的可用余额；同时本项账本仍有未完整结算记录。用户随后提供了新的余额，本地已记录为用户文本观察并保留前次资金记录；没有将文本观察标记为截图核验或账单对账，新余额仍低于既有预留。新的付费派发停止，等待资金补足及独立请求核对，旧未知账单与共享预算责任保留。账户资金记录只保存在本地操作目录，不公开账户余额。无需模型的宿主修复现已完成三系统验证。
 
 本轮不发布包、不改写冻结任务与验收器、不将人工修补计入原生交付。正式准入状态继续与诊断合格交付分开记录。

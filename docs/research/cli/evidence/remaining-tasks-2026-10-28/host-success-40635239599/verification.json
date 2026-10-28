@@ -1,0 +1,127 @@
+{
+  "runId": "40635239599",
+  "sourceCommit": "253aeaa28f06400f3c9af1f8fb85be77a198272e",
+  "jobsPassed": 7,
+  "jobsTotal": 7,
+  "onboardingPlatforms": [
+    "linux",
+    "win32",
+    "darwin"
+  ],
+  "onboardingCasesPerPlatform": 8,
+  "configurationEnvironmentVerified": true,
+  "providerAssessed": false,
+  "formalSample": false,
+  "records": [
+    {
+      "file": "run.json.gz",
+      "originalDigest": "sha256:4c07127a56ed43484b9dc73fa8cfcf28e4155e851eb794091fea9c8f6b0ec0cc",
+      "storedDigest": "sha256:d31914a8a41954f01dec3d4077d7a79ebddd962d6236f4462d0c5f114e5f3bc2"
+    },
+    {
+      "file": "ubuntu-latest-diagnostic-result.json.gz",
+      "originalDigest": "sha256:01e5682bd26369213181c94afe9bd4a82eeca6f10141ed4274fe36a05670fb37",
+      "storedDigest": "sha256:9734148e2b3a28b1317ccc73e2aaf5720d847f63fabdf8a036066cb1fdf03c35"
+    },
+    {
+      "file": "ubuntu-latest-identity-trace.jsonl.gz",
+      "originalDigest": "sha256:7fbaab37ae35de583aca94770ed154d1192728468ff573cc3b9ac98670fb0b58",
+      "storedDigest": "sha256:bad1b58d63f44df3cba0d2f3f27c267ccfa3ea449e71c227a09eb1a2e5c5654f"
+    },
+    {
+      "file": "ubuntu-latest-ui.log.gz",
+      "originalDigest": "sha256:f9c7662041a40c8c862cc389524a48a5a4771a8c3b24169315811d9d7de95bda",
+      "storedDigest": "sha256:ceb945d592b61ae8aec912c7181c9cd9e00f1bf674521b90d74813c6b318134a"
+    },
+    {
+      "file": "ubuntu-latest-capture-configuration-environment.json.gz",
+      "originalDigest": "sha256:d634a4255abd27e29bce9ff22824772022d3d115c993a155b3b28f7bb0029c8d",
+      "storedDigest": "sha256:c54963b211f90cef4b813ea58c0fbaa3d6f69f94dd8df06f27cdc124e214646f"
+    },
+    {
+      "file": "ubuntu-latest-capture-onboarding-config.json.gz",
+      "originalDigest": "sha256:b2a17c022de8726df11f55fca678cf8caf49d64a70ff12370cce56f42f99f28c",
+      "storedDigest": "sha256:55566231c99ca30de8051a408e4ceb184b06e399885068b135031f542de1c5a3"
+    },
+    {
+      "file": "ubuntu-latest-capture-onboarding-ui.json.gz",
+      "originalDigest": "sha256:0a3de3e45d7cf0854e0d9b877946c81b8a823acce34417c26c7e909cb737a73d",
+      "storedDigest": "sha256:cae8a1601ddae49ab07b59496fd6d0c9354f0152ff621032545f0ccc490428dd"
+    },
+    {
+      "file": "ubuntu-latest-vscode-diagnostic-result.json.gz",
+      "originalDigest": "sha256:531695b305b23f728e0cc27505c5d60cc68cc08ccc4197e29613b92a064b2917",
+      "storedDigest": "sha256:b28e1513aa71a568ee81d71f3efec89377b06fd1909d980442b5ac2ee839cc59"
+    },
+    {
+      "file": "windows-latest-diagnostic-result.json.gz",
+      "originalDigest": "sha256:7938a4823fa33190971588480410cb056f2d95363df792cdcd47ce9c4fc87dba",
+      "storedDigest": "sha256:cb419eebd46f5dd9c57414a979a3646a2df156d5f7ef3f61fd18eb80279e05f8"
+    },
+    {
+      "file": "windows-latest-identity-trace.jsonl.gz",
+      "originalDigest": "sha256:4ce3b2a4895d24071a57570cd20a00ce2bf0ff8b941d85797f9a0d29c0e9c35c",
+      "storedDigest": "sha256:5ac7d256b5b30981aafba657b97a40d2dd3a6590c874b8fe9d858a1d68ebaf25"
+    },
+    {
+      "file": "windows-latest-ui.log.gz",
+      "originalDigest": "sha256:b86fb02aeba6ac4ef01778d2afc8e4df53fed8e7b812838772054237a73c651a",
+      "storedDigest": "sha256:7294e03a4ab09c05c69532a35360db5fe59249e98c05476812955c59c6a58db4"
+    },
+    {
+      "file": "windows-latest-capture-configuration-environment.json.gz",
+      "originalDigest": "sha256:0863bbced69129352af90f504bba9a9403fdfa1c0aa9191286adc620b7b3aaf8",
+      "storedDigest": "sha256:9dbeeeafaa34a519f7b756b08a29c17135de0bafef90edee22194e9c685efcbf"
+    },
+    {
+      "file": "windows-latest-capture-onboarding-config.json.gz",
+      "originalDigest": "sha256:1a13a307bf91356834b5867c0f0aadb637ae971700a8df5df407645ee781d277",
+      "storedDigest": "sha256:0676b44ebbff638aab1f1d40182aa4fedde6a58fb82f5011627fb58b2b5c146b"
+    },
+    {
+      "file": "windows-latest-capture-onboarding-ui.json.gz",
+      "originalDigest": "sha256:54270fb3fce2e7ba200d254c4bd8301fdeca59f749aba4c902aa6d8de3129562",
+      "storedDigest": "sha256:37909c8d979108194ce62f72d9c303a3b3b51a4ab03d806ad544d91665f062b2"
+    },
+    {
+      "file": "windows-latest-vscode-diagnostic-result.json.gz",
+      "originalDigest": "sha256:ce81455d95b60ffe484b0bb3c478be30bddbc28e680c47b2c29dd54dc0b5f5f1",
+      "storedDigest": "sha256:fa59453a8ac294bcfe97c4be4d0a324539c3e782b8fdb202f6eada5404cf2630"
+    },
+    {
+      "file": "macos-15-intel-diagnostic-result.json.gz",
+      "originalDigest": "sha256:9fdf2c55b1854e9bcd0c4980480577da6057de3038f2ce4548a73107a0f54325",
+      "storedDigest": "sha256:6cf506c23a51b86dae58a9e9e2599b4f38d73166f478d59a9fc9cfd0764c898b"
+    },
+    {
+      "file": "macos-15-intel-identity-trace.jsonl.gz",
+      "originalDigest": "sha256:fb1e662d8ae7f5e179cce7cff8d65e280f97dba4100a56940272052774156752",
+      "storedDigest": "sha256:6cdcc0fc1147e0cd275c4dfac1911e7cdc62ba19de8c0b2e33dc5f6904e189dd"
+    },
+    {
+      "file": "macos-15-intel-ui.log.gz",
+      "originalDigest": "sha256:fbef7576853d00ab537f23a3235ef2f0f5bfd45a3abbf4fcd611651082221920",
+      "storedDigest": "sha256:870489ae7de428db16625a0e361077e65fadbc987e0a5171458a65a32ffced9d"
+    },
+    {
+      "file": "macos-15-intel-capture-configuration-environment.json.gz",
+      "originalDigest": "sha256:479202e6cd0becc4335e876a5a0d1d8868463190a03cddc15e5f92a2003ae3ef",
+      "storedDigest": "sha256:92a32d1680f228094ddde145c3fc817b031cd0369752a6a4c41f35d2b7a3522c"
+    },
+    {
+      "file": "macos-15-intel-capture-onboarding-config.json.gz",
+      "originalDigest": "sha256:7928506730a3136b427cff8705a3b344d69fc4c7616684a97741b5852c6ed129",
+      "storedDigest": "sha256:88214ccad13607890bbd02d10f865cf97cefdc4433408fd8c624fe5efa91e197"
+    },
+    {
+      "file": "macos-15-intel-capture-onboarding-ui.json.gz",
+      "originalDigest": "sha256:6d09959470dbe00fce0505b05efc8b6f9af87fd9db928d7e1cd89616055f3bb5",
+      "storedDigest": "sha256:976e11109b641be6ada85f870aab8350891b2d38488ff501bbf80734e5e5162f"
+    },
+    {
+      "file": "macos-15-intel-vscode-diagnostic-result.json.gz",
+      "originalDigest": "sha256:74ff06c1c512dcd75519e60c4f036ebc687ea95025ce8d889f9e6d1560f57c4f",
+      "storedDigest": "sha256:846f7a40d6ff1018015711ae91a91414a28b10c2ea3ff66af06d56b2fb03187d"
+    }
+  ]
+}
