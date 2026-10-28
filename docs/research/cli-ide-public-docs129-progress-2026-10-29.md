@@ -23,4 +23,8 @@
 
 Memory 长测继续使用原进程；新增 [10K 采样快照](./cli/evidence/memory-snapshot-cache-2026-10-29/sampling-progress-10k.json)。1K / 10K 的五场景均各满 100 次，结果摘要全部一致；10K 冷 p95 **1036.680ms**、热 p95 **354.161ms**，仍未达到 1s / 200ms 目标。100K、Stop、混合读写删与三系统结果仍待完成。本机为共用工作站，不属于隔离硬件实验。
 
+已提交并推送 `main@92e5403292879dc87e86750592166314fc9a72ae`。对应 [Docs-Site Build Gate 40767303666](https://github.com/chainlesschain/chainlesschain/actions/runs/40767303666) 已触发、当前排队；完整网站构建未计通过。官网 `docs-website-v2/src/data/release-status.json` 与设计站当前入口仍需后续同步，不能把这次用户文档修改视为三个网站均已更新。
+
+后续只读回读确认 Linux Memory 1500/1500 样本与参考结果一致，100K 热 / 冷 p95 为 72.194 / 486.836ms；准确源码摘要和 GitHub 制品摘要均匹配，见[测量记录](./cli-ide-memory-cache-progress-2026-10-29.md)。Windows / macOS 和本机长测尚未完成。`.129 verify-11` 的只读派发核对仍返回不确定，保留原请求且未重发，累计仍为 34/45。
+
 分支检查：当前仅 `main` 及未合并的 `feature/cli130-security-map-release`，没有已合并 feature 分支待删。未合并分支及其工作树保留。

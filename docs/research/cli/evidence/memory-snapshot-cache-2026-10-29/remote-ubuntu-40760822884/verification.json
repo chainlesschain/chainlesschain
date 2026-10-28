@@ -1,0 +1,317 @@
+{
+  "schema": "chainlesschain.memory-query-remote-readback/v1",
+  "observedAt": "2026-10-28T20:54:47.402622+00:00",
+  "runId": 40760822884,
+  "sourceHead": "16af6d6199ea5c8d261b9a1872c50b185841192d",
+  "job": {
+    "completedAt": "2026-10-28T20:45:06Z",
+    "conclusion": "success",
+    "databaseId": 123071966486,
+    "name": "measurement (ubuntu-latest)",
+    "startedAt": "2026-10-28T20:16:20Z",
+    "status": "completed",
+    "steps": [
+      {
+        "completedAt": "2026-10-28T20:16:22Z",
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "startedAt": "2026-10-28T20:16:21Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T20:16:39Z",
+        "conclusion": "success",
+        "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+        "number": 2,
+        "startedAt": "2026-10-28T20:16:22Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T20:16:49Z",
+        "conclusion": "success",
+        "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+        "number": 3,
+        "startedAt": "2026-10-28T20:16:39Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T20:17:38Z",
+        "conclusion": "success",
+        "name": "Run ./.github/actions/setup-node-deps",
+        "number": 4,
+        "startedAt": "2026-10-28T20:16:49Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T20:17:49Z",
+        "conclusion": "success",
+        "name": "Query, cursor, corruption and concurrency contracts",
+        "number": 5,
+        "startedAt": "2026-10-28T20:17:38Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T20:45:03Z",
+        "conclusion": "success",
+        "name": "Compare identical 1K, 10K and 100K datasets",
+        "number": 6,
+        "startedAt": "2026-10-28T20:17:49Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T20:45:04Z",
+        "conclusion": "success",
+        "name": "Run actions/upload-artifact@v6",
+        "number": 7,
+        "startedAt": "2026-10-28T20:45:03Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T20:45:04Z",
+        "conclusion": "success",
+        "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+        "number": 13,
+        "startedAt": "2026-10-28T20:45:04Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T20:45:04Z",
+        "conclusion": "success",
+        "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+        "number": 14,
+        "startedAt": "2026-10-28T20:45:04Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T20:45:04Z",
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 15,
+        "startedAt": "2026-10-28T20:45:04Z",
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40760822884/job/123071966486"
+  },
+  "artifactId": 12851060127,
+  "artifactName": "memory-query-index-ubuntu-latest-16af6d6199ea5c8d261b9a1872c50b185841192d",
+  "githubArchiveSha256Verified": "sha256:29e878c1a68d27b21e91d2df2a749d0d08f8b847de588df81c36e62b021d5890",
+  "report": {
+    "path": "memory-query-index.json.gz",
+    "archiveSha256": "2c158c2085b927f02e82c4e36290aa50b4b6cf8aee813e055629d7008f98f849",
+    "decodedSha256": "6ece0009dac9ab260e2d3e2906e0f0101f21152419f453c323de25521fbb616f",
+    "decodedBytes": 679787
+  },
+  "sourceBlobsVerified": 11,
+  "samplesVerified": 1500,
+  "allRowsDigestsMatch": true,
+  "platform": "linux",
+  "arch": "x64",
+  "node": "v22.12.0",
+  "cacheMode": "validate-disk",
+  "complete": true,
+  "groups": [
+    {
+      "count": 1000,
+      "mode": "baseline",
+      "latency": {
+        "samples": 100,
+        "minMs": 62.495,
+        "p50Ms": 70.312,
+        "p95Ms": 75.459,
+        "p99Ms": 88.249,
+        "maxMs": 89.813
+      },
+      "peakRssBytes": 119365632
+    },
+    {
+      "count": 1000,
+      "mode": "cold",
+      "latency": {
+        "samples": 100,
+        "minMs": 32.968,
+        "p50Ms": 35.91,
+        "p95Ms": 39.985,
+        "p99Ms": 42.271,
+        "maxMs": 43.896
+      },
+      "peakRssBytes": 115515392
+    },
+    {
+      "count": 1000,
+      "mode": "hot",
+      "latency": {
+        "samples": 100,
+        "minMs": 8.652,
+        "p50Ms": 9.138,
+        "p95Ms": 10.599,
+        "p99Ms": 12.418,
+        "maxMs": 13.021
+      },
+      "peakRssBytes": 148180992
+    },
+    {
+      "count": 1000,
+      "mode": "rebuild",
+      "latency": {
+        "samples": 100,
+        "minMs": 217.024,
+        "p50Ms": 228.566,
+        "p95Ms": 241.995,
+        "p99Ms": 267.999,
+        "maxMs": 278.056
+      },
+      "peakRssBytes": 117227520
+    },
+    {
+      "count": 1000,
+      "mode": "corrupt",
+      "latency": {
+        "samples": 100,
+        "minMs": 254.811,
+        "p50Ms": 276.102,
+        "p95Ms": 339.223,
+        "p99Ms": 693.131,
+        "maxMs": 700.389
+      },
+      "peakRssBytes": 116875264
+    },
+    {
+      "count": 10000,
+      "mode": "baseline",
+      "latency": {
+        "samples": 100,
+        "minMs": 347.171,
+        "p50Ms": 361.825,
+        "p95Ms": 392.108,
+        "p99Ms": 395.066,
+        "maxMs": 397.94
+      },
+      "peakRssBytes": 170250240
+    },
+    {
+      "count": 10000,
+      "mode": "cold",
+      "latency": {
+        "samples": 100,
+        "minMs": 82.095,
+        "p50Ms": 88.254,
+        "p95Ms": 95.337,
+        "p99Ms": 102.267,
+        "maxMs": 124.52
+      },
+      "peakRssBytes": 141877248
+    },
+    {
+      "count": 10000,
+      "mode": "hot",
+      "latency": {
+        "samples": 100,
+        "minMs": 11.438,
+        "p50Ms": 12.773,
+        "p95Ms": 18.034,
+        "p99Ms": 19.028,
+        "maxMs": 19.201
+      },
+      "peakRssBytes": 296636416
+    },
+    {
+      "count": 10000,
+      "mode": "rebuild",
+      "latency": {
+        "samples": 100,
+        "minMs": 540.843,
+        "p50Ms": 573.044,
+        "p95Ms": 643.635,
+        "p99Ms": 808.627,
+        "maxMs": 976.466
+      },
+      "peakRssBytes": 147853312
+    },
+    {
+      "count": 10000,
+      "mode": "corrupt",
+      "latency": {
+        "samples": 100,
+        "minMs": 583.468,
+        "p50Ms": 621.107,
+        "p95Ms": 729.399,
+        "p99Ms": 1027.447,
+        "maxMs": 1108.488
+      },
+      "peakRssBytes": 147083264
+    },
+    {
+      "count": 100000,
+      "mode": "baseline",
+      "latency": {
+        "samples": 100,
+        "minMs": 3367.345,
+        "p50Ms": 3511.598,
+        "p95Ms": 3719.063,
+        "p99Ms": 3845.86,
+        "maxMs": 3846.845
+      },
+      "peakRssBytes": 440782848
+    },
+    {
+      "count": 100000,
+      "mode": "cold",
+      "latency": {
+        "samples": 100,
+        "minMs": 428.508,
+        "p50Ms": 450.475,
+        "p95Ms": 486.836,
+        "p99Ms": 498.701,
+        "maxMs": 509.173
+      },
+      "peakRssBytes": 232701952
+    },
+    {
+      "count": 100000,
+      "mode": "hot",
+      "latency": {
+        "samples": 100,
+        "minMs": 31.086,
+        "p50Ms": 33.949,
+        "p95Ms": 72.194,
+        "p99Ms": 87.27,
+        "maxMs": 116.68
+      },
+      "peakRssBytes": 1206382592
+    },
+    {
+      "count": 100000,
+      "mode": "rebuild",
+      "latency": {
+        "samples": 100,
+        "minMs": 3545.902,
+        "p50Ms": 3727.732,
+        "p95Ms": 4038.006,
+        "p99Ms": 4117.106,
+        "maxMs": 4153.053
+      },
+      "peakRssBytes": 302698496
+    },
+    {
+      "count": 100000,
+      "mode": "corrupt",
+      "latency": {
+        "samples": 100,
+        "minMs": 3609.243,
+        "p50Ms": 3942.537,
+        "p95Ms": 4313.454,
+        "p99Ms": 4509.127,
+        "maxMs": 4707.343
+      },
+      "peakRssBytes": 315437056
+    }
+  ],
+  "boundary": [
+    "This validates Linux default disk mode only; full matrix still pending",
+    "No timing thresholds configured in workflow; row equivalence and integrity gated",
+    "Reported percentile values are runner observations, not general SLO acceptance",
+    "Stop, mixed concurrency, verified-memory contrast and real IDE journeys remain separate"
+  ]
+}
