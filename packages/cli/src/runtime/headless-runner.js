@@ -245,7 +245,7 @@ import {
   runtimeUsageEventType,
   runtimeToolCallId,
 } from "../lib/runtime-usage-ledger.js";
-import { runMeteredDirectModelCall } from "../lib/direct-model-usage.js";
+import { runGoalModelCall } from "../lib/goal-model-call.js";
 import {
   GoalCheckEvidence,
   buildGoalJudgePrompt,
@@ -3380,6 +3380,52 @@ async function runAgentHeadlessInWorkspace(
     };
   };
 
+  const recordRunUsage = (event) => {
+    if (!event.attribution) {
+      usage.input_tokens += event.usage?.input_tokens || 0;
+      usage.output_tokens += event.usage?.output_tokens || 0;
+      // Carry prompt-cache tokens into accumulated usage (cost accuracy).
+      usage.cache_read_input_tokens +=
+        event.usage?.cache_read_input_tokens || 0;
+      usage.cache_creation_input_tokens +=
+        event.usage?.cache_creation_input_tokens || 0;
+    }
+    emitStream({
+      type: "token_usage",
+      provider: event.provider,
+      model: event.model,
+      usage: event.usage,
+      ...(event.contextWindow ? { contextWindow: event.contextWindow } : {}),
+      ...(event.attribution ? { attribution: event.attribution } : {}),
+      ...(event.source ? { source: event.source } : {}),
+    });
+    if (costBudget) {
+      costBudget.add({
+        provider: event.provider,
+        model: event.model,
+        usage: event.usage,
+      });
+      if (costBudget.shouldWarnInactive()) {
+        const m = `cost cap $${options.maxCostUsd} set but model "${event.model}" is unpriced/free — cap inactive`;
+        if (isText) writeErr(`  ${m}\n`);
+        emitStream({ type: "cost_warning", message: m });
+      }
+      if (costBudget.exceeded()) {
+        endReason = "cost-budget-exhausted";
+        stopForCost = true;
+        if (isText)
+          writeErr(
+            `  ⛔ cost budget $${options.maxCostUsd} reached (spent ≈$${costBudget.spentUsd}) — stopping\n`,
+          );
+        emitStream({
+          type: "cost_budget_exhausted",
+          limit_usd: options.maxCostUsd,
+          spent_usd: costBudget.spentUsd,
+        });
+      }
+    }
+  };
+
   // --goal-condition: session-level completion-condition engine (P1). After each
   // outer turn an independent checker judges a completion CONDITION; if unmet and
   // budget remains, a follow-up user turn re-drives the agent — until met
@@ -3390,6 +3436,51 @@ async function runAgentHeadlessInWorkspace(
   let _goalHelpers = null;
   let _goalTokensSeen = 0; // per-turn usage deltas (engine totals == run total)
   let _goalCostSeen = 0;
+  const recordGoalUsage = () => {
+    if (!goalEngine) return;
+    const tokens =
+      usage.input_tokens +
+      usage.output_tokens +
+      usage.cache_read_input_tokens +
+      usage.cache_creation_input_tokens;
+    goalEngine.recordTurnUsage({
+      tokens: tokens - _goalTokensSeen,
+      costUsd: costBudget.spentUsd - _goalCostSeen,
+    });
+    _goalTokensSeen = tokens;
+    _goalCostSeen = costBudget.spentUsd;
+  };
+  const callGoalModel = async (prompt, operationId) => {
+    const { chatWithTools } = await import("./agent-core.js");
+    try {
+      return await runGoalModelCall({
+        sessionId: resolveHeadlessMeteredSessionId(persist, sessionId),
+        persist: persist
+          ? (type, data) => store.appendEvent(sessionId, type, data)
+          : null,
+        sessionBudget: options.sessionBudget || null,
+        iterationBudget: budget,
+        costBudget,
+        signal: options.signal,
+        operationId,
+        prompt,
+        chat: chatWithTools,
+        chatOptions: {
+          ...(evolutionIngress === null ? {} : { evolutionIngress }),
+          model,
+          provider,
+          baseUrl,
+          apiKey,
+          serviceTier: options.serviceTier,
+          maxOutputTokens: options.maxOutputTokens,
+        },
+        onUsage: recordRunUsage,
+      });
+    } finally {
+      // Include auxiliary usage before the completion decision and checkpoint.
+      recordGoalUsage();
+    }
+  };
   let goalSetupFailure = null;
   let goalRecoveryReviewed = false;
   const goalEvidence = options.goalCondition
@@ -3398,6 +3489,23 @@ async function runAgentHeadlessInWorkspace(
   // Model-judged conditions reuse the run's own model as an independent
   // evaluator (mirrors --goal-assess). Overridable via deps for tests.
   const _defaultGoalJudge = async (cond, transcript) => {
+    const goalBudget = goalEngine?.budget;
+    const goalState = goalEngine?.state;
+    if (
+      goalBudget &&
+      ((goalBudget.maxTokens != null &&
+        goalState.tokens >= goalBudget.maxTokens) ||
+        (goalBudget.maxCostUsd != null &&
+          goalState.costUsd >= goalBudget.maxCostUsd) ||
+        (goalBudget.maxTimeMs != null &&
+          (deps.now ? deps.now() : Date.now()) - goalState.startedAtMs >=
+            goalBudget.maxTimeMs))
+    ) {
+      return {
+        met: false,
+        reason: "Goal budget exhausted before model evaluation",
+      };
+    }
     if (!usableGoalEvidence(transcript.goalEvidence).length) {
       return {
         met: false,
@@ -3406,28 +3514,9 @@ async function runAgentHeadlessInWorkspace(
         evidence: { kind: "model", source: "current-turn-tools", toolIds: [] },
       };
     }
-    const { chatWithTools } = await import("./agent-core.js");
     const { firstBalancedJson } = await import("../lib/json-schema-output.js");
     const judgePrompt = buildGoalJudgePrompt(cond, transcript);
-    const r = await runMeteredDirectModelCall({
-      sessionId: resolveHeadlessMeteredSessionId(persist, sessionId),
-      persist: persist
-        ? (type, data) => store.appendEvent(sessionId, type, data)
-        : null,
-      provider,
-      model,
-      source: "model",
-      sessionBudget: options.sessionBudget || null,
-      call: () =>
-        chatWithTools([{ role: "user", content: judgePrompt }], {
-          ...(evolutionIngress === null ? {} : { evolutionIngress }),
-          model,
-          provider,
-          baseUrl,
-          apiKey,
-          enabledToolNames: [],
-        }),
-    });
+    const r = await callGoalModel(judgePrompt, "goal-condition");
     const text = r?.message?.content || "";
     let verdict = null;
     const block = firstBalancedJson(text, "{");
@@ -3921,51 +4010,7 @@ async function runAgentHeadlessInWorkspace(
               event,
               "headless usage settlement",
             );
-            if (!event.attribution) {
-              usage.input_tokens += event.usage?.input_tokens || 0;
-              usage.output_tokens += event.usage?.output_tokens || 0;
-              // Carry prompt-cache tokens into accumulated usage (cost accuracy).
-              usage.cache_read_input_tokens +=
-                event.usage?.cache_read_input_tokens || 0;
-              usage.cache_creation_input_tokens +=
-                event.usage?.cache_creation_input_tokens || 0;
-            }
-            emitStream({
-              type: "token_usage",
-              provider: event.provider,
-              model: event.model,
-              usage: event.usage,
-              ...(event.contextWindow
-                ? { contextWindow: event.contextWindow }
-                : {}),
-              ...(event.attribution ? { attribution: event.attribution } : {}),
-              ...(event.source ? { source: event.source } : {}),
-            });
-            if (costBudget) {
-              costBudget.add({
-                provider: event.provider,
-                model: event.model,
-                usage: event.usage,
-              });
-              if (costBudget.shouldWarnInactive()) {
-                const m = `cost cap $${options.maxCostUsd} set but model "${event.model}" is unpriced/free — cap inactive`;
-                if (isText) writeErr(`  ${m}\n`);
-                emitStream({ type: "cost_warning", message: m });
-              }
-              if (costBudget.exceeded()) {
-                endReason = "cost-budget-exhausted";
-                stopForCost = true;
-                if (isText)
-                  writeErr(
-                    `  ⛔ cost budget $${options.maxCostUsd} reached (spent ≈$${costBudget.spentUsd}) — stopping\n`,
-                  );
-                emitStream({
-                  type: "cost_budget_exhausted",
-                  limit_usd: options.maxCostUsd,
-                  spent_usd: costBudget.spentUsd,
-                });
-              }
-            }
+            recordRunUsage(event);
             break;
           }
           case "iteration-warning": {
@@ -4095,18 +4140,7 @@ async function runAgentHeadlessInWorkspace(
       ) {
         // Feed this turn's usage DELTA so the engine's totals equal the run's
         // cumulative usage (recordTurnUsage accumulates).
-        const curTokens =
-          usage.input_tokens +
-          usage.output_tokens +
-          usage.cache_read_input_tokens +
-          usage.cache_creation_input_tokens;
-        const curCost = costBudget ? Number(costBudget.spentUsd) || 0 : 0;
-        goalEngine.recordTurnUsage({
-          tokens: curTokens - _goalTokensSeen,
-          costUsd: curCost - _goalCostSeen,
-        });
-        _goalTokensSeen = curTokens;
-        _goalCostSeen = curCost;
+        recordGoalUsage();
 
         const cond = goalEngine.condition;
         let evaluation;
@@ -4140,6 +4174,12 @@ async function runAgentHeadlessInWorkspace(
           }
         } catch (err) {
           if (err?.runtimeLedgerPersistence === true) throw err;
+          if (
+            err?.goalModelFailure ||
+            (typeof err?.code === "string" &&
+              err.code.startsWith("CC_SESSION_BUDGET_"))
+          )
+            throw err;
           if (err?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw err;
           evaluation = {
             met: false,
@@ -4167,6 +4207,10 @@ async function runAgentHeadlessInWorkspace(
           }
         }
         if (decision === _goalHelpers.GOAL_DECISION.CONTINUE) {
+          if (budget.isExhausted()) {
+            endReason = "max_turns";
+            break;
+          }
           messages.push(
             markRuntimeOnlySessionMessage({
               role: "user",
@@ -4232,7 +4276,9 @@ async function runAgentHeadlessInWorkspace(
       ? "error_persistence"
       : sessionBudgetFailed
         ? "error_session_budget"
-        : "error";
+        : err?.goalModelFailure
+          ? err.subtype
+          : "error";
     const transportDetails =
       errorSubtype === "error" ? transportErrorDetails(err) : undefined;
     const diagnosticFields = transportDetails
@@ -4247,6 +4293,13 @@ async function runAgentHeadlessInWorkspace(
         subtype: errorSubtype,
         is_error: true,
         error: message,
+        ...(err?.goalModelFailure
+          ? {
+              usage,
+              total_cost_usd: costBudget.spentUsd,
+              num_turns: budget.consumed,
+            }
+          : {}),
         ...diagnosticFields,
       });
     } else if (isJson) {
@@ -4259,6 +4312,7 @@ async function runAgentHeadlessInWorkspace(
             sessionId,
             toolCalls,
             usage,
+            totalCostUsd: costBudget.spentUsd,
             numTurns: budget.consumed,
             durationMs: (deps.now ? deps.now() : Date.now()) - startedAt,
             denials,
@@ -4274,7 +4328,11 @@ async function runAgentHeadlessInWorkspace(
     // "the model call failed" from "the run itself errored" (1).
     loopFailureOutcome = {
       exitCode:
-        persistenceFailed || sessionBudgetFailed ? 1 : classifyLoopError(err),
+        persistenceFailed || sessionBudgetFailed
+          ? 1
+          : err?.goalModelFailure
+            ? exitCodeForEndReason(err.endReason, true)
+            : classifyLoopError(err),
       result: message,
       isError: true,
       ...(persistence ? { persistence } : {}),
@@ -4538,26 +4596,7 @@ async function runAgentHeadlessInWorkspace(
         const assessChat =
           deps.assessChat ||
           (async (assessPrompt) => {
-            const { chatWithTools } = await import("./agent-core.js");
-            const r = await runMeteredDirectModelCall({
-              sessionId: resolveHeadlessMeteredSessionId(persist, sessionId),
-              persist: persist
-                ? (type, data) => store.appendEvent(sessionId, type, data)
-                : null,
-              provider,
-              model,
-              source: "model",
-              sessionBudget: options.sessionBudget || null,
-              call: () =>
-                chatWithTools([{ role: "user", content: assessPrompt }], {
-                  ...(evolutionIngress === null ? {} : { evolutionIngress }),
-                  model,
-                  provider,
-                  baseUrl,
-                  apiKey,
-                  enabledToolNames: [],
-                }),
-            });
+            const r = await callGoalModel(assessPrompt, "goal-assessment");
             return r?.message?.content || "";
           });
         const { assessment } = await doAssess({
@@ -4585,6 +4624,21 @@ async function runAgentHeadlessInWorkspace(
         }
       }
     } catch (error) {
+      if (error?.goalModelFailure) {
+        isError = true;
+        subtype = error.subtype;
+        endReason = error.endReason;
+        finalText = error.message;
+      }
+      if (
+        typeof error?.code === "string" &&
+        error.code.startsWith("CC_SESSION_BUDGET_")
+      ) {
+        isError = true;
+        subtype = "error_session_budget";
+        endReason = "session-budget-exhausted";
+        finalText = error.message;
+      }
       if (error?.runtimeLedgerPersistence === true) {
         isError = true;
         subtype = "error_persistence";

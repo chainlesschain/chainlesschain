@@ -223,7 +223,10 @@ export async function assessGoalProgress({
   } catch (error) {
     if (
       error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED" ||
-      error?.runtimeLedgerPersistence === true
+      error?.runtimeLedgerPersistence === true ||
+      error?.goalModelFailure === true ||
+      (typeof error?.code === "string" &&
+        error.code.startsWith("CC_SESSION_BUDGET_"))
     )
       throw error;
     return { assessment: null, goal };

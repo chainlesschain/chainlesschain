@@ -1,0 +1,55 @@
+{
+  "schema": "chainlesschain.goal-model-budget-verification/v1",
+  "checkedAt": "2026-10-28T17:02:57.804Z",
+  "baseCommit": "99ed8ca8421b38aee527c2868cf911aa61de3484",
+  "platform": "win32",
+  "node": "v22.22.2",
+  "tests": {
+    "files": 9,
+    "passed": 224,
+    "failed": 0,
+    "pending": 0,
+    "rawDigest": "sha256:eb719f05a3576bfa66d918324e6a6e6d23e1e57c5f123e1d0cc822a24505439d",
+    "archive": "unit-results.json.gz",
+    "archiveDigest": "sha256:81d6d418a0bea03feb11541cf4f960c52c88d268bd30f1425a8d1a338d49ffd8"
+  },
+  "sources": [
+    {
+      "path": "packages/cli/src/lib/goal-model-call.js",
+      "digest": "sha256:26196e1344c24bbe5f60d1d5d0c83e4e428385d292ed29a009888213ac9c2c1c"
+    },
+    {
+      "path": "packages/cli/src/lib/goal-assess.js",
+      "digest": "sha256:95568bcf72089e919b41b6d9aa78c86aabb3d0ee2c2a965162677a61fad29d04"
+    },
+    {
+      "path": "packages/cli/src/runtime/headless-runner.js",
+      "digest": "sha256:622312e8d95a3becc892b1ef45f211c0bd4fc4a9a88d5ab09fadd9faf0296294"
+    },
+    {
+      "path": "packages/cli/scripts/budget-egress-reviewed-sources.json",
+      "digest": "sha256:1ddd990f2f6e7338d84a43fb290668b3baa75d889aa2da1770cd066c67129ac9"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/goal-model-call.test.js",
+      "digest": "sha256:92f2ce3b6dfcbc85affc9fdffea7c9d195f51ecab212f0aef3e3745026392e6c"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/headless-goal-model-budget.test.js",
+      "digest": "sha256:82056168d2334d760cda02a4c4dbb98148893a4816e5b6f48860ca7b5b6de71a"
+    }
+  ],
+  "sourceAudit": {
+    "report": "source-audit.json",
+    "digest": "sha256:6bb4cbea569cbc7d77ff27f6b5573437dce72bfa2313de04e9a541bc52051d67",
+    "candidateFiles": 78,
+    "passed": true
+  },
+  "eslint": {
+    "passed": false,
+    "reason": "Cannot find module @eslint-community/eslint-utils"
+  },
+  "liveProviderCalls": 0,
+  "crossPlatformGateRun": false,
+  "published": false
+}
