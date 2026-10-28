@@ -27,6 +27,16 @@ final class OnboardingIdentityJourney {
 
     void run() throws Exception {
         try {
+            JsonObject environment = JsonParser.parseString(String.valueOf((Object) frame.callJs("""
+                JSON.stringify({home:String(java.lang.System.getProperty('user.home')),
+                    relocated:java.lang.System.getenv('CHAINLESSCHAIN_HOME')!==null,
+                    legacyRelocated:java.lang.System.getenv('CLAUDE_CONFIG_DIR')!==null});
+                """, true))).getAsJsonObject();
+            write("configuration-environment.json", environment);
+            assertEquals(Path.of(config.get("home").getAsString()).toRealPath(),
+                    Path.of(environment.get("home").getAsString()).toRealPath());
+            assertFalse(environment.get("relocated").getAsBoolean(), "Identity fixture must use its private home file");
+            assertFalse(environment.get("legacyRelocated").getAsBoolean(), "Legacy root must not redirect the fixture");
             settings(config.get("goodCommand").getAsString(), false);
             observe("valid", "LLM not configured yet", false);
 
