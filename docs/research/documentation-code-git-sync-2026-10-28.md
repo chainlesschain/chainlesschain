@@ -23,7 +23,7 @@
 
 提交 [d9f2511b95](https://github.com/chainlesschain/chainlesschain/commit/d9f2511b953ca08a7b5013c177250474b3d6fb4e) 为 CLI / VS Code / JetBrains 的复测适配器增加显式 `--review-changes` 转发与观察标记，工作流参数默认关闭。此提交发生在正式发行之后，不进入既有 npm、VSIX、JetBrains ZIP 或客户端冻结源。
 
-当前计划为 [next-package-128-review-20261028-plan.json](./cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028-plan.json)，状态 **PREPARED_NOT_DISPATCHED**，`billingAssessed: false`。观察到复查提示不等于完成复查、任务合格或账单核验；未新增独立验收。
+当前计划为 [next-package-128-review-20261028-plan.json](./cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028-plan.json)。文档初次核对时为 **PREPARED_NOT_DISPATCHED**；后续提交 `f0d4f2e9e8` 已记录原生复测执行，最新状态以[独立复测跟踪](./cli-ide-review128-task-progress-2026-10-28.md)为准。该变化不修改公开制品的冻结源。观察到复查提示不等于完成复查、任务合格或账单核验；本轮文档更新不增加独立验收。
 
 ## 文档更新范围
 
@@ -32,6 +32,7 @@
 - 站点入口：两个 VitePress 首页的当前版本、卡片、导航阅读入口，以及官网的代码核对基线和命令参考链接。
 - README：根中英文与 CLI README 增加当前参考入口，历史发行段落保留。
 - 当前升级/设计页：补齐常用命令和模块入口，纠正旧版本被称为当前版本的段落与错误发布证据链接。
+- 官网产品页后续：同步更新 Web、桌面与移动版的中英文页面、安装指引及图片说明；截图来源和移动端设备边界见[官网产品页更新记录](../../docs-website-v2/PRODUCT-PAGES-UPDATE-2026-10-28.md)。
 
 ## 验证边界
 
@@ -41,4 +42,8 @@
 
 ## 构建与部署
 
-文档结构校验、准确文档提交的云端构建门禁、三站完整构建和公网回读将在完成后记录。三站从同一干净提交构建，沿用现有部署脚本、HTML 数量门槛、归档摘要校验和旧站点回滚目录。
+三站从同一干净提交 `65e4576aade348d51e6a9b39425a2263fcade19d` 完整构建并部署。用户文档站 **657** 个 HTML、设计站 **288** 个 HTML、官网 **20** 个 HTML；323 个用户文档均通过必需章节检查。准确提交的 [GitHub 文档构建门禁](https://github.com/chainlesschain/chainlesschain/actions/runs/40598500526)已通过。
+
+部署批次为 `20261027-230554-65e4576aad-docs`。**60** 项公网页面与资源核验全部返回 HTTP 200，文件大小和 SHA-256 与本地构建一致；三个部署源清单的常规 URL 与避缓存 URL 均核对通过。本次更新页面之间无失效站内文件链接。8 张新截图及来源清单也已逐字节回读。旧站点保留为回滚目录，详见[部署回执](./cli/evidence/documentation-deployment-2026-10-28.json)。
+
+Web、桌面和移动六个产品页通过 1440px / 390px 共 12 组浏览器检查。桌面图片标明共享 Web Shell 浏览器实拍范围；移动页使用标明“非真机截图”的功能导览，当前设备重拍尚未进行。

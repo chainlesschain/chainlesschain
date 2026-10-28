@@ -1,0 +1,83 @@
+{
+  "capturedAt": "2026-10-27T22:48:43.217Z",
+  "sourceCommit": "33e88aeff9a1dac8dc71c2152fe26244cb56ccbd",
+  "renderer": "packages/web-panel (current source build)",
+  "runtime": "real cc ui on loopback with isolated profile and empty preview workspace",
+  "desktopScope": "Shared Web Shell renderer captured in Chromium; desktop host, hardware and native window are not shown",
+  "modelRequests": 0,
+  "seededConversationData": false,
+  "records": [
+    {
+      "file": "panel-cowork-20261028-zh.png",
+      "route": "/#/cowork",
+      "language": "zh-CN",
+      "width": 1440,
+      "height": 960,
+      "bytes": 105909,
+      "sha256": "bc4e419479cbfe8b917e085fc0b14165b442bc097472241171f60543ab9c9c8f"
+    },
+    {
+      "file": "panel-chat-20261028-zh.png",
+      "route": "/#/chat",
+      "language": "zh-CN",
+      "width": 1440,
+      "height": 960,
+      "bytes": 54044,
+      "sha256": "4d910da82e395a8135032be72a887d1746caedc70a7190be813d8de710bfca4c"
+    },
+    {
+      "file": "panel-skills-20261028-zh.png",
+      "route": "/#/skills",
+      "language": "zh-CN",
+      "width": 1440,
+      "height": 960,
+      "bytes": 50296,
+      "sha256": "3f671ab9119cf5f5c330bb9ec93c78ce6e0f60ef4ae52a498cf84925d8b9cb62"
+    },
+    {
+      "file": "panel-evolution-settings-20261028-zh.png",
+      "route": "/#/evolution-settings",
+      "language": "zh-CN",
+      "width": 1440,
+      "height": 520,
+      "bytes": 56824,
+      "sha256": "5215cd8b1501d05998fc7ba7c764b3f595aa99ec5bcd87511284d9f6b27a3980"
+    },
+    {
+      "file": "panel-cowork-20261028-en.png",
+      "route": "/#/cowork",
+      "language": "en",
+      "width": 1440,
+      "height": 960,
+      "bytes": 105319,
+      "sha256": "8139780d3d6befc7dabb37af10d4c2ea2210cf4b5eb200cc3c2abee08a8443d5"
+    },
+    {
+      "file": "panel-chat-20261028-en.png",
+      "route": "/#/chat",
+      "language": "en",
+      "width": 1440,
+      "height": 960,
+      "bytes": 52310,
+      "sha256": "0990023027c0efc90a789d626a4e4c137f0673aac65f9b014cb92a89e885cce4"
+    },
+    {
+      "file": "panel-skills-20261028-en.png",
+      "route": "/#/skills",
+      "language": "en",
+      "width": 1440,
+      "height": 960,
+      "bytes": 49130,
+      "sha256": "b1508c2f74979ebfdc25222584f75e3653cf26e8a1e29dbb13b15398977f1b2c"
+    },
+    {
+      "file": "panel-evolution-settings-20261028-en.png",
+      "route": "/#/evolution-settings",
+      "language": "en",
+      "width": 1440,
+      "height": 520,
+      "bytes": 57905,
+      "sha256": "28ccd52f16fc272ca7434a60290a06bf060443851a27d6b29c4fe6c7cd3bf013"
+    }
+  ]
+}
