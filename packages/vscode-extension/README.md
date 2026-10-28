@@ -10,17 +10,9 @@ MCP bridge.
 
 Open **Skill 自进化配置** from the command palette to enable or disable self-evolution. It defaults to off and shares `evolution.enabled` in the CLI user `config.json` with `cc ui` and JetBrains. Enabling can initialize the local signed runtime; disabling keeps ordinary Agent use available and preserves deployment data. Stop and restart a running Agent session after switching. These controls require CLI 0.166.127 and the paired extension version below.
 
-## Release pairing
+## Next release candidate
 
-Version **0.37.166** recommends CLI **`0.166.128`**. This Open VSX release is public and adds tri-state connection diagnostics, shared model recommendations and conversation-local `/model` selection. Its exact-source release gates and public artifact readback passed. Paired JetBrains **0.4.183** is approved, listed and publicly downloadable; its original CI payload entries were verified against the public ZIP. Microsoft Marketplace remains unpublished.
-
-The preceding public pairing recorded in the [CLI .125 publication receipt](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release125-public/publication.json) is Open VSX **0.37.162**, JetBrains **0.4.179**, and recommended CLI **0.166.123**. The CLI .125 follow-up did not compare IDE archive bytes or publish new IDE versions.
-
-The preceding Open VSX **0.37.160** pairing recommended CLI **`0.166.118`** with JetBrains **0.4.177**; its input delivery and Windows draft recovery fixes are retained.
-
-Public Open VSX **0.37.159** recommends CLI **`0.166.117`** and pairs with JetBrains **0.4.176**. The paired CLI repairs source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting. IDE publication follows the paired CLI and dependency graph verification, exact-source release gates, and public artifact readback.
-
-Open VSX **0.37.156** and CLI **0.166.114** were publicly downloaded and verified on 2026-10-22, but that CLI still has the Agent tool-evidence error. Microsoft Marketplace remains unpublished. The historical three-channel pairing is retained below.
+Source candidate **0.37.167** recommends CLI **`0.166.129`** and pairs with JetBrains **0.4.184**. The extension has not been published. This candidate retains model configuration and conversation isolation fixes and incorporates the merged clean-home onboarding validation. Publication follows verified public CLI installation, exact-source IDE host gates and marketplace artifact readback. Historical task acceptance remains separate.
 
 ## Current release
 

@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.167] - CLI pairing and onboarding validation (candidate, 2026-10-28)
+
+- Recommend CLI 0.166.129 and pair with JetBrains 0.4.184.
+- Retain shared model configuration, conversation isolation, and clean-home onboarding validation.
+- Publish after verified public CLI installation and exact-source IDE gates; require public VSIX readback.
+
 ## [0.37.166] - Model configuration and conversation isolation (candidate, 2026-10-27)
 
 - Distinguish configured, missing and unreadable LLM settings; protect configuration views from late results and show the scope of global connection changes.
