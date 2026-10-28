@@ -116,7 +116,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.183** is public and recommends `chainlesschain@0.166.128`. It adds shared model onboarding, tri-state connection diagnostics and conversation-local model selection. Public listing and download verification passed. Native task quality and restart acceptance remain independent.
+Plugin **0.4.183** is the current public release. It recommends `chainlesschain@0.166.128`. It adds shared model onboarding, tri-state connection diagnostics and conversation-local model selection. Public listing and download verification passed. Native task quality and restart acceptance remain independent.
 
 ## Previous candidates and development notes
 
