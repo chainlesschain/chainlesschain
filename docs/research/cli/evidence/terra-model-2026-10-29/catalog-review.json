@@ -1,0 +1,96 @@
+{
+  "schema": "chainlesschain.model-catalog-review-evidence/v1",
+  "capturedAt": "2026-10-28T20:28:46.624Z",
+  "source": {
+    "commit": "16af6d6199ea5c8d261b9a1872c50b185841192d",
+    "reviewedSourcesDirty": true,
+    "files": [
+      {
+        "path": "packages/cli/scripts/review-model-catalog.mjs",
+        "bytes": 5710,
+        "digest": "sha256:643c743f36b0a498ea3d15e794de7878baac0423e94a6cddf1d272781e2db9f7"
+      },
+      {
+        "path": "packages/cli/src/lib/model-catalog-review.js",
+        "bytes": 5744,
+        "digest": "sha256:69610a9c029d3ed3982fc5e2addb72d5ca4d94d89403f97311edff493646d825"
+      },
+      {
+        "path": "packages/cli/src/lib/model-context-catalog.js",
+        "bytes": 8594,
+        "digest": "sha256:b8ac4baae6fdbbfcaffed2869ed3404d96379593f68b87168867dd05a6d66c50"
+      },
+      {
+        "path": "packages/cli/src/lib/model-capabilities.js",
+        "bytes": 10825,
+        "digest": "sha256:3153beb805ac7e044fb77e1594d39c140a55c5585067db49f111d5f92a35e865"
+      },
+      {
+        "path": "packages/cli/src/lib/provider-options.js",
+        "bytes": 17044,
+        "digest": "sha256:116c24b84fc5c70acce35c8ac3e656ed4d0783f1cc6ae57323922414bb64dfef"
+      },
+      {
+        "path": "packages/cli/src/lib/llm-pricing.js",
+        "bytes": 21369,
+        "digest": "sha256:c81141f94b62a4cdf051c3801d22493910572a91a873481303b4e515cbc244f6"
+      },
+      {
+        "path": "packages/cli/src/lib/openai-responses.js",
+        "bytes": 16808,
+        "digest": "sha256:b60d6a2cc070682a69fcfaa6aa25402fcc02019f9367e5d49e8d654d7b25f61d"
+      },
+      {
+        "path": "packages/cli/src/lib/usage-pricing-context.js",
+        "bytes": 8071,
+        "digest": "sha256:6f9d6d357788c775ea307fec44756ae27d9575e68406befa9f7975403bb15c38"
+      },
+      {
+        "path": "packages/cli/src/lib/cost-budget.js",
+        "bytes": 5789,
+        "digest": "sha256:3bdc8cb58c61b6cdf659d34faff4634ed8a5219998430533b29c02577ff548e1"
+      },
+      {
+        "path": "packages/cli/src/lib/llm-connection-probe.js",
+        "bytes": 10452,
+        "digest": "sha256:a520b283af44852c27a48ce5a5aa95af309e46d2224f7ca337d020c9a3a0206c"
+      },
+      {
+        "path": "packages/cli/src/lib/context-memory-kernel/provider-context.js",
+        "bytes": 11225,
+        "digest": "sha256:0b7a1bea6ebe6af793b1fb07972b82c12ed0f05a520c1a55661beb6f80661905"
+      },
+      {
+        "path": "packages/cli/src/commands/llm.js",
+        "bytes": 35889,
+        "digest": "sha256:c812d9b74905ebb9e5080f595ecc459659edfc634167664bd7f4fd8cba878dd2"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/model-catalog-review-2026-10-29.json",
+        "bytes": 5388,
+        "digest": "sha256:eff7d69509a80ac2f754fdab0a6cd0f4868b49ee43feaf384551e04bb1a98bfc"
+      }
+    ],
+    "installedProductVerified": false
+  },
+  "inputs": {
+    "review": {
+      "bytes": 5388,
+      "digest": "sha256:eff7d69509a80ac2f754fdab0a6cd0f4868b49ee43feaf384551e04bb1a98bfc"
+    }
+  },
+  "upstreamSnapshotsComplete": false,
+  "providerAssessed": false,
+  "billingVerified": false,
+  "productionAttested": false,
+  "result": {
+    "schema": "chainlesschain.model-catalog-review-result/v1",
+    "reviewedAt": "2026-10-29",
+    "localContractPassed": true,
+    "mismatches": [],
+    "upstream": [],
+    "reviewRequired": false,
+    "automaticEnablement": false
+  },
+  "reviewCompleted": true
+}

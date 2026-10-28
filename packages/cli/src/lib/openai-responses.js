@@ -1,4 +1,5 @@
 import { resolveModelServiceTier } from "./model-capabilities.js";
+import { projectEnvelopePricingContext } from "./usage-pricing-context.js";
 
 const RESPONSES_FAILURE_CODE = "CC_OPENAI_RESPONSES_FAILED";
 const MAX_REASONING_ITEMS = 16;
@@ -212,7 +213,13 @@ export function createOpenAIResponsesReasoning(
   modelProfile = null,
 ) {
   const want = options.thinking;
-  if (!want || want === "off" || want === "none") return null;
+  const disabled = want === false || want === "off" || want === "none";
+  if (disabled) {
+    return modelProfile?.reasoningEfforts?.includes("none")
+      ? { effort: "none" }
+      : null;
+  }
+  if (!want && options.thinkingEffort == null) return null;
   const requested =
     typeof options.thinkingEffort === "string"
       ? options.thinkingEffort.toLowerCase()
@@ -233,7 +240,7 @@ export function createOpenAIResponsesReasoning(
       `Unsupported reasoning effort for ${modelProfile.model}; allowed: ${modelProfile.reasoningEfforts.join(", ")}`,
     );
   }
-  return { effort, summary: "auto" };
+  return effort === "none" ? { effort } : { effort, summary: "auto" };
 }
 
 export function normalizeOpenAIResponsesUsage(usage) {
@@ -244,12 +251,32 @@ export function normalizeOpenAIResponsesUsage(usage) {
   const details = usage.input_tokens_details;
   const outputDetails = usage.output_tokens_details;
   let cached = 0;
+  let written = 0;
+  let cacheWriteContext = {};
   let reasoning = null;
   if (details != null) {
     if (typeof details !== "object" || Array.isArray(details)) return null;
     if (Object.hasOwn(details, "cached_tokens")) {
       cached = nonNegativeInteger(details.cached_tokens);
       if (cached === null || cached > input) return null;
+    }
+    if (Object.hasOwn(details, "cache_write_tokens")) {
+      written = nonNegativeInteger(details.cache_write_tokens);
+      if (written === null || written > input - cached) return null;
+    }
+    if (written > 0 || Object.hasOwn(details, "cache_write_tokens_details")) {
+      const split = details.cache_write_tokens_details;
+      const thirty = nonNegativeInteger(split?.ttl_30m_tokens);
+      const twelve = nonNegativeInteger(split?.ttl_12h_tokens);
+      cacheWriteContext =
+        split &&
+        !Array.isArray(split) &&
+        thirty !== null &&
+        twelve !== null &&
+        Object.hasOwn(details, "cache_write_tokens") &&
+        thirty + twelve === written
+          ? { cacheCreation30mTokens: thirty, cacheCreation12hTokens: twelve }
+          : { cacheCreationInvalid: true };
     }
   }
   if (outputDetails != null) {
@@ -265,9 +292,13 @@ export function normalizeOpenAIResponsesUsage(usage) {
     }
   }
   return {
-    input_tokens: input - cached,
+    input_tokens: input - cached - written,
     output_tokens: output,
     cache_read_input_tokens: cached,
+    ...(Object.hasOwn(details || {}, "cache_write_tokens") ||
+    Object.keys(cacheWriteContext).length
+      ? { cache_creation_input_tokens: written, ...cacheWriteContext }
+      : {}),
     ...(reasoning !== null ? { reasoning_tokens: reasoning } : {}),
   };
 }
@@ -350,9 +381,7 @@ export function normalizeOpenAIResponsesResponse(data) {
   if (usage)
     result.usage = {
       ...usage,
-      ...(typeof data.service_tier === "string"
-        ? { service_tier: data.service_tier }
-        : {}),
+      ...projectEnvelopePricingContext(usage, data),
     };
   return result;
 }

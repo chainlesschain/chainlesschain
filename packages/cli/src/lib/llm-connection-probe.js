@@ -5,6 +5,10 @@ import { isFormalBudgetError } from "./formal-budget-errors.js";
 import { normalizeOllamaBaseUrl } from "./ollama-base-url.js";
 import { resolveModelCapabilityProfile } from "./model-capabilities.js";
 import {
+  projectEnvelopePricingContext,
+  projectUsagePricingContext,
+} from "./usage-pricing-context.js";
+import {
   createOpenAIResponsesBody,
   normalizeOpenAIResponsesResponse,
   normalizeOpenAIResponsesUsage,
@@ -23,10 +27,6 @@ export function normalizeLlmProbeUsage(provider, data, runtimeProtocol = null) {
   if (!data || typeof data !== "object" || Array.isArray(data)) return null;
   let usage;
   if (provider === "openai" && runtimeProtocol === "openai-responses") {
-    // The existing Responses codec owns cached/reasoning token accounting.
-    // Do not invent a priced cache-write split that the probe has not verified.
-    const writes = data.usage?.input_tokens_details?.cache_write_tokens;
-    if (writes !== undefined && writes !== 0) return null;
     usage = normalizeOpenAIResponsesUsage(data.usage);
   } else if (provider === "ollama") {
     usage = {
@@ -91,7 +91,9 @@ export function normalizeLlmProbeUsage(provider, data, runtimeProtocol = null) {
         ? 0
         : usage.cache_creation_input_tokens,
   };
-  return Object.values(normalized).every(count) ? normalized : null;
+  return Object.values(normalized).every(count)
+    ? { ...normalized, ...projectEnvelopePricingContext(usage, data) }
+    : null;
 }
 
 export function priceLlmProbeUsage(target, usage) {
@@ -105,6 +107,7 @@ export function priceLlmProbeUsage(target, usage) {
     ].every(count)
   )
     return null;
+  const context = projectUsagePricingContext(usage);
   const estimate = estimateCost({
     provider: target.provider,
     model: target.model,
@@ -112,6 +115,9 @@ export function priceLlmProbeUsage(target, usage) {
     outputTokens: usage.output_tokens,
     cacheReadTokens: usage.cache_read_input_tokens,
     cacheCreationTokens: usage.cache_creation_input_tokens,
+    ...context,
+    serviceTier: context.service_tier ?? "standard",
+    regionalProcessing: context.regional_processing === true,
   });
   return estimate.matched && Number.isFinite(estimate.totalCost)
     ? estimate.totalCost
@@ -130,6 +136,7 @@ export function llmProbeReceipt(
           output_tokens: usage.output_tokens,
           cache_read_input_tokens: usage.cache_read_input_tokens,
           cache_creation_input_tokens: usage.cache_creation_input_tokens,
+          ...projectUsagePricingContext(usage),
         };
   return {
     schema: LLM_PROBE_SCHEMA,

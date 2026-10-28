@@ -1,0 +1,214 @@
+{
+  "schema": "chainlesschain.terra-model-verification/v1",
+  "recordedAt": "2026-10-28T20:32:54.994598+00:00",
+  "sourceBase": "16af6d6199ea5c8d261b9a1872c50b185841192d",
+  "sourceFiles": [
+    {
+      "path": ".github/workflows/model-catalog-review.yml",
+      "bytes": 4856,
+      "sha256": "5ce0b8c24fc5b11eac2f3f026bb081a9637094c16f94ed147abce60de2e33143",
+      "gitBlobSha256": "5ce0b8c24fc5b11eac2f3f026bb081a9637094c16f94ed147abce60de2e33143",
+      "gitBlobBytes": 4856
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/model-catalog-review-2026-10-29.json",
+      "bytes": 5388,
+      "sha256": "eff7d69509a80ac2f754fdab0a6cd0f4868b49ee43feaf384551e04bb1a98bfc",
+      "gitBlobSha256": "eff7d69509a80ac2f754fdab0a6cd0f4868b49ee43feaf384551e04bb1a98bfc",
+      "gitBlobBytes": 5388
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-core-openai-responses.test.js",
+      "bytes": 17307,
+      "sha256": "792dbba64bb694ccb74b48af8641b716fb7271c4b2d4401a19e24e9bf89b1b07",
+      "gitBlobSha256": "792dbba64bb694ccb74b48af8641b716fb7271c4b2d4401a19e24e9bf89b1b07",
+      "gitBlobBytes": 17307
+    },
+    {
+      "path": "packages/cli/__tests__/unit/llm-connection-probe.test.js",
+      "bytes": 15310,
+      "sha256": "68b22be4eeb6c06928700894f70db140ee6342fdd89883259b704131cb7fb095",
+      "gitBlobSha256": "68b22be4eeb6c06928700894f70db140ee6342fdd89883259b704131cb7fb095",
+      "gitBlobBytes": 15310
+    },
+    {
+      "path": "packages/cli/__tests__/unit/model-capabilities.test.js",
+      "bytes": 14263,
+      "sha256": "7cb6ad5cf39eb290940a14f94da658db3a9ad51aa7919c219c91feb216b79066",
+      "gitBlobSha256": "7cb6ad5cf39eb290940a14f94da658db3a9ad51aa7919c219c91feb216b79066",
+      "gitBlobBytes": 14263
+    },
+    {
+      "path": "packages/cli/__tests__/unit/model-terra-contract.test.js",
+      "bytes": 12501,
+      "sha256": "d22b22e921e08dfe38a241543275cb8605df28230797cab65baa1bf1d73e89e6",
+      "gitBlobSha256": "d22b22e921e08dfe38a241543275cb8605df28230797cab65baa1bf1d73e89e6",
+      "gitBlobBytes": 12501
+    },
+    {
+      "path": "packages/cli/__tests__/unit/usage-pricing-context.test.js",
+      "bytes": 5156,
+      "sha256": "b9d0a46e6722edd0b42272dfd8ed3a17ac2fec7529962ad7bdbb784ce56ffb31",
+      "gitBlobSha256": "b9d0a46e6722edd0b42272dfd8ed3a17ac2fec7529962ad7bdbb784ce56ffb31",
+      "gitBlobBytes": 5156
+    },
+    {
+      "path": "packages/cli/scripts/review-model-catalog.mjs",
+      "bytes": 5710,
+      "sha256": "643c743f36b0a498ea3d15e794de7878baac0423e94a6cddf1d272781e2db9f7",
+      "gitBlobSha256": "643c743f36b0a498ea3d15e794de7878baac0423e94a6cddf1d272781e2db9f7",
+      "gitBlobBytes": 5710
+    },
+    {
+      "path": "packages/cli/src/commands/llm.js",
+      "bytes": 35889,
+      "sha256": "c812d9b74905ebb9e5080f595ecc459659edfc634167664bd7f4fd8cba878dd2",
+      "gitBlobSha256": "c812d9b74905ebb9e5080f595ecc459659edfc634167664bd7f4fd8cba878dd2",
+      "gitBlobBytes": 35889
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/provider-context.js",
+      "bytes": 11225,
+      "sha256": "0b7a1bea6ebe6af793b1fb07972b82c12ed0f05a520c1a55661beb6f80661905",
+      "gitBlobSha256": "0b7a1bea6ebe6af793b1fb07972b82c12ed0f05a520c1a55661beb6f80661905",
+      "gitBlobBytes": 11225
+    },
+    {
+      "path": "packages/cli/src/lib/cost-budget.js",
+      "bytes": 5789,
+      "sha256": "3bdc8cb58c61b6cdf659d34faff4634ed8a5219998430533b29c02577ff548e1",
+      "gitBlobSha256": "3bdc8cb58c61b6cdf659d34faff4634ed8a5219998430533b29c02577ff548e1",
+      "gitBlobBytes": 5789
+    },
+    {
+      "path": "packages/cli/src/lib/llm-connection-probe.js",
+      "bytes": 10452,
+      "sha256": "a520b283af44852c27a48ce5a5aa95af309e46d2224f7ca337d020c9a3a0206c",
+      "gitBlobSha256": "a520b283af44852c27a48ce5a5aa95af309e46d2224f7ca337d020c9a3a0206c",
+      "gitBlobBytes": 10452
+    },
+    {
+      "path": "packages/cli/src/lib/llm-onboarding-catalog.json",
+      "bytes": 3657,
+      "sha256": "50b2ed9d5d1fc09a070dcb8fbcd0d4f28462e98a613e25c8754a2615b72b3559",
+      "gitBlobSha256": "50b2ed9d5d1fc09a070dcb8fbcd0d4f28462e98a613e25c8754a2615b72b3559",
+      "gitBlobBytes": 3657
+    },
+    {
+      "path": "packages/cli/src/lib/llm-pricing.js",
+      "bytes": 21369,
+      "sha256": "c81141f94b62a4cdf051c3801d22493910572a91a873481303b4e515cbc244f6",
+      "gitBlobSha256": "c81141f94b62a4cdf051c3801d22493910572a91a873481303b4e515cbc244f6",
+      "gitBlobBytes": 21369
+    },
+    {
+      "path": "packages/cli/src/lib/model-capabilities.js",
+      "bytes": 10825,
+      "sha256": "3153beb805ac7e044fb77e1594d39c140a55c5585067db49f111d5f92a35e865",
+      "gitBlobSha256": "3153beb805ac7e044fb77e1594d39c140a55c5585067db49f111d5f92a35e865",
+      "gitBlobBytes": 10825
+    },
+    {
+      "path": "packages/cli/src/lib/model-catalog-review.js",
+      "bytes": 5744,
+      "sha256": "69610a9c029d3ed3982fc5e2addb72d5ca4d94d89403f97311edff493646d825",
+      "gitBlobSha256": "69610a9c029d3ed3982fc5e2addb72d5ca4d94d89403f97311edff493646d825",
+      "gitBlobBytes": 5744
+    },
+    {
+      "path": "packages/cli/src/lib/model-context-catalog.js",
+      "bytes": 8594,
+      "sha256": "b8ac4baae6fdbbfcaffed2869ed3404d96379593f68b87168867dd05a6d66c50",
+      "gitBlobSha256": "b8ac4baae6fdbbfcaffed2869ed3404d96379593f68b87168867dd05a6d66c50",
+      "gitBlobBytes": 8594
+    },
+    {
+      "path": "packages/cli/src/lib/openai-responses.js",
+      "bytes": 16808,
+      "sha256": "b60d6a2cc070682a69fcfaa6aa25402fcc02019f9367e5d49e8d654d7b25f61d",
+      "gitBlobSha256": "b60d6a2cc070682a69fcfaa6aa25402fcc02019f9367e5d49e8d654d7b25f61d",
+      "gitBlobBytes": 16808
+    },
+    {
+      "path": "packages/cli/src/lib/usage-pricing-context.js",
+      "bytes": 8071,
+      "sha256": "6f9d6d357788c775ea307fec44756ae27d9575e68406befa9f7975403bb15c38",
+      "gitBlobSha256": "6f9d6d357788c775ea307fec44756ae27d9575e68406befa9f7975403bb15c38",
+      "gitBlobBytes": 8071
+    },
+    {
+      "path": "packages/cli/test-node/model-catalog-review-evidence.node-test.mjs",
+      "bytes": 6388,
+      "sha256": "9987fe60fd79f5ef31867a6dcfdea155d13f8b9e47ba585b2b89bc763c5274e3",
+      "gitBlobSha256": "9987fe60fd79f5ef31867a6dcfdea155d13f8b9e47ba585b2b89bc763c5274e3",
+      "gitBlobBytes": 6388
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/LlmConfig.java",
+      "bytes": 33000,
+      "sha256": "b06c994457bd513cc7f1b8fc5d53353798bb5a6e7d1775c464327a4a8bfb87a9",
+      "gitBlobSha256": "b06c994457bd513cc7f1b8fc5d53353798bb5a6e7d1775c464327a4a8bfb87a9",
+      "gitBlobBytes": 33000
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/llm-onboarding-presets.json",
+      "bytes": 2792,
+      "sha256": "61dc8812bcf43d6284e4dab622b5da72bbed2cb84368524b65bd40179e7e4760",
+      "gitBlobSha256": "61dc8812bcf43d6284e4dab622b5da72bbed2cb84368524b65bd40179e7e4760",
+      "gitBlobBytes": 2792
+    }
+  ],
+  "tests": {
+    "vitest": {
+      "files": 16,
+      "passed": 343,
+      "failed": 0,
+      "skipped": 0,
+      "startedAt": "2026-10-28T20:27:52.054000+00:00"
+    },
+    "node": {
+      "passed": 9,
+      "failed": 0
+    }
+  },
+  "localCatalogContractPassed": true,
+  "onboardingGenerationVerified": true,
+  "spawnInventoryVerified": true,
+  "eslint": {
+    "status": "unavailable",
+    "reason": "Missing @eslint-community/eslint-utils"
+  },
+  "liveModelCalls": 0,
+  "billingVerified": false,
+  "accountVerified": false,
+  "published": false,
+  "crossPlatformCurrentCommitVerified": false,
+  "artifacts": [
+    {
+      "path": "catalog-review.json",
+      "bytes": 3396,
+      "sha256": "2e9d92f1e1ac82f7f231f8faf26315d980a02bc073f59d85c8ef696ed21450ef"
+    },
+    {
+      "path": "evidence-tests.tap",
+      "bytes": 2020,
+      "sha256": "731286371d713a6b127b47adb4ee503a7b9cb90ca531164befd38b648ef183da"
+    },
+    {
+      "path": "official-facts.json",
+      "bytes": 3023,
+      "sha256": "62e65957dd129cbabf37a641dbfa88aa570f98d395e0b4e263994d5d2b6fd387"
+    },
+    {
+      "path": "terra-profile.json",
+      "bytes": 1552,
+      "sha256": "1b8eeace8454e268f1172a4c3ce4ffd8a5f5eba5908f9313e09f667f67bd94f1"
+    },
+    {
+      "path": "unit-tests.json.gz",
+      "bytes": 13243,
+      "sha256": "688c77948afc89b759c78c4e0609d203776f0bff46d8c69e5acff07fd9a2675d"
+    }
+  ],
+  "sourceHashScope": "sha256 binds the Windows working-tree bytes used for local tests; gitBlobSha256 binds the LF-normalized repository blob. No remote validation is implied."
+}

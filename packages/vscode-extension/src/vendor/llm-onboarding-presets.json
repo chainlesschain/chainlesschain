@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.llm-onboarding-catalog/v1",
-  "capabilityCatalogVersion": "2026-10-15",
+  "capabilityCatalogVersion": "2026-10-29",
   "scope": "new-connections",
   "runtimeVerified": false,
   "accountVerified": false,
@@ -93,6 +93,6 @@
       "visionModel": ""
     }
   ],
-  "sourceSha256": "d3f4a81921c87053a3d978363921fe4ef298b031cc08b6b457625e2b009e1d9a",
+  "sourceSha256": "50b2ed9d5d1fc09a070dcb8fbcd0d4f28462e98a613e25c8754a2615b72b3559",
   "sourceDigestBasis": "utf8-lf"
 }

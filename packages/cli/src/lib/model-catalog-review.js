@@ -65,7 +65,9 @@ export function reviewModelCatalog(review, snapshots = {}) {
       "runtimeProtocol",
       "contextWindowTokens",
       "advertisedMaxOutputTokens",
+      "advertisedMaxInputTokens",
       "reviewedAt",
+      "defaultReasoningEffort",
     ]) {
       if (
         Object.hasOwn(expected, field) &&
@@ -110,6 +112,7 @@ export function reviewModelCatalog(review, snapshots = {}) {
       "cacheReadMultiplier",
       "cacheWriteMultiplier",
       "cacheWrite1hMultiplier",
+      "cacheWrite12hMultiplier",
       "longContext",
       "serviceMultipliers",
     ]) {

@@ -50,6 +50,25 @@ export function projectCacheCreationUsage(usage = {}) {
   const hasFlat =
     Object.hasOwn(usage, "cacheCreation5mTokens") ||
     Object.hasOwn(usage, "cacheCreation1hTokens");
+  const hasOpenAI =
+    Object.hasOwn(usage, "cacheCreation30mTokens") ||
+    Object.hasOwn(usage, "cacheCreation12hTokens");
+  if (hasOpenAI) {
+    const thirty = usage.cacheCreation30mTokens;
+    const twelve = usage.cacheCreation12hTokens;
+    const total =
+      usage.cache_creation_input_tokens ?? usage.cacheCreationTokens;
+    if (
+      hasFlat ||
+      Object.hasOwn(usage, "cache_creation") ||
+      ![thirty, twelve, total].every(
+        (n) => Number.isSafeInteger(n) && n >= 0,
+      ) ||
+      thirty + twelve !== total
+    )
+      return { cacheCreationInvalid: true };
+    return { cacheCreation30mTokens: thirty, cacheCreation12hTokens: twelve };
+  }
   if (!Object.hasOwn(usage, "cache_creation") && !hasFlat) return {};
   if (
     Object.hasOwn(usage, "cache_creation") &&
@@ -150,9 +169,17 @@ export function mergeUsagePricingBucket(entry, usage) {
   const cache = projectCacheCreationUsage(usage);
   const cacheEvidence = cache.cacheCreationInvalid
     ? "invalid"
-    : cache.cacheCreation5mTokens != null
-      ? "split"
-      : "missing";
+    : cache.cacheCreation30mTokens != null
+      ? "openai-split"
+      : cache.cacheCreation5mTokens != null
+        ? "split"
+        : "missing";
+  const cacheFields =
+    cacheEvidence === "openai-split"
+      ? ["cacheCreation30mTokens", "cacheCreation12hTokens"]
+      : cacheEvidence === "split"
+        ? ["cacheCreation5mTokens", "cacheCreation1hTokens"]
+        : [];
   const serviceTier = metadata.service_tier || "standard";
   const regionalProcessing = metadata.regional_processing === true;
   entry.pricingBuckets ||= [];
@@ -176,17 +203,9 @@ export function mergeUsagePricingBucket(entry, usage) {
       regionalProcessing,
       requestInputTokens: promptTokens,
       ...(pricingContextInvalid ? { pricingContextInvalid: true } : {}),
-      ...(provider === "anthropic"
-        ? {
-            cacheEvidence,
-            ...(cacheEvidence === "split"
-              ? { cacheCreation5mTokens: 0, cacheCreation1hTokens: 0 }
-              : {}),
-            ...(cacheEvidence === "invalid"
-              ? { cacheCreationInvalid: true }
-              : {}),
-          }
-        : {}),
+      cacheEvidence,
+      ...Object.fromEntries(cacheFields.map((key) => [key, 0])),
+      ...(cacheEvidence === "invalid" ? { cacheCreationInvalid: true } : {}),
     };
     entry.pricingBuckets.push(bucket);
   }
@@ -197,9 +216,7 @@ export function mergeUsagePricingBucket(entry, usage) {
     "cacheCreationTokens",
     "totalTokens",
     "calls",
-    ...(cacheEvidence === "split"
-      ? ["cacheCreation5mTokens", "cacheCreation1hTokens"]
-      : []),
+    ...cacheFields,
   ]) {
     const value = cache[key] ?? usage[key] ?? (key === "calls" ? 1 : 0);
     if (

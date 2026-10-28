@@ -267,7 +267,15 @@ export async function prepareCanonicalProviderContext(
   );
   const safetyMarginTokens = Math.min(
     modelWindowTokens - reservedOutputTokens - 1,
-    Math.max(64, Math.floor(modelWindowTokens * 0.05)),
+    Math.max(
+      64,
+      Math.floor(modelWindowTokens * 0.05),
+      // Some models cap input independently of the shared context window.
+      // Reserve that unavailable headroom before selecting any context items.
+      modelWindowTokens -
+        reservedOutputTokens -
+        (modelCapabilities.advertisedMaxInputTokens ?? modelWindowTokens),
+    ),
   );
   const inputBudget =
     modelWindowTokens - reservedOutputTokens - safetyMarginTokens;

@@ -1,0 +1,47 @@
+{
+  "schema": "chainlesschain.model-capability-profile/v1",
+  "catalogVersion": "2026-10-29",
+  "reviewedAt": "2026-10-29",
+  "supportedServiceTiers": [
+    "standard",
+    "default",
+    "auto",
+    "fast",
+    "priority",
+    "flex"
+  ],
+  "profileId": "model-capability-v1:2b777f8751c1fd244cc6bf69487e28aa",
+  "provider": "openai",
+  "model": "gpt-6.1-terra",
+  "contextWindowTokens": 1050000,
+  "windowSource": "official-model-docs",
+  "windowAssumed": false,
+  "runtimeProtocol": "openai-responses",
+  "runtimeVerified": false,
+  "requestMaxOutputTokens": null,
+  "plannedOutputReserveTokens": 4096,
+  "outputReserveSource": "planning-fallback",
+  "advertisedMaxOutputTokens": 128000,
+  "advertisedMaxInputTokens": 922000,
+  "reasoningEfforts": [
+    "none",
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+    "max"
+  ],
+  "defaultReasoningEffort": "medium",
+  "sources": [
+    "https://developers.openai.com/api/docs/models/gpt-6.1-terra",
+    "https://developers.openai.com/api/docs/guides/latest-model",
+    "https://developers.openai.com/api/docs/pricing",
+    "https://developers.openai.com/api/docs/guides/prompt-caching"
+  ],
+  "limitations": [
+    "Runtime execution, endpoint access and account entitlement have not been verified.",
+    "The output reserve is a planning fallback, not an output cap sent to the provider.",
+    "Responses selection is based on the versioned catalog and has not been verified against this account at runtime."
+  ],
+  "digest": "sha256:adcb835b10c1cd2ae36c300bdfb447ec138689cd5383c3f6eba694442e96b9a3"
+}

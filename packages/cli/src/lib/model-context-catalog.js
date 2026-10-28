@@ -45,7 +45,7 @@ export const CONTEXT_WINDOWS = Object.freeze({
   }),
 });
 
-export const MODEL_CAPABILITY_CATALOG_VERSION = "2026-10-15";
+export const MODEL_CAPABILITY_CATALOG_VERSION = "2026-10-29";
 
 // Explicit ownership prevents a model name served by an unrelated provider
 // from silently inheriting another provider's catalog window.
@@ -82,9 +82,50 @@ export const LEGACY_MODEL_PROVIDERS = Object.freeze({
   "doubao-seed-2-1-pro-260628": "volcengine",
 });
 
-// Official pages reviewed on the catalog version date. These describe the
+// Official pages reviewed on each entry's review date. These describe the
 // named models, not endpoint access, account entitlement, or a live CLI run.
 export const DOCUMENTED_OPENAI_MODELS = Object.freeze({
+  "gpt-6.1-terra": Object.freeze({
+    reviewedAt: "2026-10-29",
+    serviceTiers: Object.freeze([
+      "standard",
+      "default",
+      "auto",
+      "fast",
+      "priority",
+      "flex",
+    ]),
+    serviceMultipliers: Object.freeze({
+      standard: 1,
+      default: 1,
+      auto: 1,
+      batch: 0.5,
+      flex: 0.5,
+      fast: 2,
+      priority: 2,
+    }),
+    contextWindowTokens: 1050000,
+    advertisedMaxInputTokens: 922000,
+    advertisedMaxOutputTokens: 128000,
+    requiresResponsesForTools: true,
+    reasoningEfforts: Object.freeze([
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max",
+    ]),
+    defaultReasoningEffort: "medium",
+    pricing: Object.freeze({ in: 1, out: 5 }),
+    cacheReadMultiplier: 0.05,
+    sources: Object.freeze([
+      "https://developers.openai.com/api/docs/models/gpt-6.1-terra",
+      "https://developers.openai.com/api/docs/guides/latest-model",
+      "https://developers.openai.com/api/docs/pricing",
+      "https://developers.openai.com/api/docs/guides/prompt-caching",
+    ]),
+  }),
   "gpt-6.1-sol": Object.freeze({
     reviewedAt: "2026-10-15",
     serviceTiers: Object.freeze([
@@ -235,6 +276,7 @@ export const DOCUMENTED_ANTHROPIC_MODELS = Object.freeze({
 export const GPT6_PRICING_TERMS = Object.freeze({
   cacheReadMultiplier: 0.1,
   cacheWriteMultiplier: 1.25,
+  cacheWrite12hMultiplier: 2.5,
   longContext: Object.freeze({
     threshold: 272000,
     inputMultiplier: 2,

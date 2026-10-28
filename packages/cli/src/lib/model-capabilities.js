@@ -277,6 +277,9 @@ export function resolveModelCapabilityProfile({
     runtimeVerified: false,
     ...output,
     advertisedMaxOutputTokens: documented?.advertisedMaxOutputTokens ?? null,
+    ...(documented?.advertisedMaxInputTokens != null
+      ? { advertisedMaxInputTokens: documented.advertisedMaxInputTokens }
+      : {}),
     ...(documented?.adaptiveThinkingDefault
       ? {
           adaptiveThinkingDefault: true,
@@ -285,6 +288,9 @@ export function resolveModelCapabilityProfile({
       : {}),
     ...(documented?.reasoningEfforts
       ? { reasoningEfforts: [...documented.reasoningEfforts] }
+      : {}),
+    ...(documented?.defaultReasoningEffort
+      ? { defaultReasoningEffort: documented.defaultReasoningEffort }
       : {}),
     sources: documented ? [...documented.sources] : [],
     limitations,

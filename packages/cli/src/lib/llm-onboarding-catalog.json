@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.llm-onboarding-catalog/v1",
-  "capabilityCatalogVersion": "2026-10-15",
+  "capabilityCatalogVersion": "2026-10-29",
   "scope": "new-connections",
   "runtimeVerified": false,
   "accountVerified": false,

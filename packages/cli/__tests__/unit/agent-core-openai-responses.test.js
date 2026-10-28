@@ -212,87 +212,96 @@ describe("OpenAI Responses adapter", () => {
     ).toEqual({ effort: "low", summary: "auto" });
   });
 
-  it.each(["gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gpt-6.1-sol"])(
-    "selects /responses for official %s",
-    async (model) => {
-      const fetch = vi.fn(async () => ({
-        ok: true,
-        headers: {
-          get: (name) =>
-            name.toLowerCase() === "x-request-id" ? "req_provider" : null,
-        },
-        json: async () => ({
-          id: "resp_http",
-          status: "completed",
-          output: [
-            {
-              type: "message",
-              role: "assistant",
-              content: [{ type: "output_text", text: "done" }],
-            },
-          ],
-          usage: { input_tokens: 5, output_tokens: 2 },
-        }),
-      }));
-      vi.stubGlobal("fetch", fetch);
-
-      const output = await chatWithTools(
-        [
-          { role: "system", content: "Be concise." },
-          { role: "user", content: "Read the file." },
+  it.each([
+    "gpt-6-astra",
+    "gpt-6-sol",
+    "gpt-6-luna",
+    "gpt-6.1-sol",
+    "gpt-6.1-terra",
+  ])("selects /responses for official %s", async (model) => {
+    const fetch = vi.fn(async () => ({
+      ok: true,
+      headers: {
+        get: (name) =>
+          name.toLowerCase() === "x-request-id" ? "req_provider" : null,
+      },
+      json: async () => ({
+        id: "resp_http",
+        status: "completed",
+        output: [
+          {
+            type: "message",
+            role: "assistant",
+            content: [{ type: "output_text", text: "done" }],
+          },
         ],
-        {
-          provider: "openai",
-          model,
-          baseUrl: "https://api.openai.com/v1",
-          apiKey: "test-key",
-          cwd: os.tmpdir(),
-          contextMemorySkipPlanning: true,
-          enabledToolNames: ["read_file"],
-          exactToolNames: true,
-          thinking: "hard",
-          maxOutputTokens: 2048,
-          providerRequestId: "logical-request",
-        },
-      );
+        usage: { input_tokens: 5, output_tokens: 2 },
+      }),
+    }));
+    vi.stubGlobal("fetch", fetch);
 
-      expect(fetch).toHaveBeenCalledTimes(1);
-      const [url, init] = fetch.mock.calls[0];
-      const body = JSON.parse(init.body);
-      expect(url).toBe("https://api.openai.com/v1/responses");
-      expect(init.headers["X-Client-Request-Id"]).toBe("logical-request");
-      expect(body).toMatchObject({
+    const output = await chatWithTools(
+      [
+        { role: "system", content: "Be concise." },
+        { role: "user", content: "Read the file." },
+      ],
+      {
+        provider: "openai",
         model,
-        store: false,
-        include: ["reasoning.encrypted_content"],
-        max_output_tokens: 2048,
-        reasoning: { effort: "high", summary: "auto" },
-      });
-      expect(body).not.toHaveProperty("messages");
-      expect(body.tools[0]).toMatchObject({
-        type: "function",
-        name: "read_file",
-        parameters: expect.any(Object),
-      });
-      expect(body.tools[0]).not.toHaveProperty("function");
-      expect(output).toMatchObject({
-        message: { role: "assistant", content: "done" },
-        usage: {
-          input_tokens: 5,
-          output_tokens: 2,
-          cache_read_input_tokens: 0,
-        },
-        providerReceipt: {
-          provider: "openai",
-          clientRequestId: "logical-request",
-          requestId: "req_provider",
-          responseId: "resp_http",
-        },
-      });
-    },
-  );
+        baseUrl: "https://api.openai.com/v1",
+        apiKey: "test-key",
+        cwd: os.tmpdir(),
+        contextMemorySkipPlanning: true,
+        enabledToolNames: ["read_file"],
+        exactToolNames: true,
+        thinking: "hard",
+        maxOutputTokens: 2048,
+        providerRequestId: "logical-request",
+      },
+    );
 
-  it.each(["gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gpt-6.1-sol"])(
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const [url, init] = fetch.mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(url).toBe("https://api.openai.com/v1/responses");
+    expect(init.headers["X-Client-Request-Id"]).toBe("logical-request");
+    expect(body).toMatchObject({
+      model,
+      store: false,
+      include: ["reasoning.encrypted_content"],
+      max_output_tokens: 2048,
+      reasoning: { effort: "high", summary: "auto" },
+    });
+    expect(body).not.toHaveProperty("messages");
+    expect(body.tools[0]).toMatchObject({
+      type: "function",
+      name: "read_file",
+      parameters: expect.any(Object),
+    });
+    expect(body.tools[0]).not.toHaveProperty("function");
+    expect(output).toMatchObject({
+      message: { role: "assistant", content: "done" },
+      usage: {
+        input_tokens: 5,
+        output_tokens: 2,
+        cache_read_input_tokens: 0,
+      },
+      providerReceipt: {
+        provider: "openai",
+        clientRequestId: "logical-request",
+        requestId: "req_provider",
+        responseId: "resp_http",
+      },
+    });
+  });
+
+  it.each([
+    "gpt-6-astra",
+    "gpt-6-sol",
+    "gpt-6-luna",
+    "gpt-6.1-sol",
+    "gpt-6.1-terra",
+  ])(
     "streams %s Responses text and reasoning through the existing callbacks",
     async (model) => {
       const completed = {

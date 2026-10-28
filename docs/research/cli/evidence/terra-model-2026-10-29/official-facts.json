@@ -1,0 +1,90 @@
+{
+  "schema": "chainlesschain.model-official-facts/v1",
+  "reviewedAt": "2026-10-29",
+  "sources": [
+    {
+      "url": "https://developers.openai.com/api/docs/models/gpt-6.1-terra.md",
+      "finalUrl": "https://developers.openai.com/api/docs/models/gpt-6.1-terra.md",
+      "contentType": "text/markdown; charset=utf-8",
+      "bytes": 4178,
+      "sha256": "cd34faa8904d85961ab5fe270f079b8be45a9c876af6c809b38b2c069f687a7a",
+      "retrievedAt": "2026-10-28T20:20:08.541293+00:00"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/pricing.md",
+      "finalUrl": "https://developers.openai.com/api/docs/pricing.md",
+      "contentType": "text/markdown; charset=utf-8",
+      "bytes": 22824,
+      "sha256": "93d302a9b7a384877533bc3ab5bb48eebf4b56bd6add0f194095054b2a13f952",
+      "retrievedAt": "2026-10-28T20:20:11.066726+00:00"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/guides/prompt-caching.md",
+      "finalUrl": "https://developers.openai.com/api/docs/guides/prompt-caching.md",
+      "contentType": "text/markdown; charset=utf-8",
+      "bytes": 56625,
+      "sha256": "2da1ea8a2404b306773bee6aa1027ca36c9d0bc2f8a4ea3df83166d3da9d7e6c",
+      "retrievedAt": "2026-10-28T20:20:13.396612+00:00"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/guides/latest-model/gpt-6-astra.md",
+      "finalUrl": "https://developers.openai.com/api/docs/guides/latest-model/gpt-6-astra.md",
+      "contentType": "text/markdown; charset=utf-8",
+      "bytes": 20183,
+      "sha256": "746dd4b734bbc9f0221710c3aabaf5ffc4a6e1e03f3538cdbea5bd0a9ec4d828",
+      "retrievedAt": "2026-10-28T20:20:14.688722+00:00"
+    }
+  ],
+  "extraction": "manual factual review; downloaded page hashes, not a claim of live account validation",
+  "model": {
+    "id": "gpt-6.1-terra",
+    "contextWindowTokens": 1050000,
+    "maxInputTokens": 922000,
+    "maxOutputTokens": 128000,
+    "toolProtocol": "Responses",
+    "reasoning": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "defaultReasoning": "medium",
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "standardUsdPerMillion": {
+      "input": 1,
+      "output": 5,
+      "cachedRead": 0.05,
+      "write30m": 1.25,
+      "write12h": 2.5
+    },
+    "longInputThreshold": 272000,
+    "longInputAndCacheMultiplier": 2,
+    "longOutputMultiplier": 1.5,
+    "flexAndBatchMultiplier": 0.5,
+    "fastMultiplier": 2,
+    "regionalMultiplier": 1.1,
+    "ultrafastDocumented": false
+  },
+  "usageContract": {
+    "ordinaryInput": "input_tokens - cached_tokens - cache_write_tokens",
+    "splitPath": "input_tokens_details.cache_write_tokens_details",
+    "writeFields": [
+      "ttl_30m_tokens",
+      "ttl_12h_tokens"
+    ],
+    "splitRequiredForPositiveWrites": true
+  },
+  "apiDocumentationReviewed": true,
+  "productAvailabilityAssessed": false,
+  "accountVerified": false,
+  "liveRuntimeVerified": false,
+  "billingVerified": false
+}

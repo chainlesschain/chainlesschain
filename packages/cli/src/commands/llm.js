@@ -83,9 +83,7 @@ export function resolveLlmTestTarget(
     env,
     builtIns,
     defaultProvider: provider,
-    defaultModel: isOllama
-      ? "qwen2:7b"
-      : builtIn?.models?.[0] || "gpt-4o-mini",
+    defaultModel: isOllama ? "qwen2:7b" : builtIn?.models?.[0] || "gpt-4o-mini",
   });
   return {
     provider: connection.provider,
@@ -148,6 +146,9 @@ export function formatLlmCapabilities(profile) {
     `Request output cap: ${profile.requestMaxOutputTokens ?? "not explicitly set"}`,
     `Planned output reserve: ${profile.plannedOutputReserveTokens} tokens (${profile.outputReserveSource}); planning reserve is not an enforced request cap`,
     `Advertised maximum output: ${profile.advertisedMaxOutputTokens ?? "unknown"}`,
+    ...(profile.advertisedMaxInputTokens != null
+      ? [`Advertised maximum input: ${profile.advertisedMaxInputTokens}`]
+      : []),
     "Fallback values are estimates, not a readiness or execution guarantee.",
     ...profile.limitations.map((limitation) => `Note: ${limitation}`),
     `Profile digest: ${profile.digest}`,

@@ -220,6 +220,7 @@ export function normalizePricingTerms(value) {
     "cacheReadMultiplier",
     "cacheWriteMultiplier",
     "cacheWrite1hMultiplier",
+    "cacheWrite12hMultiplier",
     "longContext",
     "serviceMultipliers",
   ]);
@@ -230,6 +231,7 @@ export function normalizePricingTerms(value) {
     "cacheReadMultiplier",
     "cacheWriteMultiplier",
     "cacheWrite1hMultiplier",
+    "cacheWrite12hMultiplier",
   ]) {
     if (!Object.hasOwn(value, key)) continue;
     if (!finite(value[key])) fail();
@@ -333,8 +335,8 @@ export function lookupRate(provider, model, table = PRICE_TABLE) {
  *             currency:string, matched:boolean, free:boolean, rate:object|null }}
  */
 // Prompt-cache price multipliers relative to the input rate. A cache WRITE
-// (Anthropic 5-minute ephemeral breakpoint) bills at ~125%; only Anthropic
-// reports cache creation. Cache READ pricing differs per provider — Anthropic
+// (Anthropic 5-minute / OpenAI 30-minute) bills at 125%; longer TTLs have
+// separate rates and require usage evidence. Cache READ pricing differs — Anthropic
 // ~10%, OpenAI ~50%, DeepSeek ~25% of the input rate — so the default below is
 // overridden per provider. Applied only when cache token counts are present, so
 // non-caching usage is priced exactly as before. Public list-price estimates
@@ -361,6 +363,8 @@ export function estimateCost({
   cacheCreationTokens = 0,
   cacheCreation5mTokens,
   cacheCreation1hTokens,
+  cacheCreation30mTokens,
+  cacheCreation12hTokens,
   cacheCreationInvalid = false,
   pricingContextInvalid = false,
   requestInputTokens,
@@ -378,9 +382,25 @@ export function estimateCost({
     Number.isSafeInteger(cacheCreation1hTokens) &&
     cacheCreation1hTokens >= 0 &&
     cacheCreation5mTokens + cacheCreation1hTokens === cacheCreationTokens;
+  const openaiSplitPresent =
+    cacheCreation30mTokens != null || cacheCreation12hTokens != null;
+  const openaiSplitValid =
+    openaiSplitPresent &&
+    Number.isSafeInteger(cacheCreation30mTokens) &&
+    cacheCreation30mTokens >= 0 &&
+    Number.isSafeInteger(cacheCreation12hTokens) &&
+    cacheCreation12hTokens >= 0 &&
+    cacheCreation30mTokens + cacheCreation12hTokens === cacheCreationTokens;
   const missingCacheEvidence =
     cacheCreationInvalid ||
     (splitPresent && !splitValid) ||
+    (openaiSplitPresent && !openaiSplitValid) ||
+    (openaiSplitPresent && splitPresent) ||
+    (openaiSplitPresent && rate?.terms?.cacheWrite12hMultiplier == null) ||
+    (splitPresent && rate?.terms?.cacheWrite12hMultiplier != null) ||
+    (rate?.terms?.cacheWrite12hMultiplier != null &&
+      cacheCreationTokens > 0 &&
+      !openaiSplitValid) ||
     (rate?.terms?.cacheWrite1hMultiplier != null &&
       cacheCreationTokens > 0 &&
       !splitValid);
@@ -432,12 +452,16 @@ export function estimateCost({
     inputMultiplier *
     multiplier;
   const cacheCreationCost =
-    ((splitValid
-      ? cacheCreation5mTokens *
-          (rate.terms?.cacheWriteMultiplier ?? CACHE_WRITE_MULTIPLIER) +
-        cacheCreation1hTokens * (rate.terms?.cacheWrite1hMultiplier ?? 2)
-      : Number(cacheCreationTokens) *
-        (rate.terms?.cacheWriteMultiplier ?? CACHE_WRITE_MULTIPLIER)) /
+    ((openaiSplitValid
+      ? cacheCreation30mTokens *
+          (rate.terms.cacheWriteMultiplier ?? CACHE_WRITE_MULTIPLIER) +
+        cacheCreation12hTokens * rate.terms.cacheWrite12hMultiplier
+      : splitValid
+        ? cacheCreation5mTokens *
+            (rate.terms?.cacheWriteMultiplier ?? CACHE_WRITE_MULTIPLIER) +
+          cacheCreation1hTokens * (rate.terms?.cacheWrite1hMultiplier ?? 2)
+        : Number(cacheCreationTokens) *
+          (rate.terms?.cacheWriteMultiplier ?? CACHE_WRITE_MULTIPLIER)) /
       1e6) *
     rate.in *
     inputMultiplier *
@@ -474,6 +498,8 @@ export function priceRollup(aggregate, { table } = {}) {
       cacheCreationTokens: row.cacheCreationTokens,
       cacheCreation5mTokens: row.cacheCreation5mTokens,
       cacheCreation1hTokens: row.cacheCreation1hTokens,
+      cacheCreation30mTokens: row.cacheCreation30mTokens,
+      cacheCreation12hTokens: row.cacheCreation12hTokens,
       cacheCreationInvalid: row.cacheCreationInvalid,
       pricingContextInvalid:
         row.pricingContextInvalid === true ||

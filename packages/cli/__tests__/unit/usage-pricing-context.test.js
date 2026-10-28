@@ -26,6 +26,11 @@ function request(values) {
     usage.outputTokens +
     usage.cacheReadTokens +
     usage.cacheCreationTokens;
+  // These controlled samples write only the default 30-minute cache.
+  if (usage.cacheCreationTokens) {
+    usage.cacheCreation30mTokens = usage.cacheCreationTokens;
+    usage.cacheCreation12hTokens = 0;
+  }
   return usage;
 }
 
@@ -134,7 +139,7 @@ describe("request-level pricing aggregation", () => {
       const individual = requests.map((usage) =>
         estimateCost({ ...identity, ...usage }),
       );
-      expect(row.pricingBuckets).toHaveLength(4);
+      expect(row.pricingBuckets).toHaveLength(5);
       expect(result.byModel[0].matched).toBe(true);
       for (const field of [
         "inputCost",

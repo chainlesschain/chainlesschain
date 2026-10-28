@@ -1,0 +1,21 @@
+{
+  "schema": "chainlesschain.memory-sampling-progress/v1",
+  "observedAt": "2026-10-28T20:33:10.822479+00:00",
+  "status": "IN_PROGRESS",
+  "complete": false,
+  "sourceHead": "16af6d6199ea5c8d261b9a1872c50b185841192d",
+  "artifact": {
+    "path": "disk-100-partial.json.gz",
+    "sha256": "5a9a7d62fcc8c2622f06eef89ccca627334f7414f2458572ef39d6f58628a38e"
+  },
+  "completedCount1000": true,
+  "remaining": [
+    "10000 and 100000 disk scenarios",
+    "verified-memory hot",
+    "100-sample Stop",
+    "100-round mixed concurrency",
+    "cross-platform results"
+  ],
+  "localWorkstationShared": true,
+  "coResidentActivity": "Model documentation edits and targeted single-worker model regression tests occurred during this run. No bound query implementation or benchmark source was edited. Not an isolated hardware SLO experiment."
+}

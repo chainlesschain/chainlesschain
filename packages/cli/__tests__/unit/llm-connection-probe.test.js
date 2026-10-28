@@ -86,7 +86,13 @@ describe("catalog-selected OpenAI Responses probes", () => {
           json: async () => ({ ...response, usage }),
         }),
       });
-      expect(result.usage).toBeNull();
+      if (usage?.input_tokens_details?.cache_write_tokens === 5) {
+        expect(result.usage).toMatchObject({
+          input_tokens: 15,
+          cache_creation_input_tokens: 5,
+          cacheCreationInvalid: true,
+        });
+      } else expect(result.usage).toBeNull();
       expect(result.totalCostUsd).toBeNull();
     },
   );

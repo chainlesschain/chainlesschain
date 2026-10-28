@@ -12,7 +12,7 @@ const digest = (bytes) =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 const defaultReview = fileURLToPath(
   new URL(
-    "../__tests__/fixtures/model-catalog-review-2026-10-15.json",
+    "../__tests__/fixtures/model-catalog-review-2026-10-29.json",
     import.meta.url,
   ),
 );
@@ -69,7 +69,13 @@ function sourceIdentity(expectedSha) {
     "packages/cli/src/lib/model-capabilities.js",
     "packages/cli/src/lib/provider-options.js",
     "packages/cli/src/lib/llm-pricing.js",
-    "packages/cli/__tests__/fixtures/model-catalog-review-2026-10-15.json",
+    "packages/cli/src/lib/openai-responses.js",
+    "packages/cli/src/lib/usage-pricing-context.js",
+    "packages/cli/src/lib/cost-budget.js",
+    "packages/cli/src/lib/llm-connection-probe.js",
+    "packages/cli/src/lib/context-memory-kernel/provider-context.js",
+    "packages/cli/src/commands/llm.js",
+    "packages/cli/__tests__/fixtures/model-catalog-review-2026-10-29.json",
   ];
   const dirty =
     git(["status", "--porcelain", "--untracked-files=all", "--", ...inputs])

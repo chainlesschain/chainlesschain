@@ -1,0 +1,64 @@
+TAP version 13
+# Subtest: local review binds source and fixture bytes without claiming upstream/account validation
+ok 1 - local review binds source and fixture bytes without claiming upstream/account validation
+  ---
+  duration_ms: 505.6169
+  type: 'test'
+  ...
+# Subtest: drift remains a failed gate while preserving the original BOM/CRLF byte binding
+ok 2 - drift remains a failed gate while preserving the original BOM/CRLF byte binding
+  ---
+  duration_ms: 446.3717
+  type: 'test'
+  ...
+# Subtest: partial upstream capture is explicitly incomplete
+ok 3 - partial upstream capture is explicitly incomplete
+  ---
+  duration_ms: 569.9555
+  type: 'test'
+  ...
+# Subtest: stable official GitHub JSON drift preserves raw bytes and completes review without enabling models
+ok 4 - stable official GitHub JSON drift preserves raw bytes and completes review without enabling models
+  ---
+  duration_ms: 503.9534
+  type: 'test'
+  ...
+# Subtest: wrong-repository release JSON remains a saved failed observation
+ok 5 - wrong-repository release JSON remains a saved failed observation
+  ---
+  duration_ms: 405.7656
+  type: 'test'
+  ...
+# Subtest: an upstream error page retains its bytes but cannot become completed review evidence
+ok 6 - an upstream error page retains its bytes but cannot become completed review evidence
+  ---
+  duration_ms: 527.1379
+  type: 'test'
+  ...
+# Subtest: a changed source pin fails before writing evidence
+ok 7 - a changed source pin fails before writing evidence
+  ---
+  duration_ms: 291.4269
+  type: 'test'
+  ...
+# Subtest: oversized upstream data is rejected instead of partially hashed
+ok 8 - oversized upstream data is rejected instead of partially hashed
+  ---
+  duration_ms: 357.4113
+  type: 'test'
+  ...
+# Subtest: report output cannot overwrite an existing evidence file
+ok 9 - report output cannot overwrite an existing evidence file
+  ---
+  duration_ms: 1321.0222
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5130.4833

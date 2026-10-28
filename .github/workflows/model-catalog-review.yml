@@ -4,13 +4,33 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "20 3 * * 1"
+  push:
+    branches: [main]
+    paths:
+      - "packages/cli/src/lib/model-*.js"
+      - "packages/cli/src/lib/llm-pricing.js"
+      - "packages/cli/src/lib/openai-responses.js"
+      - "packages/cli/src/lib/usage-pricing-context.js"
+      - "packages/cli/src/lib/cost-budget.js"
+      - "packages/cli/src/lib/llm-connection-probe.js"
+      - "packages/cli/src/lib/context-memory-kernel/provider-context.js"
+      - "packages/cli/scripts/review-model-catalog.mjs"
+      - "packages/cli/__tests__/fixtures/model-catalog-review-*.json"
+      - "packages/cli/__tests__/unit/model-terra-contract.test.js"
+      - ".github/workflows/model-catalog-review.yml"
   pull_request:
     paths:
       - "packages/cli/src/lib/model-*.js"
       - "packages/cli/src/lib/llm-pricing.js"
+      - "packages/cli/src/lib/openai-responses.js"
+      - "packages/cli/src/lib/usage-pricing-context.js"
+      - "packages/cli/src/lib/cost-budget.js"
+      - "packages/cli/src/lib/llm-connection-probe.js"
+      - "packages/cli/src/lib/context-memory-kernel/provider-context.js"
       - "packages/cli/scripts/review-model-catalog.mjs"
       - "packages/cli/test-node/model-catalog-review-evidence.node-test.mjs"
       - "packages/cli/__tests__/unit/model-catalog-review.test.js"
+      - "packages/cli/__tests__/unit/model-terra-contract.test.js"
       - "packages/cli/__tests__/fixtures/model-catalog-review-*.json"
       - ".github/workflows/model-catalog-review.yml"
 
@@ -31,6 +51,15 @@ jobs:
       - uses: ./.github/actions/setup-node-deps
       - name: Verify evidence capture contracts
         run: node --test packages/cli/test-node/model-catalog-review-evidence.node-test.mjs
+      - name: Verify reviewed API, usage and budget contracts
+        working-directory: packages/cli
+        run: >-
+          npm test --
+          __tests__/unit/model-terra-contract.test.js
+          __tests__/unit/model-catalog-review.test.js
+          __tests__/unit/usage-pricing-context.test.js
+          __tests__/unit/agent-core-openai-responses.test.js
+          __tests__/unit/llm-connection-probe.test.js
       - name: Prepare evidence directory
         shell: bash
         run: mkdir -p "$RUNNER_TEMP/model-catalog-review"
@@ -43,7 +72,7 @@ jobs:
       # Review alerts are separate from exact-commit npm release gates. An
       # upstream release never modifies or enables a model automatically.
       - name: Fetch official release notes
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
           # The mixed product changelog contains app/mobile releases, not an
           # identifiable latest CLI version. Keep the official CLI API raw.
@@ -55,7 +84,7 @@ jobs:
             -o "$RUNNER_TEMP/model-catalog-review/codex.json"
           curl --fail --location --max-time 60 https://code.claude.com/docs/en/changelog.md -o "$RUNNER_TEMP/model-catalog-review/claude.md"
       - name: Detect releases requiring review
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         shell: bash
         run: >-
           node packages/cli/scripts/review-model-catalog.mjs

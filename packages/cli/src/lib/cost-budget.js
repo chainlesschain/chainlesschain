@@ -75,6 +75,8 @@ export class CostBudget {
       cacheCreationTokens,
       cacheCreation5mTokens: pricingContext.cacheCreation5mTokens,
       cacheCreation1hTokens: pricingContext.cacheCreation1hTokens,
+      cacheCreation30mTokens: pricingContext.cacheCreation30mTokens,
+      cacheCreation12hTokens: pricingContext.cacheCreation12hTokens,
       cacheCreationInvalid: pricingContext.cacheCreationInvalid,
       pricingContextInvalid:
         pricingContext.pricingContextInvalid === true ||
