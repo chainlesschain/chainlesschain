@@ -1,0 +1,27 @@
+{
+  "schema": "chainlesschain.release130-audit-checkout-repair/v1",
+  "recordedAt": "2026-10-28T18:25:19.973Z",
+  "sourceBefore": "1e0f62df05be658aea4e3734e6c2ed1623271098",
+  "jobs": [
+    {
+      "id": 123006486320,
+      "conclusion": "cancelled",
+      "lintExecuted": false
+    },
+    {
+      "id": 123006487463,
+      "conclusion": "cancelled",
+      "checkoutSeconds": 206,
+      "lintAndUnitTestsPassed": true
+    }
+  ],
+  "repair": "Sparse checkout of all packages and scripts plus automatic cone-mode root files; retain complete Git history for the publish diff, all runtime import coverage, original tests and 3-minute job timeouts.",
+  "validation": {
+    "undeclaredUnitTestsPassed": 20,
+    "undeclaredPackagesScanned": 14,
+    "undeclaredViolations": 0,
+    "publishPackagesScanned": 18,
+    "publishViolations": 0
+  },
+  "publication": "NOT_PUBLISHED"
+}

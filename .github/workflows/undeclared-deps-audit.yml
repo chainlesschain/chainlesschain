@@ -44,6 +44,12 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v5
+        with:
+          # Preserve every audited workspace source and the lint unit tests;
+          # unrelated archived evidence must not consume the short job budget.
+          sparse-checkout: |
+            packages
+            scripts
 
       - uses: actions/setup-node@v5
         with:
