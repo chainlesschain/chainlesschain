@@ -208,6 +208,62 @@ class DispatcherTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'differs'):
             m.execute(changed, self.directory, submit=True, dispatch=lambda args: self.fail('must not dispatch'))
 
+    def test_readonly_resolution_survives_branch_movement_without_submitting(self):
+        def failed(args):
+            self.calls.append(args)
+            self.runs.append({'id': 91})
+            return subprocess.CompletedProcess(args, 1, b'', b'')
+        with self.assertRaisesRegex(RuntimeError, 'intent retained'):
+            m.execute(self.context, self.directory, submit=True, dispatch=failed)
+        m.assert_remote_head = lambda context: self.fail('read-only resolve must not require current branch HEAD')
+        result = m.execute(self.context, self.directory, resolve=True,
+                           dispatch=lambda args: self.fail('read-only resolve must not dispatch'))
+        self.assertEqual(result['status'], 'INCOMPLETE')
+        self.assertEqual(len(self.calls), 1)
+        record = json.loads((self.directory / (self.shards[0]['shardId'] + '.resolved.json')).read_bytes())
+        self.assertEqual(record['runId'], '91')
+        self.assertEqual(record['sourceCommit'], self.context['sourceCommit'])
+
+    def test_resolution_loader_reuses_exact_journal_and_checks_committed_bindings(self):
+        plan_file = 'docs/plan.json'
+        raw = b'{"test":"original plan"}\n'
+        target = self.directory / plan_file
+        target.parent.mkdir()
+        target.write_bytes(raw)
+        bound = {**self.context, 'planPath': plan_file, 'planDigest': m.digest(raw), 'reviewChanges': True}
+        journal = self.directory / 'next-package-dispatch' / m.digest(raw).split(':')[1]
+        journal.mkdir(parents=True)
+        m.atomic_new(journal / 'context.json', bound)
+        base = {k:v for k,v in bound.items() if k != 'reviewChanges'}
+        with patch.object(m, 'TREE', self.directory), patch.object(m, 'WORK', self.directory), \
+             patch.object(m, 'load_context', return_value=(base.copy(), {})) as load:
+            context, _ = m.load_resolution_context(plan_file)
+            self.assertEqual(context, bound)
+            load.assert_called_once_with(plan_file, resolution_context=bound)
+        for field in ['sourceCommit', 'packageSetDigest', 'executionShards', 'branch']:
+            changed = {**base, field: 'different'}
+            with self.subTest(field=field), patch.object(m, 'TREE', self.directory), patch.object(m, 'WORK', self.directory), \
+                 patch.object(m, 'load_context', return_value=(changed, {})):
+                with self.assertRaisesRegex(RuntimeError, 'committed evidence'):
+                    m.load_resolution_context(plan_file)
+        target.write_bytes(b'{"test":"changed plan"}')
+        with patch.object(m, 'TREE', self.directory), patch.object(m, 'WORK', self.directory), \
+             patch.object(m, 'load_context', side_effect=AssertionError('must not load another plan')):
+            with self.assertRaises(FileNotFoundError):
+                m.load_resolution_context(plan_file)
+
+    def test_resolution_cli_never_requires_current_remote_head_or_public_packages(self):
+        with patch.object(m, 'load_resolution_context', return_value=(self.context, {})), \
+             patch.object(m, 'WORK', self.directory), \
+             patch.object(m, 'load_context', side_effect=AssertionError('must use original journal')), \
+             patch.object(m, 'assert_remote_head', side_effect=AssertionError('branch may advance')), \
+             patch.object(m, 'verify_public', side_effect=AssertionError('public version may advance')), \
+             patch.object(m, 'execute', return_value={'status':'INCOMPLETE'}) as execute, \
+             patch.object(m.sys, 'argv', ['dispatcher', '--plan', 'docs/plan.json', '--resolve']), \
+             contextlib.redirect_stdout(io.StringIO()):
+            m.main()
+        self.assertEqual(execute.call_args.kwargs, {'submit':False,'resolve':True,'max_new_dispatches':None})
+
     def test_manifest_plan_and_eval_head_are_intent_bound(self):
         m.execute(self.context, self.directory, submit=True, dispatch=self.dispatch)
         intent = json.loads((self.directory / (self.shards[0]['shardId'] + '.intent.json')).read_bytes())

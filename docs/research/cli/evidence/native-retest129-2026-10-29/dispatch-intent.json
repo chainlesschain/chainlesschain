@@ -1,0 +1,109 @@
+{
+  "binding": {
+    "schema": "chainlesschain.native-dispatch-journal/v1",
+    "repository": "chainlesschain/chainlesschain",
+    "workflow": "verify01-native-task-campaign.yml",
+    "branch": "main",
+    "sourceCommit": "f154c77641a761d4dc11a6b48a9503a3d6bc0c40",
+    "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-129-review-20261029-plan.json",
+    "planDigest": "sha256:1d5cdac56fe466db1415dd1b9fcb79832a7c933b11f0743c48c18a156129ce94",
+    "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-29-review-129.json",
+    "packageSetDigest": "sha256:f9e533463ec27e3c510e313e6cfa4658d7accc867452409dbcc7c17f7934cb32",
+    "versions": {
+      "cli": "0.166.129",
+      "vscode": "0.37.167",
+      "jetbrains": "0.4.184",
+      "vscodeHost": "1.132.0",
+      "jetbrainsHost": "2025.2"
+    },
+    "executionShards": [
+      {
+        "shardId": "win32-vscode--verify-11",
+        "group": "win32-vscode",
+        "sampleIds": [
+          "verify-11"
+        ]
+      },
+      {
+        "shardId": "win32-jetbrains--verify-30",
+        "group": "win32-jetbrains",
+        "sampleIds": [
+          "verify-30"
+        ]
+      },
+      {
+        "shardId": "linux-cli--verify-04",
+        "group": "linux-cli",
+        "sampleIds": [
+          "verify-04"
+        ]
+      },
+      {
+        "shardId": "linux-cli--verify-13",
+        "group": "linux-cli",
+        "sampleIds": [
+          "verify-13"
+        ]
+      },
+      {
+        "shardId": "darwin-cli--verify-07",
+        "group": "darwin-cli",
+        "sampleIds": [
+          "verify-07"
+        ]
+      },
+      {
+        "shardId": "darwin-cli--first-run-darwin-cli",
+        "group": "darwin-cli",
+        "sampleIds": [
+          "first-run-darwin-cli"
+        ]
+      },
+      {
+        "shardId": "darwin-vscode--verify-08",
+        "group": "darwin-vscode",
+        "sampleIds": [
+          "verify-08"
+        ]
+      },
+      {
+        "shardId": "darwin-jetbrains--verify-09",
+        "group": "darwin-jetbrains",
+        "sampleIds": [
+          "verify-09"
+        ]
+      },
+      {
+        "shardId": "darwin-jetbrains--first-run-darwin-jetbrains",
+        "group": "darwin-jetbrains",
+        "sampleIds": [
+          "first-run-darwin-jetbrains"
+        ]
+      },
+      {
+        "shardId": "win32-cli--verify-10",
+        "group": "win32-cli",
+        "sampleIds": [
+          "verify-10"
+        ]
+      },
+      {
+        "shardId": "win32-cli--verify-19",
+        "group": "win32-cli",
+        "sampleIds": [
+          "verify-19"
+        ]
+      }
+    ],
+    "reviewChanges": true
+  },
+  "shard": {
+    "shardId": "win32-vscode--verify-11",
+    "group": "win32-vscode",
+    "sampleIds": [
+      "verify-11"
+    ]
+  },
+  "beforeRunIds": [],
+  "createdAt": "2026-10-28T18:17:16.541254+00:00"
+}

@@ -1,0 +1,33 @@
+{
+  "schema": "chainlesschain.native-retest-dispatch-status/v1",
+  "observedAt": "2026-10-28T18:21:50.320127+00:00",
+  "status": "REQUEST_UNRESOLVED",
+  "sourceCommit": "f154c77641a761d4dc11a6b48a9503a3d6bc0c40",
+  "sampleId": "verify-11",
+  "planDigest": "sha256:1d5cdac56fe466db1415dd1b9fcb79832a7c933b11f0743c48c18a156129ce94",
+  "workflowDispatchInvocations": 1,
+  "successfulDispatchResponses": 0,
+  "observedWorkflowRuns": 0,
+  "liveModelRequests": "UNKNOWN",
+  "automaticRetries": 0,
+  "newAcceptedDeliverables": 0,
+  "evidence": {
+    "intent": {
+      "path": "dispatch-intent.json",
+      "digest": "sha256:d2d7fb17e0ca606ec262d5eeda29eeb01d514b0010ebde6c903dd0f7220981f2",
+      "bytes": 2844
+    },
+    "request": {
+      "path": "dispatch-request.json",
+      "digest": "sha256:4a170b1bd5c6ade7ec2dc8f5298ff21e82d911bfa813bab558e860769caa242d",
+      "bytes": 29
+    },
+    "runInventory": {
+      "path": "dispatch-resolution-runs.json",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/workflows/verify01-native-task-campaign.yml/runs?head_sha=f154c77641a761d4dc11a6b48a9503a3d6bc0c40&per_page=100",
+      "bytes": 36,
+      "digest": "sha256:a2790a384d7d281e7395679000c35d27768d89dbd7052f725b8f4688beb59915"
+    }
+  },
+  "limitation": "Absence from the observed run inventory does not prove that no request reached the server. Retain the original journal and resolve read-only; do not resubmit."
+}

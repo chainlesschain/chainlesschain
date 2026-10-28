@@ -7,6 +7,8 @@ Resume with the same committed plan and evaluation HEAD; resolved shards are ski
 This limits batch size, not concurrent runs: wait for the current batch's generation
 jobs to finish before submitting another batch when limiting concurrency.
 --resolve only reads GitHub, appends local resolutions, and never dispatches.
+Resolution uses the journal's original commit even when the branch has advanced;
+the plan and package manifest must still match that committed evidence exactly.
 An unresolved intent always blocks --submit, including after a crashed request.
 Journal: shared Git common-directory parent's .work/next-package-dispatch/
 <plan digest>/ (keep permanently; all linked worktrees use the same intents).
@@ -117,11 +119,12 @@ def validate_shards(plan):
     return shards
 
 
-def load_context(plan_file):
-    head = git('rev-parse', 'HEAD').decode().strip()
-    branch = git('branch', '--show-current').decode().strip()
+def load_context(plan_file, resolution_context=None):
+    head = resolution_context['sourceCommit'] if resolution_context else git('rev-parse', 'HEAD').decode().strip()
+    branch = resolution_context['branch'] if resolution_context else git('branch', '--show-current').decode().strip()
     require(re.fullmatch(r'[a-f0-9]{40}', head) and branch, 'Named evaluation branch required')
-    require(not git('diff', '--name-only', 'HEAD').strip(), 'Tracked evaluation files must be committed')
+    if resolution_context is None:
+        require(not git('diff', '--name-only', 'HEAD').strip(), 'Tracked evaluation files must be committed')
     plan_raw = committed_bytes(plan_file, head)
     validated = json.loads(command(['node', VERIFIER, '--plan', plan_file, '--plan-only']))
     plan = validated['plan']
@@ -136,6 +139,22 @@ def load_context(plan_file):
                'planPath': plan_file, 'planDigest': digest(plan_raw),
                'packageSetPath': plan['packageSetPath'], 'packageSetDigest': digest(manifest_raw),
                'versions': plan['versions'], 'executionShards': shards}
+    return context, manifest
+
+
+def load_resolution_context(plan_file):
+    # Do not bind an old intent to a newer branch HEAD or create a new journal.
+    # load_context then verifies these same plan/manifest bytes against the
+    # original commit and validates the plan with the strict evidence loader.
+    raw = (TREE / safe_relative(plan_file)).read_bytes()
+    directory = WORK / 'next-package-dispatch' / digest(raw).split(':')[1]
+    bound = json.loads((directory / 'context.json').read_bytes())
+    require(bound.get('planPath') == plan_file and bound.get('planDigest') == digest(raw),
+            'Resolution journal plan binding differs')
+    context, manifest = load_context(plan_file, resolution_context=bound)
+    if bound.get('reviewChanges') is True:
+        context['reviewChanges'] = True
+    require(context == bound, 'Resolution journal context differs from committed evidence')
     return context, manifest
 
 
@@ -287,7 +306,8 @@ def execute(context, directory, submit=False, resolve=False, dispatch=None, max_
                 continue
             if intent_file.exists():
                 require(resolve, 'Unresolved intent blocks submit; use --resolve, never resend')
-                assert_remote_head(context)
+                # Only query runs bound to the original source/branch. Moving
+                # or deleting the branch must not prevent read-only recovery.
                 resolve_intent(directory, context, shard, list_runs(context))
                 continue
             if resolve:
@@ -344,14 +364,15 @@ def main():
     args = parser.parse_args()
     if args.max_new_dispatches is not None and (not args.submit or args.max_new_dispatches <= 0):
         parser.error('--max-new-dispatches requires --submit and a positive integer')
-    context, manifest = load_context(args.plan)
+    context, manifest = load_resolution_context(args.plan) if args.resolve else load_context(args.plan)
     # Omit false to preserve historical journal bindings and dispatch arguments.
     if args.review_changes:
         context['reviewChanges'] = True
     directory = WORK / 'next-package-dispatch' / context['planDigest'].split(':')[1]
     if directory.exists() and (directory / 'context.json').exists():
         require(json.loads((directory / 'context.json').read_bytes()) == context, 'Existing journal belongs to another evaluation HEAD/context')
-    assert_remote_head(context)
+    if not args.resolve:
+        assert_remote_head(context)
     if not args.submit and not args.resolve:
         print(json.dumps({'mode': 'PREVIEW_ONLY', **context, 'journal': str(directory),
                           'unresolvedIntents': [file.stem for file in directory.glob('*.intent.json') if not file.with_name(file.name.replace('.intent.json', '.resolved.json')).exists()]}, indent=2))
