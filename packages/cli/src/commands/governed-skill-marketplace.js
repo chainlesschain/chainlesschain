@@ -1,6 +1,7 @@
 import { isGovernedSkillMarketplaceCliHost } from "../lib/evolution/governed-skill-marketplace-cli-host.js";
 import { startGovernedSkillMarketplaceBadgeServer } from "../lib/evolution/governed-skill-marketplace-badge.js";
 import { intArg } from "../lib/cli-arg.js";
+import { createAbortError } from "../lib/abort-utils.js";
 
 function host(value) {
   if (!isGovernedSkillMarketplaceCliHost(value))
@@ -98,16 +99,29 @@ export function registerGovernedSkillMarketplaceCommands(
       "--expected-state <digest>",
       "Current state digest for an update; omitted for first stage",
     )
-    .action(async (skillName, options) =>
-      output(
-        await host(marketplaceHost).install({
-          skillName,
-          version: options.skillVersion ?? null,
-          manifestDigest: options.manifest,
-          expectedStateDigest: options.expectedState ?? null,
-        }),
-      ),
-    );
+    .action(async (skillName, options) => {
+      const controller = new AbortController();
+      const interrupt = () =>
+        controller.abort(createAbortError("Skill installation interrupted"));
+      process.once("SIGINT", interrupt);
+      process.once("SIGTERM", interrupt);
+      try {
+        output(
+          await host(marketplaceHost).install(
+            {
+              skillName,
+              version: options.skillVersion ?? null,
+              manifestDigest: options.manifest,
+              expectedStateDigest: options.expectedState ?? null,
+            },
+            { signal: controller.signal },
+          ),
+        );
+      } finally {
+        process.removeListener("SIGINT", interrupt);
+        process.removeListener("SIGTERM", interrupt);
+      }
+    });
 
   marketplace
     .command("state <skill-name>")

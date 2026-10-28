@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { isAbsolute } from "node:path";
 import { types as utilTypes } from "node:util";
+import { throwIfAborted } from "../abort-utils.js";
+import { awaitMarketplaceRead } from "./governed-skill-marketplace-abort.js";
 import {
   SkillCandidateRegistry,
   SKILL_CANDIDATE_MAX_ARTIFACT_BYTES,
@@ -250,7 +252,8 @@ export function createGovernedSkillMarketplaceCandidateInstaller({
   };
   const installer = Object.freeze({
     tenantId,
-    async materialize(inspected) {
+    async materialize(inspected, { signal } = {}) {
+      throwIfAborted(signal);
       const { manifest, adapted, target } = inspected;
       if (manifest.tenantId !== tenantId)
         throw new Error("marketplace candidate tenant mismatch");
@@ -262,7 +265,11 @@ export function createGovernedSkillMarketplaceCandidateInstaller({
         adaptedOutputDigest: adapted.outputDigest,
         sbomDigest: manifest.sbomDigest,
       });
-      const resolved = await Reflect.apply(resolve, artifacts, [request]);
+      const resolved = await awaitMarketplaceRead(
+        () => Reflect.apply(resolve, artifacts, [request, { signal }]),
+        signal,
+      );
+      throwIfAborted(signal);
       const sourceBytes = bytes(
         resolved?.packageBytes,
         request.packageDigest,
@@ -307,6 +314,7 @@ export function createGovernedSkillMarketplaceCandidateInstaller({
         ...core,
         bindingDigest: bindingDigest(core),
       });
+      throwIfAborted(signal);
       const result = create(candidateInput(candidate));
       if (result.candidate.candidateId !== candidate.candidateId)
         throw new Error(

@@ -1,0 +1,438 @@
+{
+  "schema": "chainlesschain.memory-full-local-readback/v1",
+  "observedAt": "2026-10-28T22:07:43.281053+00:00",
+  "sourceBindingComparisonCommit": "793c590bda9222c2a34bd7711a8a36177f42a985",
+  "reports": [
+    {
+      "file": "disk-100.json",
+      "report": {
+        "path": "disk-100.json.gz",
+        "archiveSha256": "3dc30ed555b30e99b256022951773e32729ba4747ce508e9203873a63bdd3b31",
+        "decodedSha256": "b74ec025b7f6af223d53d5bf01cfea962e8dc5927d24187cee2c688855473f59"
+      },
+      "samplesVerified": 1500,
+      "sourceHeadAtStart": "16af6d6199ea5c8d261b9a1872c50b185841192d",
+      "sourceStatusAtStart": "includes-uncommitted-implementation",
+      "sourceBlobsVerified": 11,
+      "cacheMode": "validate-disk",
+      "groups": [
+        {
+          "count": 1000,
+          "mode": "baseline",
+          "latency": {
+            "samples": 100,
+            "minMs": 478.379,
+            "p50Ms": 506.402,
+            "p95Ms": 631.268,
+            "p99Ms": 798.696,
+            "maxMs": 835.804
+          },
+          "peakRssBytes": 90636288
+        },
+        {
+          "count": 1000,
+          "mode": "cold",
+          "latency": {
+            "samples": 100,
+            "minMs": 399.229,
+            "p50Ms": 422.865,
+            "p95Ms": 463.657,
+            "p99Ms": 568.048,
+            "maxMs": 622.319
+          },
+          "peakRssBytes": 88342528
+        },
+        {
+          "count": 1000,
+          "mode": "hot",
+          "latency": {
+            "samples": 100,
+            "minMs": 309.72,
+            "p50Ms": 320.232,
+            "p95Ms": 341.473,
+            "p99Ms": 360.575,
+            "maxMs": 462.945
+          },
+          "peakRssBytes": 112373760
+        },
+        {
+          "count": 1000,
+          "mode": "rebuild",
+          "latency": {
+            "samples": 100,
+            "minMs": 1604.186,
+            "p50Ms": 1740.906,
+            "p95Ms": 1980.359,
+            "p99Ms": 2232.86,
+            "maxMs": 2539.023
+          },
+          "peakRssBytes": 87154688
+        },
+        {
+          "count": 1000,
+          "mode": "corrupt",
+          "latency": {
+            "samples": 100,
+            "minMs": 1696.943,
+            "p50Ms": 1858.677,
+            "p95Ms": 2531.332,
+            "p99Ms": 2942.631,
+            "maxMs": 3088.953
+          },
+          "peakRssBytes": 87080960
+        },
+        {
+          "count": 10000,
+          "mode": "baseline",
+          "latency": {
+            "samples": 100,
+            "minMs": 1461.82,
+            "p50Ms": 1785.545,
+            "p95Ms": 2547.047,
+            "p99Ms": 2835.324,
+            "maxMs": 2841.592
+          },
+          "peakRssBytes": 132915200
+        },
+        {
+          "count": 10000,
+          "mode": "cold",
+          "latency": {
+            "samples": 100,
+            "minMs": 536.546,
+            "p50Ms": 627.032,
+            "p95Ms": 1036.68,
+            "p99Ms": 1154.206,
+            "maxMs": 1392.328
+          },
+          "peakRssBytes": 111915008
+        },
+        {
+          "count": 10000,
+          "mode": "hot",
+          "latency": {
+            "samples": 100,
+            "minMs": 319.526,
+            "p50Ms": 330.396,
+            "p95Ms": 354.161,
+            "p99Ms": 369.28,
+            "maxMs": 379.278
+          },
+          "peakRssBytes": 237355008
+        },
+        {
+          "count": 10000,
+          "mode": "rebuild",
+          "latency": {
+            "samples": 100,
+            "minMs": 2718.957,
+            "p50Ms": 2981.34,
+            "p95Ms": 3642.437,
+            "p99Ms": 4358.652,
+            "maxMs": 4825.119
+          },
+          "peakRssBytes": 117694464
+        },
+        {
+          "count": 10000,
+          "mode": "corrupt",
+          "latency": {
+            "samples": 100,
+            "minMs": 2810.242,
+            "p50Ms": 3092.643,
+            "p95Ms": 3874.732,
+            "p99Ms": 4351.021,
+            "maxMs": 4651.282
+          },
+          "peakRssBytes": 118218752
+        },
+        {
+          "count": 100000,
+          "mode": "baseline",
+          "latency": {
+            "samples": 100,
+            "minMs": 11105.422,
+            "p50Ms": 11827.764,
+            "p95Ms": 14224.603,
+            "p99Ms": 14716.966,
+            "maxMs": 17854.703
+          },
+          "peakRssBytes": 411877376
+        },
+        {
+          "count": 100000,
+          "mode": "cold",
+          "latency": {
+            "samples": 100,
+            "minMs": 1619.502,
+            "p50Ms": 1951.167,
+            "p95Ms": 2701.402,
+            "p99Ms": 2900.327,
+            "maxMs": 3587.756
+          },
+          "peakRssBytes": 192610304
+        },
+        {
+          "count": 100000,
+          "mode": "hot",
+          "latency": {
+            "samples": 100,
+            "minMs": 413.761,
+            "p50Ms": 464.887,
+            "p95Ms": 837.133,
+            "p99Ms": 1108.444,
+            "maxMs": 1184.141
+          },
+          "peakRssBytes": 1221267456
+        },
+        {
+          "count": 100000,
+          "mode": "rebuild",
+          "latency": {
+            "samples": 100,
+            "minMs": 12916.139,
+            "p50Ms": 13922.369,
+            "p95Ms": 17215.498,
+            "p99Ms": 19337.914,
+            "maxMs": 26596.982
+          },
+          "peakRssBytes": 279470080
+        },
+        {
+          "count": 100000,
+          "mode": "corrupt",
+          "latency": {
+            "samples": 100,
+            "minMs": 13047.907,
+            "p50Ms": 13959.039,
+            "p95Ms": 16284.147,
+            "p99Ms": 17010.985,
+            "maxMs": 19774.319
+          },
+          "peakRssBytes": 278204416
+        }
+      ]
+    },
+    {
+      "file": "verified-memory-hot-100.json",
+      "report": {
+        "path": "verified-memory-hot-100.json.gz",
+        "archiveSha256": "44912fd8c6169b679a88f6547af5afb5f844e02028de305b4d95a09daf4fb098",
+        "decodedSha256": "c0b457f5a7a59d85c7edb8ec077eed76934d8671992835baf586ae5d98772687"
+      },
+      "samplesVerified": 300,
+      "sourceHeadAtStart": "8cbdb65eb5f353047475e09dc9d1f789b9434944",
+      "sourceStatusAtStart": "includes-uncommitted-implementation",
+      "sourceBlobsVerified": 11,
+      "cacheMode": "verified-memory",
+      "groups": [
+        {
+          "count": 1000,
+          "mode": "hot",
+          "latency": {
+            "samples": 100,
+            "minMs": 38.401,
+            "p50Ms": 40.569,
+            "p95Ms": 44.614,
+            "p99Ms": 48.505,
+            "maxMs": 54.294
+          },
+          "peakRssBytes": 117673984
+        },
+        {
+          "count": 10000,
+          "mode": "hot",
+          "latency": {
+            "samples": 100,
+            "minMs": 39.71,
+            "p50Ms": 41.879,
+            "p95Ms": 44.783,
+            "p99Ms": 60.792,
+            "maxMs": 68.871
+          },
+          "peakRssBytes": 230621184
+        },
+        {
+          "count": 100000,
+          "mode": "hot",
+          "latency": {
+            "samples": 100,
+            "minMs": 64.008,
+            "p50Ms": 70.375,
+            "p95Ms": 82.809,
+            "p99Ms": 150.312,
+            "maxMs": 185.103
+          },
+          "peakRssBytes": 1233485824
+        }
+      ]
+    },
+    {
+      "file": "stop-100.json",
+      "report": {
+        "path": "stop-100.json.gz",
+        "archiveSha256": "fcabd8da8e9691ef54b00c15d892329abd4e4a8aaf3e0b53f62d6c917eb537e6",
+        "decodedSha256": "fcfa6511fc4aba84498691df6512d23aa39a25556eb5753eeaba33d72724c529"
+      },
+      "samplesVerified": 600,
+      "sourceBlobsVerified": 9,
+      "target": {
+        "maximumStopDeliveryDelayMs": 500,
+        "maximumStopAcknowledgementMs": 500
+      },
+      "groups": [
+        {
+          "count": 1000,
+          "mode": "validate-disk",
+          "stopDeliveryDelay": {
+            "samples": 100,
+            "minMs": 5.614,
+            "p50Ms": 12.893,
+            "p95Ms": 15.289,
+            "p99Ms": 16.643,
+            "maxMs": 18.492
+          },
+          "stopAcknowledgement": {
+            "samples": 100,
+            "minMs": 3.066,
+            "p50Ms": 3.703,
+            "p95Ms": 4.423,
+            "p99Ms": 5.004,
+            "maxMs": 5.013
+          },
+          "acknowledged": 100,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        },
+        {
+          "count": 1000,
+          "mode": "verified-memory",
+          "stopDeliveryDelay": {
+            "samples": 100,
+            "minMs": 4.952,
+            "p50Ms": 12.879,
+            "p95Ms": 14.398,
+            "p99Ms": 18.573,
+            "maxMs": 18.696
+          },
+          "stopAcknowledgement": {
+            "samples": 100,
+            "minMs": 3.31,
+            "p50Ms": 3.642,
+            "p95Ms": 4.454,
+            "p99Ms": 4.917,
+            "maxMs": 5.013
+          },
+          "acknowledged": 100,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        },
+        {
+          "count": 10000,
+          "mode": "validate-disk",
+          "stopDeliveryDelay": {
+            "samples": 100,
+            "minMs": 4.277,
+            "p50Ms": 13.198,
+            "p95Ms": 19.771,
+            "p99Ms": 26.192,
+            "maxMs": 81.927
+          },
+          "stopAcknowledgement": {
+            "samples": 100,
+            "minMs": 3.396,
+            "p50Ms": 3.74,
+            "p95Ms": 5.148,
+            "p99Ms": 8.348,
+            "maxMs": 9.573
+          },
+          "acknowledged": 100,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        },
+        {
+          "count": 10000,
+          "mode": "verified-memory",
+          "stopDeliveryDelay": {
+            "samples": 100,
+            "minMs": 4.363,
+            "p50Ms": 13.164,
+            "p95Ms": 16.634,
+            "p99Ms": 25.965,
+            "maxMs": 35.815
+          },
+          "stopAcknowledgement": {
+            "samples": 100,
+            "minMs": 3.265,
+            "p50Ms": 3.685,
+            "p95Ms": 4.497,
+            "p99Ms": 5.825,
+            "maxMs": 7.307
+          },
+          "acknowledged": 100,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        },
+        {
+          "count": 100000,
+          "mode": "validate-disk",
+          "stopDeliveryDelay": {
+            "samples": 100,
+            "minMs": 4.553,
+            "p50Ms": 13.721,
+            "p95Ms": 21.291,
+            "p99Ms": 44.628,
+            "maxMs": 57.499
+          },
+          "stopAcknowledgement": {
+            "samples": 100,
+            "minMs": 2.988,
+            "p50Ms": 3.747,
+            "p95Ms": 4.944,
+            "p99Ms": 7.894,
+            "maxMs": 9.864
+          },
+          "acknowledged": 100,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        },
+        {
+          "count": 100000,
+          "mode": "verified-memory",
+          "stopDeliveryDelay": {
+            "samples": 100,
+            "minMs": 3.903,
+            "p50Ms": 13.141,
+            "p95Ms": 15.915,
+            "p99Ms": 20.702,
+            "maxMs": 58.549
+          },
+          "stopAcknowledgement": {
+            "samples": 100,
+            "minMs": 3.223,
+            "p50Ms": 3.671,
+            "p95Ms": 4.972,
+            "p99Ms": 5.653,
+            "maxMs": 6.171
+          },
+          "acknowledged": 100,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        }
+      ]
+    }
+  ],
+  "boundary": [
+    "Partial pipeline readback: mixed concurrency remains running",
+    "Reports retain their original dirty/source metadata; only listed implementation blobs were compared with the clean commit",
+    "Shared Windows workstation with concurrent documentation, archive preparation and small test workloads",
+    "Default validate-disk query latency still misses its SLO; verified-memory does not replace the default",
+    "Local Stop fixtures are not a real IDE or cross-platform process-tree acceptance"
+  ]
+}

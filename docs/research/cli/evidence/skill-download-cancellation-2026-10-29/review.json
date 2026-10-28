@@ -1,0 +1,147 @@
+{
+  "schema": "chainlesschain.skill-download-cancellation-review/v1",
+  "observedAt": "2026-10-28T22:21:27.973643+00:00",
+  "source": {
+    "baseCommit": "793c590bda9222c2a34bd7711a8a36177f42a985",
+    "status": "includes-uncommitted-implementation",
+    "files": [
+      {
+        "path": "packages/cli/src/commands/governed-skill-marketplace.js",
+        "sha256": "81854622111cfc5158da2385ebe2a005b883f975148524f0df8540c1f729240d",
+        "gitBlob": "7e5ccb85ec941696d71d0f37de680274a880bf56"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/governed-skill-marketplace-abort.js",
+        "sha256": "f31979554801cc20d6890eef4a64067f0cfe0aee5a0f6689b894d74b66102f17",
+        "gitBlob": "d315b49d949cfe1bf8be0df413b15cf89013aebe"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/governed-skill-marketplace-candidate.js",
+        "sha256": "ea2de4ac32f402fb242b4d9acbd6bd0c2d16d2faed00af26166ac66718766880",
+        "gitBlob": "c0c3f11656c38479c92ec60562b0078756542546"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/governed-skill-marketplace-cli-host.js",
+        "sha256": "6392c023dddfeef1443c18199d4d255875ab5df8ef0be507345c24986a1185fc",
+        "gitBlob": "e04aa59e282e68e291d28fa7aee2b6b0792cc55a"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/governed-skill-marketplace.js",
+        "sha256": "f7df74de2670898d18d2346827fb8eb6ea1936bc90d0317242e91df556a2c7e4",
+        "gitBlob": "2dd543d4123a961868e296437518741e67c0859b"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/governed-skill-marketplace-ledger-adapter.test.js",
+        "sha256": "edb0593f490b1aac340963f83ad6eb356c2170c52c0e621680799f3dc3279df6",
+        "gitBlob": "16a19a553eed9c7378016ed62f7a8a6f646d140d"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/governed-skill-marketplace.test.js",
+        "sha256": "0f799bc0e2d5cdf40cd8b4a773476f4bd22bc11f428bcbfb7c1179b117f01cf7",
+        "gitBlob": "234e42d2cb7028648cac58111daffebbeccedee8"
+      },
+      {
+        "path": "desktop-app-vue/src/main/marketplace/skill-marketplace-ipc.js",
+        "sha256": "7b9c6fb53e3a92c322dc42a2af781ff2e45441e4e2acd20615da6f417fb2f911",
+        "gitBlob": "af0ca968d38cad0d08c7c068d93ca25839dcd638"
+      },
+      {
+        "path": "packages/cli/src/lib/abort-utils.js",
+        "sha256": "7f1c1703150e71c46ad80b3f6688edc1a489fc389bca462a65091bef11dd692b",
+        "gitBlob": "65769b97aa672e9612719ac96b4cc79cadcf9426"
+      }
+    ],
+    "bindingAppliesTo": ["complete", "mutant"],
+    "earlierReports": "Initial and focused runs preceded the final Desktop IPC change; retained as historical attempts, not claimed as full final-source runs."
+  },
+  "environment": {
+    "platform": "win32",
+    "node": "v22.22.2",
+    "configuration": "packages/cli/vitest.config.js; one worker; no file parallelism"
+  },
+  "reports": [
+    {
+      "name": "tests",
+      "file": "tests.json.gz",
+      "decodedSha256": "30d1432921442bb5c0f59c689594fc0af9b4151b49bf2a75d246b9c90be8d026",
+      "archiveSha256": "205a7d7286d436e1e8ea2b76dc62297947cbe63d7966536407772c667b6a25cb",
+      "passed": 58,
+      "failed": 1,
+      "skippedBySelection": 0,
+      "success": false,
+      "startTimeEpochMs": 1793225698335,
+      "files": 2
+    },
+    {
+      "name": "focused",
+      "file": "focused.json.gz",
+      "decodedSha256": "31b9e90d6efb4ad0507ef87b1fa295bb3e1020841e8b5a338a4113a55b3f090a",
+      "archiveSha256": "4de4b45c9a595df7d67747e53a29bbe979af659a52c3b88b13294eec999a07f9",
+      "passed": 14,
+      "failed": 0,
+      "skippedBySelection": 37,
+      "success": true,
+      "startTimeEpochMs": 1793225875853,
+      "files": 1
+    },
+    {
+      "name": "complete",
+      "file": "complete.json.gz",
+      "decodedSha256": "eb202ae96af355ad8b64d31eac291ce92c0ff732bd7d4e68cbc7eed1c10b59e7",
+      "archiveSha256": "8a73bbcadf709cee32c72b3c3eb460daa9e6f5b1ad52448b1b86b382abc7b428",
+      "passed": 61,
+      "failed": 0,
+      "skippedBySelection": 0,
+      "success": true,
+      "startTimeEpochMs": 1793225932313,
+      "files": 2
+    },
+    {
+      "name": "mutant",
+      "file": "mutant.json.gz",
+      "decodedSha256": "3caed198f18d69cf65f4939b40f11bbf1a7ab50df173de34ec7eef6628d54721",
+      "archiveSha256": "99eee07803bd8d99089fdeff8a0a7485e38fe64d4846c587cd4ecd1ad54cbcb1",
+      "passed": 0,
+      "failed": 4,
+      "skippedBySelection": 47,
+      "success": false,
+      "startTimeEpochMs": 1793226023089,
+      "files": 1
+    }
+  ],
+  "newCancellationTests": 14,
+  "initialFailure": "Desktop IPC imported Electron eagerly even with an injected IPC object; binary absent in this local checkout. The default Electron lookup is now lazy and the complete 61-test run passes.",
+  "negativeControl": {
+    "method": "Vitest transform omits the candidate materialize signal; production files are not modified",
+    "selected": 4,
+    "failedAsExpected": 4,
+    "scope": "two HTTP tests detect absent signal forwarding; two non-cooperating resolver tests detect missing cancellation settlement"
+  },
+  "checks": {
+    "prettier": true,
+    "diffWhitespace": true,
+    "commandManifest": true,
+    "processSpawnInventory": true,
+    "publishStaleness": {
+      "base": "v-npm-0-166-129",
+      "scanned": 18,
+      "skipped": 5,
+      "violations": 0
+    }
+  },
+  "limits": [
+    "Real loopback HTTP and durable local candidate/Ledger storage; deployment catalog, signing and adapter authorities are fixtures.",
+    "CLI signal handlers are invoked directly in-process; this is not an OS-delivered signal or IDE Stop journey.",
+    "A host that ignores AbortSignal can keep its own network request alive, but its late result cannot resume materialization.",
+    "An immutable candidate can remain if cancellation arrives during final staging validation; retry reuses it without activation.",
+    "Once a durable Ledger append starts, acknowledgement/recovery determines the outcome; it is not raced against cancellation.",
+    "No real external marketplace, dual-IDE acceptance, cross-platform release, or new paid model task is claimed."
+  ],
+  "writerInventory": {
+    "file": "writer-inventory.json.gz",
+    "passed": 4,
+    "failed": 0,
+    "archiveSha256": "d2bcea54c51e8f3c12f434f79578bec37f380e23326a4a67a876991924564e8f",
+    "decodedSha256": "cb187bfc3e2584756be7e251a4d7f2b6b897e76c1815b82edf3c3ab3bf7e3983"
+  }
+}

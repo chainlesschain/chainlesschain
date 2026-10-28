@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { EventEmitter } from "node:events";
-import { request as httpRequest } from "node:http";
+import { createServer, request as httpRequest } from "node:http";
 import fs from "node:fs";
 import { createLocalUiEvolutionFileSystem } from "../../src/lib/evolution/evolution-windows-directory-durability.js";
 import os from "node:os";
@@ -855,6 +855,329 @@ describe("public marketplace Eval badge", () => {
       server.emit("close");
     }
     expect(process.listeners("SIGTERM")).toEqual(prior);
+  });
+});
+
+describe("governed marketplace installation cancellation", () => {
+  function cancellation() {
+    const controller = new AbortController();
+    const reason = Object.assign(new Error("installation stopped"), {
+      name: "AbortError",
+    });
+    return { controller, reason, signal: controller.signal };
+  }
+
+  function observe(promise) {
+    const result = {};
+    result.done = promise.then(
+      (value) => {
+        result.value = value;
+      },
+      (error) => {
+        result.error = error;
+      },
+    );
+    return result;
+  }
+
+  function expectUnchanged(harness) {
+    expect(candidateEntries(harness.storage)).toEqual([]);
+    expect(harness.backend.ledger.verify().sequence).toBe(0);
+  }
+
+  it("rejects an already cancelled install before catalog or artifact access", async () => {
+    const harness = badgeHarness();
+    const { controller, reason, signal } = cancellation();
+    controller.abort(reason);
+    await expect(
+      harness.host.install(installRequest(), { signal }),
+    ).rejects.toBe(reason);
+    expect(harness.catalog.resolve).not.toHaveBeenCalled();
+    expect(harness.artifacts.resolve).not.toHaveBeenCalled();
+    expectUnchanged(harness);
+  });
+
+  it("does not inspect or download a catalog response arriving after cancellation", async () => {
+    const response = Promise.withResolvers();
+    const resolve = vi.fn(() => response.promise);
+    const harness = badgeHarness({ catalog: { resolve } });
+    const { controller, reason, signal } = cancellation();
+    const result = observe(harness.host.install(installRequest(), { signal }));
+    try {
+      await vi.waitFor(() => expect(resolve).toHaveBeenCalledOnce());
+      expect(resolve.mock.calls[0][1].signal).toBe(signal);
+      controller.abort(reason);
+      await vi.waitFor(() => expect(result.error).toBe(reason));
+    } finally {
+      response.resolve(catalogManifest());
+      await result.done;
+    }
+    await new Promise(setImmediate);
+    expect(harness.ports.verifySignature).not.toHaveBeenCalled();
+    expect(harness.artifacts.resolve).not.toHaveBeenCalled();
+    expectUnchanged(harness);
+  });
+
+  it.each(["signature", "adaptation"])(
+    "stops preparation during %s without starting a download",
+    async (phase) => {
+      const response = Promise.withResolvers();
+      const blocked = vi.fn(() => response.promise);
+      const harness = badgeHarness({
+        ports:
+          phase === "signature"
+            ? { verifySignature: blocked }
+            : { adapt: blocked },
+      });
+      const { controller, reason, signal } = cancellation();
+      const result = observe(
+        harness.host.install(installRequest(), { signal }),
+      );
+      try {
+        await vi.waitFor(() => expect(blocked).toHaveBeenCalledOnce());
+        expect(blocked.mock.calls[0][1].signal).toBe(signal);
+        controller.abort(reason);
+        await vi.waitFor(() => expect(result.error).toBe(reason));
+      } finally {
+        response.reject(new Error("late preparation failure"));
+        await result.done;
+      }
+      await new Promise(setImmediate);
+      expect(harness.artifacts.resolve).not.toHaveBeenCalled();
+      expectUnchanged(harness);
+    },
+  );
+
+  it.each(["headers", "body"])(
+    "closes an actual HTTP artifact download stalled at %s without writing state",
+    async (phase) => {
+      const pack = packageFixture();
+      const payload = JSON.stringify(
+        Object.fromEntries(
+          ["packageBytes", "adaptedBytes", "sbomBytes"].map((key) => [
+            key,
+            pack[key].toString("base64"),
+          ]),
+        ),
+      );
+      let received = 0;
+      let closed = 0;
+      const server = createServer((request, response) => {
+        received++;
+        response.once("close", () => closed++);
+        if (phase === "body") {
+          response.writeHead(200, {
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(payload),
+          });
+          response.write(payload.slice(0, 12));
+        }
+      });
+      await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+      const url = `http://127.0.0.1:${server.address().port}/skill-package`;
+      let download;
+      const resolve = vi.fn((_request, { signal } = {}) => {
+        download = (async () => {
+          const response = await fetch(url, { signal });
+          const document = await response.json();
+          return Object.fromEntries(
+            Object.entries(document).map(([key, value]) => [
+              key,
+              Buffer.from(value, "base64"),
+            ]),
+          );
+        })();
+        return download;
+      });
+      const harness = badgeHarness({ artifacts: { resolve } });
+      const { controller, reason, signal } = cancellation();
+      const result = observe(
+        harness.host.install(installRequest(), { signal }),
+      );
+      try {
+        await vi.waitFor(() => expect(received).toBe(1));
+        expect(resolve.mock.calls[0][1].signal).toBe(signal);
+        expect(resolve.mock.calls[0][0]).not.toHaveProperty("signal");
+        controller.abort(reason);
+        await vi.waitFor(() => expect(result.error).toBe(reason));
+        await vi.waitFor(() => expect(closed).toBe(1));
+        expect(received).toBe(1);
+        expectUnchanged(harness);
+      } finally {
+        controller.abort(reason);
+        server.closeAllConnections();
+        await new Promise((resolve) => server.close(resolve));
+        await download?.catch(() => {});
+        await result.done;
+      }
+    },
+  );
+
+  it.each(["success", "failure"])(
+    "ignores a non-cooperating artifact resolver's late %s",
+    async (completion) => {
+      const response = Promise.withResolvers();
+      const resolve = vi.fn(() => response.promise);
+      const harness = badgeHarness({ artifacts: { resolve } });
+      const { controller, reason, signal } = cancellation();
+      const result = observe(
+        harness.host.install(installRequest(), { signal }),
+      );
+      try {
+        await vi.waitFor(() => expect(resolve).toHaveBeenCalledOnce());
+        controller.abort(reason);
+        await vi.waitFor(() => expect(result.error).toBe(reason));
+      } finally {
+        if (completion === "success") response.resolve(packageFixture());
+        else response.reject(new Error("late artifact failure"));
+        await result.done;
+      }
+      await new Promise(setImmediate);
+      expect(result.value).toBeUndefined();
+      expect(resolve).toHaveBeenCalledOnce();
+      expectUnchanged(harness);
+    },
+  );
+
+  it("observes a resolver that aborts synchronously before returning a rejected promise", async () => {
+    const { controller, reason, signal } = cancellation();
+    const harness = badgeHarness({
+      artifacts: {
+        resolve() {
+          controller.abort(reason);
+          return Promise.reject(new Error("late synchronous-port rejection"));
+        },
+      },
+    });
+    await expect(
+      harness.host.install(installRequest(), { signal }),
+    ).rejects.toBe(reason);
+    await new Promise(setImmediate);
+    expectUnchanged(harness);
+  });
+
+  it.each(["SIGINT", "SIGTERM"])(
+    "connects the CLI %s handler to download cancellation and removes its listeners",
+    async (event) => {
+      const response = Promise.withResolvers();
+      const resolve = vi.fn(() => response.promise);
+      const harness = badgeHarness({ artifacts: { resolve } });
+      const before = Object.fromEntries(
+        ["SIGINT", "SIGTERM"].map((name) => [name, process.listeners(name)]),
+      );
+      const result = observe(
+        cliProgram(harness.host).parseAsync(
+          [
+            "marketplace",
+            "install",
+            "safe-refactor",
+            "--manifest",
+            catalogManifest().manifestDigest,
+          ],
+          { from: "user" },
+        ),
+      );
+      try {
+        await vi.waitFor(() => expect(resolve).toHaveBeenCalledOnce());
+        const added = process
+          .listeners(event)
+          .filter((listener) => !before[event].includes(listener));
+        expect(added).toHaveLength(1);
+        added[0]();
+        await vi.waitFor(() => expect(result.error?.name).toBe("AbortError"));
+        expect(resolve.mock.calls[0][1].signal.aborted).toBe(true);
+      } finally {
+        response.resolve(packageFixture());
+        await result.done;
+      }
+      await new Promise(setImmediate);
+      for (const name of ["SIGINT", "SIGTERM"])
+        expect(process.listeners(name)).toEqual(before[name]);
+      expectUnchanged(harness);
+    },
+  );
+
+  it("reports a committed state and recovers its lost acknowledgement despite a late interrupt", async () => {
+    const storage = resources();
+    const backend = createEvolutionLedgerFileBackend(storage.backendOptions);
+    const { controller, reason, signal } = cancellation();
+    const ledger = {
+      read: backend.ledger.read.bind(backend.ledger),
+      verify: backend.ledger.verify.bind(backend.ledger),
+      appendDomainEvent(input, options) {
+        backend.ledger.appendDomainEvent(input, options);
+        controller.abort(reason);
+        throw new Error("lost durable acknowledgement");
+      },
+    };
+    const harness = cliHost(adapter(storage, ledger));
+    const result = await harness.host.install(installRequest(), { signal });
+    expect(result).toMatchObject({
+      status: "candidate-staged",
+      recovered: true,
+      activated: false,
+    });
+    expect(backend.ledger.verify().sequence).toBe(1);
+    const reopened = createEvolutionLedgerFileBackend(storage.backendOptions);
+    const replay = cliHost(adapter(storage, reopened.ledger));
+    await expect(replay.host.install(installRequest())).resolves.toMatchObject({
+      recovered: true,
+      state: result.state,
+    });
+    expect(replay.artifacts.resolve).not.toHaveBeenCalled();
+    expect(reopened.ledger.verify().sequence).toBe(1);
+  });
+
+  it("leaves only a reusable immutable candidate when stopped during the final staging validation", async () => {
+    const response = Promise.withResolvers();
+    const harness = badgeHarness();
+    const adapt = harness.ports.adapt.getMockImplementation();
+    harness.ports.adapt
+      .mockImplementationOnce(adapt)
+      .mockImplementationOnce(() => response.promise);
+    const { controller, reason, signal } = cancellation();
+    const result = observe(harness.host.install(installRequest(), { signal }));
+    let entries;
+    try {
+      await vi.waitFor(() =>
+        expect(harness.ports.adapt).toHaveBeenCalledTimes(2),
+      );
+      entries = candidateEntries(harness.storage);
+      expect(entries).toHaveLength(2);
+      controller.abort(reason);
+      await vi.waitFor(() => expect(result.error).toBe(reason));
+    } finally {
+      response.reject(new Error("late staging validation failure"));
+      await result.done;
+    }
+    await new Promise(setImmediate);
+    expect(harness.backend.ledger.verify().sequence).toBe(0);
+    await expect(harness.host.install(installRequest())).resolves.toMatchObject(
+      { status: "candidate-staged", activated: false },
+    );
+    expect(candidateEntries(harness.storage)).toEqual(entries);
+    expect(harness.backend.ledger.verify().sequence).toBe(1);
+  });
+
+  it("removes the CLI interrupt listeners after a successful install", async () => {
+    const harness = badgeHarness();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const before = Object.fromEntries(
+      ["SIGINT", "SIGTERM"].map((name) => [name, process.listeners(name)]),
+    );
+    await cliProgram(harness.host).parseAsync(
+      [
+        "marketplace",
+        "install",
+        "safe-refactor",
+        "--manifest",
+        catalogManifest().manifestDigest,
+      ],
+      { from: "user" },
+    );
+    for (const name of ["SIGINT", "SIGTERM"])
+      expect(process.listeners(name)).toEqual(before[name]);
+    expect(harness.backend.ledger.verify().sequence).toBe(1);
   });
 });
 

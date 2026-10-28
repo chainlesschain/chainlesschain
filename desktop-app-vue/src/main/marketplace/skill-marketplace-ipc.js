@@ -1,6 +1,5 @@
 "use strict";
 
-const { ipcMain } = require("electron");
 const { types: utilTypes } = require("node:util");
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("../plugins/plugin-log-redaction");
@@ -35,7 +34,7 @@ function inputFields(value, fields) {
 function registerSkillMarketplaceIPC({
   skillMarketplace,
   mainWindow,
-  ipcMain: targetIpcMain = ipcMain,
+  ipcMain: targetIpcMain = require("electron").ipcMain,
 }) {
   const market = () => {
     if (!skillMarketplace) {

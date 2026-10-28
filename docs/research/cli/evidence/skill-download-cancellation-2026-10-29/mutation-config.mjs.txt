@@ -1,0 +1,15 @@
+import { mergeConfig } from "vitest/config";
+import base from "../packages/cli/vitest.config.js";
+
+export default mergeConfig(base, {
+  plugins: [{
+    name: "test-only-drop-marketplace-artifact-signal",
+    enforce: "pre",
+    transform(code, id) {
+      if (!id.replaceAll("\\", "/").endsWith("/governed-skill-marketplace-candidate.js")) return;
+      const before = "async materialize(inspected, { signal } = {}) {";
+      if (!code.includes(before)) throw new Error("mutation anchor missing");
+      return code.replace(before, "async materialize(inspected, _options = {}) { const signal = undefined;");
+    },
+  }],
+});

@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { types as utilTypes } from "node:util";
+import { throwIfAborted } from "../abort-utils.js";
+import { awaitMarketplaceRead } from "./governed-skill-marketplace-abort.js";
 import { verifyGovernedSkillMarketplaceCandidateBinding } from "./governed-skill-marketplace-candidate.js";
 
 import {
@@ -322,23 +324,33 @@ export class GovernedSkillMarketplace {
     this._verifyRevocation = capture(ports, "verifyRevocation");
   }
 
-  async verifyListing(input, target) {
+  async verifyListing(input, target, { signal } = {}) {
+    throwIfAborted(signal);
     const manifest = normalizeManifest(input, this.tenantId);
-    if ((await this._verifySignature({ manifest })) !== true)
+    if (
+      (await awaitMarketplaceRead(
+        () => this._verifySignature({ manifest }, { signal }),
+        signal,
+      )) !== true
+    )
       throw new Error("marketplace manifest signature is invalid");
+    throwIfAborted(signal);
     const cell = targetCell(manifest, target);
     if (cell.safetyPassed !== true)
       throw new Error("marketplace target safety gate failed");
     return freeze({ manifest, target: clone(target), cell });
   }
 
-  async inspect(input, target) {
-    const { manifest, cell } = await this.verifyListing(input, target);
-    const adapted = await this._adapt({
-      manifest,
-      target: clone(target),
-      cell,
+  async inspect(input, target, { signal } = {}) {
+    const { manifest, cell } = await this.verifyListing(input, target, {
+      signal,
     });
+    throwIfAborted(signal);
+    const adapted = await awaitMarketplaceRead(
+      () => this._adapt({ manifest, target: clone(target), cell }, { signal }),
+      signal,
+    );
+    throwIfAborted(signal);
     if (
       adapted?.authenticated !== true ||
       adapted.manifestDigest !== manifest.manifestDigest ||
@@ -357,16 +369,22 @@ export class GovernedSkillMarketplace {
     });
   }
 
-  async stage({
-    manifest: input,
-    target,
-    expectedStateDigest = null,
-    candidateBinding = null,
-  } = {}) {
-    const inspected = await this.inspect(input, target);
-    const current = await this._load({
-      skillName: inspected.manifest.skillName,
-    });
+  async stage(
+    {
+      manifest: input,
+      target,
+      expectedStateDigest = null,
+      candidateBinding = null,
+    } = {},
+    { signal } = {},
+  ) {
+    const inspected = await this.inspect(input, target, { signal });
+    throwIfAborted(signal);
+    const current = await awaitMarketplaceRead(
+      () => this._load({ skillName: inspected.manifest.skillName }),
+      signal,
+    );
+    throwIfAborted(signal);
     if ((current?.stateDigest || null) !== expectedStateDigest)
       throw new Error("marketplace install baseline changed");
     const state = {
@@ -400,6 +418,9 @@ export class GovernedSkillMarketplace {
         );
       state.candidateBinding = binding;
     }
+    // Once the durable append starts, await its acknowledgement/recovery. An
+    // abort cannot truthfully turn a committed state into a cancelled install.
+    throwIfAborted(signal);
     return this._persist(state, expectedStateDigest, "marketplace.staged");
   }
 
@@ -629,12 +650,14 @@ export class GovernedSkillMarketplace {
     }
     let current = await this._verifiedState(request.skillName);
     const expectedStateDigest = request.dependency.digest;
-    if (!(
-      current.revoked === true &&
-      current.stage === "rolled-back" &&
-      current.revocationBaselineStateDigest === expectedStateDigest &&
-      current.revocationPropagationRequestDigest === request.requestDigest
-    )) {
+    if (
+      !(
+        current.revoked === true &&
+        current.stage === "rolled-back" &&
+        current.revocationBaselineStateDigest === expectedStateDigest &&
+        current.revocationPropagationRequestDigest === request.requestDigest
+      )
+    ) {
       if (current.stateDigest !== expectedStateDigest) {
         throw new Error("marketplace revocation dependency baseline changed");
       }

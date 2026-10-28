@@ -1,4 +1,6 @@
 import { types as utilTypes } from "node:util";
+import { throwIfAborted } from "../abort-utils.js";
+import { awaitMarketplaceRead } from "./governed-skill-marketplace-abort.js";
 import { GovernedSkillMarketplace } from "./governed-skill-marketplace.js";
 import { isGovernedSkillMarketplaceLedgerAdapter } from "./governed-skill-marketplace-ledger-adapter.js";
 import { isGovernedSkillMarketplaceCandidateInstaller } from "./governed-skill-marketplace-candidate.js";
@@ -105,12 +107,16 @@ export function createGovernedSkillMarketplaceCliHost({
       candidateInstaller.verify(state);
     return state;
   };
-  const resolveManifest = async (skillName, version) => {
+  const resolveManifest = async (skillName, version, { signal } = {}) => {
+    throwIfAborted(signal);
     id(skillName, "skillName");
     if (version !== null) id(version, "version");
-    const manifest = await resolve(
-      Object.freeze({ tenantId, skillName, version }),
+    const manifest = await awaitMarketplaceRead(
+      () =>
+        resolve(Object.freeze({ tenantId, skillName, version }), { signal }),
+      signal,
     );
+    throwIfAborted(signal);
     if (
       manifest?.tenantId !== tenantId ||
       manifest.skillName !== skillName ||
@@ -217,20 +223,30 @@ export function createGovernedSkillMarketplaceCliHost({
       });
     },
     state: ({ skillName } = {}) => stateFor(skillName),
-    async install({
-      skillName,
-      version = null,
-      manifestDigest,
-      expectedStateDigest = null,
-    } = {}) {
+    async install(
+      {
+        skillName,
+        version = null,
+        manifestDigest,
+        expectedStateDigest = null,
+      } = {},
+      { signal } = {},
+    ) {
+      throwIfAborted(signal);
       digest(manifestDigest, "manifestDigest");
       if (expectedStateDigest !== null)
         digest(expectedStateDigest, "expectedStateDigest");
-      const manifest = await resolveManifest(skillName, version);
+      const manifest = await resolveManifest(skillName, version, { signal });
       if (manifest.manifestDigest !== manifestDigest)
         throw new Error("marketplace catalog manifest changed; inspect again");
-      const inspected = await marketplace.inspect(manifest, target);
-      if (await isManifestRevoked({ skillName, manifestDigest }))
+      const inspected = await marketplace.inspect(manifest, target, { signal });
+      throwIfAborted(signal);
+      if (
+        await awaitMarketplaceRead(
+          () => isManifestRevoked({ skillName, manifestDigest }),
+          signal,
+        )
+      )
         throw new Error(
           "marketplace manifest was revoked and cannot be staged again",
         );
@@ -251,7 +267,12 @@ export function createGovernedSkillMarketplaceCliHost({
           state,
         });
       };
-      const current = await stateFor(skillName);
+      throwIfAborted(signal);
+      const current = await awaitMarketplaceRead(
+        () => stateFor(skillName),
+        signal,
+      );
+      throwIfAborted(signal);
       if (isReplay(current)) return result(current, true);
       if (
         current?.manifestDigest === manifestDigest &&
@@ -264,15 +285,21 @@ export function createGovernedSkillMarketplaceCliHost({
         );
       if ((current?.stateDigest ?? null) !== expectedStateDigest)
         throw new Error("marketplace install baseline changed");
-      const candidateBinding = await candidateInstaller.materialize(inspected);
+      const candidateBinding = await candidateInstaller.materialize(inspected, {
+        signal,
+      });
+      throwIfAborted(signal);
       try {
         return result(
-          await marketplace.stage({
-            manifest,
-            target,
-            expectedStateDigest,
-            candidateBinding,
-          }),
+          await marketplace.stage(
+            {
+              manifest,
+              target,
+              expectedStateDigest,
+              candidateBinding,
+            },
+            { signal },
+          ),
           false,
         );
       } catch (error) {
