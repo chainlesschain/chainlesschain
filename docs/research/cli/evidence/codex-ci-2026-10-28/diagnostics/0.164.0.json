@@ -1,0 +1,92 @@
+{
+  "schema": "chainlesschain.codex-cursor-diagnostic/v1",
+  "sourceCommit": "26e481c909561c6ff60b6d05c55613a787388e68",
+  "version": "0.164.0",
+  "binarySha256": "6f267830b029ee25d9339864aa867cd45de9f8fd4c5ea007d2e63c13a0c66d36",
+  "platform": "win32",
+  "realProviderAcceptance": false,
+  "productionAdmission": false,
+  "threads": [
+    {
+      "id": "01a18070-a82c-74a2-8cf3-36a9e070ab05",
+      "createdAt": 1793156229,
+      "source": "vscode"
+    },
+    {
+      "id": "01a18070-a82c-74a2-8cf3-3698f6e60aab",
+      "createdAt": 1793156229,
+      "source": "vscode"
+    }
+  ],
+  "default": {
+    "first": {
+      "ids": [
+        "01a18070-a82c-74a2-8cf3-3698f6e60aab"
+      ],
+      "nextCursor": "2026-10-28T10:57:09Z"
+    },
+    "second": {
+      "ids": [],
+      "nextCursor": null
+    },
+    "all": [
+      "01a18070-a82c-74a2-8cf3-3698f6e60aab",
+      "01a18070-a82c-74a2-8cf3-36a9e070ab05"
+    ]
+  },
+  "database": {
+    "first": {
+      "ids": [
+        "01a18070-a82c-74a2-8cf3-3698f6e60aab"
+      ],
+      "nextCursor": "2026-10-28T02:57:09.171Z|01a18070-a82c-74a2-8cf3-3698f6e60aab"
+    },
+    "second": {
+      "ids": [
+        "01a18070-a82c-74a2-8cf3-36a9e070ab05"
+      ],
+      "nextCursor": null
+    },
+    "all": [
+      "01a18070-a82c-74a2-8cf3-3698f6e60aab",
+      "01a18070-a82c-74a2-8cf3-36a9e070ab05"
+    ]
+  },
+  "updated": {
+    "first": {
+      "ids": [
+        "01a18070-a82c-74a2-8cf3-36a9e070ab05"
+      ],
+      "nextCursor": "2026-10-28T02:57:09.473Z"
+    },
+    "second": {
+      "ids": [
+        "01a18070-a82c-74a2-8cf3-3698f6e60aab"
+      ],
+      "nextCursor": null
+    },
+    "all": [
+      "01a18070-a82c-74a2-8cf3-36a9e070ab05",
+      "01a18070-a82c-74a2-8cf3-3698f6e60aab"
+    ]
+  },
+  "recency": {
+    "first": {
+      "ids": [
+        "01a18070-a82c-74a2-8cf3-36a9e070ab05"
+      ],
+      "nextCursor": "2026-10-28T02:57:09.499Z|01a18070-a82c-74a2-8cf3-36a9e070ab05"
+    },
+    "second": {
+      "ids": [
+        "01a18070-a82c-74a2-8cf3-3698f6e60aab"
+      ],
+      "nextCursor": null
+    },
+    "all": [
+      "01a18070-a82c-74a2-8cf3-36a9e070ab05",
+      "01a18070-a82c-74a2-8cf3-3698f6e60aab"
+    ]
+  },
+  "providerRequests": 2
+}

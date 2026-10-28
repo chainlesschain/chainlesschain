@@ -1,0 +1,99 @@
+{
+  "schema": "chainlesschain.codex-target-three-platform-readback/v1",
+  "checkedAt": "2026-10-28T03:22:19.536Z",
+  "scope": "Codex 0.164.0 schema/turn/database-recency-history only",
+  "sourceCommit": "26e481c909561c6ff60b6d05c55613a787388e68",
+  "runId": 40623725845,
+  "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845",
+  "cells": [
+    {
+      "runner": "ubuntu-latest",
+      "platform": "linux",
+      "arch": "x64",
+      "sameCreatedAtSecond": true,
+      "files": [
+        {
+          "path": "ubuntu-latest/history.json",
+          "sha256": "f34b36d4abb7e36624b538cc4e4269946b20c151150e696b81e4fee0d1affe58"
+        },
+        {
+          "path": "ubuntu-latest/history.json.notifications.json",
+          "sha256": "f910495f849a0f42067447393feeb54ed1ed9728ea1e1ca34071e83b8c97396d"
+        },
+        {
+          "path": "ubuntu-latest/report.json",
+          "sha256": "2a09264137847b28abb8261f5fed5ee57de93f8ba92b855d52d2eaa92a033094"
+        },
+        {
+          "path": "ubuntu-latest/report.json.approvals.json",
+          "sha256": "2c3be4cd4d209002aab9a16909aa6ddb2efea481bde798911e3af25cc5d3a5cf"
+        },
+        {
+          "path": "ubuntu-latest/report.json.notifications.json",
+          "sha256": "f4c0bf570221acfef51d0cb5130e5341548d7078095df44956530963a8a2d422"
+        }
+      ]
+    },
+    {
+      "runner": "windows-latest",
+      "platform": "win32",
+      "arch": "x64",
+      "sameCreatedAtSecond": true,
+      "files": [
+        {
+          "path": "windows-latest/history.json",
+          "sha256": "9bb78d213bdf963ace1d8bfc763eb7d53d97b33968e63a01e1eef112d12e970f"
+        },
+        {
+          "path": "windows-latest/history.json.notifications.json",
+          "sha256": "29fd84dc3452190d54871ff8c7724867e4b9ed1688666a185809e1a74abba1f1"
+        },
+        {
+          "path": "windows-latest/report.json",
+          "sha256": "100c0ecff50628ec158426b7ab4ddba853835cea5853728aacadc457cdb43739"
+        },
+        {
+          "path": "windows-latest/report.json.approvals.json",
+          "sha256": "e1a737fc4be0e0b6a3baa3f2728a9efccf387b58490b3db4516457d64bb450aa"
+        },
+        {
+          "path": "windows-latest/report.json.notifications.json",
+          "sha256": "18962347765bb0f959c5b8086ee0f9299e52de9ffdd35647cf9637e8fc5c1cb7"
+        }
+      ]
+    },
+    {
+      "runner": "macos-latest",
+      "platform": "darwin",
+      "arch": "arm64",
+      "sameCreatedAtSecond": true,
+      "files": [
+        {
+          "path": "macos-latest/history.json",
+          "sha256": "cc5764dab0fab514cda38d4f2cb70ecfa1d52e2bad2cf3ff34c8140982949fad"
+        },
+        {
+          "path": "macos-latest/history.json.notifications.json",
+          "sha256": "5a301e42f161c9d775b9d801704a1918e2d614e965b4efeab816951bfd723551"
+        },
+        {
+          "path": "macos-latest/report.json",
+          "sha256": "3c3efddff55b20f02c469cb20f8f122d0a41e0c5b8f3edc21854bb5cbfec8d37"
+        },
+        {
+          "path": "macos-latest/report.json.approvals.json",
+          "sha256": "2b1e12d4eae40a12607d7f50992d8e816a5e767bdd25e6a98d9489c92897cb1b"
+        },
+        {
+          "path": "macos-latest/report.json.notifications.json",
+          "sha256": "674f15a069a3ac188f9b2487b4d577b766a4533b5f6272f67c381ba34c4f5c4d"
+        }
+      ]
+    }
+  ],
+  "localFixtureRequests": 24,
+  "externalProviderCalls": 0,
+  "fullMatrixVerified": false,
+  "productionAdmissionChanged": false,
+  "experimentalAllowlistChanged": false
+}

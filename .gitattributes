@@ -49,6 +49,7 @@
 
 # Captured host evidence is byte-digest bound, including native CRLF/log spaces.
 # Clear inherited eol too, including the CRLF rule for archived Windows scripts.
+docs/research/cli/evidence/codex-ci-2026-10-28/** -text !eol -whitespace
 docs/research/ide/evidence/gap-2026-10-05/verify01-host-diagnostics/** -text !eol -whitespace
 docs/research/ide/evidence/gap-2026-10-05/verify01-portable-diagnostics/** -text !eol -whitespace
 docs/research/ide/evidence/gap-2026-10-05/verify01-lifecycle-diagnostics/** -text !eol -whitespace

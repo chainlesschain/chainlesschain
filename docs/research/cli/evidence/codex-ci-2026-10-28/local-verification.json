@@ -1,0 +1,34 @@
+{
+  "schema": "chainlesschain.codex-ci-local-followup/v1",
+  "sourceCommit": "26e481c909561c6ff60b6d05c55613a787388e68",
+  "unitTestsPassed": 85,
+  "vscodeUnitTestsPassed": 327,
+  "externalProviderCalls": 0,
+  "files": [
+    {
+      "path": "local-history-26e481c909/0.160.0/history.json",
+      "sha256": "0c29c47f693d7a3bf323a3e0182484ddfa65d8136b22d65903247dd0ff580082"
+    },
+    {
+      "path": "local-history-26e481c909/0.160.0/history.json.notifications.json",
+      "sha256": "c01a87558f12f491f5258a5a47085dd981752291d635ba10c98590051ad2d311"
+    },
+    {
+      "path": "local-history-26e481c909/0.164.0/history.json",
+      "sha256": "1b74fcb90cad8b72e202d6cdb41372d34ce9b83b160697b55ecd36cecf767c5b"
+    },
+    {
+      "path": "local-history-26e481c909/0.164.0/history.json.notifications.json",
+      "sha256": "2bd96dc6282d89237b1fe66a629a37f5f0916da66e5e68836313b29e5a92c315"
+    },
+    {
+      "path": "local-unit-results.json",
+      "sha256": "0389da4786c2f4ca0343834e39555a89f8913408e7ab27d97336d73c5533d088"
+    },
+    {
+      "path": "vscode-unit.log",
+      "sha256": "31822b54e3f9130cf2801caecfef2314ecd38ebcf77055260c5614a653cd9adf"
+    }
+  ],
+  "vscodeUnitTestsSourceCommit": "36e199c03d779a8e04ccf9c6fa70cb1afc7833eb"
+}

@@ -1,0 +1,136 @@
+{
+  "schema": "chainlesschain.codex-history-probe/v1",
+  "status": "passed",
+  "commitSha": "26e481c909561c6ff60b6d05c55613a787388e68",
+  "platform": "win32",
+  "arch": "x64",
+  "upstream": {
+    "version": "0.160.0",
+    "reported": "codex-cli 0.160.0",
+    "binarySha256": "fdda5fa3cf3fb3d000b876720742857676293e4315e4b045fae6f8bd7e866d1d"
+  },
+  "provider": "synthetic-loopback-responses",
+  "realProviderAcceptance": false,
+  "productionAdmission": false,
+  "processRestarted": true,
+  "threadSource": "vscode",
+  "threadListMode": "state-db-only",
+  "threadListSortKey": "recency_at",
+  "threadCreationTimes": [
+    1793157951,
+    1793157951
+  ],
+  "sameCreatedAtSecond": true,
+  "rolloutScanPaginationVerified": false,
+  "settingsRestored": true,
+  "completedRequestReplayed": false,
+  "threadPages": [
+    {
+      "ids": [
+        "01a1808a-f1de-7983-8be4-99b533d2595b"
+      ],
+      "nextCursor": "2026-10-28T03:25:52.098Z|01a1808a-f1de-7983-8be4-99b533d2595b"
+    },
+    {
+      "ids": [
+        "01a1808a-f1e9-79d0-b657-55d7aa8e84ac"
+      ],
+      "nextCursor": null
+    }
+  ],
+  "turnPagesBeforeResume": [
+    {
+      "ids": [
+        "01a1808a-f217-7ee3-ae2d-9c9801a9c708"
+      ],
+      "nextCursor": null
+    }
+  ],
+  "turnPagesAfterResume": [
+    {
+      "ids": [
+        "01a1808a-f217-7ee3-ae2d-9c9801a9c708"
+      ],
+      "nextCursor": "{\"requestedThreadId\":\"01a1808a-f1de-7983-8be4-99b533d2595b\",\"rolloutOrdinal\":1,\"includeAnchor\":false,\"scope\":{\"kind\":\"turns\"}}"
+    },
+    {
+      "ids": [
+        "01a1808a-f424-73c3-8872-3b37e8887649"
+      ],
+      "nextCursor": null
+    }
+  ],
+  "results": [
+    {
+      "threadId": "01a1808a-f1de-7983-8be4-99b533d2595b",
+      "turnId": "01a1808a-f217-7ee3-ae2d-9c9801a9c708",
+      "output": "history-main-1-result"
+    },
+    {
+      "threadId": "01a1808a-f1e9-79d0-b657-55d7aa8e84ac",
+      "turnId": "01a1808a-f328-7770-adbc-c3ce48f13854",
+      "output": "history-other-1-result"
+    },
+    {
+      "threadId": "01a1808a-f1de-7983-8be4-99b533d2595b",
+      "turnId": "01a1808a-f424-73c3-8872-3b37e8887649",
+      "output": "history-main-2-result"
+    }
+  ],
+  "providerRequests": [
+    {
+      "scenario": "history-main-1",
+      "authorization": false,
+      "retainedContext": false
+    },
+    {
+      "scenario": "history-other-1",
+      "authorization": false,
+      "retainedContext": false
+    },
+    {
+      "scenario": "history-main-2",
+      "authorization": false,
+      "retainedContext": true
+    }
+  ],
+  "officialSchema": {
+    "hashes": {
+      "request": "1c7fec8758deb95ffe967060130e8d1ddb7a0a5a437ee9b64086dddbed8f5831",
+      "notification": "d3479ecf59ca421a8b052d3d15e8196d23d297a0bd85ae5a270a34ddd9c865c9",
+      "server-request": "f339be472737a0003efa25fba2e6e6c9237e621cd065b6d6995c51256e9dc1fb",
+      "approval-response": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7"
+    },
+    "validatedMessages": {
+      "request:initialize": 2,
+      "request:thread/start": 2,
+      "notification:remoteControl/status/changed": 2,
+      "request:turn/start": 3,
+      "notification:thread/started": 2,
+      "notification:warning": 3,
+      "notification:thread/status/changed": 7,
+      "notification:turn/started": 3,
+      "notification:item/started": 6,
+      "notification:item/completed": 6,
+      "notification:thread/tokenUsage/updated": 4,
+      "notification:account/rateLimits/updated": 3,
+      "notification:turn/completed": 3,
+      "request:thread/list": 2,
+      "request:thread/read": 1,
+      "request:thread/resume": 1,
+      "request:thread/turns/list": 3,
+      "notification:thread/goal/cleared": 1
+    }
+  },
+  "processClosed": [
+    {
+      "code": 0,
+      "signal": null
+    },
+    {
+      "code": 0,
+      "signal": null
+    }
+  ],
+  "notificationsSha256": "8d43ab70ba9dc99ea9bc6fa3b82a5d27262be19c89aa48d19d6ec69f1a20a9f8"
+}

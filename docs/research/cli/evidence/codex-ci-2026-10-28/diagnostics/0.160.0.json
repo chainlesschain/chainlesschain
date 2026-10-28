@@ -1,0 +1,90 @@
+{
+  "schema": "chainlesschain.codex-cursor-diagnostic/v1",
+  "sourceCommit": "26e481c909561c6ff60b6d05c55613a787388e68",
+  "version": "0.160.0",
+  "binarySha256": "fdda5fa3cf3fb3d000b876720742857676293e4315e4b045fae6f8bd7e866d1d",
+  "platform": "win32",
+  "realProviderAcceptance": false,
+  "productionAdmission": false,
+  "threads": [
+    {
+      "id": "01a18070-a82d-72e2-bfac-fa9f9f6a7162",
+      "createdAt": 1793156229,
+      "source": "vscode"
+    },
+    {
+      "id": "01a18070-a82d-72e2-bfac-fa868891e80b",
+      "createdAt": 1793156229,
+      "source": "vscode"
+    }
+  ],
+  "default": {
+    "first": {
+      "ids": [
+        "01a18070-a82d-72e2-bfac-fa868891e80b"
+      ],
+      "nextCursor": "2026-10-28T10:57:09Z"
+    },
+    "second": {
+      "ids": [],
+      "nextCursor": null
+    },
+    "all": [
+      "01a18070-a82d-72e2-bfac-fa868891e80b",
+      "01a18070-a82d-72e2-bfac-fa9f9f6a7162"
+    ]
+  },
+  "database": {
+    "first": {
+      "ids": [
+        "01a18070-a82d-72e2-bfac-fa868891e80b"
+      ],
+      "nextCursor": "2026-10-28T02:57:09.17Z"
+    },
+    "second": {
+      "ids": [],
+      "nextCursor": null
+    },
+    "all": [
+      "01a18070-a82d-72e2-bfac-fa868891e80b",
+      "01a18070-a82d-72e2-bfac-fa9f9f6a7162"
+    ]
+  },
+  "updated": {
+    "first": {
+      "ids": [
+        "01a18070-a82d-72e2-bfac-fa9f9f6a7162"
+      ],
+      "nextCursor": "2026-10-28T02:57:09.477Z"
+    },
+    "second": {
+      "ids": [
+        "01a18070-a82d-72e2-bfac-fa868891e80b"
+      ],
+      "nextCursor": null
+    },
+    "all": [
+      "01a18070-a82d-72e2-bfac-fa9f9f6a7162",
+      "01a18070-a82d-72e2-bfac-fa868891e80b"
+    ]
+  },
+  "recency": {
+    "first": {
+      "ids": [
+        "01a18070-a82d-72e2-bfac-fa9f9f6a7162"
+      ],
+      "nextCursor": "2026-10-28T02:57:09.499Z|01a18070-a82d-72e2-bfac-fa9f9f6a7162"
+    },
+    "second": {
+      "ids": [
+        "01a18070-a82d-72e2-bfac-fa868891e80b"
+      ],
+      "nextCursor": null
+    },
+    "all": [
+      "01a18070-a82d-72e2-bfac-fa9f9f6a7162",
+      "01a18070-a82d-72e2-bfac-fa868891e80b"
+    ]
+  },
+  "providerRequests": 2
+}

@@ -1,0 +1,84 @@
+{
+  "schema": "chainlesschain.codex-three-platform-ci-readback/v1",
+  "checkedAt": "2026-10-28T03:35:59.604Z",
+  "sourceCommit": "26e481c909561c6ff60b6d05c55613a787388e68",
+  "runId": 40623725845,
+  "runAttempt": 1,
+  "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845",
+  "status": "passed",
+  "jobsPassed": 21,
+  "baseCompatibilityCells": 12,
+  "schemaTurnHistoryCells": 6,
+  "reports": [
+    {
+      "version": "0.160.0",
+      "runner": "ubuntu-latest",
+      "platform": "linux",
+      "arch": "x64",
+      "artifact": "codex-real-turns-0.160.0-ubuntu-latest-26e481c909561c6ff60b6d05c55613a787388e68-1",
+      "sameCreatedAtSecond": true,
+      "turn": "5d7e5779626b5e6134d36ab500d367feffeb1b58f528cb51003541fa5f1d505f",
+      "history": "072a5934f1fbb4312cde5625ca9cf34161880a0213980992b62b5ff0e89a4f93"
+    },
+    {
+      "version": "0.160.0",
+      "runner": "windows-latest",
+      "platform": "win32",
+      "arch": "x64",
+      "artifact": "codex-real-turns-0.160.0-windows-latest-26e481c909561c6ff60b6d05c55613a787388e68-1",
+      "sameCreatedAtSecond": true,
+      "turn": "07067c2ad0b33819ec7385e1a544555c0c3a140c5f3a97fabb1c9eede5eea659",
+      "history": "b9caab156746d5d264d5d90f1a3530de4c4a6248ff52ff357b4bcf0f1db8bdda"
+    },
+    {
+      "version": "0.160.0",
+      "runner": "macos-latest",
+      "platform": "darwin",
+      "arch": "arm64",
+      "artifact": "codex-real-turns-0.160.0-macos-latest-26e481c909561c6ff60b6d05c55613a787388e68-1",
+      "sameCreatedAtSecond": true,
+      "turn": "b216f411d9c197b5e585c90c2f2b2212f773a73e247698e310087b47e50891e7",
+      "history": "f995510b4f45b11d0397950f62042c671685b80beb40ef7ecc2b1fec1db8f207"
+    },
+    {
+      "version": "0.164.0",
+      "runner": "ubuntu-latest",
+      "platform": "linux",
+      "arch": "x64",
+      "artifact": "codex-real-turns-0.164.0-ubuntu-latest-26e481c909561c6ff60b6d05c55613a787388e68-1",
+      "sameCreatedAtSecond": true,
+      "turn": "2a09264137847b28abb8261f5fed5ee57de93f8ba92b855d52d2eaa92a033094",
+      "history": "f34b36d4abb7e36624b538cc4e4269946b20c151150e696b81e4fee0d1affe58"
+    },
+    {
+      "version": "0.164.0",
+      "runner": "windows-latest",
+      "platform": "win32",
+      "arch": "x64",
+      "artifact": "codex-real-turns-0.164.0-windows-latest-26e481c909561c6ff60b6d05c55613a787388e68-1",
+      "sameCreatedAtSecond": true,
+      "turn": "100c0ecff50628ec158426b7ab4ddba853835cea5853728aacadc457cdb43739",
+      "history": "9bb78d213bdf963ace1d8bfc763eb7d53d97b33968e63a01e1eef112d12e970f"
+    },
+    {
+      "version": "0.164.0",
+      "runner": "macos-latest",
+      "platform": "darwin",
+      "arch": "arm64",
+      "artifact": "codex-real-turns-0.164.0-macos-latest-26e481c909561c6ff60b6d05c55613a787388e68-1",
+      "sameCreatedAtSecond": true,
+      "turn": "3c3efddff55b20f02c469cb20f8f122d0a41e0c5b8f3edc21854bb5cbfec8d37",
+      "history": "cc5764dab0fab514cda38d4f2cb70ecfa1d52e2bad2cf3ff34c8140982949fad"
+    }
+  ],
+  "localFixtureRequests": 48,
+  "externalProviderCalls": 0,
+  "threadListContract": {
+    "useStateDbOnly": true,
+    "sortKey": "recency_at",
+    "rolloutScanPaginationVerified": false
+  },
+  "experimentalAllowlistChanged": false,
+  "productionAdmissionChanged": false,
+  "npmReleaseReadinessVerified": false
+}

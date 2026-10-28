@@ -1,0 +1,84 @@
+{
+  "schema": "chainlesschain.codex-app-server-matrix/v1",
+  "commitSha": "26e481c909561c6ff60b6d05c55613a787388e68",
+  "status": "passed",
+  "stability": "experimental",
+  "productionCritical": false,
+  "fallback": "codex-exec-jsonl-v1",
+  "versions": [
+    {
+      "version": "0.149.0",
+      "schemaDigest": "sha256:cf19bc9fdbc5198618c874c0c03b20388e64f7f4b6359d7d034ecd9b2b6ce70c",
+      "platforms": [
+        {
+          "platform": "linux",
+          "reportDigest": "sha256:282208e9ffb56817a8fe7c445cb23d4db1e4232aa7d68f9a77ee16ba7aed3795"
+        },
+        {
+          "platform": "windows",
+          "reportDigest": "sha256:9a7fc0b84db6dc62f355943326d76a5b7817a8318039b84ca61a7971a656a874"
+        },
+        {
+          "platform": "macos",
+          "reportDigest": "sha256:c8fab7e73957b3de9076149c74e24698f14dafc4e040b12d694541a457443dc2"
+        }
+      ]
+    },
+    {
+      "version": "0.150.0",
+      "schemaDigest": "sha256:0a7e4734e8b6924dbb4d01121aee271d0ebfe70f77b27b8a85aa1ef218417746",
+      "platforms": [
+        {
+          "platform": "linux",
+          "reportDigest": "sha256:ca88ef674cb4fcb9d3dafd4c6c4e5339300089c2027f8b075f5dfc3e7f11b5fe"
+        },
+        {
+          "platform": "windows",
+          "reportDigest": "sha256:c2ff3142a99e5c0a68d30f88c3bd07c46762fd4a80bd31d0aeeb6a2729ebafb5"
+        },
+        {
+          "platform": "macos",
+          "reportDigest": "sha256:823c1c7c71c662312f3bc49d72ce0d52d20f1c27b73b0fb55c136e64015bd972"
+        }
+      ]
+    },
+    {
+      "version": "0.150.1",
+      "schemaDigest": "sha256:0a7e4734e8b6924dbb4d01121aee271d0ebfe70f77b27b8a85aa1ef218417746",
+      "platforms": [
+        {
+          "platform": "linux",
+          "reportDigest": "sha256:2eb7d79f8b1fbf3dc7eff73c1ed036b6c074f10eba97d8819a275caa7868643a"
+        },
+        {
+          "platform": "windows",
+          "reportDigest": "sha256:e1ccabc72c9e8e648d9555998bab99dda1d6c215ca7abc4995bf3d4800738fdb"
+        },
+        {
+          "platform": "macos",
+          "reportDigest": "sha256:43b782f85db8e51f45049f456e980606d0674247244302eaebed151a63ec3f80"
+        }
+      ]
+    },
+    {
+      "version": "0.154.0",
+      "schemaDigest": "sha256:79492093a1459ec1763393fe8037416bde48d346da13ab042018f18141cd4636",
+      "platforms": [
+        {
+          "platform": "linux",
+          "reportDigest": "sha256:4aaf0eac1106a1acd04cdab7ddda527530a395be2b92526c2a9285f2daa50f0e"
+        },
+        {
+          "platform": "windows",
+          "reportDigest": "sha256:37dddd7c99b924568a67ea1baf3fdc03cc3b282f4b2b6650b95c1151249f9f53"
+        },
+        {
+          "platform": "macos",
+          "reportDigest": "sha256:602841428db721ff92f16c3a509c4be7390b4943a108a6489c484dc066a56a7b"
+        }
+      ]
+    }
+  ],
+  "removalDrill": "passed",
+  "matrixDigest": "sha256:d8a64b9f9ee03fbc00cd980820592027555dcd240c6cb6ca4b07c789b0149898"
+}

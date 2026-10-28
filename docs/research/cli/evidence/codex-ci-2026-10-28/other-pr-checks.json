@@ -1,0 +1,20 @@
+[
+  {
+    "link": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725873/job/122604154557",
+    "name": "jetbrains (macos-15-intel)",
+    "state": "FAILURE",
+    "workflow": "VERIFY01 Host Diagnostics"
+  },
+  {
+    "link": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725873/job/122604154626",
+    "name": "jetbrains (ubuntu-latest)",
+    "state": "FAILURE",
+    "workflow": "VERIFY01 Host Diagnostics"
+  },
+  {
+    "link": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725873/job/122604154628",
+    "name": "jetbrains (windows-latest)",
+    "state": "FAILURE",
+    "workflow": "VERIFY01 Host Diagnostics"
+  }
+]

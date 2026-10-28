@@ -1,0 +1,2305 @@
+{
+  "total_count": 21,
+  "jobs": [
+    {
+      "id": 122603948786,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8PK8g",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122603948786",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122603948786",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:56:36Z",
+      "started_at": "2026-10-28T02:58:00Z",
+      "completed_at": "2026-10-28T02:58:29Z",
+      "name": "Read shared compatibility manifest",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T02:58:01Z",
+          "completed_at": "2026-10-28T02:58:02Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T02:58:02Z",
+          "completed_at": "2026-10-28T02:58:19Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T02:58:19Z",
+          "completed_at": "2026-10-28T02:58:26Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T02:58:26Z",
+          "completed_at": "2026-10-28T02:58:26Z"
+        },
+        {
+          "name": "Run node packages/cli/scripts/codex-app-server-support.mjs --github-output",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T02:58:26Z",
+          "completed_at": "2026-10-28T02:58:26Z"
+        },
+        {
+          "name": "Check generated support documentation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T02:58:26Z",
+          "completed_at": "2026-10-28T02:58:26Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-28T02:58:26Z",
+          "completed_at": "2026-10-28T02:58:27Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-28T02:58:27Z",
+          "completed_at": "2026-10-28T02:58:27Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-28T02:58:27Z",
+          "completed_at": "2026-10-28T02:58:27Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122603948786",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000427962,
+      "runner_name": "GitHub Actions 1000427962",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122603949122,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8PMQg",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122603949122",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122603949122",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:56:37Z",
+      "started_at": "2026-10-28T03:02:16Z",
+      "completed_at": "2026-10-28T03:03:36Z",
+      "name": "Adapter and fallback contracts",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:02:17Z",
+          "completed_at": "2026-10-28T03:02:18Z"
+        },
+        {
+          "name": "Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:02:18Z",
+          "completed_at": "2026-10-28T03:02:35Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:02:35Z",
+          "completed_at": "2026-10-28T03:02:47Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:02:47Z",
+          "completed_at": "2026-10-28T03:03:32Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:03:32Z",
+          "completed_at": "2026-10-28T03:03:32Z"
+        },
+        {
+          "name": "Run adapter and stable fallback contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:03:32Z",
+          "completed_at": "2026-10-28T03:03:33Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-28T03:03:33Z",
+          "completed_at": "2026-10-28T03:03:33Z"
+        },
+        {
+          "name": "Post Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-28T03:03:33Z",
+          "completed_at": "2026-10-28T03:03:33Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-28T03:03:33Z",
+          "completed_at": "2026-10-28T03:03:33Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122603949122",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000427987,
+      "runner_name": "GitHub Actions 1000427987",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604507953,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xTMQ",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604507953",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604507953",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:02:04Z",
+      "completed_at": "2026-10-28T03:03:28Z",
+      "name": "Codex 0.164.0 schema and real turns (macos-latest, no admission)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:02:05Z",
+          "completed_at": "2026-10-28T03:02:06Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:02:06Z",
+          "completed_at": "2026-10-28T03:02:39Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:02:39Z",
+          "completed_at": "2026-10-28T03:02:47Z"
+        },
+        {
+          "name": "Install locked CLI schema-validator dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:02:47Z",
+          "completed_at": "2026-10-28T03:03:03Z"
+        },
+        {
+          "name": "Install pinned schema generator and compare its unmodified output",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:03:03Z",
+          "completed_at": "2026-10-28T03:03:09Z"
+        },
+        {
+          "name": "Exercise interleaved real turns, cancellation and admitted transport loss",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:03:09Z",
+          "completed_at": "2026-10-28T03:03:18Z"
+        },
+        {
+          "name": "Verify restart, restored settings and thread and turn pagination",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:03:18Z",
+          "completed_at": "2026-10-28T03:03:21Z"
+        },
+        {
+          "name": "Retain real-process protocol evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-28T03:03:21Z",
+          "completed_at": "2026-10-28T03:03:23Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:03:23Z",
+          "completed_at": "2026-10-28T03:03:23Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-28T03:03:23Z",
+          "completed_at": "2026-10-28T03:03:24Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-28T03:03:24Z",
+          "completed_at": "2026-10-28T03:03:25Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604507953",
+      "labels": [
+        "macos-latest"
+      ],
+      "runner_id": 1000427986,
+      "runner_name": "GitHub Actions 1000427986",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604507957,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xTNQ",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604507957",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604507957",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:03:22Z",
+      "completed_at": "2026-10-28T03:04:17Z",
+      "name": "Codex 0.164.0 schema and real turns (ubuntu-latest, no admission)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:03:23Z",
+          "completed_at": "2026-10-28T03:03:23Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:03:23Z",
+          "completed_at": "2026-10-28T03:03:41Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:03:41Z",
+          "completed_at": "2026-10-28T03:03:46Z"
+        },
+        {
+          "name": "Install locked CLI schema-validator dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:03:46Z",
+          "completed_at": "2026-10-28T03:03:59Z"
+        },
+        {
+          "name": "Install pinned schema generator and compare its unmodified output",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:03:59Z",
+          "completed_at": "2026-10-28T03:04:04Z"
+        },
+        {
+          "name": "Exercise interleaved real turns, cancellation and admitted transport loss",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:04:04Z",
+          "completed_at": "2026-10-28T03:04:12Z"
+        },
+        {
+          "name": "Verify restart, restored settings and thread and turn pagination",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:04:12Z",
+          "completed_at": "2026-10-28T03:04:14Z"
+        },
+        {
+          "name": "Retain real-process protocol evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-28T03:04:14Z",
+          "completed_at": "2026-10-28T03:04:14Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:04:14Z",
+          "completed_at": "2026-10-28T03:04:15Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-28T03:04:15Z",
+          "completed_at": "2026-10-28T03:04:15Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-28T03:04:15Z",
+          "completed_at": "2026-10-28T03:04:15Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604507957",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000427991,
+      "runner_name": "GitHub Actions 1000427991",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604508018,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xTcg",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604508018",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604508018",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:06:34Z",
+      "completed_at": "2026-10-28T03:07:41Z",
+      "name": "windows / Codex 0.149.0",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:06:35Z",
+          "completed_at": "2026-10-28T03:06:36Z"
+        },
+        {
+          "name": "Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:06:36Z",
+          "completed_at": "2026-10-28T03:07:09Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:07:09Z",
+          "completed_at": "2026-10-28T03:07:23Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:07:23Z",
+          "completed_at": "2026-10-28T03:07:24Z"
+        },
+        {
+          "name": "Install exact upstream Codex CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:07:24Z",
+          "completed_at": "2026-10-28T03:07:31Z"
+        },
+        {
+          "name": "Probe real App Server and run removal drill",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:07:31Z",
+          "completed_at": "2026-10-28T03:07:35Z"
+        },
+        {
+          "name": "Upload version-bound evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:07:35Z",
+          "completed_at": "2026-10-28T03:07:37Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-28T03:07:37Z",
+          "completed_at": "2026-10-28T03:07:37Z"
+        },
+        {
+          "name": "Post Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-28T03:07:37Z",
+          "completed_at": "2026-10-28T03:07:39Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:07:39Z",
+          "completed_at": "2026-10-28T03:07:39Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604508018",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000428008,
+      "runner_name": "GitHub Actions 1000428008",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604508019,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xTcw",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604508019",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604508019",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:04:19Z",
+      "completed_at": "2026-10-28T03:04:54Z",
+      "name": "linux / Codex 0.150.0",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:04:20Z",
+          "completed_at": "2026-10-28T03:04:21Z"
+        },
+        {
+          "name": "Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:04:21Z",
+          "completed_at": "2026-10-28T03:04:37Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:04:37Z",
+          "completed_at": "2026-10-28T03:04:46Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:04:46Z",
+          "completed_at": "2026-10-28T03:04:46Z"
+        },
+        {
+          "name": "Install exact upstream Codex CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:04:46Z",
+          "completed_at": "2026-10-28T03:04:49Z"
+        },
+        {
+          "name": "Probe real App Server and run removal drill",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:04:49Z",
+          "completed_at": "2026-10-28T03:04:50Z"
+        },
+        {
+          "name": "Upload version-bound evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:04:50Z",
+          "completed_at": "2026-10-28T03:04:52Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-28T03:04:52Z",
+          "completed_at": "2026-10-28T03:04:52Z"
+        },
+        {
+          "name": "Post Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-28T03:04:52Z",
+          "completed_at": "2026-10-28T03:04:52Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:04:52Z",
+          "completed_at": "2026-10-28T03:04:52Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604508019",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000427998,
+      "runner_name": "GitHub Actions 1000427998",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604508028,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xTfA",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604508028",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604508028",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:13:18Z",
+      "completed_at": "2026-10-28T03:14:19Z",
+      "name": "Codex 0.160.0 schema and real turns (ubuntu-latest, no admission)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:13:19Z",
+          "completed_at": "2026-10-28T03:13:20Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:13:20Z",
+          "completed_at": "2026-10-28T03:13:43Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:13:43Z",
+          "completed_at": "2026-10-28T03:13:48Z"
+        },
+        {
+          "name": "Install locked CLI schema-validator dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:13:48Z",
+          "completed_at": "2026-10-28T03:14:01Z"
+        },
+        {
+          "name": "Install pinned schema generator and compare its unmodified output",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:14:01Z",
+          "completed_at": "2026-10-28T03:14:06Z"
+        },
+        {
+          "name": "Exercise interleaved real turns, cancellation and admitted transport loss",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:14:06Z",
+          "completed_at": "2026-10-28T03:14:13Z"
+        },
+        {
+          "name": "Verify restart, restored settings and thread and turn pagination",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:14:13Z",
+          "completed_at": "2026-10-28T03:14:15Z"
+        },
+        {
+          "name": "Retain real-process protocol evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-28T03:14:15Z",
+          "completed_at": "2026-10-28T03:14:16Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:14:16Z",
+          "completed_at": "2026-10-28T03:14:16Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-28T03:14:16Z",
+          "completed_at": "2026-10-28T03:14:17Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-28T03:14:17Z",
+          "completed_at": "2026-10-28T03:14:17Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604508028",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000428031,
+      "runner_name": "GitHub Actions 1000428031",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604508035,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xTgw",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604508035",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604508035",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:19:33Z",
+      "completed_at": "2026-10-28T03:21:03Z",
+      "name": "Codex 0.164.0 schema and real turns (windows-latest, no admission)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:19:34Z",
+          "completed_at": "2026-10-28T03:19:35Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:19:35Z",
+          "completed_at": "2026-10-28T03:20:06Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:20:06Z",
+          "completed_at": "2026-10-28T03:20:18Z"
+        },
+        {
+          "name": "Install locked CLI schema-validator dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:20:18Z",
+          "completed_at": "2026-10-28T03:20:37Z"
+        },
+        {
+          "name": "Install pinned schema generator and compare its unmodified output",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:20:37Z",
+          "completed_at": "2026-10-28T03:20:46Z"
+        },
+        {
+          "name": "Exercise interleaved real turns, cancellation and admitted transport loss",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:20:46Z",
+          "completed_at": "2026-10-28T03:20:54Z"
+        },
+        {
+          "name": "Verify restart, restored settings and thread and turn pagination",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:20:54Z",
+          "completed_at": "2026-10-28T03:20:57Z"
+        },
+        {
+          "name": "Retain real-process protocol evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-28T03:20:57Z",
+          "completed_at": "2026-10-28T03:20:59Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:20:59Z",
+          "completed_at": "2026-10-28T03:20:59Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-28T03:20:59Z",
+          "completed_at": "2026-10-28T03:21:01Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-28T03:21:01Z",
+          "completed_at": "2026-10-28T03:21:01Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604508035",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000428045,
+      "runner_name": "GitHub Actions 1000428045",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604508042,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xTig",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604508042",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604508042",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:07:31Z",
+      "completed_at": "2026-10-28T03:08:14Z",
+      "name": "macos / Codex 0.149.0",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:07:31Z",
+          "completed_at": "2026-10-28T03:07:32Z"
+        },
+        {
+          "name": "Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:07:32Z",
+          "completed_at": "2026-10-28T03:07:55Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:07:55Z",
+          "completed_at": "2026-10-28T03:08:02Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:08:02Z",
+          "completed_at": "2026-10-28T03:08:02Z"
+        },
+        {
+          "name": "Install exact upstream Codex CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:08:02Z",
+          "completed_at": "2026-10-28T03:08:06Z"
+        },
+        {
+          "name": "Probe real App Server and run removal drill",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:08:06Z",
+          "completed_at": "2026-10-28T03:08:08Z"
+        },
+        {
+          "name": "Upload version-bound evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:08:08Z",
+          "completed_at": "2026-10-28T03:08:09Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-28T03:08:09Z",
+          "completed_at": "2026-10-28T03:08:10Z"
+        },
+        {
+          "name": "Post Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-28T03:08:10Z",
+          "completed_at": "2026-10-28T03:08:10Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:08:10Z",
+          "completed_at": "2026-10-28T03:08:11Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604508042",
+      "labels": [
+        "macos-latest"
+      ],
+      "runner_id": 1000428012,
+      "runner_name": "GitHub Actions 1000428012",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604508069,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xTpQ",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604508069",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604508069",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:01:32Z",
+      "completed_at": "2026-10-28T03:02:30Z",
+      "name": "windows / Codex 0.150.0",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:01:33Z",
+          "completed_at": "2026-10-28T03:01:34Z"
+        },
+        {
+          "name": "Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:01:34Z",
+          "completed_at": "2026-10-28T03:02:02Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:02:02Z",
+          "completed_at": "2026-10-28T03:02:12Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:02:12Z",
+          "completed_at": "2026-10-28T03:02:12Z"
+        },
+        {
+          "name": "Install exact upstream Codex CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:02:12Z",
+          "completed_at": "2026-10-28T03:02:22Z"
+        },
+        {
+          "name": "Probe real App Server and run removal drill",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:02:22Z",
+          "completed_at": "2026-10-28T03:02:25Z"
+        },
+        {
+          "name": "Upload version-bound evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:02:25Z",
+          "completed_at": "2026-10-28T03:02:26Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-28T03:02:26Z",
+          "completed_at": "2026-10-28T03:02:26Z"
+        },
+        {
+          "name": "Post Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-28T03:02:26Z",
+          "completed_at": "2026-10-28T03:02:28Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:02:28Z",
+          "completed_at": "2026-10-28T03:02:29Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604508069",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000427982,
+      "runner_name": "GitHub Actions 1000427982",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604508077,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xTrQ",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604508077",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604508077",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:27:07Z",
+      "completed_at": "2026-10-28T03:27:42Z",
+      "name": "macos / Codex 0.150.1",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:27:07Z",
+          "completed_at": "2026-10-28T03:27:08Z"
+        },
+        {
+          "name": "Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:27:08Z",
+          "completed_at": "2026-10-28T03:27:28Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:27:28Z",
+          "completed_at": "2026-10-28T03:27:33Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:27:33Z",
+          "completed_at": "2026-10-28T03:27:33Z"
+        },
+        {
+          "name": "Install exact upstream Codex CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:27:33Z",
+          "completed_at": "2026-10-28T03:27:36Z"
+        },
+        {
+          "name": "Probe real App Server and run removal drill",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:27:36Z",
+          "completed_at": "2026-10-28T03:27:37Z"
+        },
+        {
+          "name": "Upload version-bound evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:27:37Z",
+          "completed_at": "2026-10-28T03:27:38Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-28T03:27:38Z",
+          "completed_at": "2026-10-28T03:27:38Z"
+        },
+        {
+          "name": "Post Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-28T03:27:38Z",
+          "completed_at": "2026-10-28T03:27:39Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:27:39Z",
+          "completed_at": "2026-10-28T03:27:40Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604508077",
+      "labels": [
+        "macos-latest"
+      ],
+      "runner_id": 1000428063,
+      "runner_name": "GitHub Actions 1000428063",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604508085,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xTtQ",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604508085",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604508085",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:23:20Z",
+      "completed_at": "2026-10-28T03:23:55Z",
+      "name": "linux / Codex 0.150.1",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:23:21Z",
+          "completed_at": "2026-10-28T03:23:22Z"
+        },
+        {
+          "name": "Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:23:22Z",
+          "completed_at": "2026-10-28T03:23:39Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:23:39Z",
+          "completed_at": "2026-10-28T03:23:47Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:23:47Z",
+          "completed_at": "2026-10-28T03:23:47Z"
+        },
+        {
+          "name": "Install exact upstream Codex CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:23:47Z",
+          "completed_at": "2026-10-28T03:23:50Z"
+        },
+        {
+          "name": "Probe real App Server and run removal drill",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:23:50Z",
+          "completed_at": "2026-10-28T03:23:51Z"
+        },
+        {
+          "name": "Upload version-bound evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:23:51Z",
+          "completed_at": "2026-10-28T03:23:52Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-28T03:23:52Z",
+          "completed_at": "2026-10-28T03:23:52Z"
+        },
+        {
+          "name": "Post Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-28T03:23:52Z",
+          "completed_at": "2026-10-28T03:23:53Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:23:53Z",
+          "completed_at": "2026-10-28T03:23:53Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604508085",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000428052,
+      "runner_name": "GitHub Actions 1000428052",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604508086,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xTtg",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604508086",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604508086",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:24:51Z",
+      "completed_at": "2026-10-28T03:25:57Z",
+      "name": "Codex 0.160.0 schema and real turns (windows-latest, no admission)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:24:52Z",
+          "completed_at": "2026-10-28T03:24:53Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:24:53Z",
+          "completed_at": "2026-10-28T03:25:17Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:25:17Z",
+          "completed_at": "2026-10-28T03:25:24Z"
+        },
+        {
+          "name": "Install locked CLI schema-validator dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:25:24Z",
+          "completed_at": "2026-10-28T03:25:37Z"
+        },
+        {
+          "name": "Install pinned schema generator and compare its unmodified output",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:25:37Z",
+          "completed_at": "2026-10-28T03:25:44Z"
+        },
+        {
+          "name": "Exercise interleaved real turns, cancellation and admitted transport loss",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:25:44Z",
+          "completed_at": "2026-10-28T03:25:50Z"
+        },
+        {
+          "name": "Verify restart, restored settings and thread and turn pagination",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:25:50Z",
+          "completed_at": "2026-10-28T03:25:52Z"
+        },
+        {
+          "name": "Retain real-process protocol evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-28T03:25:52Z",
+          "completed_at": "2026-10-28T03:25:54Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:25:54Z",
+          "completed_at": "2026-10-28T03:25:54Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-28T03:25:54Z",
+          "completed_at": "2026-10-28T03:25:55Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-28T03:25:55Z",
+          "completed_at": "2026-10-28T03:25:55Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604508086",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000428056,
+      "runner_name": "GitHub Actions 1000428056",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604508095,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xTvw",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604508095",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604508095",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:24:34Z",
+      "completed_at": "2026-10-28T03:25:37Z",
+      "name": "windows / Codex 0.154.0",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:24:35Z",
+          "completed_at": "2026-10-28T03:24:36Z"
+        },
+        {
+          "name": "Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:24:36Z",
+          "completed_at": "2026-10-28T03:25:09Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:25:09Z",
+          "completed_at": "2026-10-28T03:25:21Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:25:21Z",
+          "completed_at": "2026-10-28T03:25:21Z"
+        },
+        {
+          "name": "Install exact upstream Codex CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:25:21Z",
+          "completed_at": "2026-10-28T03:25:28Z"
+        },
+        {
+          "name": "Probe real App Server and run removal drill",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:25:28Z",
+          "completed_at": "2026-10-28T03:25:32Z"
+        },
+        {
+          "name": "Upload version-bound evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:25:32Z",
+          "completed_at": "2026-10-28T03:25:33Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-28T03:25:33Z",
+          "completed_at": "2026-10-28T03:25:33Z"
+        },
+        {
+          "name": "Post Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-28T03:25:33Z",
+          "completed_at": "2026-10-28T03:25:35Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:25:35Z",
+          "completed_at": "2026-10-28T03:25:35Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604508095",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000428055,
+      "runner_name": "GitHub Actions 1000428055",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604508097,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xTwQ",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604508097",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604508097",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:23:57Z",
+      "completed_at": "2026-10-28T03:24:57Z",
+      "name": "windows / Codex 0.150.1",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:23:58Z",
+          "completed_at": "2026-10-28T03:23:59Z"
+        },
+        {
+          "name": "Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:23:59Z",
+          "completed_at": "2026-10-28T03:24:31Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:24:31Z",
+          "completed_at": "2026-10-28T03:24:42Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:24:42Z",
+          "completed_at": "2026-10-28T03:24:42Z"
+        },
+        {
+          "name": "Install exact upstream Codex CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:24:42Z",
+          "completed_at": "2026-10-28T03:24:49Z"
+        },
+        {
+          "name": "Probe real App Server and run removal drill",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:24:49Z",
+          "completed_at": "2026-10-28T03:24:52Z"
+        },
+        {
+          "name": "Upload version-bound evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:24:52Z",
+          "completed_at": "2026-10-28T03:24:53Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-28T03:24:53Z",
+          "completed_at": "2026-10-28T03:24:54Z"
+        },
+        {
+          "name": "Post Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-28T03:24:54Z",
+          "completed_at": "2026-10-28T03:24:56Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:24:56Z",
+          "completed_at": "2026-10-28T03:24:56Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604508097",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000428054,
+      "runner_name": "GitHub Actions 1000428054",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604508103,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xTxw",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604508103",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604508103",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:08:15Z",
+      "completed_at": "2026-10-28T03:08:47Z",
+      "name": "linux / Codex 0.149.0",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:08:16Z",
+          "completed_at": "2026-10-28T03:08:17Z"
+        },
+        {
+          "name": "Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:08:17Z",
+          "completed_at": "2026-10-28T03:08:34Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:08:34Z",
+          "completed_at": "2026-10-28T03:08:38Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:08:38Z",
+          "completed_at": "2026-10-28T03:08:38Z"
+        },
+        {
+          "name": "Install exact upstream Codex CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:08:38Z",
+          "completed_at": "2026-10-28T03:08:41Z"
+        },
+        {
+          "name": "Probe real App Server and run removal drill",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:08:41Z",
+          "completed_at": "2026-10-28T03:08:44Z"
+        },
+        {
+          "name": "Upload version-bound evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:08:44Z",
+          "completed_at": "2026-10-28T03:08:45Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-28T03:08:45Z",
+          "completed_at": "2026-10-28T03:08:45Z"
+        },
+        {
+          "name": "Post Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-28T03:08:45Z",
+          "completed_at": "2026-10-28T03:08:45Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:08:45Z",
+          "completed_at": "2026-10-28T03:08:45Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604508103",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000428015,
+      "runner_name": "GitHub Actions 1000428015",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604508106,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xTyg",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604508106",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604508106",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:29:57Z",
+      "completed_at": "2026-10-28T03:31:14Z",
+      "name": "Codex 0.160.0 schema and real turns (macos-latest, no admission)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:29:57Z",
+          "completed_at": "2026-10-28T03:29:58Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:29:58Z",
+          "completed_at": "2026-10-28T03:30:26Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:30:26Z",
+          "completed_at": "2026-10-28T03:30:35Z"
+        },
+        {
+          "name": "Install locked CLI schema-validator dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:30:35Z",
+          "completed_at": "2026-10-28T03:30:50Z"
+        },
+        {
+          "name": "Install pinned schema generator and compare its unmodified output",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:30:50Z",
+          "completed_at": "2026-10-28T03:30:56Z"
+        },
+        {
+          "name": "Exercise interleaved real turns, cancellation and admitted transport loss",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:30:56Z",
+          "completed_at": "2026-10-28T03:31:05Z"
+        },
+        {
+          "name": "Verify restart, restored settings and thread and turn pagination",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:31:05Z",
+          "completed_at": "2026-10-28T03:31:08Z"
+        },
+        {
+          "name": "Retain real-process protocol evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-28T03:31:08Z",
+          "completed_at": "2026-10-28T03:31:09Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:31:09Z",
+          "completed_at": "2026-10-28T03:31:09Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-28T03:31:09Z",
+          "completed_at": "2026-10-28T03:31:10Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-28T03:31:10Z",
+          "completed_at": "2026-10-28T03:31:11Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604508106",
+      "labels": [
+        "macos-latest"
+      ],
+      "runner_id": 1000428073,
+      "runner_name": "GitHub Actions 1000428073",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604508111,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xTzw",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604508111",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604508111",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:27:46Z",
+      "completed_at": "2026-10-28T03:28:33Z",
+      "name": "macos / Codex 0.150.0",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:27:47Z",
+          "completed_at": "2026-10-28T03:27:48Z"
+        },
+        {
+          "name": "Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:27:48Z",
+          "completed_at": "2026-10-28T03:28:15Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:28:15Z",
+          "completed_at": "2026-10-28T03:28:22Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:28:22Z",
+          "completed_at": "2026-10-28T03:28:22Z"
+        },
+        {
+          "name": "Install exact upstream Codex CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:28:22Z",
+          "completed_at": "2026-10-28T03:28:27Z"
+        },
+        {
+          "name": "Probe real App Server and run removal drill",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:28:27Z",
+          "completed_at": "2026-10-28T03:28:29Z"
+        },
+        {
+          "name": "Upload version-bound evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:28:29Z",
+          "completed_at": "2026-10-28T03:28:30Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-28T03:28:30Z",
+          "completed_at": "2026-10-28T03:28:31Z"
+        },
+        {
+          "name": "Post Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-28T03:28:31Z",
+          "completed_at": "2026-10-28T03:28:31Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:28:31Z",
+          "completed_at": "2026-10-28T03:28:31Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604508111",
+      "labels": [
+        "macos-latest"
+      ],
+      "runner_id": 1000428065,
+      "runner_name": "GitHub Actions 1000428065",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604508123,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xT2w",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604508123",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604508123",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:21:37Z",
+      "completed_at": "2026-10-28T03:22:16Z",
+      "name": "linux / Codex 0.154.0",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:21:38Z",
+          "completed_at": "2026-10-28T03:21:39Z"
+        },
+        {
+          "name": "Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:21:39Z",
+          "completed_at": "2026-10-28T03:21:56Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:21:56Z",
+          "completed_at": "2026-10-28T03:22:08Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:22:08Z",
+          "completed_at": "2026-10-28T03:22:08Z"
+        },
+        {
+          "name": "Install exact upstream Codex CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:22:08Z",
+          "completed_at": "2026-10-28T03:22:12Z"
+        },
+        {
+          "name": "Probe real App Server and run removal drill",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:22:12Z",
+          "completed_at": "2026-10-28T03:22:13Z"
+        },
+        {
+          "name": "Upload version-bound evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:22:13Z",
+          "completed_at": "2026-10-28T03:22:14Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-28T03:22:14Z",
+          "completed_at": "2026-10-28T03:22:14Z"
+        },
+        {
+          "name": "Post Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-28T03:22:14Z",
+          "completed_at": "2026-10-28T03:22:15Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:22:15Z",
+          "completed_at": "2026-10-28T03:22:15Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604508123",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000428049,
+      "runner_name": "GitHub Actions 1000428049",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122604508151,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAci8xT9w",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122604508151",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122604508151",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T02:58:30Z",
+      "started_at": "2026-10-28T03:28:36Z",
+      "completed_at": "2026-10-28T03:29:17Z",
+      "name": "macos / Codex 0.154.0",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:28:36Z",
+          "completed_at": "2026-10-28T03:28:37Z"
+        },
+        {
+          "name": "Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-28T03:28:37Z",
+          "completed_at": "2026-10-28T03:29:01Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:29:01Z",
+          "completed_at": "2026-10-28T03:29:07Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:29:07Z",
+          "completed_at": "2026-10-28T03:29:07Z"
+        },
+        {
+          "name": "Install exact upstream Codex CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:29:07Z",
+          "completed_at": "2026-10-28T03:29:11Z"
+        },
+        {
+          "name": "Probe real App Server and run removal drill",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:29:11Z",
+          "completed_at": "2026-10-28T03:29:13Z"
+        },
+        {
+          "name": "Upload version-bound evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:29:13Z",
+          "completed_at": "2026-10-28T03:29:14Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-28T03:29:14Z",
+          "completed_at": "2026-10-28T03:29:14Z"
+        },
+        {
+          "name": "Post Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-28T03:29:14Z",
+          "completed_at": "2026-10-28T03:29:14Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:29:14Z",
+          "completed_at": "2026-10-28T03:29:15Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122604508151",
+      "labels": [
+        "macos-latest"
+      ],
+      "runner_id": 1000428069,
+      "runner_name": "GitHub Actions 1000428069",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 122614708362,
+      "run_id": 40623725845,
+      "workflow_name": "Codex App Server Compatibility",
+      "head_branch": "feature/cli-codex-compatibility-manifest-20261028",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40623725845",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAcjGf4ig",
+      "head_sha": "26e481c909561c6ff60b6d05c55613a787388e68",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/122614708362",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40623725845/job/122614708362",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-28T03:31:14Z",
+      "started_at": "2026-10-28T03:34:14Z",
+      "completed_at": "2026-10-28T03:34:51Z",
+      "name": "Exact-SHA three-platform compatibility gate",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-28T03:34:15Z",
+          "completed_at": "2026-10-28T03:34:16Z"
+        },
+        {
+          "name": "Refuse a partial or failed compatibility matrix",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 2,
+          "started_at": "2026-10-28T03:34:16Z",
+          "completed_at": "2026-10-28T03:34:16Z"
+        },
+        {
+          "name": "Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-28T03:34:16Z",
+          "completed_at": "2026-10-28T03:34:38Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-28T03:34:38Z",
+          "completed_at": "2026-10-28T03:34:45Z"
+        },
+        {
+          "name": "Download all compatibility evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-28T03:34:45Z",
+          "completed_at": "2026-10-28T03:34:46Z"
+        },
+        {
+          "name": "Verify all versions and platforms",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-28T03:34:46Z",
+          "completed_at": "2026-10-28T03:34:47Z"
+        },
+        {
+          "name": "Upload aggregate evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-28T03:34:47Z",
+          "completed_at": "2026-10-28T03:34:48Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-28T03:34:48Z",
+          "completed_at": "2026-10-28T03:34:48Z"
+        },
+        {
+          "name": "Post Checkout exact source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-28T03:34:48Z",
+          "completed_at": "2026-10-28T03:34:49Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-28T03:34:49Z",
+          "completed_at": "2026-10-28T03:34:49Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/122614708362",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000428086,
+      "runner_name": "GitHub Actions 1000428086",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}

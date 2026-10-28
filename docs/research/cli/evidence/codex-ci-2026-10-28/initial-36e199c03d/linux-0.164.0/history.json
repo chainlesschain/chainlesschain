@@ -1,0 +1,26 @@
+{
+  "schema": "chainlesschain.codex-history-probe/v1",
+  "commitSha": "36e199c03d779a8e04ccf9c6fa70cb1afc7833eb",
+  "platform": "linux",
+  "upstream": {
+    "version": "0.164.0"
+  },
+  "productionAdmission": false,
+  "realProviderAcceptance": false,
+  "status": "failed",
+  "processClosed": [
+    {
+      "code": 0,
+      "signal": null
+    },
+    {
+      "code": 0,
+      "signal": null
+    }
+  ],
+  "notificationsSha256": "e11ffacb28b602915b2cfd9ed406475e42a11517078a10c28a32b273de0d0f04",
+  "error": {
+    "name": "AssertionError",
+    "message": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ Set(1) {\n- Set(2) {\n    '01a18066-c5b6-7393-9136-0bf462eda83c',\n-   '01a18066-c710-73f1-906f-c2873720e584'\n  }\n"
+  }
+}
