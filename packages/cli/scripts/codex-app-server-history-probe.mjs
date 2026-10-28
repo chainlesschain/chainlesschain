@@ -301,8 +301,9 @@ export async function runHistoryProbe({
       modelProviders: ["fixture"],
       sourceKinds: [main.thread.source],
       sortDirection: "asc",
-      // The rollout-scan cursor can omit a same-second sibling. The state DB
-      // returns an opaque cursor containing the timestamp and thread identity.
+      // Default rollout scanning and legacy created_at DB cursors can omit
+      // siblings. recency_at uses a timestamp plus identity on both versions.
+      sortKey: "recency_at",
       useStateDbOnly: true,
     });
     assert.deepEqual(
@@ -393,6 +394,7 @@ export async function runHistoryProbe({
       processRestarted: true,
       threadSource: main.thread.source,
       threadListMode: "state-db-only",
+      threadListSortKey: "recency_at",
       threadCreationTimes: [main.thread.createdAt, other.thread.createdAt],
       sameCreatedAtSecond: main.thread.createdAt === other.thread.createdAt,
       rolloutScanPaginationVerified: false,

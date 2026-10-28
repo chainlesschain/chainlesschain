@@ -48,6 +48,34 @@ describe("bounded Codex history pagination", () => {
       ),
     ).resolves.toEqual({ data: [], pages: [{ ids: [], nextCursor: null }] });
   });
+  it("preserves database and recency filters with an opaque identity cursor for tied threads", async () => {
+    const cursor = "2026-10-28T00:00:00Z|thread-a";
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: [{ id: "thread-a", createdAt: 10 }],
+        nextCursor: cursor,
+      })
+      .mockResolvedValueOnce({
+        data: [{ id: "thread-b", createdAt: 10 }],
+        nextCursor: null,
+      });
+    const params = {
+      limit: 1,
+      sortKey: "recency_at",
+      sortDirection: "asc",
+      useStateDbOnly: true,
+    };
+    const result = await collectHistoryPages(request, "thread/list", params);
+    expect(result.data.map((entry) => entry.id)).toEqual([
+      "thread-a",
+      "thread-b",
+    ]);
+    expect(request).toHaveBeenNthCalledWith(2, "thread/list", {
+      ...params,
+      cursor,
+    });
+  });
   it.each([
     {},
     { data: null, nextCursor: null },
