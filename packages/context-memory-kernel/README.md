@@ -1,8 +1,10 @@
 # Context/Memory Kernel
 
-Current npm package: `@chainlesschain/context-memory-kernel@0.1.5`. This
-release includes the checked-in contracts, schemas, fixtures, inventory, and
-documentation that are verified byte-for-byte before the paired CLI publishes.
+Current public npm package: `@chainlesschain/context-memory-kernel@0.1.10`.
+Source candidate `0.1.11` adds cancellation propagation for Memory recall and
+must pass its exact-source Linux, Windows and macOS gates before OIDC publication.
+CLI `0.166.130` is an unpublished downstream candidate pinned to `0.1.11`; it
+must wait until the child package is published and its public bytes are verified.
 
 Canonical, host-neutral Context/Memory Kernel for ChainlessChain. The package owns deterministic context planning, compaction invariants/CAS, scoped memory lifecycle, tombstone fencing, deletion reconciliation, and writer cutover authority.
 
@@ -20,6 +22,18 @@ Public operations:
 - `checkpointTaskProgress(request)` — synchronous session-port revision/CAS settlement for bounded task progress; host Markdown files are rebuildable projections, not memory authority.
 
 See `schema/context-memory-kernel.schema.json` for the wire contract and `inventory/writers.v1.json` for migration ownership.
+
+## Recall cancellation (source candidate 0.1.11)
+
+`kernel.recallMemory(request, { signal })` accepts an optional `AbortSignal`
+outside the serialized request. The same signal reaches the host Memory port's
+`query(request, { signal })` and `getRevision({ signal })`. A pre-aborted call
+does not query the port. Cancellation is checked again after each asynchronous
+port result so a late success cannot become a successful recall.
+
+Host ports remain responsible for interrupting their own I/O promptly. Passing
+a signal does not prove that an arbitrary host's underlying work or process tree
+has stopped. Callers that omit the options keep the existing recall API.
 
 ## Multilingual lexical recall
 
