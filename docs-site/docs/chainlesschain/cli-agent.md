@@ -1,6 +1,10 @@
 # 代理模式 (agent)
 
-<!-- docs-code-git-sync-2026-10-28 -->
+<!-- docs-code-git-sync-2026-10-29 -->
+
+> 当前核对（2026-10-29）：公开配对为 CLI **0.166.129**、Open VSX **0.37.167**、JetBrains **0.4.184**；两个 IDE 均推荐 `.129`。安装与渠道回执见[升级指南](./cli-ide-update-2026-10-29)。PC / 移动端 **v5.0.3.143** 独立发行，Microsoft Marketplace 暂缓。
+
+`.129` 加强交付复查的上下文隔离，并统一实验性 Codex App Server 兼容清单；复查和实验路由默认关闭。后续主分支的独立 `verify:` Goal checker、Memory 磁盘 / 缓存修复和 Terra 能力 / 计费尚未发布。下方带版本的能力说明保留对应发行范围。
 
 ## 0.166.128：交付复查与 Goal 完成条件
 
@@ -14,9 +18,7 @@
 
 持久化会话保存 Goal 检查点失败会返回 `CC_GOAL_CHECKPOINT_FAILED`。恢复中断的 `running` 检查点前，先核对实际副作用和已发生用量，再按原条件使用 `--resume` / `--continue` 与 `--goal-recovery-reviewed`。该标志不修复损坏状态，也不证明此前操作已回滚。
 
-> 当前核对（2026-10-28）：CLI **0.166.128**、Open VSX **0.37.166**、JetBrains **0.4.183**；两个 IDE 均推荐 CLI `.128`，移动/PC **v5.0.3.143** 已公开。安装、渠道与回执见[升级指南](./cli-ide-update-2026-10-28)。后文带日期段落保留历史范围，Microsoft Marketplace 仍未发布。
-
-[输入、图片预算与会话恢复](./agent-input-and-recovery) · [当前升级步骤](./cli-ide-update-2026-10-28)
+[输入、图片预算与会话恢复](./agent-input-and-recovery) · [当前升级步骤](./cli-ide-update-2026-10-29)
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 

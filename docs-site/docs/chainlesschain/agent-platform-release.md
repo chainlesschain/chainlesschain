@@ -1,8 +1,16 @@
 # Agent Platform 发布与升级指南
 
-<!-- docs-code-git-sync-2026-10-28 -->
+<!-- docs-code-git-sync-2026-10-29 -->
 
-## 最新发布（2026-10-28）：CLI 0.166.128
+## 最新发布（2026-10-29）：CLI 0.166.129
+
+CLI **0.166.129**、Open VSX **0.37.167**、JetBrains **0.4.184** 已公开并完成归档回读，两个 IDE 均推荐 `.129`。CLI 准确发行源 `fd8a21637a` 的三系统 CLI CI / Strict Sandbox、OIDC 和独立回读通过；IDE 发行源为 `800e9cc997`。PC / 移动端仍为独立发行的 **v5.0.3.143**。
+
+安装 `npm i -g chainlesschain@0.166.129 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version` 和 `cc doctor`。本版加强复查上下文隔离并统一实验性 Codex App Server 兼容清单，两者默认关闭。后续主分支的独立 Goal checker、Memory 磁盘 / 缓存修复和 Terra 能力 / 计费尚未发布。
+
+[当前升级指南](./cli-ide-update-2026-10-29) · [公开回执](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release129-public/publication.json)。跨版本累计 **34/45**、**11** 项未完成，不是 `.129` 单轮成功率；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。Microsoft Marketplace 暂缓，VS Code 可使用版本化 VSIX。下方带日期记录保留历史范围。
+
+## 历史发布（2026-10-28）：CLI 0.166.128
 
 CLI **0.166.128**、Open VSX **0.37.166**、JetBrains **0.4.183**；两个 IDE 均推荐 CLI `.128`，移动/PC **v5.0.3.143** 已公开。CLI 发行源为 `dfa158e361`，IDE 发行源为 `6551a06c2f`，客户端冻结源为 `036d2b8be2`；默认分支的文档与未提交复测工具不作为已发布代码。CLI 三系统双门禁、OIDC、制品与签名来源回读，IDE 公开下载，以及客户端 22 个资产与三套桌面更新元数据均已核验。
 
@@ -478,7 +486,7 @@ Open VSX `0.37.92` 与 JetBrains Marketplace `0.4.119` 已公开并推荐 CLI `0
 全新安装后先核对版本与能力面，再按需进入交互 Agent：
 
 ```bash
-npm install --global chainlesschain@0.166.112 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.129 --registry https://registry.npmjs.org
 cc --version
 cc agent --capabilities
 cc agent
@@ -494,7 +502,7 @@ cc --version
 cc agent --capabilities
 ```
 
-`cc --version` 预期输出 `0.166.112`。`cc agent --capabilities` 应能执行，但其中某项显示 disabled/unavailable 可能只是当前宿主没有注入生产 authority，不应以测试密钥或环境变量绕过。
+`cc --version` 预期输出 `0.166.129`。`cc agent --capabilities` 应能执行，但其中某项显示 disabled/unavailable 可能只是当前宿主没有注入生产 authority，不应以测试密钥或环境变量绕过。
 
 ### SDK 与协议
 

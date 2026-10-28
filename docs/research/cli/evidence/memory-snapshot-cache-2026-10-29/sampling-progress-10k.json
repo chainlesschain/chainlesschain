@@ -1,0 +1,84 @@
+{
+  "schema": "chainlesschain.memory-sampling-progress/v1",
+  "observedAt": "2026-10-28T20:49:30.982701+00:00",
+  "status": "IN_PROGRESS",
+  "complete": false,
+  "sourceHead": "16af6d6199ea5c8d261b9a1872c50b185841192d",
+  "artifact": {
+    "path": "disk-100-partial-10k.json.gz",
+    "sha256": "4182c220ee82f7fbbdcd78408dc19214f848e3aaffe7b69c26474aad9b8f8085",
+    "decodedSha256": "853a7ce8e2880745109b795b193685d7ef80fa76a779a0049aa4a58809e7893d"
+  },
+  "completedGroups": [
+    {
+      "count": 1000,
+      "mode": "baseline",
+      "samples": 100,
+      "p95Ms": 631.268
+    },
+    {
+      "count": 1000,
+      "mode": "cold",
+      "samples": 100,
+      "p95Ms": 463.657
+    },
+    {
+      "count": 1000,
+      "mode": "hot",
+      "samples": 100,
+      "p95Ms": 341.473
+    },
+    {
+      "count": 1000,
+      "mode": "rebuild",
+      "samples": 100,
+      "p95Ms": 1980.359
+    },
+    {
+      "count": 1000,
+      "mode": "corrupt",
+      "samples": 100,
+      "p95Ms": 2531.332
+    },
+    {
+      "count": 10000,
+      "mode": "baseline",
+      "samples": 100,
+      "p95Ms": 2547.047
+    },
+    {
+      "count": 10000,
+      "mode": "cold",
+      "samples": 100,
+      "p95Ms": 1036.68
+    },
+    {
+      "count": 10000,
+      "mode": "hot",
+      "samples": 100,
+      "p95Ms": 354.161
+    },
+    {
+      "count": 10000,
+      "mode": "rebuild",
+      "samples": 100,
+      "p95Ms": 3642.437
+    },
+    {
+      "count": 10000,
+      "mode": "corrupt",
+      "samples": 100,
+      "p95Ms": 3874.732
+    }
+  ],
+  "remaining": [
+    "100000 disk scenarios",
+    "verified-memory hot",
+    "100-sample Stop",
+    "100-round mixed concurrency",
+    "cross-platform results"
+  ],
+  "allCapturedRowsDigestsMatch": true,
+  "localWorkstationShared": true,
+  "boundary": "Documentation edits and short single-worker model tests share the workstation. Bound Memory sources and benchmarks unchanged; not an isolated hardware SLO experiment."
+}

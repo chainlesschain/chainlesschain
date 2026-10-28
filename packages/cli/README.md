@@ -2,9 +2,13 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.129 candidate — change review and Codex compatibility
+## CLI 0.166.129 — change review and Codex compatibility (public, 2026-10-29)
 
-This candidate adds isolated hermetic change-review context and a shared experimental Codex App Server support manifest with versioned three-platform probes. It is not yet published. The verified public CLI and IDE pairing remain listed below until the new release passes its exact-source gates and public artifact readback. Child npm package pins are unchanged; experimental routing remains off by default, and historical task/native acceptance is not promoted by this release.
+This release adds isolated hermetic change-review context and a shared experimental Codex App Server support manifest with versioned three-platform probes. Install the verified public package with `npm i -g chainlesschain@0.166.129 --registry https://registry.npmjs.org`. Public Open VSX **0.37.167** and JetBrains **0.4.184** both recommend `.129`; restart the chat host and check `cc --version` and `cc doctor` after upgrading. Microsoft Marketplace is deferred and remains unpublished; use Open VSX or the versioned VSIX for VS Code.
+
+Exact CLI source `fd8a21637ab188dae0c777442d312ae85d420a9b` passed complete Linux, Windows and macOS CLI CI and Strict Sandbox. [OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/40693655894) and [independent public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/40723568902) verified registry bytes against the immutable CI artifact, signed provenance and ten direct child pins. Both IDEs have their own exact-source gates at `800e9cc99711f9f02eb3bbd78eb14600406bdba5` and verified public downloads; JetBrains is approved and listed. [Publication evidence](../../docs/research/cli/evidence/release129-public/publication.json).
+
+Child pins are unchanged; experimental routing and `--review-changes` remain off by default. Cumulative accepted deliverables are **34/45**, with **11** unfinished (ordinary **27/36**, first-run **7/9**); this is not a `.129` single-version success rate. **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain. Independent `verify:` Goal checks, the subsequent Memory disk/cache fixes and Terra profile/cache billing are main-branch work, not part of `.129`. PC/mobile remain on the separate **v5.0.3.143** release. [Current upgrade guide](../../docs-site/docs/chainlesschain/cli-ide-update-2026-10-29.md) · [Current task status](../../docs/research/cli-ide-codex-claude-gap-review-2026-10-27.md). The dated release notes below retain their historical scope.
 
 Read-only Git inspections such as `status`, `diff`, `log`, `show` and `rev-parse` now skip workspace snapshots in IDE and CLI agent sessions. Mutations and commands with explicit output files or external drivers retain checkpoints. Conversation persistence and permission checks remain active; end-to-end latency still depends on the repository, model and tools.
 

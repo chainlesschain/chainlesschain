@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "CLI 0.166.128 / Open VSX 0.37.166 / JetBrains 0.4.183 已公开；Goal 证据、可选复查与五平台 v5.0.3.143"
+  tagline: "CLI 0.166.129 / Open VSX 0.37.167 / JetBrains 0.4.184 已公开；配套升级与独立客户端 v5.0.3.143"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,12 +21,12 @@ hero:
 
 features:
   - icon: ⚠️
-    title: CLI .128、IDE 与五平台升级
-    details: "CLI 0.166.128 已通过三平台门禁和 OIDC 发布；Open VSX 0.37.166、JetBrains 0.4.183 均已公开并验证下载，推荐同一 CLI。Goal 增加证据约束和检查点错误处理，交付复查默认关闭，MCP/Skills/Memory 改进按需发现；产品 v5.0.3.143 已公开。Microsoft Marketplace 仍未发布。"
-    link: /chainlesschain/cli-ide-update-2026-10-28
+    title: CLI .129 与 IDE 配套升级
+    details: "CLI 0.166.129 已通过三平台门禁和 OIDC 发布；Open VSX 0.37.167、JetBrains 0.4.184 均已公开并验证下载，推荐同一 CLI。交付复查加强上下文隔离，实验性 Codex 路由默认关闭；产品 v5.0.3.143 独立发行。Microsoft Marketplace 暂缓。"
+    link: /chainlesschain/cli-ide-update-2026-10-29
   - icon: 🔗
     title: CLI / IDE 与桌面目标草稿
-    details: "当前公开 CLI .128 / IDE .166 与 .183 可用于各自工作台。桌面目标草稿互通仍需匹配客户端构建、显式授权及原生确认；CLI 或插件发布不能替代产品验收。"
+    details: "当前公开 CLI .129 / IDE .167 与 .184 可用于各自工作台。桌面目标草稿互通仍需匹配客户端构建、显式授权及原生确认；CLI 或插件发布不能替代产品验收。"
     link: /chainlesschain/goal-drafts-current
   - icon: 🛡️
     title: 输入、图片预算与恢复边界
@@ -45,9 +45,9 @@ features:
     details: 统计 v2、耐久预注册及真实后端关联已实现；必需回执固定 HOLD，真实效果实验未运行，生产来源门仍在实施。
     link: /chainlesschain/rrsi-current
   - icon: 🧩
-    title: Agent Platform 0.166.128 验收范围
-    details: 跨版本累计合格交付32/45，13项未完成；本轮未新增真实模型验收。NOT_PAID_READY、NOT_ADMITTED 与自动晋升 HOLD 不变。
-    link: /chainlesschain/cli-runtime-current
+    title: Agent Platform 当前验收范围
+    details: 跨版本累计合格交付34/45，11项未完成；此统计不是 .129 单轮成功率。NOT_PAID_READY、NOT_ADMITTED 与自动晋升 HOLD 不变。
+    link: /chainlesschain/cli-ide-update-2026-10-29
   - icon: 📝
     title: IDE 任务记录与新会话接力
     details: "任务检查点和 Markdown 投影具有不同权威范围。新会话不自动继承旧聊天的临时权限或执行中的工具；恢复前先核对已持久化结果。"
@@ -74,7 +74,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 当前公开配对
-    details: "Open VSX .166 与 JetBrains .183 均已公开并推荐 CLI .128。真实宿主发行门与公共下载验证通过；Microsoft Marketplace 仍未发布。"
+    details: "Open VSX .167 与 JetBrains .184 均已公开并推荐 CLI .129。真实宿主发行门与公共下载验证通过；Microsoft Marketplace 暂缓。"
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -87,9 +87,9 @@ features:
     details: "CLI 与 IDE 的精确提交门禁、公共制品回读、模型任务验收具有不同证据范围。原生产品 .143 已独立公开，五平台构建及 22 个资产通过核验；完整 native review 仍保持 NOT_ADMITTED。"
 ---
 
-## 当前公开版本（2026-10-28）
+## 当前公开版本（2026-10-29）
 
-CLI **0.166.128** / Open VSX **0.37.166** / JetBrains **0.4.183** 均已公开并完成下载核验；原生产品 **v5.0.3.143** 具有独立发行源与验收范围。当前安装与渠道说明见[升级指南](/chainlesschain/cli-ide-update-2026-10-28)和[自进化开关配置](/chainlesschain/self-evolution-configuration)。本轮没有新增模型验收，累计 **32/45**、**13** 项未完成，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+CLI **0.166.129** / Open VSX **0.37.167** / JetBrains **0.4.184** 均已公开并完成下载核验；原生产品 **v5.0.3.143** 具有独立发行源与验收范围。当前安装与渠道说明见[升级指南](/chainlesschain/cli-ide-update-2026-10-29)和[自进化开关配置](/chainlesschain/self-evolution-configuration)。跨版本累计 **34/45**、**11** 项未完成，此统计不是 `.129` 单轮成功率；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。主分支后续 Goal、Memory 与 Terra 改动尚未发布。
 
 ### 按任务查阅当前参考
 

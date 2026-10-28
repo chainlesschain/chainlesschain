@@ -197,7 +197,11 @@ export default defineConfig({
               link: "/chainlesschain/rrsi-current",
             },
             {
-              text: "CLI .128 / IDE .166 与 .183 升级",
+              text: "CLI .129 / IDE .167 与 .184 升级",
+              link: "/chainlesschain/cli-ide-update-2026-10-29",
+            },
+            {
+              text: "CLI .128 / IDE .166 与 .183（历史）",
               link: "/chainlesschain/cli-ide-update-2026-10-28",
             },
             {

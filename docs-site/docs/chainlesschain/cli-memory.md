@@ -4,6 +4,8 @@
 
 ## 0.166.128：索引候选选择优化
 
+当前公开版为 CLI **0.166.129**，安装及 IDE 配对见[升级指南](./cli-ide-update-2026-10-29)。后续主分支的磁盘取消和解析缓存修复尚未发布，完整 100 次采样与三系统查询 SLO 仍待验收；下文描述 `.128` 起已公开的优化。
+
 CLI 的 canonical Memory 适配实现先利用较短的 posting 候选，再按需要构建 scope、状态、标签和 sink 的并集；并集不能改善已有选择时提前停止。候选仍经过完整谓词匹配后返回，权限与过滤先于分页/limit。
 
 此改动不新增配置开关，不自动切换 legacy/shadow/canonical 模式，也不修改迁移、删除或游标失效规则。原有磁盘身份、分片与索引校验继续执行；独立发布的 Context/Memory Kernel 仍为 **0.1.10**。局部候选归并基准不代表完整冷磁盘查询 SLO。实现见 `packages/cli/src/lib/context-memory-kernel/memory-query-index.js`；跨端范围见[模块 108 设计](https://design.chainlesschain.com/modules/m108-context-memory-kernel.html)。

@@ -1,0 +1,149 @@
+{
+  "schema": "chainlesschain.model-catalog-remote-readback/v1",
+  "observedAt": "2026-10-28T20:49:30.954608+00:00",
+  "run": {
+    "conclusion": "success",
+    "headSha": "b8dc60c43174967f3c84cf88373119f224e45480",
+    "jobs": [
+      {
+        "completedAt": "2026-10-28T20:40:24Z",
+        "conclusion": "success",
+        "databaseId": 123086668621,
+        "name": "reviewed-contract",
+        "startedAt": "2026-10-28T20:38:49Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-28T20:38:50Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-28T20:38:49Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T20:39:19Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+            "number": 2,
+            "startedAt": "2026-10-28T20:38:50Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T20:39:32Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+            "number": 3,
+            "startedAt": "2026-10-28T20:39:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T20:40:15Z",
+            "conclusion": "success",
+            "name": "Run ./.github/actions/setup-node-deps",
+            "number": 4,
+            "startedAt": "2026-10-28T20:39:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T20:40:17Z",
+            "conclusion": "success",
+            "name": "Verify evidence capture contracts",
+            "number": 5,
+            "startedAt": "2026-10-28T20:40:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T20:40:20Z",
+            "conclusion": "success",
+            "name": "Verify reviewed API, usage and budget contracts",
+            "number": 6,
+            "startedAt": "2026-10-28T20:40:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T20:40:20Z",
+            "conclusion": "success",
+            "name": "Prepare evidence directory",
+            "number": 7,
+            "startedAt": "2026-10-28T20:40:20Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T20:40:20Z",
+            "conclusion": "success",
+            "name": "Verify reviewed model contracts",
+            "number": 8,
+            "startedAt": "2026-10-28T20:40:20Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T20:40:20Z",
+            "conclusion": "skipped",
+            "name": "Fetch official release notes",
+            "number": 9,
+            "startedAt": "2026-10-28T20:40:20Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T20:40:20Z",
+            "conclusion": "skipped",
+            "name": "Detect releases requiring review",
+            "number": 10,
+            "startedAt": "2026-10-28T20:40:20Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T20:40:22Z",
+            "conclusion": "success",
+            "name": "Preserve reports and original release snapshots on success or failure",
+            "number": 11,
+            "startedAt": "2026-10-28T20:40:20Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T20:40:22Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+            "number": 21,
+            "startedAt": "2026-10-28T20:40:22Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T20:40:22Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+            "number": 22,
+            "startedAt": "2026-10-28T20:40:22Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T20:40:22Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 23,
+            "startedAt": "2026-10-28T20:40:22Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40765006963/job/123086668621"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40765006963"
+  },
+  "artifactId": 12850407034,
+  "githubArtifactDigest": "sha256:d31134dd7e86260f24a90642e78ac460b79c10ac68d77d4d6d757f457bd16d98",
+  "artifactMember": {
+    "path": "local.json.gz",
+    "archiveSha256": "e231d7fdebfc61cc878967d1536e995787f9d9fdc805d7b829c0ee331a0662b6",
+    "decodedSha256": "113ffea79cd5e6e974f112ca2f4d3ba3f4321a2e88f3d0da6a6df64f2293e54e",
+    "decodedBytes": 3397
+  },
+  "verifiedSourceBlobs": 13,
+  "boundaries": [
+    "Ubuntu reviewed-contract only; not complete CLI three-OS release gates",
+    "Scheduled upstream release fetch was skipped on this push event",
+    "No live provider/account/billing verification"
+  ]
+}

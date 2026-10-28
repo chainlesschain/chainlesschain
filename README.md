@@ -1,5 +1,13 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 当前公开版本：CLI 0.166.129 / IDE .167、.184（2026-10-29）
+
+安装：`npm i -g chainlesschain@0.166.129 --registry https://registry.npmjs.org`。CLI `.129`、Open VSX `0.37.167`、JetBrains `0.4.184` 均已公开并完成归档回读；两个 IDE 均推荐 `.129`。升级后重启聊天宿主，运行 `cc --version` 和 `cc doctor`，核对实际 CLI 路径。Microsoft Marketplace 按当前计划暂缓，VS Code 可安装 [Open VSX 的版本化 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.167/file/chainlesschain.chainlesschain-ide-0.37.167.vsix)。
+
+`.129` 加强交付复查的上下文隔离，并统一实验性 Codex App Server 兼容清单；交付复查和实验路由仍须显式启用。准确 CLI 源码 `fd8a21637ab188dae0c777442d312ae85d420a9b` 的三系统 CLI CI / Strict Sandbox、OIDC 发布及公开包核验均通过。IDE 源码单独绑定 `800e9cc99711f9f02eb3bbd78eb14600406bdba5`；JetBrains 已批准上架，ZIP 成员与 CI 一致，外层 ZIP 字节不同。[发行证据](docs/research/cli/evidence/release129-public/publication.json) · [升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-10-29.md)。
+
+累计合格交付为 **34/45**（普通 **27/36**、首次入口 **7/9**），剩余 **11** 项；它不是 `.129` 单版本成功率，正式付费 / native 准入与自动晋升仍保留 **NOT_PAID_READY / NOT_ADMITTED / HOLD**。后续主分支的独立 Goal checker、Memory 磁盘 / 缓存修复和 Terra 能力 / 计费尚未发布，见[当前任务表](docs/research/cli-ide-codex-claude-gap-review-2026-10-27.md)。PC / 移动端继续使用独立发行 [v5.0.3.143](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.143)；下方带日期章节保留历史状态。
+
 ## CLI 0.166.128 已公开（2026-10-28）
 
 CLI **0.166.128** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40552876222) 发布，准确提交 `dfa158e36171e347a40e23356c2ed7bd04e0c061` 的三系统 CLI CI / Strict Sandbox 全部通过。[独立公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/40556529770) 确认 npm 归档与不可变 CI 制品逐字节一致，签名来源和十个直接子依赖均已核验。安装：`npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`。包含 Goal 验收与检查点恢复、双 IDE 模型配置支持、MCP / Skills 多语言检索、可选紧凑目录和 Memory 索引优化。配套 Open VSX `0.37.166` / JetBrains `0.4.183` 已公开并完成下载包回读，移动/PC 安装包 [v5.0.3.143](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.143) 已公开，五平台构建、22 个公开资产与三套桌面更新元数据均已核验，见[发布进度](docs/research/cli-ide-release128-progress-2026-10-27.md)和[公开状态](docs/research/cli/evidence/release128-public/publication.json)。

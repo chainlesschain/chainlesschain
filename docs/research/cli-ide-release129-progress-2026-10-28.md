@@ -6,12 +6,12 @@
 
 CLI、Open VSX 与 JetBrains 均已公开并完成限定范围的归档回读；真实任务及原生旅程继续单独验收。
 
-| 渠道 | 版本 | 状态 |
-| --- | --- | --- |
-| npm CLI | 0.166.129 | 已公开并验证下载 |
-| Open VSX | 0.37.167 | 已公开并验证下载 |
-| JetBrains | 0.4.184 | 已批准、列出且未隐藏；公开 ZIP 已回读 |
-| Microsoft Marketplace | — | 按用户要求暂缓，本轮不做；仍未发布 |
+| 渠道                  | 版本      | 状态                                  |
+| --------------------- | --------- | ------------------------------------- |
+| npm CLI               | 0.166.129 | 已公开并验证下载                      |
+| Open VSX              | 0.37.167  | 已公开并验证下载                      |
+| JetBrains             | 0.4.184   | 已批准、列出且未隐藏；公开 ZIP 已回读 |
+| Microsoft Marketplace | —         | 按用户要求暂缓，本轮不做；仍未发布    |
 
 [完整公开回执](./cli/evidence/release129-public/publication.json)记录准确提交、运行、归档哈希及公开下载结果。
 
@@ -37,6 +37,6 @@ CLI CI 首轮 Linux E2E 分片在依赖安装阶段因 node-pty 的 Node 头文�
 
 ## 安装与验收范围
 
-安装：`npm i -g chainlesschain@0.166.129 --registry https://registry.npmjs.org`。升级插件后重启 Agent 会话，核对实际 CLI 路径，运行 `cc --version` 与 `cc doctor`。当前公开配对为 `.129 / .167 / .184`；包 README、根 README 与公开升级指南的整体一致性继续按主差距表跟踪。本记录不把后续 Goal、Memory 或 Terra 源码修复计入已发布的 `.129`。
+安装：`npm i -g chainlesschain@0.166.129 --registry https://registry.npmjs.org`。升级插件后重启 Agent 会话，核对实际 CLI 路径，运行 `cc --version` 与 `cc doctor`。当前公开配对为 `.129 / .167 / .184`；包 README、根 README 与公开升级指南的源码已在[第二十批](./cli-ide-public-docs129-progress-2026-10-29.md)统一，网站构建与线上部署分别跟踪。本记录不把后续 Goal、Memory 或 Terra 源码修复计入已发布的 `.129`。
 
 历史累计交付验收仍为 **34/45**（普通 **27/36**、首次 **7/9**），剩余 **11** 项；不是 CLI .129 单轮模型任务成功率，也不等同于完整原生 E2E。**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。默认关闭的交付复查和实验性 Codex App Server 路由继续保留各自限制，版本探测不表示生产准入。本轮发布成功不代表历史 45 项全部完成。
