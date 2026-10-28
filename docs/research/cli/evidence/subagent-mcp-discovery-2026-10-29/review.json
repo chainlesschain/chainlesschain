@@ -167,6 +167,7 @@
     "Parent catalog is still captured at spawn. This change does not implement admission of newly connected servers into an already running child.",
     "Revocation checks cover the inherited discovery entry and deferred-call gate, not every permission/scheduler/ledger race after that gate.",
     "The integration tests invoke real executeTool/spawn_sub_agent/agentLoop with a fake provider and MCP client, not native model, transport handshake or dual-IDE acceptance.",
-    "Not published. Existing release gates are pinned to 01b42a147f6efdb88e42f4e1e1fc305717666967 and do not validate this newer production change."
-  ]
+    "Not published. At local-test time the prior release gates targeted 01b42a147f and did not validate this change. The candidate was subsequently retargeted to e7a6f2585d; see release-gate-followup.json."
+  ],
+  "releaseFollowup": "release-gate-followup.json"
 }
