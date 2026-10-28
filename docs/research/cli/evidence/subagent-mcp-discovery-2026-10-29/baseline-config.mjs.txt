@@ -1,0 +1,18 @@
+import fs from "node:fs";
+import base from "../../packages/cli/vitest.config.js";
+
+const source = fs.readFileSync(new URL("./baseline-inheritance.js", import.meta.url), "utf8");
+export default {
+  ...base,
+  plugins: [
+    ...(base.plugins || []),
+    {
+      name: "pre-fix-inheritance-negative-control",
+      enforce: "pre",
+      transform(code, id) {
+        if (!id.replaceAll("\\", "/").endsWith("/src/lib/subagent-inheritance.js")) return null;
+        return { code: source, map: null };
+      },
+    },
+  ],
+};

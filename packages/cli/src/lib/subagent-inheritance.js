@@ -28,6 +28,102 @@ export function mcpServerOf(name) {
 }
 
 /**
+ * Discovery state belongs to one loop. Keep the inherited snapshot bounded to
+ * its tools, while observing revocation of the source entries. Sharing the
+ * parent's registry would expose excluded schemas and let one child's search
+ * change the provider projection of its parent and siblings.
+ */
+function forkDiscoveryRegistries(parent, definitions, descriptors, executors) {
+  const registries = new Map();
+  const definitionsByName = new Map(
+    definitions.map((definition) => [definition?.function?.name, definition]),
+  );
+  for (const [name, sourceExecutor] of Object.entries(executors)) {
+    const source = sourceExecutor?.registry;
+    if (sourceExecutor?.deferred !== true || !(source?.deferred instanceof Map))
+      continue;
+    let registry = registries.get(source);
+    if (!registry) {
+      registry = {
+        catalogMode: source.catalogMode,
+        maxResults: source.maxResults,
+        compactSearchDefinition: source.compactSearchDefinition
+          ? structuredClone(source.compactSearchDefinition)
+          : undefined,
+        deferred: new Map(),
+        loaded: new Set(),
+        instructionsByServer: Object.create(null),
+      };
+      registries.set(source, registry);
+    }
+    const executor = { ...sourceExecutor, registry };
+    executors[name] = executor;
+    const entry = source.deferred.get(name);
+    // A missing/mismatched entry remains unavailable through the ordinary
+    // deferred-call gate; never reconstruct a schema from a stale stub.
+    if (
+      !entry ||
+      !definitionsByName.has(name) ||
+      entry.executor !== sourceExecutor ||
+      entry.serverName !== sourceExecutor.serverName ||
+      entry.toolName !== sourceExecutor.toolName
+    )
+      continue;
+    const sourceDescriptor = parent.externalToolDescriptors?.[name];
+    const inherited = {
+      definition: structuredClone(entry.definition),
+      stub: structuredClone(entry.stub),
+      executor,
+      serverName: entry.serverName,
+      toolName: entry.toolName,
+      get stale() {
+        return (
+          entry.stale === true ||
+          source.deferred.get(name) !== entry ||
+          parent.externalToolExecutors?.[name] !== sourceExecutor ||
+          parent.externalToolDescriptors?.[name] !== sourceDescriptor ||
+          sourceExecutor.inheritable === false ||
+          sourceDescriptor?.inheritable === false
+        );
+      },
+    };
+    registry.deferred.set(name, inherited);
+    if (source.loaded?.has(name) && !inherited.stale) registry.loaded.add(name);
+    if (definitionsByName.get(name) === entry.stub)
+      definitionsByName.set(name, inherited.stub);
+    if (Object.hasOwn(source.instructionsByServer || {}, entry.serverName)) {
+      registry.instructionsByServer[entry.serverName] =
+        source.instructionsByServer[entry.serverName];
+    }
+  }
+
+  const searchName = "tool_search";
+  const search = parent?.externalToolExecutors?.[searchName];
+  const searchDescriptor = parent?.externalToolDescriptors?.[searchName];
+  const searchDefinition = Array.isArray(parent?.extraToolDefinitions)
+    ? parent.extraToolDefinitions.find(
+        (definition) => definition?.function?.name === searchName,
+      )
+    : null;
+  const registry = registries.get(search?.registry);
+  // Search is a directory helper, not a server capability of its own. Restore
+  // it only for an inherited deferred directory and only if the parent grants
+  // inheritance of the helper itself. Execution still checks the tool ceiling.
+  if (
+    search?.kind === "tool-search" &&
+    search.inheritable !== false &&
+    searchDescriptor?.inheritable !== false &&
+    searchDefinition &&
+    registry?.deferred.size > 0
+  ) {
+    definitionsByName.set(searchName, structuredClone(searchDefinition));
+    executors[searchName] = { ...search, registry };
+    if (searchDescriptor) descriptors[searchName] = { ...searchDescriptor };
+  }
+  return [...definitionsByName.values()];
+}
+
+/**
  * Filter the parent's MCP plumbing to the servers the child may use.
  *
  * @param {object} parent  { extraToolDefinitions[], externalToolDescriptors{},
@@ -57,20 +153,29 @@ export function filterInheritedMcp(parent, allow) {
   const inheritable = (name) =>
     descs[name]?.inheritable !== false && execs[name]?.inheritable !== false;
 
-  const outDefs = defs.filter((d) => {
+  let outDefs = defs.filter((d) => {
     const name = d?.function?.name;
-    return name && inheritable(name) && serverAllowed(mcpServerOf(name));
+    return (
+      name &&
+      name !== "tool_search" &&
+      inheritable(name) &&
+      serverAllowed(mcpServerOf(name))
+    );
   });
   const outDescs = {};
   for (const [name, desc] of Object.entries(descs)) {
+    if (name === "tool_search") continue;
     const server = desc?.serverName || mcpServerOf(name);
     if (inheritable(name) && serverAllowed(server)) outDescs[name] = desc;
   }
   const outExecs = {};
   for (const [name, exec] of Object.entries(execs)) {
+    if (name === "tool_search") continue;
     const server = exec?.serverName || mcpServerOf(name);
     if (inheritable(name) && serverAllowed(server)) outExecs[name] = exec;
   }
+
+  outDefs = forkDiscoveryRegistries(parent, outDefs, outDescs, outExecs);
 
   if (
     outDefs.length === 0 &&

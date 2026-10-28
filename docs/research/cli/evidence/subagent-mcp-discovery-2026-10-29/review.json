@@ -1,0 +1,172 @@
+{
+  "observedAt": "2026-10-28T22:58:02.248Z",
+  "baseCommit": "1a73bd7502987756a12c2be5bb560a55759ec092",
+  "sourceBinding": "The final complete report ran against the working tree captured by the SHA-256 and Git blob list; baseCommit alone is not the tested source. Earlier attempts preserve intermediate tests/source, before the final missing-parent input guard and assertions were added.",
+  "runtime": {
+    "node": "v22.22.2",
+    "platform": "win32",
+    "architecture": "x64"
+  },
+  "configuration": "packages/cli/vitest.config.js; one worker; no paid provider calls; child runtime uses injected chatFn and MCP client",
+  "sources": [
+    {
+      "path": "packages/cli/src/lib/subagent-inheritance.js",
+      "sha256": "325a1a43ccd16b25a69c1c38c7239f50d4a6c696d2873258fb899ca89ab2093c",
+      "gitBlob": "bbe8a6f73c9b7f3c7683abeac24f6db1b491699c"
+    },
+    {
+      "path": "packages/cli/src/runtime/mcp-tool-search.js",
+      "sha256": "d986b698dc406e260f95dd8c699c1c4546ed7883cf759ccf13e55cc91498a2f0",
+      "gitBlob": "b08d1e51ab4120710986a93c6b77e85dda18bf7c"
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "sha256": "598c9aac88bbb5ea0564046e5f1ace54c2084f09c9b50dcb961da0d7f26d4ba1",
+      "gitBlob": "653b675dff98dc5664bd1ea5b8791c55f0702fe0"
+    },
+    {
+      "path": "packages/cli/src/lib/sub-agent-context.js",
+      "sha256": "5b3f3fd8bdc292eae539d6e191413d8c56d03146cb38badf4f3cc9a65d87f1eb",
+      "gitBlob": "c7cf5459aecc690637b541cab6d48e59d226d3ce"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/subagent-mcp-discovery.test.js",
+      "sha256": "afcee117581826266da208a4e3df83bd64c2513c834d8bc92079263a3de18168",
+      "gitBlob": "39f3a382a260bca362d54384f43dd1f68117b7f4"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/subagent-mcp-discovery.test.js",
+      "sha256": "8b11f362073f79e4d78973fb6c90530478532e4b406f4faa65fec5194b72cefb",
+      "gitBlob": "8b8b2dc8e0d1f21b861066452e5a7410ee0e746a"
+    },
+    {
+      "path": "packages/cli/vitest.config.js",
+      "sha256": "a1b30cb7d677348dd9c9a625373c7532b6c333436a357b633237bd911b1f3770",
+      "gitBlob": "90684d942a776b7cfbf056187efdf603dc746d53"
+    }
+  ],
+  "reports": [
+    {
+      "name": "before",
+      "file": "before.json.gz",
+      "sha256": "152d9447fcbc2cf89c0f20358b882c45435191ecfd9af787b58882ae5fcfa33d",
+      "rawSha256": "4fd691c6cf1d68479a1480922ee5c18addaa75dc55647a22f041c5c0554a3668",
+      "startedAt": "2026-10-28T22:50:45.000Z",
+      "suites": 1,
+      "total": 11,
+      "passed": 1,
+      "failed": 10,
+      "skipped": 0,
+      "failures": [
+        "subagent MCP discovery inheritance retains discovery for a named server with a scoped compact registry",
+        "subagent MCP discovery inheritance retains discovery for a named server with a scoped stubs registry",
+        "subagent MCP discovery inheritance keeps compact projection and discovery separate from parent and siblings",
+        "subagent MCP discovery inheritance copies already discovered schemas without sharing subsequent discoveries",
+        "subagent MCP discovery inheritance does not expose executor non-inheritable schemas or instructions",
+        "subagent MCP discovery inheritance does not expose descriptor non-inheritable schemas or instructions",
+        "subagent MCP discovery inheritance does not grant search when it is explicitly non-inheritable",
+        "subagent MCP discovery inheritance invalidates inherited discovery after parent remove",
+        "subagent MCP discovery inheritance invalidates inherited discovery after parent replace",
+        "subagent MCP discovery inheritance invalidates inherited discovery after parent revoke"
+      ]
+    },
+    {
+      "name": "unit-after",
+      "file": "unit-after.json.gz",
+      "sha256": "65ec6f6bc0b78f08e8f4fcf2074940c224710408b31aca804d78052fb4871ebf",
+      "rawSha256": "89ad8a3e927aad6b614e39e239a562eb025b1e0d599eebc087d21affaf0b0a40",
+      "startedAt": "2026-10-28T22:51:32.779Z",
+      "suites": 3,
+      "total": 72,
+      "passed": 72,
+      "failed": 0,
+      "skipped": 0,
+      "failures": []
+    },
+    {
+      "name": "integration-before",
+      "file": "integration-before.json.gz",
+      "sha256": "316d41e76c2f1e45fe6619bea428f1160c9139eccd5083bd419bd015322bf70a",
+      "rawSha256": "6efe831d7d47830ec7218211e44854b42139d5486e41b883f24ace893106ea0d",
+      "startedAt": "2026-10-28T22:53:59.271Z",
+      "suites": 1,
+      "total": 6,
+      "passed": 2,
+      "failed": 4,
+      "skipped": 0,
+      "failures": [
+        "spawn_sub_agent MCP discovery discovers and invokes only its allowed server in compact mode",
+        "spawn_sub_agent MCP discovery discovers and invokes only its allowed server in stubs mode",
+        "spawn_sub_agent MCP discovery rejects a removed parent tool after child discovery and before dispatch",
+        "spawn_sub_agent MCP discovery preserves parent capability, host policy and fresh-default restrictions: {\"denySearch\":true}"
+      ]
+    },
+    {
+      "name": "integration-after",
+      "file": "integration-after.json.gz",
+      "sha256": "949a826ffdb36b2a7fb7aabb85b7b4617a1a0729f12bb25a22551b953d631425",
+      "rawSha256": "b5399265a4befc98b18a9d61d5bf59a9f70f996e426c46a8bf5eb0a2d8bd51e4",
+      "startedAt": "2026-10-28T22:52:27.622Z",
+      "suites": 1,
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "failures": []
+    },
+    {
+      "name": "complete-initial",
+      "file": "complete-initial.json.gz",
+      "sha256": "eb88edd30c49819e331c1b85ccc8f29b93f4ad32d7d95d490a39809e92c7d9fc",
+      "rawSha256": "6edb06c3f07dde73e1c9a3d797c3820535c02c3d707fd9f1cf210dc8094c8ca0",
+      "startedAt": "2026-10-28T22:53:32.793Z",
+      "suites": 9,
+      "total": 192,
+      "passed": 192,
+      "failed": 0,
+      "skipped": 0,
+      "failures": []
+    },
+    {
+      "name": "complete",
+      "file": "complete.json.gz",
+      "sha256": "58f17386f6e8a0f5a7d336a3fee34f4ddd4c5bd241c1d447f4e4a275d2d35f48",
+      "rawSha256": "0f37775695b0b4eed4de51beeb84b9b84b2a7c10edd4576fc9a92b3df872d993",
+      "startedAt": "2026-10-28T22:56:36.826Z",
+      "suites": 9,
+      "total": 192,
+      "passed": 192,
+      "failed": 0,
+      "skipped": 0,
+      "failures": []
+    }
+  ],
+  "baseline": {
+    "path": "packages/cli/src/lib/subagent-inheritance.js",
+    "gitBlob": "9cd41313b14778db3049b0c01b6fc0af1423e779",
+    "reconstructedGitBlob": "9cd41313b14778db3049b0c01b6fc0af1423e779",
+    "sha256": "1821653d904391355268d871fed62cf1f7610b18abbea5b9c49102dc842fbf27",
+    "method": "Vitest pre-transform substitutes the exact pre-fix source without modifying production files; all other runtime code remains current."
+  },
+  "result": {
+    "completeSuites": 9,
+    "passed": 192,
+    "failed": 0,
+    "skipped": 0,
+    "addedTests": 17,
+    "addedUnit": 11,
+    "addedRuntimeIntegration": 6
+  },
+  "checks": {
+    "prettier": "passed",
+    "diffCheck": "passed",
+    "commandManifest": "passed",
+    "processSpawnInventory": "passed"
+  },
+  "limitations": [
+    "Parent catalog is still captured at spawn. This change does not implement admission of newly connected servers into an already running child.",
+    "Revocation checks cover the inherited discovery entry and deferred-call gate, not every permission/scheduler/ledger race after that gate.",
+    "The integration tests invoke real executeTool/spawn_sub_agent/agentLoop with a fake provider and MCP client, not native model, transport handshake or dual-IDE acceptance.",
+    "Not published. Existing release gates are pinned to 01b42a147f6efdb88e42f4e1e1fc305717666967 and do not validate this newer production change."
+  ]
+}
