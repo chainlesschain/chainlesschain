@@ -1,0 +1,274 @@
+TAP version 13
+# Subtest: explicit chain rejects duplicates, traversal and omitted current rounds
+ok 1 - explicit chain rejects duplicates, traversal and omitted current rounds
+  ---
+  duration_ms: 6.9581
+  type: 'test'
+  ...
+# Subtest: paid retests reject the original release even if its manifest bytes change
+ok 2 - paid retests reject the original release even if its manifest bytes change
+  ---
+  duration_ms: 3.5406
+  type: 'test'
+  ...
+# Subtest: a separate pinned manifest selects new versions without changing the original
+ok 3 - a separate pinned manifest selects new versions without changing the original
+  ---
+  duration_ms: 17.2042
+  type: 'test'
+  ...
+# Subtest: manifest selection rejects arbitrary paths, traversal, and linked directories
+ok 4 - manifest selection rejects arbitrary paths, traversal, and linked directories
+  ---
+  duration_ms: 9.1929
+  type: 'test'
+  ...
+# Subtest: strict existing validators bind accepted files before selecting unfinished groups
+ok 5 - strict existing validators bind accepted files before selecting unfinished groups
+  ---
+  duration_ms: 1424.6435
+  type: 'test'
+  ...
+# Subtest: JetBrains execution shards isolate each unfinished sample without losing other groups
+ok 6 - JetBrains execution shards isolate each unfinished sample without losing other groups
+  ---
+  duration_ms: 0.9205
+  type: 'test'
+  ...
+# Subtest: an acceptance boolean without its bound checker evidence cannot suppress a task
+ok 7 - an acceptance boolean without its bound checker evidence cannot suppress a task
+  ---
+  duration_ms: 280.7798
+  type: 'test'
+  ...
+# Subtest: changed historical source binding cannot be reused as an accepted delivery
+ok 8 - changed historical source binding cannot be reused as an accepted delivery
+  ---
+  duration_ms: 106.6245
+  type: 'test'
+  ...
+# Subtest: generation rejects omitted IDs and every previously accepted candidate
+ok 9 - generation rejects omitted IDs and every previously accepted candidate
+  ---
+  duration_ms: 1326.0281
+  type: 'test'
+  ...
+# Subtest: next-round preparation cannot overwrite an old round name or reuse the original packages
+ok 10 - next-round preparation cannot overwrite an old round name or reuse the original packages
+  ---
+  duration_ms: 1583.0705
+  type: 'test'
+  ...
+# Subtest: new per-run verifier accepts real baseline, candidate, mutant and document receipts
+ok 11 - new per-run verifier accepts real baseline, candidate, mutant and document receipts
+  ---
+  duration_ms: 66.3668
+  type: 'test'
+  ...
+# Subtest: archive bytes, raw digests, lengths and same-run path constraints are enforced
+ok 12 - archive bytes, raw digests, lengths and same-run path constraints are enforced
+  ---
+  duration_ms: 72.4239
+  type: 'test'
+  ...
+# Subtest: remote run ID/SHA, artifact metadata and exact manifest binding reject substitution
+ok 13 - remote run ID/SHA, artifact metadata and exact manifest binding reject substitution
+  ---
+  duration_ms: 197.4194
+  type: 'test'
+  ...
+# Subtest: modified candidate bytes and mismatched acceptance projections cannot become passes
+ok 14 - modified candidate bytes and mismatched acceptance projections cannot become passes
+  ---
+  duration_ms: 50.5237
+  type: 'test'
+  ...
+# Subtest: a rewritten passing receipt still must reject its behavioral mutants
+ok 15 - a rewritten passing receipt still must reject its behavioral mutants
+  ---
+  duration_ms: 50.166
+  type: 'test'
+  ...
+# Subtest: missing acceptance cannot be relabeled as a completed or accepted run
+ok 16 - missing acceptance cannot be relabeled as a completed or accepted run
+  ---
+  duration_ms: 32.0479
+  type: 'test'
+  ...
+# Subtest: explicit partial collection retains unrequested samples and cannot become a completed round
+ok 17 - explicit partial collection retains unrequested samples and cannot become a completed round
+  ---
+  duration_ms: 85.4521
+  type: 'test'
+  ...
+# Subtest: complete archive-backed prior round adds accepted deliveries and advances the version floor
+ok 18 - complete archive-backed prior round adds accepted deliveries and advances the version floor
+  ---
+  duration_ms: 58.2888
+  type: 'test'
+  ...
+# Subtest: prior ledger chain rejects incomplete evidence, changed digests, cycles and forged acceptance
+ok 19 - prior ledger chain rejects incomplete evidence, changed digests, cycles and forged acceptance
+  ---
+  duration_ms: 248.8831
+  type: 'test'
+  ...
+# Subtest: new plan binds the verified accepted set and cannot overlap old ledger/archive paths
+ok 20 - new plan binds the verified accepted set and cannot overlap old ledger/archive paths
+  ---
+  duration_ms: 3.078
+  type: 'test'
+  ...
+# Subtest: single-sample shards permit multiple runs per group with exact disjoint coverage
+ok 21 - single-sample shards permit multiple runs per group with exact disjoint coverage
+  ---
+  duration_ms: 2.3507
+  type: 'test'
+  ...
+# Subtest: local collector does not clobber existing ledger/archive bytes or checkpoint failed evidence
+ok 22 - local collector does not clobber existing ledger/archive bytes or checkpoint failed evidence
+  ---
+  duration_ms: 160.9389
+  type: 'test'
+  ...
+# Subtest: collector keeps sample-bound broker receipts and excludes raw requests and responses
+ok 23 - collector keeps sample-bound broker receipts and excludes raw requests and responses
+  ---
+  duration_ms: 160.0295
+  type: 'test'
+  ...
+# Subtest: archived partial round inherits only its two verified deliveries and stays incomplete
+ok 24 - archived partial round inherits only its two verified deliveries and stays incomplete
+  ---
+  duration_ms: 3728.2897
+  type: 'test'
+  ...
+# Subtest: supersession still verifies acceptance flags and archived bytes through the original strict validator
+ok 25 - supersession still verifies acceptance flags and archived bytes through the original strict validator
+  ---
+  duration_ms: 1953.4936
+  type: 'test'
+  ...
+# Subtest: obsolete partial-round disposition preserves failures, missing work and financial uncertainty
+ok 26 - obsolete partial-round disposition preserves failures, missing work and financial uncertainty
+  ---
+  duration_ms: 1.793
+  type: 'test'
+  ...
+# Subtest: supersession rejects live remote work
+ok 27 - supersession rejects live remote work
+  ---
+  duration_ms: 1.1129
+  type: 'test'
+  ...
+# Subtest: supersession rejects unreconciled rerun
+ok 28 - supersession rejects unreconciled rerun
+  ---
+  duration_ms: 0.6753
+  type: 'test'
+  ...
+# Subtest: supersession rejects truncated inventory
+ok 29 - supersession rejects truncated inventory
+  ---
+  duration_ms: 0.536
+  type: 'test'
+  ...
+# Subtest: supersession rejects uncollected remote run
+ok 30 - supersession rejects uncollected remote run
+  ---
+  duration_ms: 0.7918
+  type: 'test'
+  ...
+# Subtest: supersession rejects missing source inventory
+ok 31 - supersession rejects missing source inventory
+  ---
+  duration_ms: 0.7368
+  type: 'test'
+  ...
+# Subtest: supersession rejects unknown local request
+ok 32 - supersession rejects unknown local request
+  ---
+  duration_ms: 1.3575
+  type: 'test'
+  ...
+# Subtest: supersession rejects omitted pending sample
+ok 33 - supersession rejects omitted pending sample
+  ---
+  duration_ms: 0.9315
+  type: 'test'
+  ...
+# Subtest: supersession rejects uncollected acceptance
+ok 34 - supersession rejects uncollected acceptance
+  ---
+  duration_ms: 0.6157
+  type: 'test'
+  ...
+# Subtest: supersession rejects claimed completion
+ok 35 - supersession rejects claimed completion
+  ---
+  duration_ms: 0.4513
+  type: 'test'
+  ...
+# Subtest: supersession rejects reset financial liability
+ok 36 - supersession rejects reset financial liability
+  ---
+  duration_ms: 0.4083
+  type: 'test'
+  ...
+# Subtest: supersession rejects fabricated billing reconciliation
+ok 37 - supersession rejects fabricated billing reconciliation
+  ---
+  duration_ms: 0.3811
+  type: 'test'
+  ...
+# Subtest: supersession rejects unpublished successor
+ok 38 - supersession rejects unpublished successor
+  ---
+  duration_ms: 0.5584
+  type: 'test'
+  ...
+# Subtest: supersession rejects unapproved JetBrains release
+ok 39 - supersession rejects unapproved JetBrains release
+  ---
+  duration_ms: 0.6201
+  type: 'test'
+  ...
+# Subtest: supersession rejects changed release archive
+ok 40 - supersession rejects changed release archive
+  ---
+  duration_ms: 0.5743
+  type: 'test'
+  ...
+# Subtest: supersession rejects changed receipt bytes
+ok 41 - supersession rejects changed receipt bytes
+  ---
+  duration_ms: 0.9206
+  type: 'test'
+  ...
+# Subtest: supersession rejects path traversal
+ok 42 - supersession rejects path traversal
+  ---
+  duration_ms: 6.7259
+  type: 'test'
+  ...
+# Subtest: supersession rejects post-closure observation
+ok 43 - supersession rejects post-closure observation
+  ---
+  duration_ms: 0.8505
+  type: 'test'
+  ...
+# Subtest: chain disposition requires both exact path and digest
+ok 44 - chain disposition requires both exact path and digest
+  ---
+  duration_ms: 1.1873
+  type: 'test'
+  ...
+1..44
+# tests 44
+# suites 0
+# pass 44
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6125.5846

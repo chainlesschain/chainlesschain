@@ -1,0 +1,50 @@
+{
+  "observedAt": "2026-10-28T18:07:39.198635+00:00",
+  "nodeTests": {
+    "exitCode": 0,
+    "files": [
+      "packages/cli/test-node/verify01-native-retest-supersession.node-test.mjs",
+      "packages/cli/test-node/verify01-native-retest-plan.node-test.mjs",
+      "packages/cli/test-node/verify01-native-retest-round.node-test.mjs"
+    ],
+    "report": "node-tests.tap",
+    "digest": "sha256:93aef60aa122f355f54020157971034f2c608db0b9a91910ab8b01948b79a7f5"
+  },
+  "vitest": [
+    {
+      "name": "security-map-tests",
+      "success": true,
+      "numTotalTests": 989,
+      "numPassedTests": 29,
+      "numFailedTests": 0,
+      "numPendingTests": 960,
+      "numTotalTestSuites": 121
+    },
+    {
+      "name": "increment-audit-tests",
+      "success": true,
+      "numTotalTests": 15,
+      "numPassedTests": 15,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "numTotalTestSuites": 2
+    }
+  ],
+  "limitation": "Local Windows verification only. Previous commit CI failed a stale security-map producer digest; full new-commit CI is not claimed.",
+  "workflowPreflight": {
+    "report": "workflow-preflight.tap",
+    "digest": "sha256:b3dc50ad7fbbeef2fa27f52a6f36703d49a2c2ee9c5a8b453bb340ddff94a335",
+    "passedTests": 110,
+    "failedTests": 0,
+    "scope": "The complete native campaign pre-dispatch Node test list; includes the 44 retest cases, not additive coverage."
+  },
+  "sharedFundingCheck": {
+    "passed": true,
+    "prior128RunsIncluded": 11,
+    "firstEligibleSample": "verify-11",
+    "newFundingGranted": false,
+    "historicalLiabilitiesPreserved": true,
+    "newDispatches": 0,
+    "formalAdmissionChanged": false
+  }
+}

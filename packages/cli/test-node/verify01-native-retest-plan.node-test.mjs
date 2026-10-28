@@ -194,7 +194,11 @@ test("strict existing validators bind accepted files before selecting unfinished
         "fetch-diagnostics-followup.json",
         "native-verified-deliveries.json",
       ].map((name) => `${NATIVE_EVIDENCE_ROOT}/${name}`),
-      ...registered.flatMap((round) => [round.planPath, round.ledgerPath]),
+      ...registered.flatMap((round) => [
+        round.planPath,
+        round.ledgerPath,
+        ...(round.supersessionPath ? [round.supersessionPath] : []),
+      ]),
     ],
   );
   for (const row of state.baselineEvidence) {

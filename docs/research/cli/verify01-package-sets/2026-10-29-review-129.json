@@ -1,0 +1,54 @@
+{
+  "schema": "chainlesschain.native-package-set/v1",
+  "resolvedAt": "2026-10-28T18:02:52.286732+00:00",
+  "versions": {
+    "cli": "0.166.129",
+    "vscode": "0.37.167",
+    "jetbrains": "0.4.184",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "origin": {
+    "cli": {
+      "url": "https://registry.npmjs.org/chainlesschain/0.166.129",
+      "integrity": "sha512-iRWYhkADQD9BrG0YozBwiwO8f/HwxXd5iTkebhrkS1KowCUNNtCT1oQwQAm3K0XTzofCj2qTtOyuiBgHZxt+qA==",
+      "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.129.tgz",
+      "sha256": "88958be9e818f6e38db66faa0808fad28afa7f652b9a2c81c1dedc4f8be8f11b",
+      "bytes": 9566651
+    },
+    "vscode": {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.167",
+      "download": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.167/file/chainlesschain.chainlesschain-ide-0.37.167.vsix",
+      "contentSha256": "75c1cb517730e4ed884e6b706db14097743ebe3896f249de89f74bda1e56b650",
+      "sha256": "daa1dfc582631c645037bac9720d26d5669ca5a47ba78075e9fac82535a375c8",
+      "bytes": 741972
+    },
+    "jetbrains": {
+      "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100",
+      "download": "https://plugins.jetbrains.com/files/32208/1205524/chainlesschain-ide-bridge-0.4.184.zip",
+      "updateId": 1205524,
+      "file": "32208/1205524/chainlesschain-ide-bridge-0.4.184.zip",
+      "approved": true,
+      "listed": true,
+      "hidden": false,
+      "sha256": "eed876bdf005856215200a353af952a76234ea5e62043d0b23b6dc1b3cf4ffe3",
+      "bytes": 1560992
+    }
+  },
+  "publicReceipts": [
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028/supersession/package-readback.json",
+      "sha256": "sha256:f3f2dd956f7f1e27bd954e4cad95b3c673b4c304b2482ebca0e2e061bef2a902"
+    },
+    {
+      "path": "docs/research/cli/evidence/release129-public/chainlesschain-npm-readback.json",
+      "sha256": "sha256:514708d8c7196c5f97601e8bd9a91b50b215593a9021c00eea2ef4d6be01d868"
+    }
+  ],
+  "limitations": [
+    "No package execution, live-model task, native IDE acceptance or billing reconciliation.",
+    "CLI files compared with its exact npm release source; IDEs bind to their separate successful release source.",
+    "JetBrains archive container bytes differ; every member name and uncompressed member byte matches the CI artifact.",
+    "Archives retained in the local operator directory; public URLs and hashes allow independent readback."
+  ]
+}

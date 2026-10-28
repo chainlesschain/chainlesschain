@@ -10,5 +10,13 @@
     "planDigest": "sha256:ce3852ed914c903fa3de6dc6255354e33ab2c53f803c126fe990272904d12718",
     "ledgerPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2.json",
     "ledgerDigest": "sha256:4ad3a6bba5b4da41a2374854c6dc833edf694b8637734df7724b2d459e649607"
+  },
+  {
+    "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028-plan.json",
+    "planDigest": "sha256:ac28321080f6356a5b9146bd8a4884542bc8c65e6c9335d2c44a263f046623d6",
+    "ledgerPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028.json",
+    "ledgerDigest": "sha256:510ce7a8ce74b630feaef9f3b598c5c659f80a0c8b3db9d3ec84fafb220b90fa",
+    "supersessionPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028-supersession.json",
+    "supersessionDigest": "sha256:8d9800e75f4b28cd93adceeb9bf5d5f9ecd75ece9c066153c53639b7c4d7eef0"
   }
 ]

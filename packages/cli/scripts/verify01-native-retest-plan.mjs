@@ -6,6 +6,7 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
+import { verifyNativeRetestSupersession } from "./verify01-native-retest-supersession.mjs";
 import { loadNativePackageSet } from "./verify01-native-task-campaign.mjs";
 import { verifyLatestPackageRound } from "../../../docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/verify-latest-package-round.mjs";
 import { verifyFetchDiagnosticFollowup } from "../../../docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/verify-fetch-diagnostic-followup.mjs";
@@ -177,8 +178,25 @@ export function extendNativeRetestBaseline(
     const ledger = JSON.parse(ledgerBytes);
     verifyNativeRetestRoundWithContext(context, {
       ledger,
-      requireComplete: true,
+      requireComplete: !reference.supersessionPath,
     });
+    if (reference.supersessionPath) {
+      const closureBytes = readRepository(reference.supersessionPath);
+      assert.equal(hash(closureBytes), reference.supersessionDigest);
+      const closure = JSON.parse(closureBytes);
+      const successor = validateNativePackageSetFile(
+        closure.nextPackageSetPath,
+        repositoryRoot,
+      );
+      validateNextNativePackageSet(successor, ledger);
+      verifyNativeRetestSupersession({
+        reference,
+        context,
+        ledger,
+        successor,
+        read: readRepository,
+      });
+    }
     for (const run of ledger.runs) {
       assert.ok(!seenRuns.has(run.runId), "run reused across retest rounds");
       seenRuns.add(run.runId);
@@ -196,6 +214,14 @@ export function extendNativeRetestBaseline(
     baseline.baselineEvidence.push(
       { path: reference.planPath, digest: reference.planDigest },
       { path: reference.ledgerPath, digest: reference.ledgerDigest },
+      ...(reference.supersessionPath
+        ? [
+            {
+              path: reference.supersessionPath,
+              digest: reference.supersessionDigest,
+            },
+          ]
+        : []),
     );
   }
   return baseline;
@@ -216,12 +242,16 @@ export function readNativeRetestChain(read = repositoryReader(repository)) {
   );
   const paths = new Set();
   for (const entry of chain) {
-    assert.deepEqual(Object.keys(entry).sort(), [
+    const expectedKeys = [
       "ledgerDigest",
       "ledgerPath",
       "planDigest",
       "planPath",
-    ]);
+      ...(entry.supersessionPath
+        ? ["supersessionDigest", "supersessionPath"]
+        : []),
+    ];
+    assert.deepEqual(Object.keys(entry).sort(), expectedKeys);
     const stem = path.posix
       .basename(entry.planPath)
       .replace(/-plan\.json$/u, "");
@@ -230,6 +260,13 @@ export function readNativeRetestChain(read = repositoryReader(repository)) {
     assert.equal(entry.ledgerPath, `${NATIVE_EVIDENCE_ROOT}/${stem}.json`);
     for (const key of ["planDigest", "ledgerDigest"])
       assert.match(entry[key], /^sha256:[a-f0-9]{64}$/u);
+    if (entry.supersessionPath) {
+      assert.equal(
+        entry.supersessionPath,
+        `${NATIVE_EVIDENCE_ROOT}/${stem}-supersession.json`,
+      );
+      assert.match(entry.supersessionDigest, /^sha256:[a-f0-9]{64}$/u);
+    }
     for (const name of [entry.planPath, entry.ledgerPath]) {
       assert.ok(!paths.has(name), "duplicate or cyclic chain reference");
       paths.add(name);

@@ -1,0 +1,189 @@
+{
+  "schema": "chainlesschain.public-package-readback/v1",
+  "observedAt": "2026-10-28T18:02:52.286732+00:00",
+  "versions": {
+    "cli": "0.166.129",
+    "vscode": "0.37.167",
+    "jetbrains": "0.4.184",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "sources": {
+    "cli": "fd8a21637ab188dae0c777442d312ae85d420a9b",
+    "vscode": "800e9cc99711f9f02eb3bbd78eb14600406bdba5",
+    "jetbrains": "800e9cc99711f9f02eb3bbd78eb14600406bdba5"
+  },
+  "checks": {
+    "cli": {
+      "packageVersion": "0.166.129",
+      "sriVerified": true,
+      "releaseSourceCommit": "fd8a21637ab188dae0c777442d312ae85d420a9b",
+      "sourceMatches": [
+        {
+          "path": "src/lib/file-import-diagnostics.js",
+          "digest": "sha256:4b20a10efd8ca15281c0295f1c73cab13dc4d5c54dddfe2a9e7d5325694b098c",
+          "bytes": 8099
+        },
+        {
+          "path": "src/lib/coding-task-guidance.js",
+          "digest": "sha256:b06a60d36f62a199828b7b2fc3a029956f426f6e4537b56014954be206445e11",
+          "bytes": 6184
+        },
+        {
+          "path": "src/lib/transport-error-details.js",
+          "digest": "sha256:d9e3c3f98fb2f466dfce7753a3641d58f93d8a82c3df502c2e403e22ef769751",
+          "bytes": 2312
+        },
+        {
+          "path": "src/runtime/agent-core.js",
+          "digest": "sha256:bc39f76d9fc02a9eb533e849a9a41505713d9256f001c715cc8732225aea016a",
+          "bytes": 667303
+        },
+        {
+          "path": "src/runtime/headless-runner.js",
+          "digest": "sha256:78333360fa72237460ed37e8f2536cad036398fa46eb1837d51ea1849629f77b",
+          "bytes": 182001
+        },
+        {
+          "path": "src/runtime/headless-stream.js",
+          "digest": "sha256:f116b4402639a69532bdb28123b833ca6a25afab9e50477275e4de64c5d0b8e8",
+          "bytes": 220182
+        },
+        {
+          "path": "src/lib/provider-http-error.js",
+          "digest": "sha256:f2f5afc28730519a413d4d13c3866a0eb76f32741a4e3b73a416112064aaaad5",
+          "bytes": 4374
+        },
+        {
+          "path": "src/runtime/coding-agent-contract-shared.cjs",
+          "digest": "sha256:486bb1a7e378db1c6417edfcc9a06eb1f9797000facc48d61dbb21fac92ad8cb",
+          "bytes": 55068
+        }
+      ],
+      "helpers": [
+        {
+          "path": "src/lib/file-import-diagnostics.js",
+          "digest": "sha256:4b20a10efd8ca15281c0295f1c73cab13dc4d5c54dddfe2a9e7d5325694b098c",
+          "bytes": 8099
+        },
+        {
+          "path": "src/lib/coding-task-guidance.js",
+          "digest": "sha256:b06a60d36f62a199828b7b2fc3a029956f426f6e4537b56014954be206445e11",
+          "bytes": 6184
+        },
+        {
+          "path": "src/lib/transport-error-details.js",
+          "digest": "sha256:d9e3c3f98fb2f466dfce7753a3641d58f93d8a82c3df502c2e403e22ef769751",
+          "bytes": 2312
+        }
+      ]
+    },
+    "vscode": {
+      "packageVersion": "0.37.167",
+      "manifestVersion": "0.37.167",
+      "recommendedCliVersion": "0.166.129",
+      "packageManifestDigest": "sha256:585e7d78ab6679d87616e30a9aa38defa0c9929d5629f8ca6327631898972510",
+      "vsixManifestDigest": "sha256:25b7f248a244f51ef26f85702326839c15959ad60696781580bdd051bc250ded"
+    },
+    "jetbrains": {
+      "pluginVersion": "0.4.184",
+      "jarPath": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.184.jar",
+      "jarDigest": "sha256:c4f3e04832a4d8c7d6191afc61b4e3814b993d00d3d197fa4b3904c265828f83",
+      "pluginXmlDigest": "sha256:7d1bc7b6a3f6705e23a9d5baeef2fe401e74c7bb821b7e1bdb67f99ae13ed5d6",
+      "recommendedCliConstant": {
+        "field": "RECOMMENDED_CLI_VERSION",
+        "value": "0.166.129",
+        "accessFlags": 25
+      },
+      "classes": [
+        {
+          "path": "com/chainlesschain/ide/CliVersionCheck.class",
+          "digest": "sha256:3a36ac1ee1bb79ee387dac4da78ac9521492e84442fc6d4362fa73ff056e5341",
+          "bytes": 3569,
+          "className": "com/chainlesschain/ide/CliVersionCheck",
+          "majorVersion": 65
+        },
+        {
+          "path": "com/chainlesschain/ide/MarkdownLite.class",
+          "digest": "sha256:4e2a034f92f350fd4f010cc4a3f4656e2caf9a6dad98169093b393795a0a1433",
+          "bytes": 2724,
+          "className": "com/chainlesschain/ide/MarkdownLite",
+          "majorVersion": 65
+        },
+        {
+          "path": "com/chainlesschain/ide/intellij/ChatTranscriptRendering.class",
+          "digest": "sha256:720f9d80a79e91cf91034dfe3701a08f39424169558d66b762f7e31e3ae43b0b",
+          "bytes": 3463,
+          "className": "com/chainlesschain/ide/intellij/ChatTranscriptRendering",
+          "majorVersion": 65
+        },
+        {
+          "path": "com/chainlesschain/ide/intellij/ConversationView.class",
+          "digest": "sha256:c701a7e08fee04a762e3d7edd9a3f5102097f7ff58231e787a38c8c70daaef14",
+          "bytes": 160448,
+          "className": "com/chainlesschain/ide/intellij/ConversationView",
+          "majorVersion": 65
+        }
+      ],
+      "ciArchiveDigest": "sha256:5edaa1ac9bc52afbe3999713a496ea21212e1d990b3e28d2370d2e55489f27f8",
+      "ciMembers": [
+        {
+          "path": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.184-searchableOptions.jar",
+          "digest": "sha256:1bbdb428163c1443660416530e010e732e3878c96fd0e4404fa8deed093ffea6",
+          "bytes": 1263
+        },
+        {
+          "path": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.184.jar",
+          "digest": "sha256:c4f3e04832a4d8c7d6191afc61b4e3814b993d00d3d197fa4b3904c265828f83",
+          "bytes": 1650183
+        }
+      ]
+    }
+  },
+  "archives": {
+    "cli": {
+      "url": "https://registry.npmjs.org/chainlesschain/0.166.129",
+      "integrity": "sha512-iRWYhkADQD9BrG0YozBwiwO8f/HwxXd5iTkebhrkS1KowCUNNtCT1oQwQAm3K0XTzofCj2qTtOyuiBgHZxt+qA==",
+      "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.129.tgz",
+      "sha256": "88958be9e818f6e38db66faa0808fad28afa7f652b9a2c81c1dedc4f8be8f11b",
+      "bytes": 9566651
+    },
+    "vscode": {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.167",
+      "download": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.167/file/chainlesschain.chainlesschain-ide-0.37.167.vsix",
+      "contentSha256": "75c1cb517730e4ed884e6b706db14097743ebe3896f249de89f74bda1e56b650",
+      "sha256": "daa1dfc582631c645037bac9720d26d5669ca5a47ba78075e9fac82535a375c8",
+      "bytes": 741972
+    },
+    "jetbrains": {
+      "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100",
+      "download": "https://plugins.jetbrains.com/files/32208/1205524/chainlesschain-ide-bridge-0.4.184.zip",
+      "updateId": 1205524,
+      "file": "32208/1205524/chainlesschain-ide-bridge-0.4.184.zip",
+      "approved": true,
+      "listed": true,
+      "hidden": false,
+      "sha256": "eed876bdf005856215200a353af952a76234ea5e62043d0b23b6dc1b3cf4ffe3",
+      "bytes": 1560992
+    }
+  },
+  "cliReceipt": {
+    "path": "docs/research/cli/evidence/release129-public/chainlesschain-npm-readback.json",
+    "digest": "sha256:514708d8c7196c5f97601e8bd9a91b50b215593a9021c00eea2ef4d6be01d868"
+  },
+  "jetbrainsReleaseRun": {
+    "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028/supersession/jetbrains-run.json",
+    "bytes": 13197,
+    "digest": "sha256:1a177af31aabcc77982648ca7d5ed0c3b02d234c8377ce54aafa76d409c9732a",
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40724923599",
+    "observedAt": "2026-10-28T18:01:39.584100+00:00"
+  },
+  "jetbrainsCiBytesIdentical": false,
+  "jetbrainsCiMemberBytesIdentical": true,
+  "limitations": [
+    "No package execution, live-model task, native IDE acceptance or billing reconciliation.",
+    "CLI files compared with its exact npm release source; IDEs bind to their separate successful release source.",
+    "JetBrains archive container bytes differ; every member name and uncompressed member byte matches the CI artifact.",
+    "Archives retained in the local operator directory; public URLs and hashes allow independent readback."
+  ]
+}

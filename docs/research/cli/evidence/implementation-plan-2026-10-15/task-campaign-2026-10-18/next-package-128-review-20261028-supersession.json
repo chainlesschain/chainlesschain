@@ -1,0 +1,64 @@
+{
+  "schema": "chainlesschain.native-retest-supersession/v1",
+  "reason": "PUBLIC_PACKAGE_SET_SUPERSEDED",
+  "billingReconciled": false,
+  "liabilitiesPreserved": true,
+  "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028-plan.json",
+  "planDigest": "sha256:ac28321080f6356a5b9146bd8a4884542bc8c65e6c9335d2c44a263f046623d6",
+  "ledgerPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028.json",
+  "ledgerDigest": "sha256:510ce7a8ce74b630feaef9f3b598c5c659f80a0c8b3db9d3ec84fafb220b90fa",
+  "nextPackageSetPath": "docs/research/cli/verify01-package-sets/2026-10-29-review-129.json",
+  "nextPackageSetDigest": "sha256:f9e533463ec27e3c510e313e6cfa4658d7accc867452409dbcc7c17f7934cb32",
+  "unrequestedSampleIds": [
+    "verify-11",
+    "verify-30"
+  ],
+  "localDispatchState": [
+    {
+      "sampleId": "verify-11",
+      "intent": false,
+      "request": false,
+      "resolved": false
+    },
+    {
+      "sampleId": "verify-30",
+      "intent": false,
+      "request": false,
+      "resolved": false
+    }
+  ],
+  "closedAt": "2026-10-28T18:05:47.971Z",
+  "runInventories": [
+    {
+      "sourceCommit": "d9f2511b953ca08a7b5013c177250474b3d6fb4e",
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028/supersession/runs.json",
+      "bytes": 145736,
+      "digest": "sha256:64817207f2c322e18186e1cdf453c1f956e5245a10b0d8a6ad21c7a613af108a",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/workflows/verify01-native-task-campaign.yml/runs?head_sha=d9f2511b953ca08a7b5013c177250474b3d6fb4e&per_page=100",
+      "observedAt": "2026-10-28T18:01:41.823453+00:00"
+    }
+  ],
+  "publicReadbacks": {
+    "cli": {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028/supersession/cli.json",
+      "bytes": 7715,
+      "digest": "sha256:a5c63b65e08a4eb2ae8c02b2509b43b7d0478d8ef10f862760260bc1752c1c35",
+      "url": "https://registry.npmjs.org/chainlesschain/latest",
+      "observedAt": "2026-10-28T18:01:38.229701+00:00"
+    },
+    "vscode": {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028/supersession/vscode.json",
+      "bytes": 10970,
+      "digest": "sha256:4e75850f19f67f17a8b3b579fdb1a32fbb791ad57cbb7672d1b1ae78d6027039",
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/latest",
+      "observedAt": "2026-10-28T18:01:38.157417+00:00"
+    },
+    "jetbrains": {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028/supersession/jetbrains.json",
+      "bytes": 423455,
+      "digest": "sha256:ef03119b5baa31e1b48a57a4d8e7a8228808a07cda9f157540e323a6764bd15d",
+      "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100",
+      "observedAt": "2026-10-28T18:01:42.026139+00:00"
+    }
+  }
+}
