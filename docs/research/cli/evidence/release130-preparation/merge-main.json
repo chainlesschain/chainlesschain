@@ -1,0 +1,27 @@
+{
+  "schema": "chainlesschain.release-candidate-merge/v1",
+  "observedAt": "2026-10-28T21:55:26.176370+00:00",
+  "mainBefore": "a0dac3fd725575b34b668c3da325f23728e6e185",
+  "candidateTip": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+  "mergeCommit": "dc0343d412297807aea0254e5e23c9c9f1b1c3f7",
+  "mergedTipAncestorVerified": true,
+  "deletedBranch": "feature/cli130-security-map-release",
+  "localBranches": ["main"],
+  "remoteHeads": ["dc0343d412297807aea0254e5e23c9c9f1b1c3f7\trefs/heads/main"],
+  "retainedWorktree": ".w/r130",
+  "retainedWorktreeHead": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+  "releaseState": "UNPUBLISHED_CANDIDATE",
+  "currentPublicPairing": {
+    "cli": "0.166.129",
+    "openVsx": "0.37.167",
+    "jetbrains": "0.4.184"
+  },
+  "localChecks": {
+    "auditAndSecurityMapUnit": 23,
+    "vscodeMetadataAndWorkflowUnit": 28,
+    "jetbrainsMetadataUnit": 6,
+    "workflowActionlint": 3,
+    "dependencyAuditWorkspaces": 14
+  },
+  "boundary": "Merge and branch cleanup only; child version alignment, exact-source matrices and ordered OIDC publication remain required."
+}
