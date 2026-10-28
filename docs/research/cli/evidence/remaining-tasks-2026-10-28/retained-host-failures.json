@@ -1,0 +1,51 @@
+﻿{
+    "records":  [
+                    {
+                        "host":  "linux",
+                        "sha256":  "4b4c89bfb4182f707906d445c823abe892ec2479be21648a171a737b07c70183",
+                        "file":  "linux-ui.log"
+                    },
+                    {
+                        "host":  "linux",
+                        "sha256":  "dd6d34db2c6b7f8d901531fc11a92eb4c93f9f16edde9043f28523d6ccdd895f",
+                        "file":  "linux-identity-trace.jsonl"
+                    },
+                    {
+                        "host":  "linux",
+                        "sha256":  "9df0385f7b177ca9eafd02e5fe30db686aef4af7d5b9ef266be73f14a5f1f389",
+                        "file":  "linux-diagnostic-result.json"
+                    },
+                    {
+                        "host":  "windows",
+                        "sha256":  "ce12d97f7fa187375d94780290edfe4a6883af7314b1a9c8651c7b6d4618828e",
+                        "file":  "windows-ui.log"
+                    },
+                    {
+                        "host":  "windows",
+                        "sha256":  "3bea3dd583a3a3eca6395db01051fcd0a8b6f0f3283b4cd62c18414be66228b7",
+                        "file":  "windows-identity-trace.jsonl"
+                    },
+                    {
+                        "host":  "windows",
+                        "sha256":  "279bd5d22641965c7bdfd2455537a144e26a46c60c9af43cb5d11f5d1a8c318f",
+                        "file":  "windows-diagnostic-result.json"
+                    },
+                    {
+                        "host":  "macos",
+                        "sha256":  "bc0469f49d47fab14f38820d31b597d105623e56de2b99e8b78ad0ed2dca86b8",
+                        "file":  "macos-ui.log"
+                    },
+                    {
+                        "host":  "macos",
+                        "sha256":  "c6cb721a96eeea7bb87d79ac17454672d3547b3b413083aa1b72f2e867c1380a",
+                        "file":  "macos-identity-trace.jsonl"
+                    },
+                    {
+                        "host":  "macos",
+                        "sha256":  "1fe2390aa7715691ee11b6334b6e30b5efa9bca88e8468c61c684ef70bdd0c7a",
+                        "file":  "macos-diagnostic-result.json"
+                    }
+                ],
+    "sourceCommit":  "26e481c909561c6ff60b6d05c55613a787388e68",
+    "runId":  "40623725873"
+}

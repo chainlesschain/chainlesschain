@@ -378,7 +378,16 @@ runCatching {
             if (verifyHome != null) {
                 environment("HOME", verifyHome.absolutePath)
                 environment("USERPROFILE", verifyHome.absolutePath)
-                environment("CHAINLESSCHAIN_HOME", verifyHome.resolve(".chainlesschain").absolutePath)
+                if (onboardingPath.isBlank()) {
+                    environment("CHAINLESSCHAIN_HOME", verifyHome.resolve(".chainlesschain").absolutePath)
+                } else {
+                    // The identity-only journey has an authoritative unset
+                    // provider in user.home. Relocation forces a CLI probe and
+                    // cannot establish the intended unconfigured file state.
+                    environment.keys.filter { it.equals("CHAINLESSCHAIN_HOME", ignoreCase = true)
+                        || it.equals("CLAUDE_CONFIG_DIR", ignoreCase = true) }
+                        .forEach { environment.remove(it) }
+                }
             }
             jvmArgumentProviders += org.gradle.process.CommandLineArgumentProvider {
                 listOf(

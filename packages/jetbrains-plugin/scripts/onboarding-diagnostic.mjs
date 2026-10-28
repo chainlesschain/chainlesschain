@@ -54,6 +54,7 @@ fs.writeFileSync(
   JSON.stringify(
     {
       deadlineMs: deadline,
+      home: dirs.home,
       goodCommand,
       globalCommand,
       missingCommand,
