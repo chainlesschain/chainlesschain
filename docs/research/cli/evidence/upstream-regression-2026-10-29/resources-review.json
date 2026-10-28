@@ -1,0 +1,35 @@
+{
+  "schema": "chainlesschain.mcp-resource-cancellation-probe/v1",
+  "observedAt": "2026-10-28T21:29:39.290368+00:00",
+  "sourceCommit": "49ce4d184399bd60fae7b691fa0bf23659593876",
+  "productionPath": "packages/cli/src/harness/mcp-client.js",
+  "productionSha256": "75c85ffc9eb99d8365fd079280d9b61b1c150e7576ebe1673333ffa05ccc7b57",
+  "candidateTestSha256": "7c665267617482a995101ab1b6962745f0a53f1f37956848e6c5c923889d0aa0",
+  "passed": 4,
+  "failed": 0,
+  "skipped": 0,
+  "checks": [
+    "Real HTTP peer stalls before headers",
+    "Real HTTP peer stalls within event-stream response",
+    "Real WebSocket peer sends observed late success after cancellation",
+    "Real stdio peer sends observed late success after cancellation"
+  ],
+  "mutationCheck": {
+    "mutation": "Omit caller signal from readResource",
+    "expectedFailures": 4,
+    "observedFailures": 4,
+    "reason": "resource abort did not settle"
+  },
+  "boundary": [
+    "Transport entries injected; no production launch/handshake or permissions claim",
+    "Windows local probe; not three-OS or IDE journey",
+    "Remote Skill artifact download remains unverified"
+  ],
+  "reportSha256": "3063aec2fbd9c24e3844e4428cad8dbfdbc92a633ae93a4155df3f003c5abf1b",
+  "integratedTestPath": "packages/cli/__tests__/integration/mcp-resource-cancellation.test.js",
+  "integratedTestSha256": "db0bffb25b37307d1174dfa1a908d9d9f55d5cf45eca4150a6c232cfdb6834ab",
+  "integratedReportSha256": "b197dad8868ef8b5f2a0987e3d2888f6c38fe2f3f40c0a3f343fdd82e4870e09",
+  "integratedReportPath": "resources-integrated.json.gz",
+  "integratedSourceStatus": "test added on main after deployment; production mcp-client.js unchanged from sourceCommit",
+  "candidateReportPath": "resources-vitest.json.gz"
+}

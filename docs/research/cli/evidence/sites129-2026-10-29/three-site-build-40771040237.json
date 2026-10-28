@@ -1,0 +1,122 @@
+{
+  "schema": "chainlesschain.docs-snapshot-readback/v1",
+  "observedAt": "2026-10-28T21:37:10.451820+00:00",
+  "sourceCommit": "49ce4d184399bd60fae7b691fa0bf23659593876",
+  "runId": 40771040237,
+  "runAttempt": 1,
+  "conclusion": "success",
+  "sites": [
+    {
+      "site": "docs",
+      "artifactId": 12851764210,
+      "githubArchiveSha256Expected": "sha256:511bbf136be1e14cf83c11f6fc2dc80b2b55a04d27cd8e85e08b7cceaf35b021",
+      "githubArchiveSha256Verified": true,
+      "downloadMethod": "GitHub ZIP with SHA-256 verified",
+      "tarSha256Verified": true,
+      "manifest": {
+        "schema": "chainlesschain.docs-snapshot-build/v1",
+        "sourceCommit": "49ce4d184399bd60fae7b691fa0bf23659593876",
+        "runId": "40771040237",
+        "runAttempt": "1",
+        "site": "docs",
+        "archive": "docs.tar.gz",
+        "archiveSha256": "4e7ab8c4eb906137797451801a46dbff55050fb101383e82d06df5bb913ce5bf",
+        "htmlPages": 659,
+        "files": 2004
+      },
+      "pages": [
+        {
+          "path": "chainlesschain/cli-ide-update-2026-10-29.html",
+          "sha256": "dcbff5709e9d6ea7d89549b35130bfcb3c44f6d608bf11b7ec7b6620994217b0",
+          "bytes": 268536,
+          "currentPairingVisible": true
+        }
+      ]
+    },
+    {
+      "site": "design",
+      "artifactId": 12852404264,
+      "githubArchiveSha256Expected": "sha256:56b377db285dfac19b232dc8cd62c8f1fd9d1061f32a94b357ce5c2c30cd0bdf",
+      "githubArchiveSha256Verified": true,
+      "downloadMethod": "GitHub ZIP with SHA-256 verified",
+      "tarSha256Verified": true,
+      "manifest": {
+        "schema": "chainlesschain.docs-snapshot-build/v1",
+        "sourceCommit": "49ce4d184399bd60fae7b691fa0bf23659593876",
+        "runId": "40771040237",
+        "runAttempt": "1",
+        "site": "design",
+        "archive": "design.tar.gz",
+        "archiveSha256": "e895bfed88419acb33d64b5e713e06ca8c36f8927458364f4526f1a9324489cc",
+        "htmlPages": 289,
+        "files": 893
+      },
+      "pages": [
+        {
+          "path": "release-runtime-update-2026-10-29.html",
+          "sha256": "c759d1e8f96c1017b59ce90c87d8c2aaee5b296de6879d9a00c663b50f35ba9b",
+          "bytes": 154129,
+          "currentPairingVisible": true
+        }
+      ]
+    },
+    {
+      "site": "www",
+      "artifactId": 12853270692,
+      "githubArchiveSha256Expected": "sha256:ef13f90bc32ceadb5b5fc4e780457afae73bf7c53ce8f62376b856b25613a2b2",
+      "githubArchiveSha256Verified": true,
+      "downloadMethod": "cached ZIP",
+      "tarSha256Verified": true,
+      "manifest": {
+        "schema": "chainlesschain.docs-snapshot-build/v1",
+        "sourceCommit": "49ce4d184399bd60fae7b691fa0bf23659593876",
+        "runId": "40771040237",
+        "runAttempt": "1",
+        "site": "www",
+        "archive": "www.tar.gz",
+        "archiveSha256": "81599249e8016474502377939b968d1369ec89c41cff71a66bb24d9f93de57f1",
+        "htmlPages": 20,
+        "files": 45
+      },
+      "pages": [
+        {
+          "path": "index.html",
+          "sha256": "383348e4c9605bb3317cb1180d1687d2879bac877d90c2a8e51fc2fe8223d6e4",
+          "bytes": 63206,
+          "currentPairingVisible": true
+        },
+        {
+          "path": "en/index.html",
+          "sha256": "de94b189115023557f6444b3765699dfb702032773dbd8dea571d77cd1a8ea55",
+          "bytes": 63933,
+          "currentPairingVisible": true
+        },
+        {
+          "path": "cli/index.html",
+          "sha256": "c84a2f8e2fcf4b308d43ae7a2bd46b9fc93f6c48a422022aac03dda22cf41026",
+          "bytes": 123120,
+          "currentPairingVisible": true
+        },
+        {
+          "path": "en/cli/index.html",
+          "sha256": "f2c1d0fc45e0b6f9e23f9e8d926fcdc98e6315ca5b617240388fbe5d48cd9bd5",
+          "bytes": 124607,
+          "currentPairingVisible": true
+        },
+        {
+          "path": "ide/index.html",
+          "sha256": "a4ff022d6ec9e24936622edc2b365b7a265a270bca6637f8ca619eaee2f838e2",
+          "bytes": 44291,
+          "currentPairingVisible": true
+        },
+        {
+          "path": "en/ide/index.html",
+          "sha256": "312c03a4e9eee12c4358e57c2e4997f0277147c637fbd31cf42d6fb6e4c07858",
+          "bytes": 46128,
+          "currentPairingVisible": true
+        }
+      ]
+    }
+  ],
+  "boundary": "Verified build artifacts; deployment remains separate"
+}

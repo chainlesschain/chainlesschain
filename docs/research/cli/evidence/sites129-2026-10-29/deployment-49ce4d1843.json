@@ -1,0 +1,117 @@
+{
+  "schema": "chainlesschain.docs-deployment-public-readback/v1",
+  "observedAt": "2026-10-28T21:40:08.064920+00:00",
+  "sourceCommit": "49ce4d184399bd60fae7b691fa0bf23659593876",
+  "runId": 40771040237,
+  "stamp": "20261028-213734-49ce4d1843-docs",
+  "sites": [
+    {
+      "site": "docs",
+      "deployment": {
+        "schema": "chainlesschain.site-deployment/v1",
+        "stamp": "20261028-213734-49ce4d1843-docs",
+        "sourceHeadCommit": "49ce4d184399bd60fae7b691fa0bf23659593876",
+        "sourceStatus": "clean-commit",
+        "site": "docs",
+        "archiveSha256": "3c5d396cd4dd999f717d99d7b41da2ea8fe862393d00404e2000d55036ec9b80",
+        "newHtmlPages": 659,
+        "newFiles": 2004
+      },
+      "pages": [
+        {
+          "url": "https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-29.html?deployment=20261028-213734-49ce4d1843-docs",
+          "path": "chainlesschain/cli-ide-update-2026-10-29.html",
+          "sha256": "dcbff5709e9d6ea7d89549b35130bfcb3c44f6d608bf11b7ec7b6620994217b0",
+          "bytes": 268536,
+          "matchesCiArtifact": true
+        }
+      ],
+      "newFileHashesMatched": 2004,
+      "deployedChecksumManifestSha256": "b40358580101c5d703b2cd1ab17b3eeb0ac3612e3fe1fc995d7a9f2f9c6902f2"
+    },
+    {
+      "site": "design",
+      "deployment": {
+        "schema": "chainlesschain.site-deployment/v1",
+        "stamp": "20261028-213734-49ce4d1843-docs",
+        "sourceHeadCommit": "49ce4d184399bd60fae7b691fa0bf23659593876",
+        "sourceStatus": "clean-commit",
+        "site": "design",
+        "archiveSha256": "70ae38cc9dd465e9dbdd4f9c3544e9a5dd95bc1bf5a4a290774ea10be7762ab8",
+        "newHtmlPages": 289,
+        "newFiles": 893
+      },
+      "pages": [
+        {
+          "url": "https://design.chainlesschain.com/release-runtime-update-2026-10-29.html?deployment=20261028-213734-49ce4d1843-docs",
+          "path": "release-runtime-update-2026-10-29.html",
+          "sha256": "c759d1e8f96c1017b59ce90c87d8c2aaee5b296de6879d9a00c663b50f35ba9b",
+          "bytes": 154129,
+          "matchesCiArtifact": true
+        }
+      ],
+      "newFileHashesMatched": 893,
+      "deployedChecksumManifestSha256": "6ce11a0996c334635ed6136a2642fb7ad9ed3b4d829c073867a6f29d46e05719"
+    },
+    {
+      "site": "www",
+      "deployment": {
+        "schema": "chainlesschain.site-deployment/v1",
+        "stamp": "20261028-213734-49ce4d1843-docs",
+        "sourceHeadCommit": "49ce4d184399bd60fae7b691fa0bf23659593876",
+        "sourceStatus": "clean-commit",
+        "site": "www",
+        "archiveSha256": "a8c58725e77baea58cad8365591dd12632bf1c9a13862c7765dc1bab0ed483ea",
+        "newHtmlPages": 20,
+        "newFiles": 45
+      },
+      "pages": [
+        {
+          "url": "https://www.chainlesschain.com/index.html?deployment=20261028-213734-49ce4d1843-docs",
+          "path": "index.html",
+          "sha256": "383348e4c9605bb3317cb1180d1687d2879bac877d90c2a8e51fc2fe8223d6e4",
+          "bytes": 63206,
+          "matchesCiArtifact": true
+        },
+        {
+          "url": "https://www.chainlesschain.com/en/index.html?deployment=20261028-213734-49ce4d1843-docs",
+          "path": "en/index.html",
+          "sha256": "de94b189115023557f6444b3765699dfb702032773dbd8dea571d77cd1a8ea55",
+          "bytes": 63933,
+          "matchesCiArtifact": true
+        },
+        {
+          "url": "https://www.chainlesschain.com/cli/index.html?deployment=20261028-213734-49ce4d1843-docs",
+          "path": "cli/index.html",
+          "sha256": "c84a2f8e2fcf4b308d43ae7a2bd46b9fc93f6c48a422022aac03dda22cf41026",
+          "bytes": 123120,
+          "matchesCiArtifact": true
+        },
+        {
+          "url": "https://www.chainlesschain.com/en/cli/index.html?deployment=20261028-213734-49ce4d1843-docs",
+          "path": "en/cli/index.html",
+          "sha256": "f2c1d0fc45e0b6f9e23f9e8d926fcdc98e6315ca5b617240388fbe5d48cd9bd5",
+          "bytes": 124607,
+          "matchesCiArtifact": true
+        },
+        {
+          "url": "https://www.chainlesschain.com/ide/index.html?deployment=20261028-213734-49ce4d1843-docs",
+          "path": "ide/index.html",
+          "sha256": "a4ff022d6ec9e24936622edc2b365b7a265a270bca6637f8ca619eaee2f838e2",
+          "bytes": 44291,
+          "matchesCiArtifact": true
+        },
+        {
+          "url": "https://www.chainlesschain.com/en/ide/index.html?deployment=20261028-213734-49ce4d1843-docs",
+          "path": "en/ide/index.html",
+          "sha256": "312c03a4e9eee12c4358e57c2e4997f0277147c637fbd31cf42d6fb6e4c07858",
+          "bytes": 46128,
+          "matchesCiArtifact": true
+        }
+      ],
+      "newFileHashesMatched": 45,
+      "deployedChecksumManifestSha256": "650fa4f909bb164017f157090e26063eb2d1177d6bddccb165344798a136c8a8"
+    }
+  ],
+  "boundary": "Sampled HTTP page bytes and all new entries in the public server checksum manifest match CI; deployment archive is repacked and has a different archive hash"
+}

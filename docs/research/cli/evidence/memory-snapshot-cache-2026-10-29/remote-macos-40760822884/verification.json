@@ -1,0 +1,317 @@
+{
+  "schema": "chainlesschain.memory-query-remote-readback/v1",
+  "observedAt": "2026-10-28T21:20:38.971729+00:00",
+  "runId": 40760822884,
+  "sourceHead": "16af6d6199ea5c8d261b9a1872c50b185841192d",
+  "job": {
+    "completedAt": "2026-10-28T21:14:10Z",
+    "conclusion": "success",
+    "databaseId": 123071967118,
+    "name": "measurement (macos-latest)",
+    "startedAt": "2026-10-28T20:24:07Z",
+    "status": "completed",
+    "steps": [
+      {
+        "completedAt": "2026-10-28T20:24:09Z",
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "startedAt": "2026-10-28T20:24:08Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T20:24:38Z",
+        "conclusion": "success",
+        "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+        "number": 2,
+        "startedAt": "2026-10-28T20:24:09Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T20:24:47Z",
+        "conclusion": "success",
+        "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+        "number": 3,
+        "startedAt": "2026-10-28T20:24:38Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T20:26:59Z",
+        "conclusion": "success",
+        "name": "Run ./.github/actions/setup-node-deps",
+        "number": 4,
+        "startedAt": "2026-10-28T20:24:47Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T20:27:16Z",
+        "conclusion": "success",
+        "name": "Query, cursor, corruption and concurrency contracts",
+        "number": 5,
+        "startedAt": "2026-10-28T20:26:59Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T21:13:55Z",
+        "conclusion": "success",
+        "name": "Compare identical 1K, 10K and 100K datasets",
+        "number": 6,
+        "startedAt": "2026-10-28T20:27:16Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T21:13:58Z",
+        "conclusion": "success",
+        "name": "Run actions/upload-artifact@v6",
+        "number": 7,
+        "startedAt": "2026-10-28T21:13:55Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T21:13:58Z",
+        "conclusion": "success",
+        "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+        "number": 13,
+        "startedAt": "2026-10-28T21:13:58Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T21:13:59Z",
+        "conclusion": "success",
+        "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+        "number": 14,
+        "startedAt": "2026-10-28T21:13:58Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-28T21:14:07Z",
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 15,
+        "startedAt": "2026-10-28T21:13:59Z",
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40760822884/job/123071967118"
+  },
+  "artifactId": 12852106914,
+  "artifactName": "memory-query-index-macos-latest-16af6d6199ea5c8d261b9a1872c50b185841192d",
+  "githubArchiveSha256Verified": "sha256:61682a18b72102706ad11551741e9032b46a9d963b6cbb00544ded8eb35c542c",
+  "report": {
+    "path": "memory-query-index.json.gz",
+    "archiveSha256": "1f8783dbaa20727eb3473affab2dc5b939c7cb7e3d73aa56f675223192154654",
+    "decodedSha256": "ecfd9874c104ba8c0fb20c8ef56e81b9abc23164eb80fad8d2dd3d85acf210be",
+    "decodedBytes": 680125
+  },
+  "sourceBlobsVerified": 11,
+  "samplesVerified": 1500,
+  "allRowsDigestsMatch": true,
+  "platform": "darwin",
+  "arch": "arm64",
+  "node": "v22.12.0",
+  "cacheMode": "validate-disk",
+  "complete": true,
+  "groups": [
+    {
+      "count": 1000,
+      "mode": "baseline",
+      "latency": {
+        "samples": 100,
+        "minMs": 95.483,
+        "p50Ms": 110.756,
+        "p95Ms": 161.291,
+        "p99Ms": 179.262,
+        "maxMs": 182.022
+      },
+      "peakRssBytes": 112459776
+    },
+    {
+      "count": 1000,
+      "mode": "cold",
+      "latency": {
+        "samples": 100,
+        "minMs": 53.022,
+        "p50Ms": 72.171,
+        "p95Ms": 118.423,
+        "p99Ms": 130.799,
+        "maxMs": 154.02
+      },
+      "peakRssBytes": 107298816
+    },
+    {
+      "count": 1000,
+      "mode": "hot",
+      "latency": {
+        "samples": 100,
+        "minMs": 16.922,
+        "p50Ms": 18.92,
+        "p95Ms": 28.336,
+        "p99Ms": 49.538,
+        "maxMs": 76.018
+      },
+      "peakRssBytes": 137428992
+    },
+    {
+      "count": 1000,
+      "mode": "rebuild",
+      "latency": {
+        "samples": 100,
+        "minMs": 748.127,
+        "p50Ms": 930.688,
+        "p95Ms": 1253.214,
+        "p99Ms": 1902.046,
+        "maxMs": 1905.782
+      },
+      "peakRssBytes": 108429312
+    },
+    {
+      "count": 1000,
+      "mode": "corrupt",
+      "latency": {
+        "samples": 100,
+        "minMs": 819.491,
+        "p50Ms": 1084.612,
+        "p95Ms": 1356.111,
+        "p99Ms": 2188.719,
+        "maxMs": 2293.97
+      },
+      "peakRssBytes": 108642304
+    },
+    {
+      "count": 10000,
+      "mode": "baseline",
+      "latency": {
+        "samples": 100,
+        "minMs": 556.732,
+        "p50Ms": 681.631,
+        "p95Ms": 818.549,
+        "p99Ms": 838.127,
+        "maxMs": 906.496
+      },
+      "peakRssBytes": 164085760
+    },
+    {
+      "count": 10000,
+      "mode": "cold",
+      "latency": {
+        "samples": 100,
+        "minMs": 109.627,
+        "p50Ms": 150.48,
+        "p95Ms": 208.449,
+        "p99Ms": 261.444,
+        "maxMs": 323.428
+      },
+      "peakRssBytes": 135413760
+    },
+    {
+      "count": 10000,
+      "mode": "hot",
+      "latency": {
+        "samples": 100,
+        "minMs": 18.176,
+        "p50Ms": 23.059,
+        "p95Ms": 40.319,
+        "p99Ms": 48.503,
+        "maxMs": 53.005
+      },
+      "peakRssBytes": 297582592
+    },
+    {
+      "count": 10000,
+      "mode": "rebuild",
+      "latency": {
+        "samples": 100,
+        "minMs": 1286.703,
+        "p50Ms": 1520.792,
+        "p95Ms": 1804.56,
+        "p99Ms": 1898.374,
+        "maxMs": 1969.496
+      },
+      "peakRssBytes": 137969664
+    },
+    {
+      "count": 10000,
+      "mode": "corrupt",
+      "latency": {
+        "samples": 100,
+        "minMs": 1267.438,
+        "p50Ms": 1499.131,
+        "p95Ms": 1918.247,
+        "p99Ms": 2167.617,
+        "maxMs": 2215.429
+      },
+      "peakRssBytes": 137347072
+    },
+    {
+      "count": 100000,
+      "mode": "baseline",
+      "latency": {
+        "samples": 100,
+        "minMs": 4265.276,
+        "p50Ms": 4997.053,
+        "p95Ms": 7013.875,
+        "p99Ms": 7925.881,
+        "maxMs": 8083.478
+      },
+      "peakRssBytes": 446365696
+    },
+    {
+      "count": 100000,
+      "mode": "cold",
+      "latency": {
+        "samples": 100,
+        "minMs": 516.129,
+        "p50Ms": 590.154,
+        "p95Ms": 688.418,
+        "p99Ms": 830.629,
+        "maxMs": 853.478
+      },
+      "peakRssBytes": 223821824
+    },
+    {
+      "count": 100000,
+      "mode": "hot",
+      "latency": {
+        "samples": 100,
+        "minMs": 38.495,
+        "p50Ms": 41.399,
+        "p95Ms": 120.999,
+        "p99Ms": 145.389,
+        "maxMs": 361.173
+      },
+      "peakRssBytes": 1440153600
+    },
+    {
+      "count": 100000,
+      "mode": "rebuild",
+      "latency": {
+        "samples": 100,
+        "minMs": 4702.078,
+        "p50Ms": 5071.783,
+        "p95Ms": 6893.783,
+        "p99Ms": 8535.29,
+        "maxMs": 11638.367
+      },
+      "peakRssBytes": 307462144
+    },
+    {
+      "count": 100000,
+      "mode": "corrupt",
+      "latency": {
+        "samples": 100,
+        "minMs": 5299.155,
+        "p50Ms": 6320.169,
+        "p95Ms": 8987.378,
+        "p99Ms": 17532.122,
+        "maxMs": 20494.31
+      },
+      "peakRssBytes": 315719680
+    }
+  ],
+  "boundary": [
+    "This validates macOS default disk mode only; Windows still pending",
+    "Workflow has no latency threshold gate; timings are observed results",
+    "Cold starts a fresh process without flushing OS caches",
+    "Does not prove Stop, mixed concurrency, real IDE or release readiness"
+  ]
+}

@@ -1,0 +1,338 @@
+{
+  "schema": "chainlesschain.upstream-regression-initial-map/v1",
+  "observedAt": "2026-10-28T21:11:58.463190+00:00",
+  "sourceCommit": "82743fe33ebf5654620fe70c7ae7ac961a0c4ad7",
+  "sourceClean": true,
+  "passed": 71,
+  "failed": 0,
+  "skipped": 0,
+  "reportSha256": "60be4f52ebfea57f24cf6afdbb45eb2029cb48418afdfd6b969f357e40ee8e96",
+  "tests": [
+    {
+      "path": "packages/cli/__tests__/unit/agent-core-autocompact.test.js",
+      "worktreeSha256": "cdd5ba9bca50f7fdd4c7fbddb6a8e81f78a9527db6d93e70108a4e27e76522f3",
+      "gitBlobSha256": "cdd5ba9bca50f7fdd4c7fbddb6a8e81f78a9527db6d93e70108a4e27e76522f3",
+      "tests": [
+        {
+          "title": "agentLoop headless auto-compaction propagates a budget refusal before trying the main model or replacing history",
+          "status": "passed"
+        },
+        {
+          "title": "agentLoop headless auto-compaction compacts a large history and emits a compaction event + onCompaction",
+          "status": "passed"
+        },
+        {
+          "title": "agentLoop headless auto-compaction does NOT compact when autoCompact is false",
+          "status": "passed"
+        },
+        {
+          "title": "agentLoop headless auto-compaction does NOT compact a short history",
+          "status": "passed"
+        },
+        {
+          "title": "agentLoop headless auto-compaction uses the injected structured provider query before count truncation",
+          "status": "passed"
+        },
+        {
+          "title": "agentLoop headless auto-compaction emits an explicit degraded event when semantic output is invalid",
+          "status": "passed"
+        },
+        {
+          "title": "agentLoop headless auto-compaction commits degraded compaction before a budget consumer stops on usage",
+          "status": "passed"
+        },
+        {
+          "title": "agentLoop headless auto-compaction settles against the pre-provider snapshot before replacing live messages",
+          "status": "passed"
+        },
+        {
+          "title": "agentLoop headless auto-compaction does not apply or retry a paid candidate after stale CAS",
+          "status": "passed"
+        },
+        {
+          "title": "agentLoop headless auto-compaction fails closed when provider transport usage is outcome-unknown",
+          "status": "passed"
+        },
+        {
+          "title": "agentLoop microcompact auto-trigger trims old tool results and SKIPS the full compaction when that suffices",
+          "status": "passed"
+        },
+        {
+          "title": "agentLoop microcompact auto-trigger does not apply or continue after a stale microcompact settlement",
+          "status": "passed"
+        },
+        {
+          "title": "agentLoop microcompact auto-trigger settles only the final candidate when microcompact still needs a summary",
+          "status": "passed"
+        },
+        {
+          "title": "agentLoop microcompact auto-trigger falls through to the full compaction when the trim is not enough",
+          "status": "passed"
+        },
+        {
+          "title": "agentLoop microcompact auto-trigger autoMicroCompact: false disables the pre-pass (full compaction runs)",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-core-skill-mcp.test.js",
+      "worktreeSha256": "5dc242748b51812ab6f815829090b171510fe10a681c6e1eed4f1d10c104f96e",
+      "gitBlobSha256": "5dc242748b51812ab6f815829090b171510fe10a681c6e1eed4f1d10c104f96e",
+      "tests": [
+        {
+          "title": "run_skill controlled execution boundary has no dormant Skill process-broker module to reattach",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary blocks a legacy direct handler without importing or mounting anything",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary runs an isolated skill as a child with read-only tools intersected with the parent ceiling",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary fails closed before a canary child starts when invocation attribution is incomplete",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary forwards the isolated skill child's real call boundary and settlement without an aggregate sentinel",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary blocks an isolated skill child when strict boundary persistence fails",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary rethrows an isolated workflow skill child's unknown outcome",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary fails closed after provider work when strict skill settlement persistence fails",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary does not manufacture a paid boundary for a non-isolated skill",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary links the parent AbortSignal into the isolated Skill context",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary rejects a pre-cancelled run_skill before discovery or child creation",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary cancels an in-flight authorization promptly and ignores its late success",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary cancels a running isolated child promptly and fences its late result",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary honors a loader execution-lease revocation while the isolated child is running",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary propagates the agentLoop parent signal through run_skill without appending a late tool result",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary awaits the host's async execution materializer before creating the child",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary inherits parent authority objects without adding executable MCP definitions",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary surfaces isolated child failure without falling back to the handler",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary does not wrap a resolved failed child result as success",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary preserves the materialization security incident code",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary list_skills restricts descriptors to the contract allow-list",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary pages a 50-skill directory and searches omitted descriptors",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary pages a 200-skill directory and searches omitted descriptors",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary pages a 500-skill directory and searches omitted descriptors",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary rejects invalid pages and explains the search result ceiling",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary list_skills query returns ranked digest-bound routing evidence",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary searches omitted multilingual descriptors while preserving the skill allow-list",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary list_skills query consumes the host transcript outcome authority",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary list_skills query consumes only a branded verified vector authority",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary list_skills excludes content invalidated by the durable revocation authority",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary does not hide a configured invalid index behind transcript fallback",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary treats an empty skill allow-list as deny-all",
+          "status": "passed"
+        },
+        {
+          "title": "run_skill controlled execution boundary does not let an allowed skill escape the controlled execution boundary",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/__tests__/unit/mcp-client-transport-cancellation.test.js",
+      "worktreeSha256": "dfac49d9ea7cc5a17c9f30d1f1e4d19559a568338564a609566d5ea3e0bf9515",
+      "gitBlobSha256": "dfac49d9ea7cc5a17c9f30d1f1e4d19559a568338564a609566d5ea3e0bf9515",
+      "tests": [
+        {
+          "title": "MCPClient ws caller cancellation rejects an already-aborted tool call before dispatch",
+          "status": "passed"
+        },
+        {
+          "title": "MCPClient ws caller cancellation cancels one dispatched tool call without replaying it",
+          "status": "passed"
+        },
+        {
+          "title": "MCPClient ws caller cancellation removes the caller listener when a resource response wins",
+          "status": "passed"
+        },
+        {
+          "title": "MCPClient stdio caller cancellation rejects an already-aborted tool call before dispatch",
+          "status": "passed"
+        },
+        {
+          "title": "MCPClient stdio caller cancellation cancels one dispatched tool call without replaying it",
+          "status": "passed"
+        },
+        {
+          "title": "MCPClient stdio caller cancellation removes the caller listener when a resource response wins",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/__tests__/unit/provider-backed-compaction.test.js",
+      "worktreeSha256": "6288bd017bd1b546d048eaf94772885c88a7dd8a18677c1780a9f75f84a98f26",
+      "gitBlobSha256": "6288bd017bd1b546d048eaf94772885c88a7dd8a18677c1780a9f75f84a98f26",
+      "tests": [
+        {
+          "title": "compactConversationWithProvider propagates evolution admission failures without replacing history",
+          "status": "passed"
+        },
+        {
+          "title": "compactConversationWithProvider uses a tool-free provider call and projects semantic usage",
+          "status": "passed"
+        },
+        {
+          "title": "compactConversationWithProvider propagates the started call id through stats and the usage event",
+          "status": "passed"
+        },
+        {
+          "title": "compactConversationWithProvider propagates an already-settled custom query without losing its call id",
+          "status": "passed"
+        },
+        {
+          "title": "compactConversationWithProvider propagates settled metadata to an outcome-unknown event",
+          "status": "passed"
+        },
+        {
+          "title": "compactConversationWithProvider keeps a structured extractive handoff and billed usage on invalid output",
+          "status": "passed"
+        },
+        {
+          "title": "compactConversationWithProvider marks provider transport usage as outcome-unknown",
+          "status": "passed"
+        },
+        {
+          "title": "compactConversationWithProvider omits unsafe query call ids from public stats and events",
+          "status": "passed"
+        },
+        {
+          "title": "compactConversationWithProvider marks a provider response with missing usage as outcome-unknown",
+          "status": "passed"
+        },
+        {
+          "title": "compactConversationWithProvider keeps incomplete empty compaction usage unknown",
+          "status": "passed"
+        },
+        {
+          "title": "compactConversationWithProvider keeps incomplete input-only compaction usage unknown",
+          "status": "passed"
+        },
+        {
+          "title": "compactConversationWithProvider keeps incomplete output-only compaction usage unknown",
+          "status": "passed"
+        },
+        {
+          "title": "compactConversationWithProvider keeps incomplete conflicting-required-alias compaction usage unknown",
+          "status": "passed"
+        },
+        {
+          "title": "compactConversationWithProvider keeps incomplete invalid-cache compaction usage unknown",
+          "status": "passed"
+        },
+        {
+          "title": "compactConversationWithProvider propagates cancellation instead of manufacturing a fallback",
+          "status": "passed"
+        },
+        {
+          "title": "compactConversationWithProvider preserves the last completed exchange for between-turn compaction",
+          "status": "passed"
+        },
+        {
+          "title": "compactConversationWithProvider does not call the provider when an automatic candidate is below threshold",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "coverage": [
+    "MCP stdio/WebSocket tool cancellation and late-result fencing; resource success listener cleanup",
+    "Isolated skill authorization/child cancellation and late-result suppression",
+    "Invalid semantic compression output, deterministic handoff, unknown usage and stale CAS"
+  ],
+  "notProven": [
+    "All delayed MCP resource transports and real resource-read cancellation",
+    "Remote skill-download cancellation",
+    "Rules or Memory edited immediately before compression",
+    "Late MCP connection in running subagents",
+    "Completed subagent with live background descendants retaining its worktree",
+    "Restored background skills without duplicate side effects"
+  ],
+  "boundary": "Mocked model/provider paths only, Windows local single-worker run; no paid request or full native acceptance claim"
+}

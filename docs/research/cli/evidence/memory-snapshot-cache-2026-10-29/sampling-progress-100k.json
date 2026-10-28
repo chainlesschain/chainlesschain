@@ -1,0 +1,120 @@
+{
+  "schema": "chainlesschain.memory-sampling-progress/v1",
+  "observedAt": "2026-10-28T21:41:25.567832+00:00",
+  "sourceHead": "16af6d6199ea5c8d261b9a1872c50b185841192d",
+  "implementationMatchesExactRemoteSource": true,
+  "complete": false,
+  "report": {
+    "path": "disk-100-partial-100k.json.gz",
+    "archiveSha256": "af0cf9563ca03cf744f079b92d240b14d4624cd7b09898f85a40edb480a16ad9",
+    "decodedSha256": "9d49771f9bd3db76cbb489761fc57f4bd40118cdec5a93bf6175676ea18254eb"
+  },
+  "groups": [
+    {
+      "count": 1000,
+      "mode": "baseline",
+      "complete": true,
+      "samples": 100,
+      "p95Ms": 631.268
+    },
+    {
+      "count": 1000,
+      "mode": "cold",
+      "complete": true,
+      "samples": 100,
+      "p95Ms": 463.657
+    },
+    {
+      "count": 1000,
+      "mode": "hot",
+      "complete": true,
+      "samples": 100,
+      "p95Ms": 341.473
+    },
+    {
+      "count": 1000,
+      "mode": "rebuild",
+      "complete": true,
+      "samples": 100,
+      "p95Ms": 1980.359
+    },
+    {
+      "count": 1000,
+      "mode": "corrupt",
+      "complete": true,
+      "samples": 100,
+      "p95Ms": 2531.332
+    },
+    {
+      "count": 10000,
+      "mode": "baseline",
+      "complete": true,
+      "samples": 100,
+      "p95Ms": 2547.047
+    },
+    {
+      "count": 10000,
+      "mode": "cold",
+      "complete": true,
+      "samples": 100,
+      "p95Ms": 1036.68
+    },
+    {
+      "count": 10000,
+      "mode": "hot",
+      "complete": true,
+      "samples": 100,
+      "p95Ms": 354.161
+    },
+    {
+      "count": 10000,
+      "mode": "rebuild",
+      "complete": true,
+      "samples": 100,
+      "p95Ms": 3642.437
+    },
+    {
+      "count": 10000,
+      "mode": "corrupt",
+      "complete": true,
+      "samples": 100,
+      "p95Ms": 3874.732
+    },
+    {
+      "count": 100000,
+      "mode": "baseline",
+      "complete": true,
+      "samples": 100,
+      "p95Ms": 14224.603
+    },
+    {
+      "count": 100000,
+      "mode": "cold",
+      "complete": true,
+      "samples": 100,
+      "p95Ms": 2701.402
+    },
+    {
+      "count": 100000,
+      "mode": "hot",
+      "complete": true,
+      "samples": 100,
+      "p95Ms": 837.133
+    },
+    {
+      "count": 100000,
+      "mode": "rebuild",
+      "complete": true,
+      "samples": 100,
+      "p95Ms": 17215.498
+    },
+    {
+      "count": 100000,
+      "mode": "corrupt",
+      "complete": false,
+      "samples": 23,
+      "p95Ms": 17010.985
+    }
+  ],
+  "boundary": "Shared Windows workstation; documentation edits, small regression tests, artifact extraction/import and deployment preparation also occurred during sampling. Not an isolated SLO environment. Original pipeline continues."
+}
