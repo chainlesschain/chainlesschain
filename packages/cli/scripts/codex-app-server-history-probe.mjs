@@ -297,7 +297,7 @@ export async function runHistoryProbe({
       limit: 1,
       cwd: workspace,
       modelProviders: ["fixture"],
-      sourceKinds: ["appServer"],
+      sourceKinds: [main.thread.source],
       sortDirection: "asc",
     });
     assert.deepEqual(
@@ -386,6 +386,7 @@ export async function runHistoryProbe({
       realProviderAcceptance: false,
       productionAdmission: false,
       processRestarted: true,
+      threadSource: main.thread.source,
       settingsRestored: true,
       completedRequestReplayed: false,
       threadPages: listed.pages,
