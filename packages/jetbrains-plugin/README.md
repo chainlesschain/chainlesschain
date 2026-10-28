@@ -2,7 +2,7 @@
 
 ## Next release candidate
 
-Plugin **0.4.184** is an unpublished candidate, recommends CLI **`0.166.129`**, and pairs with VS Code **0.37.167**. It incorporates the clean-home onboarding fix: the final Gradle IDE launch uses the isolated user configuration and validates the actual IDE home/root. Publication requires the paired public CLI, the complete host matrix and public ZIP readback. Historical task acceptance remains separate.
+Plugin **0.4.185** is an unpublished candidate, recommends CLI **`0.166.130`**, and pairs with VS Code **0.37.168**. It incorporates the clean-home onboarding fix: the final Gradle IDE launch uses the isolated user configuration and validates the actual IDE home/root. Publication requires the paired public CLI, the complete host matrix and public ZIP readback. Historical task acceptance remains separate.
 
 ## Self-evolution switch
 
@@ -120,7 +120,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.184** is the current release candidate. It recommends `chainlesschain@0.166.129` and pairs with VS Code **0.37.167**. Publication requires the verified public CLI, exact-source host gates and public Marketplace ZIP readback. Native task quality and restart acceptance remain independent.
+Plugin **0.4.185** is the current release candidate. It recommends `chainlesschain@0.166.130` and pairs with VS Code **0.37.168**. Publication requires the verified public CLI, exact-source host gates and public Marketplace ZIP readback. Native task quality and restart acceptance remain independent.
 
 ## Previous candidates and development notes
 

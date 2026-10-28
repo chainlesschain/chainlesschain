@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.130: Goal budget and workspace evidence (candidate, 2026-10-29)
+
+- Share model Goal review with the author run iteration/cost budgets, cancellation and output limits; retain known usage and stop on unknown usage or transport failure.
+- Bind Goal tool and artifact evidence to current workspace bytes and identities before and after review. External changes invalidate earlier successful observations; bounded reads fail closed when coverage is incomplete.
+- Refresh the reviewed security-map producer digest after adding Goal checkpoint evidence assertions. Preserve every mapped test, original threshold and required operating system.
+- Retain public child package pins and pair with VS Code 0.37.168 / JetBrains 0.4.185. Release requires exact-source CLI CI and Strict Sandbox, OIDC publication and public artifact verification. Cumulative accepted deliverables remain 34/45, with 11 unfinished; NOT_PAID_READY / NOT_ADMITTED / HOLD remain.
+
 ### Fixed - cc CLI 0.166.129: independent change review and Codex support evidence (candidate, 2026-10-28)
 
 - Give opted-in hermetic change review its own request context and tool journal, preserving original requirements, shared request limits, permissions and cancellation. Missing review usage blocks further calls; review is not independent task acceptance.

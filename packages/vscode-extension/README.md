@@ -12,7 +12,7 @@ Open **Skill 自进化配置** from the command palette to enable or disable sel
 
 ## Next release candidate
 
-Source candidate **0.37.167** recommends CLI **`0.166.129`** and pairs with JetBrains **0.4.184**. The extension has not been published. This candidate retains model configuration and conversation isolation fixes and incorporates the merged clean-home onboarding validation. Publication follows verified public CLI installation, exact-source IDE host gates and marketplace artifact readback. Historical task acceptance remains separate.
+Source candidate **0.37.168** recommends CLI **`0.166.130`** and pairs with JetBrains **0.4.185**. The extension has not been published. This candidate retains model configuration and conversation isolation fixes and incorporates the merged clean-home onboarding validation. Publication follows verified public CLI installation, exact-source IDE host gates and marketplace artifact readback. Historical task acceptance remains separate.
 
 ## Current release
 

@@ -2,9 +2,13 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.129 candidate — change review and Codex compatibility
+## CLI 0.166.130 candidate - Goal budgets and current workspace evidence
 
-This candidate adds isolated hermetic change-review context and a shared experimental Codex App Server support manifest with versioned three-platform probes. It is not yet published. The verified public CLI and IDE pairing remain listed below until the new release passes its exact-source gates and public artifact readback. Child npm package pins are unchanged; experimental routing remains off by default, and historical task/native acceptance is not promoted by this release.
+This candidate shares model Goal review with the author run budgets, cancellation and output limits, and binds completion evidence to the current workspace bytes. Unknown usage, incomplete workspace coverage and external changes prevent a completion claim. It also repairs the digest-bound security test map without changing assertions or required gates. The candidate pairs with VS Code **0.37.168** and JetBrains **0.4.185**; child dependency pins remain unchanged. It is not yet published. Historical accepted deliverables remain **34/45**, with **11** unfinished; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
+
+## CLI 0.166.129 - change review and Codex compatibility (public, 2026-10-29)
+
+Install the current public CLI with `npm i -g chainlesschain@0.166.129 --registry https://registry.npmjs.org`. It pairs with public Open VSX **0.37.167** and JetBrains **0.4.184**. This release adds isolated hermetic change-review context and an experimental Codex App Server support manifest with versioned three-platform probes. Child npm package pins are unchanged; experimental routing remains off by default. Historical task/native acceptance is separate: **34/45** accepted deliverables, **11** unfinished, **NOT_PAID_READY / NOT_ADMITTED / HOLD** retained.
 
 Read-only Git inspections such as `status`, `diff`, `log`, `show` and `rev-parse` now skip workspace snapshots in IDE and CLI agent sessions. Mutations and commands with explicit output files or external drivers retain checkpoints. Conversation persistence and permission checks remain active; end-to-end latency still depends on the repository, model and tools.
 

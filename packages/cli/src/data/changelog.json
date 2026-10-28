@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.130",
+      "cliVersions": ["0.166.130"],
+      "date": "2026-10-29",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.130: Goal budget and workspace evidence (candidate, 2026-10-29)",
+          "body": "- Share model Goal review with the author run iteration/cost budgets, cancellation and output limits; retain known usage and stop on unknown usage or transport failure.\n- Bind Goal tool and artifact evidence to current workspace bytes and identities before and after review. External changes invalidate earlier successful observations; bounded reads fail closed when coverage is incomplete.\n- Refresh the reviewed security-map producer digest after adding Goal checkpoint evidence assertions. Preserve every mapped test, original threshold and required operating system.\n- Retain public child package pins and pair with VS Code 0.37.168 / JetBrains 0.4.185. Release requires exact-source CLI CI and Strict Sandbox, OIDC publication and public artifact verification. Cumulative accepted deliverables remain 34/45, with 11 unfinished; NOT_PAID_READY / NOT_ADMITTED / HOLD remain."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.129",
       "cliVersions": ["0.166.129"],
       "date": "2026-10-28",

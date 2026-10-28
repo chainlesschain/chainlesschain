@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.168] - Goal evidence and budget CLI pairing (candidate, 2026-10-29)
+
+- Recommend CLI 0.166.130 and pair with JetBrains 0.4.185.
+- Carry the shared Goal budget, cancellation and workspace-evidence fixes through the paired CLI; preserve existing host isolation and recovery checks.
+- Require verified public CLI installation, exact-source IDE gates and marketplace artifact readback before claiming publication.
+
 ## [0.37.167] - CLI pairing and onboarding validation (candidate, 2026-10-28)
 
 - Recommend CLI 0.166.129 and pair with JetBrains 0.4.184.
