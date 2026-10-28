@@ -1,0 +1,75 @@
+{
+  "schema": "chainlesschain.release129-publication/v1",
+  "observedAt": "2026-10-28T16:26:48.855Z",
+  "status": "CLI_PUBLIC_IDE_PUBLISHING",
+  "repository": "chainlesschain/chainlesschain",
+  "channels": {
+    "cli": {
+      "version": "0.166.129",
+      "status": "public",
+      "sourceSha": "fd8a21637ab188dae0c777442d312ae85d420a9b",
+      "runId": 40693655894,
+      "attempt": 2,
+      "readbackRunId": 40723568902,
+      "tag": "v-npm-0-166-129",
+      "receipt": "chainlesschain-release.json",
+      "provenance": "chainlesschain-npm-provenance.json",
+      "publicReadback": "chainlesschain-npm-readback.json",
+      "archiveBytes": 9566651,
+      "sha256": "88958be9e818f6e38db66faa0808fad28afa7f652b9a2c81c1dedc4f8be8f11b",
+      "sha512": "891598864003403f41ac6d18a330708b03bc7ff1f0c5777989391e6e1ae44b52a8c0250d36d093d684304009b72b45d3ce87c28f6a93b4ecae881807671b7ea8",
+      "publicArchivesVerified": true,
+      "localArchiveMatchesImmutableCiArtifact": true,
+      "candidateInstallWithPublicChildDependenciesVerified": true
+    },
+    "openVsx": {
+      "version": "0.37.167",
+      "status": "publishing",
+      "sourceSha": "800e9cc99711f9f02eb3bbd78eb14600406bdba5",
+      "runId": 40724836985,
+      "recommendedCliVersion": "0.166.129",
+      "tag": "ide-vscode-v0.37.167"
+    },
+    "jetbrains": {
+      "version": "0.4.184",
+      "status": "publishing",
+      "sourceSha": "800e9cc99711f9f02eb3bbd78eb14600406bdba5",
+      "runId": 40724923599,
+      "recommendedCliVersion": "0.166.129",
+      "tag": "ide-jetbrains-v0.4.184"
+    },
+    "microsoftMarketplace": {
+      "status": "unpublished",
+      "reason": "VSCE_PAT is not configured"
+    }
+  },
+  "childPackages": {
+    "versionsChanged": false,
+    "directCliRegistryLockPins": 10,
+    "sessionCore": "0.3.24",
+    "receipt": "cli-public-child-install.json",
+    "publicArchivePreflight": "children-preflight.json"
+  },
+  "gates": {
+    "receipt": "gates.json",
+    "cliCiRunId": 40679324623,
+    "cliCiAttempt": 2,
+    "cliCiJobs": 72,
+    "strictSandboxRunId": 40679324803,
+    "ideCandidateRunId": 40694534085,
+    "platforms": [
+      "linux",
+      "windows",
+      "macos"
+    ]
+  },
+  "scope": {
+    "clientsReleased": false
+  },
+  "acceptance": {
+    "accepted": 34,
+    "total": 45,
+    "unfinished": 11,
+    "meaning": "Cumulative accepted deliverables; does not imply complete native end-to-end acceptance"
+  }
+}

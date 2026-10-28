@@ -1,0 +1,124 @@
+{
+  "schema": "chainlesschain.release129-ide-prepublication-gates/v1",
+  "verifiedAt": "2026-10-28T15:23:09.968Z",
+  "sha": "800e9cc99711f9f02eb3bbd78eb14600406bdba5",
+  "runId": 40694534085,
+  "attempt": 1,
+  "conclusion": "success",
+  "jobs": [
+    {
+      "id": 122837682358,
+      "name": "Public IDE capability manifest (drift gate)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122837682358"
+    },
+    {
+      "id": 122839454332,
+      "name": "VS Code extension (immutable candidate)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122839454332"
+    },
+    {
+      "id": 122839454406,
+      "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122839454406"
+    },
+    {
+      "id": 122839454448,
+      "name": "JetBrains real host (windows-latest, 2024.2)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122839454448"
+    },
+    {
+      "id": 122839454462,
+      "name": "JetBrains real host (macos-latest, 2024.2)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122839454462"
+    },
+    {
+      "id": 122839454473,
+      "name": "Browser evidence (macos)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122839454473"
+    },
+    {
+      "id": 122839454528,
+      "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122839454528"
+    },
+    {
+      "id": 122839454536,
+      "name": "Browser evidence (linux)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122839454536"
+    },
+    {
+      "id": 122839454548,
+      "name": "Browser evidence (windows)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122839454548"
+    },
+    {
+      "id": 122839454573,
+      "name": "JetBrains real host (macos-latest, 2025.2)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122839454573"
+    },
+    {
+      "id": 122839454618,
+      "name": "JetBrains real host (windows-latest, 2025.2)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122839454618"
+    },
+    {
+      "id": 122846725128,
+      "name": "VS Code extension (Windows host gate)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122846725128"
+    },
+    {
+      "id": 122846725163,
+      "name": "VS Code Remote-SSH container (scoped trusted cell)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122846725163"
+    },
+    {
+      "id": 122846725510,
+      "name": "VS Code extension (macOS host gate)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122846725510"
+    },
+    {
+      "id": 122865366145,
+      "name": "IDE roadmap evidence (trusted scoped aggregate)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122865366145"
+    },
+    {
+      "id": 122900018437,
+      "name": "Browser evidence (three-OS required aggregate)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122900018437"
+    },
+    {
+      "id": 122900804548,
+      "name": "VS Code extension (Linux host gate + publish)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122900804548"
+    },
+    {
+      "id": 122906700840,
+      "name": "JetBrains plugin (build + publish)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122906700840"
+    },
+    {
+      "id": 122910602793,
+      "name": "JetBrains Marketplace (post-publish verification)",
+      "conclusion": "skipped",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085/job/122910602793"
+    }
+  ]
+}

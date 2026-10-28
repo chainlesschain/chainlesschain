@@ -1,0 +1,26 @@
+{
+  "schema": "chainlesschain.gap-review-cli-public-readback/v1",
+  "checkedAt": "2026-10-28T16:30:47.605Z",
+  "package": "chainlesschain",
+  "version": "0.166.129",
+  "commit": "fd8a21637ab188dae0c777442d312ae85d420a9b",
+  "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/40693655894",
+  "attempt": 2,
+  "archiveUrl": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.129.tgz",
+  "bytes": 9566651,
+  "sha256": "88958be9e818f6e38db66faa0808fad28afa7f652b9a2c81c1dedc4f8be8f11b",
+  "sha512": "891598864003403f41ac6d18a330708b03bc7ff1f0c5777989391e6e1ae44b52a8c0250d36d093d684304009b72b45d3ce87c28f6a93b4ecae881807671b7ea8",
+  "registryIntegrity": "sha512-iRWYhkADQD9BrG0YozBwiwO8f/HwxXd5iTkebhrkS1KowCUNNtCT1oQwQAm3K0XTzofCj2qTtOyuiBgHZxt+qA==",
+  "publicArchiveMatchesReleaseReceipt": true,
+  "publicArchiveMatchesProvenanceReceipt": true,
+  "provenanceAudit": {
+    "invalid": 0,
+    "missing": 0
+  },
+  "receipts": [
+    "chainlesschain-release.json",
+    "chainlesschain-npm-provenance.json",
+    "cli-public-child-install.json"
+  ],
+  "scope": "Public registry archive identity and readback of exact-release CI provenance receipts; no local install or IDE publication performed."
+}
