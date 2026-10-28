@@ -68,7 +68,7 @@ const DEFAULT_CONFIG = {
     // 不再硬编码密钥：优先读环境变量，否则留空由用户在设置中填写并加密存储
     apiKey: process.env.VOLCENGINE_API_KEY || "",
     baseURL: "https://ark.cn-beijing.volces.com/api/v3",
-    model: "deepseek-v4-1-flash-260910",
+    model: "deepseek-v4-1-flash-economy-261017",
     embeddingModel: "doubao-embedding-text-240715", // 嵌入模型（最新版本，支持中英双语）
     videoModel: "doubao-seedance-1.0-lite", // 文生视频模型（Seedance 系列）
   },

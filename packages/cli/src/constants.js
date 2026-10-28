@@ -73,7 +73,7 @@ export const DEFAULT_CONFIG = {
     provider: "volcengine",
     apiKey: null,
     baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
-    model: "deepseek-v4-1-flash-260910",
+    model: "deepseek-v4-1-flash-economy-261017",
     // When true, `cc ask` (provider=ollama only) overrides baseUrl to point at
     // the Android LocalLlmServer (127.0.0.1:18484). User opt-in toggle:
     //   cc config set llm.preferAndroidLocal true

@@ -487,7 +487,11 @@ const status = ref({
 // 火山引擎模型选项
 const volcengineModelOptions = [
   {
-    label: "deepseek-v4-1-flash-260910（默认）",
+    label: "deepseek-v4-1-flash-economy-261017（默认）",
+    value: "deepseek-v4-1-flash-economy-261017",
+  },
+  {
+    label: "deepseek-v4-1-flash-260910",
     value: "deepseek-v4-1-flash-260910",
   },
   // Doubao Seed 1.6 系列
@@ -565,7 +569,7 @@ const form = reactive({
   volcengine: {
     apiKey: "",
     baseURL: "https://ark.cn-beijing.volces.com/api/v3",
-    model: "deepseek-v4-1-flash-260910",
+    model: "deepseek-v4-1-flash-economy-261017",
   },
 
   custom: {
@@ -700,7 +704,7 @@ const handleReset = () => {
   form.volcengine = {
     apiKey: "",
     baseURL: "https://ark.cn-beijing.volces.com/api/v3",
-    model: "deepseek-v4-1-flash-260910",
+    model: "deepseek-v4-1-flash-economy-261017",
   };
   form.custom = {
     name: "Custom Provider",

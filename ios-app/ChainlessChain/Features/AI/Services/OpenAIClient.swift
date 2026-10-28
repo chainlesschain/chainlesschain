@@ -259,7 +259,7 @@ class VolcengineClient: OpenAIClient {
             volcengineConfig.baseURL = "https://ark.cn-beijing.volces.com/api/v3"
         }
         if volcengineConfig.model == "qwen2:7b" {
-            volcengineConfig.model = "deepseek-v4-1-flash-260910"
+            volcengineConfig.model = "deepseek-v4-1-flash-economy-261017"
         }
         super.init(config: volcengineConfig, session: session)
     }

@@ -29,7 +29,7 @@ class LLMService {
       volcengine: {
         apiKey: "",
         baseURL: "https://ark.cn-beijing.volces.com/api/v3",
-        model: "deepseek-v4-1-flash-260910",
+        model: "deepseek-v4-1-flash-economy-261017",
         temperature: 0.7,
         maxTokens: 2000,
       },

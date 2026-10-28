@@ -67,7 +67,7 @@ describe("applyConfigLlmDefaults", () => {
     );
     expect(resolved.endpointSources).toEqual([]);
     expect(resolved.apiKey).toBeNull();
-    expect(resolved.model).toBe("deepseek-v4-1-flash-260910");
+    expect(resolved.model).toBe("deepseek-v4-1-flash-economy-261017");
     expect(resolved.baseUrl).toBe("http://127.0.0.1:8787/v1");
   });
 

@@ -239,7 +239,7 @@ describe("makeRunnableProviderFallback", () => {
     expect(seen).toEqual(["volcengine"]); // anthropic never attempted
     expect(out._opts.provider).toBe("volcengine");
     expect(out._opts.apiKey).toBe("sk-volc"); // same key + baseUrl kept
-    expect(out._opts.model).toBe("deepseek-v4-1-flash-260910"); // provider default
+    expect(out._opts.model).toBe("deepseek-v4-1-flash-economy-261017"); // provider default
     expect(fb[0]).toMatchObject({
       from: "anthropic",
       to: "volcengine",
@@ -271,15 +271,15 @@ describe("makeRunnableProviderFallback", () => {
     });
     expect(seen).toHaveLength(1); // no doomed haiku attempt
     expect(seen[0].provider).toBe("volcengine");
-    expect(seen[0].model).toBe("deepseek-v4-1-flash-260910"); // provider default
-    expect(out._opts.model).toBe("deepseek-v4-1-flash-260910");
+    expect(seen[0].model).toBe("deepseek-v4-1-flash-economy-261017"); // provider default
+    expect(out._opts.model).toBe("deepseek-v4-1-flash-economy-261017");
     expect(out._opts.apiKey).toBe("sk-volc"); // same provider + key kept
     expect(fb[0]).toMatchObject({
       from: "volcengine",
       to: "volcengine",
       reason: "model-mismatch",
       fromModel: "haiku",
-      toModel: "deepseek-v4-1-flash-260910",
+      toModel: "deepseek-v4-1-flash-economy-261017",
     });
   });
 

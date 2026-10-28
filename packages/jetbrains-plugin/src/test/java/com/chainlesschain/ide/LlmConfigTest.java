@@ -196,7 +196,7 @@ class LlmConfigTest {
     void volcenginePresetUsesRequestedDefaultModel() {
         for (LlmConfig.Preset preset : LlmConfig.PRESETS) {
             if ("volcengine".equals(preset.id)) {
-                assertEquals("deepseek-v4-1-flash-260910", preset.defaultModel);
+                assertEquals("deepseek-v4-1-flash-economy-261017", preset.defaultModel);
                 return;
             }
         }

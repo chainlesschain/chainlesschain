@@ -285,7 +285,7 @@ describe("E2E: Agent v0.42.0 Enhancements", () => {
 
       // Volcengine CHAT follows the default; CODE keeps its task-specific model.
       expect(selectModelForTask("volcengine", TaskType.CHAT)).toBe(
-        "deepseek-v4-1-flash-260910",
+        "deepseek-v4-1-flash-economy-261017",
       );
       expect(selectModelForTask("volcengine", TaskType.CODE)).toBe(
         "doubao-seed-2-1-pro-260628",

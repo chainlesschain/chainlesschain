@@ -267,7 +267,7 @@ describe("LLM Provider Workflow (integration)", () => {
 
     it("volcengine CHAT model should use the configured default", () => {
       const model = selectModelForTask("volcengine", TaskType.CHAT);
-      expect(model).toBe("deepseek-v4-1-flash-260910");
+      expect(model).toBe("deepseek-v4-1-flash-economy-261017");
     });
 
     it("ollama provider should list qwen2.5 models", () => {

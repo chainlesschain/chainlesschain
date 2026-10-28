@@ -885,7 +885,7 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
     ).toBe(false);
     expect(
       llmCfg.PROVIDER_PRESETS.find((p) => p.id === "volcengine").defaultModel,
-    ).toBe("deepseek-v4-1-flash-260910");
+    ).toBe("deepseek-v4-1-flash-economy-261017");
   });
 
   it("buildConfigSetArgs emits only non-secret cc config set commands", () => {

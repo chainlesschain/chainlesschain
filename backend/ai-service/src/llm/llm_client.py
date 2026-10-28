@@ -388,7 +388,7 @@ class ZhipuAIClient(BaseLLMClient):
 class VolcEngineClient(BaseLLMClient):
     """火山引擎（豆包）客户端 - 使用ARK SDK"""
 
-    def __init__(self, api_key: str, model: str = "deepseek-v4-1-flash-260910"):
+    def __init__(self, api_key: str, model: str = "deepseek-v4-1-flash-economy-261017"):
         try:
             from volcenginesdkarkruntime import Ark
             # api_key格式: "access_key:secret_key" (base64编码) 或直接使用API key
@@ -767,7 +767,7 @@ def get_llm_client() -> BaseLLMClient:
 
     provider = os.getenv("LLM_PROVIDER", "dashscope")
     default_model = (
-        "deepseek-v4-1-flash-260910"
+        "deepseek-v4-1-flash-economy-261017"
         if provider.lower() in ("volcengine", "doubao") else "qwen-turbo"
     )
     model = os.getenv("LLM_MODEL", default_model)

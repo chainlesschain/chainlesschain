@@ -290,7 +290,7 @@ class LLMManager extends EventEmitter {
             apiKey: this.config.apiKey,
             baseURL:
               this.config.baseURL || "https://ark.cn-beijing.volces.com/api/v3",
-            model: this.config.model || "deepseek-v4-1-flash-260910",
+            model: this.config.model || "deepseek-v4-1-flash-economy-261017",
           });
           if (modelIngressHosts.has(this))
             bindDesktopModelIngressClient(
@@ -385,7 +385,7 @@ class LLMManager extends EventEmitter {
             apiKey: this.config.apiKey,
             baseURL:
               this.config.baseURL || "https://ark.cn-beijing.volces.com/api/v3",
-            model: this.config.model || "deepseek-v4-1-flash-260910",
+            model: this.config.model || "deepseek-v4-1-flash-economy-261017",
             embeddingModel:
               this.config.embeddingModel || "doubao-embedding-large",
             timeout: this.config.timeout,

@@ -10,7 +10,7 @@
       "label": "Volcengine / Doubao (volcengine)",
       "cliLabel": "Volcengine (火山引擎/豆包)",
       "baseUrl": "https://ark.cn-beijing.volces.com/api/v3",
-      "defaultModel": "deepseek-v4-1-flash-260910",
+      "defaultModel": "deepseek-v4-1-flash-economy-261017",
       "needsKey": true,
       "visionModel": "doubao-seed-2-0-lite-260215"
     },
@@ -93,6 +93,6 @@
       "visionModel": ""
     }
   ],
-  "sourceSha256": "b918edc0a553fc2d853cd7311635143752419853d91d43e81dc783197d543bd2",
+  "sourceSha256": "d3f4a81921c87053a3d978363921fe4ef298b031cc08b6b457625e2b009e1d9a",
   "sourceDigestBasis": "utf8-lf"
 }
