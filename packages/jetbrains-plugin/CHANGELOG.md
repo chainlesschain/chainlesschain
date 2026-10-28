@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.185] - Goal evidence and budget CLI pairing (candidate, 2026-10-29)
+
+- Recommend CLI 0.166.130 and pair with VS Code 0.37.168.
+- Carry the shared Goal budget, cancellation and workspace-evidence fixes through the paired CLI; preserve existing host isolation and recovery checks.
+- Require verified public CLI installation, exact-source IDE gates and marketplace artifact readback before claiming publication.
+
 ## [0.4.184] - Clean-home onboarding and CLI pairing (candidate, 2026-10-28)
 
 - Isolate configuration at the final Gradle IDE launch and validate the actual IDE user home and configuration root.

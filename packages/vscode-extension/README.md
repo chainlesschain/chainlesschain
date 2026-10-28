@@ -10,6 +10,10 @@ MCP bridge.
 
 Open **Skill 自进化配置** from the command palette to enable or disable self-evolution. It defaults to off and shares `evolution.enabled` in the CLI user `config.json` with `cc ui` and JetBrains. Enabling can initialize the local signed runtime; disabling keeps ordinary Agent use available and preserves deployment data. Stop and restart a running Agent session after switching. These controls require CLI 0.166.127 and the paired extension version below.
 
+## Next release candidate
+
+Source candidate **0.37.168** recommends CLI **`0.166.130`** and pairs with JetBrains **0.4.185**. The extension has not been published. This candidate retains model configuration and conversation isolation fixes and incorporates the merged clean-home onboarding validation. Publication follows verified public CLI installation, exact-source IDE host gates and marketplace artifact readback. Historical task acceptance remains separate.
+
 ## Current release
 
 <!-- release167-status -->

@@ -2,6 +2,12 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## CLI 0.166.130 candidate - Goal budgets and current workspace evidence
+
+This candidate shares model Goal review with the author run budgets, cancellation and output limits, and binds completion evidence to the current workspace bytes. Unknown usage, incomplete workspace coverage and external changes prevent a completion claim. It also repairs the digest-bound security test map without changing assertions or required gates. The candidate pairs with VS Code **0.37.168** and JetBrains **0.4.185**; current child dependency pins remain unchanged and must be reviewed against the changed child sources before publication. It is not yet published. Historical accepted deliverables remain **34/45**, with **11** unfinished; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
+
+Current main also includes explicit independent Goal checks, Memory cancellation/cache changes and the Terra capability/cache-billing profile. These later changes are not covered by the preparation branch's earlier checks. Changed child packages must be released and verified before the CLI, followed by the IDEs; exact-source CLI CI and Strict Sandbox gates remain mandatory.
+
 ## CLI 0.166.129 — change review and Codex compatibility (public, 2026-10-29)
 
 This release adds isolated hermetic change-review context and a shared experimental Codex App Server support manifest with versioned three-platform probes. Install the verified public package with `npm i -g chainlesschain@0.166.129 --registry https://registry.npmjs.org`. Public Open VSX **0.37.167** and JetBrains **0.4.184** both recommend `.129`; restart the chat host and check `cc --version` and `cc doctor` after upgrading. Microsoft Marketplace is deferred and remains unpublished; use Open VSX or the versioned VSIX for VS Code.

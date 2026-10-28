@@ -1,0 +1,39 @@
+{
+  "schema": "chainlesschain.release130-security-map-repair/v1",
+  "recordedAt": "2026-10-28T18:06:06.135Z",
+  "baseCommit": "8ba644c9c5",
+  "failedCommit": "04648988ac24f8d5164c420b04b994be641ab96b",
+  "failedRun": 40738016066,
+  "failedJob": 122994436657,
+  "reason": "Reviewed headless-runner test additions changed the producer bytes without refreshing the digest-bound security map.",
+  "reviewedChange": "Commit 04648988ac added four lines asserting successful goal checkpoint evidence. The mapped managed-policy permission denial assertion is unchanged.",
+  "producer": "packages/cli/__tests__/unit/headless-runner.test.js",
+  "oldDigest": "sha256:02155e5297c9ce03a0cdf650e0eaeef5aae4e4252c00212baea1a08cadf6a726",
+  "newDigest": "sha256:78270b42437993c971512341ca17f693ac8c62c7eb589cdde00edbe56eff882c",
+  "mappedTests": {
+    "success": true,
+    "passed": 29,
+    "failed": 0,
+    "filtered": 960,
+    "reportSha256": "9558500068db7bef9f95bf9df4af2d28e1499b7d6da9edcf2c6f29b699d2708b"
+  },
+  "mapContractTestsPassed": 7,
+  "stagedMapTestsPassed": 3,
+  "sourceReview": {
+    "candidateFiles": 78,
+    "unclassifiedFiles": 0,
+    "parseErrors": 0
+  },
+  "runtime": {
+    "os": "win32",
+    "node": "v22.22.2"
+  },
+  "localLimitations": "Initial mapped runs could not resolve isolated checkout dependencies. After restoring the CLI dependency link, the unchanged mapped command passed. Local checks do not authorize publication without exact-commit Actions matrices.",
+  "candidateVersions": {
+    "cli": "0.166.130",
+    "vscode": "0.37.168",
+    "jetbrains": "0.4.185"
+  },
+  "childVersionsChanged": false,
+  "publication": "NOT_PUBLISHED"
+}

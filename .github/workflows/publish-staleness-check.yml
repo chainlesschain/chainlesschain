@@ -17,11 +17,11 @@ name: Workspace Publish Staleness Check (PR mandatory)
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
-      - 'packages/**'
-      - 'scripts/lint-publish-staleness.mjs'
-      - '.github/workflows/publish-staleness-check.yml'
+      - "packages/**"
+      - "scripts/lint-publish-staleness.mjs"
+      - ".github/workflows/publish-staleness-check.yml"
   workflow_dispatch:
 
 permissions:
@@ -39,11 +39,16 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0   # need full history for diff vs base
+          fetch-depth: 0 # need full history for diff vs base
+          # The lint reads root metadata, workspace packages and scripts. Keep
+          # complete Git history while omitting unrelated evidence/doc blobs.
+          sparse-checkout: |
+            packages
+            scripts
 
       - uses: actions/setup-node@v5
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Run publish-staleness lint
         id: lint
