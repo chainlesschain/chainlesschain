@@ -40,6 +40,10 @@ import {
   queryDigest,
   selectQueryRows,
 } from "./memory-query-index.js";
+import {
+  checkMemoryQueryAborted,
+  createMemoryQueryCheckpoint,
+} from "./memory-query-control.js";
 
 export const SEGMENTED_STORE_SCHEMA =
   "chainlesschain.cli-context-memory-store/v2";
@@ -103,6 +107,7 @@ function regular(file) {
 }
 function directories(directory) {
   let current = resolve(directory);
+  const requested = current;
   while (true) {
     const stat = lstatSync(current);
     // macOS exposes its system temporary tree through the root-owned /var
@@ -115,27 +120,26 @@ function directories(directory) {
       realpathSync(current) === `/private${current}`;
     if (!systemAlias && (!stat.isDirectory() || stat.isSymbolicLink()))
       throw corruptStore(current, "authority directory is unsafe");
-    if (process.platform === "win32") {
-      // Some Windows runtime adapters report an ordinary directory for a
-      // junction whose target cannot be decoded in their DOS namespace. Keep
-      // the lstat guard and independently reject a different native canonical
-      // coordinate before mkdir or lock acquisition. This is an additional
-      // consistency check, not a proof against every reparse tag or a race.
-      let canonical;
-      try {
-        canonical = realpathSync.native(current);
-      } catch {
-        throw corruptStore(current, "authority directory cannot be resolved");
-      }
-      if (
-        typeof canonical !== "string" ||
-        resolve(canonical).toLowerCase() !== current.toLowerCase()
-      )
-        throw corruptStore(current, "authority directory resolves elsewhere");
-    }
     const parent = dirname(current);
     if (parent === current) break;
     current = parent;
+  }
+  if (process.platform === "win32") {
+    // Native resolution of the whole path follows redirects in every ancestor.
+    // Retain lstat on every ancestor, including adapters that misclassify a
+    // junction; avoid re-resolving all the same prefixes per shard. This is a
+    // consistency check, not a proof against every reparse tag or a race.
+    let canonical;
+    try {
+      canonical = realpathSync.native(requested);
+    } catch {
+      throw corruptStore(requested, "authority directory cannot be resolved");
+    }
+    if (
+      typeof canonical !== "string" ||
+      resolve(canonical).toLowerCase() !== requested.toLowerCase()
+    )
+      throw corruptStore(requested, "authority directory resolves elsewhere");
   }
 }
 function identity(directory) {
@@ -186,7 +190,8 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     this._queryIndexes = new Map();
   }
 
-  _locked(operation) {
+  _locked(operation, options = {}) {
+    checkMemoryQueryAborted(options.signal);
     ensureSafeDirectory(dirname(this.filePath));
     directories(dirname(this.filePath));
     return super._locked(() => {
@@ -197,7 +202,7 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
         : null;
       if (existsSync(this.filePath)) regular(this.filePath);
       return operation();
-    });
+    }, options);
   }
 
   _checkDirectories() {
@@ -750,79 +755,92 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     options = {},
     { limit: count = Infinity, cursor = null } = {},
   ) {
+    const { signal } = options;
+    const checkpoint = createMemoryQueryCheckpoint(signal);
+    checkMemoryQueryAborted(signal);
     const query = normalizeListQuery(options);
-    const captured = await this._locked(() => {
-      const manifest = this._ensureQueryIndexes(this._loadManifest());
-      const binding = listCursorBinding(
-        this.filePath,
-        manifest.digest || queryDigest(JSON.stringify(manifest)),
-        query,
-      );
-      const after = decodeListCursor(cursor, binding);
-      if (manifest.schema === STORE_SCHEMA) {
-        const matches = Object.values(manifest.records)
-          .filter(
-            (row) =>
-              matchesListQuery(row, query) &&
-              (!after || compareMemoryRows(row, after) > 0),
-          )
-          .sort(compareMemoryRows);
-        const records = matches.slice(0, count);
-        return {
-          legacy: records,
-          storeRevision: manifest.storeRevision,
-          nextCursor:
-            matches.length > count
-              ? encodeListCursor(binding, records.at(-1))
-              : null,
-        };
-      }
-      // Merge each sorted posting lazily. Only the requested page is captured;
-      // every candidate has already passed scope, sink and lifecycle filters.
-      const heads = [];
-      for (const bucket of Object.keys(manifest.shards)) {
-        const iterator = selectQueryRows(
-          this._readQueryIndex(manifest, bucket),
+    const captured = await this._locked(
+      async () => {
+        const manifest = this._ensureQueryIndexes(this._loadManifest());
+        const binding = listCursorBinding(
+          this.filePath,
+          manifest.digest || queryDigest(JSON.stringify(manifest)),
           query,
-          after,
         );
-        const next = iterator.next();
-        if (!next.done) heads.push({ bucket, iterator, row: next.value });
-      }
-      const selected = [];
-      for (const row of mergeQueryRows(heads)) {
-        selected.push(row);
-        if (selected.length > count) break;
-      }
-      const more = selected.length > count;
-      if (more) selected.pop();
-      const shards = new Map();
-      for (const { bucket } of selected)
-        if (!shards.has(bucket))
-          shards.set(bucket, this._readShardBytes(manifest, bucket));
-      return {
-        manifest,
-        selected,
-        shards,
-        storeRevision: manifest.storeRevision,
-        nextCursor: more
-          ? encodeListCursor(binding, selected.at(-1).row)
-          : null,
-      };
-    });
+        const after = decodeListCursor(cursor, binding);
+        if (manifest.schema === STORE_SCHEMA) {
+          const matches = Object.values(manifest.records)
+            .filter(
+              (row) =>
+                matchesListQuery(row, query) &&
+                (!after || compareMemoryRows(row, after) > 0),
+            )
+            .sort(compareMemoryRows);
+          const records = matches.slice(0, count);
+          return {
+            legacy: records,
+            storeRevision: manifest.storeRevision,
+            nextCursor:
+              matches.length > count
+                ? encodeListCursor(binding, records.at(-1))
+                : null,
+          };
+        }
+        // Merge each sorted posting lazily. Only the requested page is captured;
+        // every candidate has already passed scope, sink and lifecycle filters.
+        const heads = [];
+        for (const bucket of Object.keys(manifest.shards)) {
+          await checkpoint();
+          const iterator = selectQueryRows(
+            this._readQueryIndex(manifest, bucket),
+            query,
+            after,
+          );
+          const next = iterator.next();
+          if (!next.done) heads.push({ bucket, iterator, row: next.value });
+        }
+        const selected = [];
+        for (const row of mergeQueryRows(heads)) {
+          selected.push(row);
+          if (selected.length > count) break;
+          if (selected.length % 256 === 0) await checkpoint();
+        }
+        const more = selected.length > count;
+        if (more) selected.pop();
+        const shards = new Map();
+        for (const { bucket } of selected) {
+          if (!shards.has(bucket)) {
+            await checkpoint();
+            shards.set(bucket, this._readShardBytes(manifest, bucket));
+          }
+        }
+        return {
+          manifest,
+          selected,
+          shards,
+          storeRevision: manifest.storeRevision,
+          nextCursor: more
+            ? encodeListCursor(binding, selected.at(-1).row)
+            : null,
+        };
+      },
+      { signal },
+    );
+    await checkpoint(true);
     if (captured.legacy)
       return {
         records: captured.legacy,
         nextCursor: captured.nextCursor,
         storeRevision: captured.storeRevision,
       };
-    const decoded = new Map(
-      [...captured.shards].map(([bucket, bytes]) => [
-        bucket,
-        this._decodeShard(captured.manifest, bucket, bytes),
-      ]),
-    );
-    const records = captured.selected.map(({ bucket, row }) => {
+    const decoded = new Map();
+    for (const [bucket, bytes] of captured.shards) {
+      await checkpoint();
+      decoded.set(bucket, this._decodeShard(captured.manifest, bucket, bytes));
+    }
+    const records = [];
+    for (const { bucket, row } of captured.selected) {
+      if (records.length % 256 === 0) await checkpoint();
       const record = own(decoded.get(bucket).records, row.memoryId);
       if (
         !record ||
@@ -833,8 +851,9 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
           this.filePath,
           "query index result disagrees with authority",
         );
-      return record;
-    });
+      records.push(record);
+    }
+    await checkpoint(true);
     return {
       records,
       nextCursor: captured.nextCursor,
@@ -857,7 +876,8 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     });
   }
 
-  async query(request) {
+  async query(request, { signal } = {}) {
+    checkMemoryQueryAborted(signal);
     if (request?.scopeAdmissions || request?.sink) {
       // Do not push recall's limit before lexical/semantic ranking in the
       // kernel. Push only gates that cannot discard an admissible result.
@@ -866,42 +886,55 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
           scopeAdmissions: request.scopeAdmissions,
           sink: request.sink,
           states: ["active", "reinforced"],
+          signal,
         })
       ).records;
     }
-    const snapshot = await this._locked(() => {
-      const manifest = this._loadManifest();
-      if (manifest.schema === STORE_SCHEMA) return { legacy: manifest };
-      let capturedBytes = 0;
-      const shards = Object.keys(manifest.shards).map((bucket) => {
-        const bytes = this._readShardBytes(manifest, bucket);
-        capturedBytes += bytes.length;
-        if (
-          capturedBytes > manifest.totalBytes ||
-          capturedBytes > this.maxTotalBytes
-        )
-          throw limit("snapshot exceeds aggregate byte limit");
-        return [bucket, bytes];
-      });
-      if (capturedBytes !== manifest.totalBytes)
-        throw corruptStore(
-          this.filePath,
-          "snapshot byte count does not match manifest",
-        );
-      return { manifest, shards };
-    });
+    const checkpoint = createMemoryQueryCheckpoint(signal);
+    const snapshot = await this._locked(
+      async () => {
+        const manifest = this._loadManifest();
+        if (manifest.schema === STORE_SCHEMA) return { legacy: manifest };
+        let capturedBytes = 0;
+        const shards = [];
+        for (const bucket of Object.keys(manifest.shards)) {
+          await checkpoint();
+          const bytes = this._readShardBytes(manifest, bucket);
+          capturedBytes += bytes.length;
+          if (
+            capturedBytes > manifest.totalBytes ||
+            capturedBytes > this.maxTotalBytes
+          )
+            throw limit("snapshot exceeds aggregate byte limit");
+          shards.push([bucket, bytes]);
+        }
+        if (capturedBytes !== manifest.totalBytes)
+          throw corruptStore(
+            this.filePath,
+            "snapshot byte count does not match manifest",
+          );
+        return { manifest, shards };
+      },
+      { signal },
+    );
+    await checkpoint(true);
     if (snapshot.legacy) return Object.values(snapshot.legacy.records);
     // The lock protects capture of every byte in one manifest generation.
     // Expensive validation uses owned buffers after releasing the lock, so GC
     // and other readers/writers need not wait for whole-store JSON validation.
-    return snapshot.shards.flatMap(([bucket, bytes]) =>
-      Object.values(
+    const records = [];
+    for (const [bucket, bytes] of snapshot.shards) {
+      await checkpoint();
+      for (const record of Object.values(
         this._decodeShard(snapshot.manifest, bucket, bytes).records,
-      ),
-    );
+      ))
+        records.push(record);
+    }
+    await checkpoint(true);
+    return records;
   }
-  async getRevision() {
-    return this._locked(() => this._loadManifest().storeRevision);
+  async getRevision({ signal } = {}) {
+    return this._locked(() => this._loadManifest().storeRevision, { signal });
   }
   async exportSnapshot() {
     return this._locked(() => {

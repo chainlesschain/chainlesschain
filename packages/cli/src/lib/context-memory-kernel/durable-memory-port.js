@@ -19,7 +19,11 @@ import {
   cloneCanonical,
   normalizeMemoryRecord,
 } from "@chainlesschain/context-memory-kernel";
-import { withFileLock } from "../with-file-lock.js";
+import { withFileLockAsync } from "../with-file-lock.js";
+import {
+  checkMemoryQueryAborted,
+  memoryLockWait,
+} from "./memory-query-control.js";
 import { getHomeDir } from "../paths.js";
 import { resolve } from "node:path";
 import {
@@ -261,11 +265,13 @@ export class DurableJsonMemoryPort {
     }
   }
 
-  _locked(operation) {
+  _locked(operation, { signal } = {}) {
+    checkMemoryQueryAborted(signal);
     mkdirSync(dirname(this.filePath), { recursive: true, mode: 0o700 });
-    return withFileLock(
+    return withFileLockAsync(
       this.filePath,
       (context) => {
+        checkMemoryQueryAborted(signal);
         if (this.lockObserver) {
           try {
             this.lockObserver({
@@ -285,6 +291,7 @@ export class DurableJsonMemoryPort {
         retryMs: 2,
         maxRetryMs: 32,
         retryJitterMs: 8,
+        _sleep: memoryLockWait(signal),
       },
     );
   }
@@ -296,15 +303,17 @@ export class DurableJsonMemoryPort {
     });
   }
 
-  async query() {
-    return this._locked(() =>
-      Object.values(this._readUnlocked().records).map(cloneCanonical),
+  async query(_request, { signal } = {}) {
+    return this._locked(
+      () => Object.values(this._readUnlocked().records).map(cloneCanonical),
+      { signal },
     );
   }
 
   async listRecords(options = {}) {
     const query = normalizeListQuery(options);
-    const records = await this.query();
+    const records = await this.query(undefined, { signal: options.signal });
+    checkMemoryQueryAborted(options.signal);
     return records
       .filter((record) => matchesListQuery(record, query))
       .sort(compareMemoryRows)
@@ -319,31 +328,34 @@ export class DurableJsonMemoryPort {
   async listPage(options = {}) {
     const query = normalizeListQuery(options);
     const count = pageLimit(options.limit);
-    return this._locked(() => {
-      const state = this._readUnlocked();
-      const binding = listCursorBinding(
-        resolve(this.filePath),
-        state.digest,
-        query,
-      );
-      const after = decodeListCursor(options.cursor, binding);
-      const matches = Object.values(state.records)
-        .filter(
-          (record) =>
-            matchesListQuery(record, query) &&
-            (!after || compareMemoryRows(record, after) > 0),
-        )
-        .sort(compareMemoryRows);
-      const records = matches.slice(0, count);
-      return {
-        records,
-        storeRevision: state.storeRevision,
-        nextCursor:
-          matches.length > count
-            ? encodeListCursor(binding, records.at(-1))
-            : null,
-      };
-    });
+    return this._locked(
+      () => {
+        const state = this._readUnlocked();
+        const binding = listCursorBinding(
+          resolve(this.filePath),
+          state.digest,
+          query,
+        );
+        const after = decodeListCursor(options.cursor, binding);
+        const matches = Object.values(state.records)
+          .filter(
+            (record) =>
+              matchesListQuery(record, query) &&
+              (!after || compareMemoryRows(record, after) > 0),
+          )
+          .sort(compareMemoryRows);
+        const records = matches.slice(0, count);
+        return {
+          records,
+          storeRevision: state.storeRevision,
+          nextCursor:
+            matches.length > count
+              ? encodeListCursor(binding, records.at(-1))
+              : null,
+        };
+      },
+      { signal: options.signal },
+    );
   }
 
   async commit({ record, event, reconciliation }, expectedRevision = 0) {
@@ -381,8 +393,8 @@ export class DurableJsonMemoryPort {
     });
   }
 
-  async getRevision() {
-    return this._locked(() => this._readUnlocked().storeRevision);
+  async getRevision({ signal } = {}) {
+    return this._locked(() => this._readUnlocked().storeRevision, { signal });
   }
 
   async getReconciliation(requestId) {

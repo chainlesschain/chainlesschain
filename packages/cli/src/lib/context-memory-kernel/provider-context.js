@@ -141,6 +141,7 @@ export async function prepareCanonicalProviderContext(
   messagesInput,
   options = {},
 ) {
+  options.signal?.throwIfAborted();
   const messages = Array.isArray(messagesInput) ? messagesInput : [];
   const sessionId = String(options.sessionId || "ephemeral-cli-session");
   const planningRequested = options.contextMemorySkipPlanning !== true;
@@ -216,22 +217,29 @@ export async function prepareCanonicalProviderContext(
     scopeAdmissions,
     limit: recallLimit,
   });
+  options.signal?.throwIfAborted();
   const recall = recallEnabled
-    ? await runtime.kernel.recallMemory({
-        query,
-        sink,
-        scopeAdmissions,
-        limit: recallLimit,
-        tokenBudget: Math.max(
-          1,
-          Math.min(32_768, Number(options.contextMemoryRecallTokens) || 4096),
-        ),
-        ...(semanticCandidates === undefined ? {} : { semanticCandidates }),
-      })
+    ? await runtime.kernel.recallMemory(
+        {
+          query,
+          sink,
+          scopeAdmissions,
+          limit: recallLimit,
+          tokenBudget: Math.max(
+            1,
+            Math.min(32_768, Number(options.contextMemoryRecallTokens) || 4096),
+          ),
+          ...(semanticCandidates === undefined ? {} : { semanticCandidates }),
+        },
+        { signal: options.signal },
+      )
     : {
         results: [],
-        memoryRevision: await runtime.memoryPort.getRevision(),
+        memoryRevision: await runtime.memoryPort.getRevision({
+          signal: options.signal,
+        }),
       };
+  options.signal?.throwIfAborted();
   const imageTransport = captureContextImageTransport(messages);
   const messageItems = adjustContextImageTokenEstimates(
     messagesToContextItems(imageTransport.messages, {
@@ -310,6 +318,7 @@ export async function prepareCanonicalProviderContext(
     sessionHead,
     memoryRevision: recall.memoryRevision,
   });
+  options.signal?.throwIfAborted();
   const selectedMessages = contextItemsToMessages(
     plan.selected.filter((item) => item.kind !== "tool-schema"),
     { sessionId },

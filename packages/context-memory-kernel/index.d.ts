@@ -1,9 +1,22 @@
 export type ContextScope =
-  "turn" | "session" | "agent" | "project" | "user" | "global";
+  | "turn"
+  | "session"
+  | "agent"
+  | "project"
+  | "user"
+  | "global";
 export type ContextTrust =
-  "host" | "verified" | "user" | "external" | "untrusted";
+  | "host"
+  | "verified"
+  | "user"
+  | "external"
+  | "untrusted";
 export type Sensitivity =
-  "public" | "internal" | "personal" | "secret" | "restricted";
+  | "public"
+  | "internal"
+  | "personal"
+  | "secret"
+  | "restricted";
 export type MemoryState =
   | "candidate"
   | "active"
@@ -257,6 +270,7 @@ export class ContextMemoryKernel {
   ): Promise<Record<string, unknown>>;
   recallMemory(
     request: Record<string, unknown>,
+    options?: { signal?: AbortSignal },
   ): Promise<Record<string, unknown>>;
   proposeMemory(
     request: Record<string, unknown>,

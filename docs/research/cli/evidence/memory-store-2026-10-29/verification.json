@@ -1,0 +1,152 @@
+{
+  "schema": "chainlesschain.memory-store-local-verification/v1",
+  "verifiedAt": "2026-10-28T19:14:05.889Z",
+  "baseHead": "2acbdba8b6eedcf509654116363193b5e60c9999",
+  "scope": "Windows local source validation; not publication, cross-platform admission, or native IDE validation",
+  "sourceDigests": {
+    "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "sha256:a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "sha256:8740e16a254d129bd025314fb61078566a0b267a7e36c76f286645864ee6bdb6",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "sha256:8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-index.js": "sha256:f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721",
+    "packages/cli/src/lib/context-memory-kernel/memory-service.js": "sha256:288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3",
+    "packages/cli/src/lib/context-memory-kernel/provider-context.js": "sha256:15692ad913ec770964051f353a07bd19a55c25eefacc4c0d530f7ad7deb2c6c6",
+    "packages/cli/src/lib/with-file-lock.js": "sha256:2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+    "packages/context-memory-kernel/lib/runtime.js": "sha256:623a687a5e28b47d2473b19e006d0fe5a506d1ec911fe1b07fb1ce912a709938",
+    "packages/context-memory-kernel/index.d.ts": "sha256:f1df5ff2b8ee8a432fa54a69ea675aa12cebdbe99a0668959367524a494472d0",
+    "packages/cli/__tests__/unit/memory-query-cancellation.test.js": "sha256:af2335a29f7cbc71d5364069fccf517a7df76c0522dfdd4d160f5c5ad4e87b49",
+    "packages/cli/__tests__/unit/segmented-memory-port.test.js": "sha256:e7ca1ad1103d72732ed4255d5b40e4123f3f5330fdd36f575b042870e013ec09",
+    "packages/context-memory-kernel/test/memory-recall-cancellation.test.js": "sha256:9c295b0b4b955cecdf2205d93cd1ed7c086712f0d4016a5120049a6bb3dc3b2c",
+    "packages/cli/scripts/memory-query-index-benchmark.mjs": "sha256:449b84b0bea52958b4b94f1c83ae6c4ad1e8fa6d4ae88c6b7db523412b56cac8",
+    "packages/cli/scripts/memory-query-responsiveness-benchmark.mjs": "sha256:d8f2aaf97ecf232842e23706b298b1f7bfbd2e208b126c4472a4df9e945ca407",
+    "packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs": "sha256:74495b4556cb3c72d49736569683aaeef053fa76ee1aba8d68438b89f18d50e7",
+    "packages/cli/scripts/persistent-capacity-benchmark.mjs": "sha256:81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939"
+  },
+  "artifactDigests": {
+    "after-responsiveness.json": "sha256:f769a5626fbe0162dc436f352b0c2f7dc6dd4f2ae34bd3cbfc8e050b87285ffb",
+    "after-validate-disk.json": "sha256:a6e2bd9b2b9563eb633c6c7d3144fedbb3367d409cbeb516bcecf433d2cb690d",
+    "baseline-responsiveness.json": "sha256:30b97716c4a4bf2b04e0bf4e5d768ebb20254f97249ce366d06ef00a33b756d0",
+    "baseline-validate-disk.json": "sha256:8ae3baa7c7029eb149511b8379b6a011876123c2bd1f29e3b0d4c77075ad0feb",
+    "cli-kernel-regression.tap": "sha256:94f2b0dd4d5c09078e61bb7fe131fe169b4a4b0374421e6827ad138e1bf509e7",
+    "mixed-concurrency.json": "sha256:e2c0bcbe5077663ab16a0b0d432803e8a9cda820547dd5f1562bcb7a99bdc5c4",
+    "supplemental-regression.json": "sha256:fed0971769fc5322356f97689833d1d99a83dec1a96f8f59a5156d2fc4e52100"
+  },
+  "fixtureComparisons": [
+    {
+      "count": 1000,
+      "expectedDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+      "matched": true,
+      "hotP95ReductionPercent": 49.76112429649869
+    },
+    {
+      "count": 10000,
+      "expectedDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+      "matched": true,
+      "hotP95ReductionPercent": 43.62847834981993
+    },
+    {
+      "count": 100000,
+      "expectedDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+      "matched": true,
+      "hotP95ReductionPercent": 4.9182840877814655
+    }
+  ],
+  "afterImplementationDigestsStillMatch": true,
+  "baselineHarnessReconstruction": {
+    "source": "packages/cli/scripts/memory-query-responsiveness-benchmark.mjs",
+    "removeSourceDigestListEntry": "../src/lib/context-memory-kernel/memory-query-control.js",
+    "sha256": "sha256:a0afc70aca6d34c432af4b45f335c860a4d28982239ff23d7fd34230c1025575",
+    "matchesArchivedBaseline": true,
+    "workloadChanged": false
+  },
+  "localTests": [
+    {
+      "runner": "Vitest",
+      "cwd": "packages/cli",
+      "files": [
+        "__tests__/unit/memory-query-cancellation.test.js",
+        "__tests__/unit/memory-query-index.test.js",
+        "__tests__/unit/segmented-memory-port.test.js",
+        "__tests__/unit/durable-memory-port-limits.test.js",
+        "__tests__/unit/memory-show-pagination.test.js",
+        "__tests__/unit/memory-status.test.js",
+        "__tests__/unit/with-file-lock-async.test.js",
+        "__tests__/unit/provider-model-profile.test.js"
+      ],
+      "maxWorkers": 1,
+      "passed": 97,
+      "skipped": 1,
+      "failed": 0,
+      "exitCode": 0,
+      "source": "observed tool result; no raw reporter file for this invocation"
+    },
+    {
+      "runner": "node:test",
+      "cwd": "packages/context-memory-kernel",
+      "command": "node --test test/*.test.js",
+      "passed": 124,
+      "skipped": 0,
+      "failed": 0,
+      "exitCode": 0,
+      "source": "observed tool result; includes nested conformance tests"
+    },
+    {
+      "runner": "node:test",
+      "cwd": "packages/cli",
+      "command": "node --test --test-reporter=tap test-node/context-memory-kernel.node-test.mjs",
+      "passed": 26,
+      "skipped": 0,
+      "failed": 0,
+      "exitCode": 0,
+      "report": "cli-kernel-regression.tap",
+      "reportEncoding": "UTF-8 with LF; original PowerShell TAP text transcoded without content changes"
+    },
+    {
+      "runner": "Vitest",
+      "cwd": "packages/cli",
+      "files": [
+        "__tests__/unit/persistent-capacity-benchmark.test.js",
+        "__tests__/unit/provider-context-image-transport.test.js"
+      ],
+      "passed": 12,
+      "skipped": 0,
+      "failed": 0,
+      "exitCode": 0,
+      "report": "supplemental-regression.json"
+    }
+  ],
+  "uniqueTests": {
+    "passed": 259,
+    "skipped": 1,
+    "failed": 0
+  },
+  "benchmarkTotals": {
+    "diskQuerySamples": 264,
+    "stopSamplesBefore": 66,
+    "stopSamplesAfter": 66,
+    "stopAcknowledgedBefore": 0,
+    "stopAcknowledgedAfter": 66,
+    "mixedRounds": 33,
+    "mixedProcessTasks": 264,
+    "mixedReads": 132,
+    "mixedUpdates": 66,
+    "mixedDeletePurgeTasks": 66,
+    "mixedCommits": 198
+  },
+  "providerCalls": 0,
+  "fullStoreSloVerified": false,
+  "localStopTargetMet": true,
+  "lint": {
+    "status": "not-run-successfully",
+    "exitCode": 1,
+    "reason": "ESLint 9.39.5 cannot resolve @eslint-community/eslint-utils"
+  },
+  "ci": {
+    "status": "resulting-source-commit-matrix-not-yet-verified"
+  },
+  "limitations": [
+    "All latency measurements are local and sequential; operating-system caches were not flushed.",
+    "Cooperative Stop cannot preempt one synchronous filesystem call, shard decode, legacy migration, or kernel ranking.",
+    "New host-control signal support in the child kernel is source-only until the normal child-first release.",
+    "The mixed workload uses disjoint mutation IDs; it is not a crash test or a sustained production workload."
+  ]
+}

@@ -403,13 +403,21 @@ export class CliCanonicalMemoryService {
     return result;
   }
 
-  async list({ limit = 20, category, scopeAdmissions, sink, tags } = {}) {
+  async list({
+    limit = 20,
+    category,
+    scopeAdmissions,
+    sink,
+    tags,
+    signal,
+  } = {}) {
     const records = await this.runtime.memoryPort.listRecords({
       limit: Math.max(1, Number(limit) || 20),
       category,
       scopeAdmissions,
       sink,
       tags,
+      signal,
     });
     return records
       .filter((record) => !category || record.category === category)
@@ -548,13 +556,16 @@ export class CliCanonicalMemoryService {
   async recallScoped(query, options = {}) {
     const scope = normalizedScope(options.scope, options.scopeId);
     const limit = Math.max(1, Math.min(1000, Number(options.limit) || 10));
-    const recalled = await this.runtime.kernel.recallMemory({
-      query: String(query || "").trim() || "*",
-      sink: options.sink || "cli.display",
-      scopeAdmissions: [scope],
-      limit: 1000,
-      tokenBudget: 1_048_576,
-    });
+    const recalled = await this.runtime.kernel.recallMemory(
+      {
+        query: String(query || "").trim() || "*",
+        sink: options.sink || "cli.display",
+        scopeAdmissions: [scope],
+        limit: 1000,
+        tokenBudget: 1_048_576,
+      },
+      { signal: options.signal },
+    );
     const tags = normalizedTags(options.tags);
     const entries = recalled.results
       .filter(
@@ -567,14 +578,17 @@ export class CliCanonicalMemoryService {
     return { ...recalled, results: entries };
   }
 
-  async search(query, { limit = 20, sink = "cli.display" } = {}) {
-    const recalled = await this.runtime.kernel.recallMemory({
-      query,
-      sink,
-      scopeAdmissions: [{ scope: "user", scopeId: "local-user" }],
-      limit: Math.max(1, Number(limit) || 20),
-      tokenBudget: 32_768,
-    });
+  async search(query, { limit = 20, sink = "cli.display", signal } = {}) {
+    const recalled = await this.runtime.kernel.recallMemory(
+      {
+        query,
+        sink,
+        scopeAdmissions: [{ scope: "user", scopeId: "local-user" }],
+        limit: Math.max(1, Number(limit) || 20),
+        tokenBudget: 32_768,
+      },
+      { signal },
+    );
     return {
       ...recalled,
       entries: recalled.results.map((result) =>

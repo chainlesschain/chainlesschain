@@ -154,11 +154,16 @@ class ContextMemoryKernel {
     });
   }
 
-  async recallMemory(request) {
+  async recallMemory(request, { signal } = {}) {
+    signal?.throwIfAborted();
     const port = this._requireMemoryPort();
-    const records = await port.query(request);
+    const records = await port.query(request, { signal });
+    signal?.throwIfAborted();
     const result = rankMemoryRecords(records, request);
-    return { ...result, memoryRevision: await port.getRevision() };
+    signal?.throwIfAborted();
+    const memoryRevision = await port.getRevision({ signal });
+    signal?.throwIfAborted();
+    return { ...result, memoryRevision };
   }
 
   async proposeMemory(request) {

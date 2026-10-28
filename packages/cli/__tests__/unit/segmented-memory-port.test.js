@@ -126,15 +126,17 @@ describe("segmented memory authority", () => {
     });
     expect(readdirSync(target)).toEqual([]);
   });
-  it.runIf(process.platform === "win32")(
-    "rejects a real junction through native canonical metadata when lstat reports a plain directory",
-    async () => {
+  it.runIf(process.platform === "win32").each([false, true])(
+    "rejects a real junction through native metadata when lstat reports a plain directory (existing child: %s)",
+    async (existingChild) => {
       const filePath = location();
       const root = join(filePath, "..");
       const target = join(root, "target");
       const link = join(root, "linked");
       mkdirSync(target);
       symlinkSync(target, link, "junction");
+      if (existingChild) mkdirSync(join(target, "existing"));
+      const existing = existingChild ? join(link, "existing") : link;
       const originalLstat = fs.lstatSync;
       expect(originalLstat(link).isSymbolicLink()).toBe(true);
       expect(fs.realpathSync.native(link)).toBe(fs.realpathSync.native(target));
@@ -149,15 +151,17 @@ describe("segmented memory authority", () => {
       const mkdir = vi.spyOn(fs, "mkdirSync");
       syncBuiltinESMExports();
       const port = new SegmentedMemoryPort({
-        filePath: join(link, "nested", "authority.json"),
+        filePath: join(existing, "nested", "authority.json"),
       });
       await expect(port.query()).rejects.toMatchObject({
         code: "CONTEXT_MEMORY_STORE_CORRUPT",
       });
       expect(lstat).toHaveBeenCalledWith(link);
-      expect(native).toHaveBeenCalledWith(link);
+      expect(native).toHaveBeenCalledWith(existing);
       expect(mkdir).not.toHaveBeenCalled();
-      expect(readdirSync(target)).toEqual([]);
+      expect(readdirSync(target)).toEqual(existingChild ? ["existing"] : []);
+      if (existingChild)
+        expect(readdirSync(join(target, "existing"))).toEqual([]);
     },
   );
   it.runIf(process.platform === "win32")(
