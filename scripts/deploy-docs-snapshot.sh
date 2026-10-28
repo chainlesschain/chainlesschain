@@ -157,14 +157,14 @@ for site in "${staged[@]}"; do
   test -f "$live/index.html"
   echo "LIVE $site; rollback directory: $backup"
 done
-curl --resolve docs.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-28.html -o "$prefix-origin-docs.html"
-curl --resolve design.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://design.chainlesschain.com/release-runtime-update-2026-10-28.html -o "$prefix-origin-design.html"
+curl --resolve docs.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-29.html -o "$prefix-origin-docs.html"
+curl --resolve design.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://design.chainlesschain.com/release-runtime-update-2026-10-29.html -o "$prefix-origin-design.html"
 curl --resolve www.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://www.chainlesschain.com/ -o "$prefix-origin-www.html"
-grep -Fq '0.166.128' "$prefix-origin-docs.html"
-grep -Fq '0.166.128' "$prefix-origin-design.html"
-grep -Fq '0.166.128' "$prefix-origin-www.html"
-grep -Fq '0.37.166' "$prefix-origin-www.html"
-grep -Fq '0.4.183' "$prefix-origin-www.html"
+for site in docs design www; do
+  for version in 0.166.129 0.37.167 0.4.184; do
+    grep -Fq "$version" "$prefix-origin-$site.html"
+  done
+done
 grep -Fq 'v5.0.3.143' "$prefix-origin-www.html"
 grep -Fq '6 万+' "$prefix-origin-www.html"
 trap - EXIT
