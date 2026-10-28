@@ -40,11 +40,12 @@ import {
 } from "../lib/jetbrains-bridge.js";
 import { collectPluginMcpServers } from "../lib/plugin-runtime/mcp.js";
 import { EventRuntimeStore } from "../lib/event-runtime-store.js";
-import { mcpEffectDescriptorFields } from "../lib/mcp-effect-contract.js";
+import { publishMcpToolCatalog } from "../lib/mcp-tool-catalog-authority.js";
+import { refreshMcpToolSearch } from "./mcp-tool-search.js";
 import {
-  admitMcpToolList,
-  isMcpToolMetadataError,
-} from "../lib/mcp-tool-metadata.js";
+  registerMcpCatalogServer,
+  settleMcpCatalogServer,
+} from "./mcp-agent-catalog.js";
 import { issueMcpStdioExecutionAuthority } from "../lib/mcp-stdio-execution-authority.js";
 import {
   MCP_SANDBOX_POLICY_INVALID_CODE,
@@ -731,6 +732,10 @@ export async function setupMcpFromConfig(servers, deps = {}) {
         // OAuth wiring is best-effort
       }
     }
+    registerMcpCatalogServer(result, name, cfg, writeErr, {
+      connectConfig: connectCfg,
+      authorizationRefresh: connectCfg !== cfg,
+    });
     let res;
     try {
       res = await mcpClient.connect(name, connectCfg);
@@ -738,21 +743,15 @@ export async function setupMcpFromConfig(servers, deps = {}) {
       let line = `  mcp: failed to connect "${name}": ${err.message}\n`;
       const hint = mcpAuthHint(cfg.url, err.message);
       if (hint) line += hint;
+      settleMcpCatalogServer(result, name);
       writeErr(line);
       continue;
     }
-    let tools = [];
-    let toolMetadataError = null;
-    try {
-      const admitted = admitMcpToolList(name, res?.tools ?? [], cfg, {
-        clientBytesUsed: result._mcpToolMetadataBytes,
-      });
-      tools = admitted.tools;
-      result._mcpToolMetadataBytes += admitted.metadataBytes;
-    } catch (error) {
-      if (!isMcpToolMetadataError(error)) throw error;
-      toolMetadataError = error;
-    }
+    const { tools, error: toolMetadataError } = settleMcpCatalogServer(
+      result,
+      name,
+      res,
+    );
     const resources = Array.isArray(res?.resources) ? res.resources : [];
     const resourceTemplates = Array.isArray(res?.resourceTemplates)
       ? res.resourceTemplates
@@ -795,59 +794,6 @@ export async function setupMcpFromConfig(servers, deps = {}) {
       if (!p || !p.name) continue;
       result.prompts.push({ ...p, server: name });
     }
-    const toolResultConfig = Object.freeze({
-      ...(Number.isFinite(cfg.maxToolResultBytes)
-        ? { maxToolResultBytes: cfg.maxToolResultBytes }
-        : {}),
-      ...(Number.isFinite(cfg.maxToolResultDepth)
-        ? { maxToolResultDepth: cfg.maxToolResultDepth }
-        : {}),
-      ...(Number.isFinite(cfg.maxToolResultNodes)
-        ? { maxToolResultNodes: cfg.maxToolResultNodes }
-        : {}),
-    });
-    const hasToolResultConfig = Object.keys(toolResultConfig).length > 0;
-    for (const t of tools) {
-      if (!t || !t.name) continue;
-      const full = mcpToolName(name, t.name);
-      extraToolDefinitions.push({
-        type: "function",
-        function: {
-          name: full,
-          description:
-            t.description || `MCP tool "${t.name}" on server "${name}"`,
-          parameters: t.inputSchema || { type: "object", properties: {} },
-        },
-      });
-      externalToolExecutors[full] = {
-        kind: "mcp",
-        serverName: name,
-        toolName: t.name,
-        ...(hasToolResultConfig ? { toolResultConfig } : {}),
-      };
-      externalToolDescriptors[full] = {
-        name: full,
-        kind: "mcp",
-        category: "mcp",
-        // A trusted plugin MCP server carries immutable plugin provenance in
-        // its collected server config. Preserve it at the tool descriptor
-        // boundary so toolAttribution and persisted usage can distinguish a
-        // plugin-provided MCP tool from a user/project MCP server.
-        source: cfg.pluginId ? `plugin:${cfg.pluginId}` : name,
-        ...(cfg.pluginVersion ? { version: cfg.pluginVersion } : {}),
-        ...mcpEffectDescriptorFields(t, {
-          // This records source identity trust only. It does NOT authorize the
-          // server-declared effect for Plan mode or unattended execution.
-          sourceTrusted:
-            cfg.configScope === "managed" ||
-            Boolean(cfg.pluginId && cfg.pluginWorkspaceAuthority),
-          provenance:
-            cfg.configSource ||
-            cfg.pluginSource ||
-            (cfg.configScope ? `${cfg.configScope}:${name}` : `mcp:${name}`),
-        }),
-      };
-    }
   }
 
   // Expose MCP resources to the LLM as generic read-only tools. A
@@ -860,6 +806,9 @@ export async function setupMcpFromConfig(servers, deps = {}) {
   if (result.resourceTemplates.length > 0) {
     registerMcpResourceTemplateTool(result);
   }
+
+  refreshMcpToolSearch(result);
+  publishMcpToolCatalog(result, { create: true });
 
   return result;
 }

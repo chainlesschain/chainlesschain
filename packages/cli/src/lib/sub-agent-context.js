@@ -23,6 +23,7 @@ import { feature } from "./feature-flags.js";
 import { isEvolutionIngressFailure } from "./model-failure-policy.js";
 import { isFormalBudgetError } from "./formal-budget-errors.js";
 import { captureAgentEvolutionIngress } from "./evolution/agent-evolution-ingress.js";
+import { captureMcpToolCatalog } from "./mcp-tool-catalog-authority.js";
 import {
   createWorktree,
   removeWorktree,
@@ -359,6 +360,7 @@ export class SubAgentContext {
         ? options.externalToolExecutors
         : {};
     this._mcpClient = options.mcpClient || null;
+    this._mcpToolCatalog = captureMcpToolCatalog(options.mcpToolCatalog);
     this._mcpHostClient = options.mcpHostClient || this._mcpClient;
     this._mcpCallLedger = options.mcpCallLedger || null;
     this._mcpConflictScheduler = options.mcpConflictScheduler || null;
@@ -880,6 +882,9 @@ export class SubAgentContext {
     }
     if (this._mcpClient) {
       options.mcpClient = this._mcpClient;
+    }
+    if (this._mcpToolCatalog) {
+      options.mcpToolCatalog = this._mcpToolCatalog;
     }
     if (this._mcpHostClient) {
       options.mcpHostClient = this._mcpHostClient;

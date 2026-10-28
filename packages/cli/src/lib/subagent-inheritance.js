@@ -17,6 +17,61 @@
  *
  * @module subagent-inheritance
  */
+import {
+  projectMcpToolCatalog,
+  restrictMcpToolCatalog,
+} from "./mcp-tool-catalog-authority.js";
+
+/** Keep a child's directory live without broadening its captured contract. */
+export function createInheritedMcpToolCatalog(
+  parent,
+  allow,
+  requestedTools,
+  effectiveTools,
+) {
+  const servers = Array.isArray(allow) ? Object.freeze([...allow]) : null;
+  const names = Array.isArray(requestedTools)
+    ? Object.freeze([...requestedTools])
+    : null;
+  const staticParentNames =
+    parent.mcpCatalogBinding?.authority !== parent.mcpToolCatalog &&
+    Array.isArray(parent.effectiveAllowedToolNames)
+      ? Object.freeze([...parent.effectiveAllowedToolNames])
+      : null;
+  return projectMcpToolCatalog(
+    parent.mcpToolCatalog,
+    (snapshot, previous) => {
+      let inherited = filterInheritedMcp(snapshot, servers) || {
+        extraToolDefinitions: [],
+        externalToolDescriptors: {},
+        externalToolExecutors: {},
+      };
+      if (names) inherited = restrictMcpToolCatalog(inherited, names);
+      if (staticParentNames)
+        inherited = restrictMcpToolCatalog(inherited, staticParentNames);
+      if (previous) {
+        const registries = new Set(
+          Object.values(inherited.externalToolExecutors)
+            .map((executor) => executor.registry)
+            .filter(Boolean),
+        );
+        for (const registry of registries) registry.loaded.clear();
+        for (const [name, executor] of Object.entries(
+          inherited.externalToolExecutors,
+        )) {
+          if (
+            executor.registry &&
+            previous.identities.get(name) === snapshot.identities.get(name) &&
+            previous.externalToolExecutors[name]?.registry?.loaded.has(name)
+          )
+            executor.registry.loaded.add(name);
+        }
+      }
+      return inherited;
+    },
+    { extendSelection: names === null, selectionBase: effectiveTools },
+  );
+}
 
 /** Extract the server segment from an `mcp__<server>__<tool>` wire name. */
 export function mcpServerOf(name) {

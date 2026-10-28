@@ -1,0 +1,468 @@
+{
+  "observedAt": "2026-10-28T23:37:45.300Z",
+  "baseCommit": "05e55e40d7fd4a22e9fc0ef02974db0a68fd9f55",
+  "sourceBinding": "final.json.gz binds to the captured working-tree source hashes; baseCommit alone is not the tested source. Earlier attempts used intermediate source or fixtures and are retained as history, not final-source proof.",
+  "runtime": {
+    "node": "v22.22.2",
+    "platform": "win32",
+    "architecture": "x64"
+  },
+  "configuration": "CLI standard Vitest config, two workers. Final run: 20 suites, 407 assertions, zero failures or skips. No paid provider calls. Injected model response function; real parent/child context and agent loops. Six integration cases use real loopback HTTP MCP initialize, tools/list and tools/call transports; remaining fixtures isolate policy and catalog behavior.",
+  "sources": [
+    {
+      "path": "packages/cli/src/lib/mcp-tool-catalog-authority.js",
+      "sha256": "5820f925dc54e0d464838ea4a6274751c483f6d010c4c1d80ef59139fea5c94a",
+      "gitBlob": "9b000ab3506fdef03ff755e1cac740b6b487c4a1"
+    },
+    {
+      "path": "packages/cli/src/runtime/mcp-agent-catalog.js",
+      "sha256": "7b29730175c43a133740108dc168b553a592cb162315b974b2b0bcfa5787ec68",
+      "gitBlob": "086e658155ee4d8cad513bdcadea9777d9c50209"
+    },
+    {
+      "path": "packages/cli/src/lib/sub-agent-context.js",
+      "sha256": "fb9802f8b8019d33ac5b5af046ab9d6f9cd934855b26ecd93947903d229bad72",
+      "gitBlob": "45644e6a83d03e569193f74060a6b1164c8cd1a1"
+    },
+    {
+      "path": "packages/cli/src/lib/subagent-inheritance.js",
+      "sha256": "39ca448fccc84ea354d396b00134e3b3475047ee396266118e9b0f41185d3cb6",
+      "gitBlob": "c4005380e0814aeb33f71a23778841321c5cb4fa"
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "sha256": "e75f5a5d8a335cabd7c791b0d654d3e2a6dbf2179143abfc02472893c072f53a",
+      "gitBlob": "cc571ab4de55b80989a68a4cde5220519575131a"
+    },
+    {
+      "path": "packages/cli/src/runtime/mcp-config.js",
+      "sha256": "7d03e4f4fa0e0ef058d3df6e01d868246f18819eaf3dd05d7f9ae552839b311b",
+      "gitBlob": "3148dab6647acc0c09d8d395805afe4eb8d68ca5"
+    },
+    {
+      "path": "packages/cli/src/runtime/mcp-tool-search.js",
+      "sha256": "de63c138868a8d52fd3ef0e791e065166250240fb9df2c54611c002e22b50eca",
+      "gitBlob": "f996036dbfb3e78ac361a8b00282fdaf28c5b12d"
+    },
+    {
+      "path": "packages/cli/src/runtime/headless-runner.js",
+      "sha256": "060af8d8fa0f3b37681a9ab5966beeb5e43c3df885c4a2410f0d1868c44ea3b3",
+      "gitBlob": "a44a4aaa5da33c360eec450856fe5802b62d845e"
+    },
+    {
+      "path": "packages/cli/src/repl/agent-repl.js",
+      "sha256": "aed980601209c824706bb92a4943a3826d2dcfb54a2ecdd2dfecbeb40d3704d6",
+      "gitBlob": "f5cdbc0a81f7f5b3cd1be6ba259ac83d7f17452d"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/mcp-tool-catalog-authority.test.js",
+      "sha256": "843835d1eb12ff4f57dd75afb64da7bf6829d50299bef9d39f711d09b728aa02",
+      "gitBlob": "b25973ccf47ebbf0ef236aac57db5ce22c88d833"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/subagent-mcp-late-connection.test.js",
+      "sha256": "0aecfbbe1575e5c92eabf5e78dd1e78044c008f31c652175c2ea332fef434563",
+      "gitBlob": "07ef8d0806f8889d046a146cfd92dc5a04aee118"
+    },
+    {
+      "path": "packages/cli/vitest.config.js",
+      "sha256": "a1b30cb7d677348dd9c9a625373c7532b6c333436a357b633237bd911b1f3770",
+      "gitBlob": "90684d942a776b7cfbf056187efdf603dc746d53"
+    }
+  ],
+  "results": [
+    {
+      "file": "authority.json.gz",
+      "success": true,
+      "suites": 2,
+      "passed": 82,
+      "failed": 0,
+      "skipped": 0,
+      "failures": []
+    },
+    {
+      "file": "config-binding.json.gz",
+      "success": true,
+      "suites": 3,
+      "passed": 105,
+      "failed": 0,
+      "skipped": 0,
+      "failures": []
+    },
+    {
+      "file": "diagnostic.json.gz",
+      "success": false,
+      "suites": 1,
+      "passed": 0,
+      "failed": 1,
+      "skipped": 6,
+      "failures": [
+        "late MCP connection inherited by an already running subagent discovers and invokes the late tool in compact mode"
+      ]
+    },
+    {
+      "file": "dispatch-boundaries.json.gz",
+      "success": false,
+      "suites": 1,
+      "passed": 14,
+      "failed": 1,
+      "skipped": 0,
+      "failures": [
+        "late MCP connection inherited by an already running subagent rejects catalog revocation during admission wait before HTTP dispatch"
+      ]
+    },
+    {
+      "file": "final.json.gz",
+      "success": true,
+      "suites": 20,
+      "passed": 407,
+      "failed": 0,
+      "skipped": 0,
+      "failures": []
+    },
+    {
+      "file": "first.json.gz",
+      "success": false,
+      "suites": 1,
+      "passed": 0,
+      "failed": 7,
+      "skipped": 0,
+      "failures": [
+        "late MCP connection inherited by an already running subagent discovers and invokes the late tool in compact mode",
+        "late MCP connection inherited by an already running subagent discovers and invokes the late tool in stubs mode",
+        "late MCP connection inherited by an already running subagent keeps capability and policy ceilings after late connection: {\"fresh\":true}",
+        "late MCP connection inherited by an already running subagent keeps capability and policy ceilings after late connection: {\"parentNames\":[\"spawn_sub_agent\",\"list_files\"]}",
+        "late MCP connection inherited by an already running subagent keeps capability and policy ceilings after late connection: {\"childTools\":[\"list_files\"]}",
+        "late MCP connection inherited by an already running subagent keeps capability and policy ceilings after late connection: {\"childServer\":\"private\"}",
+        "late MCP connection inherited by an already running subagent keeps capability and policy ceilings after late connection: {\"hostDeny\":true}"
+      ]
+    },
+    {
+      "file": "host-regression.json.gz",
+      "success": false,
+      "suites": 4,
+      "passed": 132,
+      "failed": 3,
+      "skipped": 0,
+      "failures": [
+        "setupMcpFromConfig appends a `cc mcp login` hint when a URL server fails with HTTP 401",
+        "setupMcpFromConfig surfaces res.toolsError (connected but tools fetch failed) instead of a silent 0-tools, with auth hint on 401",
+        "setupMcpFromConfig a non-auth toolsError is reported without a login hint"
+      ]
+    },
+    {
+      "file": "http.json.gz",
+      "success": false,
+      "suites": 1,
+      "passed": 10,
+      "failed": 1,
+      "skipped": 0,
+      "failures": [
+        "late MCP connection inherited by an already running subagent does not resume an aborted child when a real late handshake completes"
+      ]
+    },
+    {
+      "file": "negative-cancellation.json.gz",
+      "success": false,
+      "suites": 1,
+      "passed": 0,
+      "failed": 1,
+      "skipped": 14,
+      "failures": [
+        "late MCP connection inherited by an already running subagent does not resume an aborted child when a real late handshake completes"
+      ]
+    },
+    {
+      "file": "negative-forwarding.json.gz",
+      "success": false,
+      "suites": 1,
+      "passed": 0,
+      "failed": 3,
+      "skipped": 10,
+      "failures": [
+        "late MCP connection inherited by an already running subagent discovers and invokes the late tool in compact mode",
+        "late MCP connection inherited by an already running subagent discovers and invokes the late tool in stubs mode",
+        "late MCP connection inherited by an already running subagent completes a real HTTP initialize, list and tool call after the child has started"
+      ]
+    },
+    {
+      "file": "regression.json.gz",
+      "success": true,
+      "suites": 20,
+      "passed": 405,
+      "failed": 0,
+      "skipped": 0,
+      "failures": []
+    },
+    {
+      "file": "second.json.gz",
+      "success": true,
+      "suites": 1,
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "failures": []
+    }
+  ],
+  "negativeControls": {
+    "forwarding": "Transform removes only the child live-catalog forwarding field; compact, stubs and real HTTP late-connection cases all fail (3/3).",
+    "cancellation": "Transform removes only foreground child signal forwarding; the HTTP cancellation case fails (4 child model requests instead of 1).",
+    "method": "Vitest pre-transform; production files on disk are not modified. Other tests are filtered and skipped by design in negative-only runs."
+  },
+  "intermediateFailures": {
+    "first": "Child fixture did not inject chatFn; production correctly does not inherit caller provider functions. Initial 7 failures plus diagnostic rerun are not catalog defect evidence.",
+    "hostRegression": "3 of 135 tests exposed legacy fake clients with servers.has but no Map/get. The refresh reader now limits live polling to real Map entries.",
+    "http": "1 of 11 failed: parent abort was not forwarded to foreground child. Production fix forwards the signal; a separate negative control reproduces the failure.",
+    "dispatchBoundaries": "1 of 15 failed: fixture used an async host admission callback despite the synchronous one-shot transport contract. Fixture changed to synchronous schema replacement before send; final assertions require no HTTP tool dispatch."
+  },
+  "checks": {
+    "commandManifest": "pass",
+    "processSpawnInventory": "pass after regenerating line references only",
+    "diffCheck": "pass"
+  },
+  "limits": [
+    "Not real model, real account or dual IDE acceptance",
+    "No production network or OS signal/IDE Stop claim",
+    "No mixed-platform runtime measurement",
+    "Generic MCP resources, prompts and subscriptions do not gain a new live-inheritance contract in this batch",
+    "Initial stdio failure recovery remains fail-closed if normalized reconnect configuration differs from the captured unconnected source",
+    "No new task products; 34/45 unchanged; native request remains unresolved and was not replayed",
+    "Not part of fixed e7 .130 release source"
+  ],
+  "artifacts": [
+    {
+      "path": "authority.json.gz",
+      "bytes": 4192,
+      "sha256": "9c67a18ef68c027861724055d16118b9bbfecf513783f8a9de333d7b91665e58",
+      "uncompressedSha256": "3cd5ca2296993d67773d6ad25e3475c7797821d6f63e36c8fb30ab3d300fb2c0"
+    },
+    {
+      "path": "config-binding.json.gz",
+      "bytes": 5221,
+      "sha256": "edc49914d15faf5bc07af9866cf7cf084a8bae2c143f9e6d916b0680a460f953",
+      "uncompressedSha256": "c6894920832465de5ffc40af870742ebc00cdfddb7409b7c8ace65a41a6127e2"
+    },
+    {
+      "path": "diagnostic.json.gz",
+      "bytes": 1380,
+      "sha256": "a79559a2e65a8f2a1874bfc65ce42e1a11e96b62dcfb6eead2f04bdf0baa9879",
+      "uncompressedSha256": "98407202c33e2d969ee0759ef17dacfaf6c85b403c587a331caa39f2d18a5287"
+    },
+    {
+      "path": "dispatch-boundaries.json.gz",
+      "bytes": 1234,
+      "sha256": "8dfad7834f0e545810d2a464269ea12b889f77308bc089fcbd5123687d754600",
+      "uncompressedSha256": "9e5ab199130d86e10c51d45579514cbb21498141c5c4607983f18fa8e488f9f6"
+    },
+    {
+      "path": "final.json.gz",
+      "bytes": 17893,
+      "sha256": "e26499cef745a9c075cc69ee4a8c4da4adfadcc1f60bcbf16e9f251d9c9272f6",
+      "uncompressedSha256": "b6bc3aea184c078469f13b745012bd39e91e4dc618100cfec270a8c7448eeedb"
+    },
+    {
+      "path": "first.json.gz",
+      "bytes": 992,
+      "sha256": "eeac9e79c8e511b9765c477183ab58fa9136ee0d9708b0dfbf71f7f3540b4073",
+      "uncompressedSha256": "cc8775eb42d40f06dc356731bdc2ca0055b8809fd68a73a079ffcedf01b23554"
+    },
+    {
+      "path": "host-regression.json.gz",
+      "bytes": 6835,
+      "sha256": "45de50eb28a475ff773cf50c21a6afd1726092eb7119d2ed1c87f4c30d018f4a",
+      "uncompressedSha256": "e15c4e6d2c7429a658e304a7b31d392794b21ca3464a40a4fe45ee1f2f601559"
+    },
+    {
+      "path": "http.json.gz",
+      "bytes": 1184,
+      "sha256": "72e769648b4eca95df5b974770db4727fccb43563c8fe375238dd038d3dba42d",
+      "uncompressedSha256": "124ba0d4b6a096d07ffdf956bedce338b98e6bf2976b037031843be8d346bcf1"
+    },
+    {
+      "path": "negative-cancellation.json.gz",
+      "bytes": 1134,
+      "sha256": "e045a5a887d1bda140a60de065c6deaba001db71bc75f83914bd375e13fba7e0",
+      "uncompressedSha256": "57db152fe3ef4329c1df05d72b9501730725a1ac5bc7859e54927b0bf521689a"
+    },
+    {
+      "path": "negative-forwarding.json.gz",
+      "bytes": 1125,
+      "sha256": "0085946b4cf2f9e06a28e04599bd4dad35ebac2cc6679a1b00ae70f277043db4",
+      "uncompressedSha256": "fd2eeddc284b67ad51a13f6c3b694b0c6dfd108adb9ff589819edc26297825ff"
+    },
+    {
+      "path": "regression.json.gz",
+      "bytes": 17915,
+      "sha256": "1921431145d165ed0b08d801cf3a48ffe4305bb4629d2095bfe82ab3265f021f",
+      "uncompressedSha256": "e05308d420bb2db1c23f063edd55afb9c61ea823222795a47d7b299429f51305"
+    },
+    {
+      "path": "second.json.gz",
+      "bytes": 729,
+      "sha256": "95aa6967ed24d0d84047baa0f2f566c780ed1bd1c0e4dd679496c6f61c3b57fc",
+      "uncompressedSha256": "ed6ab8397939498b6c3a6d86507ed06f469d8f59ed6d8501fe7ff7578d555711"
+    },
+    {
+      "path": "authority.log.gz",
+      "bytes": 262,
+      "sha256": "3489f3bc743bf2d8cfc6d237f666252b8b4337717277c9ff94654650e2a90d70",
+      "uncompressedSha256": "d1cd532de7cae97e87c77210a53e39af766db0f16ca066033ccde453fc41fe4a"
+    },
+    {
+      "path": "config-binding.log.gz",
+      "bytes": 132,
+      "sha256": "d6b2be807d07f87e6fd9b6cca9770a7f4030a7b8228a538d0e24f7ab8a2ccb54",
+      "uncompressedSha256": "3d36f9fe530e0ed995b96b8f5298bde2aa7e5e10959bf626a22a4a35191e7e11"
+    },
+    {
+      "path": "diagnostic.log.gz",
+      "bytes": 275,
+      "sha256": "617eb3c91c03445ac92dbbd824fe84536bef71e25b5505e1f43638b59eccabd7",
+      "uncompressedSha256": "b8a0621fdcd539adb82ed72e0ae143fde7046829484946e135c1a86f24f667f2"
+    },
+    {
+      "path": "dispatch-boundaries.log.gz",
+      "bytes": 137,
+      "sha256": "21443bdc51dfc7c5fabff05415253255e468bf52bc250e85343daffad1ee52d1",
+      "uncompressedSha256": "2e3f0397844d790a72f6998473bd14deb2b2832249a6415c4f8e48d56b7991d9"
+    },
+    {
+      "path": "final.log.gz",
+      "bytes": 125,
+      "sha256": "4dce063e55f798104fa7c41ee771083158906bf4a035b8215a0c03339cc67395",
+      "uncompressedSha256": "f54bbe52e5934fafe9f820486393d59cfbdd73ce78d49e2bba5dc1f11dcf9a05"
+    },
+    {
+      "path": "first.log.gz",
+      "bytes": 255,
+      "sha256": "5eec4a02431104c7f7e4dd49a8bb5f83903b564e2b26b5b1c591dd193dad48fd",
+      "uncompressedSha256": "75be73c07ff197c524bda340f9a5e9386bc6852aace335d3e5a7df737fc5d166"
+    },
+    {
+      "path": "host-regression.log.gz",
+      "bytes": 309,
+      "sha256": "2d9befe83bc1d3c9f18dd6933439724172d957e311742fd287ac57aaad0a4d0e",
+      "uncompressedSha256": "00f47113e3a5347f54c1ca11fa1bfdffadaea29b4d6424634d543bd8bdb59823"
+    },
+    {
+      "path": "http.log.gz",
+      "bytes": 253,
+      "sha256": "846889ad6bafcba3b89b5c109c1bec59b4d984b5730c2dd2e0310c82af8c779b",
+      "uncompressedSha256": "e97e5c630ebe1a6ee280d7338a4cdb19a49c6481e8911a9e649eb75690db8547"
+    },
+    {
+      "path": "native-resolve.log.gz",
+      "bytes": 333,
+      "sha256": "debd1d7f1757230707979221c5b9b9b574eacc9c3be2b3d30507f976d1ca1dbd",
+      "uncompressedSha256": "24fb3e457897355a44a378f8b43913afaa126268947e08f4adacdd8c7acfda06"
+    },
+    {
+      "path": "negative-cancellation.log.gz",
+      "bytes": 134,
+      "sha256": "da21af7e69da4ae34f5a91291d53283cb538806a99c1919995bb6b0f1f60edbc",
+      "uncompressedSha256": "09dc6e7ccce2ba72378d0ee69c65e446977f8f856d47a769b5445020466f4ba9"
+    },
+    {
+      "path": "negative-forwarding.log.gz",
+      "bytes": 135,
+      "sha256": "74f27ba50815fd1a8b92802447e829ae44aaa2580fa3fe153c00d3849c40d1a4",
+      "uncompressedSha256": "687281c6c7c0a99589036bf9d52c54ff617153c03d62b699b0a4271c3b74cbdb"
+    },
+    {
+      "path": "regression.log.gz",
+      "bytes": 129,
+      "sha256": "0c481eabb934095d3145225f2dedddabfde9e11438c6e7040878a1b77f221bac",
+      "uncompressedSha256": "9286dc2b5beebd33c0c658a9574aa6164a88182575ec8d5d97292fb30ff494df"
+    },
+    {
+      "path": "second.log.gz",
+      "bytes": 254,
+      "sha256": "b23090fc58d6d2c9a187dafb836990f98b696216e7fb67833d7599dac6a58212",
+      "uncompressedSha256": "6ea6818e2c5aad5e6232c65fc6818840a9cd5e41d3d80f37aa003330042a8680"
+    },
+    {
+      "path": "negative-config.mjs.txt",
+      "bytes": 861,
+      "sha256": "73c4687cd7accda291b791e5e20a0e16b4c638069e3188f724420f66c48a234f",
+      "uncompressedSha256": "73c4687cd7accda291b791e5e20a0e16b4c638069e3188f724420f66c48a234f"
+    },
+    {
+      "path": "release-run-40784871631.json.gz",
+      "bytes": 1648,
+      "sha256": "f889e757a62eb280fc9c66605277a522e27ac4760d780e839726d44b71316f21",
+      "uncompressedSha256": "f85fd15e77e10dcc9507ff81235906bde0b065e4efab15ac6e973e8662241680"
+    },
+    {
+      "path": "release-run-40784878922.json.gz",
+      "bytes": 5432,
+      "sha256": "ebf7fa7025f33cfc1d6a2530c8ad8a9d2ff3aeede470b1495747e65650f0b96f",
+      "uncompressedSha256": "e26a3c56e1b39d1f5a4c313814929e4466d7f30912a723ed53bf3f7922906866"
+    },
+    {
+      "path": "release-run-40784885411.json.gz",
+      "bytes": 1974,
+      "sha256": "c467b030014da6acea2c298a39976927e0b05105b13ecca338670ea17524d3d6",
+      "uncompressedSha256": "e36a1fbb7c6746ca054e794b22cc65dc97b4f7e996d04e44355b16e133d7c37b"
+    },
+    {
+      "path": "release-run-40783962970.json.gz",
+      "bytes": 2016,
+      "sha256": "a4dc22146b9e6aa266a1233dc012343c782164ff8cfe12d6af29a5a11dd23aed",
+      "uncompressedSha256": "43e3768c1383f1559fd225f47a331df327a99c0cedaa0d2af3f03ecbb818d82f"
+    },
+    {
+      "path": "dispatch-cli-ci.yml.json.gz",
+      "bytes": 191,
+      "sha256": "74e5d4dacadef9b3a599620e47829e3ac0deb84d664a7d76d014f89e56fa2943",
+      "uncompressedSha256": "3280ae9d0b9c95f0ff9dfe5167c7c77396f61081cdc26f127376c41e3ada4ef0"
+    },
+    {
+      "path": "dispatch-cli-strict-sandbox.yml.json.gz",
+      "bytes": 201,
+      "sha256": "4ca617d274107e60a038093daf27b9ce7bba5f560494eea32dc82b71440ba557",
+      "uncompressedSha256": "554f2984561c04bbb137b9317d7dea084e10a9a3ef3c29e7aeb95d394ffa1b0c"
+    },
+    {
+      "path": "dispatch-context-memory-kernel.yml.json.gz",
+      "bytes": 206,
+      "sha256": "e223143f3d4bf63a210ad1bb29d12bb5576a36f99ca93f9ef2252d7bb9937f3b",
+      "uncompressedSha256": "9446638af2e59c80e99431a1d48e5370d4e5173f79f08953a3f80c30ba393410"
+    },
+    {
+      "path": "dispatch-run-40784871631.json.gz",
+      "bytes": 204,
+      "sha256": "301df7e148646b91dd62b9f41e176fd5a99a801ec859ab093f345fec2543bfa0",
+      "uncompressedSha256": "fb6de5c4b5ef1f462c310417ed3b916b9820efbb2ea3ee3d89ecad96e33608ad"
+    },
+    {
+      "path": "dispatch-run-40784878922.json.gz",
+      "bytes": 198,
+      "sha256": "dcd704379693fd16dafdadbbd87b6866c6765adb81cf60086bc9dca50edc402a",
+      "uncompressedSha256": "03f567b4f4eedc3a6cc93964c5fca60d5cc1d1e82a8464d7e2e8959b61f9cf89"
+    },
+    {
+      "path": "dispatch-run-40784885411.json.gz",
+      "bytes": 198,
+      "sha256": "cf8b1b63d043333408b25c0424a73404b263e85853bbb4c8d5945ab4d57dc822",
+      "uncompressedSha256": "e4448de79e1ef9d814b748e00b0441ef80e685c72486e3cbe4cd85e2e89949e6"
+    },
+    {
+      "path": "dispatch-superseded-40783962883.json.gz",
+      "bytes": 152,
+      "sha256": "0a8041ae7c66ee72f57ae1011b4a6d294ac1024b7e14461db3769e22cca19c0c",
+      "uncompressedSha256": "90e1fe4c2f20ee10be0e4b49422d6897f90e4e4ac11fd631dc26a7914131642c"
+    },
+    {
+      "path": "dispatch-superseded-40783962941.json.gz",
+      "bytes": 152,
+      "sha256": "ac030e0aa3b950455e3914e4fa6becfb8aa014b2e90816db646563f8ffb5ad2e",
+      "uncompressedSha256": "16d37e905208abf7b2e7cc55137b9a7bc8c7e9872c7d90802e1418ed9723cbc2"
+    },
+    {
+      "path": "dispatch-superseded-40783962970.json.gz",
+      "bytes": 159,
+      "sha256": "3f3b24fbe7180c6a8e16afcaf3af6f180f5191cba7b935018b69655c1956e3e8",
+      "uncompressedSha256": "cb6c59fa965deb0e16f8fb1715b719cfd1ee9bb58cf74505c5118068aa69614e"
+    }
+  ]
+}

@@ -3011,6 +3011,7 @@ async function runAgentHeadlessInWorkspace(
       : {}),
     // --mcp-config wiring: tool defs for the LLM + dispatch map + live client.
     mcpClient: mcp?.mcpClient || null,
+    mcpToolCatalog: mcp?.mcpToolCatalog || null,
     mcpHostClient: mcpRecoveryRuntime.client || mcp?.mcpClient || null,
     extraToolDefinitions:
       mcp?.extraToolDefinitions || teamMessageTools?.extraToolDefinitions

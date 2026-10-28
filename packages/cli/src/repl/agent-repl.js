@@ -9939,6 +9939,7 @@ async function startAgentReplInWorkspaceOwned(
         mcpClient: activeRawMcpClient,
         mcpHostClient: activeMcpRuntime.runtime.client,
         extraToolDefinitions: _adhocMcp?.extraToolDefinitions,
+        mcpToolCatalog: _adhocMcp?.mcpToolCatalog || null,
         externalToolExecutors: _adhocMcp?.externalToolExecutors,
         externalToolDescriptors: _adhocMcp?.externalToolDescriptors,
         // The recovery controller is required even when this legacy/ephemeral

@@ -1,0 +1,24 @@
+import base from "../../packages/cli/vitest.config.js";
+
+const mode = process.env.CC_MCP_NEGATIVE_CONTROL;
+const needles = {
+  forwarding: ["mcpToolCatalog: childMcpCatalog,", "mcpToolCatalog: null,"],
+  cancellation: ["signal: ctx.signal || null,", "signal: null,"],
+};
+if (!needles[mode]) throw new Error("Select forwarding or cancellation control");
+export default {
+  ...base,
+  plugins: [
+    ...(base.plugins || []),
+    {
+      name: `mcp-live-catalog-negative-${mode}`,
+      enforce: "pre",
+      transform(code, id) {
+        if (!id.replaceAll("\\", "/").endsWith("/src/runtime/agent-core.js")) return null;
+        const [before, after] = needles[mode];
+        if (code.split(before).length !== 2) throw new Error("Expected exactly one production boundary");
+        return { code: code.replace(before, after), map: null };
+      },
+    },
+  ],
+};

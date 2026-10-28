@@ -42,12 +42,14 @@
 
 import settingsLoader from "../lib/settings-loader.cjs";
 import { rankMcpToolSearchEntries } from "./mcp-tool-search-ranking.js";
+import { publishMcpToolCatalog } from "../lib/mcp-tool-catalog-authority.js";
 import {
   estimateTokens as defaultEstimateTokens,
   getContextWindow,
 } from "../harness/prompt-compressor.js";
 
 const { loadManagedSettings, readSettingsFile, settingsPaths } = settingsLoader;
+const toolSearchOptions = new WeakMap();
 
 export const TOOL_SEARCH_TOOL_NAME = "tool_search";
 
@@ -476,6 +478,7 @@ export function applyToolSearchDeferral(mcp, opts = {}) {
       describeMcpToolContext(mcp, { estimate, config: TOOL_SEARCH_DEFAULTS })
         ?.savedTokens || 0;
   }
+  publishMcpToolCatalog(mcp);
   return { registry, deferredCount: newStubs.length, savedTokens };
 }
 
@@ -490,8 +493,9 @@ export function applyToolSearchDeferral(mcp, opts = {}) {
  */
 export function maybeApplyToolSearch(mcp, opts = {}) {
   if (!mcp || !Array.isArray(mcp.extraToolDefinitions)) return null;
-  if (mcp.extraToolDefinitions.length === 0) return null;
   const config = opts.config || resolveToolSearchConfig(opts);
+  toolSearchOptions.set(mcp, { ...opts, config });
+  if (mcp.extraToolDefinitions.length === 0) return null;
   if (config.enabled === false) return null;
 
   const estimate = opts.estimate || defaultEstimateTokens;
@@ -531,6 +535,17 @@ export function maybeApplyToolSearch(mcp, opts = {}) {
     }
   }
   return summary;
+}
+
+/** Reuse the host's discovery preference when a later connection completes. */
+export function refreshMcpToolSearch(mcp) {
+  const options = toolSearchOptions.get(mcp);
+  if (options) return maybeApplyToolSearch(mcp, options);
+  if (!mcp.toolSearchRegistry) return null;
+  return applyToolSearchDeferral(mcp, {
+    alwaysLoad: mcp.toolSearchRegistry.alwaysLoad,
+    catalogMode: mcp.toolSearchRegistry.catalogMode,
+  });
 }
 
 // ─── search ────────────────────────────────────────────────────────────────

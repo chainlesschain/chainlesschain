@@ -1,0 +1,62 @@
+{
+  "observedAt": "2026-10-28T23:37:45.299Z",
+  "releaseSource": "e7a6f2585d62949794596767869423b0eb670104",
+  "validationRef": "ci-validation/npm-0.166.130-e7a6f2585d",
+  "releaseTag": "v-npm-0-166-130",
+  "runs": [
+    {
+      "id": 40784871631,
+      "sha": "e7a6f2585d62949794596767869423b0eb670104",
+      "ref": "ci-validation/npm-0.166.130-e7a6f2585d",
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "observedJobs": 3,
+      "successfulJobs": 3,
+      "verifiedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "id": 40784878922,
+      "sha": "e7a6f2585d62949794596767869423b0eb670104",
+      "ref": "ci-validation/npm-0.166.130-e7a6f2585d",
+      "event": "workflow_dispatch",
+      "status": "queued",
+      "conclusion": null,
+      "observedJobs": 66,
+      "successfulJobs": 29,
+      "verifiedPlatforms": null
+    },
+    {
+      "id": 40784885411,
+      "sha": "e7a6f2585d62949794596767869423b0eb670104",
+      "ref": "ci-validation/npm-0.166.130-e7a6f2585d",
+      "event": "workflow_dispatch",
+      "status": "queued",
+      "conclusion": null,
+      "observedJobs": 6,
+      "successfulJobs": 5,
+      "verifiedPlatforms": null
+    },
+    {
+      "id": 40783962970,
+      "sha": "e7a6f2585d62949794596767869423b0eb670104",
+      "ref": "main",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "observedJobs": 6,
+      "successfulJobs": 6,
+      "verifiedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    }
+  ],
+  "published": false,
+  "boundary": "The immutable non-publishing validation tag isolates required matrices from later main source pushes. Successful original Strict run is retained. Pending manual replacement is not counted as success. Current live-catalog source is excluded from this fixed .130 candidate."
+}

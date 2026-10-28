@@ -217,6 +217,14 @@ import {
 } from "../lib/agent-tool-admission.js";
 import { captureAgentExecutionPolicy } from "../lib/agent-execution-policy.js";
 import {
+  assertMcpCatalogBinding,
+  captureMcpToolCatalog,
+  mergeMcpToolCatalog,
+  projectMcpToolCatalog,
+  readMcpToolCatalog,
+  restrictMcpToolCatalog,
+} from "../lib/mcp-tool-catalog-authority.js";
+import {
   evaluateUnattendedToolAction,
   evaluateUnattendedGitAction,
   evaluateUnattendedShellAction,
@@ -4040,6 +4048,8 @@ export async function executeTool(name, args, context = {}) {
       externalToolDescriptors: context.externalToolDescriptors || null,
       externalToolExecutors: context.externalToolExecutors || null,
       mcpClient: context.mcpClient || null,
+      mcpToolCatalog: context.mcpToolCatalog || null,
+      mcpCatalogBinding: context.mcpCatalogBinding || null,
       mcpHostClient: context.mcpHostClient || context.mcpClient || null,
       mcpCallLedger: context.mcpCallLedger || null,
       mcpConflictScheduler: context.mcpConflictScheduler || null,
@@ -5656,6 +5666,8 @@ async function executeToolInner(
     externalToolExecutors,
     extraToolDefinitions = null,
     mcpClient,
+    mcpToolCatalog = null,
+    mcpCatalogBinding = null,
     mcpHostClient = mcpClient,
     mcpCallLedger = null,
     mcpConflictScheduler = null,
@@ -7888,6 +7900,8 @@ async function executeToolInner(
           // filtered by the resolved contract's mcpServers allow-list.
           mcpClient,
           mcpHostClient,
+          mcpToolCatalog,
+          mcpCatalogBinding,
           mcpCallLedger,
           mcpConflictScheduler,
           mcpDispatchAdmission,
@@ -9676,6 +9690,11 @@ async function executeToolInner(
       // MCP tool schemas from the registry attached at setup time. Read-only,
       // local — same risk class as list_skills, so no approval gate.
       if (localToolExecutor?.kind === "tool-search") {
+        try {
+          assertMcpCatalogBinding(mcpCatalogBinding, name);
+        } catch (error) {
+          return attachDescriptor({ error: error.message, code: error.code });
+        }
         return attachDescriptor(
           executeToolSearch(localToolExecutor.registry, args || {}, {
             allowedToolNames: effectiveAllowedToolNames,
@@ -9722,6 +9741,11 @@ async function executeToolInner(
       }
 
       if (localToolExecutor?.kind === "mcp") {
+        try {
+          assertMcpCatalogBinding(mcpCatalogBinding, name);
+        } catch (error) {
+          return attachDescriptor({ error: error.message, code: error.code });
+        }
         if (!mcpClient || typeof mcpClient.callTool !== "function") {
           return attachDescriptor({
             error: `MCP client is unavailable for tool: ${name}`,
@@ -9757,6 +9781,18 @@ async function executeToolInner(
         }
 
         const schedulerScopes = mcpLedgerScopes(mcpWireInput);
+        const catalogDispatchAdmission = mcpCatalogBinding
+          ? (metadata, dispatch) => {
+              assertMcpCatalogBinding(mcpCatalogBinding, name);
+              const admittedDispatch = () => {
+                assertMcpCatalogBinding(mcpCatalogBinding, name);
+                return dispatch();
+              };
+              return mcpDispatchAdmission
+                ? mcpDispatchAdmission(metadata, admittedDispatch)
+                : admittedDispatch();
+            }
+          : mcpDispatchAdmission;
         const ledgerEffectContract = mcpLedgerEffectContract(
           localToolDescriptor,
           hostToolPolicy,
@@ -9869,16 +9905,17 @@ async function executeToolInner(
 
           let pendingResult;
           try {
+            assertMcpCatalogBinding(mcpCatalogBinding, name);
             const callArguments = [
               localToolExecutor.serverName,
               localToolExecutor.toolName,
               mcpWireInput,
             ];
-            if (signal || mcpDispatchAdmission || workflowEffectId) {
+            if (signal || catalogDispatchAdmission || workflowEffectId) {
               callArguments.push({
                 ...(signal ? { signal } : {}),
-                ...(mcpDispatchAdmission
-                  ? { dispatchAdmission: mcpDispatchAdmission }
+                ...(catalogDispatchAdmission
+                  ? { dispatchAdmission: catalogDispatchAdmission }
                   : {}),
                 ...(workflowEffectId
                   ? {
@@ -11262,6 +11299,9 @@ async function _executeSpawnSubAgent(args, ctx) {
 
   // A child can never regain a tool omitted from the parent's effective schema.
   // `[]` remains deny-all all the way into the child's execution-time fence.
+  let requestedMcpTools = Array.isArray(allowedTools)
+    ? Object.freeze([...allowedTools])
+    : null;
   if (Array.isArray(ctx.effectiveAllowedToolNames)) {
     const parentCeiling = new Set(ctx.effectiveAllowedToolNames);
     const requested = Array.isArray(allowedTools)
@@ -11302,6 +11342,7 @@ async function _executeSpawnSubAgent(args, ctx) {
       const perm = resolvePermissionMode(effectiveContract.permissionMode);
       if (perm.readOnly) {
         allowedTools = resolveEnabledTools({ allowedTools, readOnly: true });
+        requestedMcpTools = allowedTools;
       }
       // autopilot ⟺ bypassPermissions — the only mode whose headless confirmer
       // ALLOWS. Threading a deny confirmer would needlessly disable the child's
@@ -11322,6 +11363,29 @@ async function _executeSpawnSubAgent(args, ctx) {
     } catch (err) {
       return {
         error: `spawn_sub_agent: permission-mode enforcement failed closed (${err.message}).`,
+      };
+    }
+  }
+
+  let childMcpCatalog = null;
+  if (
+    ctx.mcpToolCatalog &&
+    !(Array.isArray(mcpAllow) && mcpAllow.length === 0)
+  ) {
+    try {
+      const { createInheritedMcpToolCatalog } = await import(
+        "../lib/subagent-inheritance.js"
+      );
+      childMcpCatalog = createInheritedMcpToolCatalog(
+        ctx,
+        mcpAllow,
+        requestedMcpTools,
+        allowedTools,
+      );
+      inheritedMcp = readMcpToolCatalog(childMcpCatalog);
+    } catch (error) {
+      return {
+        error: `spawn_sub_agent: live MCP inheritance failed closed (${error.message}).`,
       };
     }
   }
@@ -11589,6 +11653,7 @@ async function _executeSpawnSubAgent(args, ctx) {
   const subCtx = SubAgentContext.create({
     role,
     task,
+    signal: ctx.signal || null,
     parentId: parentSessionId,
     // Hook-envelope tracing: the child loop stamps its own runId as trace_id
     // and THIS run's id as parent_id on every settings-hook payload it fires.
@@ -11659,6 +11724,7 @@ async function _executeSpawnSubAgent(args, ctx) {
     ...(inheritedMcp
       ? {
           extraToolDefinitions: inheritedMcp.extraToolDefinitions,
+          mcpToolCatalog: childMcpCatalog,
           externalToolDescriptors: inheritedMcp.externalToolDescriptors,
           externalToolExecutors: inheritedMcp.externalToolExecutors,
           mcpClient: inheritedMcp.mcpClient,
@@ -14715,6 +14781,20 @@ export async function* agentLoop(messages, options) {
     ...options,
     ...executionPolicy,
   };
+  if (options.mcpToolCatalog != null) {
+    captureMcpToolCatalog(options.mcpToolCatalog);
+    // Host publication is the only live extension path. Do not let unrelated
+    // caller-owned startup arrays acquire new authority during a refresh.
+    options.extraToolDefinitions = Object.freeze([
+      ...(options.extraToolDefinitions || []),
+    ]);
+    options.externalToolDescriptors = Object.freeze({
+      ...options.externalToolDescriptors,
+    });
+    options.externalToolExecutors = Object.freeze({
+      ...options.externalToolExecutors,
+    });
+  }
   const configuredChatFn = options.chatFn;
   const evolutionIngress =
     options.evolutionIngress == null
@@ -14857,19 +14937,36 @@ export async function* agentLoop(messages, options) {
     );
   }
 
-  const effectiveToolOptions = hermeticExecution
+  const mcpToolCatalog = hermeticExecution
+    ? null
+    : captureMcpToolCatalog(options.mcpToolCatalog);
+  const loopMcpCatalog = mcpToolCatalog
+    ? projectMcpToolCatalog(mcpToolCatalog, (snapshot) =>
+        restrictMcpToolCatalog(
+          snapshot,
+          getEffectiveToolDefinitions(
+            mergeMcpToolCatalog(options, snapshot, mcpToolCatalog),
+          ).map((tool) => tool.function.name),
+        ),
+      )
+    : null;
+  let currentMcpSnapshot = readMcpToolCatalog(loopMcpCatalog);
+  let effectiveToolOptions = hermeticExecution
     ? {
         ...options,
         hostManagedToolPolicy: null,
         hostManagedToolPolicyAuthority: null,
         extraToolDefinitions: [],
       }
-    : options;
-  const effectiveAllowedToolNames = Object.freeze(
+    : currentMcpSnapshot
+      ? mergeMcpToolCatalog(options, currentMcpSnapshot, mcpToolCatalog)
+      : options;
+  let effectiveAllowedToolNames = Object.freeze(
     getEffectiveToolDefinitions(effectiveToolOptions).map(
       (tool) => tool.function.name,
     ),
   );
+  const startupToolNames = new Set(effectiveAllowedToolNames);
   if (
     fileMutationScope &&
     effectiveAllowedToolNames.some(
@@ -14951,6 +15048,10 @@ export async function* agentLoop(messages, options) {
       ? null
       : options.extraToolDefinitions || null,
     mcpClient: hermeticExecution ? null : options.mcpClient || null,
+    mcpToolCatalog: loopMcpCatalog,
+    mcpCatalogBinding: loopMcpCatalog
+      ? { authority: loopMcpCatalog, snapshot: currentMcpSnapshot }
+      : null,
     mcpHostClient: hermeticExecution
       ? null
       : options.mcpHostClient || options.mcpClient || null,
@@ -15267,6 +15368,39 @@ export async function* agentLoop(messages, options) {
   let lastTaskProgressIntervention = null;
 
   while (budget.hasRemaining()) {
+    if (loopMcpCatalog) {
+      currentMcpSnapshot = readMcpToolCatalog(loopMcpCatalog);
+      effectiveToolOptions = mergeMcpToolCatalog(
+        options,
+        currentMcpSnapshot,
+        mcpToolCatalog,
+      );
+      effectiveAllowedToolNames = Object.freeze(
+        getEffectiveToolDefinitions(effectiveToolOptions)
+          .map((tool) => tool.function.name)
+          .filter(
+            (name) =>
+              startupToolNames.has(name) ||
+              currentMcpSnapshot.identities.has(name),
+          ),
+      );
+      effectiveToolOptions = {
+        ...effectiveToolOptions,
+        enabledToolNames: effectiveAllowedToolNames,
+        exactToolNames: true,
+      };
+      Object.assign(toolContext, {
+        extraToolDefinitions: effectiveToolOptions.extraToolDefinitions,
+        externalToolDescriptors: effectiveToolOptions.externalToolDescriptors,
+        externalToolExecutors: effectiveToolOptions.externalToolExecutors,
+        mcpClient: effectiveToolOptions.mcpClient,
+        effectiveAllowedToolNames,
+        mcpCatalogBinding: {
+          authority: loopMcpCatalog,
+          snapshot: currentMcpSnapshot,
+        },
+      });
+    }
     // Yield only between complete tool batches. Keep all completed tool results
     // and settle child usage before the host accepts queued user steering.
     if (options.shouldYieldToUser?.() === true) {
