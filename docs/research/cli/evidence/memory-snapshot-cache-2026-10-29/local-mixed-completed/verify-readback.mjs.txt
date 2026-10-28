@@ -1,0 +1,145 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
+import { createDurableMemoryFixture } from "../packages/cli/scripts/persistent-capacity-benchmark.mjs";
+import { applyMemoryCommand, canonicalDigest } from "@chainlesschain/context-memory-kernel";
+
+const root = path.resolve(import.meta.dirname, "..");
+const sourceCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+const input = path.join(root, ".work/memory-cache-full-20261029/mixed-100.json");
+const raw = fs.readFileSync(input);
+const report = JSON.parse(raw);
+assert.equal(report.schema, "chainlesschain.memory-mixed-concurrency/v1");
+assert.equal(report.concurrency, 8);
+assert.equal(report.roundsPerTier, 100);
+assert.equal(report.providerCalls, 0);
+assert.deepEqual(report.tiers.map((tier) => tier.count), [1000, 10000, 100000]);
+const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const digest = (value) => canonicalDigest(value, "cc.memory-mixed-benchmark/v1");
+const sourceBindings = [];
+for (const [relative, expected] of Object.entries(report.sourceDigests)) {
+  const file = path.posix.normalize(`packages/cli/scripts/${relative}`);
+  assert.ok(!file.startsWith("../") && file.startsWith("packages/"));
+  const committed = execFileSync("git", ["show", `${sourceCommit}:${file}`], { cwd: root, maxBuffer: 32 * 1024 * 1024 });
+  assert.equal(`sha256:${sha(committed)}`, expected, file);
+  assert.equal(`sha256:${sha(fs.readFileSync(path.join(root, file)))}`, expected, file);
+  sourceBindings.push({ path: file, sha256: expected });
+}
+assert.equal(sourceBindings.length, 11);
+// Independently implement the published index ordering; do not import the
+// query engine or benchmark's concurrency validator.
+const collator = new Intl.Collator("en");
+const order = (a, b) => b.importance - a.importance || collator.compare(b.updatedAt, a.updatedAt) || collator.compare(a.memoryId, b.memoryId);
+const page = (state) => Object.values(state.records)
+  .filter((record) => !["deleted", "purged"].includes(record.state))
+  .sort(order).slice(0, 20).map(({ memoryId, digest }) => ({ memoryId, digest }));
+const tiers = [];
+let reads = 0, mutations = 0, operations = 0;
+const eventDigests = new Set();
+function durations(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const rounded = (n) => Number(n.toFixed(3));
+  const percentile = (p) => rounded(sorted[Math.ceil(sorted.length * p) - 1]);
+  return { samples: sorted.length, minMs: rounded(sorted[0]), p50Ms: percentile(0.5), p95Ms: percentile(0.95), p99Ms: percentile(0.99), maxMs: rounded(sorted.at(-1)) };
+}
+for (const tier of report.tiers) {
+  const state = createDurableMemoryFixture(tier.count);
+  assert.equal(state.digest, tier.fixtureDigest);
+  assert.equal(tier.rounds.length, 100);
+  const changedIds = new Set();
+  for (const round of tier.rounds) {
+    assert.equal(round.results.length, 8);
+    assert.equal(round.allEightOperationsOverlap, true);
+    assert.equal(round.generationsVerified, true);
+    assert.ok(Math.max(...round.results.map((result) => result.startedAt)) < Math.min(...round.results.map((result) => result.finishedAt)));
+    for (const result of round.results) {
+      assert.ok(Number.isFinite(result.durationMs) && result.durationMs > 0);
+      assert.ok(result.locks.length > 0);
+      assert.ok(result.locks.every((lock) => Number.isFinite(lock.waitMs) && lock.waitMs >= 0));
+    }
+    const readers = round.results.filter((result) => result.role === "reader");
+    const writers = round.results.filter((result) => result.role === "writer");
+    const deleters = round.results.filter((result) => result.role === "deleter");
+    assert.equal(readers.length, 4);
+    assert.equal(writers.length, 2);
+    assert.equal(deleters.length, 2);
+    for (const writer of writers) assert.deepEqual(writer.mutations.map((m) => m.state), ["reinforced"]);
+    for (const deleter of deleters) {
+      assert.deepEqual(deleter.mutations.map((m) => m.state), ["deleted", "purged"]);
+      assert.equal(deleter.mutations[0].memoryId, deleter.mutations[1].memoryId);
+    }
+    for (const result of [...writers, ...deleters]) {
+      const id = result.mutations[0].memoryId;
+      assert.ok(!changedIds.has(id), "mutation IDs must be disjoint across rounds");
+      changedIds.add(id);
+    }
+    const versions = new Map([[state.storeRevision, page(state)]]);
+    const ordered = [...writers, ...deleters].flatMap((result) => result.mutations).sort((a, b) => a.storeRevision - b.storeRevision);
+    assert.equal(ordered.length, 6);
+    for (const logged of ordered) {
+      const current = state.records[logged.memoryId];
+      assert.ok(current);
+      const type = { reinforced: "reinforce", deleted: "delete", purged: "purge" }[logged.state];
+      const transition = applyMemoryCommand(current, {
+        type, expectedRevision: current.revision,
+        authority: "memory-mixed-benchmark", at: "2026-10-29T00:00:00.000Z",
+        ...(type === "reinforce" ? { confidenceDelta: 0.01 } : { deletionFence: `mixed-${logged.memoryId}` }),
+      });
+      assert.equal(logged.recordDigest, transition.record.digest);
+      // The public producer report intentionally omits random event IDs.
+      // Reconstruct record digests; event bytes cannot be independently
+      // reconstructed from an event digest alone.
+      assert.match(logged.eventDigest, /^sha256:[a-f0-9]{64}$/);
+      assert.ok(!eventDigests.has(logged.eventDigest));
+      eventDigests.add(logged.eventDigest);
+      assert.equal(logged.storeRevision, ++state.storeRevision);
+      state.records[logged.memoryId] = transition.record;
+      versions.set(state.storeRevision, page(state));
+      mutations++;
+    }
+    for (const reader of readers) {
+      assert.ok(versions.has(reader.storeRevision));
+      assert.deepEqual(reader.rows, versions.get(reader.storeRevision));
+      reads++;
+    }
+    operations += round.results.length;
+  }
+  assert.equal(changedIds.size, 400);
+  assert.equal(tier.finalRevision, state.storeRevision);
+  assert.equal(tier.finalRecordsDigest, digest(state.records));
+  assert.match(tier.finalEventsDigest, /^sha256:[a-f0-9]{64}$/);
+  assert.equal(tier.finalActiveRecords, tier.count - 200);
+  assert.ok(tier.finalAuditVerified && tier.finalDeletionVisibilityVerified && tier.lockReleased);
+  const throughput = 800000 / tier.rounds.reduce((sum, round) => sum + round.durationMs, 0);
+  assert.equal(tier.operationsPerSecond, throughput);
+  assert.deepEqual(tier.wall, durations(tier.rounds.map((round) => round.durationMs)));
+  assert.deepEqual(tier.read, durations(tier.rounds.flatMap((round) => round.results.filter((result) => result.role === "reader").map((result) => result.durationMs))));
+  assert.deepEqual(tier.lockWait, durations(tier.rounds.flatMap((round) => round.results.flatMap((result) => result.locks.map((lock) => lock.waitMs)))));
+  tiers.push({ count: tier.count, rounds: 100, readsVerified: 400, mutationsReplayed: 600, finalRevision: tier.finalRevision, finalActiveRecords: tier.finalActiveRecords, finalRecordsDigest: tier.finalRecordsDigest, finalEventsDigest: tier.finalEventsDigest, read: tier.read, lockWait: tier.lockWait, wall: tier.wall, operationsPerSecond: throughput });
+  process.stdout.write(`Verified ${tier.count}: 100 rounds, 400 generation-bound reads, 600 mutation digests\n`);
+}
+assert.equal(reads, 1200);
+assert.equal(mutations, 1800);
+assert.equal(operations, 2400);
+const output = path.join(root, ".work/memory-cache-full-20261029/verified-final");
+fs.mkdirSync(output, { recursive: true });
+const packed = gzipSync(raw);
+fs.writeFileSync(path.join(output, "mixed-100.json.gz"), packed, { flag: "wx" });
+const verification = {
+  schema: "chainlesschain.memory-mixed-full-local-readback/v1",
+  observedAt: new Date().toISOString(), sourceBindingComparisonCommit: sourceCommit,
+  environment: report.environment, originalMeasuredAt: report.measuredAt,
+  report: { path: "mixed-100.json.gz", archiveSha256: sha(packed), decodedSha256: sha(raw) },
+  sourceBindings, totals: { rounds: 300, processes: operations, readsVerified: reads, mutationsReplayed: mutations }, tiers,
+  boundary: [
+    "Reference replay uses the shared canonical reducer and deterministic fixture; ordering and generation/readback validation are independently implemented here.",
+    "The producer compared final on-disk records and events. This readback reconstructs final record digests and every reader generation. Public reports omit random event IDs, so final event bytes/digests cannot be independently recomputed; their producer assertions and 1800 unique event digests are retained. Temporary authority directories were removed by the producer.",
+    "Shared Windows workstation with concurrent documentation, small regressions and archive work; not an isolated latency SLO or production throughput result.",
+    "Not real IDE Stop, full crash recovery or cross-platform mixed-process acceptance; no model calls.",
+  ],
+};
+fs.writeFileSync(path.join(output, "verification.json"), JSON.stringify(verification, null, 2) + "\n", { flag: "wx" });
+process.stdout.write(JSON.stringify(verification.totals) + "\n");

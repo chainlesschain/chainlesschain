@@ -1,0 +1,40 @@
+{
+  "sourceCommit": "01b42a147f6efdb88e42f4e1e1fc305717666967",
+  "diagnosticOnly": true,
+  "artifacts": [
+    {
+      "file": "profile-queries.cpuprofile.gz",
+      "archiveSha256": "ef8a7ea4a5c6c985fb74250ea7244d932bc9a4bc7af166a36df40d5e71461909",
+      "decodedSha256": "aa4425aca4d39bb8aa37698e2f71eebf4cf99c378f3add8a524b9e78573b21ce"
+    },
+    {
+      "file": "profile-summary.json.gz",
+      "archiveSha256": "d08fcbde7eedd280bb02121c65003db334f0fdca4da36e6de1d60a3ad1a51c49",
+      "decodedSha256": "0c4732a1350d28d4d30bc8875f3ef81d03ee3feb37ebfa4c96402088df308de6"
+    }
+  ],
+  "scriptSha256": "6cbf387a7aa4110e22c5c69b028844f533db148a5e50a7f96ce0622173780f94",
+  "samplesMs": [
+    519.5204000000012, 511.629399999998, 533.178700000004, 557.5175000000017,
+    500.78259999999864
+  ],
+  "instrumentation": {
+    "_checkDirectories": {
+      "calls": 1385,
+      "totalMs": 1364.947100000034
+    },
+    "_readQueryIndex": {
+      "calls": 1280,
+      "totalMs": 2125.9940999999017
+    },
+    "_readShardBytes": {
+      "calls": 95,
+      "totalMs": 176.13380000000325
+    },
+    "_queryShardSnapshot": {
+      "calls": 95,
+      "totalMs": 116.92909999995754
+    }
+  },
+  "boundary": "Five warm diagnostic samples with CPU profiling and nested method timers; not a new SLO measurement. Timers overlap and must not be added together."
+}

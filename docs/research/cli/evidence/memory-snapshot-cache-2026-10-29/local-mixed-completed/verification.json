@@ -1,0 +1,183 @@
+{
+  "schema": "chainlesschain.memory-mixed-full-local-readback/v1",
+  "observedAt": "2026-10-28T22:38:20.345Z",
+  "sourceBindingComparisonCommit": "01b42a147f6efdb88e42f4e1e1fc305717666967",
+  "environment": {
+    "node": "v22.22.2",
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz",
+    "osRelease": "10.0.19045"
+  },
+  "originalMeasuredAt": "2026-10-28T22:02:31.367Z",
+  "report": {
+    "path": "mixed-100.json.gz",
+    "archiveSha256": "b4e3ca9fc71f47155ebfbceee1fdb57e9ef9ebb06d7ef71bc40aa573761b528d",
+    "decodedSha256": "f10ee70c7d2319da94b184bc8ae4b8701cbb3141f7409216bc2d7ff3a62a256c"
+  },
+  "sourceBindings": [
+    {
+      "path": "packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs",
+      "sha256": "sha256:95ae56e475f4d09f248bf0c15add89b75179e72cbbca82e3f8bbc9fbe433cee8"
+    },
+    {
+      "path": "packages/cli/scripts/persistent-capacity-benchmark.mjs",
+      "sha256": "sha256:81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "sha256": "sha256:c3a8040d5a267f0354090c11a4f5773c1ab0edccdcdfd9ddf2919e9b4e51f800"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+      "sha256": "sha256:a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/memory-query-control.js",
+      "sha256": "sha256:8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js",
+      "sha256": "sha256:b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+      "sha256": "sha256:f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721"
+    },
+    {
+      "path": "packages/cli/src/lib/with-file-lock.js",
+      "sha256": "sha256:2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/memory-reducer.js",
+      "sha256": "sha256:676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/contracts.js",
+      "sha256": "sha256:114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/canonical.js",
+      "sha256": "sha256:267eb8a7af1d08dcfb8e590da266c5f283637e97e229633a784ef95fd85a0da9"
+    }
+  ],
+  "totals": {
+    "rounds": 300,
+    "processes": 2400,
+    "readsVerified": 1200,
+    "mutationsReplayed": 1800
+  },
+  "tiers": [
+    {
+      "count": 1000,
+      "rounds": 100,
+      "readsVerified": 400,
+      "mutationsReplayed": 600,
+      "finalRevision": 1600,
+      "finalActiveRecords": 800,
+      "finalRecordsDigest": "sha256:9bce03f57a6f4e0909d635dd296700b95948a9e41d8b3e4f224af6e17ef83507",
+      "finalEventsDigest": "sha256:3e23e8ac06a002db43ec22aaa06069239fd1da3da687c8bdd1648cd0d4511fcf",
+      "read": {
+        "samples": 400,
+        "minMs": 432.593,
+        "p50Ms": 1318.765,
+        "p95Ms": 2308.547,
+        "p99Ms": 2744.498,
+        "maxMs": 2999.741
+      },
+      "lockWait": {
+        "samples": 1400,
+        "minMs": 2,
+        "p50Ms": 459,
+        "p95Ms": 1961,
+        "p99Ms": 2350,
+        "maxMs": 2987
+      },
+      "wall": {
+        "samples": 100,
+        "minMs": 2066.675,
+        "p50Ms": 2206.152,
+        "p95Ms": 2882.796,
+        "p99Ms": 3110.124,
+        "maxMs": 3112.891
+      },
+      "operationsPerSecond": 3.440326144741894
+    },
+    {
+      "count": 10000,
+      "rounds": 100,
+      "readsVerified": 400,
+      "mutationsReplayed": 600,
+      "finalRevision": 10600,
+      "finalActiveRecords": 9800,
+      "finalRecordsDigest": "sha256:c94d4c292dbbb5c8b8d8b333f71f92a707a59d3132a72deea4cf29a81501270c",
+      "finalEventsDigest": "sha256:56b24cbf20714a74eceeb50018c8694bcc217f8d27c585612dca2cb1f7c9cb22",
+      "read": {
+        "samples": 400,
+        "minMs": 563.211,
+        "p50Ms": 1798.271,
+        "p95Ms": 3482.575,
+        "p99Ms": 4166.807,
+        "maxMs": 4427.981
+      },
+      "lockWait": {
+        "samples": 1400,
+        "minMs": 2,
+        "p50Ms": 554,
+        "p95Ms": 2515,
+        "p99Ms": 3183,
+        "maxMs": 4370
+      },
+      "wall": {
+        "samples": 100,
+        "minMs": 2364.083,
+        "p50Ms": 2711.064,
+        "p95Ms": 4235.638,
+        "p99Ms": 4472.055,
+        "maxMs": 4838.631
+      },
+      "operationsPerSecond": 2.656034167032292
+    },
+    {
+      "count": 100000,
+      "rounds": 100,
+      "readsVerified": 400,
+      "mutationsReplayed": 600,
+      "finalRevision": 100600,
+      "finalActiveRecords": 99800,
+      "finalRecordsDigest": "sha256:d27906bc2c0ab6f7f7bdbfa9c732747ac1148cff4a4c18b6cee10fecc22df934",
+      "finalEventsDigest": "sha256:802e3f8a251850c32418bef47520a3020acdb80a15dacc91d885c7e71cdf7ce8",
+      "read": {
+        "samples": 400,
+        "minMs": 1849.882,
+        "p50Ms": 4595.25,
+        "p95Ms": 7433.435,
+        "p99Ms": 8089.465,
+        "maxMs": 9465.903
+      },
+      "lockWait": {
+        "samples": 1400,
+        "minMs": 2,
+        "p50Ms": 973,
+        "p95Ms": 5064,
+        "p99Ms": 6496,
+        "maxMs": 8484
+      },
+      "wall": {
+        "samples": 100,
+        "minMs": 5449.1,
+        "p50Ms": 6408.387,
+        "p95Ms": 8074.41,
+        "p99Ms": 8939.269,
+        "maxMs": 9515.646
+      },
+      "operationsPerSecond": 1.1951073299047885
+    }
+  ],
+  "boundary": [
+    "Reference replay uses the shared canonical reducer and deterministic fixture; ordering and generation/readback validation are independently implemented here.",
+    "The producer compared final on-disk records and events. This readback reconstructs final record digests and every reader generation. Public reports omit random event IDs, so final event bytes/digests cannot be independently recomputed; their producer assertions and 1800 unique event digests are retained. Temporary authority directories were removed by the producer.",
+    "Shared Windows workstation with concurrent documentation, small regressions and archive work; not an isolated latency SLO or production throughput result.",
+    "Not real IDE Stop, full crash recovery or cross-platform mixed-process acceptance; no model calls."
+  ]
+}

@@ -1,0 +1,87 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import { performance } from "node:perf_hooks";
+import { Session } from "node:inspector/promises";
+import { execFileSync } from "node:child_process";
+import { createDurableMemoryFixture } from "../packages/cli/scripts/persistent-capacity-benchmark.mjs";
+import { canonicalDigest, normalizeMemoryRecord } from "@chainlesschain/context-memory-kernel";
+import { SegmentedMemoryPort } from "../packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js";
+import { CliCanonicalMemoryService, publicEntry } from "../packages/cli/src/lib/context-memory-kernel/memory-service.js";
+import { compareMemoryRows } from "../packages/cli/src/lib/context-memory-kernel/memory-query-index.js";
+import { stateDigest } from "../packages/cli/src/lib/context-memory-kernel/durable-memory-port.js";
+
+const workspace = path.resolve(import.meta.dirname, "..");
+const count = Number(process.argv[2] || 100000);
+const output = path.join(workspace, ".work", `memory-hot-profile-${count}`);
+fs.mkdirSync(output, { recursive: true });
+assert.ok(!fs.existsSync(path.join(output, "summary.json")), "never overwrite an existing diagnostic");
+const parent = fs.realpathSync.native(os.tmpdir());
+const fixtureRoot = fs.mkdtempSync(path.join(parent, "cc-memory-profile-"));
+const session = new Session();
+const report = {
+  sourceCommit: execFileSync("git", ["rev-parse", "HEAD"], { cwd: workspace, encoding: "utf8" }).trim(),
+  observedAt: new Date().toISOString(), count, platform: process.platform,
+  node: process.version, cpu: os.cpus()[0].model,
+  mode: "validate-disk", diagnosticOnly: true, samples: [],
+};
+try {
+  const port = new SegmentedMemoryPort({ filePath: path.join(fixtureRoot, "authority.json") });
+  const state = createDurableMemoryFixture(count);
+  Object.entries(state.records).forEach(([id, record], index) => {
+    state.records[id] = normalizeMemoryRecord({ ...record, digest: undefined, category: `category-${index % 32}` });
+    const event = { ...state.events[index], recordDigest: state.records[id].digest };
+    delete event.digest;
+    event.digest = canonicalDigest(event, "chainlesschain.memory-event/v1");
+    state.events[index] = event;
+  });
+  state.digest = stateDigest(state);
+  await port.importSnapshot(state);
+  const rowsDigest = (rows) => canonicalDigest(rows, "cc.memory-query-benchmark-rows/v1");
+  const expected = rowsDigest(Object.values(state.records).sort(compareMemoryRows).filter((record) => record.category === "category-7").slice(0, 20).map((record) => publicEntry(record)));
+  const service = new CliCanonicalMemoryService({ runtime: { memoryPort: port } });
+  const query = () => service.list({ category: "category-7", limit: 20 });
+  assert.equal(rowsDigest(await query()), expected);
+  const counters = {};
+  for (const method of ["_checkDirectories", "_readQueryIndex", "_readShardBytes", "_queryShardSnapshot"]) {
+    const original = port[method];
+    port[method] = function (...args) {
+      const started = performance.now();
+      try { return Reflect.apply(original, this, args); }
+      finally {
+        const value = counters[method] ||= { calls: 0, totalMs: 0 };
+        value.calls++;
+        value.totalMs += performance.now() - started;
+      }
+    };
+  }
+  session.connect();
+  await session.post("Profiler.enable");
+  await session.post("Profiler.setSamplingInterval", { interval: 1000 });
+  await session.post("Profiler.start");
+  for (let index = 0; index < 5; index++) {
+    const started = performance.now();
+    const rows = await query();
+    const elapsedMs = performance.now() - started;
+    assert.equal(rowsDigest(rows), expected);
+    report.samples.push(elapsedMs);
+  }
+  const { profile } = await session.post("Profiler.stop");
+  fs.writeFileSync(path.join(output, "queries.cpuprofile"), JSON.stringify(profile), { flag: "wx" });
+  const weights = new Map();
+  profile.samples.forEach((id, index) => weights.set(id, (weights.get(id) || 0) + profile.timeDeltas[index]));
+  report.selfCpu = profile.nodes.map((node) => ({
+    function: node.callFrame.functionName, url: node.callFrame.url,
+    line: node.callFrame.lineNumber + 1, selfMs: (weights.get(node.id) || 0) / 1000,
+  })).sort((a, b) => b.selfMs - a.selfMs).slice(0, 30);
+  report.instrumentation = counters;
+  report.boundary = "Five warm diagnostic samples with CPU profiling and nested method timers; not a new SLO measurement. Timers overlap and must not be added together.";
+  fs.writeFileSync(path.join(output, "summary.json"), JSON.stringify(report, null, 2) + "\n", { flag: "wx" });
+  process.stdout.write(JSON.stringify({ samples: report.samples, instrumentation: counters, selfCpu: report.selfCpu.slice(0, 12) }) + "\n");
+} finally {
+  session.disconnect();
+  assert.equal(path.dirname(path.resolve(fixtureRoot)), parent);
+  assert.ok(path.basename(fixtureRoot).startsWith("cc-memory-profile-"));
+  fs.rmSync(fixtureRoot, { recursive: true, force: true });
+}
