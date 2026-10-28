@@ -348,9 +348,9 @@ describe("authority-bound memory business index", () => {
     const { port, filePath } = await setup(200);
     const before = await port.listPage({ limit: 4 });
     const transition = reinforce(before.records[0]);
-    const decode = port._decodeShard.bind(port);
+    const decode = port._queryShardSnapshot.bind(port);
     let write;
-    vi.spyOn(port, "_decodeShard").mockImplementation((...args) => {
+    vi.spyOn(port, "_queryShardSnapshot").mockImplementation((...args) => {
       // Validation is after lock release. A distinct process can commit and
       // collect the old files before this reader validates its owned buffers.
       write ??= JSON.parse(

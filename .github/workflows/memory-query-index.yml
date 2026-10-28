@@ -2,6 +2,13 @@ name: Memory Query Index Measurement
 
 on:
   workflow_dispatch:
+    inputs:
+      samples:
+        description: "Samples per dataset and scenario (100 for gap-review evidence)"
+        type: choice
+        required: true
+        default: "100"
+        options: ["100", "11"]
   push:
     branches: [main, "feature/**"]
     paths:
@@ -26,7 +33,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && inputs.samples == '100' && 120 || 45 }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -40,11 +47,14 @@ jobs:
         run: >-
           npx vitest run __tests__/unit/memory-query-index.test.js
           __tests__/unit/segmented-memory-port.test.js
+          __tests__/unit/memory-shard-snapshots.test.js
+          __tests__/unit/memory-query-cancellation.test.js
       - name: Compare identical 1K, 10K and 100K datasets
         shell: bash
         run: >-
           node packages/cli/scripts/memory-query-index-benchmark.mjs
-          --counts 1000,10000,100000 --samples 11
+          --counts 1000,10000,100000
+          --samples "${{ github.event_name == 'workflow_dispatch' && inputs.samples || '11' }}"
           --output "$RUNNER_TEMP/memory-query-index.json"
       # A performance measurement is not a passed latency SLO. The script
       # gates row equivalence and integrity; no unapproved timing threshold.

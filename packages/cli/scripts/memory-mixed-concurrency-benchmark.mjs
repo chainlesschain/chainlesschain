@@ -183,7 +183,7 @@ export async function runMemoryMixedBenchmark({
   counts = [1000, 10000, 100000],
   rounds = 11,
 } = {}) {
-  assert.ok(Number.isSafeInteger(rounds) && rounds > 0 && rounds <= 25);
+  assert.ok(Number.isSafeInteger(rounds) && rounds > 0 && rounds <= 100);
   assert.ok(
     counts.length > 0 &&
       counts.every(
@@ -198,6 +198,7 @@ export async function runMemoryMixedBenchmark({
     "../src/lib/context-memory-kernel/segmented-memory-port.js",
     "../src/lib/context-memory-kernel/durable-memory-port.js",
     "../src/lib/context-memory-kernel/memory-query-control.js",
+    "../src/lib/context-memory-kernel/memory-shard-snapshots.js",
     "../src/lib/context-memory-kernel/memory-query-index.js",
     "../src/lib/with-file-lock.js",
     "../../context-memory-kernel/lib/memory-reducer.js",
@@ -294,6 +295,10 @@ export async function runMemoryMixedBenchmark({
               state: mutation.record.state,
             }));
         values.push(round);
+        if ((index + 1) % 10 === 0 || index + 1 === rounds)
+          process.stderr.write(
+            `Mixed Memory ${count}: ${index + 1}/${rounds} rounds\n`,
+          );
       }
       const snapshot = await port.exportSnapshot();
       assert.equal(snapshot.storeRevision, state.storeRevision);

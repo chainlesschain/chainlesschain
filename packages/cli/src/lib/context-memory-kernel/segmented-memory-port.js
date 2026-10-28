@@ -44,6 +44,7 @@ import {
   checkMemoryQueryAborted,
   createMemoryQueryCheckpoint,
 } from "./memory-query-control.js";
+import { MemoryShardSnapshots } from "./memory-shard-snapshots.js";
 
 export const SEGMENTED_STORE_SCHEMA =
   "chainlesschain.cli-context-memory-store/v2";
@@ -170,11 +171,14 @@ function ensureSafeDirectory(directory) {
  * authority. Audit events are retained, not truncated to buy record capacity.
  */
 export class SegmentedMemoryPort extends DurableJsonMemoryPort {
+  #shardSnapshots;
+
   constructor({
     maxTotalBytes = DEFAULT_MAX_TOTAL_BYTES,
     maxEvents = DEFAULT_SEGMENTED_MAX_EVENTS,
     readOnly = false,
     queryIndexCacheMode = "validate-disk",
+    decodedShardCacheBytes,
     ...options
   } = {}) {
     super({ ...options, maxEvents });
@@ -188,6 +192,7 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     this.filePath = resolve(this.filePath);
     this.shardDirectory = `${this.filePath}.shards`;
     this._queryIndexes = new Map();
+    this.#shardSnapshots = new MemoryShardSnapshots(decodedShardCacheBytes);
   }
 
   _locked(operation, options = {}) {
@@ -206,7 +211,9 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
   }
 
   _checkDirectories() {
-    directories(dirname(this.filePath));
+    // The shard path traversal already checks the authority parent and every
+    // ancestor, including native Windows resolution. Keep the separate identity
+    // comparisons below without traversing the same ancestry twice per read.
     directories(this.shardDirectory);
     if (
       identity(dirname(this.filePath)) !== this._parentIdentity ||
@@ -313,7 +320,10 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
   }
 
   _loadManifest() {
-    if (!existsSync(this.filePath)) return blankManifest();
+    if (!existsSync(this.filePath)) {
+      this.#shardSnapshots.observe(null);
+      return blankManifest();
+    }
     regular(this.filePath);
     // v1 can be larger than a manifest; preserve its existing read boundary.
     let input;
@@ -329,6 +339,7 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
       throw corruptStore(this.filePath, "authority cannot be parsed", cause);
     }
     if (input?.schema === STORE_SCHEMA) {
+      this.#shardSnapshots.observe(null);
       if (bytes.length > this.maxStoreBytes)
         throw corruptStore(
           this.filePath,
@@ -342,6 +353,7 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     if (bytes.length > MANIFEST_LIMIT)
       throw corruptStore(this.filePath, "manifest is too large");
     this._checkDirectories();
+    this.#shardSnapshots.observe(this._snapshotGeneration(manifest));
     if (!this.readOnly) this._collect(manifest);
     return manifest;
   }
@@ -402,6 +414,26 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
       throw corruptStore(file, "shard does not match its manifest");
     }
     return state;
+  }
+
+  _snapshotGeneration(manifest) {
+    return manifest.digest
+      ? JSON.stringify([
+          this.filePath,
+          this._parentIdentity,
+          this._shardIdentity,
+          manifest.digest,
+        ])
+      : null;
+  }
+
+  _queryShardSnapshot(manifest, bucket, bytes) {
+    return this.#shardSnapshots.read(
+      this._snapshotGeneration(manifest),
+      bucket,
+      bytes,
+      () => this._decodeShard(manifest, bucket, bytes),
+    );
   }
 
   _collect(manifest) {
@@ -551,6 +583,7 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
       if (existsSync(this.filePath)) regular(this.filePath);
       renameSync(temporary, this.filePath);
       published = true;
+      this.#shardSnapshots.observe(this._snapshotGeneration(next));
       syncDirectory(dirname(this.filePath));
       directorySynced = true;
       this._collect(next);
@@ -836,7 +869,10 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     const decoded = new Map();
     for (const [bucket, bytes] of captured.shards) {
       await checkpoint();
-      decoded.set(bucket, this._decodeShard(captured.manifest, bucket, bytes));
+      decoded.set(
+        bucket,
+        this._queryShardSnapshot(captured.manifest, bucket, bytes),
+      );
     }
     const records = [];
     for (const { bucket, row } of captured.selected) {
@@ -851,7 +887,9 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
           this.filePath,
           "query index result disagrees with authority",
         );
-      records.push(record);
+      // The cached graph is host-owned. A caller may edit its returned record
+      // without changing another query's verified snapshot.
+      records.push(cloneCanonical(record));
     }
     await checkpoint(true);
     return {

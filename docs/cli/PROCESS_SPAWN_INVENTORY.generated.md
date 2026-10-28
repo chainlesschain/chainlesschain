@@ -560,9 +560,9 @@ Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs` | 7 | `import { fork } from "node:child_process";` |
 | `packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs` | 93 | `const child = fork(script, ["--worker"], {` |
 | `packages/cli/scripts/memory-query-index-benchmark.mjs` | 3 | `import { spawnSync, execFileSync } from "node:child_process";` |
-| `packages/cli/scripts/memory-query-index-benchmark.mjs` | 112 | `sourceHead: execFileSync("git", ["rev-parse", "HEAD"], {` |
-| `packages/cli/scripts/memory-query-index-benchmark.mjs` | 115 | `workingTree: execFileSync(` |
-| `packages/cli/scripts/memory-query-index-benchmark.mjs` | 190 | `const child = spawnSync(` |
+| `packages/cli/scripts/memory-query-index-benchmark.mjs` | 160 | `sourceHead: execFileSync("git", ["rev-parse", "HEAD"], {` |
+| `packages/cli/scripts/memory-query-index-benchmark.mjs` | 163 | `workingTree: execFileSync(` |
+| `packages/cli/scripts/memory-query-index-benchmark.mjs` | 230 | `const child = spawnSync(` |
 | `packages/cli/scripts/native-signed-install-gate.mjs` | 18 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/native-signed-install-gate.mjs` | 227 | `const result = spawnSync(command, args, {` |
 | `packages/cli/scripts/persistent-capacity-benchmark.mjs` | 12 | `import { execFileSync, spawn } from "node:child_process";` |

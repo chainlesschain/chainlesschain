@@ -1,19 +1,20 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import { spawnSync, execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   mkdtempSync,
   readFileSync,
   readdirSync,
   realpathSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import { basename, join, resolve, sep } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { performance } from "node:perf_hooks";
+import { monitorEventLoopDelay, performance } from "node:perf_hooks";
 import {
   canonicalDigest,
   normalizeMemoryRecord,
@@ -39,6 +40,29 @@ const option = (name, fallback) => {
   const offset = process.argv.indexOf(name);
   return offset < 0 ? fallback : process.argv[offset + 1];
 };
+const sourceDigests = () =>
+  Object.fromEntries(
+    [
+      ...[
+        "segmented-memory-port.js",
+        "durable-memory-port.js",
+        "memory-query-index.js",
+        "memory-service.js",
+        "memory-query-control.js",
+        "memory-shard-snapshots.js",
+      ].map((name) => [`../src/lib/context-memory-kernel/${name}`, name]),
+      ["../src/lib/with-file-lock.js", "with-file-lock.js"],
+      ["../../context-memory-kernel/lib/canonical.js", "kernel/canonical.js"],
+      ["../../context-memory-kernel/lib/contracts.js", "kernel/contracts.js"],
+      ["./persistent-capacity-benchmark.mjs", "fixture-generator.mjs"],
+      ["./memory-query-index-benchmark.mjs", "benchmark.mjs"],
+    ].map(([file, name]) => [
+      name,
+      createHash("sha256")
+        .update(readFileSync(new URL(file, import.meta.url)))
+        .digest("hex"),
+    ]),
+  );
 
 async function measure(port, mode) {
   let authorityReads = 0;
@@ -50,8 +74,12 @@ async function measure(port, mode) {
     authorityBytes += bytes.length;
     return bytes;
   };
+  const eventLoop = monitorEventLoopDelay({ resolution: 1 });
+  eventLoop.enable();
+  await new Promise(setImmediate);
   const started = performance.now();
   let entries;
+  let durationMs;
   try {
     if (mode === "baseline") {
       // The original business list path: authority query, full sort, category
@@ -67,22 +95,28 @@ async function measure(port, mode) {
         runtime: { memoryPort: port },
       }).list({ category, limit });
     }
+    durationMs = performance.now() - started;
+    await new Promise(setImmediate);
   } finally {
     port._readShardBytes = original;
+    eventLoop.disable();
   }
   return {
-    durationMs: performance.now() - started,
+    durationMs,
     count: entries.length,
     rowsDigest: digest(entries),
     authorityReads,
     authorityBytes,
     peakRssBytes: process.resourceUsage().maxRSS * 1024,
+    rssBytes: process.memoryUsage().rss,
+    heapUsedBytes: process.memoryUsage().heapUsed,
+    eventLoopDelayMaxMs: eventLoop.max / 1e6,
   };
 }
 
 if (process.argv.includes("--help")) {
   process.stdout.write(
-    "Usage: node memory-query-index-benchmark.mjs [--counts 1000,10000,100000] [--samples 11] [--cache-mode validate-disk|verified-memory] [--output file.json]\nLocal fixture measurement; no paid model requests.\n",
+    "Usage: node memory-query-index-benchmark.mjs [--counts 1000,10000,100000] [--samples 11] [--modes baseline,cold,hot,rebuild,corrupt] [--cache-mode validate-disk|verified-memory] [--output file.json]\nLocal fixture measurement; no paid model requests. Use --samples 100 for the gap-review sampling requirement.\n",
   );
 } else if (option("--worker", null)) {
   const result = await measure(
@@ -95,7 +129,21 @@ if (process.argv.includes("--help")) {
   process.stdout.write(JSON.stringify(result));
 } else {
   const samples = Number(option("--samples", "11"));
-  assert.ok(Number.isSafeInteger(samples) && samples > 0 && samples <= 30);
+  assert.ok(Number.isSafeInteger(samples) && samples > 0 && samples <= 200);
+  const modes = option("--modes", "baseline,cold,hot,rebuild,corrupt").split(
+    ",",
+  );
+  assert.ok(
+    modes.length > 0 &&
+      new Set(modes).size === modes.length &&
+      modes.every((mode) =>
+        ["baseline", "cold", "hot", "rebuild", "corrupt"].includes(mode),
+      ),
+  );
+  const output = option("--output", null);
+  // Claim a fresh report before running a long measurement. Never overwrite a
+  // previous baseline or silently discard completed groups after interruption.
+  if (output) writeFileSync(output, "{}\n", { flag: "wx" });
   const counts = option("--counts", "1000,10000,100000").split(",").map(Number);
   assert.ok(
     counts.every(
@@ -119,38 +167,30 @@ if (process.argv.includes("--help")) {
     ).trim()
       ? "includes-uncommitted-implementation"
       : "clean",
-    implementationSha256: Object.fromEntries(
-      [
-        "segmented-memory-port.js",
-        "durable-memory-port.js",
-        "memory-query-index.js",
-        "memory-service.js",
-      ].map((name) => [
-        name,
-        createHash("sha256")
-          .update(
-            readFileSync(
-              new URL(
-                `../src/lib/context-memory-kernel/${name}`,
-                import.meta.url,
-              ),
-            ),
-          )
-          .digest("hex"),
-      ]),
-    ),
+    implementationSha256: sourceDigests(),
     platform: process.platform,
     arch: process.arch,
     node: process.version,
     samples,
+    modes,
+    complete: false,
     cacheMode: option("--cache-mode", "validate-disk"),
     counts,
     query: { category, limit },
     performanceThresholds: null,
     boundary:
-      "Local measurement, not approved SLO or release matrix. Cold means a fresh Node process; OS filesystem caches are not flushed. Fixture setup is excluded. Rebuild removes all derived indexes only.",
+      "Local measurement, not approved SLO or release matrix. Cold means a fresh Node process; OS filesystem caches are not flushed. Fixture setup is excluded. Rebuild removes all derived indexes; corrupt replaces their bytes with invalid data. Both keep authority unchanged.",
     tiers: [],
   };
+  const save = () => {
+    if (!output) return;
+    const temporary = `${output}.${randomUUID()}.tmp`;
+    writeFileSync(temporary, `${JSON.stringify(report, null, 2)}\n`, {
+      flag: "wx",
+    });
+    renameSync(temporary, output);
+  };
+  save();
   try {
     for (const count of counts) {
       const filePath = join(root, `authority-${count}.json`);
@@ -209,14 +249,9 @@ if (process.argv.includes("--help")) {
         assert.equal(child.status, 0, child.stderr || child.error?.message);
         return checks(JSON.parse(child.stdout));
       };
-      const groups = { baseline: [], cold: [], hot: [], rebuild: [] };
-      for (let index = 0; index < samples; index++)
-        groups.baseline.push(worker("baseline"));
-      for (let index = 0; index < samples; index++)
-        groups.cold.push(worker("indexed"));
+      // Warm the persistent reader once, outside all measured groups. Every
+      // cold/rebuild sample still uses a newly spawned process.
       checks(await measure(port, "indexed"));
-      for (let index = 0; index < samples; index++)
-        groups.hot.push(checks(await measure(port, "indexed")));
       const indexFiles = readdirSync(port.shardDirectory).filter((name) =>
         /^query-[a-f0-9]{2}-[a-f0-9]{64}\.json$/u.test(name),
       );
@@ -225,10 +260,6 @@ if (process.argv.includes("--help")) {
           sum + readFileSync(join(port.shardDirectory, name)).length,
         0,
       );
-      for (let index = 0; index < samples; index++) {
-        for (const name of indexFiles) rmSync(join(port.shardDirectory, name));
-        groups.rebuild.push(worker("indexed"));
-      }
       const manifest = JSON.parse(readFileSync(filePath));
       const tier = {
         count,
@@ -236,34 +267,65 @@ if (process.argv.includes("--help")) {
         indexBytes,
         indexCount: indexFiles.length,
         expectedDigest,
-        groups: Object.fromEntries(
-          Object.entries(groups).map(([name, values]) => [
-            name,
-            {
-              latency: summarizeDurations(
-                values.map((value) => value.durationMs),
-              ),
-              authorityReads: [
-                ...new Set(values.map((value) => value.authorityReads)),
-              ],
-              authorityBytes: [
-                ...new Set(values.map((value) => value.authorityBytes)),
-              ],
-              peakRssBytes: Math.max(
-                ...values.map((value) => value.peakRssBytes),
-              ),
-              samples: values,
-            },
-          ]),
-        ),
+        groups: {},
       };
       report.tiers.push(tier);
+      for (const mode of modes) {
+        assert.deepEqual(
+          sourceDigests(),
+          report.implementationSha256,
+          "implementation changed during measurement",
+        );
+        const values = [];
+        const summarize = () => ({
+          complete: values.length === samples,
+          latency: summarizeDurations(values.map((value) => value.durationMs)),
+          authorityReads: [
+            ...new Set(values.map((value) => value.authorityReads)),
+          ],
+          authorityBytes: [
+            ...new Set(values.map((value) => value.authorityBytes)),
+          ],
+          peakRssBytes: Math.max(...values.map((value) => value.peakRssBytes)),
+          samples: values,
+        });
+        for (let index = 0; index < samples; index++) {
+          if (mode === "rebuild")
+            for (const name of indexFiles)
+              rmSync(join(port.shardDirectory, name));
+          if (mode === "corrupt")
+            for (const name of indexFiles)
+              writeFileSync(
+                join(port.shardDirectory, name),
+                "corrupted derived index\n",
+              );
+          values.push(
+            mode === "hot"
+              ? checks(await measure(port, "indexed"))
+              : worker(mode === "baseline" ? "baseline" : "indexed"),
+          );
+          tier.groups[mode] = summarize();
+          save();
+          if ((index + 1) % 10 === 0 || index + 1 === samples)
+            process.stderr.write(`${count} ${mode}: ${index + 1}/${samples}\n`);
+        }
+      }
+      assert.deepEqual(
+        sourceDigests(),
+        report.implementationSha256,
+        "implementation changed during measurement",
+      );
       process.stderr.write(
         `${count}: ${JSON.stringify(Object.fromEntries(Object.entries(tier.groups).map(([name, result]) => [name, result.latency])))}\n`,
       );
     }
-    const output = option("--output", null);
-    if (output) writeFileSync(output, `${JSON.stringify(report, null, 2)}\n`);
+    assert.deepEqual(
+      sourceDigests(),
+      report.implementationSha256,
+      "implementation changed during measurement",
+    );
+    report.complete = true;
+    if (output) save();
     else process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   } finally {
     if (

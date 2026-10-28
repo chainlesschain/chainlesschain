@@ -1,0 +1,262 @@
+{
+  "schema": "chainlesschain.memory-query-index-measurement/v1",
+  "measuredAt": "2026-10-28T20:06:39.993Z",
+  "sourceHead": "0005a2b0d03df345e053f7c865d4cf5772b88803",
+  "workingTree": "includes-uncommitted-implementation",
+  "implementationSha256": {
+    "segmented-memory-port.js": "c3a8040d5a267f0354090c11a4f5773c1ab0edccdcdfd9ddf2919e9b4e51f800",
+    "durable-memory-port.js": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+    "memory-query-index.js": "f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721",
+    "memory-service.js": "288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3",
+    "memory-query-control.js": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+    "memory-shard-snapshots.js": "b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+    "with-file-lock.js": "2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+    "kernel/canonical.js": "267eb8a7af1d08dcfb8e590da266c5f283637e97e229633a784ef95fd85a0da9",
+    "kernel/contracts.js": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+    "fixture-generator.mjs": "81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939",
+    "benchmark.mjs": "af3a4e082026dcb355e12e382b3e7aed47b814172a36b7450316c7e68cc3b212"
+  },
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.22.2",
+  "samples": 2,
+  "modes": [
+    "baseline",
+    "cold",
+    "hot",
+    "rebuild",
+    "corrupt"
+  ],
+  "complete": true,
+  "cacheMode": "validate-disk",
+  "counts": [
+    1000
+  ],
+  "query": {
+    "category": "category-7",
+    "limit": 20
+  },
+  "performanceThresholds": null,
+  "boundary": "Local measurement, not approved SLO or release matrix. Cold means a fresh Node process; OS filesystem caches are not flushed. Fixture setup is excluded. Rebuild removes all derived indexes; corrupt replaces their bytes with invalid data. Both keep authority unchanged.",
+  "tiers": [
+    {
+      "count": 1000,
+      "authorityBytes": 1238244,
+      "indexBytes": 277102,
+      "indexCount": 253,
+      "expectedDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+      "groups": {
+        "baseline": {
+          "complete": true,
+          "latency": {
+            "samples": 2,
+            "minMs": 526.512,
+            "p50Ms": 526.512,
+            "p95Ms": 665.53,
+            "p99Ms": 665.53,
+            "maxMs": 665.53
+          },
+          "authorityReads": [
+            253
+          ],
+          "authorityBytes": [
+            1238244
+          ],
+          "peakRssBytes": 90443776,
+          "samples": [
+            {
+              "durationMs": 526.5115000000001,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 253,
+              "authorityBytes": 1238244,
+              "peakRssBytes": 90443776,
+              "rssBytes": 90226688,
+              "heapUsedBytes": 15074880,
+              "eventLoopDelayMaxMs": 26.394623
+            },
+            {
+              "durationMs": 665.5301999999999,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 253,
+              "authorityBytes": 1238244,
+              "peakRssBytes": 89780224,
+              "rssBytes": 89788416,
+              "heapUsedBytes": 19842392,
+              "eventLoopDelayMaxMs": 27.475967
+            }
+          ]
+        },
+        "cold": {
+          "complete": true,
+          "latency": {
+            "samples": 2,
+            "minMs": 435.372,
+            "p50Ms": 435.372,
+            "p95Ms": 480.717,
+            "p99Ms": 480.717,
+            "maxMs": 480.717
+          },
+          "authorityReads": [
+            20
+          ],
+          "authorityBytes": [
+            102516
+          ],
+          "peakRssBytes": 86339584,
+          "samples": [
+            {
+              "durationMs": 480.71669999999995,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 20,
+              "authorityBytes": 102516,
+              "peakRssBytes": 86081536,
+              "rssBytes": 85356544,
+              "heapUsedBytes": 15654520,
+              "eventLoopDelayMaxMs": 29.507583
+            },
+            {
+              "durationMs": 435.37199999999996,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 20,
+              "authorityBytes": 102516,
+              "peakRssBytes": 86339584,
+              "rssBytes": 86065152,
+              "heapUsedBytes": 15090736,
+              "eventLoopDelayMaxMs": 29.835263
+            }
+          ]
+        },
+        "hot": {
+          "complete": true,
+          "latency": {
+            "samples": 2,
+            "minMs": 357.913,
+            "p50Ms": 357.913,
+            "p95Ms": 363.417,
+            "p99Ms": 363.417,
+            "maxMs": 363.417
+          },
+          "authorityReads": [
+            20
+          ],
+          "authorityBytes": [
+            102516
+          ],
+          "peakRssBytes": 113487872,
+          "samples": [
+            {
+              "durationMs": 363.41679999999997,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 20,
+              "authorityBytes": 102516,
+              "peakRssBytes": 112615424,
+              "rssBytes": 111616000,
+              "heapUsedBytes": 28653328,
+              "eventLoopDelayMaxMs": 16.973823
+            },
+            {
+              "durationMs": 357.91250000000036,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 20,
+              "authorityBytes": 102516,
+              "peakRssBytes": 113487872,
+              "rssBytes": 112525312,
+              "heapUsedBytes": 24303888,
+              "eventLoopDelayMaxMs": 14.712831
+            }
+          ]
+        },
+        "rebuild": {
+          "complete": true,
+          "latency": {
+            "samples": 2,
+            "minMs": 1905.663,
+            "p50Ms": 1905.663,
+            "p95Ms": 1948.994,
+            "p99Ms": 1948.994,
+            "maxMs": 1948.994
+          },
+          "authorityReads": [
+            273
+          ],
+          "authorityBytes": [
+            1340760
+          ],
+          "peakRssBytes": 86130688,
+          "samples": [
+            {
+              "durationMs": 1948.9941999999999,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 273,
+              "authorityBytes": 1340760,
+              "peakRssBytes": 86020096,
+              "rssBytes": 85794816,
+              "heapUsedBytes": 15571104,
+              "eventLoopDelayMaxMs": 42.565631
+            },
+            {
+              "durationMs": 1905.6634000000001,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 273,
+              "authorityBytes": 1340760,
+              "peakRssBytes": 86130688,
+              "rssBytes": 86081536,
+              "heapUsedBytes": 15529528,
+              "eventLoopDelayMaxMs": 25.395199
+            }
+          ]
+        },
+        "corrupt": {
+          "complete": true,
+          "latency": {
+            "samples": 2,
+            "minMs": 1790.044,
+            "p50Ms": 1790.044,
+            "p95Ms": 1910.795,
+            "p99Ms": 1910.795,
+            "maxMs": 1910.795
+          },
+          "authorityReads": [
+            273
+          ],
+          "authorityBytes": [
+            1340760
+          ],
+          "peakRssBytes": 86990848,
+          "samples": [
+            {
+              "durationMs": 1790.0438999999997,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 273,
+              "authorityBytes": 1340760,
+              "peakRssBytes": 86990848,
+              "rssBytes": 86253568,
+              "heapUsedBytes": 15562192,
+              "eventLoopDelayMaxMs": 24.494079
+            },
+            {
+              "durationMs": 1910.7947,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 273,
+              "authorityBytes": 1340760,
+              "peakRssBytes": 86671360,
+              "rssBytes": 86675456,
+              "heapUsedBytes": 15580088,
+              "eventLoopDelayMaxMs": 25.985023
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

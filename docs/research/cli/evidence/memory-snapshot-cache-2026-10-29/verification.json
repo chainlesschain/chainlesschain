@@ -1,0 +1,87 @@
+{
+  "schema": "chainlesschain.memory-shard-snapshot-verification/v1",
+  "checkedAt": "2026-10-28T20:07:41.594Z",
+  "baseCommit": "0005a2b0d03df345e053f7c865d4cf5772b88803",
+  "platform": "win32",
+  "node": "v22.22.2",
+  "sourceDigests": {
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "sha256:c3a8040d5a267f0354090c11a4f5773c1ab0edccdcdfd9ddf2919e9b4e51f800",
+    "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js": "sha256:b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-index.js": "sha256:f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "sha256:8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+    "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "sha256:a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+    "packages/cli/src/lib/context-memory-kernel/memory-service.js": "sha256:288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3",
+    "packages/cli/src/lib/with-file-lock.js": "sha256:2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+    "packages/cli/scripts/memory-query-index-benchmark.mjs": "sha256:af3a4e082026dcb355e12e382b3e7aed47b814172a36b7450316c7e68cc3b212",
+    "packages/cli/scripts/memory-query-responsiveness-benchmark.mjs": "sha256:3be177c7002e38ba9f8f6d69269bd0279917e8e6b8f2a81b8896e97cba6a0839",
+    "packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs": "sha256:95ae56e475f4d09f248bf0c15add89b75179e72cbbca82e3f8bbc9fbe433cee8",
+    ".github/workflows/memory-query-index.yml": "sha256:b5cddd993c6f117a15a059949ccc2bf48817158f07f7fb004397b53408faacb4",
+    "packages/cli/__tests__/unit/durable-memory-port-limits.test.js": "sha256:f3a9f3df8f510bc54ece7a3e55892cbafaadef76f10ab1564e537e77b27769e4",
+    "packages/cli/__tests__/unit/memory-query-cancellation.test.js": "sha256:af2335a29f7cbc71d5364069fccf517a7df76c0522dfdd4d160f5c5ad4e87b49",
+    "packages/cli/__tests__/unit/memory-query-index.test.js": "sha256:8c44a9d7a8b4ea576fc9eccbfcaed1026319d6b13d4f8d197129cc99711ae748",
+    "packages/cli/__tests__/unit/memory-shard-snapshots.test.js": "sha256:4a4d963af7eff2ddfb11a73cdf58a45802d5cd327e9efd6df1b8f33350eae37a",
+    "packages/cli/__tests__/unit/memory-show-pagination.test.js": "sha256:5da5502e311157135b67dc0929d601f45d156b93f361ab8b0d4c1bdb2db63e0b",
+    "packages/cli/__tests__/unit/memory-status.test.js": "sha256:d5f585e1ef76e4b53a80792821313595168ee2b00f5cc662f66a08aab57c5e7f",
+    "packages/cli/__tests__/unit/persistent-capacity-benchmark.test.js": "sha256:5bc91bd559539f02cfc29c19af57a46b7e4367839e51e1341f8e4584466c57a8",
+    "packages/cli/__tests__/unit/provider-context-image-transport.test.js": "sha256:bbb0b5f26be9323a7d4f750627ba47959d1ef576b8c262592b60288740eb51fd",
+    "packages/cli/__tests__/unit/provider-model-profile.test.js": "sha256:32687db4bfba17e3cecebeea330e5a0fc29f3adfa4750d37edc3e5e7adb5d74f",
+    "packages/cli/__tests__/unit/segmented-memory-port.test.js": "sha256:e7ca1ad1103d72732ed4255d5b40e4123f3f5330fdd36f575b042870e013ec09",
+    "packages/cli/__tests__/unit/with-file-lock-async.test.js": "sha256:160a2b648137d1b95fb1c4347e8e3794e74fc24872e730262351d21f62fa0502",
+    "packages/cli/test-node/context-memory-kernel.node-test.mjs": "sha256:c69bc70287afe25d4ca9bc261a94312f603dfd46393d6c32cd4df80885cbd888"
+  },
+  "tests": {
+    "vitest": {
+      "files": 11,
+      "passed": 118,
+      "failed": 0,
+      "skipped": 1,
+      "report": "unit-results.json.gz",
+      "rawDigest": "sha256:2e40d4603e96346a28073f3612364fdf024e24d8af6bf5b48a5b6d90d2ed3b58"
+    },
+    "node": {
+      "passed": 26,
+      "failed": 0,
+      "report": "node-regression.tap"
+    },
+    "uniquePassed": 144,
+    "uniqueSkipped": 1
+  },
+  "artifacts": {
+    "unit-results.json.gz": "sha256:d726340c41fd632efd0ce1523d8d2a4f4ccb6afa7f574e2df390ddb1a04d84f4",
+    "node-regression.tap": "sha256:7cc5ece8fa231c3f2b0aa57ef2974ad0661d9c409f063c6f10d033d7159b25aa",
+    "harness-smoke.json": "sha256:fb519b63c5f065f3db5d8e03f46f30e4d8b1e294689d7f6642c830712a921c16"
+  },
+  "harnessSmoke": {
+    "counts": [1000],
+    "samplesPerScenario": 2,
+    "scenarios": ["baseline", "cold", "hot", "rebuild", "corrupt"],
+    "complete": true,
+    "authoritativePerformanceEvidence": false
+  },
+  "fullSampling": {
+    "status": "PENDING",
+    "minimumSamplesPerScenario": 100,
+    "counts": [1000, 10000, 100000],
+    "concurrencyRounds": 100
+  },
+  "checks": {
+    "syntax": true,
+    "prettier": true,
+    "diffWhitespace": true,
+    "processSpawnInventory": true
+  },
+  "eslint": {
+    "passed": false,
+    "reason": "Missing @eslint-community/eslint-utils; environment issue from preceding batches"
+  },
+  "crossPlatformVerified": false,
+  "querySloVerified": false,
+  "published": false,
+  "providerCalls": 0,
+  "remainingBoundaries": [
+    "100-sample full disk, cache, Stop and mixed-process results",
+    "Exact-commit three-system workflow results",
+    "Real IDE cancellation and recovery",
+    "Record and authority bytes are always reread; the cache budget counts source bytes, not total heap memory"
+  ]
+}
