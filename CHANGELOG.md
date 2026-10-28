@@ -12,8 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give opted-in hermetic change review its own request context and tool journal, preserving original requirements, shared request limits, permissions and cancellation. Missing review usage blocks further calls; review is not independent task acceptance.
 - Centralize experimental Codex App Server support, versioned schema probes and CI targets. Keep default-off routing and the existing experimental allowlist; probe-only 0.160.0 and 0.164.0 do not imply production admission.
 - Verify concurrent thread recovery with explicit database recency pagination on Linux, Windows and macOS. Retain documented limitations for default rollout scanning and legacy creation-time pagination.
+- Skip automatic and managed workspace snapshots for read-only Git inspection commands in IDE and CLI agent sessions. Retain checkpoints for mutations, explicit output files, external diff drivers and custom Git executors; session persistence and permission checks remain active.
 - Retain published child dependencies. Candidate publication requires exact-commit CLI CI and Strict Sandbox across all configured systems, GitHub Actions OIDC publication and public artifact readback. Historical task and native acceptance remain separately reported.
-
 
 ### Fixed - cc CLI 0.166.128: goal verification, tool discovery and memory queries (candidate, 2026-10-27)
 

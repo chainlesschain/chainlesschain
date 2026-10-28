@@ -3,7 +3,7 @@ name: Product UI Captures
 on:
   workflow_dispatch:
   push:
-    branches: [feature/mobile-product-captures-20261028]
+    branches: [main]
     paths:
       - .github/workflows/product-ui-captures.yml
       - scripts/capture-mobile-product.py
@@ -27,7 +27,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
       - name: Download and verify the fixed public APK
         run: python3 scripts/capture-mobile-product.py download
       - name: Enable KVM

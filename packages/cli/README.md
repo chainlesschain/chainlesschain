@@ -6,6 +6,8 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 This candidate adds isolated hermetic change-review context and a shared experimental Codex App Server support manifest with versioned three-platform probes. It is not yet published. The verified public CLI and IDE pairing remain listed below until the new release passes its exact-source gates and public artifact readback. Child npm package pins are unchanged; experimental routing remains off by default, and historical task/native acceptance is not promoted by this release.
 
+Read-only Git inspections such as `status`, `diff`, `log`, `show` and `rev-parse` now skip workspace snapshots in IDE and CLI agent sessions. Mutations and commands with explicit output files or external drivers retain checkpoints. Conversation persistence and permission checks remain active; end-to-end latency still depends on the repository, model and tools.
+
 ## CLI 0.166.128 — verification and discovery (public, 2026-10-28)
 
 This release adds evidence-based goal evaluation, visible checkpoint persistence failures, multilingual MCP / Skills discovery, opt-in compact MCP catalogs and reduced Memory index merging. The full internal tool inventory and execution permissions remain enforced. Compact catalogs use `mcp.toolSearch.catalogMode: "compact"`; the default remains `stubs`. Synthetic token and latency measurements do not establish real billing or task-quality gains.
