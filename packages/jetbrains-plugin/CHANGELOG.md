@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.184] - Clean-home onboarding and CLI pairing (candidate, 2026-10-28)
+
+- Isolate configuration at the final Gradle IDE launch and validate the actual IDE user home and configuration root.
+- Recommend CLI 0.166.129 and pair with VS Code 0.37.167; retain model configuration and conversation isolation fixes.
+- Publish after verified public CLI installation and complete exact-source host gates; require public ZIP readback.
+
 ## [0.4.183] - Model configuration and conversation isolation (candidate, 2026-10-27)
 
 - Distinguish configured, missing and unreadable LLM settings and reject late configuration detection results.

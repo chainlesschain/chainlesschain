@@ -1,5 +1,9 @@
 # ChainlessChain IDE Bridge (JetBrains)
 
+## Next release candidate
+
+Plugin **0.4.184** is an unpublished candidate, recommends CLI **`0.166.129`**, and pairs with VS Code **0.37.167**. It incorporates the clean-home onboarding fix: the final Gradle IDE launch uses the isolated user configuration and validates the actual IDE home/root. Publication requires the paired public CLI, the complete host matrix and public ZIP readback. Historical task acceptance remains separate.
+
 ## Self-evolution switch
 
 完整中文配置与排查步骤见[CLI 与 IDE 自进化开关配置](../../docs/cli/SELF_EVOLUTION_CONFIGURATION.md)。
