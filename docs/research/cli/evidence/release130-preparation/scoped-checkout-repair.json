@@ -1,0 +1,19 @@
+{
+  "schema": "chainlesschain.release130-scoped-checkout-repair/v1",
+  "recordedAt": "2026-10-28T18:36:35.648Z",
+  "failedSource": "2453d49a1ea724abe8fef4cb7dcf52e9abbb751b",
+  "runId": 40745114693,
+  "jobId": 123016716040,
+  "classificationExecuted": false,
+  "observedFailure": "Five-minute job cancelled during full-history Git fetch, before checkout and document classification.",
+  "repair": "Retain complete commit/tree history and complete checked-out source; use blob:none so obsolete archived file blobs are fetched only when read.",
+  "preserved": [
+    "5-minute job timeout",
+    "complete PR merge-base diff",
+    "exact source identity",
+    "narrow docs allowlist",
+    "full code checks for code/policy changes",
+    "persist-credentials:false"
+  ],
+  "publication": "NOT_PUBLISHED"
+}
