@@ -585,7 +585,7 @@ export function registerAgentCommand(program, dependencies = {}) {
     )
     .option(
       "--goal-condition <spec>",
-      "Session completion condition; re-drives outer turns until met. Prefix exit-zero:/file-exists:/contains:/regex: (deterministic) or model:<desc> (model-judged)",
+      "Session completion condition; prefer verify:<manifest.json> for independent engineering acceptance, or exit-zero:/file-exists:/contains:/regex:; model:<desc> uses model judgment",
     )
     .option(
       "--goal-recovery-reviewed",

@@ -1,0 +1,223 @@
+{
+  "schema": "chainlesschain.goal-independent-verification/v1",
+  "checkedAt": "2026-10-28T19:49:52.607Z",
+  "baseCommit": "d740555ff6c7e3b53969d4ee766757ae1137d71a",
+  "platform": "win32",
+  "node": "v22.22.2",
+  "mode": "Explicit verify:<manifest.json>; existing model goals retain model judgment",
+  "tests": {
+    "files": 12,
+    "passed": 266,
+    "failed": 0,
+    "pending": 0,
+    "rawDigest": "sha256:ee16f5474ced0d1d1892d0fb36b3cd52010d217b81903eec6ba43f567547fc2a",
+    "archive": "unit-results.json.gz",
+    "archiveDigest": "sha256:88b75792c9866d79782da4227a5f4ac02db4154da93cfd47554d98e1ced59c32",
+    "suites": [
+      {
+        "path": "packages/cli/__tests__/unit/direct-model-usage.test.js",
+        "status": "passed",
+        "tests": 18
+      },
+      {
+        "path": "packages/cli/__tests__/unit/goal-assess.test.js",
+        "status": "passed",
+        "tests": 11
+      },
+      {
+        "path": "packages/cli/__tests__/unit/goal-check-evidence.test.js",
+        "status": "passed",
+        "tests": 17
+      },
+      {
+        "path": "packages/cli/__tests__/unit/goal-condition-engine.test.js",
+        "status": "passed",
+        "tests": 32
+      },
+      {
+        "path": "packages/cli/__tests__/unit/goal-model-call.test.js",
+        "status": "passed",
+        "tests": 7
+      },
+      {
+        "path": "packages/cli/__tests__/unit/goal-verification-plan.test.js",
+        "status": "passed",
+        "tests": 19
+      },
+      {
+        "path": "packages/cli/__tests__/unit/goal-workspace-evidence.test.js",
+        "status": "passed",
+        "tests": 13
+      },
+      {
+        "path": "packages/cli/__tests__/unit/headless-goal-model-budget.test.js",
+        "status": "passed",
+        "tests": 18
+      },
+      {
+        "path": "packages/cli/__tests__/unit/headless-goal-verification.test.js",
+        "status": "passed",
+        "tests": 7
+      },
+      {
+        "path": "packages/cli/__tests__/unit/headless-runner-cost-budget.test.js",
+        "status": "passed",
+        "tests": 10
+      },
+      {
+        "path": "packages/cli/__tests__/unit/headless-runner.test.js",
+        "status": "passed",
+        "tests": 111
+      },
+      {
+        "path": "packages/cli/__tests__/unit/headless-runtime-ledger-failclosed.test.js",
+        "status": "passed",
+        "tests": 3
+      }
+    ]
+  },
+  "sources": [
+    {
+      "path": "packages/cli/src/lib/goal-verification-plan.js",
+      "digest": "sha256:edac68011b5745dd13c655860be28521d51452a04278fda82ab57ef62ea472e5"
+    },
+    {
+      "path": "packages/cli/src/lib/goal-verification-command.js",
+      "digest": "sha256:49586e9d5da151f5ca62733a5c31e380f78a1c1b0de0203677350d4c726e3ff6"
+    },
+    {
+      "path": "packages/cli/src/lib/goal-condition-engine.js",
+      "digest": "sha256:421051d1f32b86d65f46ac3043f86d24ffa1f39e90a4dcd07f5b06dae55bb67f"
+    },
+    {
+      "path": "packages/cli/src/runtime/headless-runner.js",
+      "digest": "sha256:caecede23746501e7191fd88b556d0a5b784a7b63658b748547d17576df5a5dd"
+    },
+    {
+      "path": "packages/cli/src/commands/agent.js",
+      "digest": "sha256:1512b35826c3ebc617831a0c76d0bbcb1d27dfbf8d1a6f8505275feab1f6f1d1"
+    },
+    {
+      "path": "packages/cli/src/command-help-index.json",
+      "digest": "sha256:9b11191f11bd75894d78f2a8bb6ce48c1ee0d503866a344340e7f01f487d174a"
+    },
+    {
+      "path": "packages/cli/src/lib/goal-workspace-evidence.js",
+      "digest": "sha256:0848dca7e2528558310728a7ce40d247094d9f6628a0ef42ab9444f0f26a9560"
+    },
+    {
+      "path": "packages/cli/src/lib/goal-check-evidence.js",
+      "digest": "sha256:73cb0daec16bfb81b5794e3155b778c0e67cab489a880b4fcd3d860d5e845e0c"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/direct-model-usage.test.js",
+      "digest": "sha256:1f6ecf276a5203a3d1d0cce87b971e6cce1c5f70d941b01a49cae735820003be"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/goal-assess.test.js",
+      "digest": "sha256:aef084e75c48fb5b3944c3f72206f504bd8d97dcb5d83c109c0b92a3ddbded8a"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/goal-check-evidence.test.js",
+      "digest": "sha256:72fb5b5a5d0dd6e6098f9f46fd35b2e221b30758e99f15ca0e64d210fb852bf9"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/goal-condition-engine.test.js",
+      "digest": "sha256:eb4b053ad4a0fc70183d159d0f00f48be17b309c261a5b5989f52ad139f0f7d7"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/goal-model-call.test.js",
+      "digest": "sha256:92f2ce3b6dfcbc85affc9fdffea7c9d195f51ecab212f0aef3e3745026392e6c"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/goal-verification-plan.test.js",
+      "digest": "sha256:a948fe4f14f9bd7a3eafd26ca6b86692130e5127ca19f4737ff2975a570d955a"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/goal-workspace-evidence.test.js",
+      "digest": "sha256:1795f3603f9295a81ada545b3ed61a67d4b0a15d1b33c6f44d9d625d19053006"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/headless-goal-model-budget.test.js",
+      "digest": "sha256:00f9d771b88f39cde97cc0397ef434e5b13ee3d968ab7fb492bf3d4775ae4a17"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/headless-goal-verification.test.js",
+      "digest": "sha256:fb5db8ed5d7e7543bc88fcc6f39c732b043f8f5211f5d2c91c55dd9ca386e8d9"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/headless-runner-cost-budget.test.js",
+      "digest": "sha256:1ed444c3edb0f6de1d57a8a9eabccfedf84081563200f8f906c1910cd00a191f"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/headless-runner.test.js",
+      "digest": "sha256:78270b42437993c971512341ca17f693ac8c62c7eb589cdde00edbe56eff882c"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/headless-runtime-ledger-failclosed.test.js",
+      "digest": "sha256:5763b25908e3a2eeecad338ff2c1f4b200bf7b3254e9ccc5f0631674e5b15b77"
+    }
+  ],
+  "sourceAudit": {
+    "report": "source-audit.json",
+    "digest": "sha256:225e826646d9518f7203bfed613d4ce7920efdd8477da1294fa03ca3bc7e6240",
+    "filesScanned": 1707,
+    "candidateFiles": 78,
+    "passed": true,
+    "scope": "Tracked and new nonignored CLI src/scripts source bytes; ignored generated assets excluded"
+  },
+  "priorFullDirectoryAudit": {
+    "report": "full-directory-audit-before-final.json.gz",
+    "capturedAt": "2026-10-28T19:38:07.712Z",
+    "passed": false,
+    "issues": [
+      {
+        "path": "packages/cli/src/assets/web-panel/assets/Artifacts-D4DeQQ89.js",
+        "status": "UNREVIEWED"
+      },
+      {
+        "path": "packages/cli/src/assets/web-panel/assets/index-CI07XFwr.js",
+        "status": "UNREVIEWED"
+      },
+      {
+        "path": "packages/cli/src/assets/web-panel/assets/MtcAudit-CwJzv9a9.js",
+        "status": "UNREVIEWED"
+      },
+      {
+        "path": "packages/cli/src/assets/web-panel/assets/RemoteSession-DyCisp2M.js",
+        "status": "UNREVIEWED"
+      }
+    ],
+    "note": "Diagnostic before final feedback change; includes ignored generated bundles. These bundles are not reclassified as reviewed. Git-visible audit is reported separately."
+  },
+  "checks": {
+    "syntax": true,
+    "prettier": true,
+    "diffWhitespace": true,
+    "commandManifest": true,
+    "commandHelpIndex": true,
+    "cliReference": true,
+    "processSpawnInventory": true
+  },
+  "eslint": {
+    "passed": false,
+    "reason": "Installed @eslint-community/eslint-utils missing; unchanged environment limitation from prior batches"
+  },
+  "processCleanup": {
+    "limitation": "Windows timeout/output overflow can fail to confirm the entire process tree. The runner then emits cleanup-unconfirmed with manualReviewRequired and halts automatic re-drive.",
+    "testedOutcomes": [
+      "confirmed cleanup with unmet check",
+      "fatal cleanup uncertainty"
+    ],
+    "liveCancellationRootPidGone": true,
+    "allDescendantsTerminationAttested": false
+  },
+  "liveProviderCalls": 0,
+  "crossPlatformGateRun": false,
+  "published": false,
+  "realTaskAcceptance": {
+    "accepted": 34,
+    "total": 45,
+    "newlyAccepted": 0
+  }
+}

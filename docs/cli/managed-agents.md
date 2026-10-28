@@ -2,9 +2,9 @@
 
 <!-- docs-code-git-sync-2026-10-28 -->
 
-## Current CLI 0.166.128: completion review and Goal conditions
+## Current CLI 0.166.129: completion review and Goal conditions
 
-Install `chainlesschain@0.166.128`. Paired public IDEs are Open VSX `0.37.166` and JetBrains `0.4.183`; native product `v5.0.3.143` has its own frozen source and verified release.
+Install `chainlesschain@0.166.129`. Paired public IDEs are Open VSX `0.37.167` and JetBrains `0.4.184`; native product `v5.0.3.143` has its own frozen source and verified release.
 
 - `cc agent -p "implement and check the requested changes" --review-changes` enables one review opportunity after successful file content changes. It is off by default and accepts headless prompts or stream-json input. Reads, repairs and model calls consume the existing permission, turn and cost budgets; incomplete usage prevents extra review.
 - Review mode emits final response text only while preserving tool progress events. It does not provide independent acceptance or enable Skill evolution.
@@ -12,7 +12,7 @@ Install `chainlesschain@0.166.128`. Paired public IDEs are Open VSX `0.37.166` a
 - Persistent Goal checkpoint failure returns `CC_GOAL_CHECKPOINT_FAILED`. Review actual effects and usage before resuming an interrupted running checkpoint with the original condition and `--goal-recovery-reviewed`; the flag does not repair corrupt storage.
 - `--goal` and opt-in `--goal-assess` manage and assess long-term goals separately from the headless completion-condition loop.
 
-[Current user guide](https://docs.chainlesschain.com/chainlesschain/cli-agent.html) · [Published-source evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/publication.json).
+[Current user guide](https://docs.chainlesschain.com/chainlesschain/cli-agent.html) · [Published package verification](../research/cli-ide-native-retest129-progress-2026-10-29.md).
 
 ## Source checkout: Goal evidence freshness (unreleased)
 
@@ -22,7 +22,62 @@ In Git workspaces, source coverage includes tracked and nonignored files under `
 
 Scanning is read-only and bounded to 50,000 entries, 512 MiB total, 64 MiB per file and 15 seconds per capture; Git enumeration has a 5-second process timeout. Non-Git folders cover regular files recursively. Links, unsupported entries and insufficient coverage stay unverified. Source checks require additional disk reads; a local Windows sample of 1,000 × 1 KiB files took 1.4–1.7 seconds per capture, not a production latency guarantee. Evidence protects against ordinary concurrent changes, not hostile filesystem replacement or mutations after the final check. See the [implementation and verification record](../research/cli-ide-goal-workspace-progress-2026-10-29.md).
 
-> Parent: [`../CLI_COMMANDS_REFERENCE.md`](CLI_COMMANDS_REFERENCE.md)
+## Source checkout: independent Goal acceptance (unreleased)
+
+Use `--goal-condition "verify:../acceptance/goal.json"` to execute an operator-defined acceptance plan after each author turn. Prepare the manifest and checker before starting the agent. The host freezes their bytes and file identities before the first author call; the author does not choose the checks or report their results. Existing `model:` goals retain model judgment and do not automatically gain independent checks.
+
+For example, keep these two acceptance files beside the candidate workspace. This plan requires `result.json` inside the workspace:
+
+```json
+{
+  "schema": "chainlesschain.goal-verification/v1",
+  "artifacts": ["result.json"],
+  "checks": [
+    {
+      "id": "answer",
+      "executable": "node",
+      "args": ["../acceptance/check.cjs"],
+      "checkerFiles": ["check.cjs"],
+      "requirements": ["answer-is-five"],
+      "timeoutMs": 5000
+    }
+  ]
+}
+```
+
+The checker runs meaningful assertions and emits exactly one result line after they pass:
+
+```javascript
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const result = JSON.parse(fs.readFileSync("result.json", "utf8"));
+assert.equal(result.answer, 5);
+console.log(
+  "CC_GOAL_CHECK_RESULT " +
+    JSON.stringify({
+      schema: "chainlesschain.goal-check-result/v1",
+      checkId: process.env.CC_GOAL_CHECK_ID,
+      invocationId: process.env.CC_GOAL_CHECK_INVOCATION,
+      requirements: [{ id: "answer-is-five", passed: true }],
+    }),
+);
+```
+
+Run from the candidate workspace:
+
+```bash
+cc agent -p "Produce result.json with the requested answer" --goal-condition "verify:../acceptance/goal.json" --max-outer-turns 3
+```
+
+`checkerFiles` resolves relative to the manifest; command arguments resolve relative to the workspace. Use `node` or an absolute executable path, with separate argv entries and no shell. Declare every checker source, fixture and configuration dependency in `checkerFiles`. All declared checks and requirements must pass. Exit zero without a complete, current invocation receipt, a missing artifact, changed source/artifact bytes, or a changed checker cannot complete the Goal. Checks must finish any child work and leave the candidate source and declared artifacts unchanged.
+
+Limits are 8 checks, 32 artifacts, 32 checker files per check, 65 distinct frozen inputs including the manifest, a 64 KiB manifest, 8 MiB per frozen checker input, and 30 seconds per preparation/input-validation pass. Each command permits at most 60 seconds (default 30 seconds), further limited by remaining Goal time, with 128 KiB each of stdout/stderr. Output overflow cannot pass. Run/session cancellation reaches the checker; output previews are redacted and bounded, and stored evidence includes output digests and the scope of the source/artifact bindings.
+
+The command uses the process broker with a reduced environment that excludes provider credentials and Node preload variables. This does not sandbox arbitrary checker code or attest against malicious candidate code deliberately forging a receipt in the checker process. The operator remains responsible for independent assertions, declared dependency coverage, and selecting trusted acceptance commands. Git-ignored dependencies and external resources are outside source binding unless explicitly declared as checker inputs or in-workspace artifacts. Filesystem digests do not guarantee immutability after verification.
+
+Persistent sessions save the frozen plan and each check's dispatch intent before execution, then save the evaluated result before completion. A changed definition or uncertain process cleanup returns `CC_GOAL_VERIFICATION_FAILED` and stops automatic re-drive. A failed checkpoint returns `CC_GOAL_CHECKPOINT_FAILED` without dispatching the next check. An interrupted running checkpoint requires reconciling effects and processes before `--goal-recovery-reviewed`; resume revalidates the original definition and reruns checks against the current candidate. Local Windows timeout/overflow tests sometimes could not confirm full process-tree termination; those cases halt for review instead of retrying automatically. See the [verification record](../research/cli-ide-goal-verification-progress-2026-10-29.md).
+
+> Parent: [`CLI_COMMANDS_REFERENCE.md`](./CLI_COMMANDS_REFERENCE.md)
 
 ## Managed Agents Parity (session-core)
 
@@ -1491,4 +1546,4 @@ Electron + Vue3 / Spring Boot + FastAPI / libp2p + Signal / SQLCipher（按需�
 
 ### 17. 相关文档
 
-[快速开始](./QUICK_START.md)、[安装指南](./INSTALLATION.md)、其它用户文档。
+[快速开始](../quick-start/QUICK_START.md)、[安装指南](../quick-start/INSTALLATION.md)、其它用户文档。

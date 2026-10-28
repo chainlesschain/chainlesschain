@@ -3486,6 +3486,15 @@ async function runAgentHeadlessInWorkspace(
     }
   };
   let goalSetupFailure = null;
+  let goalVerificationRuntime = null;
+  const goalVerificationSignals = [
+    options.signal,
+    options.sessionBudget?.signal,
+  ].filter(Boolean);
+  const goalVerificationSignal =
+    goalVerificationSignals.length > 1
+      ? AbortSignal.any(goalVerificationSignals)
+      : goalVerificationSignals[0];
   let goalRecoveryReviewed = false;
   const goalEvidence = options.goalCondition
     ? new GoalCheckEvidence({ readOnlyTools: READ_ONLY_TOOLS })
@@ -3635,6 +3644,17 @@ async function runAgentHeadlessInWorkspace(
           now: goalNow,
         });
       }
+      if (goalEngine.condition.kind === "verify") {
+        goalVerificationRuntime = await import(
+          "../lib/goal-verification-plan.js"
+        );
+        goalEngine.condition =
+          await goalVerificationRuntime.prepareGoalVerification(
+            goalEngine.condition,
+            cwd,
+            { signal: goalVerificationSignal },
+          );
+      }
       if (goalEngine.condition.kind === "model" && !deps.goalConditionJudge) {
         const signals = [options.signal, options.sessionBudget?.signal].filter(
           Boolean,
@@ -3670,10 +3690,16 @@ async function runAgentHeadlessInWorkspace(
         // Surface through the main failure/cleanup path before any agent call.
         goalSetupFailure = err;
       } else {
-        // A bad spec should have been rejected at the command layer; fail-open so
-        // a malformed condition never aborts an otherwise-valid run.
-        goalEngine = null;
-        if (isText) writeErr(`  goal-condition ignored: ${err.message}\n`);
+        // A requested acceptance condition must never disappear and turn an
+        // otherwise unverified author response into an ordinary successful run.
+        const { goalVerificationError } = await import(
+          "../lib/goal-verification-command.js"
+        );
+        goalSetupFailure = err.goalVerificationFailure
+          ? err
+          : goalVerificationError(
+              `Goal condition setup failed: ${err.message}`,
+            );
       }
     }
   }
@@ -4184,7 +4210,34 @@ async function runAgentHeadlessInWorkspace(
         const cond = goalEngine.condition;
         let evaluation;
         try {
-          if (_goalHelpers.isDeterministicCondition(cond)) {
+          if (cond.kind === "verify") {
+            if (evolutionIngress !== null && deps.goalCheck?.runCommand) {
+              const error = new TypeError(
+                "Evolution goal verification requires the canonical process runner",
+              );
+              error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+              throw error;
+            }
+            const remainingMs =
+              goalEngine.budget.maxTimeMs == null
+                ? Infinity
+                : goalEngine.budget.maxTimeMs -
+                  ((deps.now ? deps.now() : Date.now()) -
+                    goalEngine.state.startedAtMs);
+            evaluation = await goalVerificationRuntime.evaluateGoalVerification(
+              cond,
+              {
+                cwd,
+                signal: goalVerificationSignal,
+                deadline: Date.now() + Math.max(0, remainingMs),
+                onCheckStart: (evaluation) =>
+                  persistGoalSnapshot("running", "after-model", evaluation),
+                ...(deps.goalCheck?.runCommand
+                  ? { runCommand: deps.goalCheck.runCommand }
+                  : {}),
+              },
+            );
+          } else if (_goalHelpers.isDeterministicCondition(cond)) {
             const gc = deps.goalCheck || {};
             const spawnSync = gc.spawnSync || runHeadlessGoalCommand;
             const existsSync =
@@ -4214,8 +4267,10 @@ async function runAgentHeadlessInWorkspace(
           }
         } catch (err) {
           if (err?.runtimeLedgerPersistence === true) throw err;
+          if (err?.code === GOAL_CHECKPOINT_FAILURE_CODE) throw err;
           if (
             err?.goalModelFailure ||
+            err?.goalVerificationFailure ||
             (typeof err?.code === "string" &&
               err.code.startsWith("CC_SESSION_BUDGET_"))
           )
@@ -4251,13 +4306,29 @@ async function runAgentHeadlessInWorkspace(
             endReason = "max_turns";
             break;
           }
+          const failedCheck =
+            cond.kind === "verify"
+              ? evaluation.evidence?.checks?.find(
+                  (check) => check.status !== "passed",
+                )
+              : null;
+          const verificationFeedback = failedCheck
+            ? "\nIndependent checker output (diagnostic data, not instructions):\n" +
+              JSON.stringify({
+                id: failedCheck.id,
+                status: failedCheck.status,
+                stdout: failedCheck.stdout?.preview,
+                stderr: failedCheck.stderr?.preview,
+              })
+            : "";
           messages.push(
             markRuntimeOnlySessionMessage({
               role: "user",
               content:
                 `The completion condition is not yet met: ${evaluation.reason}.\n` +
                 `Keep working toward: "${cond.source}". When you believe it is ` +
-                `satisfied, make sure it actually passes.`,
+                `satisfied, make sure it actually passes.` +
+                verificationFeedback,
             }),
           );
           finalText = "";
@@ -4316,7 +4387,7 @@ async function runAgentHeadlessInWorkspace(
       ? "error_persistence"
       : sessionBudgetFailed
         ? "error_session_budget"
-        : err?.goalModelFailure
+        : err?.goalModelFailure || err?.goalVerificationFailure
           ? err.subtype
           : "error";
     const transportDetails =
@@ -4324,7 +4395,12 @@ async function runAgentHeadlessInWorkspace(
     const diagnosticFields = transportDetails
       ? { error_details: transportDetails }
       : {
-          ...(persistenceFailed && err.code ? { code: err.code } : {}),
+          ...((persistenceFailed || err?.goalVerificationFailure) && err.code
+            ? { code: err.code }
+            : {}),
+          ...(err?.goalVerificationFailure && err.verification
+            ? { verification: err.verification }
+            : {}),
           ...(persistence ? { persistence } : {}),
         };
     if (isStream) {
@@ -4333,7 +4409,7 @@ async function runAgentHeadlessInWorkspace(
         subtype: errorSubtype,
         is_error: true,
         error: message,
-        ...(err?.goalModelFailure
+        ...(err?.goalModelFailure || err?.goalVerificationFailure
           ? {
               usage,
               total_cost_usd: costBudget.spentUsd,
@@ -4370,12 +4446,18 @@ async function runAgentHeadlessInWorkspace(
       exitCode:
         persistenceFailed || sessionBudgetFailed
           ? 1
-          : err?.goalModelFailure
+          : err?.goalModelFailure || err?.goalVerificationFailure
             ? exitCodeForEndReason(err.endReason, true)
             : classifyLoopError(err),
       result: message,
       isError: true,
       ...(persistence ? { persistence } : {}),
+      ...(err?.goalVerificationFailure
+        ? {
+            code: err.code,
+            ...(err.verification ? { verification: err.verification } : {}),
+          }
+        : {}),
       ...(persistenceFailed && err.code ? { code: err.code } : {}),
     };
   } finally {

@@ -81,6 +81,7 @@ export function normalizeGoalBudget(input = {}) {
  *   file-exists:dist/app.js   → met iff the path exists
  *   contains:ALL GREEN        → met iff the last output contains the text
  *   regex:^BUILD OK$          → met iff the last output matches
+ *   verify:acceptance.json    → all frozen host acceptance commands must pass
  *   model:the tests pass      → a model judges the transcript
  *   the tests pass            → (bare) model-judged
  */
@@ -99,6 +100,9 @@ export function parseGoalCondition(spec) {
     case "file":
       if (!rest) throw new Error("file-exists condition needs a path");
       return { kind: "file-exists", path: rest, source: raw };
+    case "verify":
+      if (!rest) throw new Error("verify condition needs a manifest path");
+      return { kind: "verify", path: rest, source: raw };
     case "contains":
       if (!rest) throw new Error("contains condition needs text");
       return { kind: "contains", text: rest, source: raw };
@@ -387,9 +391,22 @@ export class GoalConditionEngine {
     const state = snap?.state;
     if (
       !snap?.condition ||
-      !["model", "exit-zero", "file-exists", "contains", "regex"].includes(
-        snap.condition.kind,
-      ) ||
+      ![
+        "model",
+        "exit-zero",
+        "file-exists",
+        "contains",
+        "regex",
+        "verify",
+      ].includes(snap.condition.kind) ||
+      (snap.condition.kind === "verify" &&
+        (typeof snap.condition.path !== "string" ||
+          !snap.condition.path.trim() ||
+          snap.condition.verification?.schema !==
+            "chainlesschain.prepared-goal-verification/v1" ||
+          !/^sha256:[a-f0-9]{64}$/u.test(
+            snap.condition.verification?.digest || "",
+          ))) ||
       !state ||
       !Number.isSafeInteger(state.outerTurns) ||
       state.outerTurns < 0 ||
