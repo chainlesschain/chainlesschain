@@ -1,0 +1,18 @@
+{
+  "channel": "open-vsx",
+  "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide",
+  "status": "ready",
+  "version": "0.37.167",
+  "latest": "0.37.167",
+  "downloadable": true,
+  "listed": true,
+  "registryArchiveSha256": "daa1dfc582631c645037bac9720d26d5669ca5a47ba78075e9fac82535a375c8",
+  "localArchiveSha256": "daa1dfc582631c645037bac9720d26d5669ca5a47ba78075e9fac82535a375c8",
+  "contentSha256": "75c1cb517730e4ed884e6b706db14097743ebe3896f249de89f74bda1e56b650",
+  "verifiedBy": {
+    "workflowRunId": 40724836985,
+    "jobId": 122952995940,
+    "sourceSha": "800e9cc99711f9f02eb3bbd78eb14600406bdba5",
+    "location": "GitHub Actions Linux runner"
+  }
+}

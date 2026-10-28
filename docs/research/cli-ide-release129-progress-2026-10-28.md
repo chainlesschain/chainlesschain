@@ -1,28 +1,42 @@
-# CLI 0.166.129 与 IDE 发布进度（2026-10-28）
+# CLI 0.166.129 与 IDE 发布进度（2026-10-28 准备，2026-10-29 发布）
 
-用户已授权本轮必需测试通过后发布 CLI 与 IDE 插件，并允许先发布、后合并。移动与 PC 客户端不在本轮范围内。
+公开归档核对时间：2026-10-28T18:02:52.286732Z；2026-10-29 同步此前未提交的发布记录。用户已授权本轮必需测试通过后发布 CLI 与 IDE，并允许先发布、后合并。本轮不包含移动或 PC 客户端发行，Microsoft 渠道按用户要求暂缓。
 
 ## 当前状态
 
-- CLI 候选：`0.166.129`，准确提交 `fd8a21637ab188dae0c777442d312ae85d420a9b`，PR [#506](https://github.com/chainlesschain/chainlesschain/pull/506)。
-- 不可变标签：`v-npm-0-166-129`；正式 [OIDC 发布工作流 40693655894](https://github.com/chainlesschain/chainlesschain/actions/runs/40693655894) 已启动，等待准确提交的完整发布检查；启动工作流不等于已公开。
-- [CLI Strict Sandbox 40679324803](https://github.com/chainlesschain/chainlesschain/actions/runs/40679324803) 已成功；[CLI CI 40679324623](https://github.com/chainlesschain/chainlesschain/actions/runs/40679324623) attempt 2 已成功（72/72），三系统矩阵完整通过。
-- [IDE Extensions 40679324574](https://github.com/chainlesschain/chainlesschain/actions/runs/40679324574) 在 CLI 候选提交上成功。新版插件提交需要自己的准确源码检查。
-- IDE 候选：VS Code `0.37.167` / JetBrains `0.4.184`，推荐 CLI `0.166.129`；准确提交 `800e9cc99711f9f02eb3bbd78eb14600406bdba5`，PR [#507](https://github.com/chainlesschain/chainlesschain/pull/507)。[IDE 候选检查 40694534085](https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085) 已成功（18 项通过，发布后回读作业按候选事件跳过）；旧候选因 README 兼容段落版本滞后而停止，修正后版本元数据、能力清单与 fixture 校验均通过。尚未创建插件发布标签。
-- 公开版本仍为 CLI `0.166.128`、Open VSX `0.37.166`、JetBrains `0.4.183`。Microsoft Marketplace 缺少 `VSCE_PAT`，仍未发布。
+CLI、Open VSX 与 JetBrains 均已公开并完成限定范围的归档回读；真实任务及原生旅程继续单独验收。
 
-## 发布顺序与验证
+| 渠道 | 版本 | 状态 |
+| --- | --- | --- |
+| npm CLI | 0.166.129 | 已公开并验证下载 |
+| Open VSX | 0.37.167 | 已公开并验证下载 |
+| JetBrains | 0.4.184 | 已批准、列出且未隐藏；公开 ZIP 已回读 |
+| Microsoft Marketplace | — | 按用户要求暂缓，本轮不做；仍未发布 |
 
-1. 十个直接子 npm 依赖的准确版本与公开归档已逐个抓取并验证 SHA-512；对应子包源码相对上一轮 CLI 发行提交未变，沿用已发布版本。
-2. CLI 通过准确提交的 Linux / Windows / macOS CLI CI 与 Strict Sandbox 后，由现有 Actions OIDC 工作流发布。随后验证公开归档、不可变 CI 制品一致性、npm provenance 和全新公开安装。
-3. CLI 公开验证完成、插件准确源码检查通过后，依次创建插件不可变标签，验证 Open VSX VSIX 与 JetBrains 公开审核、上架和 ZIP 内容。
-4. 合并发布 PR 与包含实际版本、配套、安装命令、限制和回执的公开文档。
+[完整公开回执](./cli/evidence/release129-public/publication.json)记录准确提交、运行、归档哈希及公开下载结果。
 
-## 已完成本地验证
+## CLI 证据
 
-CLI 八个 changelog / release-contract 测试文件，83 项通过；插件 Marketplace overview 校验、CLI 升级推荐和发布契约定向测试通过，公开 CLI 前置条件测试 14 项通过；两个候选均通过 `git diff --check`。本地检查是补充，不能替代 Actions 完整矩阵。
+- 准确源码：`fd8a21637ab188dae0c777442d312ae85d420a9b`；不可变标签 `v-npm-0-166-129`；PR [#506](https://github.com/chainlesschain/chainlesschain/pull/506)。
+- [CLI CI 40679324623](https://github.com/chainlesschain/chainlesschain/actions/runs/40679324623) attempt 2 最终 **72/72** 成功；[CLI Strict Sandbox 40679324803](https://github.com/chainlesschain/chainlesschain/actions/runs/40679324803) 成功。准确提交的 Linux、Windows、macOS 双门禁完整，通过记录见 [gates.json](./cli/evidence/release129-public/gates.json)。
+- [正式 OIDC 发布 40693655894](https://github.com/chainlesschain/chainlesschain/actions/runs/40693655894) attempt 2 成功；[独立公开回读 40723568902](https://github.com/chainlesschain/chainlesschain/actions/runs/40723568902) 成功。
+- 公开 npm 归档 **9,566,651** 字节，SHA-256 `88958be9e818f6e38db66faa0808fad28afa7f652b9a2c81c1dedc4f8be8f11b`，与不可变 CI 制品逐字节一致；签名来源与十个直接子依赖均已核验。所需子包源码相对上轮未变，沿用已公开版本。
+- Open VSX 上传前已完成 CLI 0.166.129 的全新公开安装，十个子依赖均来自官方 registry，版本及能力探测成功；见[前置安装回执](./cli/evidence/release129-public/ide-vscode-cli-prerequisite.json)。
 
-历史任务累计交付验收仍为 **34/45**。任务验收、完整原生 E2E、构建和发布检查分别记录，不能互相替代；发布成功不表示 45 项全部完成。
-## 首轮 CI 安装失败与恢复
+## IDE 证据
 
-CLI CI 首轮 Linux E2E 分片在依赖安装阶段因 node-pty 的 Node 头文件下载/解压失败，三次安装均未成功；E2E 未执行，不计通过。保留失败日志与完整作业记录后结束第一轮，GitHub 已接受相同源码的失败及未完成作业重跑（attempt 2）。第二轮最终 72/72 通过，三系统矩阵完整。发布工作流首轮因原 CI 取消而被准确提交门禁拦截，尚未上传 npm；双门禁完整通过后，发布工作流 attempt 2 已于 2026-10-28T15:52:50Z 被接受，正在从同一不可变标签恢复打包和发布；此时尚未确认 npm 公开。
+- 准确源码：`800e9cc99711f9f02eb3bbd78eb14600406bdba5`；PR [#507](https://github.com/chainlesschain/chainlesschain/pull/507)。候选 [IDE Extensions 40694534085](https://github.com/chainlesschain/chainlesschain/actions/runs/40694534085) 成功（18 项通过；发布后 Marketplace 核验按候选事件跳过）。
+- VS Code 标签 `ide-vscode-v0.37.167`；[正式工作流 40724836985](https://github.com/chainlesschain/chainlesschain/actions/runs/40724836985) 成功。Open VSX 已列为 latest，公开 VSIX 与不可变 CI 制品的 SHA-256 均为 `daa1dfc582631c645037bac9720d26d5669ca5a47ba78075e9fac82535a375c8`。公开下载核验由正式 Linux 发布作业完成，其回执与本地 CI 制品哈希交叉一致；见 [open-vsx.json](./cli/evidence/release129-public/open-vsx.json)。
+- JetBrains 标签 `ide-jetbrains-v0.4.184`；准确提交的[正式工作流 40724923599](https://github.com/chainlesschain/chainlesschain/actions/runs/40724923599)已成功。公开更新 `1205524` 已批准、列出且未隐藏；[公开归档回读](./cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028/supersession/package-readback.json)确认全部 ZIP 成员字节与 CI 制品一致。公开 ZIP SHA-256 为 `eed876bdf005856215200a353af952a76234ea5e62043d0b23b6dc1b3cf4ffe3`；ZIP 容器字节与 CI 不同，不能声称整包逐字节相同。该回读没有执行下载包。
+
+## 保留的失败与恢复记录
+
+CLI CI 首轮 Linux E2E 分片在依赖安装阶段因 node-pty 的 Node 头文件下载/解压失败；三次安装均未成功，E2E 未执行，不能计通过。保留原始失败作业 [122792731139](https://github.com/chainlesschain/chainlesschain/actions/runs/40679324623/job/122792731139) 与完整作业快照后结束首轮，只重跑相同源码的失败及未完成部分；第二轮最终 72/72 成功。
+
+发布工作流首轮因原 CI 取消而被准确提交门禁拦截，未上传 npm。只有完整双门禁成功后，才恢复同一不可变标签的发布工作流 attempt 2。插件早期候选的 README 兼容段落版本滞后也在创建发布标签前修正；准确提交 800e9cc997 的元数据、能力清单、宿主矩阵和发行工作流分别记录。未降低测试、预算或验收要求。
+
+## 安装与验收范围
+
+安装：`npm i -g chainlesschain@0.166.129 --registry https://registry.npmjs.org`。升级插件后重启 Agent 会话，核对实际 CLI 路径，运行 `cc --version` 与 `cc doctor`。当前公开配对为 `.129 / .167 / .184`；包 README、根 README 与公开升级指南的整体一致性继续按主差距表跟踪。本记录不把后续 Goal、Memory 或 Terra 源码修复计入已发布的 `.129`。
+
+历史累计交付验收仍为 **34/45**（普通 **27/36**、首次 **7/9**），剩余 **11** 项；不是 CLI .129 单轮模型任务成功率，也不等同于完整原生 E2E。**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。默认关闭的交付复查和实验性 Codex App Server 路由继续保留各自限制，版本探测不表示生产准入。本轮发布成功不代表历史 45 项全部完成。
