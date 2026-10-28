@@ -12,7 +12,7 @@ Open **Skill 自进化配置** from the command palette to enable or disable sel
 
 ## Release pairing
 
-Open VSX **0.37.166** is public and recommends CLI **`0.166.128`**. It adds tri-state connection diagnostics, shared model recommendations and conversation-local `/model` selection. Its exact-source release gates and public artifact readback passed. Paired JetBrains **0.4.183** is approved, listed and publicly downloadable; its original CI payload entries were verified against the public ZIP. Microsoft Marketplace remains unpublished.
+Version **0.37.166** recommends CLI **`0.166.128`**. This Open VSX release is public and adds tri-state connection diagnostics, shared model recommendations and conversation-local `/model` selection. Its exact-source release gates and public artifact readback passed. Paired JetBrains **0.4.183** is approved, listed and publicly downloadable; its original CI payload entries were verified against the public ZIP. Microsoft Marketplace remains unpublished.
 
 The preceding public pairing recorded in the [CLI .125 publication receipt](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release125-public/publication.json) is Open VSX **0.37.162**, JetBrains **0.4.179**, and recommended CLI **0.166.123**. The CLI .125 follow-up did not compare IDE archive bytes or publish new IDE versions.
 
@@ -24,7 +24,21 @@ Open VSX **0.37.156** and CLI **0.166.114** were publicly downloaded and verifie
 
 ## Current release
 
+<!-- release166-status -->
+
+Open VSX version **0.37.166** pairs with public CLI `0.166.128`.
+
 Open VSX **0.37.166** is listed as latest and publicly downloadable. Immutable tag `ide-vscode-v0.37.166` selects source `6551a06c2f694bb93d0197fa8b82becd25a83173`; the [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40557016206) passed. The downloaded [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.166/file/chainlesschain.chainlesschain-ide-0.37.166.vsix) matches that workflow's artifact byte for byte: SHA-256 `632b87b1c22e627895b3a01c73ef9e7075176a96e5ab4335d0aad9b610169bb0`. Install its recommended CLI with `npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`. [Public readback](../../docs/research/cli/evidence/release128-public/open-vsx.json).
+
+| Component                 | Current status                                                        |
+| ------------------------- | --------------------------------------------------------------------- |
+| VS Code extension         | **0.37.166**; public and listed, with a verified immutable VSIX       |
+| Recommended CLI           | **`chainlesschain@0.166.128`**; public recommendation of this release |
+| Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI             |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                   |
+| Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code                  |
+
+CLI `0.166.128` is the recommended public release. Using `@0.166.128` selects this verified pairing. Microsoft Marketplace remains unpublished.
 
 ### Previous verified release (.165 / .127)
 
