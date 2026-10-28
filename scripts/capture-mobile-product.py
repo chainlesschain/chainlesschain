@@ -21,7 +21,9 @@ RECEIPT = ROOT / 'docs/research/cli/evidence/release128-public/product-publicati
 
 
 def command(*args, binary=False, timeout=45):
-    result = subprocess.run(args, check=True, capture_output=True, timeout=timeout)
+    result = subprocess.run(args, capture_output=True, timeout=timeout)
+    if result.returncode:
+        raise RuntimeError(f'{args[0]} exited {result.returncode}: {result.stderr.decode("utf-8", errors="replace").strip()}')
     return result.stdout if binary else result.stdout.decode('utf-8', errors='replace')
 
 
@@ -168,6 +170,7 @@ def capture():
             'deviceKind': 'Android emulator; not a physical device',
             'apiLevel': adb('shell', 'getprop', 'ro.build.version.sdk').strip(),
             'abiList': adb('shell', 'getprop', 'ro.product.cpu.abilist').strip(),
+            'nativeBridge': adb('shell', 'getprop', 'ro.dalvik.vm.native.bridge').strip(),
             'fingerprint': adb('shell', 'getprop', 'ro.build.fingerprint').strip(),
             'profile': 'fresh install; normal first-run PIN setup; no seeded notes or conversations',
             'modelRequests': 0,

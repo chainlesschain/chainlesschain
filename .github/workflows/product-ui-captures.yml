@@ -38,9 +38,9 @@ jobs:
       - name: Capture the unmodified release in a fresh emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          # This repository's ARM native libraries need the API 30 Google
-          # image's ndk_translation. API 33+ does not provide that bridge.
-          api-level: 30
+          # Exercise Android 12's native splash path. Installation still fails
+          # if this image cannot translate the public APK's ARM libraries.
+          api-level: 31
           arch: x86_64
           target: google_apis
           profile: pixel_2
