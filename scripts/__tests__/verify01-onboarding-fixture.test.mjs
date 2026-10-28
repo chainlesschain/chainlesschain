@@ -112,6 +112,8 @@ test("manager-path isolation preserves build PATH and the caller's environment",
     JAVA_HOME: "jdk",
     HOME: "user-home",
     PROGRAMFILES: "ambient-global-cli",
+    CHAINLESSCHAIN_HOME: "ambient-config",
+    CLAUDE_CONFIG_DIR: "legacy-config",
   };
   const isolated = isolateOnboardingEnvironment(base, "private-home");
   assert.equal(isolated.PATH, base.PATH);
@@ -128,4 +130,19 @@ test("manager-path isolation preserves build PATH and the caller's environment",
   assert.equal(base.HOME, "user-home");
   assert.equal("PROGRAMFILES" in isolated, false);
   assert.notEqual(isolated.ProgramFiles, "ambient-global-cli");
+  assert.equal("CHAINLESSCHAIN_HOME" in isolated, false);
+  assert.equal("CLAUDE_CONFIG_DIR" in isolated, false);
+  assert.equal(base.CHAINLESSCHAIN_HOME, "ambient-config");
+});
+
+test("identity journey has an authoritative unset provider in its private home", (t) => {
+  const f = fixture(t);
+  const config = JSON.parse(
+    fs.readFileSync(
+      path.join(f.dirs.home, ".chainlesschain", "config.json"),
+      "utf8",
+    ),
+  );
+  assert.deepEqual(config, { llm: {} });
+  assert.equal(run(f.goodCommand, ["agent"]).status, 98);
 });

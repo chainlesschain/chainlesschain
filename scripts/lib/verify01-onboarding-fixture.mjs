@@ -15,6 +15,13 @@ export function createOnboardingFixture({
   if (!/^\d+\.\d+\.\d+$/u.test(version))
     throw new Error("A bare fixture CLI version is required");
   const windows = platform === "win32";
+  // The identity journey needs an authoritative, readable unset provider.
+  // An empty CLI response means unavailable, not unconfigured.
+  const configDirectory = path.join(dirs.home, ".chainlesschain");
+  fs.mkdirSync(configDirectory, { recursive: true });
+  fs.writeFileSync(path.join(configDirectory, "config.json"), '{"llm":{}}\n', {
+    flag: "wx",
+  });
   const fixture = path.join(root, "identity-peer.cjs");
   const trace = path.join(root, "identity-trace.jsonl");
   const mode = path.join(dirs.capture, "version-mode.txt");
@@ -112,8 +119,12 @@ export function isolateOnboardingEnvironment(
     ...base,
     HOME: home,
     USERPROFILE: home,
-    CHAINLESSCHAIN_HOME: path.join(home, ".chainlesschain"),
   };
+  // The IDE's user.home is set to this private home by the journey. Relocated
+  // roots would bypass its authoritative fixture file and probe the CLI.
+  for (const key of Object.keys(env))
+    if (/^(?:chainlesschain_home|claude_config_dir)$/iu.test(key))
+      delete env[key];
   // CliLauncher appends these manager paths independently of PATH. Keep them
   // out of the diagnostic IDE/build subprocesses without changing the caller.
   for (const key of Object.keys(env))
