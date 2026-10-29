@@ -1,0 +1,19 @@
+{
+  "kind": "assisted-non-native",
+  "revision": 1,
+  "sourceRun": "40905249327",
+  "sampleId": "first-run-darwin-cli",
+  "acceptanceArtifactId": "12912380795",
+  "frozenProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "sourceHeadCommit": "44fd177967e498707ae904fd2efed7a78f2045fb",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "originalReviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+  "originalAcceptanceSummaryDigest": "sha256:889787587aee4133b1b6d79216b1c7e5a6de1bbc9ff0c060e8c47aead79fe512",
+  "files": {
+    "original.test.js": "72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+    "repaired.test.js": "9ae39b74806ca08e2970968f8af01d65c95cd4671c538abf89c8967dcec14209",
+    "run-assisted.mjs": "deac12918483718aac38bcc4c04635b184b46c4e4c403687c2916a653bb63c8b",
+    "verify-07-check.mjs": "6b2f6509219d4c0fbcf82fb6cb54de815af27aa2c997e2fc9b1badd709a77b0c",
+    "verify-07-setup.mjs": "950880ded0874cae94eb828c8b0c291f81447f2c628e0a7177020ebbdda48999"
+  }
+}
