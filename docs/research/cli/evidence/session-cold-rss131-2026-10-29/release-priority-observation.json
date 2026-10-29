@@ -1,0 +1,62 @@
+{
+  "observedAt": "2026-10-29T07:16:45.566Z",
+  "source": "98c4be4a76e22b127518b1ea1116dabdfb95dd10",
+  "validationTag": "ci-cli131-98c4be4a76e2",
+  "observations": [
+    {
+      "id": 40832331503,
+      "workflow": "CLI CI",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40832331503",
+      "jobs": {
+        "success": 13,
+        "queued": 46,
+        "in_progress": 7
+      },
+      "failures": []
+    },
+    {
+      "id": 40832331475,
+      "workflow": "CLI Strict Sandbox",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40832331475",
+      "jobs": {
+        "success": 6
+      },
+      "failures": []
+    },
+    {
+      "id": 40832331367,
+      "workflow": "Context Memory Kernel CI",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40832331367",
+      "jobs": {
+        "success": 3
+      },
+      "failures": []
+    },
+    {
+      "id": 40832465569,
+      "workflow": "IDE Extensions",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40832465569",
+      "jobs": {
+        "success": 4,
+        "in_progress": 7,
+        "queued": 3
+      },
+      "failures": []
+    }
+  ],
+  "priority": [
+    "verify-10",
+    "verify-04",
+    "verify-13"
+  ],
+  "original129Dispatch": "REQUEST_UNRESOLVED; not replayed",
+  "scope": "User requests published new CLI, easy tasks first; no claim of task acceptance or permission to bypass shared liabilities."
+}

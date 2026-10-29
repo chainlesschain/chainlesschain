@@ -1,0 +1,47 @@
+{
+  "schema": "chainlesschain.native131-easy-first-preparation/v1",
+  "observedAt": "2026-10-29T07:21:22.535Z",
+  "source": "98c4be4a76e22b127518b1ea1116dabdfb95dd10",
+  "versions": {
+    "cli": "0.166.131",
+    "vscode": "0.37.169",
+    "jetbrains": "0.4.186"
+  },
+  "priority": [
+    "verify-10",
+    "verify-04",
+    "verify-13"
+  ],
+  "state": "PREPARE_ONLY_UNPUBLISHED",
+  "dispatches": 0,
+  "original129Dispatch": "REQUEST_UNRESOLVED",
+  "originalRequestReplayed": false,
+  "sharedAccounting": {
+    "authorizedFundingCoveragePassed": true,
+    "fullConservativeCoveragePassed": false,
+    "legacyAggregateOverrideApplied": true,
+    "additional129LiabilityIncluded": true,
+    "additional129Exempted": false,
+    "originalLiabilitiesPreserved": true,
+    "newFundingGranted": false
+  },
+  "constraints": {
+    "oneActiveNewSample": true,
+    "originalModel": true,
+    "thinking": false,
+    "maxModelTurns": 20,
+    "maxPhysicalRequests": 24,
+    "maxOutputTokensPerRequest": 8192,
+    "fileTools": 6,
+    "maxCandidateTests": 6,
+    "frozenProjectUnchanged": true
+  },
+  "pending": [
+    "Exact-source CLI CI and IDE full matrices",
+    "OIDC child/CLI release and public byte readback",
+    "Matching public IDE package set and committed new plan",
+    "Refresh accounting and active-run inventory immediately before one distinct sample dispatch"
+  ],
+  "paidReady": false,
+  "boundary": "Preparation is not execution, acceptance, billing reconciliation or formal paid/native admission. The .129 verify-11 journal and its unknown responsibility remain intact; changing versions does not replay that request."
+}
