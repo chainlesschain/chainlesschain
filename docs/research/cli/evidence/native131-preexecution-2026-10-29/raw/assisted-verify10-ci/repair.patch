@@ -1,0 +1,20 @@
+--- a/packages/cli/__tests__/verify-10.test.js
++++ b/packages/cli/__tests__/verify-10.test.js
+@@ -70,7 +70,7 @@
+       readState: reader(),
+     });
+ 
+-    const pageSize = 2;
++    const pageSize = 3;
+     const pages = paginateAll(result.entries, pageSize);
+     expect(pages.length).toBeGreaterThan(1);
+     // The last page must not be empty and must include the final entry.
+@@ -90,7 +90,7 @@
+       readState: reader(),
+     });
+ 
+-    const pageSize = 3;
++    const pageSize = 2;
+     const pages = paginateAll(result.entries, pageSize);
+     expect(pages.length).toBeGreaterThan(1);
+     expect(pages[pages.length - 1]).toHaveLength(1);
