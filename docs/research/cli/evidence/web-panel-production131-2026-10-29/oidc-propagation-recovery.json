@@ -1,0 +1,40 @@
+{
+  "source": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+  "run": 40862685540,
+  "failedAttempt": 1,
+  "failedJob": 123411294071,
+  "kernelPublished": "0.1.11",
+  "failure": "Kernel publish succeeded; registry npm pack eventually succeeded but the following npm install still returned ETARGET during propagation.",
+  "recovery": "Current metadata and packument expose .11 at exact source; original failed-job retry accepted without source/tag/gate changes.",
+  "cliPublicationVerified": false,
+  "artifacts": [
+    {
+      "file": "oidc-original-failure.log.gz",
+      "bytes": 17348,
+      "sha256": "4f5d64516c7ce2580978a1b9b5b99b50a02a7f1e6b5d9a978440fe1e1e565b58",
+      "rawBytes": 84771,
+      "rawSha256": "3f603a3f0fb5e6067190dc136104ee1e415f8fd0318a7a7158cc448c95892d80"
+    },
+    {
+      "file": "oidc-original-failure-job.json.gz",
+      "bytes": 1289,
+      "sha256": "a8016e6abd2f64e8f4eb12eaef705502841cda512c194a54db031393dbf6661f",
+      "rawBytes": 9263,
+      "rawSha256": "845d85f9dbf2bb48735ab450ef6323aef7d0bf0f52d1e7a021b0d70c5f2af3f6"
+    },
+    {
+      "file": "kernel-public-version.json.gz",
+      "bytes": 1381,
+      "sha256": "18a0763449703318e44d194a97008673f3b660e1138089fe35b061f232ca9cb0",
+      "rawBytes": 2856,
+      "rawSha256": "6469683b28c26975b78b7e75e5ad019ac3ab7d1d7a57c20d7338222f371bef67"
+    },
+    {
+      "file": "original-failed-job-retry.json.gz",
+      "bytes": 509,
+      "sha256": "a0c082680e32ea76042a5671123391388d61b77bfd577b0b0e592db00f5cff0b",
+      "rawBytes": 734,
+      "rawSha256": "1d28be8d6536992196d144cca05719a6998e08ea2a5d0d9b93ef0e413517b4fc"
+    }
+  ]
+}

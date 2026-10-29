@@ -1,0 +1,61 @@
+{
+  "observedAt": "2026-10-29T11:07:32.797Z",
+  "source": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+  "validationTag": "ci-cli131-c9d0bab23185",
+  "allRequiredValidationWorkflowsPassed": true,
+  "workflows": [
+    {
+      "id": 40848165518,
+      "name": "CLI CI",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40848165518",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 72,
+        "skipped": 1
+      }
+    },
+    {
+      "id": 40848165540,
+      "name": "CLI Strict Sandbox",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40848165540",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 6
+      }
+    },
+    {
+      "id": 40848165418,
+      "name": "Context Memory Kernel CI",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40848165418",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 3
+      }
+    },
+    {
+      "id": 40848239212,
+      "name": "IDE Extensions",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40848239212",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 18,
+        "skipped": 1
+      }
+    }
+  ],
+  "archive": {
+    "file": "c9d0-final-gates.json.gz",
+    "bytes": 24034,
+    "sha256": "24af74408b797c10c1db1c1ba7881a445a6bda1861175d1e65df6063ba5c07ec",
+    "rawBytes": 539999,
+    "rawSha256": "321edf746e570592293a671ce9169da80ad09a96d8f88f5d9bcfd856ab1a8387"
+  },
+  "publicationRun": 40862685540,
+  "publicationState": "OIDC_WORKFLOW_RUNNING",
+  "published": false,
+  "boundary": "Validation success permits the original OIDC route; it does not claim npm/IDE availability or additional accepted tasks."
+}

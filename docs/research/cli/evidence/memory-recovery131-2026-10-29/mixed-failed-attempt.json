@@ -1,0 +1,45 @@
+{
+  "schema": "chainlesschain.memory-mixed131-failed-attempt/v1",
+  "archivedAt": "2026-10-29T11:01:50.986Z",
+  "source": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+  "startedAt": "2026-10-29T09:28:04.027Z",
+  "endedAt": "2026-10-29T10:43:40.791Z",
+  "exitCode": 1,
+  "sourcesStable": true,
+  "platform": "win32",
+  "node": "v22.22.2",
+  "status": "INCOMPLETE_FAILED",
+  "completedTiers": [
+    {
+      "count": 1000,
+      "rounds": 100,
+      "readP95Ms": 3989.578,
+      "lockWaitP95Ms": 2838,
+      "operationsPerSecond": 2.4148934204900585
+    }
+  ],
+  "failedTier": 10000,
+  "lastProgressRounds": 90,
+  "reason": "mixed Memory worker exceeded 120 seconds",
+  "unstartedTiers": [
+    100000
+  ],
+  "artifacts": [
+    {
+      "file": "candidate131-mixed100.log.gz",
+      "bytes": 415,
+      "sha256": "ec8135f2f65a9a3a7f42f670b8f173b6b4330c9825d8c32e817b8d6624da0aaf",
+      "rawBytes": 1262,
+      "rawSha256": "b6ba51621363ca78b989737117c5f1a9f2a53af074982d7def6397aa12402b9f"
+    },
+    {
+      "file": "candidate131-mixed100-process.json.gz",
+      "bytes": 1091,
+      "sha256": "8a164b6663635f974aa9c7105b5bfe75a8575054c8ad76915bf9a9df6ba51e24",
+      "rawBytes": 4452,
+      "rawSha256": "5f62af64ef5b54b904dc71755c103582555857e0ae598392ed5ceedc2ccdd493"
+    }
+  ],
+  "paidRequests": 0,
+  "boundary": "No final JSON or complete 300-round result was emitted. Last progress marker is not a full correctness receipt. No retry or threshold relaxation. Separate from the successful 600 rebuild/corrupt query samples; no performance SLO, real task or release-gate success is granted."
+}

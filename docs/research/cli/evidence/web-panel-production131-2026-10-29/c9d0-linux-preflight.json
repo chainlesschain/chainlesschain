@@ -1,0 +1,22 @@
+{
+  "schema": "chainlesschain.web-panel-production131-ci-preflight/v1",
+  "observedAt": "2026-10-29T09:22:54.823Z",
+  "source": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+  "validationTag": "ci-cli131-c9d0bab23185",
+  "run": 40848165518,
+  "job": 123360994214,
+  "name": "Build and audit reviewed runtime sources before test fan-out",
+  "conclusion": "success",
+  "startedAt": "2026-10-29T09:16:09Z",
+  "completedAt": "2026-10-29T09:18:16Z",
+  "rawBytes": 84336,
+  "rawSha256": "df1f2a72b90cda0f6e4e7a8afec21b83d29cbcc9dccb5b061d343eed72a51446",
+  "file": "c9d0-linux-preflight.log.gz",
+  "bytes": 18414,
+  "sha256": "12c7ed91b034860ec0d9e802b6ef2a3399e7e1d3d6e6852a82b8a62b8d50965e",
+  "relevant": [
+    "2026-10-29T09:16:11.3385951Z Complete job name: Build and audit reviewed runtime sources before test fan-out",
+    "2026-10-29T09:18:13.4100205Z {\"categories\":8,\"candidateFiles\":82,\"unclassifiedFiles\":0,\"sourceReviewPassed\":true,\"reviewIssues\":[],\"parseErrors\":0,\"paidReady\":false,\"runtimeCoverageVerified\":false}"
+  ],
+  "boundary": "One Linux source-build preflight only; does not replace the full new exact-source CLI/Strict/Kernel/IDE matrix."
+}

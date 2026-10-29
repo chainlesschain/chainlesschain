@@ -17,3 +17,9 @@
 四个新产物为 Artifacts-BuJgG5jf.js、index-3RqDry-K.js、MtcAudit-D3aa8XP4.js、RemoteSession-BGGzPdS5.js。候选计数分别为 1 / 4 / 1 / 24；RemoteSession 压缩别名多匹配了七处 UI 回调，实际仍只有 relay/direct 两处 WebSocket 构造。类别不扩大到正式付费或原生准入。
 
 证据：[review.json](./cli/evidence/web-panel-production131-2026-10-29/review.json)，含原始与 gzip 字节摘要、双构建清单、完整审计、本地检查以及旧候选最终门禁观察。预提交审计中的 sourceCommit 是当时 HEAD，实际修复字节由 bindings 绑定；新候选 SHA 单独冻结后记录，不能倒填为旧源码通过。
+
+生产修复与上述归档已于主分支提交并推送 `c9d0bab231850697df38f2d476c2dd974cbcb6c0`，七个修复来源的提交字节均与 review bindings 一致。验证标签为 `ci-cli131-c9d0bab23185`；新的 CLI / Strict / Kernel / IDE 运行分别为 40848165518 / 40848165540 / 40848165418 / 40848239212，旧结果不继承。此处仅确认开始验证，尚未发布。
+
+准确 c9d0 的四组验证现已全部成功：CLI CI 72 个成功及 1 个预期跳过，Strict 6/6、Kernel 3/3、IDE 18 成功及 1 个预期跳过，见[完整回执](./cli/evidence/web-panel-production131-2026-10-29/c9d0-passed-gates.json)。原 schannel 推送握手失败后，经 API 和 Git 确认远端发行标签不存在、无发行运行及公开版本，改用保持证书校验的 Git OpenSSL 传输推送相同固定标签，原失败记录保留。OIDC 40862685540 正在运行；尚不宣称公开发行或新增任务完成。
+
+发行后续：OIDC 40862685540 attempt 1 已发布 Kernel 0.1.11，但紧接的安装因 npm 元数据传播延迟报 ETARGET，CLI 尚未发布。版本接口和 packument 随后均已公开相同 c9d0 字节身份及 provenance 入口，经只读审查确认原制品/签名可跨 attempt 使用后，仅恢复原运行的失败作业。见[原失败与恢复证据](./cli/evidence/web-panel-production131-2026-10-29/oidc-propagation-recovery.json)；完整原矩阵继续有效，尚不宣称 CLI 公开核验通过。

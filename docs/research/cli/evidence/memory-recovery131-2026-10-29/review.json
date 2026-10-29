@@ -1,0 +1,309 @@
+{
+  "schema": "chainlesschain.memory-recovery131-archive/v1",
+  "archivedAt": "2026-10-29T09:19:04.008Z",
+  "measuredCommit": "98c4be4a76e22b127518b1ea1116dabdfb95dd10",
+  "releaseCommit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+  "artifacts": [
+    {
+      "originalPath": ".work/memory-query-bundle/candidate131-recovery100.json",
+      "archivedPath": "raw/candidate131-recovery100.json.gz",
+      "originalBytes": 339644,
+      "originalSha256": "7299012126d466e26bc87ad460ccba9d579cd91bab4d0800b39b1be41e5ab921",
+      "storedBytes": 21841,
+      "storedSha256": "20cea9f4287e9dff544d01e2d668545b269bee529a3132a8f6f8a1caa3de1e9e",
+      "encoding": "gzip"
+    },
+    {
+      "originalPath": ".work/memory-query-bundle/candidate131-recovery100.log",
+      "archivedPath": "raw/candidate131-recovery100.log.gz",
+      "originalBytes": 2045,
+      "originalSha256": "d5ec39b201657efc2052b9c23c41a8f80dc8f33f08c57ced9eee1b57eb1cc277",
+      "storedBytes": 449,
+      "storedSha256": "c1b6dce95422b7c1bd8ec8a697ddfcdf14ab498839291d2967fd2b7b70e6e7a2",
+      "encoding": "gzip"
+    },
+    {
+      "originalPath": ".work/memory-query-bundle/candidate131-recovery100-process.json",
+      "archivedPath": "raw/candidate131-recovery100-process.json.gz",
+      "originalBytes": 4565,
+      "originalSha256": "3274288e561965a10fa2e00fe72f8a0f56e68daf3e89af7275833bd3781e519d",
+      "storedBytes": 1133,
+      "storedSha256": "44529514b6eb862e3209b72653ecab9c6d1247ac4663a02e3a952e7db6cc047c",
+      "encoding": "gzip"
+    }
+  ],
+  "validation": {
+    "measuredCommit": "98c4be4a76e22b127518b1ea1116dabdfb95dd10",
+    "releaseCommit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+    "observedWorkingTreeAtMeasurementStart": "clean",
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2",
+    "startedAt": "2026-10-29T07:00:25.810Z",
+    "endedAt": "2026-10-29T08:26:10.062Z",
+    "processExitCode": 0,
+    "complete": true,
+    "totalSamples": 600,
+    "allSampleOracleDigestsMatch": true,
+    "allSampleRowCountsMatch": true,
+    "groups": [
+      {
+        "count": 1000,
+        "mode": "rebuild",
+        "sampleCount": 100,
+        "complete": true,
+        "oracleDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+        "oracleDigestMatches": 100,
+        "rowCountMatches": 100,
+        "latencyRecomputed": true,
+        "latency": {
+          "samples": 100,
+          "minMs": 1612.243,
+          "p50Ms": 1876.649,
+          "p95Ms": 3874.045,
+          "p99Ms": 5726.185,
+          "maxMs": 6427.072
+        },
+        "authorityReads": [273],
+        "authorityReadBytes": [1340760],
+        "peakRssBytes": 89776128
+      },
+      {
+        "count": 1000,
+        "mode": "corrupt",
+        "sampleCount": 100,
+        "complete": true,
+        "oracleDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+        "oracleDigestMatches": 100,
+        "rowCountMatches": 100,
+        "latencyRecomputed": true,
+        "latency": {
+          "samples": 100,
+          "minMs": 1729.566,
+          "p50Ms": 2256.443,
+          "p95Ms": 5385.442,
+          "p99Ms": 6752.292,
+          "maxMs": 8015.581
+        },
+        "authorityReads": [273],
+        "authorityReadBytes": [1340760],
+        "peakRssBytes": 90472448
+      },
+      {
+        "count": 10000,
+        "mode": "rebuild",
+        "sampleCount": 100,
+        "complete": true,
+        "oracleDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+        "oracleDigestMatches": 100,
+        "rowCountMatches": 100,
+        "latencyRecomputed": true,
+        "latency": {
+          "samples": 100,
+          "minMs": 2874.791,
+          "p50Ms": 3649.425,
+          "p95Ms": 5368.599,
+          "p99Ms": 7521.281,
+          "maxMs": 16687.781
+        },
+        "authorityReads": [275],
+        "authorityReadBytes": [12790198],
+        "peakRssBytes": 125521920
+      },
+      {
+        "count": 10000,
+        "mode": "corrupt",
+        "sampleCount": 100,
+        "complete": true,
+        "oracleDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+        "oracleDigestMatches": 100,
+        "rowCountMatches": 100,
+        "latencyRecomputed": true,
+        "latency": {
+          "samples": 100,
+          "minMs": 3110.962,
+          "p50Ms": 3405.116,
+          "p95Ms": 5057.75,
+          "p99Ms": 5437.121,
+          "maxMs": 5468.069
+        },
+        "authorityReads": [275],
+        "authorityReadBytes": [12790198],
+        "peakRssBytes": 125272064
+      },
+      {
+        "count": 100000,
+        "mode": "rebuild",
+        "sampleCount": 100,
+        "complete": true,
+        "oracleDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+        "oracleDigestMatches": 100,
+        "rowCountMatches": 100,
+        "latencyRecomputed": true,
+        "latency": {
+          "samples": 100,
+          "minMs": 13212.779,
+          "p50Ms": 15397.671,
+          "p95Ms": 23522.737,
+          "p99Ms": 30559.819,
+          "maxMs": 34233.652
+        },
+        "authorityReads": [275],
+        "authorityReadBytes": [127771701],
+        "peakRssBytes": 290676736
+      },
+      {
+        "count": 100000,
+        "mode": "corrupt",
+        "sampleCount": 100,
+        "complete": true,
+        "oracleDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+        "oracleDigestMatches": 100,
+        "rowCountMatches": 100,
+        "latencyRecomputed": true,
+        "latency": {
+          "samples": 100,
+          "minMs": 13157.807,
+          "p50Ms": 14861.214,
+          "p95Ms": 21330.307,
+          "p99Ms": 23866.678,
+          "maxMs": 30192.456
+        },
+        "authorityReads": [275],
+        "authorityReadBytes": [127771701],
+        "peakRssBytes": 293445632
+      }
+    ],
+    "sourceBindings": [
+      {
+        "path": "packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs",
+        "sha256": "786bf2fded0101e1229a834549460a945d0bc8d70d20ed2a41e73779cdd803be",
+        "wrapperBeforeAfter": true,
+        "benchmarkGroupAndCompletionChecks": false,
+        "measuredGitBlobMatches": true,
+        "releaseGitBlobMatches": true
+      },
+      {
+        "path": "packages/cli/scripts/memory-query-index-benchmark.mjs",
+        "sha256": "2a04c3b3263707502468794aaeaba420e896b8ac5c758a8a7a1d9535628f71c2",
+        "wrapperBeforeAfter": true,
+        "benchmarkGroupAndCompletionChecks": true,
+        "measuredGitBlobMatches": true,
+        "releaseGitBlobMatches": true
+      },
+      {
+        "path": "packages/cli/scripts/memory-query-responsiveness-benchmark.mjs",
+        "sha256": "0725e839bda441a378930f266692a9d603e532a83cdce8d5a64ffbd2eebe82ad",
+        "wrapperBeforeAfter": true,
+        "benchmarkGroupAndCompletionChecks": false,
+        "measuredGitBlobMatches": true,
+        "releaseGitBlobMatches": true
+      },
+      {
+        "path": "packages/cli/scripts/persistent-capacity-benchmark.mjs",
+        "sha256": "81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939",
+        "wrapperBeforeAfter": true,
+        "benchmarkGroupAndCompletionChecks": true,
+        "measuredGitBlobMatches": true,
+        "releaseGitBlobMatches": true
+      },
+      {
+        "path": "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+        "sha256": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+        "wrapperBeforeAfter": true,
+        "benchmarkGroupAndCompletionChecks": true,
+        "measuredGitBlobMatches": true,
+        "releaseGitBlobMatches": true
+      },
+      {
+        "path": "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js",
+        "sha256": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+        "wrapperBeforeAfter": true,
+        "benchmarkGroupAndCompletionChecks": true,
+        "measuredGitBlobMatches": true,
+        "releaseGitBlobMatches": true
+      },
+      {
+        "path": "packages/cli/src/lib/context-memory-kernel/memory-query-control.js",
+        "sha256": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+        "wrapperBeforeAfter": true,
+        "benchmarkGroupAndCompletionChecks": true,
+        "measuredGitBlobMatches": true,
+        "releaseGitBlobMatches": true
+      },
+      {
+        "path": "packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+        "sha256": "f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721",
+        "wrapperBeforeAfter": true,
+        "benchmarkGroupAndCompletionChecks": true,
+        "measuredGitBlobMatches": true,
+        "releaseGitBlobMatches": true
+      },
+      {
+        "path": "packages/cli/src/lib/context-memory-kernel/memory-service.js",
+        "sha256": "288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3",
+        "wrapperBeforeAfter": true,
+        "benchmarkGroupAndCompletionChecks": true,
+        "measuredGitBlobMatches": true,
+        "releaseGitBlobMatches": true
+      },
+      {
+        "path": "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js",
+        "sha256": "b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+        "wrapperBeforeAfter": true,
+        "benchmarkGroupAndCompletionChecks": true,
+        "measuredGitBlobMatches": true,
+        "releaseGitBlobMatches": true
+      },
+      {
+        "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "sha256": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+        "wrapperBeforeAfter": true,
+        "benchmarkGroupAndCompletionChecks": true,
+        "measuredGitBlobMatches": true,
+        "releaseGitBlobMatches": true
+      },
+      {
+        "path": "packages/cli/src/lib/secure-file-identity.js",
+        "sha256": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+        "wrapperBeforeAfter": false,
+        "benchmarkGroupAndCompletionChecks": true,
+        "measuredGitBlobMatches": true,
+        "releaseGitBlobMatches": true
+      },
+      {
+        "path": "packages/cli/src/lib/with-file-lock.js",
+        "sha256": "2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+        "wrapperBeforeAfter": true,
+        "benchmarkGroupAndCompletionChecks": true,
+        "measuredGitBlobMatches": true,
+        "releaseGitBlobMatches": true
+      },
+      {
+        "path": "packages/context-memory-kernel/lib/canonical.js",
+        "sha256": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+        "wrapperBeforeAfter": true,
+        "benchmarkGroupAndCompletionChecks": true,
+        "measuredGitBlobMatches": true,
+        "releaseGitBlobMatches": true
+      },
+      {
+        "path": "packages/context-memory-kernel/lib/contracts.js",
+        "sha256": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+        "wrapperBeforeAfter": true,
+        "benchmarkGroupAndCompletionChecks": true,
+        "measuredGitBlobMatches": true,
+        "releaseGitBlobMatches": true
+      },
+      {
+        "path": "packages/context-memory-kernel/lib/memory-reducer.js",
+        "sha256": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+        "wrapperBeforeAfter": true,
+        "benchmarkGroupAndCompletionChecks": false,
+        "measuredGitBlobMatches": true,
+        "releaseGitBlobMatches": true
+      }
+    ],
+    "boundary": "Offline verification of existing Windows measurements, not a new benchmark or new-release-commit full SLO. Oracle comparisons use the recorded full-fixture expected digest. Wrapper before/after covers 15 sources; benchmark group/tier/completion checks cover 13 sources, including secure-file-identity.js. Source checks do not establish continuous stability between observations. authorityReads/authorityBytes are read instrumentation, not independent per-sample raw-authority hashing. No paid or release admission is granted."
+  }
+}
