@@ -1,0 +1,269 @@
+{
+  "schema": "chainlesschain.release132-native-preflight/v1",
+  "observedAt": "2026-10-29T23:30:25.988Z",
+  "sourceKind": "modified-worktree-before-replacement-commit",
+  "baseSource": "40753f179a3dc18760bd64a754b28a46ba718f57",
+  "status": "LOCAL_PREFLIGHT_REPAIR_VALIDATED_NEW_EXACT_SOURCE_GATES_REQUIRED",
+  "published": false,
+  "superseded": {
+    "source": "40753f179a3dc18760bd64a754b28a46ba718f57",
+    "disposition": "SUPERSEDED_BEFORE_PUBLICATION",
+    "gates": [
+      {
+        "workflow": "CLI CI",
+        "id": 40957412912,
+        "status": "completed",
+        "conclusion": "failure",
+        "counts": {
+          "success": 70,
+          "skipped": 1,
+          "failure": 2
+        }
+      },
+      {
+        "workflow": "CLI Strict Sandbox",
+        "id": 40957412938,
+        "status": "completed",
+        "conclusion": "success",
+        "counts": {
+          "success": 6
+        }
+      },
+      {
+        "workflow": "Context Memory Kernel CI",
+        "id": 40957618782,
+        "status": "completed",
+        "conclusion": "success",
+        "counts": {
+          "success": 3
+        }
+      },
+      {
+        "workflow": "IDE Extensions",
+        "id": 40957669489,
+        "status": "completed",
+        "conclusion": "success",
+        "counts": {
+          "success": 18,
+          "skipped": 1
+        }
+      }
+    ],
+    "windowsJobId": 123777576388,
+    "downstreamAggregateJobId": 123782567712,
+    "nativeStep": {
+      "total": 110,
+      "passed": 108,
+      "failed": 2,
+      "skipped": 0
+    },
+    "failures": [
+      "Windows system bsdtar rejected four Unicode archive entries during canonical UTF-8 extraction.",
+      "PowerShell KnownFolders probe reached its unchanged 20-second subprocess timeout."
+    ],
+    "consequence": "Missing later recovery evidence caused the always-upload failure and PM aggregate failure; the other 70 jobs succeeded."
+  },
+  "repair": {
+    "files": [
+      "packages/cli/test-node/verify01-legacy-windows-tar.node-test.mjs",
+      "packages/cli/test-node/verify01-native-task-campaign.node-test.mjs",
+      ".github/workflows/cli-ci.yml",
+      "packages/cli/__tests__/unit/release-workflow-contract.test.js",
+      "scripts/__tests__/ci-gate-integrity.test.mjs"
+    ],
+    "runtimeChanged": false,
+    "tar": "Canonical tree uses the existing Unicode product extractor; independent Python tarfile CP437 headers / UTF-8 PAX oracle retains all original post-extraction assertions and removes the platform skip.",
+    "powershell": "Disable unrelated module autoload; explicitly import PSHOME Security and Utility manifests; resolve module-qualified real Get-Acl, assert actual ModuleName, and emit fixed stderr stages. All KnownFolders/cache/workspace assertions and 20s child / 30s test limits remain.",
+    "powershellCloudCauseUniquelyEstablished": false,
+    "ci": "Move the unchanged complete 12-file command to early three-OS native-campaign-preflight; all CLI test fan-out requires both preflights. Node22.22.2/JDK21/Python3.12/full history; future CLI minimum76 jobs."
+  },
+  "localValidation": {
+    "nativePreflight": [
+      {
+        "version": "v22.12.0",
+        "files": 12,
+        "passed": 110,
+        "total": 110,
+        "failed": 0,
+        "skipped": 0,
+        "exitCode": 0,
+        "receipt": "local-preflight-node2212.json"
+      },
+      {
+        "version": "v22.22.2",
+        "files": 12,
+        "passed": 110,
+        "total": 110,
+        "failed": 0,
+        "skipped": 0,
+        "exitCode": 0,
+        "receipt": "local-preflight-node2222.json"
+      }
+    ],
+    "workflowContract": {
+      "total": 26,
+      "passed": 26,
+      "failed": 0,
+      "raw": "release-workflow-contract.json",
+      "cwd": "packages/cli"
+    },
+    "ciGateIntegrity": {
+      "total": 55,
+      "passed": 55,
+      "exitCode": 0,
+      "provenance": "root-reported tool output only; no raw local log retained or fabricated"
+    },
+    "excludedInvocation": "Initial root-cwd collection accidentally included private .work copies; not an official product validation result."
+  },
+  "runtimeComponentCheck": {
+    "executionSource": "abbe13ad3658ff9e2e100989a4cfefc409d9261c",
+    "reference": "docs/research/cli/evidence/release132-read-context-validation-2026-10-30/review.json",
+    "referenceDigest": "sha256:e43353be125044fe4a84cc309573d90a5bf39c0188ae84c8d0e6270edf18dcd2",
+    "selectedFiles": 24,
+    "allSelectedBytesUnchanged": true,
+    "priorTests": 456,
+    "priorRealCliTests": 10,
+    "executionRepeated": false,
+    "componentBindings": {
+      "packages/cli/src/runtime/agent-core.js": "sha256:92c081e30a0ca4523ab7e3797fb38c29e69296bbcce380c8157f9d84f24c64a2",
+      "packages/cli/src/runtime/message-roles.js": "sha256:05631b7268a7476ee088c9156f092a5f29efa267f7311a55a388696060c0b352",
+      "packages/cli/src/runtime/provider-stream-state.js": "sha256:be1c3f7e29e752835a09c70fef427ebe241c91c5c862a8bdf70650c5206e548e",
+      "packages/cli/src/lib/context-memory-kernel/provider-context.js": "sha256:d075c4c4fb91b64fe9d590ff8403600de83648a898137e14399d6af9da45b272",
+      "packages/cli/src/lib/context-memory-kernel/message-adapter.js": "sha256:8dbec7f148760bc4f3169c1cb33c85c01f810ca28d2d8cb9024087673326e93b",
+      "packages/cli/__tests__/unit/resume-task-binding.test.js": "sha256:4b0f68095b442b568e6ef56b3d7c391991aa1a950447aa954fb2f89ef802ffb4",
+      "packages/cli/__tests__/unit/context-task-binding-race.test.js": "sha256:9c362b6efac1d67f18a5c097904f283825c89bccca6ddb0d248856cf5baba90b",
+      "packages/cli/__tests__/unit/output-limit-recovery.test.js": "sha256:91dc84821216674e769466351572c36aec854a161eac3cf0f6599370cfa32d76",
+      "packages/cli/__tests__/unit/content-filter.test.js": "sha256:9a64f207f87fba6e7121ee006c5da8daa7bd83b8c6a7a879593c4599a223dd47",
+      "packages/cli/__tests__/unit/termination-integrity.test.js": "sha256:ab0722b29bc7a717814b8408652a22a600a3d44c1610b2ba7b51777ec428c083",
+      "packages/cli/__tests__/unit/agent-core-host-continuation.test.js": "sha256:4103ab0459bac57c4d19f3224ef76b3898e287f33101f9d0a4275c1dbe136542",
+      "packages/cli/__tests__/e2e/resume-role-alternation-e2e.test.js": "sha256:38d929c32d9f1479dcf89175a9047ddf1ad7ce78525dfaae7237e96553492621",
+      "packages/cli/__tests__/e2e/output-limit-recovery.test.js": "sha256:1fc98a78e21246b1ba20b4e2ac339bec2eaffc1d1949551a050a7a8319e95668",
+      "packages/cli/__tests__/e2e/compaction-memory-restart-e2e.test.js": "sha256:5a2b16ffa315d9d5a1b9b2542a5e4616c0131df9641c1ab950738813f5ad4395",
+      "packages/cli/package.json": "sha256:1400def71832d1b4668d5b021fc0c5a2b37c973052094a532720bb590f1bdd43",
+      "packages/context-memory-kernel/package.json": "sha256:ed0a010ee0146aebc4aed67cf7f7a79073298c517c6f85c83b21d0afb030e3a7",
+      "packages/cli/scripts/budget-egress-reviewed-sources.json": "sha256:d1ed39972f87fa488b1f2297cc9da8ac292921e08d50e5316de79725e89af330",
+      "packages/cli/src/data/changelog.json": "sha256:d32286e87f0b7b5f1773e0e002443e4e5fc6352fa1e6151ef06eb829b808f542",
+      "packages/vscode-extension/package.json": "sha256:74a42f113f2b37fb9b3a5fbcd27950f87c19513b653f3be1b99134049bda4f1a",
+      "packages/jetbrains-plugin/build.gradle.kts": "sha256:ed9ad77cdfa97b4f002d6a52fb24e166477d439937d0251aea668914e55b5411",
+      "packages/jetbrains-plugin/gradle.properties": "sha256:4e827de53b04a87cf241177d2a05658fdc30c2b9cf4115b7e81d2764defec984",
+      "packages/cli/README.md": "sha256:79df2a02676c5156660a57b1c0979e6962d00eb1f6d2fade36c80196a92b925e",
+      "packages/vscode-extension/README.md": "sha256:7e1afd2d9a3d2a3c36ed6429ce5132bc6fa3f3e068f10536d81f3ac9462ebea1",
+      "packages/jetbrains-plugin/README.md": "sha256:243a200c1654e03d16926ae9c30c22fe472bde0b01ab97c04f26448e9cefc781"
+    }
+  },
+  "publicVersions": {
+    "cli": "0.166.131",
+    "openVsx": "0.37.169",
+    "jetbrains": "0.4.186",
+    "kernel": "0.1.11"
+  },
+  "acceptance": {
+    "automaticAccepted": 34,
+    "total": 45,
+    "assistedDeliveries": 3
+  },
+  "limits": {
+    "microsoft": "deferred",
+    "broker403": "unresolved",
+    "memoryColdSlo": "unresolved",
+    "clients": "independent v5.0.3.143"
+  },
+  "sourceBindings": {
+    "packages/cli/test-node/verify01-legacy-windows-tar.node-test.mjs": "sha256:ceb24b6be0d9b55ed919ea00ab55befa3ecc3eb6c98e09ed6eb42134b59efd59",
+    "packages/cli/test-node/verify01-native-task-campaign.node-test.mjs": "sha256:ea2ae811f69a1fe60598aa016e2205bcc31922c7858f6b662c082e0b3f922d41",
+    ".github/workflows/cli-ci.yml": "sha256:feb57d5a91b61a6f97ef2364519a279ed8f38971533fc87a90689f28bf8fe056",
+    "packages/cli/__tests__/unit/release-workflow-contract.test.js": "sha256:e520bdf2cff8051e71b304683a07c37dfe85b27308048fcc6e2578a5aa4b11d3",
+    "scripts/__tests__/ci-gate-integrity.test.mjs": "sha256:9d0e284994e805acf94e3644726275b2a419718cebc9e4dbe6701a789dae5d81"
+  },
+  "artifacts": [
+    {
+      "name": "failed-windows-job.json",
+      "path": "objects/2757ddc22731ea700f9ee6c114bc9b15b30c1e8d1b8585337cb271c4ffe9c2e4.gz",
+      "originalBytes": 12408,
+      "originalDigest": "sha256:2757ddc22731ea700f9ee6c114bc9b15b30c1e8d1b8585337cb271c4ffe9c2e4",
+      "storedBytes": 1687,
+      "storedDigest": "sha256:abc59c766487b6689274f9fa4053225b823f83f57b786013cb1c97388bf2baf2"
+    },
+    {
+      "name": "failed-windows-job.log",
+      "path": "objects/ff530c8325faba6eccabe9d4264d8feb267dc58e758ec67aacaf1cbe49cde953.gz",
+      "originalBytes": 783214,
+      "originalDigest": "sha256:ff530c8325faba6eccabe9d4264d8feb267dc58e758ec67aacaf1cbe49cde953",
+      "storedBytes": 126997,
+      "storedDigest": "sha256:826bd6aa72e49d233351427f2714e4b42ec1f8cc4c5e2d19da4f723d888f8ac1"
+    },
+    {
+      "name": "failed-windows-job.log-digest.json",
+      "path": "objects/ac1d780756d1961ed9dc56e4ccb03d50411e2efa963af40666d78602becca2b0.gz",
+      "originalBytes": 265,
+      "originalDigest": "sha256:ac1d780756d1961ed9dc56e4ccb03d50411e2efa963af40666d78602becca2b0",
+      "storedBytes": 210,
+      "storedDigest": "sha256:1032fcaa5097ce116eebb5069e73e107a37171d2161f1017761271f604a5693f"
+    },
+    {
+      "name": "failed-source-gate-observation.json",
+      "path": "objects/ca99788282664c4007148438ce95c7c545c0bbde52115b03df35a68fba25dd92.gz",
+      "originalBytes": 607330,
+      "originalDigest": "sha256:ca99788282664c4007148438ce95c7c545c0bbde52115b03df35a68fba25dd92",
+      "storedBytes": 28868,
+      "storedDigest": "sha256:59aebd0dd70b825f1c9ba09b3aef7972890174bfd3ec765413e6695604614f22"
+    },
+    {
+      "name": "local-preflight-node2212.json",
+      "path": "objects/5303912dc5cd6566bee27e27b4eb5e90e361ea17dfb5a6612eb4022f7f2bd2aa.gz",
+      "originalBytes": 5808,
+      "originalDigest": "sha256:5303912dc5cd6566bee27e27b4eb5e90e361ea17dfb5a6612eb4022f7f2bd2aa",
+      "storedBytes": 1409,
+      "storedDigest": "sha256:39e49a64a1796f5ed21bb1a58eae123b28e47c97088e01566221fd1ac1f57b4c"
+    },
+    {
+      "name": "local-preflight-node2212.stdout.log",
+      "path": "objects/169fe27d2f690b3f38bc4a1a95b4c2add27e72a5436e795f40296c49077efcee.gz",
+      "originalBytes": 22045,
+      "originalDigest": "sha256:169fe27d2f690b3f38bc4a1a95b4c2add27e72a5436e795f40296c49077efcee",
+      "storedBytes": 5118,
+      "storedDigest": "sha256:2921f283de75bce97f8cd92b75b9c33621603baa1c90caaaf20b664849dcac34"
+    },
+    {
+      "name": "local-preflight-node2212.stderr.log",
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "name": "local-preflight-node2222.json",
+      "path": "objects/c9a096159f2eb1b6eac58e1268364b95ef44f428a4caff1559fff5f16d820dcc.gz",
+      "originalBytes": 5763,
+      "originalDigest": "sha256:c9a096159f2eb1b6eac58e1268364b95ef44f428a4caff1559fff5f16d820dcc",
+      "storedBytes": 1378,
+      "storedDigest": "sha256:f2631e0818317251e30e902eb91e926889460523d3e8a64a77c0d4e0189a49eb"
+    },
+    {
+      "name": "local-preflight-node2222.stdout.log",
+      "path": "objects/fbfe99977dea1887bc5c0909111f16755ed1c985c31b0ed2001b9ea2fb5b6bcf.gz",
+      "originalBytes": 23697,
+      "originalDigest": "sha256:fbfe99977dea1887bc5c0909111f16755ed1c985c31b0ed2001b9ea2fb5b6bcf",
+      "storedBytes": 5192,
+      "storedDigest": "sha256:581dbf6026404188ffedfed0b87c946ff63a19d86a17fd651cdbf46eaa944805"
+    },
+    {
+      "name": "local-preflight-node2222.stderr.log",
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "name": "release-workflow-contract.json",
+      "path": "objects/b727a7b1cc794e0f022b95343f07f221eb91310ea18f5eab523969ffe3154330.gz",
+      "originalBytes": 9480,
+      "originalDigest": "sha256:b727a7b1cc794e0f022b95343f07f221eb91310ea18f5eab523969ffe3154330",
+      "storedBytes": 1705,
+      "storedDigest": "sha256:bdf6e476a2056683a6f3b3d30f2325f4af0e145b179c2587f5af75b7a8ec3625"
+    }
+  ],
+  "boundary": "Local repaired-worktree execution is not new-source cloud success. Prior other green gates bind only40753. abbe456+10 was not repeated; only the selected24 component bytes were compared. New exact-source complete configured OS gates, OIDC and public readbacks remain required."
+}

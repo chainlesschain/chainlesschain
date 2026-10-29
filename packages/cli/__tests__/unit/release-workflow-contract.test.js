@@ -539,8 +539,8 @@ describe("CLI release workflow contracts", () => {
     const strict = workflow("cli-strict-sandbox.yml");
 
     expect(cliCi.split(`commit_sha: ${eventSha}`)).toHaveLength(5);
-    expect(cliCi.split(`ref: ${eventSha}`)).toHaveLength(6);
-    expect(cliCi.match(/name: Verify exact source identity/gu)).toHaveLength(6);
+    expect(cliCi.split(`ref: ${eventSha}`)).toHaveLength(7);
+    expect(cliCi.match(/name: Verify exact source identity/gu)).toHaveLength(7);
     expect(cliCi).toContain(`CC_PM_RECOVERY_EXPECTED_SHA: ${eventSha}`);
     expect(cliCi).toContain("ref: ${{ env.CC_PM_RECOVERY_EXPECTED_SHA }}");
 
@@ -559,6 +559,75 @@ describe("CLI release workflow contracts", () => {
     );
     expect(strict).toContain("runs-on: ubuntu-24.04-arm");
     expect(strict).toContain('test "$RUNNER_ARCH" = ARM64');
+  });
+
+  it("runs the complete native campaign contract on three hosts before CLI test fan-out", () => {
+    const ci = workflow("cli-ci.yml");
+    const preflight = workflowJob(ci, "native-campaign-preflight");
+    expect(preflight).toContain("needs: [docs-scope]");
+    expect(preflight).toContain("needs.docs-scope.result == 'success'");
+    expect(preflight).toContain(
+      "needs.docs-scope.outputs.docs_only == 'false'",
+    );
+    expect(preflight).toContain("fail-fast: false");
+    expect(preflight).toContain(
+      "os: [ubuntu-latest, windows-latest, macos-latest]",
+    );
+    expect(preflight).toContain("runs-on: ${{ matrix.os }}");
+    expect(preflight).toContain(
+      "ref: ${{ github.event.pull_request.head.sha || github.sha }}",
+    );
+    expect(preflight).toContain("fetch-depth: 0");
+    expect(preflight).toContain("name: Verify exact source identity");
+    expect(preflight).toContain('node-version: "22.22.2"');
+    expect(preflight).toContain("distribution: temurin");
+    expect(preflight).toContain('java-version: "21"');
+    expect(preflight).toContain("actions/setup-python@v6");
+    expect(preflight).toContain('python-version: "3.12"');
+    expect(preflight).toContain("uses: ./.github/actions/setup-node-deps");
+    expect(preflight).not.toContain("continue-on-error:");
+    const commands = literalRunBlocks(preflight).filter((run) =>
+      run.trim().startsWith("node --test"),
+    );
+    expect(commands).toHaveLength(1);
+    expect(commands[0].trim().split(/\s+/u)).toEqual([
+      "node",
+      "--test",
+      "packages/cli/test-node/verify01-native-task-campaign.node-test.mjs",
+      "packages/cli/test-node/verify01-native-subset.node-test.mjs",
+      "packages/cli/test-node/verify01-native-retest-plan.node-test.mjs",
+      "packages/cli/test-node/verify01-native-retest-round.node-test.mjs",
+      "packages/cli/test-node/verify01-native-retest-supersession.node-test.mjs",
+      "packages/cli/test-node/verify01-native-task-checker.node-test.mjs",
+      "packages/cli/test-node/verify01-fetch-diagnostics.node-test.mjs",
+      "packages/cli/test-node/verify01-legacy-windows-tar.node-test.mjs",
+      "packages/cli/test-node/verify01-vscode-composer.node-test.mjs",
+      "packages/cli/test-node/verify01-ide-terminal.node-test.mjs",
+      "packages/cli/test-node/verify01-volcengine-diagnostic-broker.node-test.mjs",
+      "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.test.mjs",
+    ]);
+    expect(
+      occurrences(
+        ci,
+        "Verify native campaign dispatch and acceptance preflight without provider execution",
+      ),
+    ).toBe(1);
+    expect(workflowJob(ci, "verify-cli")).not.toContain(
+      "verify01-native-task-campaign.node-test.mjs",
+    );
+    for (const job of ["test-ubuntu", "test-windows", "test-macos"]) {
+      const caller = workflowJob(ci, job);
+      expect(caller).toContain(
+        "needs: [docs-scope, source-review-preflight, native-campaign-preflight]",
+      );
+      expect(caller).toContain(
+        "needs.source-review-preflight.result == 'success'",
+      );
+      expect(caller).toContain(
+        "needs.native-campaign-preflight.result == 'success'",
+      );
+      expect(caller).not.toContain("continue-on-error:");
+    }
   });
 
   it("gates Core DB and Session Core on all exact-SHA CLI verification platforms", () => {

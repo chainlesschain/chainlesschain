@@ -618,13 +618,24 @@ test(
     // is authoritative even when no module happens to need a cache write.
     const script = `
     $ErrorActionPreference = 'Stop'
+    [Console]::Error.WriteLine('knownfolders:engine-ready')
     $type = [System.Management.Automation.PSObject].Assembly.GetType('System.Management.Automation.AnalysisCacheData')
     $field = $type.GetField('cacheStoreLocation', [Reflection.BindingFlags]'Static,NonPublic')
-    Get-Command Get-Acl | Out-Null
+    [Console]::Error.WriteLine('knownfolders:before-security-command')
+    # This probe needs only two Windows core modules. Avoid enumerating the
+    # hosted image's unrelated modules when the isolated analysis cache is cold.
+    $PSModuleAutoLoadingPreference = 'None'
+    foreach ($module in @('Microsoft.PowerShell.Security', 'Microsoft.PowerShell.Utility')) {
+      $manifest = [IO.Path]::Combine($PSHOME, 'Modules', $module, $module + '.psd1')
+      Import-Module -Name $manifest -ErrorAction Stop
+    }
+    $command = Get-Command -Name 'Microsoft.PowerShell.Security\\Get-Acl' -CommandType Cmdlet -ErrorAction Stop
+    [Console]::Error.WriteLine('knownfolders:after-security-command')
     [Console]::WriteLine((@{
       local = [Environment]::GetFolderPath('LocalApplicationData')
       roaming = [Environment]::GetFolderPath('ApplicationData')
       cache = [string]$field.GetValue($null)
+      commandModule = $command.ModuleName
     } | ConvertTo-Json -Compress))
   `;
     const executable = path.join(
@@ -648,6 +659,7 @@ test(
       ).trim(),
     );
     const normalize = (value) => path.resolve(value).toLowerCase();
+    assert.equal(observed.commandModule, "Microsoft.PowerShell.Security");
     assert.equal(
       normalize(observed.local),
       normalize(path.join(profileHome, "AppData", "Local")),

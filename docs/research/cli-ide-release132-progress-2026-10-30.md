@@ -1,6 +1,19 @@
 # CLI .132 / 配对 IDE：本批修复与发行准备
 
-日期：2026-10-30。**abbe 候选因 CI 夹具失败已在发布前 superseded；仅两个测试 fixture 的修复已完成本机验证，新准确 SHA 的完整门禁待完成，尚未发行。** abbe 的运行时组合 **18 文件 456/456 + 3 文件 10/10 真实 CLI，均无跳过** 保留为其实际结果，不外推为新 fixture 源码的完整重跑。`44fd177967`、08 与 7f 均不能作为后续改动的准确验证提交。候选为 CLI **0.166.132**、Open VSX **0.37.170**、JetBrains **0.4.187**，Kernel **0.1.11** 不变；公开组合仍为 **.131 / .169 / .186**。下表保留当前观察范围，后续修正须补入自身验证结果。
+日期：2026-10-30。**40753 因 Windows 原生前置检查失败已在发布前 superseded；两条测试修复及三系统前置迁移已完成本机验证，新准确 SHA 的完整门禁仍待运行，尚未发行。** 候选仍为 CLI **0.166.132** / Open VSX **0.37.170** / JetBrains **0.4.187**，Kernel **0.1.11** 不变；当前公开组合仍为 **.131 / .169 / .186**。自动验收 **34/45**、辅助交付 **3 项**分别计数，Microsoft 暂缓。
+
+| 当前范围             | 已验证结果与边界                                                                                                                                                                                                                                                                                                                                |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 40753 完整云端结果   | [CLI CI 40957412912](https://github.com/chainlesschain/chainlesschain/actions/runs/40957412912) 为 **70 作业成功、1 项预期跳过、2 作业失败**：Windows verify-cli 与连带 PM 汇总；其余 70 项不改写为失败。Strict **6/6**、Kernel **3/3**、IDE **18 成功 / 1 预期跳过**只属于该旧源码，不移用。                                                   |
+| Windows 原生前置失败 | 原完整 12 文件为 **110 测试、108 通过、2 失败、0 跳过**。bsdtar 在 UTF-8 基准解包时拒绝 4 个文件名；PowerShell KnownFolders 探针触及原 20s 子进程限制。后续 always 上传缺失证据与 PM 汇总属于连带失败。                                                                                                                                         |
+| 两条测试修复         | 基准解包使用既有 Unicode 产品路径，历史 CP437 / UTF-8 PAX 使用独立 Python 标准库对照，全部原后续断言保留且扩展到三系统。PowerShell 禁无关自动加载，按 PSHOME 完整路径导入 Security / Utility，限定真实 Get-Acl 并核对 ModuleName，增加固定 stderr 阶段；**20s / 30s** 及 KnownFolders / cache / 空 workspace 断言不变，尚不能证明唯一云端根因。 |
+| 本机真实验证         | Windows Node **22.12.0** 与 **22.22.2** 均完整运行同 12 文件，各 **110/110、0 跳过、exit 0**；正确 CLI cwd 的 release-workflow-contract **26/26** 有原始 JSON。ci-gate-integrity **55/55 exit 0**仅有 root 工具输出，不伪造 raw；错误 root cwd 扫到私有旧副本的初次调用不计官方验证。                                                           |
+| CI 前置与新门禁      | 完整命令移到三系统 native-campaign-preflight，保留准确源码、完整 Git 历史、Node 22.22.2、JDK 21，并固定 Python 3.12；三个主测试矩阵须先通过源码审计与此前置矩阵。其他检查不变，移除晚期重复步骤，未来 CLI 完整 **76 jobs**。只称本机通过，不称新源码云端已修复。                                                                                |
+| 运行时归属           | **456 测试 + 10 真实 CLI**仅属 abbe 实际执行；本次逐项核对原 **24 个 sourceBindings** 字节仍相同，没有重跑该组合。当前修改范围为两条测试、workflow 和对应契约；未改产品运行时。                                                                                                                                                                 |
+
+[本轮失败、双 Node 本机回执与组件字节证据](./cli/evidence/release132-native-preflight-2026-10-30/review.json)归档 11 项原始记录，以压缩前后双 SHA-256 核对；[只读验证器](./cli/evidence/release132-native-preflight-2026-10-30/verify.mjs)不触发云端、发布或 provider 请求。原 broker **403**、Memory 冷 SLO 未解决，PC/mobile **v5.0.3.143**仍独立。
+
+以下保留 abbe → 40753 的历史夹具修复，不作为当前新源码的完整验证。
 
 准确源码 `abbe13ad3658ff9e2e100989a4cfefc409d9261c` 已标记 **SUPERSEDED_BEFORE_PUBLICATION**。[CLI CI 40947344227 / Ubuntu integration8](https://github.com/chainlesschain/chainlesschain/actions/runs/40947344227/job/123710924819) 唯一失败为 `ephemeral-worktree-lifecycle.test.js` 的 `atAbort undefined`：24 文件 / 182 测试通过，1 文件 / 1 测试失败，另有 4 项平台跳过。缺少云端原始 completion，不能断言当时由资源偶发或 JSON 竞争引起。Strict **6/6**、Kernel **3/3**、IDE **18 作业成功及 1 项预期跳过**和双平台原 compaction E2E 通过仅属于 abbe；旧 CLI 剩余作业已取消，不移用至下一 SHA。
 
