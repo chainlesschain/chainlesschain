@@ -17,3 +17,5 @@
 新增 [mcp-resource-cancellation.test.js](../../packages/cli/__tests__/integration/mcp-resource-cancellation.test.js) 在 CLI 的标准 Vitest 配置下 **4 项通过**，见[回执](./cli/evidence/upstream-regression-2026-10-29/resources-review.json)。测试使用真实回环网络和无后代的本地 Node fixture，但注入已连接的 transport entry；因此只证明 `readResource` 到传输的取消与迟到响应处理，不证明生产启动、权限或 MCP 握手。临时负例将调用的取消信号去掉，四个场景均因取消未结算而失败；正式测试保留原信号。
 
 本批同时完成了[三站部署回读](./cli-ide-sites129-progress-2026-10-29.md)与 [Memory 三系统磁盘测量回读](./cli-ide-memory-cache-progress-2026-10-29.md)。这些结果分别计数；任务产物仍为 34/45，`.129 verify-11` 只读 resolve 仍返回派发不确定，未重复提交模型任务。
+
+> 第三十九批推进：临时 worktree 与显式后台消费者已真实复现并修复，148 项定向回归及两版 Node 新增进程旅程通过。具体支持路由、拒绝边界和仍未覆盖的任意自 detach / daemon 后代见[生命周期记录](./cli-ide-worktree-lifetime-progress-2026-10-29.md)。不将本批限定修复解释为完整后台进程树验收。

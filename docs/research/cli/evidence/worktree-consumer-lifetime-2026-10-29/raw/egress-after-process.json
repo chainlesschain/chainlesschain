@@ -1,0 +1,36 @@
+{
+  "executable": "C:\\nvm4w\\nodejs\\node.exe",
+  "node": "v22.22.2",
+  "args": [
+    "packages/cli/scripts/implementation-plan-budget-egress.mjs",
+    "--check",
+    "--include-scripts",
+    "--output",
+    ".work/background-worktree-20261029/egress-after.json"
+  ],
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "observedAt": "2026-10-29T04:01:51.574Z",
+  "before": {
+    "source": "849eaa9bfaa421afc3532d8d03561559efc272e777f2b43c6392684c0fddb124",
+    "catalog": "f68bab01cd41cccf33709ae3d4331c00f699400ab116909a4e1a60776375a4d9"
+  },
+  "after": {
+    "source": "849eaa9bfaa421afc3532d8d03561559efc272e777f2b43c6392684c0fddb124",
+    "catalog": "f68bab01cd41cccf33709ae3d4331c00f699400ab116909a4e1a60776375a4d9"
+  },
+  "stable": true,
+  "original": {
+    "path": "packages/cli/src/runtime/agent-core.js",
+    "digest": "sha256:b635ed8da8db6f2c5c2276bb427ac9109e913315821572c8edc16199df9a4eea",
+    "category": "MODEL_REQUEST",
+    "rationale": "Canonical agent execution retains six providerFetch and two ollamaProviderFetch dispatch sites. Reviewed delta since 99694e24c5 refreshes host-published MCP catalogs, validates catalog bindings before delegated dispatch, propagates cancellation to subagents and refreshes host project context around compaction. Catalog refresh may change available delegated tools and context refresh changes model input; these remain subject to existing execution, session and provider admission paths. No independent provider dispatch is added. This source review does not attest arbitrary MCP or descendant containment, financial admission, quality acceptance or cross-platform release readiness."
+  },
+  "revised": {
+    "path": "packages/cli/src/runtime/agent-core.js",
+    "digest": "sha256:849eaa9bfaa421afc3532d8d03561559efc272e777f2b43c6392684c0fddb124",
+    "category": "MODEL_REQUEST",
+    "rationale": "Canonical agent execution retains six providerFetch and two ollamaProviderFetch dispatch sites. Reviewed delta since 99694e24c5 refreshes host-published MCP catalogs, validates catalog bindings before delegated dispatch, propagates cancellation to subagents and refreshes host project context around compaction. Catalog refresh may change available delegated tools and context refresh changes model input; these remain subject to existing execution, session and provider admission paths. No independent provider dispatch is added. This source review does not attest arbitrary MCP or descendant containment, financial admission, quality acceptance or cross-platform release readiness. Further reviewed delta binds isolateTask callbacks to a host-owned async worktree restriction and rejects background shell, resolved background sub-agent, persistent schedule creation and isolated skill-child dispatch from that temporary scope before launch. Foreground awaited tasks and ordinary persistent hosts retain existing behavior. This adds no outbound dispatch and does not prove arbitrary detached descendant containment or immediate process termination on cancellation."
+  }
+}

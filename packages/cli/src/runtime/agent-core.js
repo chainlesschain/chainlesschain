@@ -216,6 +216,7 @@ import {
   buildToolAttribution,
 } from "../lib/agent-tool-admission.js";
 import { captureAgentExecutionPolicy } from "../lib/agent-execution-policy.js";
+import { ephemeralWorktreeConsumerRefusal } from "../lib/ephemeral-worktree-scope.js";
 import {
   COMPACTION_CONTEXT_REFRESH_ERROR,
   refreshCompactionHostContext,
@@ -6237,6 +6238,10 @@ async function executeToolInner(
       // Bound the declared run_shell data once. Approval and dispatch never
       // observe later mutation of the caller-owned tool arguments.
       args = Object.isFrozen(args) ? args : snapshotShellExecutionArgs(args);
+      if (args.run_in_background === true) {
+        const refusal = ephemeralWorktreeConsumerRefusal("Background shell");
+        if (refusal) return attachDescriptor(refusal);
+      }
       if (unattendedActionPolicy?.unattended === true) {
         const unattendedVerdict = evaluateUnattendedShellAction(args.command, {
           ...unattendedActionPolicy,
@@ -8261,6 +8266,14 @@ async function executeToolInner(
     }
 
     case "schedule": {
+      if (
+        ["wakeup", "cron", "monitor"].includes(
+          String(args.action || "").toLowerCase(),
+        )
+      ) {
+        const refusal = ephemeralWorktreeConsumerRefusal("Deferred schedule");
+        if (refusal) return attachDescriptor(refusal);
+      }
       try {
         const { AgentScheduleStore } = await import(
           "../lib/agent-schedule-store.js"
@@ -9008,6 +9021,16 @@ async function executeToolInner(
             via: "skill-execution-boundary",
           },
         });
+      }
+
+      if (match.isolation === true) {
+        const refusal = ephemeralWorktreeConsumerRefusal(
+          "Isolated skill child",
+        );
+        if (refusal) {
+          skillExecutionLease?.release?.();
+          return attachDescriptor(refusal);
+        }
       }
 
       const selectedSkillDigest =
@@ -11205,6 +11228,13 @@ async function _executeSpawnSubAgent(args, ctx) {
     };
   }
 
+  const wantsBackground =
+    args.background === true || effectiveContract?.background === true;
+  if (wantsBackground) {
+    const refusal = ephemeralWorktreeConsumerRefusal("Background sub-agent");
+    if (refusal) return refusal;
+  }
+
   // Filter the parent loop's live MCP plumbing + settings hooks down to what the
   // child may inherit. Default `[]` → null → the spawn passes nothing, so a plain
   // sub-agent is byte-identical to before.
@@ -11858,8 +11888,6 @@ async function _executeSpawnSubAgent(args, ctx) {
   // detached without the caller passing it. `effectiveContract.background`
   // already folds in `args.background`; the explicit OR keeps the path
   // byte-identical if contract resolution was skipped (effectiveContract null).
-  const wantsBackground =
-    args.background === true || effectiveContract?.background === true;
   if (wantsBackground && ctx.backgroundSubAgents instanceof Map) {
     // Cancel with the parent: forward the loop's abort signal so killing the
     // run doesn't orphan a detached child mid-LLM-call.

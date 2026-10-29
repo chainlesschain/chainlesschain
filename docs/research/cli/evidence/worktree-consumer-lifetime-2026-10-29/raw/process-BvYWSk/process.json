@@ -1,0 +1,9 @@
+{
+  "startedAt": "2026-10-29T03:39:49.674Z",
+  "endedAt": "2026-10-29T03:40:30.689Z",
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "stdout": "artifacts=C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\n{\"mode\":\"hold-cwd\",\"alive\":true,\"subAgentStatus\":\"completed\",\"worktreeExists\":true,\"requiredFileExists\":true,\"consumerRead\":{\"ok\":true,\"content\":\"synthetic fixture, still required by background consumer\\n\"},\"terminal\":\"exited\"}\n{\"mode\":\"release-cwd\",\"alive\":true,\"subAgentStatus\":\"completed\",\"worktreeExists\":true,\"requiredFileExists\":true,\"consumerRead\":{\"ok\":true,\"content\":\"synthetic fixture, still required by background consumer\\n\"},\"terminal\":\"exited\"}\n{\"mode\":\"external-cwd\",\"alive\":true,\"subAgentStatus\":\"completed\",\"worktreeExists\":false,\"requiredFileExists\":false,\"consumerRead\":{\"ok\":false,\"code\":\"ENOENT\",\"message\":\"ENOENT: no such file or directory, open 'C:\\\\code\\\\chainlesschain\\\\.work\\\\background-worktree-20261029\\\\run-X8hyfz\\\\external-cwd\\\\synthetic-repo\\\\.worktrees\\\\agent-lifetime-probe-4d5ead75-a04\\\\README.md'\"},\"terminal\":\"exited\"}\n{\"receipt\":\"C:\\\\code\\\\chainlesschain\\\\.work\\\\background-worktree-20261029\\\\run-X8hyfz\\\\receipt.json\",\"sourcesStable\":true,\"mainWorktreesUnchanged\":false}\n",
+  "stderr": ""
+}

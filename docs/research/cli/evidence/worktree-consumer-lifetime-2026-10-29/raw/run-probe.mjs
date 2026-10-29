@@ -1,0 +1,13 @@
+import fs from "node:fs";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import {spawnSync} from "node:child_process";
+const directory=path.dirname(fileURLToPath(import.meta.url));
+const receiptDir=fs.mkdtempSync(path.join(directory,"process-"));
+const startedAt=new Date().toISOString();
+const run=spawnSync(process.execPath,[path.join(directory,"probe.mjs")],{cwd:directory,encoding:"utf8",windowsHide:true,timeout:60000,maxBuffer:4*1024*1024});
+fs.writeFileSync(path.join(receiptDir,"output.log"),(run.stdout||"")+(run.stderr||""),{flag:"wx"});
+const result={startedAt,endedAt:new Date().toISOString(),exitCode:run.status,signal:run.signal,error:run.error?.message??null,stdout:run.stdout,stderr:run.stderr};
+fs.writeFileSync(path.join(receiptDir,"process.json"),JSON.stringify(result,null,2)+"\n",{flag:"wx"});
+console.log(JSON.stringify({receiptDir,...result}));
+process.exitCode=run.status??1;

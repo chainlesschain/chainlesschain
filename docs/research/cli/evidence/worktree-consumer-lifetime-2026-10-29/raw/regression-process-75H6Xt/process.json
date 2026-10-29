@@ -1,0 +1,10 @@
+{
+  "startedAt": "2026-10-29T03:48:40.513Z",
+  "endedAt": "2026-10-29T03:49:19.500Z",
+  "node": "v22.22.2",
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "stdout": "artifacts=C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\n{\"mode\":\"refuse-normal\",\"passed\":true,\"status\":\"completed\"}\n{\"mode\":\"refuse-cancel\",\"passed\":true,\"status\":\"failed\"}\n{\"mode\":\"foreground\",\"passed\":true,\"status\":\"completed\"}\n{\"mode\":\"foreground-cancel\",\"passed\":true,\"status\":\"failed\"}\n{\"mode\":\"ordinary-background\",\"passed\":true,\"status\":\"completed\"}\n{\"receipt\":\"C:\\\\code\\\\chainlesschain\\\\.work\\\\background-worktree-20261029\\\\regression-H3wbVa\\\\receipt.json\",\"passed\":5}\n",
+  "stderr": ""
+}

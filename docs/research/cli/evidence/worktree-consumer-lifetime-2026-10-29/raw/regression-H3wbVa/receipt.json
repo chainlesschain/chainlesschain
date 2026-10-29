@@ -1,0 +1,428 @@
+{
+  "node": "v22.22.2",
+  "artifacts": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa",
+  "before": {
+    "packages/cli/src/harness/worktree-isolator.js": "ad13e1f333711049637092f810e7bffd004304c5de66a4c337c42c341151214a",
+    "packages/cli/src/lib/sub-agent-context.js": "fb9802f8b8019d33ac5b5af046ab9d6f9cd934855b26ecd93947903d229bad72",
+    "packages/cli/src/runtime/agent-core.js": "7400641ff5d5dcf398a1f917f6f5231b45bf2531e4e29011ae12804a686c109e",
+    "packages/cli/src/lib/ephemeral-worktree-scope.js": "e83a645eab3459754a75a3a08466f81d480aab4c70c53c299d27e6876014901b"
+  },
+  "after": {
+    "packages/cli/src/harness/worktree-isolator.js": "ad13e1f333711049637092f810e7bffd004304c5de66a4c337c42c341151214a",
+    "packages/cli/src/lib/sub-agent-context.js": "fb9802f8b8019d33ac5b5af046ab9d6f9cd934855b26ecd93947903d229bad72",
+    "packages/cli/src/runtime/agent-core.js": "7400641ff5d5dcf398a1f917f6f5231b45bf2531e4e29011ae12804a686c109e",
+    "packages/cli/src/lib/ephemeral-worktree-scope.js": "e83a645eab3459754a75a3a08466f81d480aab4c70c53c299d27e6876014901b"
+  },
+  "sourcesStable": true,
+  "mainWorktreePathsUnchanged": true,
+  "mainWorktreesBefore": "worktree C:/code/chainlesschain\nHEAD 999fdeb546f3f9e790f7ab860087d338c17c5d74\nbranch refs/heads/main\n\nworktree C:/code/chainlesschain/.w/d129\nHEAD ca58bfeae0f5be18a245e216a67e0cefd3f73bbf\ndetached\n\nworktree C:/code/chainlesschain/.w/i129\nHEAD 800e9cc99711f9f02eb3bbd78eb14600406bdba5\ndetached\n\nworktree C:/code/chainlesschain/.w/m22\nHEAD dd67a45dffbbf1851da696e0640f32b4b4f28d19\ndetached\nprunable gitdir file points to non-existent location\n\nworktree C:/code/chainlesschain/.w/r129\nHEAD fd8a21637ab188dae0c777442d312ae85d420a9b\ndetached\n\nworktree C:/code/chainlesschain/.w/r130\nHEAD f3015e799624b81af564aaaa1b7701c0a5c70e26\ndetached\n\nworktree C:/code/chainlesschain/.w/r130d\nHEAD fe9c902e038223d242c18bf0ba2213bf48e0241e\nbranch refs/heads/feature/release130-public-docs\n\nworktree C:/code/chainlesschain/.w/v27\nHEAD 67c085115b662988242311ccfdf2d723b66a9242\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-concurrent\nHEAD b472ae5a31637434ae90d311590392882018e381\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-final\nHEAD 890510d0311805e591302853f7f348a6d9f6fb66\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-ide-error-code\nHEAD 376740e3f4bd5d46a741eb92e2c6618beb3c080f\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-io\nHEAD b6f292d3372572f85a6eebb0b95052a936bfb50b\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-long-session\nHEAD 09cf06d03929a7c880f22e096a16b5e9950b3157\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-native-ports\nHEAD f9b23e48839b4dd3adbe4502d9509ecb7a541f74\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-performance-recovery\nHEAD 0459a2bb4ad6e1e3dc4475a46aa2bd2fa2264b4b\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-startup-diagnostic\nHEAD 46dcc3cd60b470e0cb940f16336355f372cd1e73\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-storage-recovery\nHEAD c1e50a807a9d5a89467818b6d740a7c6119361ff\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-tool-round-recovery\nHEAD e4c66df637d8ace1d8426513e0b14f0f22e2e913\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-turnscale-diagnostic\nHEAD a5f2ce23e8421ba363375c35e90459ae5be808af\ndetached\n\nworktree C:/code/chainlesschain/.work/ci-security-map-b418\nHEAD abaf53f1570600d316c8979b934a0ce14517e162\ndetached\n\nworktree C:/code/chainlesschain/.work/cli118-integrated-native-read\nHEAD f9b23e48839b4dd3adbe4502d9509ecb7a541f74\ndetached\n\nworktree C:/code/chainlesschain/.work/cli126\nHEAD 1b848f7e265737b73e6f8ac99f0aeaf9ea5dadbe\ndetached\n\nworktree C:/code/chainlesschain/.work/d118\nHEAD 8503719cdb852e49940932a422642eff4ed3b1ca\ndetached\n\nworktree C:/code/chainlesschain/.work/docs-source-sync-20261007\nHEAD 6d35fdec177483883a00292f5c18be708319af71\ndetached\n\nworktree C:/code/chainlesschain/.work/r116\nHEAD 2c891bc79a67b25fa1b1e418ef3fe67da93256ff\ndetached\n\nworktree C:/code/chainlesschain/.work/r7\nHEAD dfa158e36171e347a40e23356c2ed7bd04e0c061\ndetached\n\nworktree C:/code/chainlesschain/.work/rd128\nHEAD afc20f77bd47bc38e7e2a0255b0bafa1fd64cde1\ndetached\n\nworktree C:/code/chainlesschain/.work/release163-source\nHEAD ed07dc8673769f6caab78bca55737f30137f1c6a\ndetached\n\nworktree C:/code/chainlesschain/.work/settings-authority-ci\nHEAD 2bfaea2fa9588c4a4017d7e926362b03b4d9ad69\ndetached\n\nworktree C:/code/chainlesschain/.work/standalone-handshake-baseline-96\nHEAD 96cbf6ba5631d5ef855e3cdc41801d837142e62b\ndetached\n\nworktree C:/code/chainlesschain/.work/updater-diagnostic-b776\nHEAD b776be5fc8bb8fd04d9a6ef2846eaf61bac8f4f0\ndetached\n\nworktree C:/code/chainlesschain/.worktrees/history20\nHEAD f32e559e7929d99fb1e30858989f0cb6f51473fc\ndetached\n\nworktree C:/code/chainlesschain/.worktrees/ide-cli-0-166-123\nHEAD f1bba67e9411422485f38479ef9966db30fb6c60\ndetached\n\nworktree C:/code/chainlesschain/.worktrees/ide-git-checkpoint-perf-20261029\nHEAD 99694e24c5721e95730f11b5f3918b91d1938c78\ndetached\n\nworktree C:/code/chainlesschain/.worktrees/product-142-cli-123\nHEAD b48941e5630834ec4aa6303e7b65e7d21650cf28\ndetached\n\nworktree C:/code/chainlesschain/.worktrees/task-quality107\nHEAD 9b6fd15f6f47687344d533ab481dfe2f7270ed93\ndetached\n\nworktree C:/code/chainlesschain/.worktrees/v17\nHEAD 380d9926c2930045834e73b5025465f4d7414903\ndetached\n\nworktree C:/code/chainlesschain/.worktrees/v18\nHEAD eab51516a1ac00cc521b5279ee6eee6e8874fee7\ndetached\n\nworktree C:/tmp/chainlesschain-cli-webpanel-1931\nHEAD 1931108f1b8f94c767194d09ea4543d1ebe68ad4\ndetached\n\nworktree C:/tmp/chainlesschain-cli-webpanel-2eef\nHEAD 2eef82449cedb26a3a57c22e3b9383cce6f5cfe7\ndetached\n\nworktree C:/tmp/chainlesschain-p1-2-turn-bootstrap\nHEAD 7d3120fc1ed7ef1c32c183d3235ced4a39589e1f\ndetached\n\nworktree C:/tmp/chainlesschain-p2-4-windows-worker-fix\nHEAD 1f4a2cd51fc91c3166a991bc532cbf21e76f5fde\ndetached\n\nworktree C:/tmp/chainlesschain-p2-cowork-cron\nHEAD 650154f8b4c045ae48ab68b88a9da7165b4af557\ndetached\n\nworktree C:/tmp/chainlesschain-p2-loop-scheduler\nHEAD 650154f8b4c045ae48ab68b88a9da7165b4af557\ndetached\n\nworktree C:/tmp/chainlesschain-p2-routine-github\nHEAD 6460e49b011720a3a233ffc7f0fd803bfe52e3c3\ndetached\n\nworktree C:/tmp/chainlesschain-p2-scheduler-daemon\nHEAD 650154f8b4c045ae48ab68b88a9da7165b4af557\ndetached\n\nworktree C:/tmp/chainlesschain-p2-scheduler-kernel-v1\nHEAD 650154f8b4c045ae48ab68b88a9da7165b4af557\ndetached\n\nworktree C:/tmp/chainlesschain-p2-scheduler-service\nHEAD 650154f8b4c045ae48ab68b88a9da7165b4af557\ndetached\n\nworktree C:/tmp/chainlesschain-p2-shared-resolver\nHEAD 56f0fc579d4999ad10256c5c920f1d1d90b7d870\ndetached\n\nworktree C:/tmp/chainlesschain-pr140-ci-fix\nHEAD 650154f8b4c045ae48ab68b88a9da7165b4af557\ndetached\n\nworktree C:/tmp/chainlesschain-pr169-merge\nHEAD df20ec913e04d08230d743b51813d11fa4335c9e\ndetached\n\nworktree C:/tmp/chainlesschain-pr172-release\nHEAD e0274a477dbc1c76aed61c6d98fda69f4d9b119f\ndetached\n\nworktree C:/tmp/chainlesschain-task3-live-e2e\nHEAD 241929977ad35003f51a3465b150bc2ca624dd3b\ndetached\n\nworktree C:/tmp/chainlesschain-task3-vfs-atomic\nHEAD 650154f8b4c045ae48ab68b88a9da7165b4af557\ndetached\n\nworktree C:/tmp/chainlesschain-task5-report-v2\nHEAD 7d10fdc6ce0c83acf43224005cad780e3ef39a19\ndetached\n\nworktree C:/tmp/chainlesschain-validate-9350e8c\nHEAD 9350e8c94893527e8aea73cff1a98a322614190b\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-astra-windows96-clean\nHEAD 96cbf6ba5631d5ef855e3cdc41801d837142e62b\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-ax-transcript-20260821\nHEAD f9287f7516f41047cc796e9ddaf564fef890bffe\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-browser-evidence-20260821\nHEAD 604ef9c99e2c065968172b01b1beaf29eceaa4be\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-diag-scale-20260821\nHEAD 802c7cd8012ffe353aab0fc58ad637773bb01dd9\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-docs121-deploy-1d9554c51b\nHEAD 1d9554c51bf9cde2b91a9eba79da8a988765d715\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-f5b445-audit\nHEAD f5b445d56694c6e5cbd32043495196d076b248f8\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-gap-finalize-20260822\nHEAD d3d8397b7db84c4d5b34a1401a3812c3ace7aa36\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-gap-protocol-20261005\nHEAD b85ec50aedf0489fba54ea35bb53bdf30c488a93\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-ide-cli-release-main-20261014\nHEAD 111ec64d79c490ae74969916cddd4239033d6246\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-ide-input-perf-20260821\nHEAD c6af0aaacb5b1c21147bbbb38116ed728db688df\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-location-clean-04e6add4\nHEAD e890c235d5f3cfb120a04bbb742f1464ec51892e\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-location-drain-20260821\nHEAD 5caf1cbc2d165d9e804be5647edc97fb355b83c9\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-mcp-canonical-audit-20260821\nHEAD 142cf7a14d0e601cc66913b5326a80811e646e32\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-mcp-lifecycle-20260821\nHEAD 815be52c968466b1fd036173558f94a873e0ce99\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-p2-3-agent-turn-budget-20260831\nHEAD 0c2ad1803aa2d5dadf3f3ed54e2cbab84a05be81\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-p2-3-formal-round-budget-20260831\nHEAD 88a82321c95d1faaa44161669f64131892fba18c\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-p2-3-formal-round-cap-20260831\nHEAD 41896b6d361be96b5216015ccc0e10307a8100e2\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-p2-3-security-map-20260831\nHEAD 42e5c09d40eed314fb77658e541ceff1518f9e36\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-p2-4-pinned-775d5667\nHEAD 775d5667bc7bdcf8fed3f834d3ba2eda43526128\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-plugin-source-20260821\nHEAD e0d17a52b5b4d9145f88af5ab5f4ef10c093a767\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-rc-default-audit-20260821\nHEAD c1818e1ff107faf0864eea22d898fe8927aff055\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-release-8d08586\nHEAD 8d08586b6152941bbde0a5121bfe589cf9bc24e2\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-release115-docs-ci-worktree\nHEAD 521d7dc491c6e5909f39cbc51a0761abfbbb80c4\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-release128-rc4b\nHEAD 944c6e321ca0e65d03b9b4b2e1fa61720ac522cf\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-release128-rc5\nHEAD 036d2b8be2048c98e56e917c93380f169e6a9d7b\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-roadmap-final-880\nHEAD 87a841db1a904a3baaf2b8e03683a62bc5b3e844\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-sec-delta-20260821\nHEAD bdb10a03b4cb4b9b20d58df6e5d34fcc05d4193b\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-session-runtime-20260821\nHEAD 242a37d30a2b6e7b03b94caccf82af73ca3a083d\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-session-ux-20260821\nHEAD 9f0b7000eb85b86d81616e571b3aad39c60cc0ce\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-session-ux-canonical-evidence-20260821\nHEAD 34bde011b311f08bbac0856298e428f36ba4bb66\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-unified-audit-20260821\nHEAD f5eb9dd5e5264a1034307fe25913281c95b65172\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-unified-locked-profiles-20260821\nHEAD 0793afd4f0fc829ed8984497b0199065697ec293\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-unified-provenance-20260821\nHEAD ba8a600936cc662d0535e04cc597edb7718ff54d\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-volcengine-default-20261018\nHEAD 64eaffd331e88155df17a288e9bc04ca052f4700\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-xsession-20260821\nHEAD fceb2704a32c37789cf6f1916fff056ea4e31eb2\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-frozen-exact-gates\nHEAD 81cd8ca2bc1ed17e0a5a9c812636cf8c80646603\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-ide-release-0.37.55-0.4.91\nHEAD 842a3349389f7e0423724d954cf42c87c7796d4b\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-merge-product-v5.0.3.135-20260817\nHEAD 38ee49e0ebffc57008893031da83a49df6c598e8\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-oidc-diagnostic-107\nHEAD 5985d53f483f7be25be6ce3172a3409fde4315cf\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-p0-ci-fix-7d2e686\nHEAD 48cb5625950089b270457e18d3f89158fbb3b222\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-p1-3-kernel\nHEAD 2a46819fa91af6b783619e2a99064f31e3876b1a\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-pr434-handoff-review\nHEAD ff292775c4a032541fb50147d49dd353967be3b4\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-pr434-registry-review\nHEAD f116ef0f76492e127141f6ad4a514bf719987cf9\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-release-01667\nHEAD 19834a18457c1b763b5a7a2cfada713340e7c273\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-roadmap-fe6\nHEAD 1ef06b52a96a243ae2c340615dc6ef091835f311\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-session-recovery-20260818/tree-all\nHEAD 58cbc7a3163984765ad4a6db8fdd8f57c50af34b\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-session-recovery-20260818/tree-worktree\nHEAD 58cbc7a3163984765ad4a6db8fdd8f57c50af34b\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-website-refresh-20261028\nHEAD d72d25fd67b7b8dc64bc326fe834ff27cd9fb295\ndetached",
+  "mainWorktreesAfter": "worktree C:/code/chainlesschain\nHEAD 999fdeb546f3f9e790f7ab860087d338c17c5d74\nbranch refs/heads/main\n\nworktree C:/code/chainlesschain/.w/d129\nHEAD ca58bfeae0f5be18a245e216a67e0cefd3f73bbf\ndetached\n\nworktree C:/code/chainlesschain/.w/i129\nHEAD 800e9cc99711f9f02eb3bbd78eb14600406bdba5\ndetached\n\nworktree C:/code/chainlesschain/.w/m22\nHEAD dd67a45dffbbf1851da696e0640f32b4b4f28d19\ndetached\nprunable gitdir file points to non-existent location\n\nworktree C:/code/chainlesschain/.w/r129\nHEAD fd8a21637ab188dae0c777442d312ae85d420a9b\ndetached\n\nworktree C:/code/chainlesschain/.w/r130\nHEAD f3015e799624b81af564aaaa1b7701c0a5c70e26\ndetached\n\nworktree C:/code/chainlesschain/.w/r130d\nHEAD fe9c902e038223d242c18bf0ba2213bf48e0241e\nbranch refs/heads/feature/release130-public-docs\n\nworktree C:/code/chainlesschain/.w/v27\nHEAD 67c085115b662988242311ccfdf2d723b66a9242\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-concurrent\nHEAD b472ae5a31637434ae90d311590392882018e381\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-final\nHEAD 890510d0311805e591302853f7f348a6d9f6fb66\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-ide-error-code\nHEAD 376740e3f4bd5d46a741eb92e2c6618beb3c080f\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-io\nHEAD b6f292d3372572f85a6eebb0b95052a936bfb50b\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-long-session\nHEAD 09cf06d03929a7c880f22e096a16b5e9950b3157\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-native-ports\nHEAD f9b23e48839b4dd3adbe4502d9509ecb7a541f74\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-performance-recovery\nHEAD 0459a2bb4ad6e1e3dc4475a46aa2bd2fa2264b4b\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-startup-diagnostic\nHEAD 46dcc3cd60b470e0cb940f16336355f372cd1e73\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-storage-recovery\nHEAD c1e50a807a9d5a89467818b6d740a7c6119361ff\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-tool-round-recovery\nHEAD e4c66df637d8ace1d8426513e0b14f0f22e2e913\ndetached\n\nworktree C:/code/chainlesschain/.work/cc118-turnscale-diagnostic\nHEAD a5f2ce23e8421ba363375c35e90459ae5be808af\ndetached\n\nworktree C:/code/chainlesschain/.work/ci-security-map-b418\nHEAD abaf53f1570600d316c8979b934a0ce14517e162\ndetached\n\nworktree C:/code/chainlesschain/.work/cli118-integrated-native-read\nHEAD f9b23e48839b4dd3adbe4502d9509ecb7a541f74\ndetached\n\nworktree C:/code/chainlesschain/.work/cli126\nHEAD 1b848f7e265737b73e6f8ac99f0aeaf9ea5dadbe\ndetached\n\nworktree C:/code/chainlesschain/.work/d118\nHEAD 8503719cdb852e49940932a422642eff4ed3b1ca\ndetached\n\nworktree C:/code/chainlesschain/.work/docs-source-sync-20261007\nHEAD 6d35fdec177483883a00292f5c18be708319af71\ndetached\n\nworktree C:/code/chainlesschain/.work/r116\nHEAD 2c891bc79a67b25fa1b1e418ef3fe67da93256ff\ndetached\n\nworktree C:/code/chainlesschain/.work/r7\nHEAD dfa158e36171e347a40e23356c2ed7bd04e0c061\ndetached\n\nworktree C:/code/chainlesschain/.work/rd128\nHEAD afc20f77bd47bc38e7e2a0255b0bafa1fd64cde1\ndetached\n\nworktree C:/code/chainlesschain/.work/release163-source\nHEAD ed07dc8673769f6caab78bca55737f30137f1c6a\ndetached\n\nworktree C:/code/chainlesschain/.work/settings-authority-ci\nHEAD 2bfaea2fa9588c4a4017d7e926362b03b4d9ad69\ndetached\n\nworktree C:/code/chainlesschain/.work/standalone-handshake-baseline-96\nHEAD 96cbf6ba5631d5ef855e3cdc41801d837142e62b\ndetached\n\nworktree C:/code/chainlesschain/.work/updater-diagnostic-b776\nHEAD b776be5fc8bb8fd04d9a6ef2846eaf61bac8f4f0\ndetached\n\nworktree C:/code/chainlesschain/.worktrees/history20\nHEAD f32e559e7929d99fb1e30858989f0cb6f51473fc\ndetached\n\nworktree C:/code/chainlesschain/.worktrees/ide-cli-0-166-123\nHEAD f1bba67e9411422485f38479ef9966db30fb6c60\ndetached\n\nworktree C:/code/chainlesschain/.worktrees/ide-git-checkpoint-perf-20261029\nHEAD 99694e24c5721e95730f11b5f3918b91d1938c78\ndetached\n\nworktree C:/code/chainlesschain/.worktrees/product-142-cli-123\nHEAD b48941e5630834ec4aa6303e7b65e7d21650cf28\ndetached\n\nworktree C:/code/chainlesschain/.worktrees/task-quality107\nHEAD 9b6fd15f6f47687344d533ab481dfe2f7270ed93\ndetached\n\nworktree C:/code/chainlesschain/.worktrees/v17\nHEAD 380d9926c2930045834e73b5025465f4d7414903\ndetached\n\nworktree C:/code/chainlesschain/.worktrees/v18\nHEAD eab51516a1ac00cc521b5279ee6eee6e8874fee7\ndetached\n\nworktree C:/tmp/chainlesschain-cli-webpanel-1931\nHEAD 1931108f1b8f94c767194d09ea4543d1ebe68ad4\ndetached\n\nworktree C:/tmp/chainlesschain-cli-webpanel-2eef\nHEAD 2eef82449cedb26a3a57c22e3b9383cce6f5cfe7\ndetached\n\nworktree C:/tmp/chainlesschain-p1-2-turn-bootstrap\nHEAD 7d3120fc1ed7ef1c32c183d3235ced4a39589e1f\ndetached\n\nworktree C:/tmp/chainlesschain-p2-4-windows-worker-fix\nHEAD 1f4a2cd51fc91c3166a991bc532cbf21e76f5fde\ndetached\n\nworktree C:/tmp/chainlesschain-p2-cowork-cron\nHEAD 650154f8b4c045ae48ab68b88a9da7165b4af557\ndetached\n\nworktree C:/tmp/chainlesschain-p2-loop-scheduler\nHEAD 650154f8b4c045ae48ab68b88a9da7165b4af557\ndetached\n\nworktree C:/tmp/chainlesschain-p2-routine-github\nHEAD 6460e49b011720a3a233ffc7f0fd803bfe52e3c3\ndetached\n\nworktree C:/tmp/chainlesschain-p2-scheduler-daemon\nHEAD 650154f8b4c045ae48ab68b88a9da7165b4af557\ndetached\n\nworktree C:/tmp/chainlesschain-p2-scheduler-kernel-v1\nHEAD 650154f8b4c045ae48ab68b88a9da7165b4af557\ndetached\n\nworktree C:/tmp/chainlesschain-p2-scheduler-service\nHEAD 650154f8b4c045ae48ab68b88a9da7165b4af557\ndetached\n\nworktree C:/tmp/chainlesschain-p2-shared-resolver\nHEAD 56f0fc579d4999ad10256c5c920f1d1d90b7d870\ndetached\n\nworktree C:/tmp/chainlesschain-pr140-ci-fix\nHEAD 650154f8b4c045ae48ab68b88a9da7165b4af557\ndetached\n\nworktree C:/tmp/chainlesschain-pr169-merge\nHEAD df20ec913e04d08230d743b51813d11fa4335c9e\ndetached\n\nworktree C:/tmp/chainlesschain-pr172-release\nHEAD e0274a477dbc1c76aed61c6d98fda69f4d9b119f\ndetached\n\nworktree C:/tmp/chainlesschain-task3-live-e2e\nHEAD 241929977ad35003f51a3465b150bc2ca624dd3b\ndetached\n\nworktree C:/tmp/chainlesschain-task3-vfs-atomic\nHEAD 650154f8b4c045ae48ab68b88a9da7165b4af557\ndetached\n\nworktree C:/tmp/chainlesschain-task5-report-v2\nHEAD 7d10fdc6ce0c83acf43224005cad780e3ef39a19\ndetached\n\nworktree C:/tmp/chainlesschain-validate-9350e8c\nHEAD 9350e8c94893527e8aea73cff1a98a322614190b\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-astra-windows96-clean\nHEAD 96cbf6ba5631d5ef855e3cdc41801d837142e62b\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-ax-transcript-20260821\nHEAD f9287f7516f41047cc796e9ddaf564fef890bffe\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-browser-evidence-20260821\nHEAD 604ef9c99e2c065968172b01b1beaf29eceaa4be\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-diag-scale-20260821\nHEAD 802c7cd8012ffe353aab0fc58ad637773bb01dd9\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-docs121-deploy-1d9554c51b\nHEAD 1d9554c51bf9cde2b91a9eba79da8a988765d715\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-f5b445-audit\nHEAD f5b445d56694c6e5cbd32043495196d076b248f8\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-gap-finalize-20260822\nHEAD d3d8397b7db84c4d5b34a1401a3812c3ace7aa36\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-gap-protocol-20261005\nHEAD b85ec50aedf0489fba54ea35bb53bdf30c488a93\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-ide-cli-release-main-20261014\nHEAD 111ec64d79c490ae74969916cddd4239033d6246\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-ide-input-perf-20260821\nHEAD c6af0aaacb5b1c21147bbbb38116ed728db688df\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-location-clean-04e6add4\nHEAD e890c235d5f3cfb120a04bbb742f1464ec51892e\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-location-drain-20260821\nHEAD 5caf1cbc2d165d9e804be5647edc97fb355b83c9\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-mcp-canonical-audit-20260821\nHEAD 142cf7a14d0e601cc66913b5326a80811e646e32\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-mcp-lifecycle-20260821\nHEAD 815be52c968466b1fd036173558f94a873e0ce99\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-p2-3-agent-turn-budget-20260831\nHEAD 0c2ad1803aa2d5dadf3f3ed54e2cbab84a05be81\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-p2-3-formal-round-budget-20260831\nHEAD 88a82321c95d1faaa44161669f64131892fba18c\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-p2-3-formal-round-cap-20260831\nHEAD 41896b6d361be96b5216015ccc0e10307a8100e2\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-p2-3-security-map-20260831\nHEAD 42e5c09d40eed314fb77658e541ceff1518f9e36\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-p2-4-pinned-775d5667\nHEAD 775d5667bc7bdcf8fed3f834d3ba2eda43526128\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-plugin-source-20260821\nHEAD e0d17a52b5b4d9145f88af5ab5f4ef10c093a767\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-rc-default-audit-20260821\nHEAD c1818e1ff107faf0864eea22d898fe8927aff055\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-release-8d08586\nHEAD 8d08586b6152941bbde0a5121bfe589cf9bc24e2\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-release115-docs-ci-worktree\nHEAD 521d7dc491c6e5909f39cbc51a0761abfbbb80c4\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-release128-rc4b\nHEAD 944c6e321ca0e65d03b9b4b2e1fa61720ac522cf\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-release128-rc5\nHEAD 036d2b8be2048c98e56e917c93380f169e6a9d7b\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-roadmap-final-880\nHEAD 87a841db1a904a3baaf2b8e03683a62bc5b3e844\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-sec-delta-20260821\nHEAD bdb10a03b4cb4b9b20d58df6e5d34fcc05d4193b\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-session-runtime-20260821\nHEAD 242a37d30a2b6e7b03b94caccf82af73ca3a083d\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-session-ux-20260821\nHEAD 9f0b7000eb85b86d81616e571b3aad39c60cc0ce\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-session-ux-canonical-evidence-20260821\nHEAD 34bde011b311f08bbac0856298e428f36ba4bb66\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-unified-audit-20260821\nHEAD f5eb9dd5e5264a1034307fe25913281c95b65172\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-unified-locked-profiles-20260821\nHEAD 0793afd4f0fc829ed8984497b0199065697ec293\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-unified-provenance-20260821\nHEAD ba8a600936cc662d0535e04cc597edb7718ff54d\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-volcengine-default-20261018\nHEAD 64eaffd331e88155df17a288e9bc04ca052f4700\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/cc-xsession-20260821\nHEAD fceb2704a32c37789cf6f1916fff056ea4e31eb2\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-frozen-exact-gates\nHEAD 81cd8ca2bc1ed17e0a5a9c812636cf8c80646603\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-ide-release-0.37.55-0.4.91\nHEAD 842a3349389f7e0423724d954cf42c87c7796d4b\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-merge-product-v5.0.3.135-20260817\nHEAD 38ee49e0ebffc57008893031da83a49df6c598e8\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-oidc-diagnostic-107\nHEAD 5985d53f483f7be25be6ce3172a3409fde4315cf\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-p0-ci-fix-7d2e686\nHEAD 48cb5625950089b270457e18d3f89158fbb3b222\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-p1-3-kernel\nHEAD 2a46819fa91af6b783619e2a99064f31e3876b1a\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-pr434-handoff-review\nHEAD ff292775c4a032541fb50147d49dd353967be3b4\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-pr434-registry-review\nHEAD f116ef0f76492e127141f6ad4a514bf719987cf9\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-release-01667\nHEAD 19834a18457c1b763b5a7a2cfada713340e7c273\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-roadmap-fe6\nHEAD 1ef06b52a96a243ae2c340615dc6ef091835f311\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-session-recovery-20260818/tree-all\nHEAD 58cbc7a3163984765ad4a6db8fdd8f57c50af34b\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-session-recovery-20260818/tree-worktree\nHEAD 58cbc7a3163984765ad4a6db8fdd8f57c50af34b\ndetached\n\nworktree C:/Users/longfa/AppData/Local/Temp/chainlesschain-website-refresh-20261028\nHEAD d72d25fd67b7b8dc64bc326fe834ff27cd9fb295\ndetached",
+  "cases": [
+    {
+      "mode": "refuse-normal",
+      "status": "completed",
+      "toolResult": {
+        "error": "Background shell cannot outlive an ephemeral worktree. Run this work in the foreground, or launch it from a persistent checkout with its own lifecycle owner.",
+        "code": "CC_EPHEMERAL_WORKTREE_CONSUMER_UNOWNED",
+        "worktreePath": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-normal\\repo\\.worktrees\\agent-lifetime-regression-7043a15f-ddc",
+        "policy": {
+          "decision": "deny",
+          "via": "ephemeral-worktree-lifetime"
+        },
+        "toolDescriptor": {
+          "name": "shell",
+          "kind": "shell",
+          "category": "shell"
+        },
+        "toolTelemetryRecord": {
+          "kind": "tool-execution",
+          "provider": null,
+          "model": null,
+          "source": "runtime",
+          "strategy": null,
+          "variant": null,
+          "savedTokens": null,
+          "originalTokens": null,
+          "compressedTokens": null,
+          "ratio": null,
+          "timestamp": 1793245731837,
+          "meta": {
+            "args": {
+              "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-normal\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-normal\\repo\\.worktrees\\agent-lifetime-regression-7043a15f-ddc\"",
+              "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-normal",
+              "run_in_background": true
+            },
+            "category": "shell",
+            "tags": [
+              "tool:shell",
+              "runtime:managed",
+              "kind:shell"
+            ]
+          },
+          "toolName": "shell",
+          "category": "shell",
+          "status": "error",
+          "durationMs": 8,
+          "sessionId": null,
+          "metadata": {
+            "args": {
+              "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-normal\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-normal\\repo\\.worktrees\\agent-lifetime-regression-7043a15f-ddc\"",
+              "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-normal",
+              "run_in_background": true
+            }
+          }
+        }
+      },
+      "completion": {
+        "summary": "No-model fixture completed",
+        "artifacts": [],
+        "toolsUsed": [
+          "run_shell"
+        ],
+        "tokenCount": 0,
+        "iterationCount": 0,
+        "worktree": {
+          "branch": "agent/lifetime-regression-7043a15f-ddc",
+          "path": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-normal\\repo\\.worktrees\\agent-lifetime-regression-7043a15f-ddc",
+          "hasChanges": false,
+          "diff": null,
+          "commits": []
+        }
+      },
+      "worktreeExistsAfter": false,
+      "passed": true
+    },
+    {
+      "mode": "refuse-cancel",
+      "status": "failed",
+      "toolResult": {
+        "error": "Background shell cannot outlive an ephemeral worktree. Run this work in the foreground, or launch it from a persistent checkout with its own lifecycle owner.",
+        "code": "CC_EPHEMERAL_WORKTREE_CONSUMER_UNOWNED",
+        "worktreePath": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-cancel\\repo\\.worktrees\\agent-lifetime-regression-f6468413-e2d",
+        "policy": {
+          "decision": "deny",
+          "via": "ephemeral-worktree-lifetime"
+        },
+        "toolDescriptor": {
+          "name": "shell",
+          "kind": "shell",
+          "category": "shell"
+        },
+        "toolTelemetryRecord": {
+          "kind": "tool-execution",
+          "provider": null,
+          "model": null,
+          "source": "runtime",
+          "strategy": null,
+          "variant": null,
+          "savedTokens": null,
+          "originalTokens": null,
+          "compressedTokens": null,
+          "ratio": null,
+          "timestamp": 1793245739201,
+          "meta": {
+            "args": {
+              "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-cancel\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-cancel\\repo\\.worktrees\\agent-lifetime-regression-f6468413-e2d\"",
+              "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-cancel",
+              "run_in_background": true
+            },
+            "category": "shell",
+            "tags": [
+              "tool:shell",
+              "runtime:managed",
+              "kind:shell"
+            ]
+          },
+          "toolName": "shell",
+          "category": "shell",
+          "status": "error",
+          "durationMs": 0,
+          "sessionId": null,
+          "metadata": {
+            "args": {
+              "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-cancel\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-cancel\\repo\\.worktrees\\agent-lifetime-regression-f6468413-e2d\"",
+              "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-cancel",
+              "run_in_background": true
+            }
+          }
+        }
+      },
+      "completion": {
+        "summary": "Worktree isolation failed: This operation was aborted",
+        "artifacts": [],
+        "tokenCount": 0,
+        "toolsUsed": [],
+        "iterationCount": 0
+      },
+      "worktreeExistsAfter": false,
+      "passed": true
+    },
+    {
+      "mode": "foreground",
+      "status": "completed",
+      "toolResult": {
+        "value": {
+          "stdout": "",
+          "exitCode": 0,
+          "shellCommandPolicy": {
+            "allowed": true,
+            "decision": "warn",
+            "reason": "Command is not on the preferred verification allowlist, but it is not explicitly blocked.",
+            "ruleId": "unclassified-command",
+            "normalizedCommand": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground\\repo\\.worktrees\\agent-lifetime-regression-74c0e869-7b9\""
+          },
+          "approval": {
+            "decision": "allow",
+            "via": "fixture",
+            "riskLevel": "medium",
+            "policy": "autopilot"
+          },
+          "toolDescriptor": {
+            "name": "shell",
+            "kind": "shell",
+            "category": "shell"
+          },
+          "toolTelemetryRecord": {
+            "kind": "tool-execution",
+            "provider": null,
+            "model": null,
+            "source": "runtime",
+            "strategy": null,
+            "variant": null,
+            "savedTokens": null,
+            "originalTokens": null,
+            "compressedTokens": null,
+            "ratio": null,
+            "timestamp": 1793245745797,
+            "meta": {
+              "args": {
+                "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground\\repo\\.worktrees\\agent-lifetime-regression-74c0e869-7b9\"",
+                "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground",
+                "run_in_background": false
+              },
+              "category": "shell",
+              "tags": [
+                "tool:shell",
+                "runtime:managed",
+                "kind:shell"
+              ]
+            },
+            "toolName": "shell",
+            "category": "shell",
+            "status": "completed",
+            "durationMs": 1551,
+            "sessionId": null,
+            "metadata": {
+              "args": {
+                "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground\\repo\\.worktrees\\agent-lifetime-regression-74c0e869-7b9\"",
+                "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground",
+                "run_in_background": false
+              }
+            }
+          }
+        }
+      },
+      "ready": {
+        "pid": 11848,
+        "ppid": 17796,
+        "worktree": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground\\repo\\.worktrees\\agent-lifetime-regression-74c0e869-7b9",
+        "currentCwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground",
+        "before": "synthetic fixture, still required by background consumer\n",
+        "mode": "external-cwd"
+      },
+      "completion": {
+        "summary": "No-model fixture completed",
+        "artifacts": [],
+        "toolsUsed": [
+          "run_shell"
+        ],
+        "tokenCount": 0,
+        "iterationCount": 0,
+        "worktree": {
+          "branch": "agent/lifetime-regression-74c0e869-7b9",
+          "path": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground\\repo\\.worktrees\\agent-lifetime-regression-74c0e869-7b9",
+          "hasChanges": false,
+          "diff": null,
+          "commits": []
+        }
+      },
+      "worktreeExistsAfter": false,
+      "passed": true
+    },
+    {
+      "mode": "foreground-cancel",
+      "status": "failed",
+      "toolResult": {
+        "value": {
+          "stdout": "",
+          "exitCode": 0,
+          "shellCommandPolicy": {
+            "allowed": true,
+            "decision": "warn",
+            "reason": "Command is not on the preferred verification allowlist, but it is not explicitly blocked.",
+            "ruleId": "unclassified-command",
+            "normalizedCommand": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel\\repo\\.worktrees\\agent-lifetime-regression-e6d6407e-41d\""
+          },
+          "approval": {
+            "decision": "allow",
+            "via": "fixture",
+            "riskLevel": "medium",
+            "policy": "autopilot"
+          },
+          "toolDescriptor": {
+            "name": "shell",
+            "kind": "shell",
+            "category": "shell"
+          },
+          "toolTelemetryRecord": {
+            "kind": "tool-execution",
+            "provider": null,
+            "model": null,
+            "source": "runtime",
+            "strategy": null,
+            "variant": null,
+            "savedTokens": null,
+            "originalTokens": null,
+            "compressedTokens": null,
+            "ratio": null,
+            "timestamp": 1793245752669,
+            "meta": {
+              "args": {
+                "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel\\repo\\.worktrees\\agent-lifetime-regression-e6d6407e-41d\"",
+                "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel",
+                "run_in_background": false
+              },
+              "category": "shell",
+              "tags": [
+                "tool:shell",
+                "runtime:managed",
+                "kind:shell"
+              ]
+            },
+            "toolName": "shell",
+            "category": "shell",
+            "status": "completed",
+            "durationMs": 1672,
+            "sessionId": null,
+            "metadata": {
+              "args": {
+                "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel\\repo\\.worktrees\\agent-lifetime-regression-e6d6407e-41d\"",
+                "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel",
+                "run_in_background": false
+              }
+            }
+          }
+        }
+      },
+      "ready": {
+        "pid": 6720,
+        "ppid": 8416,
+        "worktree": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel\\repo\\.worktrees\\agent-lifetime-regression-e6d6407e-41d",
+        "currentCwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel",
+        "before": "synthetic fixture, still required by background consumer\n",
+        "mode": "external-cwd"
+      },
+      "atAbort": {
+        "runSettled": false,
+        "childAlive": true,
+        "worktreeExists": true,
+        "fileExists": true
+      },
+      "completion": {
+        "summary": "Worktree isolation failed: This operation was aborted",
+        "artifacts": [],
+        "tokenCount": 0,
+        "toolsUsed": [],
+        "iterationCount": 0
+      },
+      "worktreeExistsAfter": false,
+      "passed": true
+    },
+    {
+      "mode": "ordinary-background",
+      "status": "completed",
+      "toolResult": {
+        "background": true,
+        "task_id": "bg_1",
+        "status": "running",
+        "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\\repo\"",
+        "hint": "Poll output and completion with the check_shell tool using this task_id. Kill long-lived servers with check_shell { task_id, kill: true } when done.",
+        "shellCommandPolicy": {
+          "allowed": true,
+          "decision": "warn",
+          "reason": "Command is not on the preferred verification allowlist, but it is not explicitly blocked.",
+          "ruleId": "unclassified-command",
+          "normalizedCommand": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\\repo\""
+        },
+        "approval": {
+          "decision": "allow",
+          "via": "fixture",
+          "riskLevel": "medium",
+          "policy": "autopilot"
+        },
+        "toolDescriptor": {
+          "name": "shell",
+          "kind": "shell",
+          "category": "shell"
+        },
+        "toolTelemetryRecord": {
+          "kind": "tool-execution",
+          "provider": null,
+          "model": null,
+          "source": "runtime",
+          "strategy": null,
+          "variant": null,
+          "savedTokens": null,
+          "originalTokens": null,
+          "compressedTokens": null,
+          "ratio": null,
+          "timestamp": 1793245758146,
+          "meta": {
+            "args": {
+              "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\\repo\"",
+              "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background",
+              "run_in_background": true
+            },
+            "category": "shell",
+            "tags": [
+              "tool:shell",
+              "runtime:managed",
+              "kind:shell"
+            ]
+          },
+          "toolName": "shell",
+          "category": "shell",
+          "status": "completed",
+          "durationMs": 115,
+          "sessionId": null,
+          "metadata": {
+            "args": {
+              "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\\repo\"",
+              "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background",
+              "run_in_background": true
+            }
+          }
+        }
+      },
+      "ready": {
+        "pid": 19848,
+        "ppid": 16008,
+        "worktree": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\\repo",
+        "currentCwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background",
+        "before": "synthetic fixture, still required by background consumer\n",
+        "mode": "external-cwd"
+      },
+      "completion": {
+        "summary": "No-model fixture completed",
+        "artifacts": [],
+        "toolsUsed": [
+          "run_shell"
+        ],
+        "tokenCount": 0,
+        "iterationCount": 0
+      },
+      "worktreeExistsAfter": true,
+      "passed": true
+    }
+  ]
+}

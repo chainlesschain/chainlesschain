@@ -1,0 +1,959 @@
+{
+  "schema": "chainlesschain.worktree-consumer-lifetime-review/v1",
+  "observedAt": "2026-10-29T04:06:09.195Z",
+  "sourceHeadBeforeCommit": "7af5f23646",
+  "sourceSha256": {
+    "packages/cli/src/harness/worktree-isolator.js": "ad13e1f333711049637092f810e7bffd004304c5de66a4c337c42c341151214a",
+    "packages/cli/src/lib/ephemeral-worktree-scope.js": "e83a645eab3459754a75a3a08466f81d480aab4c70c53c299d27e6876014901b",
+    "packages/cli/src/runtime/agent-core.js": "849eaa9bfaa421afc3532d8d03561559efc272e777f2b43c6392684c0fddb124",
+    "packages/cli/__tests__/unit/ephemeral-worktree-tools.test.js": "8262cfe87f87bc15e2df20d98a8247355aa2e9641f0f7c3ceaad43b26bc520c5",
+    "packages/cli/__tests__/integration/ephemeral-worktree-lifecycle.test.js": "b110af8d6f07ebe8472d0cd80c47f919c6d8f52a427bc46dfb292d6fa8cb0dc3",
+    "packages/cli/__tests__/fixtures/ephemeral-worktree-lifecycle.mjs": "81b0cf366f6fdefea4e55941576f908a9bba18409b225dd7cd1e58c0a72b0c3c",
+    "packages/cli/__tests__/fixtures/ephemeral-worktree-consumer.mjs": "5efca28255c4da5872670856bb82d1c115065058c1028267d2b17ae6da7ca69c"
+  },
+  "original": {
+    "source": "73bf0fc4f5de0530b542e398b2b6e5e40b8c097d",
+    "platform": "win32",
+    "node": "v22.22.2",
+    "externalCwd": {
+      "mode": "external-cwd",
+      "ready": {
+        "pid": 12612,
+        "ppid": 17792,
+        "worktree": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\\synthetic-repo\\.worktrees\\agent-lifetime-probe-4d5ead75-a04",
+        "currentCwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd",
+        "before": "synthetic fixture, still required by background consumer\n",
+        "mode": "external-cwd"
+      },
+      "launch": {
+        "background": true,
+        "task_id": "bg_3",
+        "status": "running",
+        "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\\synthetic-repo\\.worktrees\\agent-lifetime-probe-4d5ead75-a04\"",
+        "hint": "Poll output and completion with the check_shell tool using this task_id. Kill long-lived servers with check_shell { task_id, kill: true } when done.",
+        "shellCommandPolicy": {
+          "allowed": true,
+          "decision": "warn",
+          "reason": "Command is not on the preferred verification allowlist, but it is not explicitly blocked.",
+          "ruleId": "unclassified-command",
+          "normalizedCommand": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\\synthetic-repo\\.worktrees\\agent-lifetime-probe-4d5ead75-a04\""
+        },
+        "approval": {
+          "decision": "allow",
+          "via": "isolated-probe-policy",
+          "riskLevel": "medium",
+          "policy": "autopilot"
+        },
+        "toolDescriptor": {
+          "name": "shell",
+          "kind": "shell",
+          "category": "shell"
+        },
+        "toolTelemetryRecord": {
+          "kind": "tool-execution",
+          "provider": null,
+          "model": null,
+          "source": "runtime",
+          "strategy": null,
+          "variant": null,
+          "savedTokens": null,
+          "originalTokens": null,
+          "compressedTokens": null,
+          "ratio": null,
+          "timestamp": 1793245224355,
+          "meta": {
+            "args": {
+              "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\\synthetic-repo\\.worktrees\\agent-lifetime-probe-4d5ead75-a04\"",
+              "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd",
+              "run_in_background": true
+            },
+            "category": "shell",
+            "tags": [
+              "tool:shell",
+              "runtime:managed",
+              "kind:shell"
+            ]
+          },
+          "toolName": "shell",
+          "category": "shell",
+          "status": "completed",
+          "durationMs": 103,
+          "sessionId": null,
+          "metadata": {
+            "args": {
+              "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\\synthetic-repo\\.worktrees\\agent-lifetime-probe-4d5ead75-a04\"",
+              "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd",
+              "run_in_background": true
+            }
+          }
+        }
+      },
+      "atCompletion": {
+        "subAgentStatus": "completed",
+        "backgroundConsumerAlive": true,
+        "registry": {
+          "id": "bg_3",
+          "status": "running",
+          "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\\synthetic-repo\\.worktrees\\agent-lifetime-probe-4d5ead75-a04\"",
+          "pid": 23344,
+          "stoppable": true,
+          "exitCode": null,
+          "startedAt": "2026-10-29T03:40:24.287Z",
+          "endedAt": null
+        },
+        "worktreeExists": false,
+        "requiredFileExists": false,
+        "worktreeRegistry": "worktree C:/code/chainlesschain/.work/background-worktree-20261029/run-X8hyfz/external-cwd/synthetic-repo\nHEAD d0e2eb91b28d1cb4b4faba2c993e6de0b95b4f90\nbranch refs/heads/main",
+        "completion": {
+          "summary": "Sub-agent foreground work completed; background consumer remains pending",
+          "artifacts": [],
+          "toolsUsed": [
+            "run_shell"
+          ],
+          "iterationCount": 0,
+          "tokenCount": 0,
+          "worktree": {
+            "branch": "agent/lifetime-probe-4d5ead75-a04",
+            "path": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\\synthetic-repo\\.worktrees\\agent-lifetime-probe-4d5ead75-a04",
+            "hasChanges": false,
+            "diff": null,
+            "commits": []
+          }
+        }
+      },
+      "afterRelease": {
+        "pid": 12612,
+        "worktree": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\\synthetic-repo\\.worktrees\\agent-lifetime-probe-4d5ead75-a04",
+        "target": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\\synthetic-repo\\.worktrees\\agent-lifetime-probe-4d5ead75-a04\\README.md",
+        "result": {
+          "ok": false,
+          "code": "ENOENT",
+          "message": "ENOENT: no such file or directory, open 'C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\\synthetic-repo\\.worktrees\\agent-lifetime-probe-4d5ead75-a04\\README.md'"
+        }
+      },
+      "terminal": {
+        "id": "bg_3",
+        "status": "exited",
+        "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\\synthetic-repo\\.worktrees\\agent-lifetime-probe-4d5ead75-a04\"",
+        "pid": 23344,
+        "stoppable": false,
+        "exitCode": 0,
+        "startedAt": "2026-10-29T03:40:24.287Z",
+        "endedAt": "2026-10-29T03:40:30.049Z"
+      }
+    },
+    "removalAttempts": [
+      {
+        "path": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\hold-cwd\\synthetic-repo\\.worktrees\\agent-lifetime-probe-782a25c4-ccf",
+        "options": {
+          "recursive": true,
+          "force": true,
+          "maxRetries": 2,
+          "retryDelay": 100
+        },
+        "at": "2026-10-29T03:40:08.988Z",
+        "ok": false,
+        "error": {
+          "code": "EBUSY",
+          "message": "EBUSY: resource busy or locked, rmdir 'C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\hold-cwd\\synthetic-repo\\.worktrees\\agent-lifetime-probe-782a25c4-ccf'"
+        }
+      },
+      {
+        "path": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\release-cwd\\synthetic-repo\\.worktrees\\agent-lifetime-probe-21dab51e-793",
+        "options": {
+          "recursive": true,
+          "force": true,
+          "maxRetries": 2,
+          "retryDelay": 100
+        },
+        "at": "2026-10-29T03:40:19.760Z",
+        "ok": false,
+        "error": {
+          "code": "EBUSY",
+          "message": "EBUSY: resource busy or locked, rmdir 'C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\release-cwd\\synthetic-repo\\.worktrees\\agent-lifetime-probe-21dab51e-793'"
+        }
+      },
+      {
+        "path": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\\synthetic-repo\\.worktrees\\agent-lifetime-probe-4d5ead75-a04",
+        "options": {
+          "recursive": true,
+          "force": true,
+          "maxRetries": 2,
+          "retryDelay": 100
+        },
+        "at": "2026-10-29T03:40:28.366Z",
+        "ok": true
+      }
+    ],
+    "sourcesStable": true,
+    "mainWorktreePathsUnchanged": true,
+    "mainRawRegistryByteIdentical": false
+  },
+  "fixedRealProcesses": {
+    "node": "v22.22.2",
+    "cases": [
+      {
+        "mode": "refuse-normal",
+        "status": "completed",
+        "toolResult": {
+          "error": "Background shell cannot outlive an ephemeral worktree. Run this work in the foreground, or launch it from a persistent checkout with its own lifecycle owner.",
+          "code": "CC_EPHEMERAL_WORKTREE_CONSUMER_UNOWNED",
+          "worktreePath": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-normal\\repo\\.worktrees\\agent-lifetime-regression-7043a15f-ddc",
+          "policy": {
+            "decision": "deny",
+            "via": "ephemeral-worktree-lifetime"
+          },
+          "toolDescriptor": {
+            "name": "shell",
+            "kind": "shell",
+            "category": "shell"
+          },
+          "toolTelemetryRecord": {
+            "kind": "tool-execution",
+            "provider": null,
+            "model": null,
+            "source": "runtime",
+            "strategy": null,
+            "variant": null,
+            "savedTokens": null,
+            "originalTokens": null,
+            "compressedTokens": null,
+            "ratio": null,
+            "timestamp": 1793245731837,
+            "meta": {
+              "args": {
+                "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-normal\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-normal\\repo\\.worktrees\\agent-lifetime-regression-7043a15f-ddc\"",
+                "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-normal",
+                "run_in_background": true
+              },
+              "category": "shell",
+              "tags": [
+                "tool:shell",
+                "runtime:managed",
+                "kind:shell"
+              ]
+            },
+            "toolName": "shell",
+            "category": "shell",
+            "status": "error",
+            "durationMs": 8,
+            "sessionId": null,
+            "metadata": {
+              "args": {
+                "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-normal\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-normal\\repo\\.worktrees\\agent-lifetime-regression-7043a15f-ddc\"",
+                "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-normal",
+                "run_in_background": true
+              }
+            }
+          }
+        },
+        "completion": {
+          "summary": "No-model fixture completed",
+          "artifacts": [],
+          "toolsUsed": [
+            "run_shell"
+          ],
+          "tokenCount": 0,
+          "iterationCount": 0,
+          "worktree": {
+            "branch": "agent/lifetime-regression-7043a15f-ddc",
+            "path": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-normal\\repo\\.worktrees\\agent-lifetime-regression-7043a15f-ddc",
+            "hasChanges": false,
+            "diff": null,
+            "commits": []
+          }
+        },
+        "worktreeExistsAfter": false,
+        "passed": true
+      },
+      {
+        "mode": "refuse-cancel",
+        "status": "failed",
+        "toolResult": {
+          "error": "Background shell cannot outlive an ephemeral worktree. Run this work in the foreground, or launch it from a persistent checkout with its own lifecycle owner.",
+          "code": "CC_EPHEMERAL_WORKTREE_CONSUMER_UNOWNED",
+          "worktreePath": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-cancel\\repo\\.worktrees\\agent-lifetime-regression-f6468413-e2d",
+          "policy": {
+            "decision": "deny",
+            "via": "ephemeral-worktree-lifetime"
+          },
+          "toolDescriptor": {
+            "name": "shell",
+            "kind": "shell",
+            "category": "shell"
+          },
+          "toolTelemetryRecord": {
+            "kind": "tool-execution",
+            "provider": null,
+            "model": null,
+            "source": "runtime",
+            "strategy": null,
+            "variant": null,
+            "savedTokens": null,
+            "originalTokens": null,
+            "compressedTokens": null,
+            "ratio": null,
+            "timestamp": 1793245739201,
+            "meta": {
+              "args": {
+                "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-cancel\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-cancel\\repo\\.worktrees\\agent-lifetime-regression-f6468413-e2d\"",
+                "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-cancel",
+                "run_in_background": true
+              },
+              "category": "shell",
+              "tags": [
+                "tool:shell",
+                "runtime:managed",
+                "kind:shell"
+              ]
+            },
+            "toolName": "shell",
+            "category": "shell",
+            "status": "error",
+            "durationMs": 0,
+            "sessionId": null,
+            "metadata": {
+              "args": {
+                "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-cancel\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-cancel\\repo\\.worktrees\\agent-lifetime-regression-f6468413-e2d\"",
+                "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\refuse-cancel",
+                "run_in_background": true
+              }
+            }
+          }
+        },
+        "completion": {
+          "summary": "Worktree isolation failed: This operation was aborted",
+          "artifacts": [],
+          "tokenCount": 0,
+          "toolsUsed": [],
+          "iterationCount": 0
+        },
+        "worktreeExistsAfter": false,
+        "passed": true
+      },
+      {
+        "mode": "foreground",
+        "status": "completed",
+        "toolResult": {
+          "value": {
+            "stdout": "",
+            "exitCode": 0,
+            "shellCommandPolicy": {
+              "allowed": true,
+              "decision": "warn",
+              "reason": "Command is not on the preferred verification allowlist, but it is not explicitly blocked.",
+              "ruleId": "unclassified-command",
+              "normalizedCommand": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground\\repo\\.worktrees\\agent-lifetime-regression-74c0e869-7b9\""
+            },
+            "approval": {
+              "decision": "allow",
+              "via": "fixture",
+              "riskLevel": "medium",
+              "policy": "autopilot"
+            },
+            "toolDescriptor": {
+              "name": "shell",
+              "kind": "shell",
+              "category": "shell"
+            },
+            "toolTelemetryRecord": {
+              "kind": "tool-execution",
+              "provider": null,
+              "model": null,
+              "source": "runtime",
+              "strategy": null,
+              "variant": null,
+              "savedTokens": null,
+              "originalTokens": null,
+              "compressedTokens": null,
+              "ratio": null,
+              "timestamp": 1793245745797,
+              "meta": {
+                "args": {
+                  "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground\\repo\\.worktrees\\agent-lifetime-regression-74c0e869-7b9\"",
+                  "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground",
+                  "run_in_background": false
+                },
+                "category": "shell",
+                "tags": [
+                  "tool:shell",
+                  "runtime:managed",
+                  "kind:shell"
+                ]
+              },
+              "toolName": "shell",
+              "category": "shell",
+              "status": "completed",
+              "durationMs": 1551,
+              "sessionId": null,
+              "metadata": {
+                "args": {
+                  "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground\\repo\\.worktrees\\agent-lifetime-regression-74c0e869-7b9\"",
+                  "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground",
+                  "run_in_background": false
+                }
+              }
+            }
+          }
+        },
+        "ready": {
+          "pid": 11848,
+          "ppid": 17796,
+          "worktree": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground\\repo\\.worktrees\\agent-lifetime-regression-74c0e869-7b9",
+          "currentCwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground",
+          "before": "synthetic fixture, still required by background consumer\n",
+          "mode": "external-cwd"
+        },
+        "completion": {
+          "summary": "No-model fixture completed",
+          "artifacts": [],
+          "toolsUsed": [
+            "run_shell"
+          ],
+          "tokenCount": 0,
+          "iterationCount": 0,
+          "worktree": {
+            "branch": "agent/lifetime-regression-74c0e869-7b9",
+            "path": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground\\repo\\.worktrees\\agent-lifetime-regression-74c0e869-7b9",
+            "hasChanges": false,
+            "diff": null,
+            "commits": []
+          }
+        },
+        "worktreeExistsAfter": false,
+        "passed": true
+      },
+      {
+        "mode": "foreground-cancel",
+        "status": "failed",
+        "toolResult": {
+          "value": {
+            "stdout": "",
+            "exitCode": 0,
+            "shellCommandPolicy": {
+              "allowed": true,
+              "decision": "warn",
+              "reason": "Command is not on the preferred verification allowlist, but it is not explicitly blocked.",
+              "ruleId": "unclassified-command",
+              "normalizedCommand": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel\\repo\\.worktrees\\agent-lifetime-regression-e6d6407e-41d\""
+            },
+            "approval": {
+              "decision": "allow",
+              "via": "fixture",
+              "riskLevel": "medium",
+              "policy": "autopilot"
+            },
+            "toolDescriptor": {
+              "name": "shell",
+              "kind": "shell",
+              "category": "shell"
+            },
+            "toolTelemetryRecord": {
+              "kind": "tool-execution",
+              "provider": null,
+              "model": null,
+              "source": "runtime",
+              "strategy": null,
+              "variant": null,
+              "savedTokens": null,
+              "originalTokens": null,
+              "compressedTokens": null,
+              "ratio": null,
+              "timestamp": 1793245752669,
+              "meta": {
+                "args": {
+                  "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel\\repo\\.worktrees\\agent-lifetime-regression-e6d6407e-41d\"",
+                  "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel",
+                  "run_in_background": false
+                },
+                "category": "shell",
+                "tags": [
+                  "tool:shell",
+                  "runtime:managed",
+                  "kind:shell"
+                ]
+              },
+              "toolName": "shell",
+              "category": "shell",
+              "status": "completed",
+              "durationMs": 1672,
+              "sessionId": null,
+              "metadata": {
+                "args": {
+                  "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel\\repo\\.worktrees\\agent-lifetime-regression-e6d6407e-41d\"",
+                  "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel",
+                  "run_in_background": false
+                }
+              }
+            }
+          }
+        },
+        "ready": {
+          "pid": 6720,
+          "ppid": 8416,
+          "worktree": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel\\repo\\.worktrees\\agent-lifetime-regression-e6d6407e-41d",
+          "currentCwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\foreground-cancel",
+          "before": "synthetic fixture, still required by background consumer\n",
+          "mode": "external-cwd"
+        },
+        "atAbort": {
+          "runSettled": false,
+          "childAlive": true,
+          "worktreeExists": true,
+          "fileExists": true
+        },
+        "completion": {
+          "summary": "Worktree isolation failed: This operation was aborted",
+          "artifacts": [],
+          "tokenCount": 0,
+          "toolsUsed": [],
+          "iterationCount": 0
+        },
+        "worktreeExistsAfter": false,
+        "passed": true
+      },
+      {
+        "mode": "ordinary-background",
+        "status": "completed",
+        "toolResult": {
+          "background": true,
+          "task_id": "bg_1",
+          "status": "running",
+          "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\\repo\"",
+          "hint": "Poll output and completion with the check_shell tool using this task_id. Kill long-lived servers with check_shell { task_id, kill: true } when done.",
+          "shellCommandPolicy": {
+            "allowed": true,
+            "decision": "warn",
+            "reason": "Command is not on the preferred verification allowlist, but it is not explicitly blocked.",
+            "ruleId": "unclassified-command",
+            "normalizedCommand": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\\repo\""
+          },
+          "approval": {
+            "decision": "allow",
+            "via": "fixture",
+            "riskLevel": "medium",
+            "policy": "autopilot"
+          },
+          "toolDescriptor": {
+            "name": "shell",
+            "kind": "shell",
+            "category": "shell"
+          },
+          "toolTelemetryRecord": {
+            "kind": "tool-execution",
+            "provider": null,
+            "model": null,
+            "source": "runtime",
+            "strategy": null,
+            "variant": null,
+            "savedTokens": null,
+            "originalTokens": null,
+            "compressedTokens": null,
+            "ratio": null,
+            "timestamp": 1793245758146,
+            "meta": {
+              "args": {
+                "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\\repo\"",
+                "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background",
+                "run_in_background": true
+              },
+              "category": "shell",
+              "tags": [
+                "tool:shell",
+                "runtime:managed",
+                "kind:shell"
+              ]
+            },
+            "toolName": "shell",
+            "category": "shell",
+            "status": "completed",
+            "durationMs": 115,
+            "sessionId": null,
+            "metadata": {
+              "args": {
+                "command": "\"C:\\nvm4w\\nodejs\\node.exe\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\consumer.mjs\" \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\" external-cwd \"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\\repo\"",
+                "cwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background",
+                "run_in_background": true
+              }
+            }
+          }
+        },
+        "ready": {
+          "pid": 19848,
+          "ppid": 16008,
+          "worktree": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background\\repo",
+          "currentCwd": "C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\ordinary-background",
+          "before": "synthetic fixture, still required by background consumer\n",
+          "mode": "external-cwd"
+        },
+        "completion": {
+          "summary": "No-model fixture completed",
+          "artifacts": [],
+          "toolsUsed": [
+            "run_shell"
+          ],
+          "tokenCount": 0,
+          "iterationCount": 0
+        },
+        "worktreeExistsAfter": true,
+        "passed": true
+      }
+    ],
+    "sourcesStable": true,
+    "mainWorktreePathsUnchanged": true
+  },
+  "tests": [
+    {
+      "label": "worktree-retained-smoke",
+      "passed": 12,
+      "failed": 1,
+      "skipped": 0,
+      "files": 2,
+      "exitCode": 1,
+      "sourcesStable": true,
+      "sourceSha256": {
+        "packages/cli/src/harness/worktree-isolator.js": "ad13e1f333711049637092f810e7bffd004304c5de66a4c337c42c341151214a",
+        "packages/cli/src/lib/ephemeral-worktree-scope.js": "e83a645eab3459754a75a3a08466f81d480aab4c70c53c299d27e6876014901b",
+        "packages/cli/src/lib/sub-agent-context.js": "fb9802f8b8019d33ac5b5af046ab9d6f9cd934855b26ecd93947903d229bad72",
+        "packages/cli/__tests__/fixtures/ephemeral-worktree-lifecycle.mjs": "81b0cf366f6fdefea4e55941576f908a9bba18409b225dd7cd1e58c0a72b0c3c",
+        "packages/cli/__tests__/fixtures/ephemeral-worktree-consumer.mjs": "5efca28255c4da5872670856bb82d1c115065058c1028267d2b17ae6da7ca69c",
+        "packages/context-memory-kernel/lib/runtime.js": "8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+        "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+        "packages/context-memory-kernel/lib/memory-reducer.js": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+        "packages/context-memory-kernel/lib/compaction.js": "c20037ed2d90d6aa62e8d642ffc65f48b27282b048896a40d840ff0b93c59a98",
+        "packages/cli/src/lib/context-memory-kernel/provider-context.js": "ab74480036676afc883aa1027653c16d1bf94c09eaa5355652940ea7c158a9a2",
+        "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+        "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+        "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+        "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+        "packages/cli/src/lib/context-memory-kernel/message-adapter.js": "d4448c48d109ea851577a847cbbd4c29058b2e6fc163be9ee589399399cbba41",
+        "packages/cli/src/lib/context-memory-kernel/live-compaction.js": "cbf7077bd3fc1b022333d5663604cdd4f1fbd223f9290b3a26e61b53470395f1",
+        "packages/cli/src/lib/context-memory-kernel/jsonl-session-context-port.js": "1b5652e6154a2bba1ec792b0319b0918ed19345464e9f5da06c981c784419db3",
+        "packages/cli/src/lib/abort-utils.js": "7f1c1703150e71c46ad80b3f6688edc1a489fc389bca462a65091bef11dd692b",
+        "packages/cli/src/lib/secure-file-identity.js": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+        "packages/cli/test-node/fixtures/context-memory-compaction-restart-child.mjs": "4f34590794a3ab30f1052f37c79d21328a560c02b71f90ebb0130999ccfa2e57",
+        "packages/cli/src/runtime/agent-core.js": "849eaa9bfaa421afc3532d8d03561559efc272e777f2b43c6392684c0fddb124",
+        "packages/cli/src/runtime/headless-runner.js": "9e871811fd02aa7c05e7a6ed4bab9704c06d3f74a39f600bb874a3e62f3c0bac",
+        "packages/cli/src/runtime/headless-stream.js": "39b8e7914a7b942dfd3c1688d07db4ba60efff42f8b1f0d4f491894f455797e3",
+        "packages/cli/src/harness/prompt-compressor.js": "4706b1b493e87289084115c247542ed8a8cd07164eef5362350dfc7c2e65c7b5",
+        "packages/cli/src/harness/provider-backed-compaction.js": "c17ac6556491e6f5959c44cc866543715ea445600979d0350c8d5367cf15e45f",
+        "packages/cli/src/harness/jsonl-session-store.js": "f0f3322c126f2249e47dcc0afced010394f4c30a50e50a94970e926b17ee5146",
+        "packages/cli/__tests__/unit/ephemeral-worktree-tools.test.js": "1e2c22ba610740c26e903d729f878a9fc9df97475f80cdd7962b3b2c9b3a2105",
+        "packages/cli/__tests__/integration/ephemeral-worktree-lifecycle.test.js": "b110af8d6f07ebe8472d0cd80c47f919c6d8f52a427bc46dfb292d6fa8cb0dc3"
+      }
+    },
+    {
+      "label": "worktree-regression",
+      "passed": 148,
+      "failed": 0,
+      "skipped": 0,
+      "files": 7,
+      "exitCode": 0,
+      "sourcesStable": true,
+      "sourceSha256": {
+        "packages/cli/src/harness/worktree-isolator.js": "ad13e1f333711049637092f810e7bffd004304c5de66a4c337c42c341151214a",
+        "packages/cli/src/lib/ephemeral-worktree-scope.js": "e83a645eab3459754a75a3a08466f81d480aab4c70c53c299d27e6876014901b",
+        "packages/cli/src/lib/sub-agent-context.js": "fb9802f8b8019d33ac5b5af046ab9d6f9cd934855b26ecd93947903d229bad72",
+        "packages/cli/__tests__/fixtures/ephemeral-worktree-lifecycle.mjs": "81b0cf366f6fdefea4e55941576f908a9bba18409b225dd7cd1e58c0a72b0c3c",
+        "packages/cli/__tests__/fixtures/ephemeral-worktree-consumer.mjs": "5efca28255c4da5872670856bb82d1c115065058c1028267d2b17ae6da7ca69c",
+        "packages/context-memory-kernel/lib/runtime.js": "8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+        "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+        "packages/context-memory-kernel/lib/memory-reducer.js": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+        "packages/context-memory-kernel/lib/compaction.js": "c20037ed2d90d6aa62e8d642ffc65f48b27282b048896a40d840ff0b93c59a98",
+        "packages/cli/src/lib/context-memory-kernel/provider-context.js": "ab74480036676afc883aa1027653c16d1bf94c09eaa5355652940ea7c158a9a2",
+        "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+        "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+        "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+        "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+        "packages/cli/src/lib/context-memory-kernel/message-adapter.js": "d4448c48d109ea851577a847cbbd4c29058b2e6fc163be9ee589399399cbba41",
+        "packages/cli/src/lib/context-memory-kernel/live-compaction.js": "cbf7077bd3fc1b022333d5663604cdd4f1fbd223f9290b3a26e61b53470395f1",
+        "packages/cli/src/lib/context-memory-kernel/jsonl-session-context-port.js": "1b5652e6154a2bba1ec792b0319b0918ed19345464e9f5da06c981c784419db3",
+        "packages/cli/src/lib/abort-utils.js": "7f1c1703150e71c46ad80b3f6688edc1a489fc389bca462a65091bef11dd692b",
+        "packages/cli/src/lib/secure-file-identity.js": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+        "packages/cli/test-node/fixtures/context-memory-compaction-restart-child.mjs": "4f34590794a3ab30f1052f37c79d21328a560c02b71f90ebb0130999ccfa2e57",
+        "packages/cli/src/runtime/agent-core.js": "849eaa9bfaa421afc3532d8d03561559efc272e777f2b43c6392684c0fddb124",
+        "packages/cli/src/runtime/headless-runner.js": "9e871811fd02aa7c05e7a6ed4bab9704c06d3f74a39f600bb874a3e62f3c0bac",
+        "packages/cli/src/runtime/headless-stream.js": "39b8e7914a7b942dfd3c1688d07db4ba60efff42f8b1f0d4f491894f455797e3",
+        "packages/cli/src/harness/prompt-compressor.js": "4706b1b493e87289084115c247542ed8a8cd07164eef5362350dfc7c2e65c7b5",
+        "packages/cli/src/harness/provider-backed-compaction.js": "c17ac6556491e6f5959c44cc866543715ea445600979d0350c8d5367cf15e45f",
+        "packages/cli/src/harness/jsonl-session-store.js": "f0f3322c126f2249e47dcc0afced010394f4c30a50e50a94970e926b17ee5146",
+        "packages/cli/__tests__/unit/ephemeral-worktree-tools.test.js": "8262cfe87f87bc15e2df20d98a8247355aa2e9641f0f7c3ceaad43b26bc520c5",
+        "packages/cli/__tests__/integration/ephemeral-worktree-lifecycle.test.js": "b110af8d6f07ebe8472d0cd80c47f919c6d8f52a427bc46dfb292d6fa8cb0dc3",
+        "packages/cli/__tests__/unit/worktree-isolator.test.js": "30352398551a06f2b6dcd55917aba956e75fa85c4426cf6917e54df6c501b95b",
+        "packages/cli/__tests__/unit/worktree-cleanup-safety.test.js": "59faaab75ba47563f16bd3a2e4010f9e17e3f0c9f19e49692ff6f113e8355a6c",
+        "packages/cli/__tests__/unit/sub-agent-cancellation.test.js": "eb8ec10d07e41344fa1b89dfba111aa01b749a87942d692b0ed61a301478519a",
+        "packages/cli/__tests__/unit/sub-agent-context.test.js": "1a697e9b919b68979306ba33c9fedc5bfcfa6968a4a89b7e95863c46476303a3",
+        "packages/cli/__tests__/unit/agent-background-subagent.test.js": "c93996df2b0cf47d4a1b9e4bffe16d994775b5ebfa3822e46d005a7c6216e248"
+      }
+    },
+    {
+      "label": "worktree-native-2212",
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0,
+      "files": 2,
+      "exitCode": 0,
+      "sourcesStable": true,
+      "sourceSha256": {
+        "packages/cli/src/harness/worktree-isolator.js": "ad13e1f333711049637092f810e7bffd004304c5de66a4c337c42c341151214a",
+        "packages/cli/src/lib/ephemeral-worktree-scope.js": "e83a645eab3459754a75a3a08466f81d480aab4c70c53c299d27e6876014901b",
+        "packages/cli/src/lib/sub-agent-context.js": "fb9802f8b8019d33ac5b5af046ab9d6f9cd934855b26ecd93947903d229bad72",
+        "packages/cli/__tests__/fixtures/ephemeral-worktree-lifecycle.mjs": "81b0cf366f6fdefea4e55941576f908a9bba18409b225dd7cd1e58c0a72b0c3c",
+        "packages/cli/__tests__/fixtures/ephemeral-worktree-consumer.mjs": "5efca28255c4da5872670856bb82d1c115065058c1028267d2b17ae6da7ca69c",
+        "packages/context-memory-kernel/lib/runtime.js": "8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+        "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+        "packages/context-memory-kernel/lib/memory-reducer.js": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+        "packages/context-memory-kernel/lib/compaction.js": "c20037ed2d90d6aa62e8d642ffc65f48b27282b048896a40d840ff0b93c59a98",
+        "packages/cli/src/lib/context-memory-kernel/provider-context.js": "ab74480036676afc883aa1027653c16d1bf94c09eaa5355652940ea7c158a9a2",
+        "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+        "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+        "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+        "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+        "packages/cli/src/lib/context-memory-kernel/message-adapter.js": "d4448c48d109ea851577a847cbbd4c29058b2e6fc163be9ee589399399cbba41",
+        "packages/cli/src/lib/context-memory-kernel/live-compaction.js": "cbf7077bd3fc1b022333d5663604cdd4f1fbd223f9290b3a26e61b53470395f1",
+        "packages/cli/src/lib/context-memory-kernel/jsonl-session-context-port.js": "1b5652e6154a2bba1ec792b0319b0918ed19345464e9f5da06c981c784419db3",
+        "packages/cli/src/lib/abort-utils.js": "7f1c1703150e71c46ad80b3f6688edc1a489fc389bca462a65091bef11dd692b",
+        "packages/cli/src/lib/secure-file-identity.js": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+        "packages/cli/test-node/fixtures/context-memory-compaction-restart-child.mjs": "4f34590794a3ab30f1052f37c79d21328a560c02b71f90ebb0130999ccfa2e57",
+        "packages/cli/src/runtime/agent-core.js": "849eaa9bfaa421afc3532d8d03561559efc272e777f2b43c6392684c0fddb124",
+        "packages/cli/src/runtime/headless-runner.js": "9e871811fd02aa7c05e7a6ed4bab9704c06d3f74a39f600bb874a3e62f3c0bac",
+        "packages/cli/src/runtime/headless-stream.js": "39b8e7914a7b942dfd3c1688d07db4ba60efff42f8b1f0d4f491894f455797e3",
+        "packages/cli/src/harness/prompt-compressor.js": "4706b1b493e87289084115c247542ed8a8cd07164eef5362350dfc7c2e65c7b5",
+        "packages/cli/src/harness/provider-backed-compaction.js": "c17ac6556491e6f5959c44cc866543715ea445600979d0350c8d5367cf15e45f",
+        "packages/cli/src/harness/jsonl-session-store.js": "f0f3322c126f2249e47dcc0afced010394f4c30a50e50a94970e926b17ee5146",
+        "packages/cli/__tests__/unit/ephemeral-worktree-tools.test.js": "8262cfe87f87bc15e2df20d98a8247355aa2e9641f0f7c3ceaad43b26bc520c5",
+        "packages/cli/__tests__/integration/ephemeral-worktree-lifecycle.test.js": "b110af8d6f07ebe8472d0cd80c47f919c6d8f52a427bc46dfb292d6fa8cb0dc3"
+      }
+    }
+  ],
+  "egress": {
+    "candidates": 82,
+    "issues": 0,
+    "parseErrors": 0,
+    "skippedPaths": 0,
+    "paidReady": false,
+    "runtimeCoverageVerified": false,
+    "finalAudit": "raw/egress-final.json",
+    "finalProcess": "raw/egress-final-process.json"
+  },
+  "boundary": "Host-owned async scope rejects supported unowned launch routes before process or persistent schedule creation. Not an OS process lease, immediate Stop guarantee, arbitrary daemon/detached descendant containment or full crash recovery. A cancelled awaited foreground consumer is allowed to settle while the worktree remains; an uncooperative foreground task can still delay completion. Original prototype and retained regression use real executeTool/Broker and Git checkouts but replace _runCore with a deterministic no-model fixture. Windows local evidence, not three-OS CI or a published package. Direct handler execution was already blocked and stays blocked.",
+  "acceptance": {
+    "accepted": 34,
+    "total": 45,
+    "released": false,
+    "paidReady": false,
+    "microsoft": "deferred"
+  },
+  "artifacts": [
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/probe.mjs",
+      "source": ".work\\background-worktree-20261029\\probe.mjs",
+      "bytes": 9207,
+      "sha256": "9730dd342e7a6dccd1093ccc672ce465fbdfe04c46dc664263239997a87e8706"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/consumer.mjs",
+      "source": ".work\\background-worktree-20261029\\consumer.mjs",
+      "bytes": 1183,
+      "sha256": "e82e067b1db5de2b52f7219c5a034475adc12ad3c13f09218eefe1ad5d7270cb"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/run-probe.mjs",
+      "source": ".work\\background-worktree-20261029\\run-probe.mjs",
+      "bytes": 923,
+      "sha256": "df625ffc0cdbdde5dee5527e7a02fed4f2a0fca33c96ef67f62888eddbe0fd38"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/lifecycle-regression.mjs",
+      "source": ".work\\background-worktree-20261029\\lifecycle-regression.mjs",
+      "bytes": 7792,
+      "sha256": "bf5a4a8f432b04031c5441f6f239eed77dcaa65b09c8110f97ab3299f109f8c6"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/run-lifecycle-regression.mjs",
+      "source": ".work\\background-worktree-20261029\\run-lifecycle-regression.mjs",
+      "bytes": 970,
+      "sha256": "644960180a133cf40bda5d7e82ff76b0314cf7d9897ec592744a812b0e3188cc"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/egress-after.json",
+      "source": ".work\\background-worktree-20261029\\egress-after.json",
+      "bytes": 90828,
+      "sha256": "9200b0d21853f00bc897968cab883be6f46938a3146df6d78ee6e43e2d34ad9f"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/egress-after.log",
+      "source": ".work\\background-worktree-20261029\\egress-after.log",
+      "bytes": 170,
+      "sha256": "efaa4b666879e42135fdf72002ab8a297aadcb585d85344e503814c1adaefdbc"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/egress-after-process.json",
+      "source": ".work\\background-worktree-20261029\\egress-after-process.json",
+      "bytes": 3030,
+      "sha256": "3cf4e1bf4bcb5673ad0cfe3895ebaeafd0eabbbba50e37d4e1e2e85a39ae9e41"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/tools-first.json",
+      "source": ".work\\background-worktree-20261029\\tools-first.json",
+      "bytes": 4404,
+      "sha256": "5ba2bd52871e68c73a0e10f211cc1d1ad3175f2b7571bfe2638b9f59309fa8bd"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/run-X8hyfz/receipt.json",
+      "source": ".work\\background-worktree-20261029\\run-X8hyfz\\receipt.json",
+      "bytes": 51120,
+      "sha256": "2669b257d2dfca8e701a2b1a36b5e7e86da7665518b81d46fa7546eb9fdb466c"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/run-X8hyfz/external-cwd/ready.json",
+      "source": ".work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\\ready.json",
+      "bytes": 385,
+      "sha256": "ce4307bcf3ea8ad79a82ca0d66fa8ac6593752ab6ce5388936b030a423f67233"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/run-X8hyfz/external-cwd/result.json",
+      "source": ".work\\background-worktree-20261029\\run-X8hyfz\\external-cwd\\result.json",
+      "bytes": 604,
+      "sha256": "aa08ba7bd93842e147b9aeba568bff3f8986e89086e005cddd8f8e26961ec8ff"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/process-BvYWSk/process.json",
+      "source": ".work\\background-worktree-20261029\\process-BvYWSk\\process.json",
+      "bytes": 1393,
+      "sha256": "42cbf4c77a36f28539eb8b99db0737839d5f28c2a3f1c6adebb4a49422966f46"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/process-BvYWSk/output.log",
+      "source": ".work\\background-worktree-20261029\\process-BvYWSk\\output.log",
+      "bytes": 1088,
+      "sha256": "fc911602990832324cd3c2f408c4342d1ad337420a1c4e39281677b9056843ee"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/regression-H3wbVa/receipt.json",
+      "source": ".work\\background-worktree-20261029\\regression-H3wbVa\\receipt.json",
+      "bytes": 45870,
+      "sha256": "73aa8a7d0d4e59080ff093ee33ba8d4fd73cf0ef6604c31ac8f00fd93f10c0c1"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/regression-process-75H6Xt/process.json",
+      "source": ".work\\background-worktree-20261029\\regression-process-75H6Xt\\process.json",
+      "bytes": 780,
+      "sha256": "f8b226e693adc66143f45f75c96b8148f4ca65c1d4029cd695bf06bfd0255673"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/regression-process-75H6Xt/output.log",
+      "source": ".work\\background-worktree-20261029\\regression-process-75H6Xt\\output.log",
+      "bytes": 507,
+      "sha256": "58a32df3bbb7140e695e597dd571f563f27de4164ef6397f012a3bfab6b21564"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/worktree-retained-smoke.json",
+      "source": ".work/structured-memory-20261029/worktree-retained-smoke.json",
+      "bytes": 5942,
+      "sha256": "348c2709e8bc85090e74d63511dcabec812511982771d83904972797353fd7b6"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/worktree-retained-smoke.log",
+      "source": ".work/structured-memory-20261029/worktree-retained-smoke.log",
+      "bytes": 124,
+      "sha256": "aa7de230dc91021beadbc1185d9d02e490a5ecf6079448e3ea40d872fdc9d296"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/worktree-retained-smoke-process.json",
+      "source": ".work/structured-memory-20261029/worktree-retained-smoke-process.json",
+      "bytes": 7920,
+      "sha256": "25ac36cc1f563b0c6954bdfceba17271f0707db59ead36abae3eee46f2e1ca7a"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/worktree-regression.json",
+      "source": ".work/structured-memory-20261029/worktree-regression.json",
+      "bytes": 49116,
+      "sha256": "05da3329a79c03cc60ab17d24529f2e657f2c4ffbc474fca8c760d743d06d444"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/worktree-regression.log",
+      "source": ".work/structured-memory-20261029/worktree-regression.log",
+      "bytes": 11142,
+      "sha256": "55cd17217fb1362f5a46135070eb71d5142b95e54b4a49f0818c3c5da8eae7b0"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/worktree-regression-process.json",
+      "source": ".work/structured-memory-20261029/worktree-regression-process.json",
+      "bytes": 9553,
+      "sha256": "dafa025c69abca13a39b8b422d2f6fb16babb5e4871feb9175df015f770dad2a"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/worktree-native-2212.json",
+      "source": ".work/structured-memory-20261029/worktree-native-2212.json",
+      "bytes": 5712,
+      "sha256": "335355beea01c2e5b33f36447ad497c345618193a53046062c58b3ccc36e7794"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/worktree-native-2212.log",
+      "source": ".work/structured-memory-20261029/worktree-native-2212.log",
+      "bytes": 121,
+      "sha256": "98921b5de27410a03848bccb9956401bf5aca288aaae076d0f0d885cd4eb84df"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/worktree-native-2212-process.json",
+      "source": ".work/structured-memory-20261029/worktree-native-2212-process.json",
+      "bytes": 7917,
+      "sha256": "f82f006b3b508d924eaa86a1eb0fb37cd0194bda16bb696982f802832b6301b2"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/worktree-isolator.js",
+      "source": "packages/cli/src/harness/worktree-isolator.js",
+      "bytes": 55108,
+      "sha256": "ad13e1f333711049637092f810e7bffd004304c5de66a4c337c42c341151214a"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/ephemeral-worktree-scope.js",
+      "source": "packages/cli/src/lib/ephemeral-worktree-scope.js",
+      "bytes": 1026,
+      "sha256": "e83a645eab3459754a75a3a08466f81d480aab4c70c53c299d27e6876014901b"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/ephemeral-worktree-tools.test.js",
+      "source": "packages/cli/__tests__/unit/ephemeral-worktree-tools.test.js",
+      "bytes": 9031,
+      "sha256": "8262cfe87f87bc15e2df20d98a8247355aa2e9641f0f7c3ceaad43b26bc520c5"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/ephemeral-worktree-lifecycle.test.js",
+      "source": "packages/cli/__tests__/integration/ephemeral-worktree-lifecycle.test.js",
+      "bytes": 2679,
+      "sha256": "b110af8d6f07ebe8472d0cd80c47f919c6d8f52a427bc46dfb292d6fa8cb0dc3"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/ephemeral-worktree-lifecycle.mjs",
+      "source": "packages/cli/__tests__/fixtures/ephemeral-worktree-lifecycle.mjs",
+      "bytes": 9860,
+      "sha256": "81b0cf366f6fdefea4e55941576f908a9bba18409b225dd7cd1e58c0a72b0c3c"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/ephemeral-worktree-consumer.mjs",
+      "source": "packages/cli/__tests__/fixtures/ephemeral-worktree-consumer.mjs",
+      "bytes": 1413,
+      "sha256": "5efca28255c4da5872670856bb82d1c115065058c1028267d2b17ae6da7ca69c"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/egress-final.json",
+      "source": ".work\\background-worktree-20261029\\egress-final.json",
+      "bytes": 90828,
+      "sha256": "ea889eb31f22721367998599e0c28febdb036f91dabfafaac8fe2405a189d297"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/egress-final.log",
+      "source": ".work\\background-worktree-20261029\\egress-final.log",
+      "bytes": 170,
+      "sha256": "efaa4b666879e42135fdf72002ab8a297aadcb585d85344e503814c1adaefdbc"
+    },
+    {
+      "path": "docs/research/cli/evidence/worktree-consumer-lifetime-2026-10-29/raw/egress-final-process.json",
+      "source": ".work\\background-worktree-20261029\\egress-final-process.json",
+      "bytes": 894,
+      "sha256": "109074fb659fd7968d60d96330675f69054ad1e7ab046286a93776ed4dd35850"
+    }
+  ]
+}

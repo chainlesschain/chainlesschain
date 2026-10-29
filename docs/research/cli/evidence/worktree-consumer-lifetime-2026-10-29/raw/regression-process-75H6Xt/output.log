@@ -1,0 +1,7 @@
+artifacts=C:\code\chainlesschain\.work\background-worktree-20261029\regression-H3wbVa
+{"mode":"refuse-normal","passed":true,"status":"completed"}
+{"mode":"refuse-cancel","passed":true,"status":"failed"}
+{"mode":"foreground","passed":true,"status":"completed"}
+{"mode":"foreground-cancel","passed":true,"status":"failed"}
+{"mode":"ordinary-background","passed":true,"status":"completed"}
+{"receipt":"C:\\code\\chainlesschain\\.work\\background-worktree-20261029\\regression-H3wbVa\\receipt.json","passed":5}

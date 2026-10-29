@@ -1,0 +1,23 @@
+{
+  "executable": "C:\\nvm4w\\nodejs\\node.exe",
+  "node": "v22.22.2",
+  "args": [
+    "packages/cli/scripts/implementation-plan-budget-egress.mjs",
+    "--check",
+    "--include-scripts",
+    "--output",
+    ".work/background-worktree-20261029/egress-final.json"
+  ],
+  "observedAt": "2026-10-29T04:07:09.643Z",
+  "exitCode": 0,
+  "signal": null,
+  "before": {
+    "packages/cli/src/runtime/agent-core.js": "849eaa9bfaa421afc3532d8d03561559efc272e777f2b43c6392684c0fddb124",
+    "packages/cli/scripts/budget-egress-reviewed-sources.json": "04fae4c607335c7f7e791669131e057b5b62e968c703ac0845eaf05633f7a274"
+  },
+  "after": {
+    "packages/cli/src/runtime/agent-core.js": "849eaa9bfaa421afc3532d8d03561559efc272e777f2b43c6392684c0fddb124",
+    "packages/cli/scripts/budget-egress-reviewed-sources.json": "04fae4c607335c7f7e791669131e057b5b62e968c703ac0845eaf05633f7a274"
+  },
+  "stable": true
+}

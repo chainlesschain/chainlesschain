@@ -28,6 +28,7 @@ import {
   assertSafeGitPath,
 } from "../lib/git-integration.js";
 import { evaluateWorktreeCleanup } from "../lib/worktree-cleanup-safety.js";
+import { withEphemeralWorktreeScope } from "../lib/ephemeral-worktree-scope.js";
 import {
   normalizeSparsePaths,
   planSymlinkDirectories,
@@ -818,7 +819,9 @@ export async function isolateTask(repoDir, taskId, fn, options = {}) {
   const worktreePath = created.path;
 
   try {
-    const result = await fn(worktreePath);
+    const result = await withEphemeralWorktreeScope(worktreePath, () =>
+      fn(worktreePath),
+    );
     const hasChanges = _hasUncommittedChanges(worktreePath);
 
     return {
