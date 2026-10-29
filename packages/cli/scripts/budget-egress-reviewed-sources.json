@@ -101,28 +101,28 @@
       "rationale": "The HTTPS Volcengine model broker caps request bytes, response bytes, time, answer tokens and per-task requests; disables thinking; sends only after TLS; records connection attempts and dispatch certainty; and treats incomplete usage or truncated output as unusable. Formal scope rejects creation, task start and direct dispatch. A separately running IPC/network broker is not contained by AsyncLocalStorage, and the diagnostic does not grant formal paid admission."
     },
     {
-      "path": "packages/cli/src/assets/web-panel/assets/Artifacts-D4DeQQ89.js",
-      "digest": "sha256:2353f47a357c75d1a2a8e54b3b1627e0a3eef5743c7c4dd93f0fe7e83345d294",
+      "path": "packages/cli/src/assets/web-panel/assets/Artifacts-BuJgG5jf.js",
+      "digest": "sha256:65ec82da860e6a8f628ebfeecaff75f7eee6e1e4d6ef71509a97482bc446800c",
       "category": "SERVICE_API",
-      "rationale": "Generated artifact panel downloads stored files with an authenticated same-origin GET to /api/artifacts/:id/download and delegates list, preview, removal and expiry cleanup through the shared CLI WebSocket service. This is artifact service traffic, not direct model inference; server-side authorization, storage effects and any downstream costs remain separate checks."
+      "rationale": "Production artifact panel downloads stored files with an authenticated same-origin GET to /api/artifacts/:id/download and delegates list, preview, removal and expiry cleanup through the shared CLI WebSocket service. This is artifact service traffic, not direct model inference; server-side authorization, storage effects and any downstream costs remain separate checks."
     },
     {
-      "path": "packages/cli/src/assets/web-panel/assets/index-CI07XFwr.js",
-      "digest": "sha256:9d70a06d5382de4004ccc7ef420c1cf56dae0e2e418c762fd036edbfe5cad62f",
+      "path": "packages/cli/src/assets/web-panel/assets/index-3RqDry-K.js",
+      "digest": "sha256:c3663d64f949ad7a6250d13276c99421cecc52d53ad75605cf5eb22113226488",
       "category": "REMOTE_EXECUTION_CONTROL",
-      "rationale": "Generated application entry includes the modulepreload fetch polyfill and a configurable CLI gateway WebSocket carrying authentication, session creation, commands and model/chat requests. Conservative alias candidates M(...) also match UI render callbacks and are not additional WebSocket launches. Remote execution and provider costs require the serving host's own budget authority; source review does not attest that authority."
+      "rationale": "Production application entry includes the modulepreload fetch polyfill and a configurable CLI gateway WebSocket carrying authentication, session creation, commands and model/chat requests. Conservative alias candidates M(...) also match UI render callbacks and are not additional WebSocket launches. Remote execution and provider costs require the serving host's own budget authority; source review does not attest that authority."
     },
     {
-      "path": "packages/cli/src/assets/web-panel/assets/MtcAudit-CwJzv9a9.js",
-      "digest": "sha256:386279ddb9399ea6d359c93409e8be213593cfdfc5ca2c54a046c194cb26486f",
+      "path": "packages/cli/src/assets/web-panel/assets/MtcAudit-D3aa8XP4.js",
+      "digest": "sha256:71ec7c966989a451b00b90b19a5a5852f241502aea01e11aca6e424b873e3e8f",
       "category": "REMOTE_EXECUTION_CONTROL",
-      "rationale": "Generated MTC audit panel delegates envelope queries, archive push/restore, governance, trust and automatic archive controls to desktop-host WebSocket topics. The flagged i.fetch call is the envelope composable method forwarding mtc.envelope.get, not global HTTP fetch. Delegated operations may cause storage or WebDAV/network effects; their authorization and costs are outside this byte-bound source classification."
+      "rationale": "Production MTC audit panel delegates envelope queries, archive push/restore, governance, trust and automatic archive controls to desktop-host WebSocket topics. The flagged s.fetch call is the envelope composable method forwarding mtc.envelope.get, not global HTTP fetch. Delegated operations may cause storage or WebDAV/network effects; their authorization and costs are outside this byte-bound source classification."
     },
     {
-      "path": "packages/cli/src/assets/web-panel/assets/RemoteSession-DyCisp2M.js",
-      "digest": "sha256:481259ef3a2b2857f61d1b5e70983a4171d51dee9a16d1d78a08a7ef22a4956c",
+      "path": "packages/cli/src/assets/web-panel/assets/RemoteSession-BGGzPdS5.js",
+      "digest": "sha256:628e2e097e37dfaff675d4e3d76b708084594e96cab76289580957856ed62f42",
       "category": "REMOTE_EXECUTION_CONTROL",
-      "rationale": "Generated remote-session client opens WebSockets to the configured relay or paired direct host and sends authenticated or encrypted prompts, approvals and interruption controls. Conservative alias candidates also match local cryptographic constructors and callbacks; the actual network constructors are the relay and direct WebSocket launches. Encryption and command deduplication do not establish remote model budget containment or paid readiness."
+      "rationale": "Production remote-session client opens WebSockets to the configured relay or paired direct host and sends authenticated or encrypted prompts, approvals and interruption controls. Conservative alias candidates also match local cryptographic constructors, interruption-result callbacks, option-label formatting and approval UI callbacks; the actual network constructors remain the relay and direct WebSocket launches. Encryption and command deduplication do not establish remote model budget containment or paid readiness."
     },
     {
       "path": "packages/cli/src/commands/agenda.js",
@@ -365,24 +365,6 @@
       "rationale": "Built-in provider model identifiers include the new Volcengine model deepseek-v4-1-flash-260910. Runtime model requests use the scoped fetch wrapper; standalone connectivity probes remain model inference, not free health checks. Reviewed 2026-10-29 delta from 0c442e5b48 parent: adds deepseek-v4-1-flash-economy-261017 to the existing Volcengine identifiers; endpoint, dispatch and budget transport are unchanged."
     },
     {
-      "path": "packages/cli/src/lib/ollama-provider-fetch.js",
-      "category": "MODEL_REQUEST",
-      "rationale": "Ollama inference adapter routes through providerFetch. Active formal budget scope receives the original request without an adapter dispatcher override; host-owned scoped transport and closed-scope refusal remain authoritative. Outside scope, explicit dispatchers and injected/global fetch are preserved, and the default undici Agent disables keep-alive without adding replay. Configurable Ollama destinations are not restricted to loopback by this classification; paid or OS admission is not granted.",
-      "digest": "sha256:aa79010f74e2d3fcf27d74ba2810134baf4af3942ea14dc1e84d4445e78db1c4"
-    },
-    {
-      "path": "packages/cli/src/lib/project-goal-connection.js",
-      "digest": "sha256:0f17956415810f8fa76ba4c7b10b2141e148af7ea642128940e010b84671a269",
-      "category": "LOCAL_IPC",
-      "rationale": "Reads a bounded private descriptor, then authenticates short-lived 127.0.0.1 HTTP requests with HMAC, nonce and descriptor identity checks for project-goal summaries or evidence. A v3 descriptor delegates to the draft client, which also supports draft operations. This is local desktop IPC, not remote model egress."
-    },
-    {
-      "path": "packages/cli/src/lib/project-goal-draft-connection.js",
-      "digest": "sha256:eafe20d253a344f77f88b8c5c09889ef1e941234603e4ff1f685caef4c023d47",
-      "category": "LOCAL_IPC",
-      "rationale": "Sends HMAC-authenticated, bounded and time-limited GET/POST requests to the desktop loopback goal-drafts endpoint. Reads and receipt/source POSTs are local IPC; enqueue POST persists a user-authorized pending draft, and a missing response after dispatch is reported as an unknown outcome. It does not invoke a provider."
-    },
-    {
       "path": "packages/cli/src/lib/mcp-oauth.js",
       "digest": "sha256:89efe4cf62e019f37f67aed65bf6bad2e2725c3a9efef6c536fe772c62f9977b",
       "category": "SERVICE_API",
@@ -393,6 +375,12 @@
       "digest": "sha256:0e00a1faa793af266931a2b2da29e301d515e9f4260d650fdff6503b3ab34009",
       "category": "SERVICE_API",
       "rationale": "Shared notifier delivery HTTP; not a model-token request or a free-service attestation."
+    },
+    {
+      "path": "packages/cli/src/lib/ollama-provider-fetch.js",
+      "category": "MODEL_REQUEST",
+      "rationale": "Ollama inference adapter routes through providerFetch. Active formal budget scope receives the original request without an adapter dispatcher override; host-owned scoped transport and closed-scope refusal remain authoritative. Outside scope, explicit dispatchers and injected/global fetch are preserved, and the default undici Agent disables keep-alive without adding replay. Configurable Ollama destinations are not restricted to loopback by this classification; paid or OS admission is not granted.",
+      "digest": "sha256:aa79010f74e2d3fcf27d74ba2810134baf4af3942ea14dc1e84d4445e78db1c4"
     },
     {
       "path": "packages/cli/src/lib/p2p-manager.js",
@@ -447,6 +435,18 @@
       "digest": "sha256:f57ef3324d78fbfdca4f9396ce05f3fdfb3479c2d4561984db4c686837290f0a",
       "category": "LOCAL_IPC",
       "rationale": "Broker credential-reference worker hosts local IPC for approved children. Construction, credential registration and direct reference resolution reject formal budget scope before caller payload or IPC. Existing out-of-scope holders and OS isolation remain outside static classification."
+    },
+    {
+      "path": "packages/cli/src/lib/project-goal-connection.js",
+      "digest": "sha256:0f17956415810f8fa76ba4c7b10b2141e148af7ea642128940e010b84671a269",
+      "category": "LOCAL_IPC",
+      "rationale": "Reads a bounded private descriptor, then authenticates short-lived 127.0.0.1 HTTP requests with HMAC, nonce and descriptor identity checks for project-goal summaries or evidence. A v3 descriptor delegates to the draft client, which also supports draft operations. This is local desktop IPC, not remote model egress."
+    },
+    {
+      "path": "packages/cli/src/lib/project-goal-draft-connection.js",
+      "digest": "sha256:eafe20d253a344f77f88b8c5c09889ef1e941234603e4ff1f685caef4c023d47",
+      "category": "LOCAL_IPC",
+      "rationale": "Sends HMAC-authenticated, bounded and time-limited GET/POST requests to the desktop loopback goal-drafts endpoint. Reads and receipt/source POSTs are local IPC; enqueue POST persists a user-authorized pending draft, and a missing response after dispatch is reported as an unknown outcome. It does not invoke a provider."
     },
     {
       "path": "packages/cli/src/lib/provider-stream.js",

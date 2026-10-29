@@ -539,8 +539,8 @@ describe("CLI release workflow contracts", () => {
     const strict = workflow("cli-strict-sandbox.yml");
 
     expect(cliCi.split(`commit_sha: ${eventSha}`)).toHaveLength(5);
-    expect(cliCi.split(`ref: ${eventSha}`)).toHaveLength(5);
-    expect(cliCi.match(/name: Verify exact source identity/gu)).toHaveLength(5);
+    expect(cliCi.split(`ref: ${eventSha}`)).toHaveLength(6);
+    expect(cliCi.match(/name: Verify exact source identity/gu)).toHaveLength(6);
     expect(cliCi).toContain(`CC_PM_RECOVERY_EXPECTED_SHA: ${eventSha}`);
     expect(cliCi).toContain("ref: ${{ env.CC_PM_RECOVERY_EXPECTED_SHA }}");
 

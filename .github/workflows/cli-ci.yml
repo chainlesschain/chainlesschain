@@ -7,6 +7,9 @@ on:
       - ".github/workflows/_scoped-docs-check.yml"
       - "scripts/ci/scoped-docs-check.mjs"
       - "packages/cli/**"
+      - "packages/web-panel/**"
+      - "packages/locales/seed/**"
+      - "package.json"
       - "packages/core-db/**"
       - "packages/session-core/**"
       - "packages/personal-data-hub/**"
@@ -57,6 +60,9 @@ on:
       - ".github/workflows/_scoped-docs-check.yml"
       - "scripts/ci/scoped-docs-check.mjs"
       - "packages/cli/**"
+      - "packages/web-panel/**"
+      - "packages/locales/seed/**"
+      - "package.json"
       - "packages/core-db/**"
       - "packages/session-core/**"
       - "packages/personal-data-hub/**"
@@ -115,6 +121,33 @@ jobs:
       contents: read
     with:
       target_sha: ${{ github.event.pull_request.head.sha || github.sha }}
+
+  source-review-preflight:
+    name: Build and audit reviewed runtime sources before test fan-out
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.22.2"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - uses: ./.github/actions/setup-node-deps
+      # These distribution assets are ignored by Git. A clean checkout must
+      # construct their actual locked-source bytes before the unchanged audit;
+      # a developer's cached bundle cannot stand in for release evidence.
+      - name: Build the reviewed Web Panel distribution assets
+        run: node packages/cli/scripts/build-web-panel.mjs --force
+      - name: Audit exact runtime and diagnostic source identities
+        run: node packages/cli/scripts/implementation-plan-budget-egress.mjs --check --include-scripts
 
   pdh-native-tests:
     needs: [docs-scope]
@@ -193,7 +226,7 @@ jobs:
   # Per-OS test fan-out via the shared reusable workflow.
   # Each call spawns its own (suite × shard) matrix internally — see _cli-test.yml.
   test-ubuntu:
-    needs: [docs-scope]
+    needs: [docs-scope, source-review-preflight]
     if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     uses: ./.github/workflows/_cli-test.yml
     with:
@@ -201,7 +234,7 @@ jobs:
       runs-on: ubuntu-latest
 
   test-windows:
-    needs: [docs-scope]
+    needs: [docs-scope, source-review-preflight]
     if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     uses: ./.github/workflows/_cli-test.yml
     with:
@@ -210,7 +243,7 @@ jobs:
       unit-shards: 16
 
   test-macos:
-    needs: [docs-scope]
+    needs: [docs-scope, source-review-preflight]
     if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     uses: ./.github/workflows/_cli-test.yml
     with:
@@ -273,6 +306,8 @@ jobs:
           packages/cli/test-node/formal-budget-worker-network-boundary.node-test.mjs
           packages/cli/test-node/formal-budget-credential-worker-boundary.node-test.mjs
           packages/cli/test-node/formal-budget-service-cloud-boundary.node-test.mjs
+      - name: Build reviewed Web Panel assets from locked sources
+        run: node packages/cli/scripts/build-web-panel.mjs --force
       - name: Audit reviewed runtime and diagnostic script identities without paid admission
         run: node packages/cli/scripts/implementation-plan-budget-egress.mjs --check --include-scripts
       - name: Verify native review preparation and receipt contracts without provider execution

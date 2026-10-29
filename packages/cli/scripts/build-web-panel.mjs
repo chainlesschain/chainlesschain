@@ -58,6 +58,9 @@ function walk(dir, results = []) {
 
 function computeInputHash() {
   const hash = createHash("sha256");
+  // A build-policy change must not reuse an older development-mode bundle.
+  hash.update(fs.readFileSync(fileURLToPath(import.meta.url)));
+  hash.update("\0");
   const files = [];
   for (const input of HASH_INPUTS) {
     const target = path.join(WEB_PANEL_ROOT, input);
@@ -228,7 +231,10 @@ function runBuild() {
       cwd: tmpWp,
       stdio: "inherit",
       encoding: "utf-8",
-      env: childEnv,
+      // Development dependencies are installed above, but distributable Vue
+      // code must be production code. Development mode embeds the random
+      // isolated temporary path in __file and makes byte reviews unstable.
+      env: { ...childEnv, NODE_ENV: "production" },
     });
 
     // copy the built dist/ back so copyDist() (reads WEB_PANEL_ROOT/dist) works
