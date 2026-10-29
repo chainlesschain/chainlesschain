@@ -439,8 +439,8 @@ Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/codex-app-server-compatibility.mjs` | 137 | `execFile(` |
 | `packages/cli/scripts/codex-app-server-compatibility.mjs` | 230 | `const child = spawn(` |
 | `packages/cli/scripts/codex-app-server-history-probe.mjs` | 4 | `import { execFileSync, spawn } from "node:child_process";` |
-| `packages/cli/scripts/codex-app-server-history-probe.mjs` | 187 | `const reported = execFileSync(upstream.binary, ["--version"], {` |
-| `packages/cli/scripts/codex-app-server-history-probe.mjs` | 205 | `const child = spawn(` |
+| `packages/cli/scripts/codex-app-server-history-probe.mjs` | 336 | `const reported = execFileSync(upstream.binary, ["--version"], {` |
+| `packages/cli/scripts/codex-app-server-history-probe.mjs` | 360 | `const child = spawn(` |
 | `packages/cli/scripts/codex-app-server-turn-probe.mjs` | 5 | `import { execFileSync, spawn } from "node:child_process";` |
 | `packages/cli/scripts/codex-app-server-turn-probe.mjs` | 528 | `execFileSync("git", args, {` |
 | `packages/cli/scripts/codex-app-server-turn-probe.mjs` | 566 | `const reported = execFileSync(upstream.binary, ["--version"], {` |

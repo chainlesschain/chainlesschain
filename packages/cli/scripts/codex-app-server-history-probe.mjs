@@ -3,10 +3,16 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import {
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import http from "node:http";
 import { tmpdir } from "node:os";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CodexAppServerAdapter } from "../src/lib/codex-app-server-adapter.js";
 import {
@@ -64,6 +70,149 @@ export async function collectHistoryPages(
     cursor = result.nextCursor;
   }
   throw new Error("history pagination exceeded its bound");
+}
+
+// Observe raw upstream parameters without repairing cursors or changing sort
+// semantics. A terminal page can still omit known identities.
+export async function observeThreadHistory(request, params, expectedIds) {
+  const paged = await collectHistoryPages(request, "thread/list", params);
+  const all = await request("thread/list", { ...params, limit: 100 });
+  assert.ok(Array.isArray(all?.data), "full history must contain data");
+  assert.equal(all.nextCursor, null, "fixture exceeds full history page");
+  const ids = paged.data.map((entry) => entry.id);
+  const allIds = all.data.map((entry) => entry.id);
+  const sameIdentities = (values) =>
+    values.length === expectedIds.length &&
+    new Set(values).size === values.length &&
+    expectedIds.every((id) => values.includes(id));
+  return {
+    params,
+    pages: paged.pages,
+    ids,
+    allIds,
+    missingIds: expectedIds.filter((id) => !ids.includes(id)),
+    unexpectedIds: ids.filter((id) => !expectedIds.includes(id)),
+    complete: sameIdentities(ids) && sameIdentities(allIds),
+  };
+}
+
+// Unsupported raw-default diagnostics must retain their failure without
+// preventing the separately asserted recency/repair journeys from running.
+export async function observeRawThreadHistory(request, params, expectedIds) {
+  try {
+    return await observeThreadHistory(request, params, expectedIds);
+  } catch (error) {
+    return {
+      params,
+      complete: false,
+      error: {
+        name: error.name,
+        message: String(error.message).slice(0, 2000),
+      },
+    };
+  }
+}
+
+export function assertCompleteScanHistory(observed) {
+  for (const direction of ["asc", "desc"]) {
+    assert.equal(
+      observed[direction]?.complete,
+      true,
+      `rollout scan ${direction} omitted or changed known thread identities`,
+    );
+    assert.ok(
+      observed[direction].pages.length >= 2,
+      `rollout scan ${direction} did not exercise cursor continuation`,
+    );
+  }
+  assert.deepEqual(
+    observed.desc.ids,
+    [...observed.asc.ids].reverse(),
+    "rollout scan sort direction did not reverse the stable identity order",
+  );
+}
+
+// Only genuine rollouts from this probe's stopped process may enter the new
+// home. Never copy a state DB or follow links out of the isolated fixture.
+export function copyHistoryRollouts(threads, sourceHome, targetHome) {
+  const sourceRoot = resolve(sourceHome);
+  const destinationRoot = resolve(targetHome);
+  assert.notEqual(sourceRoot, destinationRoot, "rollout homes must differ");
+  for (const directory of [sourceRoot, destinationRoot]) {
+    const stat = lstatSync(directory);
+    assert.ok(
+      stat.isDirectory() && !stat.isSymbolicLink(),
+      "rollout home must be an unlinked directory",
+    );
+  }
+  const copied = [];
+  for (const thread of threads) {
+    assert.equal(
+      typeof thread.path,
+      "string",
+      "missing generated rollout path",
+    );
+    const source = resolve(thread.path);
+    const local = relative(sourceRoot, source);
+    const parts = local.split(sep);
+    assert.ok(
+      !isAbsolute(local) && parts[0] === "sessions" && parts.length >= 2,
+      "rollout must be inside the isolated home sessions tree",
+    );
+    let current = sourceRoot;
+    for (const [index, part] of parts.entries()) {
+      current = resolve(current, part);
+      const stat = lstatSync(current);
+      const leaf = index === parts.length - 1;
+      assert.ok(
+        !stat.isSymbolicLink() &&
+          (leaf ? stat.isFile() && stat.nlink === 1 : stat.isDirectory()),
+        "rollout source must not contain links or special files",
+      );
+      if (leaf)
+        assert.ok(
+          stat.size <= 8 * 1024 * 1024,
+          "rollout exceeds fixture bound",
+        );
+    }
+    const bytes = readFileSync(source);
+    const metadata = JSON.parse(bytes.toString("utf8").split(/\r?\n/u)[0]);
+    assert.equal(
+      metadata.type,
+      "session_meta",
+      "missing real rollout metadata",
+    );
+    assert.equal(metadata.payload?.id, thread.id, "rollout identity mismatch");
+    const destination = resolve(destinationRoot, local);
+    current = destinationRoot;
+    for (const part of parts.slice(0, -1)) {
+      current = resolve(current, part);
+      try {
+        mkdirSync(current, { mode: 0o700 });
+      } catch (error) {
+        if (error.code !== "EEXIST") throw error;
+      }
+      const stat = lstatSync(current);
+      assert.ok(
+        stat.isDirectory() && !stat.isSymbolicLink(),
+        "rollout destination must not contain links",
+      );
+    }
+    writeFileSync(destination, bytes, { flag: "wx", mode: 0o600 });
+    const digest = sha256(bytes);
+    assert.equal(
+      sha256(readFileSync(destination)),
+      digest,
+      "rollout copy changed bytes",
+    );
+    copied.push({
+      threadId: thread.id,
+      relativePath: local,
+      bytes: bytes.length,
+      sha256: digest,
+    });
+  }
+  return copied;
 }
 
 function historyProvider() {
@@ -196,18 +345,24 @@ export async function runHistoryProbe({
     validators = officialValidators(version),
     clients = [],
     closures = [];
+  const historyChecks = {
+    rawUpstreamQueries: {},
+    rolloutScanRecency: {},
+    rolloutRepair: { status: "not-run", verified: false },
+  };
+  let threadSample;
   let client, report, failure;
   const guard = (promise, label) =>
     bounded(Promise.race([promise, provider.failure]), 30_000, label);
   const request = (method, params) =>
     guard(client.guard(client.request(method, params), method), method);
-  async function connect() {
+  async function connect(environment = env) {
     const child = spawn(
       upstream.binary,
       ["app-server", "--listen", "stdio://"],
       {
         cwd: workspace,
-        env,
+        env: environment,
         windowsHide: true,
         stdio: ["pipe", "pipe", "pipe"],
       },
@@ -286,15 +441,42 @@ export async function runHistoryProbe({
       sandbox: "read-only",
       approvalPolicy: "never",
     };
+    // Launch both siblings together near the start of a wall-clock second.
+    // Never stagger their creation to avoid the upstream timestamp collision.
+    await bounded(
+      new Promise((yes) => setTimeout(yes, 1025 - (Date.now() % 1000))),
+      2000,
+      "same-second thread sample",
+    );
     const [main, other] = await Promise.all([
       request("thread/start", startParams),
       request("thread/start", startParams),
     ]);
+    threadSample = [main.thread, other.thread].map(({ id, createdAt }) => ({
+      id,
+      createdAt,
+    }));
+    assert.ok(
+      threadSample.every((thread) => Number.isSafeInteger(thread.createdAt)),
+      "missing integer thread creation timestamp",
+    );
+    assert.equal(
+      main.thread.createdAt,
+      other.thread.createdAt,
+      "concurrent fixture missed the same-created-at-second boundary",
+    );
     const first = await execute(main.thread.id, "history-main-1");
     const unrelated = await execute(other.thread.id, "history-other-1");
     closures.push(await client.stop());
     assert.equal(client.running, false);
     await connect();
+    const expectedIds = [first.threadId, unrelated.threadId];
+    const historyFilters = {
+      limit: 1,
+      cwd: workspace,
+      modelProviders: ["fixture"],
+      sourceKinds: [main.thread.source],
+    };
     const listed = await collectHistoryPages(request, "thread/list", {
       limit: 1,
       cwd: workspace,
@@ -314,6 +496,34 @@ export async function runHistoryProbe({
       listed.pages.length >= 2,
       "thread cursor continuation was not exercised",
     );
+    // Keep upstream-default and explicit created_at observations separate from
+    // the supported query. Never silently rewrite an explicitly requested sort.
+    for (const [name, extra] of [
+      ["defaults", {}],
+      ["createdAt", { sortKey: "created_at" }],
+      ["databaseCreatedAt", { sortKey: "created_at", useStateDbOnly: true }],
+    ]) {
+      historyChecks.rawUpstreamQueries[name] = await observeRawThreadHistory(
+        request,
+        { ...historyFilters, sortDirection: "asc", ...extra },
+        expectedIds,
+      );
+    }
+    for (const sortDirection of ["asc", "desc"]) {
+      historyChecks.rolloutScanRecency[sortDirection] =
+        await observeThreadHistory(
+          request,
+          {
+            ...historyFilters,
+            sortDirection,
+            sortKey: "recency_at",
+            useStateDbOnly: false,
+          },
+          expectedIds,
+        );
+    }
+    assertCompleteScanHistory(historyChecks.rolloutScanRecency);
+    historyChecks.rolloutScanRecency.verified = true;
     const metadata = await request("thread/read", {
       threadId: first.threadId,
       includeTurns: false,
@@ -380,6 +590,135 @@ export async function runHistoryProbe({
     );
     closures.push(await client.stop());
     assert.equal(client.running, false);
+    const repair = historyChecks.rolloutRepair;
+    const rolloutThreads = listed.data.map(({ id, path }) => ({ id, path }));
+    if (rolloutThreads.some((thread) => typeof thread.path !== "string")) {
+      repair.status = "not-exercised";
+      repair.reason = "upstream did not expose both genuine rollout paths";
+    } else {
+      repair.status = "preparing";
+      const repairRoot = resolve(root, "rollout-repair");
+      const repairEnv = isolatedEnvironment(repairRoot);
+      for (const directory of Object.values(repairEnv).filter((value) =>
+        value.startsWith(repairRoot),
+      ))
+        mkdirSync(directory, { recursive: true });
+      writeFileSync(
+        resolve(repairEnv.CODEX_HOME, "config.toml"),
+        readFileSync(resolve(env.CODEX_HOME, "config.toml")),
+        { flag: "wx", mode: 0o600 },
+      );
+      await connect(repairEnv);
+      const databaseParams = {
+        ...historyFilters,
+        sortDirection: "asc",
+        sortKey: "recency_at",
+        useStateDbOnly: true,
+      };
+      repair.beforeCopy = await collectHistoryPages(
+        request,
+        "thread/list",
+        databaseParams,
+      );
+      assert.deepEqual(
+        repair.beforeCopy.data,
+        [],
+        "new isolated home unexpectedly contains history",
+      );
+      repair.rollouts = copyHistoryRollouts(
+        rolloutThreads,
+        env.CODEX_HOME,
+        repairEnv.CODEX_HOME,
+      );
+      repair.afterCopy = await collectHistoryPages(
+        request,
+        "thread/list",
+        databaseParams,
+      );
+      repair.indexAbsenceEvidence =
+        "fresh-home-without-copied-state-db-and-state-db-only-list";
+      if (repair.afterCopy.data.length > 0) {
+        repair.status = "not-exercised";
+        repair.reason =
+          "upstream indexed rollouts before the missing-index observation";
+      } else {
+        repair.status = "checking";
+        repair.missingIndexObserved = true;
+        repair.scan = {};
+        for (const sortDirection of ["asc", "desc"]) {
+          repair.scan[sortDirection] = await observeThreadHistory(
+            request,
+            {
+              ...historyFilters,
+              sortDirection,
+              sortKey: "recency_at",
+              useStateDbOnly: false,
+            },
+            expectedIds,
+          );
+        }
+        assertCompleteScanHistory(repair.scan);
+        repair.afterScan = await observeThreadHistory(
+          request,
+          databaseParams,
+          expectedIds,
+        );
+        assert.equal(
+          repair.afterScan.complete,
+          true,
+          "rollout scan did not repair the database index",
+        );
+        const repaired = await request("thread/resume", {
+          threadId: first.threadId,
+          excludeTurns: true,
+        });
+        assert.equal(repaired.thread.id, first.threadId);
+        assert.equal(repaired.model, "fixture-codex");
+        assert.equal(repaired.modelProvider, "fixture");
+        assert.equal(resolve(repaired.cwd), workspace);
+        assert.equal(repaired.approvalPolicy, "never");
+        assert.equal(repaired.sandbox.type, "readOnly");
+        const repairedTurns = await collectHistoryPages(
+          request,
+          "thread/turns/list",
+          {
+            threadId: first.threadId,
+            limit: 1,
+            sortDirection: "asc",
+            itemsView: "full",
+          },
+        );
+        assert.deepEqual(
+          repairedTurns.data.map((turn) => turn.id),
+          [first.turnId, second.turnId],
+        );
+        for (const [index, result] of [first, second].entries()) {
+          assert.equal(repairedTurns.data[index].status, "completed");
+          assert.ok(
+            repairedTurns.data[index].items.some(
+              (item) =>
+                item.type === "agentMessage" && item.text === result.output,
+            ),
+            "repaired rollout lost persisted assistant output",
+          );
+        }
+        repair.turnPages = repairedTurns.pages;
+        assert.equal(
+          provider.requests.length,
+          3,
+          "rollout repair or resume launched a model request",
+        );
+        repair.status = "verified";
+        repair.verified = true;
+      }
+      assert.equal(
+        provider.requests.length,
+        3,
+        "rollout repair or resume launched a model request",
+      );
+      closures.push(await client.stop());
+      assert.equal(client.running, false);
+    }
     exactSource(commitSha);
     report = {
       schema: "chainlesschain.codex-history-probe/v1",
@@ -411,6 +750,8 @@ export async function runHistoryProbe({
       },
     };
   } catch (error) {
+    if (["preparing", "checking"].includes(historyChecks.rolloutRepair.status))
+      historyChecks.rolloutRepair.status = "failed";
     failure = error;
   } finally {
     try {
@@ -439,6 +780,18 @@ export async function runHistoryProbe({
       realProviderAcceptance: false,
     }),
     status: failure ? "failed" : "passed",
+    arch: process.arch,
+    upstream: { version, reported, binarySha256: upstream.binarySha256 },
+    officialSchema: {
+      hashes: validators.hashes,
+      validatedMessages: validators.counts,
+    },
+    threadSample,
+    historyChecks,
+    // This additional scope never promotes the raw default/created_at scan.
+    rolloutScanRecencyPaginationVerified:
+      historyChecks.rolloutScanRecency.verified === true,
+    providerRequests: provider.requests,
     processClosed: closures,
     notificationsSha256: sha256(transcript),
     ...(failure
