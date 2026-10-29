@@ -1,14 +1,24 @@
 # 持久记忆 (memory)
 
-<!-- docs-code-git-sync-2026-10-28 -->
+<!-- docs-code-git-sync-2026-10-29 -->
+
+## 0.166.131：磁盘身份、取消与恢复边界
+
+当前公开版为 CLI **0.166.131** / Context/Memory Kernel **0.1.11**，配对 Open VSX **0.37.169** / JetBrains **0.4.186**。安装、重启与回执见[升级指南](./cli-ide-update-2026-10-29-131)。升级不会自动切换 legacy/shadow/canonical 模式或迁移数据。
+
+canonical 磁盘查询保留原目录身份基线，将权限检查与身份发布绑定到同一次检查结果。目录被 rename 后以同名新目录替换时会拒绝继续，不能仅因路径文字相同就继承原身份。遇到身份错误应停止并核对实际数据目录与替换原因，不要通过删除安全记录或反复重试绕过检查。
+
+长查询增加协作式取消与事件循环让出，取消后退出读取流程并释放所持锁；这不等于任意底层 I/O 都能立即中断。解析缓存只在本次重新读取的字节 SHA、manifest generation 与物理身份都匹配时复用，默认仍为 `validate-disk`，不会为了速度跳过磁盘校验。
+
+缺失或损坏的派生索引继续从已验证权威分片重建。恢复时保留原始数据、迁移与游标规则；不要把手动删除权威文件当作修复方法。Windows 本地六组、每组 100 次重建/损坏查询已完成，100K 恢复 p95 约 21–24 秒；这不能替代冷查询 1 秒目标。此前 100K 冷查询 p95 约 2.26 秒仍未达标，混合读写补测未完整结束。完整跨平台性能 SLO、语义 recall、原生 Stop 与真实 IDE 任务验收仍须独立完成，累计任务 **34/45** 不变。详见[运行时设计与证据](https://design.chainlesschain.com/release-runtime-update-2026-10-29-131.html)。
 
 ## 0.166.128：索引候选选择优化
 
-当前公开版为 CLI **0.166.130**，安装及 IDE 配对见[升级指南](./agent-platform-release)。后续主分支的磁盘取消和解析缓存修复尚未发布，完整 100 次采样与三系统查询 SLO 仍待验收；下文描述 `.128` 起已公开的优化。
+下文描述 `.128` 起已公开、当前版本继续保留的候选选择优化。
 
 CLI 的 canonical Memory 适配实现先利用较短的 posting 候选，再按需要构建 scope、状态、标签和 sink 的并集；并集不能改善已有选择时提前停止。候选仍经过完整谓词匹配后返回，权限与过滤先于分页/limit。
 
-此改动不新增配置开关，不自动切换 legacy/shadow/canonical 模式，也不修改迁移、删除或游标失效规则。原有磁盘身份、分片与索引校验继续执行；独立发布的 Context/Memory Kernel 仍为 **0.1.10**。局部候选归并基准不代表完整冷磁盘查询 SLO。实现见 `packages/cli/src/lib/context-memory-kernel/memory-query-index.js`；跨端范围见[模块 108 设计](https://design.chainlesschain.com/modules/m108-context-memory-kernel.html)。
+此改动不新增配置开关，不自动切换 legacy/shadow/canonical 模式，也不修改迁移、删除或游标失效规则。原有磁盘身份、分片与索引校验继续执行；当前 CLI 固定使用独立发布的 Context/Memory Kernel **0.1.11**。局部候选归并基准不代表完整冷磁盘查询 SLO。实现见 `packages/cli/src/lib/context-memory-kernel/memory-query-index.js`；跨端范围见[模块 108 设计](https://design.chainlesschain.com/modules/m108-context-memory-kernel.html)。
 
 > `memory` 当前同时包含两套能力：传统数据库记忆/每日笔记，以及 Managed Agents 对标阶段新增的 scoped memory。
 

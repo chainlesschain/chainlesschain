@@ -1,10 +1,12 @@
 # CLI — Managed Agents & Hosted Session API
 
-<!-- docs-code-git-sync-2026-10-28 -->
+<!-- docs-code-git-sync-2026-10-29 -->
 
-## Current CLI 0.166.129: completion review and Goal conditions
+<a id="current-cli-0166129-completion-review-and-goal-conditions"></a>
 
-Install `chainlesschain@0.166.129`. Paired public IDEs are Open VSX `0.37.167` and JetBrains `0.4.184`; native product `v5.0.3.143` has its own frozen source and verified release.
+## Current CLI 0.166.131: completion review and Goal conditions
+
+Install `chainlesschain@0.166.131`. Paired public IDEs are Open VSX `0.37.169` and JetBrains `0.4.186`; the CLI pins Context/Memory Kernel `0.1.11`. All three packages bind to released source `c9d0bab231850697df38f2d476c2dd974cbcb6c0` and have verified public readback; JetBrains update `1206001` is approved and listed. Native product `v5.0.3.143` remains a separate release. Microsoft Marketplace remains deferred. Restart the chat host after upgrading, then check `cc --version` and `cc doctor`.
 
 - `cc agent -p "implement and check the requested changes" --review-changes` enables one review opportunity after successful file content changes. It is off by default and accepts headless prompts or stream-json input. Reads, repairs and model calls consume the existing permission, turn and cost budgets; incomplete usage prevents extra review.
 - Review mode emits final response text only while preserving tool progress events. It does not provide independent acceptance or enable Skill evolution.
@@ -12,9 +14,11 @@ Install `chainlesschain@0.166.129`. Paired public IDEs are Open VSX `0.37.167` a
 - Persistent Goal checkpoint failure returns `CC_GOAL_CHECKPOINT_FAILED`. Review actual effects and usage before resuming an interrupted running checkpoint with the original condition and `--goal-recovery-reviewed`; the flag does not repair corrupt storage.
 - `--goal` and opt-in `--goal-assess` manage and assess long-term goals separately from the headless completion-condition loop.
 
-[Current user guide](https://docs.chainlesschain.com/chainlesschain/cli-agent.html) · [Published package verification](../research/cli-ide-native-retest129-progress-2026-10-29.md).
+[Current user guide](https://docs.chainlesschain.com/chainlesschain/cli-agent.html) · [Upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-29-131.html) · [Published package verification](../research/cli/evidence/release131-public/publication.json).
 
-## Source checkout: Goal evidence freshness (unreleased)
+<a id="source-checkout-goal-evidence-freshness-unreleased"></a>
+
+## Published CLI: Goal evidence freshness
 
 The default model Goal checker now binds `read_file` observations to the actual artifact bytes and `run_shell` checks to the source files under the run's working directory. It compares the bindings before and after the tool call, before judging, and after the model responds. A changed or deleted artifact, replaced workspace, incomplete scan, or cancelled scan cannot support a positive verdict. Cited scopes and SHA-256 digests are saved with the evaluated Goal checkpoint before completion is emitted.
 
@@ -22,9 +26,13 @@ In Git workspaces, source coverage includes tracked and nonignored files under `
 
 Scanning is read-only and bounded to 50,000 entries, 512 MiB total, 64 MiB per file and 15 seconds per capture; Git enumeration has a 5-second process timeout. Non-Git folders cover regular files recursively. Links, unsupported entries and insufficient coverage stay unverified. Source checks require additional disk reads; a local Windows sample of 1,000 × 1 KiB files took 1.4–1.7 seconds per capture, not a production latency guarantee. Evidence protects against ordinary concurrent changes, not hostile filesystem replacement or mutations after the final check. See the [implementation and verification record](../research/cli-ide-goal-workspace-progress-2026-10-29.md).
 
-## Source checkout: independent Goal acceptance (unreleased)
+<a id="source-checkout-independent-goal-acceptance-unreleased"></a>
+
+## Published CLI 0.166.131: independent Goal acceptance
 
 Use `--goal-condition "verify:../acceptance/goal.json"` to execute an operator-defined acceptance plan after each author turn. Prepare the manifest and checker before starting the agent. The host freezes their bytes and file identities before the first author call; the author does not choose the checks or report their results. Existing `model:` goals retain model judgment and do not automatically gain independent checks.
+
+This explicit mode is now included in the public `.131` package. The native evaluation driver still exposes six file tools and no `--goal-condition` option: upgrading the package does not automatically add `verify:` to native generation, grant command execution, or change its budget. Completion review, model judgment and independent acceptance remain separate mechanisms.
 
 For example, keep these two acceptance files beside the candidate workspace. This plan requires `result.json` inside the workspace:
 
@@ -76,6 +84,16 @@ Limits are 8 checks, 32 artifacts, 32 checker files per check, 65 distinct froze
 The command uses the process broker with a reduced environment that excludes provider credentials and Node preload variables. This does not sandbox arbitrary checker code or attest against malicious candidate code deliberately forging a receipt in the checker process. The operator remains responsible for independent assertions, declared dependency coverage, and selecting trusted acceptance commands. Git-ignored dependencies and external resources are outside source binding unless explicitly declared as checker inputs or in-workspace artifacts. Filesystem digests do not guarantee immutability after verification.
 
 Persistent sessions save the frozen plan and each check's dispatch intent before execution, then save the evaluated result before completion. A changed definition or uncertain process cleanup returns `CC_GOAL_VERIFICATION_FAILED` and stops automatic re-drive. A failed checkpoint returns `CC_GOAL_CHECKPOINT_FAILED` without dispatching the next check. An interrupted running checkpoint requires reconciling effects and processes before `--goal-recovery-reviewed`; resume revalidates the original definition and reruns checks against the current candidate. Local Windows timeout/overflow tests sometimes could not confirm full process-tree termination; those cases halt for review instead of retrying automatically. See the [verification record](../research/cli-ide-goal-verification-progress-2026-10-29.md).
+
+## Published CLI 0.166.131: session and tool lifecycle
+
+- **Project rules after compaction:** the host reads the target workspace's rules, `cc.md` and imported instruction files after `PreCompact` and after summary success or fallback. Changes and deletions during the summary wait are refreshed before another model request; refresh failure stops that request. This does not erase structured Memory or prove semantic summary quality.
+- **Memory:** directory identity checks reject replacement directories; cooperative cancellation yields during disk queries and releases held locks. Decoded shards are reused only when freshly read bytes, manifest generation and physical identity match. `validate-disk` remains the default; upgrades do not switch memory modes. Recovery correctness samples do not establish the complete cold-query, mixed-concurrency or cross-platform performance SLO.
+- **MCP:** admitted late connections become visible on subsequent parent/child turns within existing inheritance and permission limits. Children default to no MCP inheritance and maintain separate discovery caches. Disconnects or schema replacement revoke old requests; parent cancellation propagates to foreground children.
+- **Skills and temporary worktrees:** download ports receive cancellation, but must cooperate with it. Cancellation before commit differs from an already committed installation; an inactive immutable staging candidate can remain reusable. Temporary worktrees reject background or isolated consumers whose lifetime cannot be owned, and retain awaited foreground work until it actually exits.
+- **Terra:** the exact `gpt-6.1-terra` profile supports the official Responses contract and evidence-based usage estimates. Existing default models are unchanged. Account access, live requests, actual billing and custom gateway contracts remain separately unverified.
+
+These published changes do not convert local contract tests into native task acceptance. Cumulative accepted delivery remains **34/45**; historical unknown requests remain unresolved where recorded, and **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain in force. See the [release runtime design](https://design.chainlesschain.com/release-runtime-update-2026-10-29-131.html) for scope and evidence.
 
 > Parent: [`CLI_COMMANDS_REFERENCE.md`](./CLI_COMMANDS_REFERENCE.md)
 

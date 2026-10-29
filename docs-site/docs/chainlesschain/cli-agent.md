@@ -2,11 +2,70 @@
 
 <!-- docs-code-git-sync-2026-10-29 -->
 
-`.130` 将模型 Goal 复查纳入原预算、取消和输出限制，并以当前工作区字节绑定完成证据。公开 `.130` 固定使用 `@chainlesschain/context-memory-kernel@0.1.10`；主分支后续的 kernel `0.1.11`、独立 `verify:` Goal checker、Memory 磁盘取消 / 缓存和 Terra 能力 / 计费改动尚未发布，需另行完成子包发布与精确源码门禁。
+当前公开 CLI **0.166.131** 使用 `@chainlesschain/context-memory-kernel@0.1.11`，包含显式独立 `verify:` Goal 检查、Memory 身份与取消修复、MCP 子任务目录隔离、压缩后的项目规则刷新及 Terra 模型合同。发行源码为 `c9d0bab231850697df38f2d476c2dd974cbcb6c0`，公开配对已完成制品回读。
 
-> 当前核对（2026-10-29）：公开配对为 CLI **0.166.130**、Open VSX **0.37.168**、JetBrains **0.4.185**；两个 IDE 均推荐 `.130`。安装与渠道回执见[升级指南](./agent-platform-release)。PC / 移动端 **v5.0.3.143** 独立发行，Microsoft Marketplace 暂缓。
+> 当前核对（2026-10-29）：CLI **0.166.131**、Open VSX **0.37.169**、JetBrains **0.4.186** 均已公开，两个 IDE 均推荐 `.131`。安装与回执见[升级指南](./cli-ide-update-2026-10-29-131)。PC / 移动端 **v5.0.3.143** 独立发行，Microsoft Marketplace 暂缓。
 
-`.129` 加强交付复查的上下文隔离，并统一实验性 Codex App Server 兼容清单；复查和实验路由默认关闭。后续主分支的独立 `verify:` Goal checker、Memory 磁盘 / 缓存修复和 Terra 能力 / 计费尚未发布。下方带版本的能力说明保留对应发行范围。
+交付复查和实验性 Codex App Server 路由仍默认关闭。下方带版本的能力说明保留首次发布范围；当前累计任务验收仍为 **34/45**，公开发行不等于完整性能、语义质量、真实原生任务或付费准入完成。
+
+## 0.166.131：显式独立 Goal 验证
+
+需要由预先定义的检查程序判定交付物时，显式传入 `verify:`：
+
+```bash
+# 在候选工作区执行；先在相邻 acceptance 目录准备可信 manifest 和 checker
+cc agent -p "按任务要求生成 result.json" --goal-condition "verify:../acceptance/goal.json" --max-outer-turns 3
+```
+
+`goal.json` 示例：
+
+```json
+{
+  "schema": "chainlesschain.goal-verification/v1",
+  "artifacts": ["result.json"],
+  "checks": [
+    {
+      "id": "answer",
+      "executable": "node",
+      "args": ["../acceptance/check.cjs"],
+      "checkerFiles": ["check.cjs"],
+      "requirements": ["answer-is-five"],
+      "timeoutMs": 5000
+    }
+  ]
+}
+```
+
+`check.cjs` 必须执行实际断言，并在成功后输出本次调用绑定的完整回执。例如：
+
+```javascript
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+assert.equal(JSON.parse(fs.readFileSync("result.json", "utf8")).answer, 5);
+console.log(
+  "CC_GOAL_CHECK_RESULT " +
+    JSON.stringify({
+      schema: "chainlesschain.goal-check-result/v1",
+      checkId: process.env.CC_GOAL_CHECK_ID,
+      invocationId: process.env.CC_GOAL_CHECK_INVOCATION,
+      requirements: [{ id: "answer-is-five", passed: true }],
+    }),
+);
+```
+
+manifest 与 checker 由操作者在任务开始前准备，宿主在首次作者模型调用前冻结其字节和文件身份。`checkerFiles` 相对 manifest 解析，命令参数相对候选工作区解析；所有检查代码、夹具与配置依赖都应列入 `checkerFiles`。命令使用独立 argv，不经 shell。所有检查和 requirement 都须通过；仅 exit 0、旧回执、缺失交付物或验证期间源码改变均不能完成 Goal。
+
+检查沿用剩余时间和取消信号，输出有上限；清理状态不明或检查定义改变会停止自动重试。可信 checker 仍须自行保证断言有效、依赖完整并等待子进程退出：此功能不把任意检查代码变成沙箱，也不证明验证结束后的文件永不变化。[完整限制与持久恢复说明](https://github.com/chainlesschain/chainlesschain/blob/main/docs/cli/managed-agents.md#published-cli-0166131-independent-goal-acceptance)。
+
+默认的自然语言 / `model:` Goal 仍使用模型判断；`--review-changes` 仍是默认关闭的交付复查。两者不会自动获得 `verify:` 的独立检查。原生评测 driver 当前只有六个文件工具且没有 `--goal-condition` 参数，升级 `.131` 不会自动给 native generation 添加此验证流程或执行权限。
+
+## 0.166.131：压缩、临时工作区与模型选择
+
+压缩以实际目标工作区读取规则、`cc.md` 及其导入文件；在 `PreCompact` 后、摘要成功或回退后刷新宿主基础规则，摘要等待期间的修改或删除会在后续请求前重新读取。刷新失败时停止下一次模型请求。历史消息及来源绑定仍保留；这不代表清空结构化 Memory，也不证明语义摘要质量。
+
+临时 worktree 内，前台调用会等待已归属任务结束后再释放 checkout；仅发送取消信号不算进程已经退出。不能归属其生命周期的后台 shell、后台子任务、延迟调度和隔离 Skill 子任务会在启动前被拒绝，提示 `CC_EPHEMERAL_WORKTREE_CONSUMER_UNOWNED`。需要持久后台工作的场景应使用持久工作区。
+
+精确模型 ID `gpt-6.1-terra` 已加入官方 Responses 合同及用量估算处理；可在配置允许的 OpenAI provider 下显式选择 `--model gpt-6.1-terra`。升级不会迁移已有默认模型。目标账号权限、真实调用与账单仍需分别验证，自定义网关和未知后缀不继承精确合同；缓存写入费用依赖返回的 TTL 用量证据，未知费用不能当作免费。见[本次运行时设计](https://design.chainlesschain.com/release-runtime-update-2026-10-29-131.html)。
 
 ## 0.166.128：交付复查与 Goal 完成条件
 

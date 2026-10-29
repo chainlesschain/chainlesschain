@@ -1,8 +1,13 @@
 # 设计文档
 
-> 2026-10-27 当前公开：CLI **0.166.127**、Open VSX **0.37.165**、JetBrains **0.4.182**，两个 IDE 推荐 `.127`；移动与 PC 产品 **v5.0.3.142** 已公开，22 个资产通过回读。自进化改为可选开启，新安装与旧自动本地部署默认关闭。跨版本累计 **32/45**、**13** 项未完成，本轮未新增模型任务验收；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。 详见[本轮设计](./release-runtime-update-2026-10-27.md)与[开关配置](https://docs.chainlesschain.com/chainlesschain/self-evolution-configuration.html)。下方较早日期内容保留历史范围。
+> 2026-10-29 当前公开：公开 CLI **0.166.131** / Kernel **0.1.11** / Open VSX **0.37.169** / JetBrains **0.4.186** 已核验，发行源码绑定 `c9d0bab231850697df38f2d476c2dd974cbcb6c0`，两个 IDE 推荐 `.131`；PC / mobile 保持独立 **v5.0.3.143**。准确提交完整发行门禁与公共制品回读已完成；真实任务仍为 **34/45（普通 27/36、首次安装 7/9）**，剩余 **11** 项，`.131` 续测计划已提交但尚未派发。Microsoft 暂缓，`NOT_PAID_READY / NOT_ADMITTED / HOLD` 保留。
 
-- 当前核对：[CLI .127 / Open VSX .165 / JetBrains .182：可选自进化与完整恢复摘要](./release-runtime-update-2026-10-27.md)。
+- 当前核对：[CLI .131 / Kernel .11 / 配对 IDE：独立验收、Memory 与运行时生命周期](./release-runtime-update-2026-10-29-131.md)。
+- [CLI Runtime 当前架构与实现](./cli-runtime-current.md)。
+
+> 2026-10-27 历史公开：CLI **0.166.127**、Open VSX **0.37.165**、JetBrains **0.4.182**，两个 IDE 推荐 `.127`；移动与 PC 产品 **v5.0.3.142** 已公开，22 个资产通过回读。自进化改为可选开启，新安装与旧自动本地部署默认关闭。跨版本累计 **32/45**、**13** 项未完成，本轮未新增模型任务验收；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。 详见[本轮设计](./release-runtime-update-2026-10-27.md)与[开关配置](https://docs.chainlesschain.com/chainlesschain/self-evolution-configuration.html)。下方较早日期内容保留历史范围。
+
+- 10 月 27 日历史核对：[CLI .127 / Open VSX .165 / JetBrains .182：可选自进化与完整恢复摘要](./release-runtime-update-2026-10-27.md)。
 
 - 10 月 23 日历史核对：[CLI .117 / Open VSX .159 / JetBrains .176：Evolution 输入、图片预算与工具轮次恢复](./release-runtime-update-2026-10-23.md)。
 

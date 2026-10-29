@@ -152,7 +152,11 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
-            text: "2026-10-29 CLI .130 Goal 与主线边界",
+            text: "2026-10-29 CLI .131 独立验收与运行时设计",
+            link: "/release-runtime-update-2026-10-29-131",
+          },
+          {
+            text: "2026-10-29 CLI .130 Goal 与主线边界（历史）",
             link: "/release-runtime-update-2026-10-29-130",
           },
           {

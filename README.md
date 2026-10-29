@@ -8,6 +8,8 @@
 
 真实任务累计仍为 **34/45**，剩余 **11** 项；发行和本地测试不增加任务完成数。完整 Memory SLO、真实语义与双 IDE 验收仍待完成，`verify:` 不会自动进入当前 native 生成流程；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。PC / 移动端继续使用独立 **v5.0.3.143**。下方旧版本说明保留历史范围。
 
+[.131 升级步骤](docs-site/docs/chainlesschain/cli-ide-update-2026-10-29-131.md) · [本版运行时设计](docs/design/release-runtime-update-2026-10-29-131.md)。
+
 ## 历史公开配对：CLI 0.166.130 / IDE .168、.185（2026-10-29）
 
 安装：`npm i -g chainlesschain@0.166.130 --registry https://registry.npmjs.org`。Open VSX **0.37.168** 与 JetBrains **0.4.185** 已公开并推荐 CLI **0.166.130**；升级后重启聊天宿主，运行 `cc --version` 和 `cc doctor`。Microsoft Marketplace 仍未发布，VS Code 可安装 [Open VSX 的版本化 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.168/file/chainlesschain.chainlesschain-ide-0.37.168.vsix)。

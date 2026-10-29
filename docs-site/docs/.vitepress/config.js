@@ -181,7 +181,7 @@ export default defineConfig({
       "/chainlesschain/": [
         {
           // <!-- release108-status -->
-          text: "🧩 Agent Platform 0.166.117（公开发行）",
+          text: "🧩 Agent Platform（当前公开 CLI .131）",
           collapsed: false,
           items: [
             {
@@ -197,7 +197,11 @@ export default defineConfig({
               link: "/chainlesschain/rrsi-current",
             },
             {
-              text: "CLI .130 / IDE .168 与 .185 升级",
+              text: "CLI .131 / IDE .169 与 .186 升级",
+              link: "/chainlesschain/cli-ide-update-2026-10-29-131",
+            },
+            {
+              text: "CLI .130 / IDE .168 与 .185 升级（历史）",
               link: "/chainlesschain/cli-ide-update-2026-10-29-130",
             },
             {
@@ -225,7 +229,11 @@ export default defineConfig({
               link: "/chainlesschain/agent-input-and-recovery",
             },
             {
-              text: "2026-10-29 CLI .130 Goal 与主线边界",
+              text: "2026-10-29 CLI .131 独立验收与运行时设计",
+              link: "/design/release-runtime-update-2026-10-29-131",
+            },
+            {
+              text: "2026-10-29 CLI .130 Goal 与主线边界（历史）",
               link: "/design/release-runtime-update-2026-10-29-130",
             },
             {

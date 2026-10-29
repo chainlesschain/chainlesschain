@@ -11,30 +11,30 @@ const jetBrainsPending = [
 const items = english
   ? [
       [
-        "Goal budgets and current workspace evidence",
-        "CLI .130 shares Goal model-review budgets, cancellation and output limits with the author run. Tool and artifact evidence is checked against current workspace bytes before and after review; independent task quality still needs acceptance.",
+        "Explicit Goal verification",
+        "CLI .131 adds explicit verify: acceptance checks against frozen inputs and current workspace evidence. Model review shares run budgets and cancellation; delivery quality still needs independent acceptance.",
       ],
       [
-        "IDE models and tool discovery",
-        "IDEs distinguish missing configuration from read failures and keep /model selection within its conversation. MCP and Skills improve multilingual discovery; compact MCP catalogs remain opt-in, and Memory retains full disk validation.",
+        "Memory, tool discovery and recovery",
+        "Kernel .11 strengthens Memory file identity checks and cancellation. MCP discovery is isolated between agents, Skills downloads honor cancellation, and compaction preserves host rules. Temporary worktrees reject unrelated consumers.",
       ],
       [
-        "Mobile and PC release",
-        `All five platform builds passed for ${releaseStatus.productVersion}. The 22 public assets match the CI manifest, and desktop updater metadata is verified. Desktop and mobile users upgrade their product package; IDE users install the paired CLI.`,
+        "Independent mobile and PC release",
+        `${releaseStatus.productVersion} remains a separate product release. Desktop and mobile users upgrade their product package; IDE users install the paired CLI.`,
       ],
     ]
   : [
       [
-        "Goal 预算与当前工作区证据",
-        "CLI .130 的 Goal 模型评审共用作者任务的预算、取消信号与输出限制；工具和产物证据在评审前后绑定当前工作区字节。产物质量仍需独立验收。",
+        "显式 Goal 验收",
+        "CLI .131 新增显式 verify: 验收条件，冻结验收输入并核对当前工作区证据。模型评审共用运行预算与取消信号，交付质量仍需独立验收。",
       ],
       [
-        "IDE 模型配置与工具发现",
-        "IDE 区分未配置与读取失败，/model 选择仅覆盖当前会话。MCP 与 Skills 改进多语言检索；紧凑目录默认关闭，Memory 继续执行完整磁盘校验。",
+        "Memory、工具发现与恢复",
+        "Kernel .11 加强 Memory 文件身份校验与取消传播；MCP 隔离子代理发现状态，Skills 下载响应取消，上下文压缩保留宿主规则，临时 worktree 拒绝无关消费者使用。",
       ],
       [
-        "移动与 PC 产品已公开",
-        `${releaseStatus.productVersion} 五平台构建通过，22 个公开资产匹配 CI 清单，桌面更新元数据已核验。桌面与移动端通过产品包升级，IDE 用户安装配套 CLI。`,
+        "移动与 PC 独立发行",
+        `${releaseStatus.productVersion} 继续作为独立产品发行。桌面与移动端通过产品包升级，IDE 用户安装配套 CLI。`,
       ],
     ];
 ---
@@ -49,8 +49,8 @@ const items = english
     </h2>
     <p class="mt-4 text-muted leading-relaxed max-w-4xl">
       {english
-        ? `CLI ${releaseStatus.recommendedCliVersion}, Open VSX ${releaseStatus.openVsxVersion} and JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} are publicly verified. Both IDEs recommend CLI ${releaseStatus.recommendedCliVersion}. Session Core ${releaseStatus.sessionCoreVersion} and Personal Data Hub ${releaseStatus.personalDataHubVersion} were published before the CLI. Native product ${releaseStatus.productVersion} remains a separate download.`
-        : `CLI ${releaseStatus.recommendedCliVersion}、Open VSX ${releaseStatus.openVsxVersion} 与 JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} 均已公开核验，两个 IDE 均推荐 CLI ${releaseStatus.recommendedCliVersion}。Session Core ${releaseStatus.sessionCoreVersion} 和 Personal Data Hub ${releaseStatus.personalDataHubVersion} 已先于 CLI 发布；原生产品 ${releaseStatus.productVersion} 继续独立下载升级。`}
+        ? `CLI ${releaseStatus.recommendedCliVersion}, Open VSX ${releaseStatus.openVsxVersion} and JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} are publicly verified. Both IDEs recommend CLI ${releaseStatus.recommendedCliVersion}. Context Memory Kernel ${releaseStatus.contextMemoryKernelVersion}, Session Core ${releaseStatus.sessionCoreVersion} and Personal Data Hub ${releaseStatus.personalDataHubVersion} are publicly available dependencies. Native product ${releaseStatus.productVersion} remains a separate download.`
+        : `CLI ${releaseStatus.recommendedCliVersion}、Open VSX ${releaseStatus.openVsxVersion} 与 JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} 均已公开核验，两个 IDE 均推荐 CLI ${releaseStatus.recommendedCliVersion}。Context Memory Kernel ${releaseStatus.contextMemoryKernelVersion}、Session Core ${releaseStatus.sessionCoreVersion} 和 Personal Data Hub ${releaseStatus.personalDataHubVersion} 依赖均已公开；原生产品 ${releaseStatus.productVersion} 继续独立下载升级。`}
     </p>
     {jetBrainsPending && (
       <p class="mt-3 text-sm text-muted">
@@ -69,15 +69,17 @@ const items = english
     </div>
     <p class="mt-6 text-sm text-muted">
       {english
-        ? `This documentation update adds no independent task acceptance. Historical cross-version acceptance remains ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}, with ${releaseStatus.remainingUnaccepted} unaccepted. NOT_PAID_READY, NOT_ADMITTED and automatic promotion HOLD remain.`
-        : `本轮文档更新未新增独立任务验收。跨版本历史合格交付仍为 ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}，剩余 ${releaseStatus.remainingUnaccepted} 项；NOT_PAID_READY、NOT_ADMITTED 与自动晋升 HOLD 保留。`}
+        ? `No new .131 live-model task round has been dispatched. Historical cross-version acceptance remains ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}, with ${releaseStatus.remainingUnaccepted} unaccepted. Full Memory performance targets, semantic quality and dual-IDE acceptance remain incomplete; paid and native production readiness are not established.`
+        : `本版尚未派发新一轮真实模型任务。跨版本历史合格交付仍为 ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}，剩余 ${releaseStatus.remainingUnaccepted} 项；完整 Memory 性能目标、真实语义和双 IDE 验收尚未全部完成，付费与原生生产就绪仍未确认。`}
     </p>
     <p class="mt-3 text-sm text-muted">
       {english
-        ? `Later main-branch Goal verification, Memory disk/cache and Terra changes are not included in these public packages. Microsoft Marketplace is deferred; stock VS Code can install the versioned Open VSX VSIX.`
-        : `主分支后续的独立 Goal 验收、Memory 磁盘 / 缓存和 Terra 改动尚未进入这些公开包。Microsoft Marketplace 暂缓，官方 VS Code 可安装 Open VSX 的版本化 VSIX。`}
+        ? `These runtime fixes are included in the public .131 package set. Compact MCP catalogs remain opt-in. Microsoft Marketplace is deferred; stock VS Code can install the versioned Open VSX VSIX.`
+        : `这些运行时修复已进入 .131 公开配套包；紧凑 MCP 目录仍默认关闭。Microsoft Marketplace 暂缓，官方 VS Code 可安装 Open VSX 的版本化 VSIX。`}
     </p>
     <div class="mt-6 flex flex-wrap gap-4">
+      <a class="btn-ghost" href={`https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${releaseStatus.openVsxVersion}/file/chainlesschain.chainlesschain-ide-${releaseStatus.openVsxVersion}.vsix`}>{english ? "Download VSIX" : "下载 VSIX"} {releaseStatus.openVsxVersion} ↗</a>
+      <a class="btn-ghost" href={`https://plugins.jetbrains.com/plugin/download?updateId=${releaseStatus.jetBrainsUpdateId}`}>{english ? "Download JetBrains ZIP" : "下载 JetBrains ZIP"} {releaseStatus.jetBrainsMarketplaceVersion} ↗</a>
       <a class="btn-ghost" href={releaseStatus.upgradeGuide}>{english ? "Upgrade guide ↗" : "升级指南 ↗"}</a>
       <a class="btn-ghost" href={releaseStatus.evolutionConfigurationGuide}>{english ? "Self-evolution settings ↗" : "自进化开关配置 ↗"}</a>
       <a class="btn-ghost" href={releaseStatus.recoveryGuide}>{english ? "Image budgets and recovery ↗" : "图片预算与恢复 ↗"}</a>

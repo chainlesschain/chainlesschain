@@ -20,12 +20,12 @@ jobs:
           - site: docs
             directory: docs-site
             dist: docs/.vitepress/dist
-            required: chainlesschain/cli-ide-update-2026-10-29-130.html
+            required: chainlesschain/cli-ide-update-2026-10-29-131.html
             minimum: 600
           - site: design
             directory: docs-site-design
             dist: docs/.vitepress/dist
-            required: release-runtime-update-2026-10-29-130.html
+            required: release-runtime-update-2026-10-29-131.html
             minimum: 250
           - site: www
             directory: docs-website-v2
@@ -69,12 +69,12 @@ jobs:
           git diff --exit-code
           test -f "$DIST/index.html"
           test -f "$DIST/$REQUIRED"
-          for version in 0.166.130 0.37.168 0.4.185 v5.0.3.143; do
+          for version in 0.166.131 0.37.169 0.4.186 v5.0.3.143; do
             grep -Fq "$version" "$DIST/$REQUIRED"
           done
           if [ "$SITE" = www ]; then
             test -f "$DIST/en/index.html"
-            for version in 0.166.130 0.37.168 0.4.185 v5.0.3.143; do
+            for version in 0.166.131 0.37.169 0.4.186 v5.0.3.143; do
               grep -Fq "$version" "$DIST/en/index.html"
             done
           fi

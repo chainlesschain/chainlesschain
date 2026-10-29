@@ -2,9 +2,11 @@
 
 <!-- docs-code-git-sync-2026-10-29 -->
 
-## 2026-10-29 当前 .130 公开范围
+## 2026-10-29 当前 .131 公开范围
 
-公开 CLI **0.166.130** / Open VSX **0.37.168** / JetBrains **0.4.185** 均来自 `f3015e7996`，两个 IDE 推荐 `.130`；CLI 使用 Kernel **0.1.10**，PC / mobile 保持 **v5.0.3.143**。Goal 预算共享与工作区证据绑定已公开；独立 `verify:`、Kernel `0.1.11`、新 Memory / 临时 worktree / Terra 改动尚未发行。累计 **34/45**，Microsoft 暂缓，`NOT_PAID_READY / NOT_ADMITTED / HOLD` 保留。详见[来源与验收边界](../release-runtime-update-2026-10-29-130.md)。下方日期记录保留历史范围。
+公开 CLI **0.166.131** / Kernel **0.1.11** / Open VSX **0.37.169** / JetBrains **0.4.186** 已核验，发行源码绑定 `c9d0bab231850697df38f2d476c2dd974cbcb6c0`，两个 IDE 推荐 `.131`；PC / mobile 保持独立 **v5.0.3.143**。准确提交完整发行门禁与公共制品回读已完成；真实任务仍为 **34/45（普通 27/36、首次安装 7/9）**，剩余 **11** 项，`.131` 续测计划已提交但尚未派发。Microsoft 暂缓，`NOT_PAID_READY / NOT_ADMITTED / HOLD` 保留。
+
+Kernel `.11` 承接查询取消、目录与 Windows 文件身份复查、bundle frame 验证及 recall revision 守卫。100K 本机热 p95 **178.866ms**、冷 **2258.233ms**，冷目标未达；600 次重建/损坏结果正确不等于完整 SLO。混合 10K 补测在原 120 秒上限超时，未完成。详见[来源、设计与验收边界](../release-runtime-update-2026-10-29-131.md)。下方日期记录保留历史范围。
 
 ## 2026-10-28 CLI Memory 查询增量
 
