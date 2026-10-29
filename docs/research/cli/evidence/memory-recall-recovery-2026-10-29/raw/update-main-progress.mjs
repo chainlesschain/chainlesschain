@@ -1,0 +1,11 @@
+import fs from "node:fs";
+const file = "docs/research/cli-ide-codex-claude-gap-review-2026-10-27.md";
+let source = fs.readFileSync(file, "utf8");
+const anchor = "| 4.9        | 当前状态与发行证据同步";
+if (source.split(anchor).length !== 2) throw new Error("Expected one status row anchor");
+const row = "| 4.8 / 5 | Memory recall 版本、语义 Stop 与结构化恢复 | **限定修复和本机旅程完成；整体部分完成** | [第三十五批](./cli-ide-memory-recovery-progress-2026-10-29.md)：CLI 173 项、Kernel 135 项、原生 26 项；两个入口四条实际压缩 / 同进程恢复，磁盘并发更新在模型发送前拒绝；Windows 身份受控修复两版 Node 各 128 通过、1 跳过 | 673 的 Memory CI 为 Unix 两系统通过、Windows 失败；新源码准确 CI、独立进程恢复、真实语义质量、双 IDE 及完整 SLO 仍待验收；旧 REPL 启动注入 / 历史文本未改 |\n";
+source = source.replace(anchor, row + anchor);
+const release = /^\| \.130 \/.*$/mu;
+if (!release.test(source)) throw new Error("Release row missing");
+source = source.replace(release, "| .130 / .168 / .185 源码候选 | **尚未公开；固定 e7 的 CLI CI 第 2 轮仍失败，不可发布** | [第三十五批回读](./cli-ide-memory-recovery-progress-2026-10-29.md)：原 Windows 租约分片已成功；后续 verify-cli 三系统源码身份审计及依赖汇总失败。Kernel / Strict 原准确 e7 门禁通过仍保留；主分支补丁不附着到旧 SHA，候选及标签未移动 |");
+fs.writeFileSync(file, source);

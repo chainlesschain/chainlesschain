@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { syncBuiltinESMExports } from "node:module";
+import * as fileIdentity from "../../src/lib/secure-file-identity.js";
 import {
   createQueryBundlePlan,
   readQueryBundle,
@@ -12,6 +13,7 @@ import {
 
 const parent = fs.realpathSync.native(os.tmpdir());
 const roots = [];
+const trackedDescriptors = new Set();
 const hash = (bytes) =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 const limits = { maxFrameBytes: 1024 * 1024, maxBundleBytes: 4 * 1024 * 1024 };
@@ -19,6 +21,8 @@ const limits = { maxFrameBytes: 1024 * 1024, maxBundleBytes: 4 * 1024 * 1024 };
 afterEach(() => {
   vi.restoreAllMocks();
   syncBuiltinESMExports();
+  for (const fd of trackedDescriptors) expectClosed(fd);
+  trackedDescriptors.clear();
   for (const root of roots.splice(0)) {
     if (
       path.dirname(path.resolve(root)) !== parent ||
@@ -74,7 +78,13 @@ function trackOpenedDescriptors() {
   const original = fs.openSync;
   vi.spyOn(fs, "openSync").mockImplementation((...args) => {
     const fd = original(...args);
-    if (typeof args[1] === "number") opened.push(fd);
+    if (typeof args[1] === "number") {
+      trackedDescriptors.add(fd);
+      // The affected Windows bridge also authenticates parent/volume directory
+      // handles. Count bundle/temp file opens separately; every fd is checked
+      // for closure by afterEach, including those extra directory handles.
+      if (fs.fstatSync(fd).isFile()) opened.push(fd);
+    }
     return fd;
   });
   syncBuiltinESMExports();
@@ -86,6 +96,141 @@ function expectClosed(fd) {
     expect.objectContaining({ code: "EBADF" }),
   );
 }
+
+// Exercise the affected cross-API projections on every host. The actual parent
+// directory handles still supply their real device; only file stats are projected.
+function projectFileIdentity(
+  f,
+  {
+    deviceProjection = true,
+    affected = true,
+    differentInode = false,
+    zeroHandleDevice = false,
+    differentParent = false,
+  } = {},
+) {
+  const lstat = fs.lstatSync;
+  const fstat = fs.fstatSync;
+  const open = fs.openSync;
+  const opened = new Map();
+  const compare = fileIdentity.samePathHandleStableFileIdentity;
+  if (affected) {
+    vi.spyOn(
+      fileIdentity,
+      "isAffectedWindowsZeroDeviceStatRuntime",
+    ).mockReturnValue(true);
+    vi.spyOn(
+      fileIdentity,
+      "samePathHandleStableFileIdentity",
+    ).mockImplementation((pathStat, handleStat, parentDevice) =>
+      compare(pathStat, handleStat, parentDevice, {
+        platform: "win32",
+        uvVersion: "1.49.1",
+      }),
+    );
+  } else {
+    vi.spyOn(
+      fileIdentity,
+      "isAffectedWindowsZeroDeviceStatRuntime",
+    ).mockReturnValue(false);
+  }
+  const inside = (file) =>
+    typeof file === "string" && path.dirname(file) === f.root;
+  const project = (stat, exact, kind, big) => {
+    const ino =
+      (1n << 60n) + exact.ino + (differentInode && kind === "path" ? 1n : 0n);
+    const dev =
+      (kind === "path" && deviceProjection) ||
+      (kind === "handle" && zeroHandleDevice)
+        ? 0n
+        : exact.dev;
+    // Deliberately model differing Number projections. BigInt remains exact,
+    // including inode values whose adjacent integers would round identically.
+    return Object.assign(Object.create(Object.getPrototypeOf(stat)), stat, {
+      dev: big ? dev : Number(dev),
+      ino: big ? ino : Number(ino) + (kind === "path" ? 256 : 0),
+    });
+  };
+  vi.spyOn(fs, "openSync").mockImplementation((file, ...args) => {
+    const fd = open(file, ...args);
+    opened.set(fd, file);
+    return fd;
+  });
+  vi.spyOn(fs, "lstatSync").mockImplementation((file, ...args) => {
+    const stat = lstat(file, ...args);
+    return inside(file) && stat.isFile()
+      ? project(
+          stat,
+          lstat(file, { bigint: true }),
+          "path",
+          args[0]?.bigint === true,
+        )
+      : stat;
+  });
+  vi.spyOn(fs, "fstatSync").mockImplementation((fd, ...args) => {
+    const stat = fstat(fd, ...args);
+    if (differentParent && stat.isDirectory()) {
+      return Object.assign(Object.create(Object.getPrototypeOf(stat)), stat, {
+        dev: typeof stat.dev === "bigint" ? stat.dev + 1n : stat.dev + 1,
+      });
+    }
+    return inside(opened.get(fd)) && stat.isFile()
+      ? project(
+          stat,
+          fstat(fd, { bigint: true }),
+          "handle",
+          args[0]?.bigint === true,
+        )
+      : stat;
+  });
+  syncBuiltinESMExports();
+}
+
+describe("exact cross-API bundle identities", () => {
+  it.each([
+    [false, "read"],
+    [false, "write"],
+    [true, "read"],
+    [true, "write"],
+  ])(
+    "uses exact large inodes with a bounded Windows device bridge (projection=%s, operation=%s)",
+    async (deviceProjection, operation) => {
+      const f = fixture();
+      fs.writeFileSync(f.file, f.bytes);
+      projectFileIdentity(f, { deviceProjection });
+      if (operation === "read") {
+        const received = new Map();
+        await readQueryBundle(f.file, f.plan, {
+          onFrame: (bucket, bytes) => received.set(bucket, bytes),
+        });
+        expect(received).toEqual(f.frames);
+      } else await writeQueryBundle(f.file, f.plan, f);
+      expect(fs.readFileSync(f.file)).toEqual(f.bytes);
+      expect(fs.readdirSync(f.root)).toEqual([f.plan.name]);
+    },
+  );
+
+  it.each([
+    ["different exact inode", { differentInode: true }],
+    ["zero handle device", { zeroHandleDevice: true }],
+    ["different parent device", { differentParent: true }],
+    ["unaffected runtime with forged path device", { affected: false }],
+  ])(
+    "rejects %s instead of treating zero as an identity wildcard",
+    async (_label, options) => {
+      const f = fixture();
+      fs.writeFileSync(f.file, f.bytes);
+      projectFileIdentity(f, options);
+      await expect(readQueryBundle(f.file, f.plan)).rejects.toMatchObject({
+        code: "CONTEXT_MEMORY_STORE_CORRUPT",
+      });
+      await expect(writeQueryBundle(f.file, f.plan, f)).rejects.toMatchObject({
+        code: "CONTEXT_MEMORY_STORE_CORRUPT",
+      });
+      expect(fs.readFileSync(f.file)).toEqual(f.bytes);
+    },
+  );
+});
 
 describe("manifest-bound query bundle plans", () => {
   it("uses stable sorted frames and the old collector's owned filename shape", () => {

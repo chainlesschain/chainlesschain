@@ -1,0 +1,59 @@
+{
+  "label": "e7",
+  "repository": "C:\\code\\chainlesschain\\.work\\budget-egress-20261029\\e7-clone",
+  "catalogueBefore": "sha256:1ddd990f2f6e7338d84a43fb290668b3baa75d889aa2da1770cd066c67129ac9",
+  "catalogueProposed": "sha256:9cabdabac212c1fa133368f92910425baba65cc59446020f7cf8746d3751675b",
+  "catalogueAfter": "sha256:1ddd990f2f6e7338d84a43fb290668b3baa75d889aa2da1770cd066c67129ac9",
+  "scannerDigest": "sha256:daa8fba09080397e842f78d472bc811341928d48eebbff36eb7f10911d47c882",
+  "sourceTreeDigest": "sha256:cff643180a98f3a4e754786886f9ab70d66e191aa3f23563205e1515645e8dac",
+  "filesScanned": 1709,
+  "parseErrors": [],
+  "skippedPaths": [],
+  "oldIssues": [
+    {
+      "path": "packages/cli/src/commands/llm.js",
+      "status": "STALE"
+    },
+    {
+      "path": "packages/cli/src/lib/llm-connection-probe.js",
+      "status": "STALE"
+    }
+  ],
+  "proposedReviewPassed": true,
+  "proposedIssues": [],
+  "readiness": {
+    "paidReady": false,
+    "reason": "Agent, Chat, compaction, advisor, probes, retries and child-process egress are not yet all routed through this authority"
+  },
+  "runtimeCoverageVerified": false,
+  "changes": [
+    {
+      "before": {
+        "path": "packages/cli/src/commands/llm.js",
+        "digest": "sha256:d0b796ff3fcea86ce108c2aede0ebc55a3954bb264e893a62d0daf56010ebfa5",
+        "category": "LOCAL_DIAGNOSTIC",
+        "rationale": "Ollama /api/tags model-list GET, distinct from an inference probe."
+      },
+      "after": {
+        "path": "packages/cli/src/commands/llm.js",
+        "digest": "sha256:c812d9b74905ebb9e5080f595ecc459659edfc634167664bd7f4fd8cba878dd2",
+        "category": "LOCAL_DIAGNOSTIC",
+        "rationale": "Direct fetch lists Ollama models with GET /api/tags against a configurable base URL; the default is local, but locality or zero cost is not guaranteed for an overridden endpoint. The separate llm test command delegates inference to probeLlmConnection. Reviewed delta adds advertised maximum input capability display and formatting without changing this direct request or introducing another outbound dispatch. This classification does not attest paid admission."
+      }
+    },
+    {
+      "before": {
+        "path": "packages/cli/src/lib/llm-connection-probe.js",
+        "digest": "sha256:df4253e799c0ae810d1dac45c7b1f75e5aca83fbe75fa516c18494b82d6ee694",
+        "category": "MODEL_REQUEST",
+        "rationale": "A connectivity probe sends inference, not a free health GET; provider scope governs the physical request. Reviewed changes since 6b3e946f32: OpenAI protocol selection uses the shared capability profile and Responses codecs, with one POST through the existing providerFetch scope. The existing output allowance, timeout, redirect refusal, budget-error propagation and credential redaction remain. Responses usage is normalized before completion validation; incomplete or malformed usage stays unknown, and failure receipts retain any known usage. No retry or separate network dispatch is introduced. This classification does not establish billing, paid admission or release readiness."
+      },
+      "after": {
+        "path": "packages/cli/src/lib/llm-connection-probe.js",
+        "digest": "sha256:a520b283af44852c27a48ce5a5aa95af309e46d2224f7ca337d020c9a3a0206c",
+        "category": "MODEL_REQUEST",
+        "rationale": "Connectivity testing performs inference through one providerFetch POST with a 1024-token output allowance, timeout and redirect refusal. Reviewed delta preserves cache-write lifetime splits and response service-tier/regional pricing evidence in usage and receipts, replacing blanket rejection of nonzero Responses cache writes. Invalid or missing required cache-write split evidence remains unpriced through invalid-context flags and unmatched estimates. Absent service-tier or regional metadata uses standard/nonregional estimate defaults and does not verify billed terms; receipt billingVerified remains false. No retry or additional dispatch is introduced. Provider scope governs supported physical requests, but source classification does not establish billing or paid readiness."
+      }
+    }
+  ]
+}

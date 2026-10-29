@@ -1,0 +1,10 @@
+import fs from "node:fs";
+import { spawnSync } from "node:child_process";
+const args = ["run", "view", "40784878922", "--repo", "chainlesschain/chainlesschain", "--job", "123229304358", "--log-failed"];
+const run = spawnSync("gh", args, { encoding: "utf8", windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
+const prefix = ".work/structured-memory-20261029/release130-verify-failed";
+fs.writeFileSync(prefix + ".log", run.stdout || "");
+fs.writeFileSync(prefix + "-process.json", JSON.stringify({ args, exitCode: run.status, observedAt: new Date().toISOString(), error: run.error?.message || null, stderr: run.stderr }, null, 2) + "\n");
+const lines = (run.stdout || "").split(/\r?\n/).filter(line => line.includes("Audit reviewed runtime"));
+console.log(lines.slice(-30).join("\n"));
+process.exitCode = run.status ?? 1;

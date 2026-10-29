@@ -1,0 +1,60 @@
+TAP version 13
+# Subtest: Memory recall carries cancellation outside the serialized request contract
+ok 1 - Memory recall carries cancellation outside the serialized request contract
+  ---
+  duration_ms: 15.6251
+  type: 'test'
+  ...
+# Subtest: a pre-aborted Memory recall does not query its port
+ok 2 - a pre-aborted Memory recall does not query its port
+  ---
+  duration_ms: 5.4202
+  type: 'test'
+  ...
+# Subtest: late Memory port success after cancellation never becomes a successful recall
+ok 3 - late Memory port success after cancellation never becomes a successful recall
+  ---
+  duration_ms: 0.6538
+  type: 'test'
+  ...
+# Subtest: recall binds unchanged records to their store revision
+ok 4 - recall binds unchanged records to their store revision
+  ---
+  duration_ms: 22.8044
+  type: 'test'
+  ...
+# Subtest: recall rejects reinforce committed after its records were captured
+ok 5 - recall rejects reinforce committed after its records were captured
+  ---
+  duration_ms: 7.3374
+  type: 'test'
+  ...
+# Subtest: recall rejects delete committed after its records were captured
+ok 6 - recall rejects delete committed after its records were captured
+  ---
+  duration_ms: 4.206
+  type: 'test'
+  ...
+# Subtest: an empty recall also rejects a generation change
+ok 7 - an empty recall also rejects a generation change
+  ---
+  duration_ms: 2.7099
+  type: 'test'
+  ...
+# Subtest: Stop after the initial revision prevents querying records
+ok 8 - Stop after the initial revision prevents querying records
+  ---
+  duration_ms: 0.9689
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 408.5155
+
+--- stderr ---

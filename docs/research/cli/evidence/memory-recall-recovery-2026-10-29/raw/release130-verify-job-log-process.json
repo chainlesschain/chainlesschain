@@ -1,0 +1,7 @@
+{
+  "endpoint": "repos/chainlesschain/chainlesschain/actions/jobs/123229304358/logs",
+  "exitCode": 1,
+  "signal": null,
+  "observedAt": "2026-10-29T03:00:50.023Z",
+  "stderr": "gh: Must have admin rights to Repository. (HTTP 403)\n"
+}

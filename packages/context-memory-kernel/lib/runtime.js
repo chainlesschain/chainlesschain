@@ -157,12 +157,32 @@ class ContextMemoryKernel {
   async recallMemory(request, { signal } = {}) {
     signal?.throwIfAborted();
     const port = this._requireMemoryPort();
+    const expectedRevision = boundedInteger(
+      await port.getRevision({ signal }),
+      "MemoryPort revision",
+      { min: 0 },
+    );
+    signal?.throwIfAborted();
     const records = await port.query(request, { signal });
     signal?.throwIfAborted();
     const result = rankMemoryRecords(records, request);
     signal?.throwIfAborted();
-    const memoryRevision = await port.getRevision({ signal });
+    const memoryRevision = boundedInteger(
+      await port.getRevision({ signal }),
+      "MemoryPort revision",
+      { min: 0 },
+    );
     signal?.throwIfAborted();
+    // Ports expose monotonically increasing authority revisions. A query may
+    // release its own snapshot lock before this read, so never label old rows
+    // with a newer generation after a concurrent correction or deletion.
+    if (memoryRevision !== expectedRevision) {
+      throw kernelError(
+        CONTEXT_ERROR_CODES.REVISION_CONFLICT,
+        "memory changed during recall",
+        { expectedRevision, currentRevision: memoryRevision },
+      );
+    }
     return { ...result, memoryRevision };
   }
 

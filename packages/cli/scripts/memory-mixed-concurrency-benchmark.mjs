@@ -202,6 +202,7 @@ export async function runMemoryMixedBenchmark({
     "../src/lib/context-memory-kernel/memory-query-bundle.js",
     "../src/lib/context-memory-kernel/memory-query-index.js",
     "../src/lib/with-file-lock.js",
+    "../src/lib/secure-file-identity.js",
     "../../context-memory-kernel/lib/memory-reducer.js",
     "../../context-memory-kernel/lib/contracts.js",
     "../../context-memory-kernel/lib/canonical.js",

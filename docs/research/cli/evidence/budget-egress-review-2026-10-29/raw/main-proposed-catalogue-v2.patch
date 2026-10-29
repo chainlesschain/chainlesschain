@@ -1,0 +1,79 @@
+diff --git a/packages/cli/scripts/budget-egress-reviewed-sources.json b/packages/cli/scripts/budget-egress-reviewed-sources.json
+index aaa6808620..65c60bbf1a 100644
+--- a/packages/cli/scripts/budget-egress-reviewed-sources.json
++++ b/packages/cli/scripts/budget-egress-reviewed-sources.json
+@@ -1,6 +1,6 @@
+ {
+   "schema": "chainlesschain.budget-egress-source-review/v1",
+-  "reviewedAt": "2026-10-28",
++  "reviewedAt": "2026-10-29",
+   "scope": ["packages/cli/src", "packages/cli/scripts"],
+   "basis": "Implementation source inspection; byte-bound classifications only. Not an independent financial/OS admission decision.",
+   "entries": [
+@@ -100,6 +100,30 @@
+       "category": "MODEL_REQUEST",
+       "rationale": "The HTTPS Volcengine model broker caps request bytes, response bytes, time, answer tokens and per-task requests; disables thinking; sends only after TLS; records connection attempts and dispatch certainty; and treats incomplete usage or truncated output as unusable. Formal scope rejects creation, task start and direct dispatch. A separately running IPC/network broker is not contained by AsyncLocalStorage, and the diagnostic does not grant formal paid admission."
+     },
++    {
++      "path": "packages/cli/src/assets/web-panel/assets/Artifacts-D4DeQQ89.js",
++      "digest": "sha256:2353f47a357c75d1a2a8e54b3b1627e0a3eef5743c7c4dd93f0fe7e83345d294",
++      "category": "SERVICE_API",
++      "rationale": "Generated artifact panel downloads stored files with an authenticated same-origin GET to /api/artifacts/:id/download and delegates list, preview, removal and expiry cleanup through the shared CLI WebSocket service. This is artifact service traffic, not direct model inference; server-side authorization, storage effects and any downstream costs remain separate checks."
++    },
++    {
++      "path": "packages/cli/src/assets/web-panel/assets/index-CI07XFwr.js",
++      "digest": "sha256:9d70a06d5382de4004ccc7ef420c1cf56dae0e2e418c762fd036edbfe5cad62f",
++      "category": "REMOTE_EXECUTION_CONTROL",
++      "rationale": "Generated application entry includes the modulepreload fetch polyfill and a configurable CLI gateway WebSocket carrying authentication, session creation, commands and model/chat requests. Conservative alias candidates M(...) also match UI render callbacks and are not additional WebSocket launches. Remote execution and provider costs require the serving host's own budget authority; source review does not attest that authority."
++    },
++    {
++      "path": "packages/cli/src/assets/web-panel/assets/MtcAudit-CwJzv9a9.js",
++      "digest": "sha256:386279ddb9399ea6d359c93409e8be213593cfdfc5ca2c54a046c194cb26486f",
++      "category": "REMOTE_EXECUTION_CONTROL",
++      "rationale": "Generated MTC audit panel delegates envelope queries, archive push/restore, governance, trust and automatic archive controls to desktop-host WebSocket topics. The flagged i.fetch call is the envelope composable method forwarding mtc.envelope.get, not global HTTP fetch. Delegated operations may cause storage or WebDAV/network effects; their authorization and costs are outside this byte-bound source classification."
++    },
++    {
++      "path": "packages/cli/src/assets/web-panel/assets/RemoteSession-DyCisp2M.js",
++      "digest": "sha256:481259ef3a2b2857f61d1b5e70983a4171d51dee9a16d1d78a08a7ef22a4956c",
++      "category": "REMOTE_EXECUTION_CONTROL",
++      "rationale": "Generated remote-session client opens WebSockets to the configured relay or paired direct host and sends authenticated or encrypted prompts, approvals and interruption controls. Conservative alias candidates also match local cryptographic constructors and callbacks; the actual network constructors are the relay and direct WebSocket launches. Encryption and command deduplication do not establish remote model budget containment or paid readiness."
++    },
+     {
+       "path": "packages/cli/src/commands/agenda.js",
+       "digest": "sha256:50204bbb316cde4868755b15d0897fd8b811cc2b58a952e53f70d70df95eb695",
+@@ -114,9 +138,9 @@
+     },
+     {
+       "path": "packages/cli/src/commands/llm.js",
+-      "digest": "sha256:d0b796ff3fcea86ce108c2aede0ebc55a3954bb264e893a62d0daf56010ebfa5",
++      "digest": "sha256:c812d9b74905ebb9e5080f595ecc459659edfc634167664bd7f4fd8cba878dd2",
+       "category": "LOCAL_DIAGNOSTIC",
+-      "rationale": "Ollama /api/tags model-list GET, distinct from an inference probe."
++      "rationale": "Direct fetch lists Ollama models with GET /api/tags against a configurable base URL; the default is local, but locality or zero cost is not guaranteed for an overridden endpoint. The separate llm test command delegates inference to probeLlmConnection. Reviewed delta adds advertised maximum input capability display and formatting without changing this direct request or introducing another outbound dispatch. This classification does not attest paid admission."
+     },
+     {
+       "path": "packages/cli/src/commands/mtc.js",
+@@ -330,9 +354,9 @@
+     },
+     {
+       "path": "packages/cli/src/lib/llm-connection-probe.js",
+-      "digest": "sha256:df4253e799c0ae810d1dac45c7b1f75e5aca83fbe75fa516c18494b82d6ee694",
++      "digest": "sha256:a520b283af44852c27a48ce5a5aa95af309e46d2224f7ca337d020c9a3a0206c",
+       "category": "MODEL_REQUEST",
+-      "rationale": "A connectivity probe sends inference, not a free health GET; provider scope governs the physical request. Reviewed changes since 6b3e946f32: OpenAI protocol selection uses the shared capability profile and Responses codecs, with one POST through the existing providerFetch scope. The existing output allowance, timeout, redirect refusal, budget-error propagation and credential redaction remain. Responses usage is normalized before completion validation; incomplete or malformed usage stays unknown, and failure receipts retain any known usage. No retry or separate network dispatch is introduced. This classification does not establish billing, paid admission or release readiness."
++      "rationale": "Connectivity testing performs inference through one providerFetch POST with a 1024-token output allowance, timeout and redirect refusal. Reviewed delta preserves cache-write lifetime splits and response service-tier/regional pricing evidence in usage and receipts, replacing blanket rejection of nonzero Responses cache writes. Invalid or missing required cache-write split evidence remains unpriced through invalid-context flags and unmatched estimates. Absent service-tier or regional metadata uses standard/nonregional estimate defaults and does not verify billed terms; receipt billingVerified remains false. No retry or additional dispatch is introduced. Provider scope governs supported physical requests, but source classification does not establish billing or paid readiness."
+     },
+     {
+       "path": "packages/cli/src/lib/llm-providers.js",
+@@ -462,9 +486,9 @@
+     },
+     {
+       "path": "packages/cli/src/runtime/agent-core.js",
+-      "digest": "sha256:598c9aac88bbb5ea0564046e5f1ace54c2084f09c9b50dcb961da0d7f26d4ba1",
++      "digest": "sha256:b635ed8da8db6f2c5c2276bb427ac9109e913315821572c8edc16199df9a4eea",
+       "category": "MODEL_REQUEST",
+-      "rationale": "Canonical provider/tool execution host retains scoped model egress. Ollama nonstreaming and streaming POSTs now use ollamaProviderFetch, preserving host-owned formal budget transport and closed-scope refusal while changing only default unscoped connection reuse. Existing caller retry, tool gating, usage settlement and oversized-result identity boundaries are not expanded by this adapter. This source classification does not grant financial or OS admission. Tool-only completion text is normalized to JSON-safe null, without changing provider routing or dispatch. Live result retention now settles complete tools through the existing synchronous host hook before deriving a fresh checkpoint; settlement failure stops before provider admission. Provider scope, retry, model/tool gating, usage settlement and financial admission remain unchanged. Reviewed delta from b32eda51f4: compact MCP catalog projection retains the effective allowed tool names and executor gate. Explicit reviewChanges may add a one-shot completion review and subsequent repair requests through the same agent loop and shared iteration, session admission, usage persistence and host cost boundaries. Failed/deferred writes do not arm it; missing provider usage blocks additional review. Live text/thinking deltas are discarded in this opt-in mode to prevent provisional completion publication, without adding tools or buffering output. This is a source classification only, not quality acceptance, paid admission or a cross-platform release result. Hermetic change review now projects original host/user requirements and a separate review tool journal inside the same agentLoop; author rationale, worklog and memory recall do not enter this phase. Canonical context/tool/output planning remains enabled and verifies requirement preservation before dispatch. Discovery hints are phase-local while policy, shared model/session budgets, cancellation, usage boundaries and mutation scope remain unchanged. Missing review usage stops before more tools or calls; interrupted in-process review cannot fall back to author history. No independent model egress or financial/OS admission is added. Reviewed 2026-10-29 delta from 99694e24c5 parent: skips recovery checkpoints only for validated read-only built-in Git commands, retaining snapshots for external executors and output/driver flags. Provider egress, retries, usage and budget admission are unchanged."
++      "rationale": "Canonical agent execution retains six providerFetch and two ollamaProviderFetch dispatch sites. Reviewed delta since 99694e24c5 refreshes host-published MCP catalogs, validates catalog bindings before delegated dispatch, propagates cancellation to subagents and refreshes host project context around compaction. Catalog refresh may change available delegated tools and context refresh changes model input; these remain subject to existing execution, session and provider admission paths. No independent provider dispatch is added. This source review does not attest arbitrary MCP or descendant containment, financial admission, quality acceptance or cross-platform release readiness."
+     },
+     {
+       "path": "packages/cli/src/runtime/diagnostics.js",

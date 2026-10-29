@@ -1,0 +1,66 @@
+{
+  "observedAt": "2026-10-29T03:19:20.567Z",
+  "receipts": [
+    {
+      "program": "C:\\nvm4w\\nodejs\\node.exe",
+      "args": [
+        "node_modules/prettier/bin/prettier.cjs",
+        "--check",
+        ".github/workflows/memory-query-index.yml",
+        "docs/research/cli-ide-codex-claude-gap-review-2026-10-27.md",
+        "docs/research/cli-ide-release130-ci-recovery-2026-10-29.md",
+        "packages/cli/__tests__/unit/memory-query-bundle.test.js",
+        "packages/cli/scripts/budget-egress-reviewed-sources.json",
+        "packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs",
+        "packages/cli/scripts/memory-query-index-benchmark.mjs",
+        "packages/cli/scripts/memory-query-responsiveness-benchmark.mjs",
+        "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js",
+        "packages/cli/src/lib/context-memory-kernel/provider-context.js",
+        "packages/context-memory-kernel/README.md",
+        "packages/context-memory-kernel/lib/runtime.js",
+        "packages/context-memory-kernel/test/memory-recall-cancellation.test.js",
+        "docs/research/cli-ide-egress-review-progress-2026-10-29.md",
+        "docs/research/cli-ide-memory-recovery-progress-2026-10-29.md",
+        "packages/cli/__tests__/integration/compaction-structured-memory.test.js",
+        "packages/cli/__tests__/integration/semantic-memory-cancellation.test.js",
+        "packages/cli/scripts/memory-file-identity-diagnostic.mjs",
+        "packages/context-memory-kernel/test/memory-recall-revision.test.js"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "log": "static-check-0.log"
+    },
+    {
+      "program": "actionlint",
+      "args": [
+        ".github/workflows/memory-query-index.yml"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "log": "static-check-1.log"
+    },
+    {
+      "program": "C:\\nvm4w\\nodejs\\node.exe",
+      "args": [
+        "packages/context-memory-kernel/scripts/validate-inventory.mjs"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "log": "static-check-2.log"
+    },
+    {
+      "program": "git",
+      "args": [
+        "diff",
+        "--check"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "log": "static-check-3.log"
+    }
+  ]
+}

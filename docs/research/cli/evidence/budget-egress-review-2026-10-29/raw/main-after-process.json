@@ -1,0 +1,16 @@
+{
+  "executable": "C:\\nvm4w\\nodejs\\node.exe",
+  "node": "v22.22.2",
+  "args": [
+    "packages/cli/scripts/implementation-plan-budget-egress.mjs",
+    "--check",
+    "--include-scripts",
+    "--output",
+    ".work/budget-egress-20261029/main-after.json"
+  ],
+  "exitCode": 0,
+  "signal": null,
+  "before": "e742078bd30874298eed124fb4567f6ab72b89695b78d454bf1c9b0c941319a4",
+  "after": "e742078bd30874298eed124fb4567f6ab72b89695b78d454bf1c9b0c941319a4",
+  "observedAt": "2026-10-29T03:10:22.782Z"
+}

@@ -1,0 +1,24 @@
+{
+  "args": [
+    "--test",
+    "packages/context-memory-kernel/test/memory-recall-revision.test.js",
+    "packages/context-memory-kernel/test/memory-recall-cancellation.test.js"
+  ],
+  "cwd": "C:\\code\\chainlesschain",
+  "startedAt": "2026-10-29T02:37:18.460Z",
+  "endedAt": "2026-10-29T02:37:19.084Z",
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "sourceBefore": {
+    "packages/context-memory-kernel/lib/runtime.js": "8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+    "packages/cli/src/lib/context-memory-kernel/provider-context.js": "ab74480036676afc883aa1027653c16d1bf94c09eaa5355652940ea7c158a9a2",
+    "packages/cli/src/lib/abort-utils.js": "7f1c1703150e71c46ad80b3f6688edc1a489fc389bca462a65091bef11dd692b"
+  },
+  "sourceAfter": {
+    "packages/context-memory-kernel/lib/runtime.js": "8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+    "packages/cli/src/lib/context-memory-kernel/provider-context.js": "ab74480036676afc883aa1027653c16d1bf94c09eaa5355652940ea7c158a9a2",
+    "packages/cli/src/lib/abort-utils.js": "7f1c1703150e71c46ad80b3f6688edc1a489fc389bca462a65091bef11dd692b"
+  },
+  "sourcesStable": true
+}

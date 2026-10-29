@@ -1,0 +1,500 @@
+{
+  "schema": "chainlesschain.budget-egress-source-review/v1",
+  "reviewedAt": "2026-10-29",
+  "scope": ["packages/cli/src", "packages/cli/scripts"],
+  "basis": "Implementation source inspection; byte-bound classifications only. Not an independent financial/OS admission decision.",
+  "entries": [
+    {
+      "path": "packages/cli/scripts/app-server-overload-soak.mjs",
+      "digest": "sha256:e3fffb666f9adb78f46e49d9b81e38838db158330f026dedadf1cb24f98c2545",
+      "category": "LOCAL_DIAGNOSTIC",
+      "rationale": "Loopback WebSocket load against locally constructed App Server synthetic handlers; does not send model inference or attest a paid 8h/24h run."
+    },
+    {
+      "path": "packages/cli/scripts/collect-graph-production-source-receipts.mjs",
+      "digest": "sha256:a865dbe0ee00d507dcf5fdd12130268e0702e1b33e3d3980a27242a259ad98a3",
+      "category": "REMOTE_EXECUTION_CONTROL",
+      "rationale": "Authenticated POST to registered production evidence collectors can trigger collector work. Operator authority and any remote costs are outside the Chat budget contract."
+    },
+    {
+      "path": "packages/cli/scripts/context-token-volcengine-live-probe.mjs",
+      "digest": "sha256:dff0b4dc9d0759f022f44d4052b5da7d749378a426cbaf08ec05731c9e06a6b1",
+      "category": "MODEL_REQUEST",
+      "rationale": "Standalone paid calibration probe uses injected/raw fetch. CLI and exported runner reject formal scope before config/options or dispatch; ordinary diagnostics require separate authorization and are not formal samples."
+    },
+    {
+      "path": "packages/cli/scripts/download-public-release-file.mjs",
+      "digest": "sha256:49ac671926c029466afba08e61a7947ad4278c98ff8e9c871e762921e3ee3a60",
+      "category": "DISTRIBUTION",
+      "rationale": "Bounded public artifact GET with validated redirects and integrity checks. Downloading a release does not publish it or admit model execution."
+    },
+    {
+      "path": "packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs",
+      "digest": "sha256:a4f19c483db1d5849cf4ad5562bfbffde54072335426bc77c412b80119596115",
+      "category": "TASK_CONTROLLED_NETWORK",
+      "rationale": "Marketplace fixture includes a generic CONNECT proxy and configured test destinations. Classification does not constrain arbitrary proxy destinations or confer a billing contract."
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-status.mjs",
+      "digest": "sha256:8309119432953907cfe39e325396e5b8bdfb0a5339e56b1dc161863ff0e421ea",
+      "category": "DISTRIBUTION",
+      "rationale": "Opt-in public package metadata GET from npm/Open VSX. Default local snapshot also binds the independent lineage registry source and performs no public readback; visibility is not release qualification."
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-volcengine-live.mjs",
+      "digest": "sha256:550ca6ef647df58f4bbb1545725082182d75e90ec83ec9a2f5b86023ebdb539b",
+      "category": "MODEL_REQUEST",
+      "rationale": "Paid model/tool/compaction diagnostic intercepts global fetch and estimates usage. Formal scope rejects before config, receipts, environment or fetch mutation. Estimate stops are not hard limits."
+    },
+    {
+      "path": "packages/cli/scripts/mcp-lifecycle-profile.mjs",
+      "digest": "sha256:0c45fcd71579578f658cac34aa89fc980b59e930c42bb86f0eb0e91d45869123",
+      "category": "LOCAL_DIAGNOSTIC",
+      "rationale": "Synthetic loopback MCP/OAuth/TLS fixtures with injected HTTP wrappers. Does not prove containment of production MCP servers, delegated tools or their costs."
+    },
+    {
+      "path": "packages/cli/scripts/mcp-reference-interop.mjs",
+      "digest": "sha256:f5d4863f5ef957b3bef8f4177f817b540d24f9fde66cbb891f79ca314af348c5",
+      "category": "LOCAL_DIAGNOSTIC",
+      "rationale": "Local MCP reference fixture forwards to a loopback child server. Production tool delegation and descendant costs remain separate boundaries."
+    },
+    {
+      "path": "packages/cli/scripts/pm-exploration-volcengine-live-probe.mjs",
+      "digest": "sha256:789857302d6f0ef7f30368103e345405ed6577180f29298417cddd2dfc1bdde1",
+      "category": "MODEL_REQUEST",
+      "rationale": "Paid connectivity probe; import is inert and runner rejects formal scope before CLI/config. Ordinary CLI requires explicit live confirmation; estimated cost is not a quota."
+    },
+    {
+      "path": "packages/cli/scripts/query-graph-production-jobs.mjs",
+      "digest": "sha256:0b747efcdb003c37bb5767801d228859f321f18590aab8ccb90a92ef191de531",
+      "category": "SERVICE_API",
+      "rationale": "Authenticated bounded GitHub Actions Jobs API GET for exact run/attempt evidence. Does not dispatch jobs or prove downstream billing coverage."
+    },
+    {
+      "path": "packages/cli/scripts/verify-release-gates.mjs",
+      "digest": "sha256:8ef9b2db9420e4086d89bb569b3d36ddf2b40611e9a883aecbe9f9007b2c59df",
+      "category": "SERVICE_API",
+      "rationale": "GitHub checks/status readback. API responses are evidence inputs, not publication or financial admission."
+    },
+    {
+      "path": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:dfe7352e09d061c4a6e06e988d3d0279121658dccef494fc78c3efc13e85d724",
+      "category": "MODEL_REQUEST",
+      "rationale": "Downloads public package and artifact data, installs the exact npm CLI, launches native CLI/IDE hosts, and sends paid model requests through the Volcengine diagnostic broker. Live confirmation and a key are required. The entry point rejects formal scope before reading options, credentials, paths, downloads, host processes, or model transport; this campaign remains paid model egress, not a local-only test. Windows UTF-8 archive extraction now invokes a local Python reader; the reviewed network and model dispatch paths are unchanged. Reviewed explicit reviewChanges boolean forwarding for the public CLI, VS Code and JetBrains adapters. Default behavior and the frozen task prompt remain unchanged. The opt-in review shares the existing twenty model turns, twenty-four physical requests, 8192 output allowance and six file tools. Requested and observed runtime review reminders are telemetry, not acceptance. No additional transport, endpoint or automatic resend is introduced."
+    },
+    {
+      "path": "packages/cli/scripts/verify01-native-toolchain-prepare.mjs",
+      "digest": "sha256:7d1424de87da2609548287ce33a03fed2e2c5b10d095c0caadc97a96ea8aea4b",
+      "category": "DISTRIBUTION",
+      "rationale": "Bounded registry artifact download and toolchain preparation; no provider inference. Artifact identity and native admission are independently checked."
+    },
+    {
+      "path": "packages/cli/scripts/verify01-public-vscode-matrix-diagnostic.mjs",
+      "digest": "sha256:e327be6615d3c71d53cc92848e0003f9eaf273ab58149168e01a70aa787b426a",
+      "category": "MODEL_REQUEST",
+      "rationale": "Downloads public Open VSX metadata, VSIX and npm CLI artifacts, launches the installed VS Code host, and sends paid model requests through the Volcengine diagnostic broker. Live confirmation and a key are required. The entry point rejects formal scope before reading options, credentials, paths, downloads, host processes, or model transport; this is a live model diagnostic rather than free/local verification."
+    },
+    {
+      "path": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:276b97788a56b2f2958f8e9ad223888764d04c501c5796999737cfe80ff1f6df",
+      "category": "MODEL_REQUEST",
+      "rationale": "The HTTPS Volcengine model broker caps request bytes, response bytes, time, answer tokens and per-task requests; disables thinking; sends only after TLS; records connection attempts and dispatch certainty; and treats incomplete usage or truncated output as unusable. Formal scope rejects creation, task start and direct dispatch. A separately running IPC/network broker is not contained by AsyncLocalStorage, and the diagnostic does not grant formal paid admission."
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/Artifacts-D4DeQQ89.js",
+      "digest": "sha256:2353f47a357c75d1a2a8e54b3b1627e0a3eef5743c7c4dd93f0fe7e83345d294",
+      "category": "SERVICE_API",
+      "rationale": "Generated artifact panel downloads stored files with an authenticated same-origin GET to /api/artifacts/:id/download and delegates list, preview, removal and expiry cleanup through the shared CLI WebSocket service. This is artifact service traffic, not direct model inference; server-side authorization, storage effects and any downstream costs remain separate checks."
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/index-CI07XFwr.js",
+      "digest": "sha256:9d70a06d5382de4004ccc7ef420c1cf56dae0e2e418c762fd036edbfe5cad62f",
+      "category": "REMOTE_EXECUTION_CONTROL",
+      "rationale": "Generated application entry includes the modulepreload fetch polyfill and a configurable CLI gateway WebSocket carrying authentication, session creation, commands and model/chat requests. Conservative alias candidates M(...) also match UI render callbacks and are not additional WebSocket launches. Remote execution and provider costs require the serving host's own budget authority; source review does not attest that authority."
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/MtcAudit-CwJzv9a9.js",
+      "digest": "sha256:386279ddb9399ea6d359c93409e8be213593cfdfc5ca2c54a046c194cb26486f",
+      "category": "REMOTE_EXECUTION_CONTROL",
+      "rationale": "Generated MTC audit panel delegates envelope queries, archive push/restore, governance, trust and automatic archive controls to desktop-host WebSocket topics. The flagged i.fetch call is the envelope composable method forwarding mtc.envelope.get, not global HTTP fetch. Delegated operations may cause storage or WebDAV/network effects; their authorization and costs are outside this byte-bound source classification."
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/RemoteSession-DyCisp2M.js",
+      "digest": "sha256:481259ef3a2b2857f61d1b5e70983a4171d51dee9a16d1d78a08a7ef22a4956c",
+      "category": "REMOTE_EXECUTION_CONTROL",
+      "rationale": "Generated remote-session client opens WebSockets to the configured relay or paired direct host and sends authenticated or encrypted prompts, approvals and interruption controls. Conservative alias candidates also match local cryptographic constructors and callbacks; the actual network constructors are the relay and direct WebSocket launches. Encryption and command deduplication do not establish remote model budget containment or paid readiness."
+    },
+    {
+      "path": "packages/cli/src/commands/agenda.js",
+      "digest": "sha256:50204bbb316cde4868755b15d0897fd8b811cc2b58a952e53f70d70df95eb695",
+      "category": "TASK_CONTROLLED_NETWORK",
+      "rationale": "User-selected URL retrieval for agenda material; arbitrary endpoint behavior/cost is not a model-token contract."
+    },
+    {
+      "path": "packages/cli/src/commands/ask.js",
+      "digest": "sha256:734f560c7a877b9c77ef85eb13fdceca893e4bf22889b214e359e74c5766da73",
+      "category": "MODEL_REQUEST",
+      "rationale": "Single-shot inference always uses providerFetch, including when optional self-evolution is off. A supplied Evolution ingress must be branded before request preparation. An active formal budget scope still owns physical provider calls, credentials and settlement; disabling Evolution does not bypass that scope."
+    },
+    {
+      "path": "packages/cli/src/commands/llm.js",
+      "digest": "sha256:c812d9b74905ebb9e5080f595ecc459659edfc634167664bd7f4fd8cba878dd2",
+      "category": "LOCAL_DIAGNOSTIC",
+      "rationale": "Direct fetch lists Ollama models with GET /api/tags against a configurable base URL; the default is local, but locality or zero cost is not guaranteed for an overridden endpoint. The separate llm test command delegates inference to probeLlmConnection. Reviewed delta adds advertised maximum input capability display and formatting without changing this direct request or introducing another outbound dispatch. This classification does not attest paid admission."
+    },
+    {
+      "path": "packages/cli/src/commands/mtc.js",
+      "digest": "sha256:b50e96a7b823ceec4e2c431284d2ae0dd718980e7c82dc21b7a7a9866a3c3592",
+      "category": "CONTENT_ADDRESSED_DATA",
+      "rationale": "transport.fetch(cid) retrieves an IPFS/content-addressed landmark, not a global HTTP fetch call."
+    },
+    {
+      "path": "packages/cli/src/commands/notification.js",
+      "digest": "sha256:b7f6ce087167d852bdbbeb045f282679a51af6ee984a086382d57a4927f0cda9",
+      "category": "REMOTE_EXECUTION_CONTROL",
+      "rationale": "WebSocket notification subscription; remote-session execution/cost requires its own host contract."
+    },
+    {
+      "path": "packages/cli/src/gateways/remote-session-relay.js",
+      "digest": "sha256:a5825e10a7eaf9736e42c7abb5c674a4f1479389ffce8613cf2dc08bf931c08c",
+      "category": "REMOTE_EXECUTION_CONTROL",
+      "rationale": "Remote-session WebSocket relay may carry commands and work; remote budget/lease containment remains unverified."
+    },
+    {
+      "path": "packages/cli/src/harness/mcp-client.js",
+      "digest": "sha256:75c85ffc9eb99d8365fd079280d9b61b1c150e7576ebe1673333ffa05ccc7b57",
+      "category": "TASK_CONTROLLED_NETWORK",
+      "rationale": "MCP HTTP/WebSocket/stdio transport can delegate arbitrary tools. Remote or tool costs and descendant containment remain unverified."
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-fcm.js",
+      "digest": "sha256:ddd58adb5d14112c72fbbcebeb0230076e40a66a900c2396821bf44810b29f8f",
+      "category": "SERVICE_API",
+      "rationale": "FCM authentication and notification delivery; service charges, if any, are outside the Chat contract."
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-huawei.js",
+      "digest": "sha256:013ccd45839ad134540f971ef6c47eb4f3a7d1cf803fccbd0ea3069930bfaa10",
+      "category": "SERVICE_API",
+      "rationale": "Huawei authentication and notification delivery, not model inference."
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-oppo.js",
+      "digest": "sha256:97f045ab143f86053d6d5070d55a98cddf5af4fc85c32e111d815b511d61a171",
+      "category": "SERVICE_API",
+      "rationale": "OPPO authentication and notification delivery, not model inference."
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-vivo.js",
+      "digest": "sha256:dc531b4590a132a115e32ace9bbca2dff6a381991b2cb5d79447f42f2a7eb2c3",
+      "category": "SERVICE_API",
+      "rationale": "Vivo authentication and notification delivery, not model inference."
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-web.js",
+      "digest": "sha256:6d2bd789cc424995cdfb1abf2d4b9119d7566008689f53eba2fd936161e4edf9",
+      "category": "SERVICE_API",
+      "rationale": "Encrypted Web Push delivery; classification is not a claim of zero service cost."
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-xiaomi.js",
+      "digest": "sha256:96eb1cc11e236c05bb670ee324609782e953a53ac058a33e527777d8b35cd204",
+      "category": "SERVICE_API",
+      "rationale": "Xiaomi notification delivery, not model inference."
+    },
+    {
+      "path": "packages/cli/src/harness/session-mirror.js",
+      "digest": "sha256:e64bc91e0e6759677cf80ee49128aee7a6625080bf889228f94965c2c8484133",
+      "category": "SERVICE_API",
+      "rationale": "Authenticated HTTP session persistence/mirroring, including doFetch aliases."
+    },
+    {
+      "path": "packages/cli/src/lib/agent-team/team-message-bridge.js",
+      "digest": "sha256:6ed63d0477162d4347f3236ed76fe76378b38e1fb7ac2e93f8894cc0339f0167",
+      "category": "LOCAL_IPC",
+      "rationale": "Team broker local socket IPC; peer authorization and descendant model calls are separate checks."
+    },
+    {
+      "path": "packages/cli/src/lib/background-agent-keeper-client.js",
+      "digest": "sha256:d6b9d5798368d648c90379d444e64db04d5ab533c893a55943f62a2f77c8783f",
+      "category": "LOCAL_IPC",
+      "rationale": "Background keeper control IPC; formal process scope rejects direct connect and ARM before payload inspection, including on preconnected clients. RETIRE remains available for cleanup. Existing remote keepers and other processes are outside this process-local guard."
+    },
+    {
+      "path": "packages/cli/src/lib/background-session-transport.js",
+      "digest": "sha256:7ef032b643153f1caa3c05f13dc09e12b11d2e77b2ff60cefeb868a0af59aa6f",
+      "category": "LOCAL_IPC",
+      "rationale": "Local session IPC transport; remote model requests require independent host coverage."
+    },
+    {
+      "path": "packages/cli/src/lib/browser-automation.js",
+      "digest": "sha256:0e0b9313961a97d5efeab6ba8a9a21ae4d1e551284bd7c72354ccd038c172377",
+      "category": "TASK_CONTROLLED_NETWORK",
+      "rationale": "User-controlled page retrieval and browser automation; direct fetchPage and takeScreenshot now reject formal process scope before options or I/O. Target behavior and remote side effects still need separate host policy."
+    },
+    {
+      "path": "packages/cli/src/lib/cc-android-bridge.js",
+      "digest": "sha256:272ec0c1db9d2c3b79518457ccfdd3c60b0422b5fbc0275cdf7ad12e3d91aaf6",
+      "category": "TASK_CONTROLLED_NETWORK",
+      "rationale": "Generic Android /invoke bridge; invoke, caps and direct config loading now reject formal process scope before method, environment, credential or HTTP access. Method-specific side effects and delegated work are not inferred to be free."
+    },
+    {
+      "path": "packages/cli/src/lib/channels/telegram-channel.js",
+      "digest": "sha256:a490f648cf8b138fc583b29d1e2f072292b81b94eeb614255f79199a9bc8aab4",
+      "category": "SERVICE_API",
+      "rationale": "Telegram getUpdates/sendMessage transport, not model inference."
+    },
+    {
+      "path": "packages/cli/src/lib/chat-core.js",
+      "digest": "sha256:c12c9c158c23a704494a12cdf982a97c6cd50cbe415fa92fe21efe2f82787f33",
+      "category": "MODEL_REQUEST",
+      "rationale": "Streaming model inference; explicit provider scope mediates supported contracts."
+    },
+    {
+      "path": "packages/cli/src/lib/chrome-connector.js",
+      "digest": "sha256:6c2fc2e0f36202eb737fe984dd2f3f411ba3b932e30e8438d057cb161cfd61e1",
+      "category": "LOCAL_DIAGNOSTIC",
+      "rationale": "Chrome DevTools HTTP discovery; browser/task operations need their own authority."
+    },
+    {
+      "path": "packages/cli/src/lib/cloud/cloud-client.js",
+      "digest": "sha256:df3969e974082684887646e98ee635164b012f553e882b27ec8fd29b268c1e41",
+      "category": "REMOTE_EXECUTION_CONTROL",
+      "rationale": "Cloud runner job API can launch delegated work; constructor and request entry points now reject a formal process scope before input or credential access. Job HTTP is not a governed model-token reservation."
+    },
+    {
+      "path": "packages/cli/src/lib/cowork-adapter.js",
+      "digest": "sha256:6d4b7a5bf833e826944c9cb5445cbfbed45b38c22334847e32dc7ed4332d0eb5",
+      "category": "MODEL_REQUEST",
+      "rationale": "Cowork model requests through providerFetch; no OS descendant containment claim."
+    },
+    {
+      "path": "packages/cli/src/lib/decision-layer/providers.js",
+      "digest": "sha256:e95da9f0327f90882a94f7e54dced15f814ddadbf6dac40e77c8dcccc61b4a39",
+      "category": "MODEL_REQUEST",
+      "rationale": "Typed decision inference; incompatible Chat contracts reject inside provider scope."
+    },
+    {
+      "path": "packages/cli/src/lib/downloader.js",
+      "digest": "sha256:89edfc6d7b222d552820031888493f15ef1e0606ef587fb2c3a93d8c121b9689",
+      "category": "DISTRIBUTION",
+      "rationale": "GitHub release metadata and binary downloads with integrity checks."
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-hub-llm.js",
+      "digest": "sha256:8c91426671efc5a234df860be02ddc21cb9fcdcc89a8fef4dd0b1b89c63ad981",
+      "category": "MODEL_REQUEST",
+      "rationale": "Governed Hub model inference; scoped Chat dispatch or opaque SDK rejection."
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-hub-resolver.js",
+      "digest": "sha256:8b85c11c272c97a1db80d46c732a72a48dc6f2cbb20bafd123f9d8cda06bfd16",
+      "category": "MODEL_REQUEST",
+      "rationale": "Embedding inference transport; provider scope rejects native/custom embeddings."
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-attestor-trust-approval-client.js",
+      "digest": "sha256:2e3aad304986ba0a6f1de0ef6a77b4910c78fdc98893b19c2a8f74741a67a9c6",
+      "category": "LOCAL_IPC",
+      "rationale": "Attestor trust approval IPC; not model inference or paid admission."
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-client.js",
+      "digest": "sha256:da7e869c8d1bf8829793728e6e2ed1e2887baa7f7b3d487c0faf78ec550ca68c",
+      "category": "LOCAL_IPC",
+      "rationale": "Attestor trust operations IPC; host/peer authority remains independently checked."
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-external-attestor.js",
+      "digest": "sha256:06aafe46e1979831619c20257957568cf92620f4585c5b0ab1c3ae2fdf7b8c73",
+      "category": "LOCAL_IPC",
+      "rationale": "External attestor broker IPC; classification does not grant a model budget."
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-process-grader-worker.mjs",
+      "digest": "sha256:ef028b7eac527d93a929f440f9e025ccfc33c36d8ec6e7ec2863a0a681a9df47",
+      "category": "MODEL_REQUEST",
+      "rationale": "Raw independent worker inference. Parent grader entry rejects a provider scope; direct/descendant execution remains uncontained."
+    },
+    {
+      "path": "packages/cli/src/lib/evomap-client.js",
+      "digest": "sha256:4742edc8706702437b0a12657522b9ddf2eb7eedc6fcabfbe4906edae49cb0e6",
+      "category": "SERVICE_API",
+      "rationale": "EvoMap service API now rejects a formal process scope before input or credential access; server behavior and service fees are outside this model request review."
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-provider-scope.js",
+      "digest": "sha256:d09c5004a35ac251e9a8ba6ea792c96bc2a3f17f62c80edf5c7595c3943eb79d",
+      "category": "BUDGET_BOUNDARY",
+      "rationale": "Async-local routing boundary; ordinary fallback and scope.fetch calls are retained as candidates. Canonical Agent tools, direct IPC descendant controls, external service and direct web/browser tools reject under formal scope before argument/context inspection."
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-transport.js",
+      "digest": "sha256:328ea2079d235015f47f910a15249f33561ceabd342ad1f30fa8c3db3b791413",
+      "category": "BUDGET_BOUNDARY",
+      "rationale": "Host-owned physical dispatch after durable reservation; source review does not attest real account prices or OS isolation."
+    },
+    {
+      "path": "packages/cli/src/lib/gateway-client-resilience.js",
+      "digest": "sha256:538ee7a4cc1ec64133702574fb9ad498ccd82f0c39fd24d2079d2e87a4a82c80",
+      "category": "REMOTE_EXECUTION_CONTROL",
+      "rationale": "Remote gateway HTTP preflight/transport now rejects formal process scope before URL, TLS or proxy handling; subsequent remote execution needs separate budget/lease proof."
+    },
+    {
+      "path": "packages/cli/src/lib/hooks-v2-runtime.js",
+      "digest": "sha256:616f3b123ac2b7d367df8e622c0be0e83d44173ef765d5fba7b937ca4d5b8f2f",
+      "category": "TASK_CONTROLLED_NETWORK",
+      "rationale": "Configured HTTP hooks receive event/context; endpoint side effects/costs are not governed by a Chat reservation."
+    },
+    {
+      "path": "packages/cli/src/lib/hub-llm-client.js",
+      "digest": "sha256:c2967eead0a1cf23b44bacf2e53c3f71d0380c995f997be1373179a659971119",
+      "category": "MODEL_REQUEST",
+      "rationale": "Hub model inference through providerFetch, preserving unconfirmed pricing."
+    },
+    {
+      "path": "packages/cli/src/lib/llm-connection-probe.js",
+      "digest": "sha256:a520b283af44852c27a48ce5a5aa95af309e46d2224f7ca337d020c9a3a0206c",
+      "category": "MODEL_REQUEST",
+      "rationale": "Connectivity testing performs inference through one providerFetch POST with a 1024-token output allowance, timeout and redirect refusal. Reviewed delta preserves cache-write lifetime splits and response service-tier/regional pricing evidence in usage and receipts, replacing blanket rejection of nonzero Responses cache writes. Missing or inconsistent pricing evidence remains unpriced through invalid-context flags and unmatched estimates; receipt billingVerified remains false. No retry or additional dispatch is introduced. Provider scope governs supported physical requests, but source classification does not establish billing or paid readiness."
+    },
+    {
+      "path": "packages/cli/src/lib/llm-providers.js",
+      "digest": "sha256:25add06053a9b4cbd050f664db6d8ce9e646d028861222d3ea52bba56c79ca1a",
+      "category": "MODEL_REQUEST",
+      "rationale": "Built-in provider model identifiers include the new Volcengine model deepseek-v4-1-flash-260910. Runtime model requests use the scoped fetch wrapper; standalone connectivity probes remain model inference, not free health checks. Reviewed 2026-10-29 delta from 0c442e5b48 parent: adds deepseek-v4-1-flash-economy-261017 to the existing Volcengine identifiers; endpoint, dispatch and budget transport are unchanged."
+    },
+    {
+      "path": "packages/cli/src/lib/ollama-provider-fetch.js",
+      "category": "MODEL_REQUEST",
+      "rationale": "Ollama inference adapter routes through providerFetch. Active formal budget scope receives the original request without an adapter dispatcher override; host-owned scoped transport and closed-scope refusal remain authoritative. Outside scope, explicit dispatchers and injected/global fetch are preserved, and the default undici Agent disables keep-alive without adding replay. Configurable Ollama destinations are not restricted to loopback by this classification; paid or OS admission is not granted.",
+      "digest": "sha256:aa79010f74e2d3fcf27d74ba2810134baf4af3942ea14dc1e84d4445e78db1c4"
+    },
+    {
+      "path": "packages/cli/src/lib/project-goal-connection.js",
+      "digest": "sha256:0f17956415810f8fa76ba4c7b10b2141e148af7ea642128940e010b84671a269",
+      "category": "LOCAL_IPC",
+      "rationale": "Reads a bounded private descriptor, then authenticates short-lived 127.0.0.1 HTTP requests with HMAC, nonce and descriptor identity checks for project-goal summaries or evidence. A v3 descriptor delegates to the draft client, which also supports draft operations. This is local desktop IPC, not remote model egress."
+    },
+    {
+      "path": "packages/cli/src/lib/project-goal-draft-connection.js",
+      "digest": "sha256:eafe20d253a344f77f88b8c5c09889ef1e941234603e4ff1f685caef4c023d47",
+      "category": "LOCAL_IPC",
+      "rationale": "Sends HMAC-authenticated, bounded and time-limited GET/POST requests to the desktop loopback goal-drafts endpoint. Reads and receipt/source POSTs are local IPC; enqueue POST persists a user-authorized pending draft, and a missing response after dispatch is reported as an unknown outcome. It does not invoke a provider."
+    },
+    {
+      "path": "packages/cli/src/lib/mcp-oauth.js",
+      "digest": "sha256:89efe4cf62e019f37f67aed65bf6bad2e2725c3a9efef6c536fe772c62f9977b",
+      "category": "SERVICE_API",
+      "rationale": "OAuth discovery/token calls; tool or model execution is a separate MCP path."
+    },
+    {
+      "path": "packages/cli/src/lib/notifiers/_http.js",
+      "digest": "sha256:0e00a1faa793af266931a2b2da29e301d515e9f4260d650fdff6503b3ab34009",
+      "category": "SERVICE_API",
+      "rationale": "Shared notifier delivery HTTP; not a model-token request or a free-service attestation."
+    },
+    {
+      "path": "packages/cli/src/lib/p2p-manager.js",
+      "digest": "sha256:a6b32fcf61983711b1d030944277df2cb4107f77f159eb2d38a5426a076a1af7",
+      "category": "LOCAL_DIAGNOSTIC",
+      "rationale": "Configured bridge /health probe, not model inference."
+    },
+    {
+      "path": "packages/cli/src/lib/packer/pack-update-checker.js",
+      "digest": "sha256:4e63745e80595544f4a54a471cae07bcb15d58c9c8c20845cef43c5a29647858",
+      "category": "DISTRIBUTION",
+      "rationale": "Signed pack update manifest download."
+    },
+    {
+      "path": "packages/cli/src/lib/packer/pack-update-downloader.js",
+      "digest": "sha256:1e20df6eaac433c322412d39fd89691f4b6f00fa691080007fa13ee730c20f59",
+      "category": "DISTRIBUTION",
+      "rationale": "Pack artifact download with deadline and integrity checks."
+    },
+    {
+      "path": "packages/cli/src/lib/packer/smoke-runner.js",
+      "digest": "sha256:68cbc80b9adcf24a942d2aa6861f7b8d916c8560fdff9ec0849353a46dca8a80",
+      "category": "LOCAL_DIAGNOSTIC",
+      "rationale": "TCP/HTTP smoke probes against configured packaged-service targets."
+    },
+    {
+      "path": "packages/cli/src/lib/plugin-runtime/marketplace-command-source.js",
+      "digest": "sha256:f608c89bba7ed949f89938915a18cc2b5fa6403dbcbaefd275bb39927aeed64b",
+      "category": "DISTRIBUTION",
+      "rationale": "Marketplace artifact/source HTTP wrapper; downloaded code execution remains a separate boundary."
+    },
+    {
+      "path": "packages/cli/src/lib/plugin-runtime/marketplace-network.js",
+      "digest": "sha256:80fc843ffac1396cfd534363dd2015918ca15fc8a07c42dada6d8cba641b6c55",
+      "category": "DISTRIBUTION",
+      "rationale": "Undici fetch alias and PAC worker support marketplace artifact downloads. Transport construction and fetch reject formal budget scope before caller options or network dispatch; PAC worker launch is separately denied. Other marketplace/global fetch paths and OS egress are not proven covered."
+    },
+    {
+      "path": "packages/cli/src/lib/plugin-runtime/marketplace-remote-artifacts.js",
+      "digest": "sha256:4a4399846c6815f1937a1e5d3c8609a90958ef43940d35243c9b629c3b76ea5a",
+      "category": "DISTRIBUTION",
+      "rationale": "Validated marketplace metadata/artifact GET with redirect handling."
+    },
+    {
+      "path": "packages/cli/src/lib/plugin-runtime/remote-source.js",
+      "digest": "sha256:8c70bc096d22209895330143c428d58907947ef3b289d24dd2292de48e53555c",
+      "category": "DISTRIBUTION",
+      "rationale": "Remote plugin manifests/sources; source download is not execution admission."
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/credential-transport.js",
+      "digest": "sha256:f57ef3324d78fbfdca4f9396ce05f3fdfb3479c2d4561984db4c686837290f0a",
+      "category": "LOCAL_IPC",
+      "rationale": "Broker credential-reference worker hosts local IPC for approved children. Construction, credential registration and direct reference resolution reject formal budget scope before caller payload or IPC. Existing out-of-scope holders and OS isolation remain outside static classification."
+    },
+    {
+      "path": "packages/cli/src/lib/provider-stream.js",
+      "digest": "sha256:c3825a5ecf82bd4c27c485568b878c5f82b0c6cdee2441eb7308a3c25a9216c1",
+      "category": "MODEL_REQUEST",
+      "rationale": "Provider streaming adapters retain scoped providerFetch routing and verified EOF. Ollama now delegates its chat/generate POST to ollamaProviderFetch, which preserves active formal budget authority and disables default idle-connection reuse only outside scope. Other provider requests and usage/completion handling are unchanged; classification does not attest paid runtime coverage."
+    },
+    {
+      "path": "packages/cli/src/lib/sandbox-egress-proxy.js",
+      "digest": "sha256:387c397b540b0cdc4f0d70ff9fa583c6a48b9c8e7d374986815ea1155b673021",
+      "category": "TASK_CONTROLLED_NETWORK",
+      "rationale": "HTTP and CONNECT proxy for task/descendant traffic; destination policy is not per-request billing authority."
+    },
+    {
+      "path": "packages/cli/src/lib/update-notice.js",
+      "digest": "sha256:dfb0ba6e22143fdf8cff6c2a071abf649f1469be97c4b64c49f38b7a876dad49",
+      "category": "DISTRIBUTION",
+      "rationale": "npm package version metadata GET, not model inference."
+    },
+    {
+      "path": "packages/cli/src/lib/version-checker.js",
+      "digest": "sha256:c16453a890710e93eaee7c62999ea83cf9fcafd1105e494c359785919c89f236",
+      "category": "DISTRIBUTION",
+      "rationale": "Release/update version checks, not model inference."
+    },
+    {
+      "path": "packages/cli/src/lib/web-fetch.js",
+      "digest": "sha256:8eb3bb589b29a7ce9ce1c9300962110be9a66419ff1ca3de097f62b66663f4c6",
+      "category": "TASK_CONTROLLED_NETWORK",
+      "rationale": "SSRF-guarded arbitrary URL retrieval via selected http/https.request; direct webFetch now rejects formal process scope before URL/options or cache access. Task endpoints are not priced as model tokens."
+    },
+    {
+      "path": "packages/cli/src/lib/web-search.js",
+      "digest": "sha256:5c6a016b82842f3832e777952c21637e7fd2fcb94fc17f4ba835fab206221832",
+      "category": "PAID_SEARCH_SERVICE",
+      "rationale": "API search includes keyed services and configurable search hosts. Provider scope rejects before resolving keys; ordinary use is not a verified Chat billing contract."
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "digest": "sha256:b635ed8da8db6f2c5c2276bb427ac9109e913315821572c8edc16199df9a4eea",
+      "category": "MODEL_REQUEST",
+      "rationale": "Canonical agent execution retains six providerFetch and two ollamaProviderFetch dispatch sites. Reviewed delta since 99694e24c5 refreshes host-published MCP catalogs, validates catalog bindings before delegated dispatch, propagates cancellation to subagents and refreshes host project context around compaction. Catalog refresh may change available delegated tools and context refresh changes model input; these remain subject to existing execution, session and provider admission paths. No independent provider dispatch is added. This source review does not attest arbitrary MCP or descendant containment, financial admission, quality acceptance or cross-platform release readiness."
+    },
+    {
+      "path": "packages/cli/src/runtime/diagnostics.js",
+      "digest": "sha256:31a7409e1b5a386bde23aa0040dfd26b01cc5aebb999d0c376580db4bdfc4dba",
+      "category": "LOCAL_DIAGNOSTIC",
+      "rationale": "TCP reachability diagnostics; a connection probe is not an inference request."
+    }
+  ]
+}

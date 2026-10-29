@@ -1,0 +1,13 @@
+import fs from "node:fs";
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+const file = "packages/cli/scripts/budget-egress-reviewed-sources.json";
+const digest = () => createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+const before = digest();
+const args = ["packages/cli/scripts/implementation-plan-budget-egress.mjs", "--check", "--include-scripts", "--output", ".work/budget-egress-20261029/main-after.json"];
+const run = spawnSync(process.execPath, args, { encoding: "utf8", windowsHide: true, maxBuffer: 32 * 1024 * 1024 });
+fs.writeFileSync(".work/budget-egress-20261029/main-after.log", (run.stdout || "") + "\n--- stderr ---\n" + (run.stderr || ""));
+const receipt = { executable: process.execPath, node: process.version, args, exitCode: run.status, signal: run.signal, before, after: digest(), observedAt: new Date().toISOString() };
+fs.writeFileSync(".work/budget-egress-20261029/main-after-process.json", JSON.stringify(receipt, null, 2) + "\n");
+console.log(run.stdout || run.stderr);
+process.exitCode = before === receipt.after ? run.status ?? 1 : 1;

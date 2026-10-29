@@ -54,6 +54,7 @@ const sourceDigests = () =>
         "memory-query-bundle.js",
       ].map((name) => [`../src/lib/context-memory-kernel/${name}`, name]),
       ["../src/lib/with-file-lock.js", "with-file-lock.js"],
+      ["../src/lib/secure-file-identity.js", "secure-file-identity.js"],
       ["../../context-memory-kernel/lib/canonical.js", "kernel/canonical.js"],
       ["../../context-memory-kernel/lib/contracts.js", "kernel/contracts.js"],
       ["./persistent-capacity-benchmark.mjs", "fixture-generator.mjs"],

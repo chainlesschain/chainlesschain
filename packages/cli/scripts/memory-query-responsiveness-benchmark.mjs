@@ -86,6 +86,7 @@ export async function runMemoryResponsivenessBenchmark({
     "../src/lib/context-memory-kernel/memory-shard-snapshots.js",
     "../src/lib/context-memory-kernel/memory-query-bundle.js",
     "../src/lib/with-file-lock.js",
+    "../src/lib/secure-file-identity.js",
     "../../context-memory-kernel/lib/runtime.js",
     "./memory-query-responsiveness-benchmark.mjs",
   ];

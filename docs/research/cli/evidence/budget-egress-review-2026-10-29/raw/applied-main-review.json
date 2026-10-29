@@ -1,0 +1,51 @@
+{
+  "observedAt": "2026-10-29T03:09:58.020Z",
+  "reviewedAt": "2026-10-29",
+  "changes": [
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/Artifacts-D4DeQQ89.js",
+      "digest": "sha256:2353f47a357c75d1a2a8e54b3b1627e0a3eef5743c7c4dd93f0fe7e83345d294",
+      "category": "SERVICE_API",
+      "rationale": "Generated artifact panel downloads stored files with an authenticated same-origin GET to /api/artifacts/:id/download and delegates list, preview, removal and expiry cleanup through the shared CLI WebSocket service. This is artifact service traffic, not direct model inference; server-side authorization, storage effects and any downstream costs remain separate checks."
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/index-CI07XFwr.js",
+      "digest": "sha256:9d70a06d5382de4004ccc7ef420c1cf56dae0e2e418c762fd036edbfe5cad62f",
+      "category": "REMOTE_EXECUTION_CONTROL",
+      "rationale": "Generated application entry includes the modulepreload fetch polyfill and a configurable CLI gateway WebSocket carrying authentication, session creation, commands and model/chat requests. Conservative alias candidates M(...) also match UI render callbacks and are not additional WebSocket launches. Remote execution and provider costs require the serving host's own budget authority; source review does not attest that authority."
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/MtcAudit-CwJzv9a9.js",
+      "digest": "sha256:386279ddb9399ea6d359c93409e8be213593cfdfc5ca2c54a046c194cb26486f",
+      "category": "REMOTE_EXECUTION_CONTROL",
+      "rationale": "Generated MTC audit panel delegates envelope queries, archive push/restore, governance, trust and automatic archive controls to desktop-host WebSocket topics. The flagged i.fetch call is the envelope composable method forwarding mtc.envelope.get, not global HTTP fetch. Delegated operations may cause storage or WebDAV/network effects; their authorization and costs are outside this byte-bound source classification."
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/RemoteSession-DyCisp2M.js",
+      "digest": "sha256:481259ef3a2b2857f61d1b5e70983a4171d51dee9a16d1d78a08a7ef22a4956c",
+      "category": "REMOTE_EXECUTION_CONTROL",
+      "rationale": "Generated remote-session client opens WebSockets to the configured relay or paired direct host and sends authenticated or encrypted prompts, approvals and interruption controls. Conservative alias candidates also match local cryptographic constructors and callbacks; the actual network constructors are the relay and direct WebSocket launches. Encryption and command deduplication do not establish remote model budget containment or paid readiness."
+    },
+    {
+      "path": "packages/cli/src/commands/llm.js",
+      "digest": "sha256:c812d9b74905ebb9e5080f595ecc459659edfc634167664bd7f4fd8cba878dd2",
+      "category": "LOCAL_DIAGNOSTIC",
+      "rationale": "Direct fetch lists Ollama models with GET /api/tags against a configurable base URL; the default is local, but locality or zero cost is not guaranteed for an overridden endpoint. The separate llm test command delegates inference to probeLlmConnection. Reviewed delta adds advertised maximum input capability display and formatting without changing this direct request or introducing another outbound dispatch. This classification does not attest paid admission."
+    },
+    {
+      "path": "packages/cli/src/lib/llm-connection-probe.js",
+      "digest": "sha256:a520b283af44852c27a48ce5a5aa95af309e46d2224f7ca337d020c9a3a0206c",
+      "category": "MODEL_REQUEST",
+      "rationale": "Connectivity testing performs inference through one providerFetch POST with a 1024-token output allowance, timeout and redirect refusal. Reviewed delta preserves cache-write lifetime splits and response service-tier/regional pricing evidence in usage and receipts, replacing blanket rejection of nonzero Responses cache writes. Invalid or missing required cache-write split evidence remains unpriced through invalid-context flags and unmatched estimates. Absent service-tier or regional metadata uses standard/nonregional estimate defaults and does not verify billed terms; receipt billingVerified remains false. No retry or additional dispatch is introduced. Provider scope governs supported physical requests, but source classification does not establish billing or paid readiness."
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "digest": "sha256:b635ed8da8db6f2c5c2276bb427ac9109e913315821572c8edc16199df9a4eea",
+      "category": "MODEL_REQUEST",
+      "rationale": "Canonical agent execution retains six providerFetch and two ollamaProviderFetch dispatch sites. Reviewed delta since 99694e24c5 refreshes host-published MCP catalogs, validates catalog bindings before delegated dispatch, propagates cancellation to subagents and refreshes host project context around compaction. Catalog refresh may change available delegated tools and context refresh changes model input; these remain subject to existing execution, session and provider admission paths. No independent provider dispatch is added. This source review does not attest arbitrary MCP or descendant containment, financial admission, quality acceptance or cross-platform release readiness."
+    }
+  ],
+  "validationFile": "main-proposal-validation-v2.json",
+  "noRuntimeChange": true,
+  "scopeUnchanged": true
+}

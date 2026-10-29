@@ -35,6 +35,24 @@ Host ports remain responsible for interrupting their own I/O promptly. Passing
 a signal does not prove that an arbitrary host's underlying work or process tree
 has stopped. Callers that omit the options keep the existing recall API.
 
+## Main-branch recall consistency (unreleased follow-up)
+
+This section describes main-branch changes excluded from the fixed
+`e7a6f2585d62949794596767869423b0eb670104` release candidate above.
+
+Memory ports must expose a nonnegative, monotonically increasing safe-integer
+revision covering their authoritative records. Recall reads that revision before
+querying and again after ranking. A concurrent mutation produces
+`revision_conflict` instead of returning old records labelled with a newer
+revision. The caller can explicitly repeat the read against current authority;
+the kernel does not replay mutations or provider requests.
+
+The CLI's optional `contextMemorySemanticCandidateProvider(request, { signal })`
+receives cancellation as a separate host control. The serialized request schema
+does not change. Stop rejects the waiting provider-context preparation even if
+the source ignores cancellation; a late result cannot start a model request.
+The source remains responsible for stopping its underlying work.
+
 ## Multilingual lexical recall
 
 Recall preserves exact-word matching for non-Han text and adds contiguous multi-character Han keyword matching within Han runs. Mixed tokens such as `Vue开发` require every script component to match; they do not match `Vue部署` or `Python开发`. Components may match across the existing searchable category, tags, summary, and content fields. Space-separated query tokens retain fractional scoring, not phrase or all-terms semantics.

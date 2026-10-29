@@ -1,0 +1,90 @@
+name: Memory Query Index Measurement
+
+on:
+  workflow_dispatch:
+    inputs:
+      samples:
+        description: "Samples per dataset and scenario (100 for gap-review evidence)"
+        type: choice
+        required: true
+        default: "100"
+        options: ["100", "11"]
+  push:
+    branches: [main, "feature/**"]
+    paths:
+      - ".github/actions/setup-node-deps/action.yml"
+      - "packages/cli/src/lib/context-memory-kernel/**"
+      - "packages/cli/src/lib/secure-file-identity.js"
+      - "packages/context-memory-kernel/lib/**"
+      - "packages/cli/scripts/memory-query-index-benchmark.mjs"
+      - "packages/cli/scripts/memory-file-identity-diagnostic.mjs"
+      - ".github/workflows/memory-query-index.yml"
+  pull_request:
+    paths:
+      - ".github/actions/setup-node-deps/action.yml"
+      - "packages/cli/src/lib/context-memory-kernel/**"
+      - "packages/cli/src/lib/secure-file-identity.js"
+      - "packages/context-memory-kernel/lib/**"
+      - "packages/cli/scripts/memory-query-index-benchmark.mjs"
+      - "packages/cli/scripts/memory-file-identity-diagnostic.mjs"
+      - ".github/workflows/memory-query-index.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  measurement:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && inputs.samples == '100' && 120 || 45 }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - uses: ./.github/actions/setup-node-deps
+      - name: Diagnose Windows path and handle file identities
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        shell: bash
+        run: >-
+          node packages/cli/scripts/memory-file-identity-diagnostic.mjs
+          --output "$RUNNER_TEMP/memory-file-identity.json"
+      - name: Query, cursor, corruption and concurrency contracts
+        working-directory: packages/cli
+        run: >-
+          npx vitest run __tests__/unit/memory-query-index.test.js
+          __tests__/unit/segmented-memory-port.test.js
+          __tests__/unit/memory-shard-snapshots.test.js
+          __tests__/unit/memory-query-cancellation.test.js
+          __tests__/unit/memory-query-bundle.test.js
+          __tests__/unit/secure-file-identity.test.js
+          __tests__/integration/memory-query-bundle-port.test.js
+          __tests__/integration/memory-query-bundle-legacy.test.js
+          __tests__/integration/memory-query-bundle-identity.test.js
+      - name: Compare identical 1K, 10K and 100K datasets
+        shell: bash
+        run: >-
+          node packages/cli/scripts/memory-query-index-benchmark.mjs
+          --counts 1000,10000,100000
+          --samples "${{ github.event_name == 'workflow_dispatch' && inputs.samples || '11' }}"
+          --output "$RUNNER_TEMP/memory-query-index.json"
+      - name: Preserve Windows file identity diagnostics
+        if: always() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v6
+        with:
+          name: memory-file-identity-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/memory-file-identity.json
+          if-no-files-found: warn
+      # A performance measurement is not a passed latency SLO. The script
+      # gates row equivalence and integrity; no unapproved timing threshold.
+      - uses: actions/upload-artifact@v6
+        with:
+          name: memory-query-index-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/memory-query-index.json
+          if-no-files-found: error

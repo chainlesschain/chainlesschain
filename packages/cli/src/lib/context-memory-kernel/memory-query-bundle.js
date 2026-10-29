@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import {
+import fs, {
   closeSync,
   constants,
   fstatSync,
@@ -13,6 +13,11 @@ import {
 } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { corruptStore, syncDirectory } from "./durable-memory-port.js";
+import {
+  isAffectedWindowsZeroDeviceStatRuntime,
+  samePathHandleStableFileIdentity,
+  withTrustedFileParentSync,
+} from "../secure-file-identity.js";
 
 const CHUNK_BYTES = 64 * 1024;
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
@@ -34,15 +39,37 @@ function sameIdentity(left, right) {
   return left.dev === right.dev && left.ino === right.ino;
 }
 
+function samePathHandle(file, pathStat, handleStat) {
+  if (
+    !isAffectedWindowsZeroDeviceStatRuntime() ||
+    (handleStat.dev !== 0n && sameIdentity(pathStat, handleStat))
+  )
+    return sameIdentity(pathStat, handleStat);
+  // libuv 1.49/1.50 can project a Windows path device differently from its
+  // handle. Bind the handle to a separately opened parent/volume device;
+  // never accept a zero device as a wildcard or relax the exact inode.
+  try {
+    return withTrustedFileParentSync(fs, file, ({ parentDevice }) =>
+      samePathHandleStableFileIdentity(pathStat, handleStat, parentDevice),
+    );
+  } catch (cause) {
+    throw corruptStore(
+      file,
+      "query bundle parent identity cannot be verified",
+      cause,
+    );
+  }
+}
+
 function regular(stat, file) {
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1)
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1n)
     throw corruptStore(file, "query bundle must be an unlinked regular file");
   return stat;
 }
 
 function targetStat(file) {
   try {
-    return regular(lstatSync(file), file);
+    return regular(lstatSync(file, { bigint: true }), file);
   } catch (error) {
     if (error.code === "ENOENT") return null;
     throw error;
@@ -51,13 +78,13 @@ function targetStat(file) {
 
 function sameFile(file, expected) {
   const current = targetStat(file);
-  if (!current || !sameIdentity(current, expected))
+  if (!current || !samePathHandle(file, current, expected))
     throw corruptStore(file, "query bundle file identity changed");
   return current;
 }
 
 function sameDirectory(directory, expected) {
-  const current = lstatSync(directory);
+  const current = lstatSync(directory, { bigint: true });
   if (
     !current.isDirectory() ||
     current.isSymbolicLink() ||
@@ -139,8 +166,8 @@ export async function readQueryBundle(
   { checkpoint = noop, onFrame = noop, reuseFrameBuffer = false } = {},
 ) {
   await checkpoint();
-  const before = regular(lstatSync(file), file);
-  let fd;
+  const before = regular(lstatSync(file, { bigint: true }), file);
+  let fd, opened;
   try {
     try {
       fd = openSync(
@@ -158,10 +185,10 @@ export async function readQueryBundle(
         );
       throw error;
     }
-    const opened = regular(fstatSync(fd), file);
-    if (!sameIdentity(before, opened))
+    opened = regular(fstatSync(fd, { bigint: true }), file);
+    if (!samePathHandle(file, before, opened))
       throw corruptStore(file, "query bundle changed while opening");
-    if (opened.size !== plan.byteLength)
+    if (opened.size !== BigInt(plan.byteLength))
       throw corruptBundle(file, "byte length does not match manifest plan");
     async function readBytes(bytes, hash) {
       let offset = 0;
@@ -204,14 +231,14 @@ export async function readQueryBundle(
     if (readSync(fd, Buffer.allocUnsafe(1), 0, 1, null) !== 0)
       throw corruptBundle(file, "trailing data");
     await checkpoint();
-    const after = regular(fstatSync(fd), file);
+    const after = regular(fstatSync(fd, { bigint: true }), file);
     if (!sameIdentity(opened, after))
       throw corruptStore(file, "query bundle descriptor identity changed");
     sameFile(file, opened);
     if (
       after.size !== opened.size ||
-      after.mtimeMs !== opened.mtimeMs ||
-      after.ctimeMs !== opened.ctimeMs
+      after.mtimeNs !== opened.mtimeNs ||
+      after.ctimeNs !== opened.ctimeNs
     )
       throw corruptBundle(file, "file changed while reading");
   } catch (error) {
@@ -219,8 +246,10 @@ export async function readQueryBundle(
       // Content errors are repairable only while the pathname still names the
       // inode we opened. Otherwise a failed read could authorize replacing an
       // unrelated file that appeared during a cooperative checkpoint.
-      regular(fstatSync(fd), file);
-      sameFile(file, before);
+      const current = regular(fstatSync(fd, { bigint: true }), file);
+      if (opened && !sameIdentity(current, opened))
+        throw corruptStore(file, "query bundle descriptor identity changed");
+      sameFile(file, current);
     }
     throw error;
   } finally {
@@ -243,7 +272,7 @@ export async function writeQueryBundle(
   await checkpoint();
   await checkDirectories();
   const directory = dirname(file);
-  const parent = lstatSync(directory);
+  const parent = lstatSync(directory, { bigint: true });
   sameDirectory(directory, parent);
   const originalTarget = targetStat(file);
   const temporary = join(directory, `query-rebuild-${randomUUID()}.tmp`);
@@ -258,7 +287,7 @@ export async function writeQueryBundle(
         (constants.O_NOFOLLOW || 0),
       0o600,
     );
-    created = regular(fstatSync(fd), temporary);
+    created = regular(fstatSync(fd, { bigint: true }), temporary);
     async function writeBytes(bytes, hash) {
       let offset = 0;
       while (offset < bytes.length) {
@@ -304,10 +333,10 @@ export async function writeQueryBundle(
           `source frame changed while writing bucket ${frame.bucket}`,
         );
     }
-    const written = regular(fstatSync(fd), temporary);
+    const written = regular(fstatSync(fd, { bigint: true }), temporary);
     if (!sameIdentity(created, written))
       throw corruptStore(temporary, "query bundle temporary identity changed");
-    if (written.size !== plan.byteLength)
+    if (written.size !== BigInt(plan.byteLength))
       throw corruptBundle(file, "written byte length does not match plan");
     fsyncSync(fd);
     await checkpoint();

@@ -1,0 +1,26 @@
+{
+  "args": [
+    "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+    "run",
+    "__tests__/integration/compaction-structured-memory.test.js",
+    "--reporter=json",
+    "--outputFile=C:\\code\\chainlesschain\\.work\\structured-memory-20261029\\compaction-first.json"
+  ],
+  "cwd": "C:\\code\\chainlesschain\\packages\\cli",
+  "startedAt": "2026-10-29T02:43:54.602Z",
+  "endedAt": "2026-10-29T02:44:06.251Z",
+  "exitCode": 1,
+  "signal": null,
+  "error": null,
+  "sourceBefore": {
+    "packages/context-memory-kernel/lib/runtime.js": "8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+    "packages/cli/src/lib/context-memory-kernel/provider-context.js": "ab74480036676afc883aa1027653c16d1bf94c09eaa5355652940ea7c158a9a2",
+    "packages/cli/src/lib/abort-utils.js": "7f1c1703150e71c46ad80b3f6688edc1a489fc389bca462a65091bef11dd692b"
+  },
+  "sourceAfter": {
+    "packages/context-memory-kernel/lib/runtime.js": "8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+    "packages/cli/src/lib/context-memory-kernel/provider-context.js": "ab74480036676afc883aa1027653c16d1bf94c09eaa5355652940ea7c158a9a2",
+    "packages/cli/src/lib/abort-utils.js": "7f1c1703150e71c46ad80b3f6688edc1a489fc389bca462a65091bef11dd692b"
+  },
+  "sourcesStable": true
+}

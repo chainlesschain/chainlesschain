@@ -1,0 +1,911 @@
+{
+  "schema": "chainlesschain.memory-recall-recovery-review/v1",
+  "observedAt": "2026-10-29T03:14:16.886Z",
+  "sourceHeadBeforeCommit": "673c2520a84f884dc4d072e222078f31b3090718",
+  "sourceSha256": {
+    "packages/context-memory-kernel/lib/runtime.js": "8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+    "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+    "packages/context-memory-kernel/lib/memory-reducer.js": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+    "packages/context-memory-kernel/lib/compaction.js": "c20037ed2d90d6aa62e8d642ffc65f48b27282b048896a40d840ff0b93c59a98",
+    "packages/cli/src/lib/context-memory-kernel/provider-context.js": "ab74480036676afc883aa1027653c16d1bf94c09eaa5355652940ea7c158a9a2",
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+    "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+    "packages/cli/src/lib/context-memory-kernel/message-adapter.js": "d4448c48d109ea851577a847cbbd4c29058b2e6fc163be9ee589399399cbba41",
+    "packages/cli/src/lib/context-memory-kernel/live-compaction.js": "cbf7077bd3fc1b022333d5663604cdd4f1fbd223f9290b3a26e61b53470395f1",
+    "packages/cli/src/lib/context-memory-kernel/jsonl-session-context-port.js": "1b5652e6154a2bba1ec792b0319b0918ed19345464e9f5da06c981c784419db3",
+    "packages/cli/src/lib/abort-utils.js": "7f1c1703150e71c46ad80b3f6688edc1a489fc389bca462a65091bef11dd692b",
+    "packages/cli/src/lib/secure-file-identity.js": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+    "packages/cli/src/runtime/agent-core.js": "b635ed8da8db6f2c5c2276bb427ac9109e913315821572c8edc16199df9a4eea",
+    "packages/cli/src/runtime/headless-runner.js": "9e871811fd02aa7c05e7a6ed4bab9704c06d3f74a39f600bb874a3e62f3c0bac",
+    "packages/cli/src/runtime/headless-stream.js": "39b8e7914a7b942dfd3c1688d07db4ba60efff42f8b1f0d4f491894f455797e3",
+    "packages/cli/src/harness/prompt-compressor.js": "4706b1b493e87289084115c247542ed8a8cd07164eef5362350dfc7c2e65c7b5",
+    "packages/cli/src/harness/provider-backed-compaction.js": "c17ac6556491e6f5959c44cc866543715ea445600979d0350c8d5367cf15e45f",
+    "packages/cli/src/harness/jsonl-session-store.js": "f0f3322c126f2249e47dcc0afced010394f4c30a50e50a94970e926b17ee5146",
+    "packages/cli/__tests__/unit/provider-model-profile.test.js": "32687db4bfba17e3cecebeea330e5a0fc29f3adfa4750d37edc3e5e7adb5d74f",
+    "packages/cli/__tests__/unit/provider-context-image-transport.test.js": "bbb0b5f26be9323a7d4f750627ba47959d1ef576b8c262592b60288740eb51fd",
+    "packages/cli/__tests__/unit/memory-query-cancellation.test.js": "af2335a29f7cbc71d5364069fccf517a7df76c0522dfdd4d160f5c5ad4e87b49",
+    "packages/cli/__tests__/unit/canonical-compaction-workflow.test.js": "32739668590638f9c08a81ed7c462d82425175d71073b1808b39d19570a22244",
+    "packages/cli/__tests__/unit/canonical-compaction-usage.test.js": "24bc32b0ee0f2b8e7c234292a9653b0f2cba2535838baa25a337bedc19f002f3",
+    "packages/cli/__tests__/unit/agent-core-autocompact.test.js": "cdd5ba9bca50f7fdd4c7fbddb6a8e81f78a9527db6d93e70108a4e27e76522f3",
+    "packages/cli/__tests__/unit/agent-core-compact-persist.test.js": "e4afcf87092bac8264b2a5a6a7ee704ae13dbf6a211df6e17abc739134bdce5d",
+    "packages/cli/__tests__/unit/provider-backed-compaction.test.js": "6288bd017bd1b546d048eaf94772885c88a7dd8a18677c1780a9f75f84a98f26",
+    "packages/cli/__tests__/unit/compaction-host-context.test.js": "e1f25c8e17558967eec36c6e0ba1f660f5920ee976a7afa831b571438f014ed6",
+    "packages/cli/__tests__/unit/compact-command.test.js": "8b2a781cd0019cd50f2a787d26c695f8a5920afd6e6812cfa923ba1e3b759e08",
+    "packages/cli/__tests__/unit/abort-utils.test.js": "cbaebc6416c7f0781d31d0a5b90ae9fdce2d14ca339af9d193f61f17bd60485a",
+    "packages/cli/__tests__/integration/compaction-project-context-refresh.test.js": "7bf0c6c4ed94fbc6612c4aaa8a0be8634e9d599a2a4ded85f7e64349b527aff0",
+    "packages/cli/__tests__/integration/compaction-structured-memory.test.js": "24dd6e7608452253d3940f29e5bd820a001590bab0416bdd5a4c108d64f5d67f",
+    "packages/cli/__tests__/integration/semantic-memory-cancellation.test.js": "36c22a9464ecb513a1219d7ef120eb32ecf54567aa681f5ac022736901702327"
+  },
+  "tests": {
+    "cli": {
+      "files": 14,
+      "passed": 173,
+      "skipped": 0
+    },
+    "kernel": {
+      "passed": 135
+    },
+    "cliNode": {
+      "passed": 26
+    },
+    "windowsBundle": {
+      "node2212": {
+        "passed": 128,
+        "skipped": 1
+      },
+      "node2222": {
+        "passed": 128,
+        "skipped": 1
+      },
+      "additive": false
+    }
+  },
+  "unix673": [
+    {
+      "platform": "linux",
+      "verifiedSamples": 165,
+      "tiers": [
+        {
+          "count": 1000,
+          "p95Ms": {
+            "baseline": 144.368,
+            "cold": 198.095,
+            "hot": 14.716,
+            "rebuild": 389.446,
+            "corrupt": 397.905
+          }
+        },
+        {
+          "count": 10000,
+          "p95Ms": {
+            "baseline": 674.685,
+            "cold": 139.573,
+            "hot": 35.423,
+            "rebuild": 1034.767,
+            "corrupt": 979.537
+          }
+        },
+        {
+          "count": 100000,
+          "p95Ms": {
+            "baseline": 5901.572,
+            "cold": 836.31,
+            "hot": 146.344,
+            "rebuild": 6786.882,
+            "corrupt": 6510.935
+          }
+        }
+      ]
+    },
+    {
+      "platform": "macos",
+      "verifiedSamples": 165,
+      "tiers": [
+        {
+          "count": 1000,
+          "p95Ms": {
+            "baseline": 137.282,
+            "cold": 60.762,
+            "hot": 12.476,
+            "rebuild": 711.355,
+            "corrupt": 790.677
+          }
+        },
+        {
+          "count": 10000,
+          "p95Ms": {
+            "baseline": 603.103,
+            "cold": 94.891,
+            "hot": 37.721,
+            "rebuild": 1293.087,
+            "corrupt": 1333.783
+          }
+        },
+        {
+          "count": 100000,
+          "p95Ms": {
+            "baseline": 5175.204,
+            "cold": 617.113,
+            "hot": 483.947,
+            "rebuild": 5242.128,
+            "corrupt": 4907.299
+          }
+        }
+      ]
+    }
+  ],
+  "release": {
+    "fixedSource": "e7a6f2585d62949794596767869423b0eb670104",
+    "cliCi": 40784878922,
+    "attempt": 2,
+    "conclusion": "failure",
+    "published": false
+  },
+  "boundaries": [
+    "Revision checks rely on the host monotonic-revision contract and do not lock through dispatch.",
+    "Semantic waiting is abortable; arbitrary host I/O still requires cooperative cancellation.",
+    "The four real CLI compaction/resume journeys resume in the same process and inject model responses/compaction trigger scheduling.",
+    "Recall text absence is checked in authoritative messages, not all physical replicas or historical user text.",
+    "Windows device projection is reproduced with deterministic injection; actual CI stat fields remain pending the new diagnostic.",
+    "Unix measurements belong to source 673, use 11 samples per group, and cannot admit the new source or a complete SLO.",
+    "Test layers overlap; do not sum them as a repository-wide total."
+  ],
+  "artifacts": [
+    {
+      "path": "raw/archive.mjs",
+      "originalPath": ".work/structured-memory-20261029/archive.mjs",
+      "bytes": 5638,
+      "sha256": "893b2acb66b6973e69f6ff536adce44d695180feaf37b899550c793ecf7aae88"
+    },
+    {
+      "path": "raw/budget-current.json",
+      "originalPath": ".work/structured-memory-20261029/budget-current.json",
+      "bytes": 87906,
+      "sha256": "9b8b21a0a2c635b006ad7f0348003a6477ceadd509762aba6664d090979e5e6f"
+    },
+    {
+      "path": "raw/budget-inventory-regression-process.json",
+      "originalPath": ".work/structured-memory-20261029/budget-inventory-regression-process.json",
+      "bytes": 5778,
+      "sha256": "69eb3059ac572e58db25551b15de80c04d7388e0244d948b5a22b9cc722be583"
+    },
+    {
+      "path": "raw/budget-inventory-regression.log",
+      "originalPath": ".work/structured-memory-20261029/budget-inventory-regression.log",
+      "bytes": 4391,
+      "sha256": "3340f2135bc771ce7f45c9611f6f8cc5e2586944d6cfa7d59e6fa9ab593a924b"
+    },
+    {
+      "path": "raw/capture-ci.mjs",
+      "originalPath": ".work/structured-memory-20261029/capture-ci.mjs",
+      "bytes": 1552,
+      "sha256": "818ce9cfd7412c54df6af1b65acaabfb3b1f97ce3ab35dd1bf517945275f21d0"
+    },
+    {
+      "path": "raw/capture-release-failure.mjs",
+      "originalPath": ".work/structured-memory-20261029/capture-release-failure.mjs",
+      "bytes": 821,
+      "sha256": "13163c31bb47af3930c8664826a87b8e18347b92e5b0f23f154eae1180b4db1a"
+    },
+    {
+      "path": "raw/compaction-first-process.json",
+      "originalPath": ".work/structured-memory-20261029/compaction-first-process.json",
+      "bytes": 1288,
+      "sha256": "3b13acdc2c80a9fb900a85e2537ca984a7ca42851e66ffde48ecaae431bba5fc"
+    },
+    {
+      "path": "raw/compaction-first.json",
+      "originalPath": ".work/structured-memory-20261029/compaction-first.json",
+      "bytes": 7378,
+      "sha256": "e701e2c61b8af2aa03bccea1c7a94ebbe9a42e9c6cfec3b3327d995754ed319f"
+    },
+    {
+      "path": "raw/compaction-first.log",
+      "originalPath": ".work/structured-memory-20261029/compaction-first.log",
+      "bytes": 117,
+      "sha256": "b4f9b519f8209da8bf0fcac1bdd09e2a0c42b91745b92789f004f29cac283665"
+    },
+    {
+      "path": "raw/compaction-native-process.json",
+      "originalPath": ".work/structured-memory-20261029/compaction-native-process.json",
+      "bytes": 1289,
+      "sha256": "049445c8d94d257b83e51a247874ca897ca9f2ded5de17a7b5c8be12480f9530"
+    },
+    {
+      "path": "raw/compaction-native.json",
+      "originalPath": ".work/structured-memory-20261029/compaction-native.json",
+      "bytes": 2396,
+      "sha256": "8c1d55205d8a482077c135116dfcc96a8f32bdc4782e49749f7096084cfe8c04"
+    },
+    {
+      "path": "raw/compaction-native.log",
+      "originalPath": ".work/structured-memory-20261029/compaction-native.log",
+      "bytes": 118,
+      "sha256": "0a5550c5244af74113b6d26619da3a501861f4414bdb32c67c3bfa681a48dfc4"
+    },
+    {
+      "path": "raw/final-cli-regression-process.json",
+      "originalPath": ".work/structured-memory-20261029/final-cli-regression-process.json",
+      "bytes": 10320,
+      "sha256": "55b4dd04c6dcdb30fbef2425623d823f0d0c3b5b1727646ed3b58af325a5826d"
+    },
+    {
+      "path": "raw/final-cli-regression.json",
+      "originalPath": ".work/structured-memory-20261029/final-cli-regression.json",
+      "bytes": 59763,
+      "sha256": "7647634c985674ba0d65924b84ada63c4c859eb08debe841d6cc47a949d96147"
+    },
+    {
+      "path": "raw/final-cli-regression.log",
+      "originalPath": ".work/structured-memory-20261029/final-cli-regression.log",
+      "bytes": 121,
+      "sha256": "688dcfea15743427d03db31c4d944a0c57857922168411dae9734612f538efc0"
+    },
+    {
+      "path": "raw/final-node-regression-process.json",
+      "originalPath": ".work/structured-memory-20261029/final-node-regression-process.json",
+      "bytes": 5772,
+      "sha256": "3e51e1648d0eaf4495a5fde65420652d96d07b9c166aa0a2f1c941427e2badbe"
+    },
+    {
+      "path": "raw/final-node-regression.log",
+      "originalPath": ".work/structured-memory-20261029/final-node-regression.log",
+      "bytes": 5850,
+      "sha256": "22dfd8c40e447d5bec6162b591a0d9d9a8a65370aa4d8c2c00a2c0b7911a565c"
+    },
+    {
+      "path": "raw/kernel-regression-process.json",
+      "originalPath": ".work/structured-memory-20261029/kernel-regression-process.json",
+      "bytes": 1135,
+      "sha256": "eaf422979a62b2d9a09c126e715bbc0164286d5e13ea17ba2665d46753d38908"
+    },
+    {
+      "path": "raw/kernel-regression.log",
+      "originalPath": ".work/structured-memory-20261029/kernel-regression.log",
+      "bytes": 26421,
+      "sha256": "1a47f004fad98d4e05e7e30d1cb62638f497e3e9687830c7009931453be0b55d"
+    },
+    {
+      "path": "raw/read-release-ci.mjs",
+      "originalPath": ".work/structured-memory-20261029/read-release-ci.mjs",
+      "bytes": 1655,
+      "sha256": "96abf478061b1af140131631bd9f7aa47cc2d21420a7d3db1ee48e732d2e9c8c"
+    },
+    {
+      "path": "raw/read-release-job-log.mjs",
+      "originalPath": ".work/structured-memory-20261029/read-release-job-log.mjs",
+      "bytes": 935,
+      "sha256": "30900c3e909a97db45be4975e6dedc8ba1eac9e57a524fde2a05bed7b7a25880"
+    },
+    {
+      "path": "raw/release130-attempt2-read-receipts.json",
+      "originalPath": ".work/structured-memory-20261029/release130-attempt2-read-receipts.json",
+      "bytes": 477,
+      "sha256": "6b1a1dcac9af5546c6cbcfb18ee8ce7d8dafe8ecd76320c958d4e41939ac6c76"
+    },
+    {
+      "path": "raw/release130-attempt2-terminal-jobs-stderr.log",
+      "originalPath": ".work/structured-memory-20261029/release130-attempt2-terminal-jobs-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/release130-attempt2-terminal-jobs.json",
+      "originalPath": ".work/structured-memory-20261029/release130-attempt2-terminal-jobs.json",
+      "bytes": 209973,
+      "sha256": "d5e98237eeb7cafc8a46be4063eba107297113d94618c813f4accd730f74ee2b"
+    },
+    {
+      "path": "raw/release130-attempt2-terminal-run-stderr.log",
+      "originalPath": ".work/structured-memory-20261029/release130-attempt2-terminal-run-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/release130-attempt2-terminal-run.json",
+      "originalPath": ".work/structured-memory-20261029/release130-attempt2-terminal-run.json",
+      "bytes": 13921,
+      "sha256": "610ad8d3d307b5fa1b47bb5e738dfee21eae79c51aa9b5a42cd53957ef6e2446"
+    },
+    {
+      "path": "raw/release130-verify-failed-process.json",
+      "originalPath": ".work/structured-memory-20261029/release130-verify-failed-process.json",
+      "bytes": 422,
+      "sha256": "c8baf4120b7a34b65e314b7e668032f9ae5dee518bf4fbf8c41f30e85c1e764b"
+    },
+    {
+      "path": "raw/release130-verify-failed.log",
+      "originalPath": ".work/structured-memory-20261029/release130-verify-failed.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/release130-verify-job-log-process.json",
+      "originalPath": ".work/structured-memory-20261029/release130-verify-job-log-process.json",
+      "bytes": 236,
+      "sha256": "d7ee35d5614d94eaf750faf01417ce48e9b26691efef9a715a4e9205fb079c81"
+    },
+    {
+      "path": "raw/release130-verify-job-log.log",
+      "originalPath": ".work/structured-memory-20261029/release130-verify-job-log.log",
+      "bytes": 176,
+      "sha256": "eb33485d28599807605118a29221fdfd58c48e041a1ad2aba74ae9c70646e289"
+    },
+    {
+      "path": "raw/revision-fixed-process.json",
+      "originalPath": ".work/structured-memory-20261029/revision-fixed-process.json",
+      "bytes": 1170,
+      "sha256": "692b7d9b84c64e7da89f5480016fb7e468adc6b33ef5823b62a315213c1a0837"
+    },
+    {
+      "path": "raw/revision-fixed.log",
+      "originalPath": ".work/structured-memory-20261029/revision-fixed.log",
+      "bytes": 1666,
+      "sha256": "c69cbe603ea46b6b13df624c9c0fbe54a0c5d99b646a8e4c5eba6a1108f0755c"
+    },
+    {
+      "path": "raw/revision-negative-process.json",
+      "originalPath": ".work/structured-memory-20261029/revision-negative-process.json",
+      "bytes": 1092,
+      "sha256": "0008897f7efbbc113616eba73488908a469f160f599486b8ebcde1570620c8bc"
+    },
+    {
+      "path": "raw/revision-negative-v2-process.json",
+      "originalPath": ".work/structured-memory-20261029/revision-negative-v2-process.json",
+      "bytes": 1092,
+      "sha256": "58795492f65ec062cd56dc96d0315d50056b11561e5c8a8a728eea318d07db96"
+    },
+    {
+      "path": "raw/revision-negative-v2.log",
+      "originalPath": ".work/structured-memory-20261029/revision-negative-v2.log",
+      "bytes": 4436,
+      "sha256": "a7cc06f97ece7bbc36ce21cfefee8cd4b54b2f09691a7f9c3d40558d45d4ad8c"
+    },
+    {
+      "path": "raw/revision-negative.log",
+      "originalPath": ".work/structured-memory-20261029/revision-negative.log",
+      "bytes": 5804,
+      "sha256": "468e90177d76bfc74742ae75af78a8e0d205cbc0ce062cc41e27e63576874550"
+    },
+    {
+      "path": "raw/run.mjs",
+      "originalPath": ".work/structured-memory-20261029/run.mjs",
+      "bytes": 2740,
+      "sha256": "4a3efade27acbb98ae12fbc4975c6cb079265b58dccb2709138427ce915545aa"
+    },
+    {
+      "path": "raw/semantic-disk-process.json",
+      "originalPath": ".work/structured-memory-20261029/semantic-disk-process.json",
+      "bytes": 1285,
+      "sha256": "6bebd09f2f6569e017768871cc56529a7ee1917e04d1dede98452d189860f841"
+    },
+    {
+      "path": "raw/semantic-disk.json",
+      "originalPath": ".work/structured-memory-20261029/semantic-disk.json",
+      "bytes": 2826,
+      "sha256": "0fad9a2f37ae78dee5726221ce8f3aa03319589d40acbf3a5c7802c3140fb6da"
+    },
+    {
+      "path": "raw/semantic-disk.log",
+      "originalPath": ".work/structured-memory-20261029/semantic-disk.log",
+      "bytes": 114,
+      "sha256": "1faa3447489657949c7ef3f803be4f9fbd7dd034a688784f2baef9a7db56d82b"
+    },
+    {
+      "path": "raw/semantic-fixed-process.json",
+      "originalPath": ".work/structured-memory-20261029/semantic-fixed-process.json",
+      "bytes": 1339,
+      "sha256": "3eccd4736b423d2fae51cff13e24b51b7d99c7442bee24488cf728ce6b8a672e"
+    },
+    {
+      "path": "raw/semantic-fixed.json",
+      "originalPath": ".work/structured-memory-20261029/semantic-fixed.json",
+      "bytes": 11393,
+      "sha256": "4fa43fc8f3b82128ea9eeebef1856d019dae3ce7c60f36f9e540a28629a8f2e4"
+    },
+    {
+      "path": "raw/semantic-fixed.log",
+      "originalPath": ".work/structured-memory-20261029/semantic-fixed.log",
+      "bytes": 115,
+      "sha256": "b467bab68701911811a42ea631f9891ea9d799f2581bb834ff4fa24ad82bcb72"
+    },
+    {
+      "path": "raw/semantic-negative-process.json",
+      "originalPath": ".work/structured-memory-20261029/semantic-negative-process.json",
+      "bytes": 1289,
+      "sha256": "2940630470bf117f4b15d9f16ec22bf3bdd8d02d6e214be19137a56b7f5a1be4"
+    },
+    {
+      "path": "raw/semantic-negative.json",
+      "originalPath": ".work/structured-memory-20261029/semantic-negative.json",
+      "bytes": 3719,
+      "sha256": "418c6e8bdfbb86891ec3ab7dbbc6fc14f3b445bc05d1b7fec148e6bb0d179c96"
+    },
+    {
+      "path": "raw/semantic-negative.log",
+      "originalPath": ".work/structured-memory-20261029/semantic-negative.log",
+      "bytes": 118,
+      "sha256": "c88ba5dcba9bc872f65ace617b891c5616c524844ce166aadd0f946b8fc48225"
+    },
+    {
+      "path": "raw/update-main-progress.mjs",
+      "originalPath": ".work/structured-memory-20261029/update-main-progress.mjs",
+      "bytes": 1565,
+      "sha256": "5b5b6a2d3e486aee6ea44e1f6d5c952ad77fab8df0059d80e3fe1e204b1b42cb"
+    },
+    {
+      "path": "raw/memory-ci673/artifacts-stderr.log",
+      "originalPath": ".work/structured-memory-20261029/memory-ci673/artifacts-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/memory-ci673/artifacts.json",
+      "originalPath": ".work/structured-memory-20261029/memory-ci673/artifacts.json",
+      "bytes": 1546,
+      "sha256": "9486f3657b286f347313dd88a6a4675e9ae53f8b41e279767d1488db091b97a7"
+    },
+    {
+      "path": "raw/memory-ci673/linux/memory-query-index.json",
+      "originalPath": ".work/structured-memory-20261029/memory-ci673/linux/memory-query-index.json",
+      "bytes": 101598,
+      "sha256": "90a52d8acb37318d313372a034e86e277b008ad4f3f70b049556c307f555e0b4"
+    },
+    {
+      "path": "raw/memory-ci673/macos/memory-query-index.json",
+      "originalPath": ".work/structured-memory-20261029/memory-ci673/macos/memory-query-index.json",
+      "bytes": 101481,
+      "sha256": "3bba4bffcefa68febd537484edbaf486ae3e271b17a3cd82319f58f9c4fd4152"
+    },
+    {
+      "path": "raw/memory-ci673/receipts.json",
+      "originalPath": ".work/structured-memory-20261029/memory-ci673/receipts.json",
+      "bytes": 1230,
+      "sha256": "f82f5a18d429fe7150de8dcf08a562e86fe3949722d64e972eba2fc44cb1e3cd"
+    },
+    {
+      "path": "raw/memory-ci673/run-stderr.log",
+      "originalPath": ".work/structured-memory-20261029/memory-ci673/run-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/memory-ci673/run.json",
+      "originalPath": ".work/structured-memory-20261029/memory-ci673/run.json",
+      "bytes": 6480,
+      "sha256": "bb26e543a5c951db5213e8c1cdb82102b4f091d4efa499c1a869c87e91c56426"
+    },
+    {
+      "path": "raw/memory-ci673/windows-failed-stderr.log",
+      "originalPath": ".work/structured-memory-20261029/memory-ci673/windows-failed-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/memory-ci673/windows-failed.log",
+      "originalPath": ".work/structured-memory-20261029/memory-ci673/windows-failed.log",
+      "bytes": 300120,
+      "sha256": "bcd01b9329fddb207f105a9df1ee0f7abb7a3b5647ce558f5fe5661465947b21"
+    },
+    {
+      "path": "raw/windows-identity/bigint-identity-fixed-2212-process.json",
+      "originalPath": ".work/memory-query-bundle/bigint-identity-fixed-2212-process.json",
+      "bytes": 1879,
+      "sha256": "5fb248b022cb29dfa07c50a4902733bfb636bcd720da45ac60b3fb1ce8252023"
+    },
+    {
+      "path": "raw/windows-identity/bigint-identity-fixed-2212.json",
+      "originalPath": ".work/memory-query-bundle/bigint-identity-fixed-2212.json",
+      "bytes": 17752,
+      "sha256": "a205a156d04127eb75890ec9eb23d8b67449faf56f90c4745ea5193f7695063b"
+    },
+    {
+      "path": "raw/windows-identity/bigint-identity-fixed-2212.log",
+      "originalPath": ".work/memory-query-bundle/bigint-identity-fixed-2212.log",
+      "bytes": 120,
+      "sha256": "a9e20222b274f16d535125336f60e6e80865f4a230d27c2ca4074da0cc337bfe"
+    },
+    {
+      "path": "raw/windows-identity/bigint-identity-fixed-2222-process.json",
+      "originalPath": ".work/memory-query-bundle/bigint-identity-fixed-2222-process.json",
+      "bytes": 4174,
+      "sha256": "5df55f2ac0c6b2860bbc919e411527fa3746234af65f474f3d76927d82987efd"
+    },
+    {
+      "path": "raw/windows-identity/bigint-identity-fixed-2222.json",
+      "originalPath": ".work/memory-query-bundle/bigint-identity-fixed-2222.json",
+      "bytes": 47130,
+      "sha256": "7a72828a6a33086adf5e120f05181043f01bbb255a82906a71b09066eb3a37b6"
+    },
+    {
+      "path": "raw/windows-identity/bigint-identity-fixed-2222.log",
+      "originalPath": ".work/memory-query-bundle/bigint-identity-fixed-2222.log",
+      "bytes": 120,
+      "sha256": "6f6b4dc7901b03357f3e19b0b33c9dfc270f584c18120d84c1c16867818d4971"
+    },
+    {
+      "path": "raw/windows-identity/bigint-identity-fixed-v2-2212-process.json",
+      "originalPath": ".work/memory-query-bundle/bigint-identity-fixed-v2-2212-process.json",
+      "bytes": 4177,
+      "sha256": "c098f8dc39c7946e1c3dded32ea06fc21b81e0809114e0a3fe1332d822889924"
+    },
+    {
+      "path": "raw/windows-identity/bigint-identity-fixed-v2-2212.json",
+      "originalPath": ".work/memory-query-bundle/bigint-identity-fixed-v2-2212.json",
+      "bytes": 47199,
+      "sha256": "63487c5d528ece4643fd410e1872564a29b8b6798ee4d1d4806bae48e0e7672b"
+    },
+    {
+      "path": "raw/windows-identity/bigint-identity-fixed-v2-2212.log",
+      "originalPath": ".work/memory-query-bundle/bigint-identity-fixed-v2-2212.log",
+      "bytes": 123,
+      "sha256": "2c3c1701a5e37172bf47d4705ed707e4f3de02d04195b4203e2e0ad10e6550e0"
+    },
+    {
+      "path": "raw/windows-identity/bigint-identity-negative-2212-process.json",
+      "originalPath": ".work/memory-query-bundle/bigint-identity-negative-2212-process.json",
+      "bytes": 1522,
+      "sha256": "e6ff1faff4bb1c51867c84c8304befc9ac1158640614db28547d3b776e141e3d"
+    },
+    {
+      "path": "raw/windows-identity/bigint-identity-negative-2212.json",
+      "originalPath": ".work/memory-query-bundle/bigint-identity-negative-2212.json",
+      "bytes": 13987,
+      "sha256": "9c533e10c789b32e6e443d12d2ca06c50e4c6de01a9432d38ed62efdc80ef430"
+    },
+    {
+      "path": "raw/windows-identity/bigint-identity-negative-2212.log",
+      "originalPath": ".work/memory-query-bundle/bigint-identity-negative-2212.log",
+      "bytes": 123,
+      "sha256": "6acbbb6923077caeee56eb64a99ef71f5e9e7df85a9a6944153e87b7a982b747"
+    },
+    {
+      "path": "raw/windows-identity/bigint-identity-negative-v2-2212-process.json",
+      "originalPath": ".work/memory-query-bundle/bigint-identity-negative-v2-2212-process.json",
+      "bytes": 1525,
+      "sha256": "25c9250338e1048e79c9a8a786b1551ac083401dec2ecd008ac4044c0b7882a6"
+    },
+    {
+      "path": "raw/windows-identity/bigint-identity-negative-v2-2212.json",
+      "originalPath": ".work/memory-query-bundle/bigint-identity-negative-v2-2212.json",
+      "bytes": 16183,
+      "sha256": "c6c206c4443fb07d000d41d2e8f13fe0be303ab7b0940ada255832c953d4c3f0"
+    },
+    {
+      "path": "raw/windows-identity/bigint-identity-negative-v2-2212.log",
+      "originalPath": ".work/memory-query-bundle/bigint-identity-negative-v2-2212.log",
+      "bytes": 126,
+      "sha256": "e857b4b73695b3661ea4d6f424c96a58883e525c0a4c6583a53611c6a648fd49"
+    },
+    {
+      "path": "raw/windows-identity/identity-probe.mjs",
+      "originalPath": ".work/background-worktree-20261029/identity-probe.mjs",
+      "bytes": 3323,
+      "sha256": "9ca7db5507da9d1378cb865e2af0622081b9c2d15fe69a601c5268009d94e045"
+    },
+    {
+      "path": "raw/windows-identity/identity-projection-probe.mjs",
+      "originalPath": ".work/background-worktree-20261029/identity-projection-probe.mjs",
+      "bytes": 3430,
+      "sha256": "34465155107e70a756d9470798164d14d5561d31ae01ff4b42fa552a7653b1aa"
+    },
+    {
+      "path": "raw/windows-identity/run-identity-diagnostics.mjs",
+      "originalPath": ".work/background-worktree-20261029/run-identity-diagnostics.mjs",
+      "bytes": 1131,
+      "sha256": "37169557199b2f918760a7a8e5c0ad6e39978f164173804e37205be123cc3305"
+    },
+    {
+      "path": "raw/windows-identity/diagnostics/node2212.json",
+      "originalPath": ".work/background-worktree-20261029/diagnostics-6uPwDh/node2212.json",
+      "bytes": 7937,
+      "sha256": "d8e33820603307f70ede80599397e23b91e5924f0e8c829e826798d7c0d50683"
+    },
+    {
+      "path": "raw/windows-identity/diagnostics/node2212.log",
+      "originalPath": ".work/background-worktree-20261029/diagnostics-6uPwDh/node2212.log",
+      "bytes": 7937,
+      "sha256": "d8e33820603307f70ede80599397e23b91e5924f0e8c829e826798d7c0d50683"
+    },
+    {
+      "path": "raw/windows-identity/diagnostics/node2222.json",
+      "originalPath": ".work/background-worktree-20261029/diagnostics-6uPwDh/node2222.json",
+      "bytes": 7954,
+      "sha256": "b859b912c54668fa0f33303c3090c678c557871a33c012bad2caefbb83d558e0"
+    },
+    {
+      "path": "raw/windows-identity/diagnostics/node2222.log",
+      "originalPath": ".work/background-worktree-20261029/diagnostics-6uPwDh/node2222.log",
+      "bytes": 7954,
+      "sha256": "b859b912c54668fa0f33303c3090c678c557871a33c012bad2caefbb83d558e0"
+    },
+    {
+      "path": "raw/windows-identity/diagnostics/process.json",
+      "originalPath": ".work/background-worktree-20261029/diagnostics-6uPwDh/process.json",
+      "bytes": 293,
+      "sha256": "f1a2e2b2f61ceea3b488450c6fc402b929a3c88197fd44c18785902762e5d92a"
+    },
+    {
+      "path": "raw/windows-identity/before/before-sha.json",
+      "originalPath": ".work/background-worktree-20261029/bundle-identity-fix/before-sha.json",
+      "bytes": 247,
+      "sha256": "727da28fdb34368212fe51cb72749026ae0d4b7acb56a57b76821edd2323b958"
+    },
+    {
+      "path": "raw/windows-identity/before/memory-query-bundle.before.js",
+      "originalPath": ".work/background-worktree-20261029/bundle-identity-fix/memory-query-bundle.before.js",
+      "bytes": 11037,
+      "sha256": "f603c2b1683e04bcf8e9930a1bdba86c5be56bdd4d9b41c8e19a7a68a9b50472"
+    },
+    {
+      "path": "sources/packages/context-memory-kernel/lib/runtime.js",
+      "originalPath": "packages/context-memory-kernel/lib/runtime.js",
+      "bytes": 21237,
+      "sha256": "8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b"
+    },
+    {
+      "path": "sources/packages/context-memory-kernel/lib/canonical.js",
+      "originalPath": "packages/context-memory-kernel/lib/canonical.js",
+      "bytes": 3372,
+      "sha256": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7"
+    },
+    {
+      "path": "sources/packages/context-memory-kernel/lib/memory-reducer.js",
+      "originalPath": "packages/context-memory-kernel/lib/memory-reducer.js",
+      "bytes": 23857,
+      "sha256": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72"
+    },
+    {
+      "path": "sources/packages/context-memory-kernel/lib/compaction.js",
+      "originalPath": "packages/context-memory-kernel/lib/compaction.js",
+      "bytes": 18663,
+      "sha256": "c20037ed2d90d6aa62e8d642ffc65f48b27282b048896a40d840ff0b93c59a98"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/context-memory-kernel/provider-context.js",
+      "originalPath": "packages/cli/src/lib/context-memory-kernel/provider-context.js",
+      "bytes": 11835,
+      "sha256": "ab74480036676afc883aa1027653c16d1bf94c09eaa5355652940ea7c158a9a2"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "originalPath": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "bytes": 40897,
+      "sha256": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+      "originalPath": "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+      "bytes": 12596,
+      "sha256": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js",
+      "originalPath": "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js",
+      "bytes": 12287,
+      "sha256": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/context-memory-kernel/memory-query-control.js",
+      "originalPath": "packages/cli/src/lib/context-memory-kernel/memory-query-control.js",
+      "bytes": 925,
+      "sha256": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/context-memory-kernel/message-adapter.js",
+      "originalPath": "packages/cli/src/lib/context-memory-kernel/message-adapter.js",
+      "bytes": 16759,
+      "sha256": "d4448c48d109ea851577a847cbbd4c29058b2e6fc163be9ee589399399cbba41"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/context-memory-kernel/live-compaction.js",
+      "originalPath": "packages/cli/src/lib/context-memory-kernel/live-compaction.js",
+      "bytes": 18019,
+      "sha256": "cbf7077bd3fc1b022333d5663604cdd4f1fbd223f9290b3a26e61b53470395f1"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/context-memory-kernel/jsonl-session-context-port.js",
+      "originalPath": "packages/cli/src/lib/context-memory-kernel/jsonl-session-context-port.js",
+      "bytes": 8506,
+      "sha256": "1b5652e6154a2bba1ec792b0319b0918ed19345464e9f5da06c981c784419db3"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/abort-utils.js",
+      "originalPath": "packages/cli/src/lib/abort-utils.js",
+      "bytes": 2529,
+      "sha256": "7f1c1703150e71c46ad80b3f6688edc1a489fc389bca462a65091bef11dd692b"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/secure-file-identity.js",
+      "originalPath": "packages/cli/src/lib/secure-file-identity.js",
+      "bytes": 15752,
+      "sha256": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376"
+    },
+    {
+      "path": "sources/packages/cli/src/runtime/agent-core.js",
+      "originalPath": "packages/cli/src/runtime/agent-core.js",
+      "bytes": 674363,
+      "sha256": "b635ed8da8db6f2c5c2276bb427ac9109e913315821572c8edc16199df9a4eea"
+    },
+    {
+      "path": "sources/packages/cli/src/runtime/headless-runner.js",
+      "originalPath": "packages/cli/src/runtime/headless-runner.js",
+      "bytes": 188366,
+      "sha256": "9e871811fd02aa7c05e7a6ed4bab9704c06d3f74a39f600bb874a3e62f3c0bac"
+    },
+    {
+      "path": "sources/packages/cli/src/runtime/headless-stream.js",
+      "originalPath": "packages/cli/src/runtime/headless-stream.js",
+      "bytes": 220679,
+      "sha256": "39b8e7914a7b942dfd3c1688d07db4ba60efff42f8b1f0d4f491894f455797e3"
+    },
+    {
+      "path": "sources/packages/cli/src/harness/prompt-compressor.js",
+      "originalPath": "packages/cli/src/harness/prompt-compressor.js",
+      "bytes": 42063,
+      "sha256": "4706b1b493e87289084115c247542ed8a8cd07164eef5362350dfc7c2e65c7b5"
+    },
+    {
+      "path": "sources/packages/cli/src/harness/provider-backed-compaction.js",
+      "originalPath": "packages/cli/src/harness/provider-backed-compaction.js",
+      "bytes": 10582,
+      "sha256": "c17ac6556491e6f5959c44cc866543715ea445600979d0350c8d5367cf15e45f"
+    },
+    {
+      "path": "sources/packages/cli/src/harness/jsonl-session-store.js",
+      "originalPath": "packages/cli/src/harness/jsonl-session-store.js",
+      "bytes": 256049,
+      "sha256": "f0f3322c126f2249e47dcc0afced010394f4c30a50e50a94970e926b17ee5146"
+    },
+    {
+      "path": "sources/packages/cli/__tests__/unit/provider-model-profile.test.js",
+      "originalPath": "packages/cli/__tests__/unit/provider-model-profile.test.js",
+      "bytes": 13313,
+      "sha256": "32687db4bfba17e3cecebeea330e5a0fc29f3adfa4750d37edc3e5e7adb5d74f"
+    },
+    {
+      "path": "sources/packages/cli/__tests__/unit/provider-context-image-transport.test.js",
+      "originalPath": "packages/cli/__tests__/unit/provider-context-image-transport.test.js",
+      "bytes": 8229,
+      "sha256": "bbb0b5f26be9323a7d4f750627ba47959d1ef576b8c262592b60288740eb51fd"
+    },
+    {
+      "path": "sources/packages/cli/__tests__/unit/memory-query-cancellation.test.js",
+      "originalPath": "packages/cli/__tests__/unit/memory-query-cancellation.test.js",
+      "bytes": 7878,
+      "sha256": "af2335a29f7cbc71d5364069fccf517a7df76c0522dfdd4d160f5c5ad4e87b49"
+    },
+    {
+      "path": "sources/packages/cli/__tests__/unit/canonical-compaction-workflow.test.js",
+      "originalPath": "packages/cli/__tests__/unit/canonical-compaction-workflow.test.js",
+      "bytes": 8619,
+      "sha256": "32739668590638f9c08a81ed7c462d82425175d71073b1808b39d19570a22244"
+    },
+    {
+      "path": "sources/packages/cli/__tests__/unit/canonical-compaction-usage.test.js",
+      "originalPath": "packages/cli/__tests__/unit/canonical-compaction-usage.test.js",
+      "bytes": 18753,
+      "sha256": "24bc32b0ee0f2b8e7c234292a9653b0f2cba2535838baa25a337bedc19f002f3"
+    },
+    {
+      "path": "sources/packages/cli/__tests__/unit/agent-core-autocompact.test.js",
+      "originalPath": "packages/cli/__tests__/unit/agent-core-autocompact.test.js",
+      "bytes": 16241,
+      "sha256": "cdd5ba9bca50f7fdd4c7fbddb6a8e81f78a9527db6d93e70108a4e27e76522f3"
+    },
+    {
+      "path": "sources/packages/cli/__tests__/unit/agent-core-compact-persist.test.js",
+      "originalPath": "packages/cli/__tests__/unit/agent-core-compact-persist.test.js",
+      "bytes": 7720,
+      "sha256": "e4afcf87092bac8264b2a5a6a7ee704ae13dbf6a211df6e17abc739134bdce5d"
+    },
+    {
+      "path": "sources/packages/cli/__tests__/unit/provider-backed-compaction.test.js",
+      "originalPath": "packages/cli/__tests__/unit/provider-backed-compaction.test.js",
+      "bytes": 11540,
+      "sha256": "6288bd017bd1b546d048eaf94772885c88a7dd8a18677c1780a9f75f84a98f26"
+    },
+    {
+      "path": "sources/packages/cli/__tests__/unit/compaction-host-context.test.js",
+      "originalPath": "packages/cli/__tests__/unit/compaction-host-context.test.js",
+      "bytes": 7029,
+      "sha256": "e1f25c8e17558967eec36c6e0ba1f660f5920ee976a7afa831b571438f014ed6"
+    },
+    {
+      "path": "sources/packages/cli/__tests__/unit/compact-command.test.js",
+      "originalPath": "packages/cli/__tests__/unit/compact-command.test.js",
+      "bytes": 16579,
+      "sha256": "8b2a781cd0019cd50f2a787d26c695f8a5920afd6e6812cfa923ba1e3b759e08"
+    },
+    {
+      "path": "sources/packages/cli/__tests__/unit/abort-utils.test.js",
+      "originalPath": "packages/cli/__tests__/unit/abort-utils.test.js",
+      "bytes": 5269,
+      "sha256": "cbaebc6416c7f0781d31d0a5b90ae9fdce2d14ca339af9d193f61f17bd60485a"
+    },
+    {
+      "path": "sources/packages/cli/__tests__/integration/compaction-project-context-refresh.test.js",
+      "originalPath": "packages/cli/__tests__/integration/compaction-project-context-refresh.test.js",
+      "bytes": 11923,
+      "sha256": "7bf0c6c4ed94fbc6612c4aaa8a0be8634e9d599a2a4ded85f7e64349b527aff0"
+    },
+    {
+      "path": "sources/packages/cli/__tests__/integration/compaction-structured-memory.test.js",
+      "originalPath": "packages/cli/__tests__/integration/compaction-structured-memory.test.js",
+      "bytes": 9026,
+      "sha256": "24dd6e7608452253d3940f29e5bd820a001590bab0416bdd5a4c108d64f5d67f"
+    },
+    {
+      "path": "sources/packages/cli/__tests__/integration/semantic-memory-cancellation.test.js",
+      "originalPath": "packages/cli/__tests__/integration/semantic-memory-cancellation.test.js",
+      "bytes": 8013,
+      "sha256": "36c22a9464ecb513a1219d7ef120eb32ecf54567aa681f5ac022736901702327"
+    },
+    {
+      "path": "raw/final-checks/static-checks.json",
+      "originalPath": ".work/memory-query-bundle/static-checks.json",
+      "bytes": 2321,
+      "sha256": "b9683b6e7adefd022124a78f924c5a4022ce9011c0d7f9cc84235637d3055a90"
+    },
+    {
+      "path": "raw/final-checks/static-check-0.log",
+      "originalPath": ".work/memory-query-bundle/static-check-0.log",
+      "bytes": 82,
+      "sha256": "f23fa944c81bd11ad94e4496da8767b197ba2e407def62337241851aadc7bf86"
+    },
+    {
+      "path": "raw/final-checks/static-check-1.log",
+      "originalPath": ".work/memory-query-bundle/static-check-1.log",
+      "bytes": 16,
+      "sha256": "d8760763be63067f00789fcf42648cb7e89259b37690e733415676ec0b8b6596"
+    },
+    {
+      "path": "raw/final-checks/static-check-2.log",
+      "originalPath": ".work/memory-query-bundle/static-check-2.log",
+      "bytes": 149,
+      "sha256": "f1382454a8ad66557b5a7df0448a640a766c532f9836d02181dd83a7d22e52c9"
+    },
+    {
+      "path": "raw/final-checks/static-check-3.log",
+      "originalPath": ".work/memory-query-bundle/static-check-3.log",
+      "bytes": 16,
+      "sha256": "d8760763be63067f00789fcf42648cb7e89259b37690e733415676ec0b8b6596"
+    },
+    {
+      "path": "sources/.github/workflows/memory-query-index.yml",
+      "originalPath": ".github/workflows/memory-query-index.yml",
+      "bytes": 3866,
+      "sha256": "ad18a702275c6aa849c7e222d9ed33e3e40c4e6a6cbaa500ac7cfee5c4fe761c"
+    },
+    {
+      "path": "sources/packages/cli/scripts/memory-file-identity-diagnostic.mjs",
+      "originalPath": "packages/cli/scripts/memory-file-identity-diagnostic.mjs",
+      "bytes": 4851,
+      "sha256": "29d45dac5ebc5a58626bf05e93d384822d1919131313d04090e71e356eb732f6"
+    },
+    {
+      "path": "sources/packages/cli/scripts/memory-query-index-benchmark.mjs",
+      "originalPath": "packages/cli/scripts/memory-query-index-benchmark.mjs",
+      "bytes": 13677,
+      "sha256": "2a04c3b3263707502468794aaeaba420e896b8ac5c758a8a7a1d9535628f71c2"
+    },
+    {
+      "path": "sources/packages/cli/scripts/memory-query-responsiveness-benchmark.mjs",
+      "originalPath": "packages/cli/scripts/memory-query-responsiveness-benchmark.mjs",
+      "bytes": 7815,
+      "sha256": "0725e839bda441a378930f266692a9d603e532a83cdce8d5a64ffbd2eebe82ad"
+    },
+    {
+      "path": "sources/packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs",
+      "originalPath": "packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs",
+      "bytes": 14002,
+      "sha256": "786bf2fded0101e1229a834549460a945d0bc8d70d20ed2a41e73779cdd803be"
+    }
+  ],
+  "staticChecks": {
+    "allPassed": true,
+    "receipt": "raw/final-checks/static-checks.json"
+  }
+}

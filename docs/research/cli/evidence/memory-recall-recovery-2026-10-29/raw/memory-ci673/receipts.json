@@ -1,0 +1,52 @@
+[
+  {
+    "label": "windows-failed",
+    "args": [
+      "run",
+      "view",
+      "40806303385",
+      "--repo",
+      "chainlesschain/chainlesschain",
+      "--job",
+      "123225957124",
+      "--log-failed"
+    ],
+    "exitCode": 0,
+    "signal": null,
+    "error": null,
+    "observedAt": "2026-10-29T02:40:13.074Z",
+    "output": "windows-failed.log",
+    "sha256": "bcd01b9329fddb207f105a9df1ee0f7abb7a3b5647ce558f5fe5661465947b21"
+  },
+  {
+    "label": "run",
+    "args": [
+      "run",
+      "view",
+      "40806303385",
+      "--repo",
+      "chainlesschain/chainlesschain",
+      "--json",
+      "status,conclusion,headSha,jobs"
+    ],
+    "exitCode": 0,
+    "signal": null,
+    "error": null,
+    "observedAt": "2026-10-29T02:40:20.742Z",
+    "output": "run.json",
+    "sha256": "bb26e543a5c951db5213e8c1cdb82102b4f091d4efa499c1a869c87e91c56426"
+  },
+  {
+    "label": "artifacts",
+    "args": [
+      "api",
+      "repos/chainlesschain/chainlesschain/actions/runs/40806303385/artifacts"
+    ],
+    "exitCode": 0,
+    "signal": null,
+    "error": null,
+    "observedAt": "2026-10-29T02:40:24.589Z",
+    "output": "artifacts.json",
+    "sha256": "9486f3657b286f347313dd88a6a4675e9ae53f8b41e279767d1488db091b97a7"
+  }
+]

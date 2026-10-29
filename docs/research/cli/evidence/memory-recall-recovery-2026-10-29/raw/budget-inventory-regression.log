@@ -1,0 +1,126 @@
+TAP version 13
+# Subtest: AST ignores comments, declaration names, strings and generated template code
+ok 1 - AST ignores comments, declaration names, strings and generated template code
+  ---
+  duration_ms: 19.3084
+  type: 'test'
+  ...
+# Subtest: HTTP selectors, imported/destructured aliases and bound fetch retain actual calls
+ok 2 - HTTP selectors, imported/destructured aliases and bound fetch retain actual calls
+  ---
+  duration_ms: 6.0803
+  type: 'test'
+  ...
+# Subtest: named socket helpers and inbound server constructors are not outbound calls
+ok 3 - named socket helpers and inbound server constructors are not outbound calls
+  ---
+  duration_ms: 2.3618
+  type: 'test'
+  ...
+# Subtest: CommonJS imports, undici fetch aliases and SDK construction are candidates
+ok 4 - CommonJS imports, undici fetch aliases and SDK construction are candidates
+  ---
+  duration_ms: 1.8852
+  type: 'test'
+  ...
+# Subtest: member fetch is conservatively retained, including non-HTTP content-addressed retrieval
+ok 5 - member fetch is conservatively retained, including non-HTTP content-addressed retrieval
+  ---
+  duration_ms: 1.06
+  type: 'test'
+  ...
+# Subtest: literal dynamic imports and CommonJS named socket, WebSocket and SDK aliases are retained
+ok 6 - literal dynamic imports and CommonJS named socket, WebSocket and SDK aliases are retained
+  ---
+  duration_ms: 2.6835
+  type: 'test'
+  ...
+# Subtest: source-bound review passes only for exactly reviewed bytes and never admits paid runtime
+ok 7 - source-bound review passes only for exactly reviewed bytes and never admits paid runtime
+  ---
+  duration_ms: 18.6094
+  type: 'test'
+  ...
+# Subtest: changed reviewed files lose classification until reviewed again
+ok 8 - changed reviewed files lose classification until reviewed again
+  ---
+  duration_ms: 23.0259
+  type: 'test'
+  ...
+# Subtest: new and removed candidate paths cannot silently reuse a prior review
+ok 9 - new and removed candidate paths cannot silently reuse a prior review
+  ---
+  duration_ms: 34.4508
+  type: 'test'
+  ...
+# Subtest: invalid syntax is visible and cannot yield a clean zero-candidate audit
+ok 10 - invalid syntax is visible and cannot yield a clean zero-candidate audit
+  ---
+  duration_ms: 25.5011
+  type: 'test'
+  ...
+# Subtest: test sources are excluded and an explicit scripts scan exposes unreviewed probes
+ok 11 - test sources are excluded and an explicit scripts scan exposes unreviewed probes
+  ---
+  duration_ms: 48.9258
+  type: 'test'
+  ...
+# Subtest: symlink directories are not followed and make the audit incomplete
+ok 12 - symlink directories are not followed and make the audit incomplete
+  ---
+  duration_ms: 33.0949
+  type: 'test'
+  ...
+# Subtest: a combined review preserves independent source and scripts audit roots
+ok 13 - a combined review preserves independent source and scripts audit roots
+  ---
+  duration_ms: 63.4403
+  type: 'test'
+  ...
+# Subtest: explicit root symlinks remain incomplete and empty root sets are rejected
+ok 14 - explicit root symlinks remain incomplete and empty root sets are rejected
+  ---
+  duration_ms: 21.1098
+  type: 'test'
+  ...
+# Subtest: review catalogue rejects duplicate paths, invalid categories and malformed digests
+ok 15 - review catalogue rejects duplicate paths, invalid categories and malformed digests
+  ---
+  duration_ms: 1.5958
+  type: 'test'
+  ...
+# Subtest: audit help does not require a review or create an output artifact
+ok 16 - audit help does not require a review or create an output artifact
+  ---
+  duration_ms: 615.6406
+  type: 'test'
+  ...
+# Subtest: all search providers refuse unpriced service dispatch in a Chat-only budget scope
+ok 17 - all search providers refuse unpriced service dispatch in a Chat-only budget scope
+  ---
+  duration_ms: 114.8738
+  type: 'test'
+  ...
+# Subtest: search rejects before resolving configured credentials or acquiring a host tool lease
+ok 18 - search rejects before resolving configured credentials or acquiring a host tool lease
+  ---
+  duration_ms: 1.4124
+  type: 'test'
+  ...
+# Subtest: the canonical web_search tool cannot turn a budget refusal into an ordinary tool result
+ok 19 - the canonical web_search tool cannot turn a budget refusal into an ordinary tool result
+  ---
+  duration_ms: 6.6901
+  type: 'test'
+  ...
+1..19
+# tests 19
+# suites 0
+# pass 19
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4496.5078
+
+--- stderr ---

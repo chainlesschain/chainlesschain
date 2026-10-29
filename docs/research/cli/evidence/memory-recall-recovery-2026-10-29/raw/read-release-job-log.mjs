@@ -1,0 +1,10 @@
+import fs from "node:fs";
+import { spawnSync } from "node:child_process";
+const endpoint = "repos/chainlesschain/chainlesschain/actions/jobs/123229304358/logs";
+const run = spawnSync("gh", ["api", endpoint], { encoding: "utf8", windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
+const prefix = ".work/structured-memory-20261029/release130-verify-job-log";
+fs.writeFileSync(prefix + ".log", run.stdout || "");
+fs.writeFileSync(prefix + "-process.json", JSON.stringify({ endpoint, exitCode: run.status, signal: run.signal, observedAt: new Date().toISOString(), stderr: run.stderr }, null, 2) + "\n");
+console.log(JSON.stringify({ exitCode: run.status, bytes: (run.stdout || "").length, stderr: run.stderr }));
+console.log((run.stdout || "").split(/\r?\n/).filter(line => /sourceReviewPassed|reviewIssues|unclassifiedFiles|stale_source|UNREVIEWED|source_changed/u.test(line)).slice(0, 15).join("\n"));
+process.exitCode = run.status ?? 1;

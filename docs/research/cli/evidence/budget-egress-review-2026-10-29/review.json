@@ -1,0 +1,276 @@
+{
+  "schema": "chainlesschain.budget-egress-source-review-recovery/v1",
+  "observedAt": "2026-10-29T03:15:58.816Z",
+  "sourceHeadBeforeCommit": "673c2520a84f884dc4d072e222078f31b3090718",
+  "sourceHashes": {
+    "packages/cli/src/assets/web-panel/assets/Artifacts-D4DeQQ89.js": "sha256:2353f47a357c75d1a2a8e54b3b1627e0a3eef5743c7c4dd93f0fe7e83345d294",
+    "packages/cli/src/assets/web-panel/assets/index-CI07XFwr.js": "sha256:9d70a06d5382de4004ccc7ef420c1cf56dae0e2e418c762fd036edbfe5cad62f",
+    "packages/cli/src/assets/web-panel/assets/MtcAudit-CwJzv9a9.js": "sha256:386279ddb9399ea6d359c93409e8be213593cfdfc5ca2c54a046c194cb26486f",
+    "packages/cli/src/assets/web-panel/assets/RemoteSession-DyCisp2M.js": "sha256:481259ef3a2b2857f61d1b5e70983a4171d51dee9a16d1d78a08a7ef22a4956c",
+    "packages/cli/src/commands/llm.js": "sha256:c812d9b74905ebb9e5080f595ecc459659edfc634167664bd7f4fd8cba878dd2",
+    "packages/cli/src/lib/llm-connection-probe.js": "sha256:a520b283af44852c27a48ce5a5aa95af309e46d2224f7ca337d020c9a3a0206c",
+    "packages/cli/src/runtime/agent-core.js": "sha256:b635ed8da8db6f2c5c2276bb427ac9109e913315821572c8edc16199df9a4eea"
+  },
+  "historicalE7": {
+    "source": "e7a6f2585d62949794596767869423b0eb670104",
+    "actualExitCode": 1,
+    "clean": true,
+    "issues": [
+      {
+        "path": "packages/cli/src/commands/llm.js",
+        "status": "STALE"
+      },
+      {
+        "path": "packages/cli/src/lib/llm-connection-probe.js",
+        "status": "STALE"
+      }
+    ]
+  },
+  "mainAfter": {
+    "actualExitCode": 0,
+    "candidateFiles": 82,
+    "reviewIssues": [],
+    "parseErrors": 0,
+    "skippedPaths": 0,
+    "paidReady": false,
+    "runtimeCoverageVerified": false,
+    "catalogueDigest": "e742078bd30874298eed124fb4567f6ab72b89695b78d454bf1c9b0c941319a4"
+  },
+  "inventoryTests": {
+    "passed": 19,
+    "failed": 0,
+    "receipt": "raw/budget-inventory-regression-process.json"
+  },
+  "release": {
+    "fixedSourceUnchanged": "e7a6f2585d62949794596767869423b0eb670104",
+    "cliRun": 40784878922,
+    "attempt": 2,
+    "conclusion": "failure",
+    "published": false
+  },
+  "boundaries": [
+    "The exact historical e7 checkout has two stale entries; the later main tree has seven. Do not substitute main results for e7 results.",
+    "The e7 proposal is archived and was not applied to the release source or validation tag.",
+    "A byte-bound source classification does not grant financial admission or establish arbitrary dynamic/OS descendant containment.",
+    "Historical detailed job logs could not be fetched due to HTTP403. Job metadata and exact-source local reproduction are separate evidence.",
+    "Any new release source needs its own complete exact-source operating-system matrices."
+  ],
+  "artifacts": [
+    {
+      "path": "raw/applied-main-review.json",
+      "originalPath": ".work\\budget-egress-20261029\\applied-main-review.json",
+      "bytes": 5441,
+      "sha256": "375675fd11e75bd74fad0cb50b5c70ddcd3e2bf86366397dfd3f7b116d212c5c"
+    },
+    {
+      "path": "raw/apply-main-proposal.mjs",
+      "originalPath": ".work\\budget-egress-20261029\\apply-main-proposal.mjs",
+      "bytes": 2014,
+      "sha256": "546293a0c705ef58a69593c12cfe791783cd4223786e9ac2cbf8e2b0f0791515"
+    },
+    {
+      "path": "raw/archive.mjs",
+      "originalPath": ".work\\budget-egress-20261029\\archive.mjs",
+      "bytes": 4512,
+      "sha256": "02ed3f141c8b17ff64eb7652edb1efe33ce0c8ab99a18458a2992691beb56028"
+    },
+    {
+      "path": "raw/e7-audit-process.json",
+      "originalPath": ".work\\budget-egress-20261029\\e7-audit-process.json",
+      "bytes": 1733,
+      "sha256": "68dfcc54dcf3607f08e0d27d923a3555194047e45290562ff43423b7cf3163d3"
+    },
+    {
+      "path": "raw/e7-audit.json",
+      "originalPath": ".work\\budget-egress-20261029\\e7-audit.json",
+      "bytes": 84311,
+      "sha256": "7c9239e2b94a6fe688c913d7bd95d648757f776c08f66f5903966dbbc7d129c6"
+    },
+    {
+      "path": "raw/e7-audit.stderr.log",
+      "originalPath": ".work\\budget-egress-20261029\\e7-audit.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/e7-audit.stdout.log",
+      "originalPath": ".work\\budget-egress-20261029\\e7-audit.stdout.log",
+      "bytes": 303,
+      "sha256": "e70470a309d0ff5b8e5fae65cef58480a13d5904e9581276cac3ec9c97690915"
+    },
+    {
+      "path": "raw/e7-proposal-validation-v2.json",
+      "originalPath": ".work\\budget-egress-20261029\\e7-proposal-validation-v2.json",
+      "bytes": 4130,
+      "sha256": "7ff4491153a2ed8ef6528d6bc8ddab000156bd5dd35eadbcc72e023d3a0f5ba4"
+    },
+    {
+      "path": "raw/e7-proposal-validation.json",
+      "originalPath": ".work\\budget-egress-20261029\\e7-proposal-validation.json",
+      "bytes": 3997,
+      "sha256": "25b418a1a9c7501da29d2923a1c7266dce6a69aeb00959e4ac56a7d7604c3b03"
+    },
+    {
+      "path": "raw/e7-proposed-catalogue-v2.json",
+      "originalPath": ".work\\budget-egress-20261029\\e7-proposed-catalogue-v2.json",
+      "bytes": 33936,
+      "sha256": "9cabdabac212c1fa133368f92910425baba65cc59446020f7cf8746d3751675b"
+    },
+    {
+      "path": "raw/e7-proposed-catalogue-v2.patch",
+      "originalPath": ".work\\budget-egress-20261029\\e7-proposed-catalogue-v2.patch",
+      "bytes": 3491,
+      "sha256": "417918710a4a2cd7ed3188df3d51b7071d8f0e607e49d45c8004e126252cd637"
+    },
+    {
+      "path": "raw/e7-proposed-catalogue.json",
+      "originalPath": ".work\\budget-egress-20261029\\e7-proposed-catalogue.json",
+      "bytes": 33803,
+      "sha256": "0a2c6a2a9fb19d338e638fda79e08b7d58f9c70e18217e534090b1a3df12eb34"
+    },
+    {
+      "path": "raw/e7-proposed-catalogue.patch",
+      "originalPath": ".work\\budget-egress-20261029\\e7-proposed-catalogue.patch",
+      "bytes": 3358,
+      "sha256": "2a40062f6b0bf1720edbdc2c4c1e590332b89ccab8cea85a914049599cce07a1"
+    },
+    {
+      "path": "raw/main-after-process.json",
+      "originalPath": ".work\\budget-egress-20261029\\main-after-process.json",
+      "bytes": 500,
+      "sha256": "7f90cfb77829dfef4b36533c05b6c7534500e60a12482a339b7dfb78d2481d9b"
+    },
+    {
+      "path": "raw/main-after.json",
+      "originalPath": ".work\\budget-egress-20261029\\main-after.json",
+      "bytes": 90346,
+      "sha256": "cd09e59c5cadf198e422d54abd7e757c5767f5e3216673c5d7721321504c8ec4"
+    },
+    {
+      "path": "raw/main-after.log",
+      "originalPath": ".work\\budget-egress-20261029\\main-after.log",
+      "bytes": 185,
+      "sha256": "0d0230b75df3730e8f64ae521d19937da157e15a664ce8b445f2f1ba518f94ef"
+    },
+    {
+      "path": "raw/main-proposal-validation-v2.json",
+      "originalPath": ".work\\budget-egress-20261029\\main-proposal-validation-v2.json",
+      "bytes": 11143,
+      "sha256": "d2b20c0dc3af403f474441ec5c0a1c0380bdd0b42ece4e733427af6946337e57"
+    },
+    {
+      "path": "raw/main-proposal-validation.json",
+      "originalPath": ".work\\budget-egress-20261029\\main-proposal-validation.json",
+      "bytes": 11010,
+      "sha256": "398007218c25c76bb14fb07163cc038efcdb6e165ad677cef46d349935c68469"
+    },
+    {
+      "path": "raw/main-proposed-catalogue-v2.json",
+      "originalPath": ".work\\budget-egress-20261029\\main-proposed-catalogue-v2.json",
+      "bytes": 34849,
+      "sha256": "e742078bd30874298eed124fb4567f6ab72b89695b78d454bf1c9b0c941319a4"
+    },
+    {
+      "path": "raw/main-proposed-catalogue-v2.patch",
+      "originalPath": ".work\\budget-egress-20261029\\main-proposed-catalogue-v2.patch",
+      "bytes": 10415,
+      "sha256": "bc6012e9118a514058d3cb9389be3b14b0a9da9fc4b31f3c5449efed90abc5ad"
+    },
+    {
+      "path": "raw/main-proposed-catalogue.json",
+      "originalPath": ".work\\budget-egress-20261029\\main-proposed-catalogue.json",
+      "bytes": 34716,
+      "sha256": "ca444ee24ed3e1d22b58799b1d39876d1411e6cd2ce6ff2da179c7d49da785d7"
+    },
+    {
+      "path": "raw/main-proposed-catalogue.patch",
+      "originalPath": ".work\\budget-egress-20261029\\main-proposed-catalogue.patch",
+      "bytes": 10282,
+      "sha256": "a7065eca2d702313cde6e6ccb1ab764e806f2645d110fff14cc8cb915e0d3518"
+    },
+    {
+      "path": "raw/propose-catalogue.mjs",
+      "originalPath": ".work\\budget-egress-20261029\\propose-catalogue.mjs",
+      "bytes": 8855,
+      "sha256": "78c3e4ec09f2d74c5058b870c9f51ff1cc02206b6e14ce9fe2cee0c6b9fec898"
+    },
+    {
+      "path": "raw/run-e7-audit.mjs",
+      "originalPath": ".work\\budget-egress-20261029\\run-e7-audit.mjs",
+      "bytes": 2243,
+      "sha256": "65d21d9df6d87ff50d2618af2d65871062174db1ed792f82b45916f977330b71"
+    },
+    {
+      "path": "raw/run-main-audit.mjs",
+      "originalPath": ".work\\budget-egress-20261029\\run-main-audit.mjs",
+      "bytes": 1121,
+      "sha256": "c08bb7c1d001086a8ed2c0b1471f6c77126765c61359ba4f827124d82d9592f1"
+    },
+    {
+      "path": "raw/budget-current.json",
+      "originalPath": ".work/structured-memory-20261029/budget-current.json",
+      "bytes": 87906,
+      "sha256": "9b8b21a0a2c635b006ad7f0348003a6477ceadd509762aba6664d090979e5e6f"
+    },
+    {
+      "path": "raw/budget-inventory-regression.log",
+      "originalPath": ".work/structured-memory-20261029/budget-inventory-regression.log",
+      "bytes": 4391,
+      "sha256": "3340f2135bc771ce7f45c9611f6f8cc5e2586944d6cfa7d59e6fa9ab593a924b"
+    },
+    {
+      "path": "raw/budget-inventory-regression-process.json",
+      "originalPath": ".work/structured-memory-20261029/budget-inventory-regression-process.json",
+      "bytes": 5778,
+      "sha256": "69eb3059ac572e58db25551b15de80c04d7388e0244d948b5a22b9cc722be583"
+    },
+    {
+      "path": "raw/release130-attempt2-terminal-run.json",
+      "originalPath": ".work/structured-memory-20261029/release130-attempt2-terminal-run.json",
+      "bytes": 13921,
+      "sha256": "610ad8d3d307b5fa1b47bb5e738dfee21eae79c51aa9b5a42cd53957ef6e2446"
+    },
+    {
+      "path": "raw/release130-attempt2-terminal-jobs.json",
+      "originalPath": ".work/structured-memory-20261029/release130-attempt2-terminal-jobs.json",
+      "bytes": 209973,
+      "sha256": "d5e98237eeb7cafc8a46be4063eba107297113d94618c813f4accd730f74ee2b"
+    },
+    {
+      "path": "raw/release130-attempt2-read-receipts.json",
+      "originalPath": ".work/structured-memory-20261029/release130-attempt2-read-receipts.json",
+      "bytes": 477,
+      "sha256": "6b1a1dcac9af5546c6cbcfb18ee8ce7d8dafe8ecd76320c958d4e41939ac6c76"
+    },
+    {
+      "path": "raw/release130-verify-failed-process.json",
+      "originalPath": ".work/structured-memory-20261029/release130-verify-failed-process.json",
+      "bytes": 422,
+      "sha256": "c8baf4120b7a34b65e314b7e668032f9ae5dee518bf4fbf8c41f30e85c1e764b"
+    },
+    {
+      "path": "raw/release130-verify-job-log-process.json",
+      "originalPath": ".work/structured-memory-20261029/release130-verify-job-log-process.json",
+      "bytes": 236,
+      "sha256": "d7ee35d5614d94eaf750faf01417ce48e9b26691efef9a715a4e9205fb079c81"
+    },
+    {
+      "path": "sources/catalogue-after.json",
+      "originalPath": "packages/cli/scripts/budget-egress-reviewed-sources.json",
+      "bytes": 34849,
+      "sha256": "e742078bd30874298eed124fb4567f6ab72b89695b78d454bf1c9b0c941319a4"
+    },
+    {
+      "path": "sources/implementation-plan-budget-egress.mjs",
+      "originalPath": "packages/cli/scripts/implementation-plan-budget-egress.mjs",
+      "bytes": 10190,
+      "sha256": "afbfc98975cefdf6c2762af4dbef73a5256f158b84164bd9dac2f9eeac8b7d5c"
+    },
+    {
+      "path": "sources/budget-egress-inventory.mjs",
+      "originalPath": "packages/cli/scripts/lib/budget-egress-inventory.mjs",
+      "bytes": 12426,
+      "sha256": "daa8fba09080397e842f78d472bc811341928d48eebbff36eb7f10911d47c882"
+    }
+  ]
+}

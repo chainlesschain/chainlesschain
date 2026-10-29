@@ -1,0 +1,16 @@
+{
+  "args": [
+    "run",
+    "view",
+    "40784878922",
+    "--repo",
+    "chainlesschain/chainlesschain",
+    "--job",
+    "123229304358",
+    "--log-failed"
+  ],
+  "exitCode": 1,
+  "observedAt": "2026-10-29T02:57:43.050Z",
+  "error": null,
+  "stderr": "failed to get run log: HTTP 403: Must have admin rights to Repository. (https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/40784878922/logs)\n"
+}

@@ -1,0 +1,284 @@
+{
+  "schema": "chainlesschain.memory-file-identity-diagnostic/v1",
+  "node": "v22.12.0",
+  "uv": "1.49.1",
+  "platform": "win32",
+  "arch": "x64",
+  "osRelease": "10.0.19045",
+  "affectedDeviceProjectionRuntime": true,
+  "sourceSha256": {
+    "memory-file-identity-diagnostic.mjs": "29d45dac5ebc5a58626bf05e93d384822d1919131313d04090e71e356eb732f6",
+    "secure-file-identity.js": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+    "memory-query-bundle.js": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309"
+  },
+  "flags": {
+    "O_NOFOLLOW": null,
+    "O_NONBLOCK": null
+  },
+  "observations": [
+    {
+      "operation": "read-string-flags",
+      "flags": "r",
+      "pathNumber": {
+        "dev": 38182903,
+        "ino": 2533274798050219,
+        "mode": 33206,
+        "nlink": 1,
+        "size": 34,
+        "mtimeMs": 1793242229952.67,
+        "ctimeMs": 1793242229952.67
+      },
+      "handleNumber": {
+        "dev": 38182903,
+        "ino": 2533274798050219,
+        "mode": 33206,
+        "nlink": 1,
+        "size": 34,
+        "mtimeMs": 1793242229952.67,
+        "ctimeMs": 1793242229952.67
+      },
+      "pathBigInt": {
+        "dev": "38182903",
+        "ino": "2533274798050219",
+        "mode": "33206",
+        "nlink": "1",
+        "size": "34",
+        "mtimeMs": "1793242229952",
+        "ctimeMs": "1793242229952",
+        "mtimeNs": "1793242229952670000",
+        "ctimeNs": "1793242229952670000"
+      },
+      "handleBigInt": {
+        "dev": "38182903",
+        "ino": "2533274798050219",
+        "mode": "33206",
+        "nlink": "1",
+        "size": "34",
+        "mtimeMs": "1793242229952",
+        "ctimeMs": "1793242229952",
+        "mtimeNs": "1793242229952670000",
+        "ctimeNs": "1793242229952670000"
+      },
+      "parent": {
+        "trustedDevice": "38182903",
+        "pathNumber": {
+          "dev": 38182903,
+          "ino": 2533274798050215,
+          "mode": 16822,
+          "nlink": 1,
+          "size": 0,
+          "mtimeMs": 1793242229950.653,
+          "ctimeMs": 1793242229950.653
+        },
+        "handleNumber": {
+          "dev": 38182903,
+          "ino": 2533274798050215,
+          "mode": 16822,
+          "nlink": 1,
+          "size": 0,
+          "mtimeMs": 1793242229950.653,
+          "ctimeMs": 1793242229950.653
+        },
+        "pathBigInt": {
+          "dev": "38182903",
+          "ino": "2533274798050215",
+          "mode": "16822",
+          "nlink": "1",
+          "size": "0",
+          "mtimeMs": "1793242229950",
+          "ctimeMs": "1793242229950",
+          "mtimeNs": "1793242229950653000",
+          "ctimeNs": "1793242229950653000"
+        },
+        "handleBigInt": {
+          "dev": "38182903",
+          "ino": "2533274798050215",
+          "mode": "16822",
+          "nlink": "1",
+          "size": "0",
+          "mtimeMs": "1793242229950",
+          "ctimeMs": "1793242229950",
+          "mtimeNs": "1793242229950653000",
+          "ctimeNs": "1793242229950653000"
+        },
+        "fileIdentityMatches": true
+      }
+    },
+    {
+      "operation": "read-bundle-flags",
+      "flags": 0,
+      "pathNumber": {
+        "dev": 38182903,
+        "ino": 2533274798050219,
+        "mode": 33206,
+        "nlink": 1,
+        "size": 34,
+        "mtimeMs": 1793242229952.67,
+        "ctimeMs": 1793242229952.67
+      },
+      "handleNumber": {
+        "dev": 38182903,
+        "ino": 2533274798050219,
+        "mode": 33206,
+        "nlink": 1,
+        "size": 34,
+        "mtimeMs": 1793242229952.67,
+        "ctimeMs": 1793242229952.67
+      },
+      "pathBigInt": {
+        "dev": "38182903",
+        "ino": "2533274798050219",
+        "mode": "33206",
+        "nlink": "1",
+        "size": "34",
+        "mtimeMs": "1793242229952",
+        "ctimeMs": "1793242229952",
+        "mtimeNs": "1793242229952670000",
+        "ctimeNs": "1793242229952670000"
+      },
+      "handleBigInt": {
+        "dev": "38182903",
+        "ino": "2533274798050219",
+        "mode": "33206",
+        "nlink": "1",
+        "size": "34",
+        "mtimeMs": "1793242229952",
+        "ctimeMs": "1793242229952",
+        "mtimeNs": "1793242229952670000",
+        "ctimeNs": "1793242229952670000"
+      },
+      "parent": {
+        "trustedDevice": "38182903",
+        "pathNumber": {
+          "dev": 38182903,
+          "ino": 2533274798050215,
+          "mode": 16822,
+          "nlink": 1,
+          "size": 0,
+          "mtimeMs": 1793242229950.653,
+          "ctimeMs": 1793242229950.653
+        },
+        "handleNumber": {
+          "dev": 38182903,
+          "ino": 2533274798050215,
+          "mode": 16822,
+          "nlink": 1,
+          "size": 0,
+          "mtimeMs": 1793242229950.653,
+          "ctimeMs": 1793242229950.653
+        },
+        "pathBigInt": {
+          "dev": "38182903",
+          "ino": "2533274798050215",
+          "mode": "16822",
+          "nlink": "1",
+          "size": "0",
+          "mtimeMs": "1793242229950",
+          "ctimeMs": "1793242229950",
+          "mtimeNs": "1793242229950653000",
+          "ctimeNs": "1793242229950653000"
+        },
+        "handleBigInt": {
+          "dev": "38182903",
+          "ino": "2533274798050215",
+          "mode": "16822",
+          "nlink": "1",
+          "size": "0",
+          "mtimeMs": "1793242229950",
+          "ctimeMs": "1793242229950",
+          "mtimeNs": "1793242229950653000",
+          "ctimeNs": "1793242229950653000"
+        },
+        "fileIdentityMatches": true
+      }
+    },
+    {
+      "operation": "write-bundle-flags",
+      "flags": 1281,
+      "pathNumber": {
+        "dev": 38182903,
+        "ino": 2533274798050225,
+        "mode": 33206,
+        "nlink": 1,
+        "size": 37,
+        "mtimeMs": 1793242229966.0486,
+        "ctimeMs": 1793242229966.0486
+      },
+      "handleNumber": {
+        "dev": 38182903,
+        "ino": 2533274798050225,
+        "mode": 33206,
+        "nlink": 1,
+        "size": 37,
+        "mtimeMs": 1793242229966.0486,
+        "ctimeMs": 1793242229966.0486
+      },
+      "pathBigInt": {
+        "dev": "38182903",
+        "ino": "2533274798050225",
+        "mode": "33206",
+        "nlink": "1",
+        "size": "37",
+        "mtimeMs": "1793242229966",
+        "ctimeMs": "1793242229966",
+        "mtimeNs": "1793242229966048500",
+        "ctimeNs": "1793242229966048500"
+      },
+      "handleBigInt": {
+        "dev": "38182903",
+        "ino": "2533274798050225",
+        "mode": "33206",
+        "nlink": "1",
+        "size": "37",
+        "mtimeMs": "1793242229966",
+        "ctimeMs": "1793242229966",
+        "mtimeNs": "1793242229966048500",
+        "ctimeNs": "1793242229966048500"
+      },
+      "parent": {
+        "trustedDevice": "38182903",
+        "pathNumber": {
+          "dev": 38182903,
+          "ino": 2533274798050215,
+          "mode": 16822,
+          "nlink": 1,
+          "size": 0,
+          "mtimeMs": 1793242229966.0486,
+          "ctimeMs": 1793242229966.0486
+        },
+        "handleNumber": {
+          "dev": 38182903,
+          "ino": 2533274798050215,
+          "mode": 16822,
+          "nlink": 1,
+          "size": 0,
+          "mtimeMs": 1793242229966.0486,
+          "ctimeMs": 1793242229966.0486
+        },
+        "pathBigInt": {
+          "dev": "38182903",
+          "ino": "2533274798050215",
+          "mode": "16822",
+          "nlink": "1",
+          "size": "0",
+          "mtimeMs": "1793242229966",
+          "ctimeMs": "1793242229966",
+          "mtimeNs": "1793242229966048500",
+          "ctimeNs": "1793242229966048500"
+        },
+        "handleBigInt": {
+          "dev": "38182903",
+          "ino": "2533274798050215",
+          "mode": "16822",
+          "nlink": "1",
+          "size": "0",
+          "mtimeMs": "1793242229966",
+          "ctimeMs": "1793242229966",
+          "mtimeNs": "1793242229966048500",
+          "ctimeNs": "1793242229966048500"
+        },
+        "fileIdentityMatches": true
+      }
+    }
+  ]
+}

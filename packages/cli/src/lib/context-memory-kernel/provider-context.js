@@ -5,6 +5,7 @@ import {
   normalizeContextItem,
 } from "@chainlesschain/context-memory-kernel";
 import { resolveModelCapabilityProfile } from "../model-capabilities.js";
+import { raceWithAbort } from "../abort-utils.js";
 import { createCliContextMemoryRuntime } from "./runtime.js";
 import {
   contextItemsToMessages,
@@ -64,20 +65,32 @@ async function resolveSemanticCandidates({
   sink,
   scopeAdmissions,
   limit,
+  signal,
 }) {
   if (!provider) return undefined;
-  const candidates = await provider(
-    Object.freeze({
-      schema: SEMANTIC_CANDIDATE_REQUEST_SCHEMA,
-      sessionId,
-      query,
-      sink,
-      scopeAdmissions: Object.freeze(
-        scopeAdmissions.map((entry) => Object.freeze({ ...entry })),
-      ),
-      limit,
-      maxCandidates: 1000,
+  signal?.throwIfAborted();
+  const request = Object.freeze({
+    schema: SEMANTIC_CANDIDATE_REQUEST_SCHEMA,
+    sessionId,
+    query,
+    sink,
+    scopeAdmissions: Object.freeze(
+      scopeAdmissions.map((entry) => Object.freeze({ ...entry })),
+    ),
+    limit,
+    maxCandidates: 1000,
+  });
+  // Attach cancellation observers before invoking host code. A source may
+  // ignore Stop, or abort synchronously and then reject; neither can revive
+  // this request or produce an unhandled late rejection. The live signal is
+  // a host control, never part of the serialized semantic request contract.
+  const candidates = await raceWithAbort(
+    Promise.resolve().then(() => {
+      signal?.throwIfAborted();
+      return provider(request, Object.freeze({ signal }));
     }),
+    signal,
+    "Semantic Memory recall interrupted",
   );
   if (!Array.isArray(candidates)) {
     throw new TypeError(
@@ -216,6 +229,7 @@ export async function prepareCanonicalProviderContext(
     sink,
     scopeAdmissions,
     limit: recallLimit,
+    signal: options.signal,
   });
   options.signal?.throwIfAborted();
   const recall = recallEnabled

@@ -1,0 +1,29 @@
+{
+  "args": [
+    "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+    "run",
+    "__tests__/unit/memory-query-bundle.test.js",
+    "__tests__/integration/memory-query-bundle-identity.test.js",
+    "--reporter=json",
+    "--outputFile=C:\\code\\chainlesschain\\.work\\memory-query-bundle\\bigint-identity-fixed-2212.json"
+  ],
+  "exitCode": 1,
+  "signal": null,
+  "error": null,
+  "observedAt": "2026-10-29T02:46:57.495Z",
+  "sourceBefore": {
+    "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "d05ff3d49ef6d7fb64a43cfc7180706e0d22e22007fa27968e8cae2cc48a5fb7",
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+    "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+    "packages/cli/__tests__/unit/memory-query-bundle.test.js": "805d9f891a024d8b7f4ffa763f1a28d60fe23c34583ee498d7cf94a3a67a7e10",
+    "packages/cli/__tests__/integration/memory-query-bundle-identity.test.js": "7fa6ebd851220612ae1533680c1f91711e2bb8be2e53705401f6048cdc42e64e"
+  },
+  "sourceAfter": {
+    "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "d05ff3d49ef6d7fb64a43cfc7180706e0d22e22007fa27968e8cae2cc48a5fb7",
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+    "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+    "packages/cli/__tests__/unit/memory-query-bundle.test.js": "805d9f891a024d8b7f4ffa763f1a28d60fe23c34583ee498d7cf94a3a67a7e10",
+    "packages/cli/__tests__/integration/memory-query-bundle-identity.test.js": "7fa6ebd851220612ae1533680c1f91711e2bb8be2e53705401f6048cdc42e64e"
+  },
+  "sourcesStable": true
+}

@@ -1,0 +1,36 @@
+diff --git a/packages/cli/scripts/budget-egress-reviewed-sources.json b/packages/cli/scripts/budget-egress-reviewed-sources.json
+index aaa6808620..148cae4e37 100644
+--- a/packages/cli/scripts/budget-egress-reviewed-sources.json
++++ b/packages/cli/scripts/budget-egress-reviewed-sources.json
+@@ -1,6 +1,6 @@
+ {
+   "schema": "chainlesschain.budget-egress-source-review/v1",
+-  "reviewedAt": "2026-10-28",
++  "reviewedAt": "2026-10-29",
+   "scope": ["packages/cli/src", "packages/cli/scripts"],
+   "basis": "Implementation source inspection; byte-bound classifications only. Not an independent financial/OS admission decision.",
+   "entries": [
+@@ -114,9 +114,9 @@
+     },
+     {
+       "path": "packages/cli/src/commands/llm.js",
+-      "digest": "sha256:d0b796ff3fcea86ce108c2aede0ebc55a3954bb264e893a62d0daf56010ebfa5",
++      "digest": "sha256:c812d9b74905ebb9e5080f595ecc459659edfc634167664bd7f4fd8cba878dd2",
+       "category": "LOCAL_DIAGNOSTIC",
+-      "rationale": "Ollama /api/tags model-list GET, distinct from an inference probe."
++      "rationale": "Direct fetch lists Ollama models with GET /api/tags against a configurable base URL; the default is local, but locality or zero cost is not guaranteed for an overridden endpoint. The separate llm test command delegates inference to probeLlmConnection. Reviewed delta adds advertised maximum input capability display and formatting without changing this direct request or introducing another outbound dispatch. This classification does not attest paid admission."
+     },
+     {
+       "path": "packages/cli/src/commands/mtc.js",
+@@ -330,9 +330,9 @@
+     },
+     {
+       "path": "packages/cli/src/lib/llm-connection-probe.js",
+-      "digest": "sha256:df4253e799c0ae810d1dac45c7b1f75e5aca83fbe75fa516c18494b82d6ee694",
++      "digest": "sha256:a520b283af44852c27a48ce5a5aa95af309e46d2224f7ca337d020c9a3a0206c",
+       "category": "MODEL_REQUEST",
+-      "rationale": "A connectivity probe sends inference, not a free health GET; provider scope governs the physical request. Reviewed changes since 6b3e946f32: OpenAI protocol selection uses the shared capability profile and Responses codecs, with one POST through the existing providerFetch scope. The existing output allowance, timeout, redirect refusal, budget-error propagation and credential redaction remain. Responses usage is normalized before completion validation; incomplete or malformed usage stays unknown, and failure receipts retain any known usage. No retry or separate network dispatch is introduced. This classification does not establish billing, paid admission or release readiness."
++      "rationale": "Connectivity testing performs inference through one providerFetch POST with a 1024-token output allowance, timeout and redirect refusal. Reviewed delta preserves cache-write lifetime splits and response service-tier/regional pricing evidence in usage and receipts, replacing blanket rejection of nonzero Responses cache writes. Missing or inconsistent pricing evidence remains unpriced through invalid-context flags and unmatched estimates; receipt billingVerified remains false. No retry or additional dispatch is introduced. Provider scope governs supported physical requests, but source classification does not establish billing or paid readiness."
+     },
+     {
+       "path": "packages/cli/src/lib/llm-providers.js",

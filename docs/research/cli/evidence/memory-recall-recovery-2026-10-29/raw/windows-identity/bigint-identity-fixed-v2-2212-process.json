@@ -1,0 +1,50 @@
+{
+  "args": [
+    "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+    "run",
+    "__tests__/unit/memory-query-bundle.test.js",
+    "__tests__/integration/memory-query-bundle-identity.test.js",
+    "__tests__/integration/memory-query-bundle-port.test.js",
+    "__tests__/integration/memory-query-bundle-legacy.test.js",
+    "__tests__/unit/memory-query-index.test.js",
+    "__tests__/unit/segmented-memory-port.test.js",
+    "__tests__/unit/memory-shard-snapshots.test.js",
+    "__tests__/unit/memory-query-cancellation.test.js",
+    "__tests__/unit/secure-file-identity.test.js",
+    "--reporter=json",
+    "--outputFile=C:\\code\\chainlesschain\\.work\\memory-query-bundle\\bigint-identity-fixed-v2-2212.json"
+  ],
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "observedAt": "2026-10-29T02:50:40.379Z",
+  "sourceBefore": {
+    "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+    "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+    "packages/cli/__tests__/unit/memory-query-bundle.test.js": "49c3a0a68fc171d7906665da6c791625347abce318236fa55e2c96cc895c4d65",
+    "packages/cli/__tests__/integration/memory-query-bundle-identity.test.js": "7fa6ebd851220612ae1533680c1f91711e2bb8be2e53705401f6048cdc42e64e",
+    "packages/cli/__tests__/integration/memory-query-bundle-port.test.js": "6e8266baacff642afc23512eef2cc5da87163fd7c509e3c0e4855a9a06df09c7",
+    "packages/cli/__tests__/integration/memory-query-bundle-legacy.test.js": "f29ea244e89d382ece3b87cfba3e5c3196a774c5b513b930793115a268de8ea1",
+    "packages/cli/__tests__/unit/memory-query-index.test.js": "9f5150075db64b053a29134a78e324f48202741d8a5630608191d6e0138db83f",
+    "packages/cli/__tests__/unit/segmented-memory-port.test.js": "e7ca1ad1103d72732ed4255d5b40e4123f3f5330fdd36f575b042870e013ec09",
+    "packages/cli/__tests__/unit/memory-shard-snapshots.test.js": "4a4d963af7eff2ddfb11a73cdf58a45802d5cd327e9efd6df1b8f33350eae37a",
+    "packages/cli/__tests__/unit/memory-query-cancellation.test.js": "af2335a29f7cbc71d5364069fccf517a7df76c0522dfdd4d160f5c5ad4e87b49",
+    "packages/cli/__tests__/unit/secure-file-identity.test.js": "2679ca7daff9d72fef2311b4055775e477ad9673efcd83878138a583aeef6379"
+  },
+  "sourceAfter": {
+    "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+    "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+    "packages/cli/__tests__/unit/memory-query-bundle.test.js": "49c3a0a68fc171d7906665da6c791625347abce318236fa55e2c96cc895c4d65",
+    "packages/cli/__tests__/integration/memory-query-bundle-identity.test.js": "7fa6ebd851220612ae1533680c1f91711e2bb8be2e53705401f6048cdc42e64e",
+    "packages/cli/__tests__/integration/memory-query-bundle-port.test.js": "6e8266baacff642afc23512eef2cc5da87163fd7c509e3c0e4855a9a06df09c7",
+    "packages/cli/__tests__/integration/memory-query-bundle-legacy.test.js": "f29ea244e89d382ece3b87cfba3e5c3196a774c5b513b930793115a268de8ea1",
+    "packages/cli/__tests__/unit/memory-query-index.test.js": "9f5150075db64b053a29134a78e324f48202741d8a5630608191d6e0138db83f",
+    "packages/cli/__tests__/unit/segmented-memory-port.test.js": "e7ca1ad1103d72732ed4255d5b40e4123f3f5330fdd36f575b042870e013ec09",
+    "packages/cli/__tests__/unit/memory-shard-snapshots.test.js": "4a4d963af7eff2ddfb11a73cdf58a45802d5cd327e9efd6df1b8f33350eae37a",
+    "packages/cli/__tests__/unit/memory-query-cancellation.test.js": "af2335a29f7cbc71d5364069fccf517a7df76c0522dfdd4d160f5c5ad4e87b49",
+    "packages/cli/__tests__/unit/secure-file-identity.test.js": "2679ca7daff9d72fef2311b4055775e477ad9673efcd83878138a583aeef6379"
+  },
+  "sourcesStable": true
+}

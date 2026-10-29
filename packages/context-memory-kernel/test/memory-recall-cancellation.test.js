@@ -60,7 +60,14 @@ test("late Memory port success after cancellation never becomes a successful rec
         controller.abort();
         return [];
       },
-      getRevision: () => assert.fail("must not read revision after Stop"),
+      getRevision: () => {
+        assert.equal(
+          controller.signal.aborted,
+          false,
+          "must not read revision after Stop",
+        );
+        return 0;
+      },
     },
   });
   await assert.rejects(

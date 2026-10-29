@@ -1,0 +1,1 @@
+{"categories":8,"candidateFiles":78,"unclassifiedFiles":2,"sourceReviewPassed":false,"reviewIssues":[{"path":"packages/cli/src/commands/llm.js","status":"STALE"},{"path":"packages/cli/src/lib/llm-connection-probe.js","status":"STALE"}],"parseErrors":0,"paidReady":false,"runtimeCoverageVerified":false}

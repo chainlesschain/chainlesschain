@@ -1,0 +1,16 @@
+[
+  {
+    "name": "node2212",
+    "node": "C:/Users/longfa/AppData/Local/nvm/v22.12.0/node.exe",
+    "exitCode": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "name": "node2222",
+    "node": "C:\\nvm4w\\nodejs\\node.exe",
+    "exitCode": 0,
+    "signal": null,
+    "error": null
+  }
+]

@@ -1,0 +1,32 @@
+{
+  "schema": "local-budget-egress-reproduction/v1",
+  "node": "v22.12.0",
+  "args": [
+    "packages/cli/scripts/implementation-plan-budget-egress.mjs",
+    "--check",
+    "--include-scripts",
+    "--output",
+    "C:\\code\\chainlesschain\\.work\\budget-egress-20261029\\e7-audit.json"
+  ],
+  "cwd": "C:\\code\\chainlesschain\\.work\\budget-egress-20261029\\e7-clone",
+  "sourceCommit": "e7a6f2585d62949794596767869423b0eb670104",
+  "commonDirectory": "C:/code/chainlesschain/.work/budget-egress-20261029/e7-clone/.git",
+  "exitCode": 1,
+  "signal": null,
+  "error": null,
+  "before": {
+    "packages/cli/scripts/implementation-plan-budget-egress.mjs": "afbfc98975cefdf6c2762af4dbef73a5256f158b84164bd9dac2f9eeac8b7d5c",
+    "packages/cli/scripts/lib/budget-egress-inventory.mjs": "daa8fba09080397e842f78d472bc811341928d48eebbff36eb7f10911d47c882",
+    "packages/cli/scripts/budget-egress-reviewed-sources.json": "1ddd990f2f6e7338d84a43fb290668b3baa75d889aa2da1770cd066c67129ac9",
+    "packages/cli/src/lib/formal-budget-transport.js": "328ea2079d235015f47f910a15249f33561ceabd342ad1f30fa8c3db3b791413"
+  },
+  "after": {
+    "packages/cli/scripts/implementation-plan-budget-egress.mjs": "afbfc98975cefdf6c2762af4dbef73a5256f158b84164bd9dac2f9eeac8b7d5c",
+    "packages/cli/scripts/lib/budget-egress-inventory.mjs": "daa8fba09080397e842f78d472bc811341928d48eebbff36eb7f10911d47c882",
+    "packages/cli/scripts/budget-egress-reviewed-sources.json": "1ddd990f2f6e7338d84a43fb290668b3baa75d889aa2da1770cd066c67129ac9",
+    "packages/cli/src/lib/formal-budget-transport.js": "328ea2079d235015f47f910a15249f33561ceabd342ad1f30fa8c3db3b791413"
+  },
+  "sourcesStable": true,
+  "statusAfter": "",
+  "capturedAt": "2026-10-29T03:03:34.727Z"
+}

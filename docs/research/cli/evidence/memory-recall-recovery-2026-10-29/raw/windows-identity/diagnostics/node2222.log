@@ -1,0 +1,284 @@
+{
+  "schema": "chainlesschain.memory-file-identity-diagnostic/v1",
+  "node": "v22.22.2",
+  "uv": "1.51.0",
+  "platform": "win32",
+  "arch": "x64",
+  "osRelease": "10.0.19045",
+  "affectedDeviceProjectionRuntime": false,
+  "sourceSha256": {
+    "memory-file-identity-diagnostic.mjs": "29d45dac5ebc5a58626bf05e93d384822d1919131313d04090e71e356eb732f6",
+    "secure-file-identity.js": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+    "memory-query-bundle.js": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309"
+  },
+  "flags": {
+    "O_NOFOLLOW": null,
+    "O_NONBLOCK": null
+  },
+  "observations": [
+    {
+      "operation": "read-string-flags",
+      "flags": "r",
+      "pathNumber": {
+        "dev": 38182903,
+        "ino": 2533274798050405,
+        "mode": 33206,
+        "nlink": 1,
+        "size": 34,
+        "mtimeMs": 1793242230642.113,
+        "ctimeMs": 1793242230642.113
+      },
+      "handleNumber": {
+        "dev": 38182903,
+        "ino": 2533274798050405,
+        "mode": 33206,
+        "nlink": 1,
+        "size": 34,
+        "mtimeMs": 1793242230642.113,
+        "ctimeMs": 1793242230642.113
+      },
+      "pathBigInt": {
+        "dev": "38182903",
+        "ino": "2533274798050405",
+        "mode": "33206",
+        "nlink": "1",
+        "size": "34",
+        "mtimeMs": "1793242230642",
+        "ctimeMs": "1793242230642",
+        "mtimeNs": "1793242230642113000",
+        "ctimeNs": "1793242230642113000"
+      },
+      "handleBigInt": {
+        "dev": "38182903",
+        "ino": "2533274798050405",
+        "mode": "33206",
+        "nlink": "1",
+        "size": "34",
+        "mtimeMs": "1793242230642",
+        "ctimeMs": "1793242230642",
+        "mtimeNs": "1793242230642113000",
+        "ctimeNs": "1793242230642113000"
+      },
+      "parent": {
+        "trustedDevice": "38182903",
+        "pathNumber": {
+          "dev": 38182903,
+          "ino": 2533274798050401,
+          "mode": 16822,
+          "nlink": 1,
+          "size": 0,
+          "mtimeMs": 1793242230641.1128,
+          "ctimeMs": 1793242230641.1128
+        },
+        "handleNumber": {
+          "dev": 38182903,
+          "ino": 2533274798050401,
+          "mode": 16822,
+          "nlink": 1,
+          "size": 0,
+          "mtimeMs": 1793242230641.1128,
+          "ctimeMs": 1793242230641.1128
+        },
+        "pathBigInt": {
+          "dev": "38182903",
+          "ino": "2533274798050401",
+          "mode": "16822",
+          "nlink": "1",
+          "size": "0",
+          "mtimeMs": "1793242230641",
+          "ctimeMs": "1793242230641",
+          "mtimeNs": "1793242230641112800",
+          "ctimeNs": "1793242230641112800"
+        },
+        "handleBigInt": {
+          "dev": "38182903",
+          "ino": "2533274798050401",
+          "mode": "16822",
+          "nlink": "1",
+          "size": "0",
+          "mtimeMs": "1793242230641",
+          "ctimeMs": "1793242230641",
+          "mtimeNs": "1793242230641112800",
+          "ctimeNs": "1793242230641112800"
+        },
+        "fileIdentityMatches": true
+      }
+    },
+    {
+      "operation": "read-bundle-flags",
+      "flags": 0,
+      "pathNumber": {
+        "dev": 38182903,
+        "ino": 2533274798050405,
+        "mode": 33206,
+        "nlink": 1,
+        "size": 34,
+        "mtimeMs": 1793242230642.113,
+        "ctimeMs": 1793242230642.113
+      },
+      "handleNumber": {
+        "dev": 38182903,
+        "ino": 2533274798050405,
+        "mode": 33206,
+        "nlink": 1,
+        "size": 34,
+        "mtimeMs": 1793242230642.113,
+        "ctimeMs": 1793242230642.113
+      },
+      "pathBigInt": {
+        "dev": "38182903",
+        "ino": "2533274798050405",
+        "mode": "33206",
+        "nlink": "1",
+        "size": "34",
+        "mtimeMs": "1793242230642",
+        "ctimeMs": "1793242230642",
+        "mtimeNs": "1793242230642113000",
+        "ctimeNs": "1793242230642113000"
+      },
+      "handleBigInt": {
+        "dev": "38182903",
+        "ino": "2533274798050405",
+        "mode": "33206",
+        "nlink": "1",
+        "size": "34",
+        "mtimeMs": "1793242230642",
+        "ctimeMs": "1793242230642",
+        "mtimeNs": "1793242230642113000",
+        "ctimeNs": "1793242230642113000"
+      },
+      "parent": {
+        "trustedDevice": "38182903",
+        "pathNumber": {
+          "dev": 38182903,
+          "ino": 2533274798050401,
+          "mode": 16822,
+          "nlink": 1,
+          "size": 0,
+          "mtimeMs": 1793242230641.1128,
+          "ctimeMs": 1793242230641.1128
+        },
+        "handleNumber": {
+          "dev": 38182903,
+          "ino": 2533274798050401,
+          "mode": 16822,
+          "nlink": 1,
+          "size": 0,
+          "mtimeMs": 1793242230641.1128,
+          "ctimeMs": 1793242230641.1128
+        },
+        "pathBigInt": {
+          "dev": "38182903",
+          "ino": "2533274798050401",
+          "mode": "16822",
+          "nlink": "1",
+          "size": "0",
+          "mtimeMs": "1793242230641",
+          "ctimeMs": "1793242230641",
+          "mtimeNs": "1793242230641112800",
+          "ctimeNs": "1793242230641112800"
+        },
+        "handleBigInt": {
+          "dev": "38182903",
+          "ino": "2533274798050401",
+          "mode": "16822",
+          "nlink": "1",
+          "size": "0",
+          "mtimeMs": "1793242230641",
+          "ctimeMs": "1793242230641",
+          "mtimeNs": "1793242230641112800",
+          "ctimeNs": "1793242230641112800"
+        },
+        "fileIdentityMatches": true
+      }
+    },
+    {
+      "operation": "write-bundle-flags",
+      "flags": 1281,
+      "pathNumber": {
+        "dev": 38182903,
+        "ino": 2533274798050414,
+        "mode": 33206,
+        "nlink": 1,
+        "size": 37,
+        "mtimeMs": 1793242230661.1082,
+        "ctimeMs": 1793242230661.1082
+      },
+      "handleNumber": {
+        "dev": 38182903,
+        "ino": 2533274798050414,
+        "mode": 33206,
+        "nlink": 1,
+        "size": 37,
+        "mtimeMs": 1793242230661.1082,
+        "ctimeMs": 1793242230661.1082
+      },
+      "pathBigInt": {
+        "dev": "38182903",
+        "ino": "2533274798050414",
+        "mode": "33206",
+        "nlink": "1",
+        "size": "37",
+        "mtimeMs": "1793242230661",
+        "ctimeMs": "1793242230661",
+        "mtimeNs": "1793242230661108100",
+        "ctimeNs": "1793242230661108100"
+      },
+      "handleBigInt": {
+        "dev": "38182903",
+        "ino": "2533274798050414",
+        "mode": "33206",
+        "nlink": "1",
+        "size": "37",
+        "mtimeMs": "1793242230661",
+        "ctimeMs": "1793242230661",
+        "mtimeNs": "1793242230661108100",
+        "ctimeNs": "1793242230661108100"
+      },
+      "parent": {
+        "trustedDevice": "38182903",
+        "pathNumber": {
+          "dev": 38182903,
+          "ino": 2533274798050401,
+          "mode": 16822,
+          "nlink": 1,
+          "size": 0,
+          "mtimeMs": 1793242230659.5115,
+          "ctimeMs": 1793242230659.5115
+        },
+        "handleNumber": {
+          "dev": 38182903,
+          "ino": 2533274798050401,
+          "mode": 16822,
+          "nlink": 1,
+          "size": 0,
+          "mtimeMs": 1793242230659.5115,
+          "ctimeMs": 1793242230659.5115
+        },
+        "pathBigInt": {
+          "dev": "38182903",
+          "ino": "2533274798050401",
+          "mode": "16822",
+          "nlink": "1",
+          "size": "0",
+          "mtimeMs": "1793242230659",
+          "ctimeMs": "1793242230659",
+          "mtimeNs": "1793242230659511500",
+          "ctimeNs": "1793242230659511500"
+        },
+        "handleBigInt": {
+          "dev": "38182903",
+          "ino": "2533274798050401",
+          "mode": "16822",
+          "nlink": "1",
+          "size": "0",
+          "mtimeMs": "1793242230659",
+          "ctimeMs": "1793242230659",
+          "mtimeNs": "1793242230659511500",
+          "ctimeNs": "1793242230659511500"
+        },
+        "fileIdentityMatches": true
+      }
+    }
+  ]
+}

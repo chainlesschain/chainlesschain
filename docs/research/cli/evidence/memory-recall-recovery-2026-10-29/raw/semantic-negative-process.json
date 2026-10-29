@@ -1,0 +1,26 @@
+{
+  "args": [
+    "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+    "run",
+    "__tests__/integration/semantic-memory-cancellation.test.js",
+    "--reporter=json",
+    "--outputFile=C:\\code\\chainlesschain\\.work\\structured-memory-20261029\\semantic-negative.json"
+  ],
+  "cwd": "C:\\code\\chainlesschain\\packages\\cli",
+  "startedAt": "2026-10-29T02:35:33.942Z",
+  "endedAt": "2026-10-29T02:35:47.508Z",
+  "exitCode": 1,
+  "signal": null,
+  "error": null,
+  "sourceBefore": {
+    "packages/context-memory-kernel/lib/runtime.js": "623a687a5e28b47d2473b19e006d0fe5a506d1ec911fe1b07fb1ce912a709938",
+    "packages/cli/src/lib/context-memory-kernel/provider-context.js": "0b7a1bea6ebe6af793b1fb07972b82c12ed0f05a520c1a55661beb6f80661905",
+    "packages/cli/src/lib/abort-utils.js": "7f1c1703150e71c46ad80b3f6688edc1a489fc389bca462a65091bef11dd692b"
+  },
+  "sourceAfter": {
+    "packages/context-memory-kernel/lib/runtime.js": "623a687a5e28b47d2473b19e006d0fe5a506d1ec911fe1b07fb1ce912a709938",
+    "packages/cli/src/lib/context-memory-kernel/provider-context.js": "0b7a1bea6ebe6af793b1fb07972b82c12ed0f05a520c1a55661beb6f80661905",
+    "packages/cli/src/lib/abort-utils.js": "7f1c1703150e71c46ad80b3f6688edc1a489fc389bca462a65091bef11dd692b"
+  },
+  "sourcesStable": true
+}
