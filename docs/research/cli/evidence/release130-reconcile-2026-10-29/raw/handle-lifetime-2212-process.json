@@ -1,0 +1,41 @@
+{
+  "executable": "C:\\Users\\longfa\\AppData\\Local\\nvm\\v22.12.0\\node.exe",
+  "node": "v22.12.0",
+  "args": [
+    "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+    "run",
+    "__tests__/unit/memory-query-bundle.test.js",
+    "__tests__/unit/memory-query-bundle-windows-identity.test.js",
+    "__tests__/integration/memory-query-bundle-identity.test.js",
+    "__tests__/integration/memory-query-bundle-port.test.js",
+    "--reporter=json",
+    "--outputFile=C:\\code\\chainlesschain\\.work\\memory-query-bundle\\handle-lifetime-2212.json"
+  ],
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "observedAt": "2026-10-29T03:42:56.241Z",
+  "sourceBefore": {
+    "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+    "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+    "packages/cli/src/lib/secure-file-identity.js": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+    "packages/cli/__tests__/helpers/query-bundle-handles.js": "90f6f9d43bc4e495bf6947738e73d7567df27364151a43e992529cdb49e3d6c4",
+    "packages/cli/__tests__/unit/memory-query-bundle.test.js": "49c3a0a68fc171d7906665da6c791625347abce318236fa55e2c96cc895c4d65",
+    "packages/cli/__tests__/unit/memory-query-bundle-windows-identity.test.js": "5478b8458087a30ebdc6244c32d71f5548d8f508ed781c129ebcacc6de98eddf",
+    "packages/cli/__tests__/integration/memory-query-bundle-identity.test.js": "1da45e327c4f3fe0a093e157f0696ce8b6ffdb9dd8faad36905f9b3895f16a94",
+    "packages/cli/__tests__/integration/memory-query-bundle-port.test.js": "04acd3c63de41ad0f448e717d675684fae905419abf4a769e16438e92d9dc3e4"
+  },
+  "sourceAfter": {
+    "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+    "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+    "packages/cli/src/lib/secure-file-identity.js": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+    "packages/cli/__tests__/helpers/query-bundle-handles.js": "90f6f9d43bc4e495bf6947738e73d7567df27364151a43e992529cdb49e3d6c4",
+    "packages/cli/__tests__/unit/memory-query-bundle.test.js": "49c3a0a68fc171d7906665da6c791625347abce318236fa55e2c96cc895c4d65",
+    "packages/cli/__tests__/unit/memory-query-bundle-windows-identity.test.js": "5478b8458087a30ebdc6244c32d71f5548d8f508ed781c129ebcacc6de98eddf",
+    "packages/cli/__tests__/integration/memory-query-bundle-identity.test.js": "1da45e327c4f3fe0a093e157f0696ce8b6ffdb9dd8faad36905f9b3895f16a94",
+    "packages/cli/__tests__/integration/memory-query-bundle-port.test.js": "04acd3c63de41ad0f448e717d675684fae905419abf4a769e16438e92d9dc3e4"
+  },
+  "sourcesStable": true
+}
