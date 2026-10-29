@@ -2,9 +2,9 @@
 
 <!-- docs-code-git-sync-2026-10-29 -->
 
-## 2026-10-29 当前公开配对
+## 2026-10-29 当前 .130 公开范围
 
-Open VSX **0.37.167** / JetBrains **0.4.184** 已公开，两个 IDE 推荐 CLI **0.166.129**；IDE 源码固定为 `800e9cc997`。正式发行门与公开归档回读通过；JetBrains 全部 ZIP 成员与 CI 一致，外层 ZIP 字节不同。新版本保留配置三态及会话模型覆盖，包含干净配置目录的入门验证。真人首次任务、多会话并行及重启恢复仍须单独验收；主分支后续 Terra 等改动尚未公开。Microsoft 渠道暂缓，VS Code 使用版本化 VSIX。详见[来源与验收边界](../release-runtime-update-2026-10-29.md)，下方日期记录保留历史范围。
+公开 CLI **0.166.130** / Open VSX **0.37.168** / JetBrains **0.4.185** 均来自 `f3015e7996`，两个 IDE 推荐 `.130`；CLI 使用 Kernel **0.1.10**，PC / mobile 保持 **v5.0.3.143**。Goal 预算共享与工作区证据绑定已公开；独立 `verify:`、Kernel `0.1.11`、新 Memory / 临时 worktree / Terra 改动尚未发行。累计 **34/45**，Microsoft 暂缓，`NOT_PAID_READY / NOT_ADMITTED / HOLD` 保留。详见[来源与验收边界](../release-runtime-update-2026-10-29-130.md)。下方日期记录保留历史范围。
 
 ## 2026-10-28 当前公开桥接与模型配置
 

@@ -152,7 +152,11 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
-            text: "2026-10-29 CLI .129 公开配对与源码范围",
+            text: "2026-10-29 CLI .130 Goal 与主线边界",
+            link: "/release-runtime-update-2026-10-29-130",
+          },
+          {
+            text: "2026-10-29 CLI .129 公开配对与源码范围（历史）",
             link: "/release-runtime-update-2026-10-29",
           },
           {

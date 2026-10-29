@@ -197,7 +197,11 @@ export default defineConfig({
               link: "/chainlesschain/rrsi-current",
             },
             {
-              text: "CLI .129 / IDE .167 与 .184 升级",
+              text: "CLI .130 / IDE .168 与 .185 升级",
+              link: "/chainlesschain/cli-ide-update-2026-10-29-130",
+            },
+            {
+              text: "CLI .129 / IDE .167 与 .184 升级（历史）",
               link: "/chainlesschain/cli-ide-update-2026-10-29",
             },
             {
@@ -221,7 +225,11 @@ export default defineConfig({
               link: "/chainlesschain/agent-input-and-recovery",
             },
             {
-              text: "2026-10-29 CLI .129 公开配对与源码范围",
+              text: "2026-10-29 CLI .130 Goal 与主线边界",
+              link: "/design/release-runtime-update-2026-10-29-130",
+            },
+            {
+              text: "2026-10-29 CLI .129 公开配对与源码范围（历史）",
               link: "/design/release-runtime-update-2026-10-29",
             },
             {

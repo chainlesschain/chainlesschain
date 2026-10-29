@@ -2,9 +2,9 @@
 
 <!-- docs-code-git-sync-2026-10-29 -->
 
-## 2026-10-29 Memory 源码与测量范围
+## 2026-10-29 当前 .130 公开范围
 
-当前公开 CLI **0.166.129** 继续配对 Context/Memory Kernel **0.1.10**；后续磁盘查询取消及分片解析缓存改动尚未发行。缓存复用前仍读取权威字节并校验 generation 与身份，不依赖时间戳。Linux 三档五场景各 100 次结果已核验一致，100K 热 / 冷 p95 为 72.194 / 486.836ms；Windows 本机 10K 为 354.161 / 1036.680ms，仍未达标。完整三系统、Stop / 并发和真实 IDE 验收继续进行，不能将单环境结果等同于整体 SLO。详见[来源与验收边界](../release-runtime-update-2026-10-29.md)，下方日期记录保留历史范围。
+公开 CLI **0.166.130** / Open VSX **0.37.168** / JetBrains **0.4.185** 均来自 `f3015e7996`，两个 IDE 推荐 `.130`；CLI 使用 Kernel **0.1.10**，PC / mobile 保持 **v5.0.3.143**。Goal 预算共享与工作区证据绑定已公开；独立 `verify:`、Kernel `0.1.11`、新 Memory / 临时 worktree / Terra 改动尚未发行。累计 **34/45**，Microsoft 暂缓，`NOT_PAID_READY / NOT_ADMITTED / HOLD` 保留。详见[来源与验收边界](../release-runtime-update-2026-10-29-130.md)。下方日期记录保留历史范围。
 
 ## 2026-10-28 CLI Memory 查询增量
 

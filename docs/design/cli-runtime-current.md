@@ -1,8 +1,10 @@
 # CLI Runtime 当前架构与实现
 
-> 当前核对（2026-10-29）：CLI **0.166.129** / Open VSX **0.37.167** / JetBrains **0.4.184** 已公开并完成归档回读，两个 IDE 推荐 `.129`；PC / 移动端保持独立 **v5.0.3.143**。CLI / IDE 固定源码分别为 `fd8a21637a` / `800e9cc997`。累计验收 **34/45**，剩余 **11** 项；Microsoft Marketplace 暂缓。
+<!-- docs-code-git-sync-2026-10-29 -->
 
-公开 `.129` 加强复查上下文隔离并统一实验性 Codex 兼容清单，两者默认关闭。后续主分支的独立 Goal 验收、Memory 磁盘 / 缓存及 Terra 改动尚未发布，`NOT_PAID_READY / NOT_ADMITTED / HOLD` 保留。详见[当前运行时设计](./release-runtime-update-2026-10-29.md)。下方日期记录保留历史状态。
+## 2026-10-29 当前 .130 公开范围
+
+公开 CLI **0.166.130** / Open VSX **0.37.168** / JetBrains **0.4.185** 均来自 `f3015e7996`，两个 IDE 推荐 `.130`；CLI 使用 Kernel **0.1.10**，PC / mobile 保持 **v5.0.3.143**。Goal 预算共享与工作区证据绑定已公开；独立 `verify:`、Kernel `0.1.11`、新 Memory / 临时 worktree / Terra 改动尚未发行。累计 **34/45**，Microsoft 暂缓，`NOT_PAID_READY / NOT_ADMITTED / HOLD` 保留。详见[来源与验收边界](./release-runtime-update-2026-10-29-130.md)。下方日期记录保留历史范围。
 
 ## 2026-10-27 历史架构基线
 

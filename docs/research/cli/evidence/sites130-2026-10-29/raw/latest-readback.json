@@ -1,0 +1,19 @@
+{
+  "observedAt": "2026-10-29T04:11:07.416Z",
+  "rows": [
+    {
+      "url": "https://registry.npmjs.org/chainlesschain/latest",
+      "status": 200,
+      "version": "0.166.130",
+      "bytes": 7714,
+      "sha256": "2f6e76b983c7578f986740067cc9b9b15a573f2204678aead2cd7440dab96812"
+    },
+    {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/latest",
+      "status": 200,
+      "version": "0.37.168",
+      "bytes": 10972,
+      "sha256": "ea9639ab89c54c188284a03d8120b1b834418209a6cce8495cd85151984abf8d"
+    }
+  ]
+}

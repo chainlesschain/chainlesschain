@@ -2,9 +2,9 @@
 
 <!-- docs-code-git-sync-2026-10-29 -->
 
-## 2026-10-29 当前 Goal 与公开范围
+## 2026-10-29 当前 .130 公开范围
 
-公开 CLI **0.166.129** 配对 Open VSX **0.37.167** / JetBrains **0.4.184**。主分支已补充评审共用运行预算、工作区 / 产物摘要绑定及显式独立 `verify:` checker，**尚未进入 `.129`**。固定负例和本地回归通过不代表真实任务误报率、完整崩溃窗口或双 IDE 恢复已验收；默认 `model:` 语义不因独立 checker 改变。累计产物 **34/45**，`NOT_PAID_READY / NOT_ADMITTED / HOLD` 保留。详见[来源与验收边界](../release-runtime-update-2026-10-29.md)，下方日期记录保留历史范围。
+公开 CLI **0.166.130** / Open VSX **0.37.168** / JetBrains **0.4.185** 均来自 `f3015e7996`，两个 IDE 推荐 `.130`；CLI 使用 Kernel **0.1.10**，PC / mobile 保持 **v5.0.3.143**。Goal 预算共享与工作区证据绑定已公开；独立 `verify:`、Kernel `0.1.11`、新 Memory / 临时 worktree / Terra 改动尚未发行。累计 **34/45**，Microsoft 暂缓，`NOT_PAID_READY / NOT_ADMITTED / HOLD` 保留。详见[来源与验收边界](../release-runtime-update-2026-10-29-130.md)。下方日期记录保留历史范围。
 
 ## 2026-10-28 当前执行与 Goal 边界
 

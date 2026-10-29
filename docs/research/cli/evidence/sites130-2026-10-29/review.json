@@ -1,0 +1,77 @@
+{
+  "schema": "chainlesschain.sites130-review/v1",
+  "observedAt": "2026-10-29T04:16:13.596Z",
+  "sourceBaseline": "0d67a7d43bca2a41baf4fe5fd662bc5d97954954",
+  "publicReleaseSource": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+  "sourceChecks": {
+    "observedAt": "2026-10-29T04:14:42.526Z",
+    "sourceBaseline": "0d67a7d43bca2a41baf4fe5fd662bc5d97954954",
+    "publicSource": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+    "latestPublicVersionsMatch": true,
+    "historicalChannelsUnchanged": true,
+    "clientArchiveSizesAndFetchedAtUnchanged": true,
+    "goalPublicBoundary": true,
+    "originalDispatchUnresolved": {
+      "source": "f154c77641a761d4dc11a6b48a9503a3d6bc0c40",
+      "task": "verify-11",
+      "status": "REQUEST_UNRESOLVED",
+      "replayAllowed": false
+    },
+    "templates": [
+      {
+        "file": "docs-website-v2/src/pages/index.astro",
+        "diagnostics": []
+      },
+      {
+        "file": "docs-website-v2/src/pages/en/index.astro",
+        "diagnostics": []
+      },
+      {
+        "file": "docs-website-v2/src/components/SourceUpdate.astro",
+        "diagnostics": []
+      }
+    ],
+    "userDocSectionsExitCode": 0,
+    "buildAndDeploymentVerified": false
+  },
+  "buildStatus": "pending",
+  "deploymentStatus": "pending",
+  "artifacts": [
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/code-ci-2026-10-29T04-14-47-706Z.json",
+      "source": ".work\\sites130-20261029\\code-ci-2026-10-29T04-14-47-706Z.json",
+      "bytes": 1527,
+      "sha256": "cf6722f6ddddf13c8dfc95d03789426ec05bedf85fd97e9fdf8f7c6514c17902"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/latest-readback.json",
+      "source": ".work\\sites130-20261029\\latest-readback.json",
+      "bytes": 546,
+      "sha256": "51414787120dc605560b6937a3202730f8e390bc5bd027a32727f46d3c97d2eb"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/npm-latest.json",
+      "source": ".work\\sites130-20261029\\npm-latest.json",
+      "bytes": 7714,
+      "sha256": "2f6e76b983c7578f986740067cc9b9b15a573f2204678aead2cd7440dab96812"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/open-vsx-latest.json",
+      "source": ".work\\sites130-20261029\\open-vsx-latest.json",
+      "bytes": 10972,
+      "sha256": "ea9639ab89c54c188284a03d8120b1b834418209a6cce8495cd85151984abf8d"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/source-checks.json",
+      "source": ".work\\sites130-20261029\\source-checks.json",
+      "bytes": 898,
+      "sha256": "3cf1f35691c3ea7508c350fe84d5810eae573e76176db3a74f6903a1b98ef656"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/user-doc-sections.log",
+      "source": ".work\\sites130-20261029\\user-doc-sections.log",
+      "bytes": 79,
+      "sha256": "99b2f5ac2b202483d77a506e58bc919dcae6a7550df0a463778605da7873bf63"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "observedAt": "2026-10-29T04:14:42.526Z",
+  "sourceBaseline": "0d67a7d43bca2a41baf4fe5fd662bc5d97954954",
+  "publicSource": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+  "latestPublicVersionsMatch": true,
+  "historicalChannelsUnchanged": true,
+  "clientArchiveSizesAndFetchedAtUnchanged": true,
+  "goalPublicBoundary": true,
+  "originalDispatchUnresolved": {
+    "source": "f154c77641a761d4dc11a6b48a9503a3d6bc0c40",
+    "task": "verify-11",
+    "status": "REQUEST_UNRESOLVED",
+    "replayAllowed": false
+  },
+  "templates": [
+    {
+      "file": "docs-website-v2/src/pages/index.astro",
+      "diagnostics": []
+    },
+    {
+      "file": "docs-website-v2/src/pages/en/index.astro",
+      "diagnostics": []
+    },
+    {
+      "file": "docs-website-v2/src/components/SourceUpdate.astro",
+      "diagnostics": []
+    }
+  ],
+  "userDocSectionsExitCode": 0,
+  "buildAndDeploymentVerified": false
+}
