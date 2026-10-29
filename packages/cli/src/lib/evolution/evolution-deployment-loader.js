@@ -8,10 +8,6 @@ import {
   assertEvolutionDeploymentRevisionFloor,
   readEvolutionDeploymentProfile,
 } from "./evolution-deployment-profile.js";
-import {
-  readEvolutionEnabled,
-  resolveEvolutionEnabled,
-} from "./evolution-enabled.js";
 
 export const EVOLUTION_DEPLOYMENT_DESCRIPTOR_SCHEMA =
   "chainlesschain.evolution-deployment-descriptor/v1";
@@ -1038,6 +1034,12 @@ export async function loadEvolutionDeploymentCommandDependencies(
   } = {},
 ) {
   if (!SUPPORTED_COMMANDS.has(commandName)) return null;
+  // Unsupported commands (including read-only session show) need no deployment
+  // configuration. Loading it eagerly also loads secret-store and the full
+  // process broker/platform sandbox graph before this early return.
+  const { readEvolutionEnabled, resolveEvolutionEnabled } = await import(
+    "./evolution-enabled.js"
+  );
   const localModelDependencies = () =>
     dependencies(
       {

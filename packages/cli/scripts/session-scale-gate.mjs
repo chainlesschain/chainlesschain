@@ -56,6 +56,7 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/src/lazy-dispatch.js",
   "packages/cli/src/commands/session.js",
   "packages/cli/src/commands/session-show.js",
+  "packages/cli/src/lib/evolution/evolution-deployment-loader.js",
   "packages/cli/src/lib/pr-link-store.js",
   "packages/cli/src/lib/session-anti-rollback-anchor.js",
   "packages/cli/scripts/session-scale-gate.mjs",
@@ -63,11 +64,13 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/__tests__/fixtures/session-scale-crash-writer.mjs",
   "packages/cli/__tests__/fixtures/session-scale-measure-worker.mjs",
   "packages/cli/__tests__/fixtures/session-scale-process-probe.mjs",
+  "packages/cli/__tests__/fixtures/session-cold-import-guard.mjs",
   "packages/cli/__tests__/fixtures/session-scale-pipeline-crash-worker.mjs",
   "packages/cli/__tests__/unit/jsonl-session-store.test.js",
   "packages/cli/__tests__/unit/session-list-index.test.js",
   "packages/cli/__tests__/unit/session-anti-rollback-anchor.test.js",
   "packages/cli/__tests__/unit/session-scale-gate.test.js",
+  "packages/cli/__tests__/unit/session-command-cold-imports.test.js",
 ];
 const PRODUCTION_PIPELINE_KILL_POINTS = Object.freeze([
   Object.freeze({
@@ -1582,11 +1585,13 @@ export async function runSessionScaleGate() {
     mkdirSync(firstHome, { recursive: true });
     process.env.CHAINLESSCHAIN_HOME = firstHome;
     const store = await import("../src/harness/jsonl-session-store.js");
-    const { computeEventHash } =
-      await import("../src/harness/transcript-integrity.js");
+    const { computeEventHash } = await import(
+      "../src/harness/transcript-integrity.js"
+    );
     const sessionIndex = await import("../src/harness/session-list-index.js");
-    const antiRollback =
-      await import("../src/lib/session-anti-rollback-anchor.js");
+    const antiRollback = await import(
+      "../src/lib/session-anti-rollback-anchor.js"
+    );
 
     const runScenario = async (name, task) => {
       const scenarioStarted = performance.now();
