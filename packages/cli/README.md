@@ -10,7 +10,7 @@ This release includes explicit independent Goal `verify:` checks, Memory directo
 
 Cumulative accepted tasks remain **34/45**, with **11** unfinished. Full Memory SLO, semantic quality and both IDE journeys remain separate acceptance work; the current native generation driver does not automatically use `verify:`. **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain. PC/mobile retain their independent **v5.0.3.143** release. Older notes below retain their historical scope.
 
-[.131 upgrade guide](../../docs-site/docs/chainlesschain/cli-ide-update-2026-10-29-131.md) · [Runtime design](../../docs/design/release-runtime-update-2026-10-29-131.md).
+[.131 upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-29-131.html) · [Runtime design](https://design.chainlesschain.com/release-runtime-update-2026-10-29-131.html).
 
 ## CLI 0.166.130 — previous public release (2026-10-29)
 
