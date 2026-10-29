@@ -115,7 +115,8 @@ import {
 import { runWithHostHooksV2Workspace } from "../lib/hooks-v2-workspace-context.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
-import { composeSystemPrompt } from "./system-prompt.js";
+import { composeSystemPrompt, hostProjectMemoryMode } from "./system-prompt.js";
+import { createCompactionHostContextRefresher } from "./compaction-host-context.js";
 import { buildUserContent } from "../lib/image-input.js";
 import { createResumeRoleProjection } from "./message-roles.js";
 import { isHeadlessConfigCommand } from "../lib/headless-config-command.js";
@@ -2077,32 +2078,37 @@ async function runAgentHeadlessInWorkspace(
     ? HERMETIC_SKILL_LOADER
     : options.skillLoader ||
       new CLISkillLoader(captureSkillRuntimeDependencies(options));
-  const systemContent = hermeticExecution
-    ? composeSystemPrompt(HERMETIC_CODING_SYSTEM_PROMPT, {
-        projectMemory: false,
-      })
-    : composeSystemPrompt(
-        buildSystemPrompt(cwd, {
-          additionalDirectories,
-          projectMemory: options.projectMemory,
-          sessionId,
-          skillLoader: _runtimeSkillLoader,
-          onSkillsLoaded: (skills, cacheLedger) => {
-            _loadedPersonaSkills = Array.isArray(skills) ? skills : [];
-            _skillCacheLedger = cacheLedger || null;
+  const renderSystemContent = () =>
+    hermeticExecution
+      ? composeSystemPrompt(HERMETIC_CODING_SYSTEM_PROMPT, {
+          projectMemory: false,
+        })
+      : composeSystemPrompt(
+          buildSystemPrompt(cwd, {
+            additionalDirectories,
+            projectMemory: options.projectMemory,
+            sessionId,
+            skillLoader: _runtimeSkillLoader,
+            onSkillsLoaded: (skills, cacheLedger) => {
+              _loadedPersonaSkills = Array.isArray(skills) ? skills : [];
+              _skillCacheLedger = cacheLedger || null;
+            },
+          }),
+          {
+            systemPrompt: options.systemPrompt,
+            appendSystemPrompt: options.appendSystemPrompt,
+            outputStyle: outputStyleBody,
+            cwd,
+            instructionExcludes,
+            projectMemory: _leanNoProjectMemory
+              ? false
+              : hostProjectMemoryMode(options.projectMemory),
+            onInstructionsLoaded: (loaded) => {
+              _loadedInstructions = loaded;
+            },
           },
-        }),
-        {
-          systemPrompt: options.systemPrompt,
-          appendSystemPrompt: options.appendSystemPrompt,
-          outputStyle: outputStyleBody,
-          instructionExcludes,
-          projectMemory: _leanNoProjectMemory ? false : undefined,
-          onInstructionsLoaded: (loaded) => {
-            _loadedInstructions = loaded;
-          },
-        },
-      );
+        );
+  const systemContent = renderSystemContent();
 
   // settings.json UserPromptSubmit hooks. block → abort the run; context → inject.
   if (settingsHooks) {
@@ -3045,6 +3051,12 @@ async function runAgentHeadlessInWorkspace(
       : sessionHostLease?.admitMcpDispatch || null,
     persistCompaction: persist,
     onBeforeCompaction: settleToolRounds,
+    refreshCompactionContext: hermeticExecution
+      ? null
+      : createCompactionHostContextRefresher({
+          messages,
+          render: renderSystemContent,
+        }),
     onCompaction: persist
       ? (stats, compacted, settlement = {}) =>
           persistRuntimeLedgerWrite(() => {

@@ -20,6 +20,15 @@ import {
   renderProjectInstructionsBlock,
 } from "../lib/project-instructions.js";
 
+// Commander defaults --no-project-memory to true when absent. Preserve the
+// environment's off/lean mode in that case; only explicit off/lean overrides
+// need forwarding from a host into composeSystemPrompt.
+export function hostProjectMemoryMode(value) {
+  return value === false || value === "lean" || value === "entry"
+    ? value
+    : undefined;
+}
+
 /**
  * Resolve a CLI prompt value. A leading `@` means "read this file"; anything
  * else (or an unreadable @path) is returned verbatim as literal text.

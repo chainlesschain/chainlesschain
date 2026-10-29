@@ -1,0 +1,770 @@
+{
+  "observedAt": "2026-10-29T00:07:03.009Z",
+  "baseCommit": "568dd093535b993fa56f81eba7935215d785007e",
+  "platform": "win32",
+  "node": "v22.22.2",
+  "sources": [
+    {
+      "path": "packages/cli/src/runtime/compaction-host-context.js",
+      "sha256": "9952172c8edfe9fe11214fd61824e6db4fe95937bea5a12c7ca3b9ab082705cd",
+      "gitBlob": "1f991550084fee94f53a8dd549be82192185ec63"
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "sha256": "b635ed8da8db6f2c5c2276bb427ac9109e913315821572c8edc16199df9a4eea",
+      "gitBlob": "5bb958f4f880be82858d7ad57831c5f79f3ece76"
+    },
+    {
+      "path": "packages/cli/src/runtime/headless-runner.js",
+      "sha256": "9e871811fd02aa7c05e7a6ed4bab9704c06d3f74a39f600bb874a3e62f3c0bac",
+      "gitBlob": "9f1ab04b7c0d1280ca9856f8e148037dcb64c2b7"
+    },
+    {
+      "path": "packages/cli/src/runtime/headless-stream.js",
+      "sha256": "39b8e7914a7b942dfd3c1688d07db4ba60efff42f8b1f0d4f491894f455797e3",
+      "gitBlob": "65454a00f80afdccfe7236509bac3b9797339155"
+    },
+    {
+      "path": "packages/cli/src/runtime/system-prompt.js",
+      "sha256": "d23ad7ec6e7bdb7fbab840011049fa7671efb9013e1c1eb02cd79e04b777c51b",
+      "gitBlob": "17589145fa517a672d55f1a92c29eae7c63f60fa"
+    },
+    {
+      "path": "packages/cli/src/repl/agent-repl.js",
+      "sha256": "22b061675790d4aaa0b790060ad36513b23ec86a025c86b2842f8a73bdb2f867",
+      "gitBlob": "5a2ba6783e7fc1115023aaabf3dd9a679526d52f"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/compaction-host-context.test.js",
+      "sha256": "e1f25c8e17558967eec36c6e0ba1f660f5920ee976a7afa831b571438f014ed6",
+      "gitBlob": "2203fd556387ffacc653a3490a4cb1f885c2f90b"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/mcp-host-catalog-wiring.test.js",
+      "sha256": "cd1d2f8dea32ab0443c3c307e34d21bd5b8d46d66754326d5a8106948bd3c3e3",
+      "gitBlob": "a1bf55a0089f94fcea34fee874f1057b19751658"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/compaction-project-context-refresh.test.js",
+      "sha256": "7bf0c6c4ed94fbc6612c4aaa8a0be8634e9d599a2a4ded85f7e64349b527aff0",
+      "gitBlob": "86ab48c73050e2f045c744877f460f0d291b3751"
+    },
+    {
+      "path": "packages/cli/vitest.config.js",
+      "sha256": "a1b30cb7d677348dd9c9a625373c7532b6c333436a357b633237bd911b1f3770",
+      "gitBlob": "90684d942a776b7cfbf056187efdf603dc746d53"
+    }
+  ],
+  "reports": [
+    {
+      "label": "before",
+      "success": false,
+      "total": 3,
+      "passed": 0,
+      "failed": 3,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "packages/cli/__tests__/integration/compaction-project-context-refresh.test.js",
+          "status": "failed",
+          "tests": 3
+        }
+      ],
+      "process": null
+    },
+    {
+      "label": "before-refresh",
+      "success": false,
+      "total": 3,
+      "passed": 0,
+      "failed": 3,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "packages/cli/__tests__/integration/compaction-project-context-refresh.test.js",
+          "status": "failed",
+          "tests": 3
+        }
+      ],
+      "process": null
+    },
+    {
+      "label": "first-after",
+      "success": true,
+      "total": 176,
+      "passed": 176,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "packages/cli/__tests__/integration/compaction-project-context-refresh.test.js",
+          "status": "passed",
+          "tests": 3
+        },
+        {
+          "path": "packages/cli/__tests__/unit/agent-core-autocompact.test.js",
+          "status": "passed",
+          "tests": 15
+        },
+        {
+          "path": "packages/cli/__tests__/unit/agent-core-compact-persist.test.js",
+          "status": "passed",
+          "tests": 7
+        },
+        {
+          "path": "packages/cli/__tests__/unit/agent-repl.test.js",
+          "status": "passed",
+          "tests": 151
+        }
+      ],
+      "process": null
+    },
+    {
+      "label": "extended",
+      "success": false,
+      "total": 16,
+      "passed": 8,
+      "failed": 8,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "packages/cli/__tests__/integration/compaction-project-context-refresh.test.js",
+          "status": "failed",
+          "tests": 7
+        },
+        {
+          "path": "packages/cli/__tests__/unit/compaction-host-context.test.js",
+          "status": "failed",
+          "tests": 9
+        }
+      ],
+      "process": {
+        "args": [
+          "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+          "run",
+          "__tests__/unit/compaction-host-context.test.js",
+          "__tests__/integration/compaction-project-context-refresh.test.js",
+          "--reporter=json",
+          "--outputFile=C:\\code\\chainlesschain\\.work\\compaction-project-context\\extended.json"
+        ],
+        "exitCode": 1,
+        "signal": null,
+        "error": null,
+        "observedAt": "2026-10-28T23:53:40.496Z"
+      }
+    },
+    {
+      "label": "extended-fixed",
+      "success": false,
+      "total": 16,
+      "passed": 14,
+      "failed": 2,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "packages/cli/__tests__/integration/compaction-project-context-refresh.test.js",
+          "status": "failed",
+          "tests": 7
+        },
+        {
+          "path": "packages/cli/__tests__/unit/compaction-host-context.test.js",
+          "status": "passed",
+          "tests": 9
+        }
+      ],
+      "process": {
+        "args": [
+          "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+          "run",
+          "__tests__/unit/compaction-host-context.test.js",
+          "__tests__/integration/compaction-project-context-refresh.test.js",
+          "--reporter=json",
+          "--outputFile=C:\\code\\chainlesschain\\.work\\compaction-project-context\\extended-fixed.json"
+        ],
+        "exitCode": 1,
+        "signal": null,
+        "error": null,
+        "observedAt": "2026-10-28T23:54:54.241Z"
+      }
+    },
+    {
+      "label": "native-acl",
+      "success": false,
+      "total": 7,
+      "passed": 1,
+      "failed": 1,
+      "skipped": 5,
+      "files": [
+        {
+          "path": "packages/cli/__tests__/integration/compaction-project-context-refresh.test.js",
+          "status": "failed",
+          "tests": 7
+        }
+      ],
+      "process": {
+        "args": [
+          "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+          "run",
+          "__tests__/integration/compaction-project-context-refresh.test.js",
+          "-t",
+          "canonical checkpoints",
+          "--reporter=json",
+          "--outputFile=C:\\code\\chainlesschain\\.work\\compaction-project-context\\native-acl.json"
+        ],
+        "exitCode": 1,
+        "signal": null,
+        "error": null,
+        "observedAt": "2026-10-28T23:55:49.481Z"
+      }
+    },
+    {
+      "label": "native-fixed",
+      "success": true,
+      "total": 7,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 5,
+      "files": [
+        {
+          "path": "packages/cli/__tests__/integration/compaction-project-context-refresh.test.js",
+          "status": "passed",
+          "tests": 7
+        }
+      ],
+      "process": {
+        "args": [
+          "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+          "run",
+          "__tests__/integration/compaction-project-context-refresh.test.js",
+          "-t",
+          "canonical checkpoints",
+          "--reporter=json",
+          "--outputFile=C:\\code\\chainlesschain\\.work\\compaction-project-context\\native-fixed.json"
+        ],
+        "exitCode": 0,
+        "signal": null,
+        "error": null,
+        "observedAt": "2026-10-28T23:57:18.284Z"
+      }
+    },
+    {
+      "label": "candidate",
+      "success": true,
+      "total": 22,
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "packages/cli/__tests__/integration/compaction-project-context-refresh.test.js",
+          "status": "passed",
+          "tests": 10
+        },
+        {
+          "path": "packages/cli/__tests__/unit/compaction-host-context.test.js",
+          "status": "passed",
+          "tests": 10
+        },
+        {
+          "path": "packages/cli/__tests__/unit/mcp-host-catalog-wiring.test.js",
+          "status": "passed",
+          "tests": 2
+        }
+      ],
+      "process": {
+        "args": [
+          "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+          "run",
+          "__tests__/unit/compaction-host-context.test.js",
+          "__tests__/unit/mcp-host-catalog-wiring.test.js",
+          "__tests__/integration/compaction-project-context-refresh.test.js",
+          "--reporter=json",
+          "--outputFile=C:\\code\\chainlesschain\\.work\\compaction-project-context\\candidate.json"
+        ],
+        "exitCode": 0,
+        "signal": null,
+        "error": null,
+        "observedAt": "2026-10-28T23:59:17.380Z"
+      }
+    },
+    {
+      "label": "regression",
+      "success": true,
+      "total": 550,
+      "passed": 550,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "packages/cli/__tests__/integration/compaction-project-context-refresh.test.js",
+          "status": "passed",
+          "tests": 10
+        },
+        {
+          "path": "packages/cli/__tests__/unit/agent-core-autocompact.test.js",
+          "status": "passed",
+          "tests": 15
+        },
+        {
+          "path": "packages/cli/__tests__/unit/agent-core-compact-persist.test.js",
+          "status": "passed",
+          "tests": 7
+        },
+        {
+          "path": "packages/cli/__tests__/unit/agent-repl.test.js",
+          "status": "passed",
+          "tests": 151
+        },
+        {
+          "path": "packages/cli/__tests__/unit/canonical-compaction-usage.test.js",
+          "status": "passed",
+          "tests": 23
+        },
+        {
+          "path": "packages/cli/__tests__/unit/canonical-compaction-workflow.test.js",
+          "status": "passed",
+          "tests": 11
+        },
+        {
+          "path": "packages/cli/__tests__/unit/compaction-host-context.test.js",
+          "status": "passed",
+          "tests": 10
+        },
+        {
+          "path": "packages/cli/__tests__/unit/headless-canonical-tool-round.test.js",
+          "status": "passed",
+          "tests": 36
+        },
+        {
+          "path": "packages/cli/__tests__/unit/headless-hook-events.test.js",
+          "status": "passed",
+          "tests": 7
+        },
+        {
+          "path": "packages/cli/__tests__/unit/headless-runner.test.js",
+          "status": "passed",
+          "tests": 111
+        },
+        {
+          "path": "packages/cli/__tests__/unit/headless-stream-resume-roles.test.js",
+          "status": "passed",
+          "tests": 4
+        },
+        {
+          "path": "packages/cli/__tests__/unit/headless-stream.test.js",
+          "status": "passed",
+          "tests": 77
+        },
+        {
+          "path": "packages/cli/__tests__/unit/mcp-host-catalog-wiring.test.js",
+          "status": "passed",
+          "tests": 2
+        },
+        {
+          "path": "packages/cli/__tests__/unit/project-instructions-subtree.test.js",
+          "status": "passed",
+          "tests": 15
+        },
+        {
+          "path": "packages/cli/__tests__/unit/project-instructions.test.js",
+          "status": "passed",
+          "tests": 34
+        },
+        {
+          "path": "packages/cli/__tests__/unit/provider-backed-compaction.test.js",
+          "status": "passed",
+          "tests": 17
+        },
+        {
+          "path": "packages/cli/__tests__/unit/system-prompt.test.js",
+          "status": "passed",
+          "tests": 20
+        }
+      ],
+      "process": {
+        "args": [
+          "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+          "run",
+          "__tests__/integration/compaction-project-context-refresh.test.js",
+          "__tests__/unit/compaction-host-context.test.js",
+          "__tests__/unit/mcp-host-catalog-wiring.test.js",
+          "__tests__/unit/agent-core-autocompact.test.js",
+          "__tests__/unit/agent-core-compact-persist.test.js",
+          "__tests__/unit/provider-backed-compaction.test.js",
+          "__tests__/unit/canonical-compaction-usage.test.js",
+          "__tests__/unit/canonical-compaction-workflow.test.js",
+          "__tests__/unit/agent-repl.test.js",
+          "__tests__/unit/headless-runner.test.js",
+          "__tests__/unit/headless-canonical-tool-round.test.js",
+          "__tests__/unit/headless-stream.test.js",
+          "__tests__/unit/headless-stream-resume-roles.test.js",
+          "__tests__/unit/headless-hook-events.test.js",
+          "__tests__/unit/system-prompt.test.js",
+          "__tests__/unit/project-instructions.test.js",
+          "__tests__/unit/project-instructions-subtree.test.js",
+          "--reporter=json",
+          "--outputFile=C:\\code\\chainlesschain\\.work\\compaction-project-context\\regression.json"
+        ],
+        "exitCode": 0,
+        "signal": null,
+        "error": null,
+        "observedAt": "2026-10-29T00:05:02.497Z"
+      }
+    },
+    {
+      "label": "negative-refresh",
+      "success": false,
+      "total": 10,
+      "passed": 0,
+      "failed": 7,
+      "skipped": 3,
+      "files": [
+        {
+          "path": "packages/cli/__tests__/integration/compaction-project-context-refresh.test.js",
+          "status": "failed",
+          "tests": 10
+        }
+      ],
+      "process": {
+        "args": [
+          "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+          "run",
+          "__tests__/integration/compaction-project-context-refresh.test.js",
+          "--config",
+          "../../.work/compaction-project-context/negative-config.mjs",
+          "-t",
+          "uses current rules|real canonical checkpoints",
+          "--reporter=json",
+          "--outputFile=C:\\code\\chainlesschain\\.work\\compaction-project-context\\negative-refresh.json"
+        ],
+        "exitCode": 1,
+        "signal": null,
+        "error": null,
+        "observedAt": "2026-10-29T00:05:58.008Z"
+      }
+    },
+    {
+      "label": "negative-catalog",
+      "success": false,
+      "total": 2,
+      "passed": 0,
+      "failed": 1,
+      "skipped": 1,
+      "files": [
+        {
+          "path": "packages/cli/__tests__/unit/mcp-host-catalog-wiring.test.js",
+          "status": "failed",
+          "tests": 2
+        }
+      ],
+      "process": {
+        "args": [
+          "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+          "run",
+          "__tests__/unit/mcp-host-catalog-wiring.test.js",
+          "--config",
+          "../../.work/compaction-project-context/negative-config.mjs",
+          "-t",
+          "stream forwards",
+          "--reporter=json",
+          "--outputFile=C:\\code\\chainlesschain\\.work\\compaction-project-context\\negative-catalog.json"
+        ],
+        "exitCode": 1,
+        "signal": null,
+        "error": null,
+        "observedAt": "2026-10-29T00:06:33.817Z"
+      }
+    }
+  ],
+  "negativeControls": {
+    "refreshFailures": 7,
+    "catalogFailures": 1,
+    "method": "Vitest pre-transform only; production disk sources unchanged. Nonselected tests are skipped intentionally."
+  },
+  "intermediateAttempts": {
+    "before": "Wrong startup cwd omitted target project's imported file memory.",
+    "before-refresh": "After fixing initial cwd, old project rules still survived compaction.",
+    "first-after": "176 assertions passed; shell returned 1 after deliberate bad-JavaScript test wrote stderr. Not a clean process gate; later spawnSync runner records real exit status.",
+    "extended": "Fixture state placed under workspace and invalid runtime-only system-message assumption.",
+    "extended-fixed": "Two canonical cases rejected native Windows ACL validation in restricted sandbox.",
+    "native-acl": "Escalated native run exposed stream host missing cwd/memory-mode wiring.",
+    "native-fixed": "Two canonical cases passed before final default-mode compatibility adjustment."
+  },
+  "limits": [
+    "Injected model responses only; no paid provider calls or semantic-summary quality acceptance.",
+    "Two real canonical checkpoint/resume journeys use production JSONL, compactor and read_file tools; only shouldAutoCompact scheduling is forced.",
+    "File-imported project memory only; structured Memory store and startup recall refresh remain unverified.",
+    "REPL prefix controller tested; full interactive REPL and both IDE journeys remain unverified.",
+    "MCP tests verify actual host option forwarding, not another transport journey.",
+    "Current changes excluded from fixed e7 .130 release source; public products remain 34/45.",
+    "Native task dispatch remains unresolved; read-only resolution did not resend requests."
+  ],
+  "artifacts": [
+    {
+      "path": "before.json.gz",
+      "sha256": "7084b4300423070bf649a0220772b4872a7365044dc07fa759e3ac042984f90d",
+      "originalSha256": "b686977c552550cbb105a2c9a14a798e608b4aca56c3a064b4e537a0fb963287",
+      "bytes": 734,
+      "originalBytes": 2902
+    },
+    {
+      "path": "before.log.gz",
+      "sha256": "044bf95df8c8cbeae94fdac2afc114cf7048ddea87174071c7f9adf94b1fbf0b",
+      "originalSha256": "f9b853bf6aa1197c606d4dad89129ef7c2e5d595f2f47977ee4da33c41741f66",
+      "bytes": 133,
+      "originalBytes": 186
+    },
+    {
+      "path": "before-refresh.json.gz",
+      "sha256": "f44471027527c9841fef171529fb85dcbf36bf0ee0f1ad7b392bc1b6c1779f2d",
+      "originalSha256": "f9b9f8fb57eeba9661ce39fc718e0d7443efee251087476159a2f75965c31281",
+      "bytes": 735,
+      "originalBytes": 2897
+    },
+    {
+      "path": "before-refresh.log.gz",
+      "sha256": "dab95c3ac0661e1459961ce9d2803c52410770da6ca2e1205b054403f38e40b4",
+      "originalSha256": "c72598a6fce496894809f59b8ae9b596ad873cafe4cae604f8c61ccefc191962",
+      "bytes": 140,
+      "originalBytes": 202
+    },
+    {
+      "path": "first-after.json.gz",
+      "sha256": "76f60e4b889c66b4497a8d0379cf8ecb5b23e694cca02bf3ee6df4e067a6b1f4",
+      "originalSha256": "76a842ad4745519e066a0d3c75a804439e1bb1495c55d5e79225c58361e6379a",
+      "bytes": 8122,
+      "originalBytes": 60556
+    },
+    {
+      "path": "first-after.log.gz",
+      "sha256": "d31d0abcd833805a5295e62619f668d3a6897ffa5af0daf0b5aba1973bd9e12e",
+      "originalSha256": "b4d232c168584748fbd66c988098ab83144c63f332beb7b31ab1fd9e4c0ab4a9",
+      "bytes": 733,
+      "originalBytes": 2352
+    },
+    {
+      "path": "extended.json.gz",
+      "sha256": "dd454ae5fe34bb248749e5ebc7c8c955660a13fbc2a1e9357a771d0157b6687c",
+      "originalSha256": "3578effb0fd58fa6db5953ab53bfa8179a150c8063e6737dd613fd52418bdd66",
+      "bytes": 1935,
+      "originalBytes": 13972
+    },
+    {
+      "path": "extended.log.gz",
+      "sha256": "ae889e018afa6b98a5328abf133d0b2f09279f3ca63f6422e8f2699f9e74dde4",
+      "originalSha256": "89eecabc64919cefba08393572e39a7302a96f2f487d9392bc8c112e8d042afc",
+      "bytes": 114,
+      "originalBytes": 109
+    },
+    {
+      "path": "extended-process.json.gz",
+      "sha256": "24b6fbf1f096d576e20db748a1284f7bf220904a502fa248527afd7f9dcf8cd1",
+      "originalSha256": "6228b951666a61e161367ed2631b8e5aacc5f81a938de1c7418bd53fea39faed",
+      "bytes": 267,
+      "originalBytes": 436
+    },
+    {
+      "path": "extended-fixed.json.gz",
+      "sha256": "4d9b26048f5d0cdb84865676f6fc043055b858629aa184f5e0d2b71909996a77",
+      "originalSha256": "2db5226c444e9d53ec135f6934c09028e6bc21f9577bc1fb96bbe4a65002a10a",
+      "bytes": 1589,
+      "originalBytes": 7876
+    },
+    {
+      "path": "extended-fixed.log.gz",
+      "sha256": "bd8e8f2f432868dc1bc21aa3b0ae3cd9df5e7380e9fdcabccd502342ecc695e1",
+      "originalSha256": "35cd93e15147d45aa1d1c9a06f9393265e40cde76c5ccbba9fbb63aeeb069559",
+      "bytes": 117,
+      "originalBytes": 115
+    },
+    {
+      "path": "extended-fixed-process.json.gz",
+      "sha256": "2147ea695fe4b864a684d74b4b9ead1935d25cc5d29b6affb5ed7789835bbb05",
+      "originalSha256": "da78d0629b0283eb31cf8e676e8006dbc99921512679d49fccdf5fb04cd441f4",
+      "bytes": 271,
+      "originalBytes": 442
+    },
+    {
+      "path": "native-acl.json.gz",
+      "sha256": "c203fae655cb2c938313242c36bc12115a768eab8891ac2e19a4a8ac23cbad1b",
+      "originalSha256": "de35436778751c6b29e4303c57ee33f3400b1e193b2cb51e666423d28b4c02e7",
+      "bytes": 784,
+      "originalBytes": 3308
+    },
+    {
+      "path": "native-acl.log.gz",
+      "sha256": "bc4fae62d92547c87849606abc13e9284e601e9be46d9bd8965a9428330463b7",
+      "originalSha256": "b490961e3e61f0d12365bcbc4a973959a993cf2f3044edc327ad6eeaa2b45221",
+      "bytes": 115,
+      "originalBytes": 111
+    },
+    {
+      "path": "native-acl-process.json.gz",
+      "sha256": "cb8306e65ee9d2f8d7e3dc72d6916b7780993beb648ba33ed62339ec2e183c8a",
+      "originalSha256": "79d48c07300301debc99ae987b061ba958c54c69e39b09fdeacd6161b418c041",
+      "bytes": 272,
+      "originalBytes": 423
+    },
+    {
+      "path": "native-fixed.json.gz",
+      "sha256": "423ecff1f024f7279eddf41dc1339e5c4c5affca975d9042729c511a3a8f730c",
+      "originalSha256": "cd5db0da8f729dfd5500f4b43dcd02ed55cd997d6802c033b76b68198d04b6ff",
+      "bytes": 619,
+      "originalBytes": 2984
+    },
+    {
+      "path": "native-fixed.log.gz",
+      "sha256": "16542f5c4efe706cb906e88123eb9aad9c90de799601aeed04dde9f14bade4d3",
+      "originalSha256": "54377e54bb6a593d6f76adcd89a58c86acac0000ef4f33f9a8c342597899d4e5",
+      "bytes": 116,
+      "originalBytes": 113
+    },
+    {
+      "path": "native-fixed-process.json.gz",
+      "sha256": "b84b10253c2e8a12997b301d6b5f63ca06168ed8ca6924d3148ff54ec0e68391",
+      "originalSha256": "07f5938df4a25cc00e591e97aceca68ba163f95bca5bfd1bd09b4a70cb250016",
+      "bytes": 273,
+      "originalBytes": 425
+    },
+    {
+      "path": "candidate.json.gz",
+      "sha256": "9f51aa668673a271a93de3dd613d75dcfd06d234c4eb523a0b873527da96209f",
+      "originalSha256": "a266277486cd9dba0df92370d656eee42ccad20873abe72ca489edc004b61735",
+      "bytes": 1370,
+      "originalBytes": 8459
+    },
+    {
+      "path": "candidate.log.gz",
+      "sha256": "28ec1506346d0502239f3e0e683956c7147a209911c5e72bbe8b3125aebd6041",
+      "originalSha256": "c78d58508c8371aa982fdb3aaea995730d31568305296d7d6fb8e09603f7a7cb",
+      "bytes": 114,
+      "originalBytes": 110
+    },
+    {
+      "path": "candidate-process.json.gz",
+      "sha256": "e60f77059fd36223a31a125ec72a0c6b5dc675704a81e0592fbc13e025adb4e0",
+      "originalSha256": "ef26d63e4059fb2b04b030e5e98743bde1ba5d552021490701880893a5791757",
+      "bytes": 282,
+      "originalBytes": 491
+    },
+    {
+      "path": "regression.json.gz",
+      "sha256": "ee063d7fcf74ec97aced2081e2db9c0df7cb88f0867f0dbdcdbe8f4bc7a07f6b",
+      "originalSha256": "32af68afbe58d47ce55d020c72d957a17caae0aa542089ad4575a569d3288317",
+      "bytes": 23877,
+      "originalBytes": 184973
+    },
+    {
+      "path": "regression.log.gz",
+      "sha256": "debe7e733d8c24bba3cfbefcf8c22bc9205c284ada7d18b3fde340cd4394bf56",
+      "originalSha256": "bc77d03d4ca67f825f448d4d28610500507cc5ced682c58559676ee7cb4bdb20",
+      "bytes": 442,
+      "originalBytes": 855
+    },
+    {
+      "path": "regression-process.json.gz",
+      "sha256": "03c4ff8f4ecfa420389f995333c22fef44cefceb61cfcb863d8246b4b78aa3e1",
+      "originalSha256": "f1e981045391c3d2b87f12153120908a93dfd498e8831dc06a8dc62374fd5a44",
+      "bytes": 424,
+      "originalBytes": 1233
+    },
+    {
+      "path": "negative-refresh.json.gz",
+      "sha256": "3aaaa452f7cfc1045ecfed67f64cb3f23a55b700aa073fe2370e4d351b16b51b",
+      "originalSha256": "f1c56c20637dd9209ac0994c07fcca1cb781ab34519d3bb949812c576784f552",
+      "bytes": 987,
+      "originalBytes": 6590
+    },
+    {
+      "path": "negative-refresh.log.gz",
+      "sha256": "a3814c0395afaad466754d21a70940f9cc3cef50d035daf13ea234fe8aafd502",
+      "originalSha256": "40ee0219b6237a41bbf2f07e763adc52e81d07524f708601de26463782f820f7",
+      "bytes": 119,
+      "originalBytes": 117
+    },
+    {
+      "path": "negative-refresh-process.json.gz",
+      "sha256": "e1e5048f0a1bf855d5fdd49c2f7563d247440cc3b46c4527b3570e4fb1e0b96c",
+      "originalSha256": "864f8ef998a4b260af47641dd23e24e327cc9a18527541984d3f970aa6117b11",
+      "bytes": 306,
+      "originalBytes": 535
+    },
+    {
+      "path": "negative-catalog.json.gz",
+      "sha256": "f476470fc7da8bf8b3a803611d25244384861b22e098517507ec848973d4e8b3",
+      "originalSha256": "8aeae8ca96393bfee3e1ae85b28aff505de525c0bb79b387b8af2235923c76f1",
+      "bytes": 626,
+      "originalBytes": 1518
+    },
+    {
+      "path": "negative-catalog.log.gz",
+      "sha256": "4cd2703bdf3cdc16b4a12d74ae6bf6d63d681c2303bf5145e63c32357e249304",
+      "originalSha256": "79e79652dd096fed8ee2f0de920d580ca35e0fa7fe4c1161452e9a4958170102",
+      "bytes": 119,
+      "originalBytes": 117
+    },
+    {
+      "path": "negative-catalog-process.json.gz",
+      "sha256": "35c2642f3df442e6693c99c47791f4414fe25e48a18ae7075415ea2a19ab910e",
+      "originalSha256": "857ef6ef74edeb95506678c6f2893ff4108ecb210febdae7d1d7ce517dde49e7",
+      "bytes": 295,
+      "originalBytes": 487
+    },
+    {
+      "path": "negative-config.mjs.txt",
+      "sha256": "04509c1e6a59e0422a94c3671b01096408a929ba1410eea4c1cb21f10759173c",
+      "originalSha256": "04509c1e6a59e0422a94c3671b01096408a929ba1410eea4c1cb21f10759173c",
+      "bytes": 1046,
+      "originalBytes": 1046
+    },
+    {
+      "path": "run-tests.mjs.txt",
+      "sha256": "611ba3aa63ff476d28a950c4ec4a86e763a056ef929c24af34f58789136bdb86",
+      "originalSha256": "611ba3aa63ff476d28a950c4ec4a86e763a056ef929c24af34f58789136bdb86",
+      "bytes": 1136,
+      "originalBytes": 1136
+    },
+    {
+      "path": "native-resolve.log.gz",
+      "sha256": "debd1d7f1757230707979221c5b9b9b574eacc9c3be2b3d30507f976d1ca1dbd",
+      "originalSha256": "24fb3e457897355a44a378f8b43913afaa126268947e08f4adacdd8c7acfda06",
+      "bytes": 333,
+      "originalBytes": 808
+    },
+    {
+      "path": "native-resolve-process.json.gz",
+      "sha256": "f78a56a22c937de9761bcf1bf75695ef8f5aea72002174bff63c8bd5bd1c26d8",
+      "originalSha256": "386b905bd6c6d92454e6f1715ac04d4f0c8914954ff8da99dcd5c6d9de0fb23a",
+      "bytes": 94,
+      "originalBytes": 81
+    },
+    {
+      "path": "run-40784871631.json.gz",
+      "sha256": "f889e757a62eb280fc9c66605277a522e27ac4760d780e839726d44b71316f21",
+      "originalSha256": "f85fd15e77e10dcc9507ff81235906bde0b065e4efab15ac6e973e8662241680",
+      "bytes": 1648,
+      "originalBytes": 15817
+    },
+    {
+      "path": "run-40784878922.json.gz",
+      "sha256": "977f196b10aa0d47e6dbc2d0eeae64653d42bebd303c3347d493960915aaa209",
+      "originalSha256": "9aeebc6fb38ed912ee7202031442d22d7a5e192f65543d8574f51ab0b15a6480",
+      "bytes": 6810,
+      "originalBytes": 103493
+    },
+    {
+      "path": "run-40784885411.json.gz",
+      "sha256": "e5ebdf9571c5fa66c100f8128859501e29a2b8c278b8e0e16b2bfd7c257372b9",
+      "originalSha256": "f9897032a9a5c0a25dded908ed2aca70e8a4253d266b3df8c1c989c94355d577",
+      "bytes": 2047,
+      "originalBytes": 19608
+    },
+    {
+      "path": "run-40783962970.json.gz",
+      "sha256": "a4dc22146b9e6aa266a1233dc012343c782164ff8cfe12d6af29a5a11dd23aed",
+      "originalSha256": "43e3768c1383f1559fd225f47a331df327a99c0cedaa0d2af3f03ecbb818d82f",
+      "bytes": 2016,
+      "originalBytes": 19536
+    }
+  ]
+}

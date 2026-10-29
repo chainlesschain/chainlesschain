@@ -1,0 +1,56 @@
+{
+  "releaseSource": "e7a6f2585d62949794596767869423b0eb670104",
+  "validationRef": "ci-validation/npm-0.166.130-e7a6f2585d",
+  "published": false,
+  "currentChangesExcluded": true,
+  "gates": [
+    {
+      "id": 40784871631,
+      "name": "Context Memory Kernel",
+      "headSha": "e7a6f2585d62949794596767869423b0eb670104",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": 3,
+      "success": 3,
+      "verifiedPlatforms": ["linux", "macos", "windows"],
+      "verificationError": null,
+      "readbackFileMtime": "2026-10-28T23:27:59.661Z"
+    },
+    {
+      "id": 40784878922,
+      "name": "CLI CI",
+      "headSha": "e7a6f2585d62949794596767869423b0eb670104",
+      "status": "queued",
+      "conclusion": "",
+      "jobs": 68,
+      "success": 44,
+      "verifiedPlatforms": null,
+      "verificationError": "Run is not completed successfully",
+      "readbackFileMtime": "2026-10-29T00:05:47.136Z"
+    },
+    {
+      "id": 40784885411,
+      "name": "CLI Strict Sandbox",
+      "headSha": "e7a6f2585d62949794596767869423b0eb670104",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": 6,
+      "success": 6,
+      "verifiedPlatforms": ["linux", "macos", "windows"],
+      "verificationError": null,
+      "readbackFileMtime": "2026-10-29T00:05:50.154Z"
+    },
+    {
+      "id": 40783962970,
+      "name": "CLI Strict Sandbox",
+      "headSha": "e7a6f2585d62949794596767869423b0eb670104",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": 6,
+      "success": 6,
+      "verifiedPlatforms": ["linux", "macos", "windows"],
+      "verificationError": null,
+      "readbackFileMtime": "2026-10-28T23:36:04.882Z"
+    }
+  ]
+}

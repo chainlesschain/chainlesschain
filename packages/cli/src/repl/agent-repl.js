@@ -167,7 +167,14 @@ import {
 import { formatBackgroundTasks } from "./tasks-status.js";
 import { expandFileRefsAsync } from "../runtime/file-ref-expander.js";
 import { prepareVisionTurn, resolveVisionLlm } from "../lib/image-input.js";
-import { composeSystemPrompt } from "../runtime/system-prompt.js";
+import {
+  composeSystemPrompt,
+  hostProjectMemoryMode,
+} from "../runtime/system-prompt.js";
+import {
+  createCompactionHostContextRefresher,
+  refreshCompactionHostContext,
+} from "../runtime/compaction-host-context.js";
 import { installPipeSafety } from "../runtime/pipe-safety.js";
 import { installOutputBackpressure } from "../runtime/output-backpressure.js";
 import {
@@ -4212,7 +4219,10 @@ async function startAgentReplInWorkspaceOwned(
       {
         systemPrompt: options.systemPrompt,
         appendSystemPrompt: options.appendSystemPrompt,
-        projectMemory: _leanNoProjectMemory ? false : undefined,
+        cwd: process.cwd(),
+        projectMemory: _leanNoProjectMemory
+          ? false
+          : hostProjectMemoryMode(options.projectMemory),
         onInstructionsLoaded: (loaded) => {
           _loadedReplInstructions = loaded;
         },
@@ -4870,6 +4880,18 @@ async function startAgentReplInWorkspaceOwned(
   // any canonical/legacy replay is appended. Later live switches refresh only
   // entry 0 from the active base prompt; they never re-scan old session systems.
   _registerHostSystemMessages();
+  const _projectContextRefresher = createCompactionHostContextRefresher({
+    messages,
+    render: () => {
+      _replBaseSystem = _buildReplBaseSystem();
+      return _activeOutputStyle?.body
+        ? `${_replBaseSystem}\n\n${_activeOutputStyle.body}`
+        : _replBaseSystem;
+    },
+    onUpdated: () => _refreshHostSystemMessages(),
+  });
+  const _refreshProjectContext = () =>
+    refreshCompactionHostContext(_projectContextRefresher, messages);
 
   let _startupResumeCommitted = false;
   // Load resumed session messages
@@ -7448,6 +7470,13 @@ async function startAgentReplInWorkspaceOwned(
         return;
       }
 
+      try {
+        _refreshProjectContext();
+      } catch (error) {
+        logger.error(error.message);
+        prompt();
+        return;
+      }
       const expectedMessages = [...messages];
       if (_compressor && messages.length > 3) {
         let result;
@@ -9817,6 +9846,7 @@ async function startAgentReplInWorkspaceOwned(
       }
       const activeMcpRuntime = _activateMcpHostRuntime();
       const activeRawMcpClient = activeMcpRuntime.rawClient || undefined;
+      _refreshProjectContext();
       const {
         content: response,
         usageEvents,
@@ -10175,6 +10205,7 @@ async function startAgentReplInWorkspaceOwned(
         _compressor.shouldAutoCompact(messages)
       ) {
         try {
+          _refreshProjectContext();
           const expectedMessages = [...messages];
           const {
             messages: compacted,

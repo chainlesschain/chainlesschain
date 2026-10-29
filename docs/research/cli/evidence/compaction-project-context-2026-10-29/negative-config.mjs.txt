@@ -1,0 +1,28 @@
+import base from "../../packages/cli/vitest.config.js";
+
+const mode = process.env.CC_PROJECT_CONTEXT_NEGATIVE;
+if (!["refresh", "catalog"].includes(mode)) throw new Error("Select refresh or catalog");
+export default {
+  ...base,
+  plugins: [
+    ...(base.plugins || []),
+    {
+      name: `project-context-negative-${mode}`,
+      enforce: "pre",
+      transform(code, id) {
+        const target = mode === "refresh" ? "agent-core.js" : "headless-stream.js";
+        if (!id.replaceAll("\\", "/").endsWith(`/src/runtime/${target}`)) return null;
+        const before = mode === "refresh"
+          ? "options.refreshCompactionContext"
+          : "mcpToolCatalog: mcp?.mcpToolCatalog || null,";
+        const expected = mode === "refresh" ? 3 : 1;
+        if (code.split(before).length !== expected + 1)
+          throw new Error(`Expected ${expected} production boundaries`);
+        return {
+          code: code.replaceAll(before, mode === "refresh" ? "null" : "mcpToolCatalog: null,"),
+          map: null,
+        };
+      },
+    },
+  ],
+};

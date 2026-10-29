@@ -67,7 +67,8 @@ import {
   chatWithTools as coreChatWithTools,
   agentLoop as coreAgentLoop,
 } from "./agent-core.js";
-import { composeSystemPrompt } from "./system-prompt.js";
+import { composeSystemPrompt, hostProjectMemoryMode } from "./system-prompt.js";
+import { createCompactionHostContextRefresher } from "./compaction-host-context.js";
 import { createResumeRoleProjection } from "./message-roles.js";
 import {
   estimateMessagesTokens,
@@ -3105,26 +3106,34 @@ async function runAgentHeadlessStreamInWorkspace(
   // the flag is absent (undefined) both paths stay byte-identical.
   const _leanNoProjectMemory = options.projectMemory === false;
   let _loadedInstructions = null;
-  const systemContent = composeSystemPrompt(
-    buildSystemPrompt(cwd, {
-      additionalDirectories,
-      projectMemory: options.projectMemory,
-    }),
-    {
-      systemPrompt: options.systemPrompt,
-      appendSystemPrompt: _jsonSchema
-        ? [options.appendSystemPrompt, _jso.buildSchemaInstruction(_jsonSchema)]
-            .filter(Boolean)
-            .join("\n\n")
-        : options.appendSystemPrompt,
-      outputStyle: outputStyleBody,
-      instructionExcludes,
-      projectMemory: _leanNoProjectMemory ? false : undefined,
-      onInstructionsLoaded: (loaded) => {
-        _loadedInstructions = loaded;
+  const renderSystemContent = () =>
+    composeSystemPrompt(
+      buildSystemPrompt(cwd, {
+        additionalDirectories,
+        projectMemory: options.projectMemory,
+      }),
+      {
+        systemPrompt: options.systemPrompt,
+        appendSystemPrompt: _jsonSchema
+          ? [
+              options.appendSystemPrompt,
+              _jso.buildSchemaInstruction(_jsonSchema),
+            ]
+              .filter(Boolean)
+              .join("\n\n")
+          : options.appendSystemPrompt,
+        outputStyle: outputStyleBody,
+        cwd,
+        instructionExcludes,
+        projectMemory: _leanNoProjectMemory
+          ? false
+          : hostProjectMemoryMode(options.projectMemory),
+        onInstructionsLoaded: (loaded) => {
+          _loadedInstructions = loaded;
+        },
       },
-    },
-  );
+    );
+  const systemContent = renderSystemContent();
   const messages = [{ role: "system", content: systemContent }];
 
   // settings.json InstructionsLoaded hooks (observe-only): fire once with the
@@ -3922,6 +3931,7 @@ async function runAgentHeadlessStreamInWorkspace(
     ]),
     // --mcp-config wiring (tool defs + dispatch map + live client).
     mcpClient: mcp?.mcpClient || null,
+    mcpToolCatalog: mcp?.mcpToolCatalog || null,
     mcpHostClient: mcpRecoveryRuntime.client || mcp?.mcpClient || null,
     extraToolDefinitions: mcp?.extraToolDefinitions || undefined,
     externalToolExecutors: mcp?.externalToolExecutors || undefined,
@@ -3931,6 +3941,10 @@ async function runAgentHeadlessStreamInWorkspace(
     mcpCallLedger: mcpRecoveryRuntime.ledger,
     mcpDispatchAdmission: sessionHostLease?.admitMcpDispatch || null,
     getTaskWorklogContext: () => taskWorklog?.context() || null,
+    refreshCompactionContext: createCompactionHostContextRefresher({
+      messages,
+      render: renderSystemContent,
+    }),
     onBeforeCompaction: () => {
       updateWorklog((log) => log.record({ type: "before-compaction" }));
       try {

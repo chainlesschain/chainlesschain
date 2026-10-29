@@ -217,6 +217,10 @@ import {
 } from "../lib/agent-tool-admission.js";
 import { captureAgentExecutionPolicy } from "../lib/agent-execution-policy.js";
 import {
+  COMPACTION_CONTEXT_REFRESH_ERROR,
+  refreshCompactionHostContext,
+} from "./compaction-host-context.js";
+import {
   assertMcpCatalogBinding,
   captureMcpToolCatalog,
   mergeMcpToolCatalog,
@@ -15567,6 +15571,7 @@ export async function* agentLoop(messages, options) {
     // its full tool_call→tool_result cycle before we loop, so `messages` has no
     // dangling call; `preserveToolPairs` then guarantees compaction never
     // orphans a tool result. Best-effort — a failure never aborts the run.
+    let compactionHostContextRefreshed = false;
     if (
       !independentReviewContext?.active &&
       options.autoCompact !== false &&
@@ -15587,7 +15592,7 @@ export async function* agentLoop(messages, options) {
           // micro-compact may change the working input, but the durable CAS must
           // still compare against the transcript state that existed before any
           // in-memory compaction happened.
-          const authorityExpectedMessages = [...messages];
+          let authorityExpectedMessages = [...messages];
           let workingMessages = messages;
           let microStats = null;
           // Cheap surgical pre-pass (Claude-Code microcompact parity): build a
@@ -15649,6 +15654,22 @@ export async function* agentLoop(messages, options) {
               runId,
               reason: preCompactReason,
             };
+          }
+          if (!hermeticExecution && options.refreshCompactionContext != null) {
+            // Hooks may update project files. Preserve the original transcript
+            // comparison before replacing only the host-owned live system base.
+            if (!_sameMessageSnapshot(messages, authorityExpectedMessages)) {
+              throw _compactionSettlementError(
+                COMPACTION_CONTEXT_REFRESH_ERROR,
+                "Session messages changed before project context refresh",
+              );
+            }
+            workingMessages = refreshCompactionHostContext(
+              options.refreshCompactionContext,
+              workingMessages,
+            );
+            authorityExpectedMessages = [...messages];
+            compactionHostContextRefreshed = true;
           }
           // Auto-pin (OPT-IN): when enabled, the original task (first user turn)
           // is pinned so compaction can't drop it. Off by default → no predicate
@@ -15949,6 +15970,7 @@ export async function* agentLoop(messages, options) {
           }
         }
       } catch (_e) {
+        if (_e?.code === COMPACTION_CONTEXT_REFRESH_ERROR) throw _e;
         if (isAbortError(_e) || signal?.aborted) throw _e;
         if (isFormalBudgetError(_e)) throw _e;
         if (_e?.runtimeLedgerPersistence === true) throw _e;
@@ -16080,6 +16102,12 @@ export async function* agentLoop(messages, options) {
           summaryMode: "none",
         };
       }
+    }
+
+    if (compactionHostContextRefreshed) {
+      // A source file can change while the summary provider is running, or
+      // while a failed summary is falling back to the original transcript.
+      refreshCompactionHostContext(options.refreshCompactionContext, messages);
     }
 
     // Deliver background sub-agent results that settled since the last turn:
