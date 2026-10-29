@@ -5,6 +5,11 @@ import path from "node:path";
 import { syncBuiltinESMExports } from "node:module";
 import { SegmentedMemoryPort } from "../../src/lib/context-memory-kernel/segmented-memory-port.js";
 import { createDurableMemoryFixture } from "../../scripts/persistent-capacity-benchmark.mjs";
+import {
+  observeQueryBundleHandles,
+  projectQueryBundleDevice,
+  restoreQueryBundleIdentityRuntime,
+} from "../helpers/query-bundle-handles.js";
 
 const temporaryParent = fs.realpathSync.native(os.tmpdir());
 const roots = [];
@@ -12,6 +17,7 @@ const roots = [];
 afterEach(() => {
   vi.restoreAllMocks();
   syncBuiltinESMExports();
+  restoreQueryBundleIdentityRuntime();
   for (const root of roots.splice(0)) {
     if (
       path.dirname(path.resolve(root)) !== temporaryParent ||
@@ -44,22 +50,11 @@ async function fixture({ corrupt = true } = {}) {
 // its next checkpoint, before the codec can classify that damage as repairable.
 // No sleeps or timing-dependent scheduling are needed.
 function mutateAtReadCheckpoint(fixture, mutate, { beforeOpen = false } = {}) {
-  const open = fs.openSync;
-  const read = fs.readSync;
-  let bundleFd,
-    readPending = beforeOpen,
+  let readPending = beforeOpen,
     mutations = 0;
-  vi.spyOn(fs, "openSync").mockImplementation((file, ...args) => {
-    const fd = open(file, ...args);
-    if (file === fixture.plan.file) bundleFd = fd;
-    return fd;
+  const handles = observeQueryBundleHandles(fixture.plan.file, () => {
+    if (mutations === 0) readPending = true;
   });
-  vi.spyOn(fs, "readSync").mockImplementation((fd, ...args) => {
-    const count = read(fd, ...args);
-    if (fd === bundleFd && count > 0 && mutations === 0) readPending = true;
-    return count;
-  });
-  syncBuiltinESMExports();
   const readBundle = fixture.port._readQueryBundleIndexes.bind(fixture.port);
   vi.spyOn(fixture.port, "_readQueryBundleIndexes").mockImplementation(
     (manifest, checkpoint) =>
@@ -70,30 +65,44 @@ function mutateAtReadCheckpoint(fixture, mutate, { beforeOpen = false } = {}) {
         mutate();
       }),
   );
-  return () => mutations;
+  return { mutations: () => mutations, handles };
 }
 
 describe("query bundle identity failures take precedence over content repair", () => {
-  it("does not repair a replacement ordinary file after reading corrupt bytes from the displaced inode", async () => {
-    const f = await fixture();
-    const replacement = Buffer.from("replacement file must remain untouched");
-    const displaced = `${f.plan.file}.displaced`;
-    const repairReads = vi.spyOn(f.port, "_readQueryIndexBytes");
-    const mutations = mutateAtReadCheckpoint(f, () => {
-      fs.renameSync(f.plan.file, displaced);
-      fs.writeFileSync(f.plan.file, replacement);
-    });
+  it.each(process.platform === "win32" ? ["native", "projected"] : ["native"])(
+    "does not repair a replacement ordinary file after reading corrupt bytes from the displaced inode (%s)",
+    async (identityMode) => {
+      const f = await fixture();
+      if (identityMode === "projected") projectQueryBundleDevice(f.plan.file);
+      const replacement = Buffer.from("replacement file must remain untouched");
+      const displaced = `${f.plan.file}.displaced`;
+      const repairReads = vi.spyOn(f.port, "_readQueryIndexBytes");
+      const observation = mutateAtReadCheckpoint(f, () => {
+        fs.renameSync(f.plan.file, displaced);
+        fs.writeFileSync(f.plan.file, replacement);
+      });
 
-    await expect(f.port.listPage({ limit: 7 })).rejects.toMatchObject({
-      code: "CONTEXT_MEMORY_STORE_CORRUPT",
-    });
-    expect(mutations()).toBe(1);
-    expect(repairReads).not.toHaveBeenCalled();
-    expect(fs.readFileSync(f.plan.file)).toEqual(replacement);
-    expect(fs.readFileSync(displaced)).toEqual(f.corruptBytes);
-    expect(fs.readFileSync(f.filePath)).toEqual(f.authority);
-    expect(fs.existsSync(`${f.filePath}.lock`)).toBe(false);
-  });
+      await expect(f.port.listPage({ limit: 7 })).rejects.toMatchObject({
+        code: "CONTEXT_MEMORY_STORE_CORRUPT",
+      });
+      expect(observation.mutations()).toBe(1);
+      expect(observation.handles.data()).toHaveLength(1);
+      expect(observation.handles.data()[0].bytesRead).toBe(
+        f.plan.header.length,
+      );
+      if (identityMode === "projected") {
+        // The initial path/handle check reopened the file before the data read;
+        // that short-lived fd must not disarm the replacement injection.
+        expect(observation.handles.readOnlyBundle()).toHaveLength(2);
+      }
+      observation.handles.assertClosed();
+      expect(repairReads).not.toHaveBeenCalled();
+      expect(fs.readFileSync(f.plan.file)).toEqual(replacement);
+      expect(fs.readFileSync(displaced)).toEqual(f.corruptBytes);
+      expect(fs.readFileSync(f.filePath)).toEqual(f.authority);
+      expect(fs.existsSync(`${f.filePath}.lock`)).toBe(false);
+    },
+  );
 
   it.each([true, false])(
     "rejects a redirected shard directory resolving to the same bundle inode (corrupt=%s)",
@@ -105,7 +114,7 @@ describe("query bundle identity failures take precedence over content repair", (
       // Windows refuses directory renames while a child fd is open. Redirect at
       // the first codec checkpoint, after the port check but before opening the
       // same inode through the new link. No platform-specific skip is needed.
-      const mutations = mutateAtReadCheckpoint(
+      const observation = mutateAtReadCheckpoint(
         f,
         () => {
           fs.renameSync(f.port.shardDirectory, displaced);
@@ -130,7 +139,8 @@ describe("query bundle identity failures take precedence over content repair", (
       ).rejects.toMatchObject({
         code: "CONTEXT_MEMORY_STORE_CORRUPT",
       });
-      expect(mutations()).toBe(1);
+      expect(observation.mutations()).toBe(1);
+      observation.handles.assertClosed();
       expect(repairReads).not.toHaveBeenCalled();
       expect(fs.lstatSync(f.port.shardDirectory).isSymbolicLink()).toBe(true);
       expect(fs.readFileSync(f.plan.file)).toEqual(f.corruptBytes);

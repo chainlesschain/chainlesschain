@@ -8,12 +8,19 @@ import { applyMemoryCommand } from "@chainlesschain/context-memory-kernel";
 import { createDurableMemoryFixture } from "../../scripts/persistent-capacity-benchmark.mjs";
 import { SegmentedMemoryPort } from "../../src/lib/context-memory-kernel/segmented-memory-port.js";
 import { compareMemoryRows } from "../../src/lib/context-memory-kernel/memory-query-index.js";
+import { isAffectedWindowsZeroDeviceStatRuntime } from "../../src/lib/secure-file-identity.js";
+import {
+  observeQueryBundleHandles,
+  projectQueryBundleDevice,
+  restoreQueryBundleIdentityRuntime,
+} from "../helpers/query-bundle-handles.js";
 
 const parent = fs.realpathSync.native(os.tmpdir());
 const roots = [];
 afterEach(() => {
   vi.restoreAllMocks();
   syncBuiltinESMExports();
+  restoreQueryBundleIdentityRuntime();
   for (const root of roots.splice(0)) {
     if (
       path.dirname(root) !== parent ||
@@ -39,27 +46,41 @@ async function fixture() {
 }
 
 describe("default disk query bundle", () => {
-  it("revalidates one bundle descriptor without reopening compatibility indexes and preserves list results", async () => {
-    const f = await fixture();
-    expect((await f.port.listPage({ limit: 7 })).records).toEqual(f.expected);
-    const bundle = f.port._queryBundlePlan(f.manifest());
-    const individual = vi.spyOn(f.port, "_readQueryIndexBytes");
-    const open = vi.spyOn(fs, "openSync");
-    syncBuiltinESMExports();
-    expect((await f.port.listPage({ limit: 7 })).records).toEqual(f.expected);
-    expect(individual).not.toHaveBeenCalled();
-    expect(
-      open.mock.calls.filter(([file]) => file === bundle.file),
-    ).toHaveLength(1);
-    expect(f.port.queryIndexCacheMode).toBe("validate-disk");
-    const legacyLayout = new SegmentedMemoryPort({
-      filePath: f.filePath,
-      queryIndexLayout: "individual",
-    });
-    expect((await legacyLayout.listPage({ limit: 7 })).records).toEqual(
-      f.expected,
-    );
-  });
+  it.each(process.platform === "win32" ? ["native", "projected"] : ["native"])(
+    "revalidates one bundle data descriptor without reopening compatibility indexes and preserves list results (%s)",
+    async (identityMode) => {
+      const f = await fixture();
+      expect((await f.port.listPage({ limit: 7 })).records).toEqual(f.expected);
+      const bundle = f.port._queryBundlePlan(f.manifest());
+      if (identityMode === "projected") projectQueryBundleDevice(bundle.file);
+      const individual = vi.spyOn(f.port, "_readQueryIndexBytes");
+      const handles = observeQueryBundleHandles(bundle.file);
+      expect((await f.port.listPage({ limit: 7 })).records).toEqual(f.expected);
+      expect(individual).not.toHaveBeenCalled();
+      expect(handles.data()).toHaveLength(1);
+      expect(handles.data()[0].bytesRead).toBe(bundle.byteLength);
+      // Identity probes may reopen the pathname, but never consume bundle data.
+      if (isAffectedWindowsZeroDeviceStatRuntime())
+        expect([1, 3]).toContain(handles.bundle().length);
+      else expect(handles.bundle()).toHaveLength(1);
+      if (identityMode === "projected") {
+        expect(handles.bundle()).toHaveLength(3);
+        expect(
+          handles.bundle().filter((handle) => handle.readCalls === 0),
+        ).toHaveLength(2);
+      }
+      handles.assertClosed();
+      expect(f.port.queryIndexCacheMode).toBe("validate-disk");
+      const legacyLayout = new SegmentedMemoryPort({
+        filePath: f.filePath,
+        queryIndexLayout: "individual",
+      });
+      expect((await legacyLayout.listPage({ limit: 7 })).records).toEqual(
+        f.expected,
+      );
+      handles.assertClosed();
+    },
+  );
 
   it("detects a damaged unselected frame despite a warm decoded cache and reconstructs current bytes", async () => {
     const f = await fixture();
