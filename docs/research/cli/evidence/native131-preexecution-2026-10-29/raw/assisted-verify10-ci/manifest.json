@@ -1,0 +1,18 @@
+{
+  "sourceRun": "40897500088",
+  "acceptanceArtifactId": "12909036700",
+  "frozenProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "files": {
+    "original.test.js": "de5d61da09be63d267a35b6eec3e8d6deaf470ed713ca61cb149abd1241cf93e",
+    "pagination-only.test.js": "afe516ff8d7c5ddc683a78d25f3eb786d2e21d506093740da56e02ed46ed1afc",
+    "repair.patch": "b7dcc9f419e9c31447736b8344522cfe045c3d93ec5b50aa9290c28dd1c7005c",
+    "repaired.test.js": "ffa9f351672028d511ce2081f07ae8dc40cb6ca9dc2fce9ac54c34d5cffd7e61",
+    "verify-10-check.mjs": "7b8aeeb9d121c3301f2d3a37cd769d180053cea3581c16f0cc0d9982f3231b98",
+    "verify-10-setup.mjs": "07a4788abc297d9933405136e952457046e86cad2e6096b8d6e5984f8c88d0ef"
+  },
+  "kind": "assisted-non-native",
+  "archiveSha256": "28ebe84ba541af0adfd5f0849ed56928ecc417b9cd9e9ee67fba95e4e0b4e8cd",
+  "revision": 2,
+  "previousAssistedRun": "40905084060"
+}
