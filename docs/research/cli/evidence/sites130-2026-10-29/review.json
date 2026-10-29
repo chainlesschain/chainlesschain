@@ -34,8 +34,8 @@
     "userDocSectionsExitCode": 0,
     "buildAndDeploymentVerified": false
   },
-  "buildStatus": "pending",
-  "deploymentStatus": "pending",
+  "buildStatus": "local_complete_three_sites_cloud_snapshot_queued",
+  "deploymentStatus": "deployed_public_readback_verified",
   "artifacts": [
     {
       "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/code-ci-2026-10-29T04-14-47-706Z.json",
@@ -72,6 +72,363 @@
       "source": ".work\\sites130-20261029\\user-doc-sections.log",
       "bytes": 79,
       "sha256": "99b2f5ac2b202483d77a506e58bc919dcae6a7550df0a463778605da7873bf63"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/build-docs-process.json.gz",
+      "source": ".work/sites130-20261029/build-docs-process.json",
+      "bytes": 109686,
+      "sha256": "01fe1cc1d233831ef962f007ef45a9a370bd05638f4e2138c9eab8d0e25ff5cb",
+      "encoding": "gzip",
+      "contentBytes": 370945,
+      "contentSha256": "0ed2a063d8315c51973b65a45a787dd1bd5c3d195d7c111bf0322724ca5d536f"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/build-docs.log.gz",
+      "source": ".work/sites130-20261029/build-docs.log",
+      "bytes": 4724,
+      "sha256": "af249979e599706d8e52329de3e266c6d0204d2b9cfdd8301c0da232e61ee59c",
+      "encoding": "gzip",
+      "contentBytes": 10841,
+      "contentSha256": "29453c8e9ac82ec5e28092cf9dad2eef0269a315f753b94f28d25cbb8a87f692"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/build-design-process.json.gz",
+      "source": ".work/sites130-20261029/build-design-process.json",
+      "bytes": 50960,
+      "sha256": "748934ebf253f074c8c4a45dcaa6b0fb76fd986bc0ef7b86e80a263850f9f8b2",
+      "encoding": "gzip",
+      "contentBytes": 164095,
+      "contentSha256": "63660dc7e1d741753afc908d383f7dcae9c39d80d9c0ec89de009e3a3484c877"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/build-design.log.gz",
+      "source": ".work/sites130-20261029/build-design.log",
+      "bytes": 4646,
+      "sha256": "d4e6e39b8d9de9a721d796312e637bd28c027d26055aaba4ee1adea360d6bd54",
+      "encoding": "gzip",
+      "contentBytes": 10276,
+      "contentSha256": "ba42a15e45de3c2d66838882148dae0b0c11933b75ac3e2fa6d0ce59a48f3bf8"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/build-www-process.json.gz",
+      "source": ".work/sites130-20261029/build-www-process.json",
+      "bytes": 2604,
+      "sha256": "de764e008e496103f2d44ddd764ee96756c5b21a4e5ec90a475d056eac6383a3",
+      "encoding": "gzip",
+      "contentBytes": 7653,
+      "contentSha256": "a33456ce0230e0b1d5ba0e7bac569d370b8e425ffff0c5fa1d5384bf7fdd9b1c"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/build-www.log.gz",
+      "source": ".work/sites130-20261029/build-www.log",
+      "bytes": 632,
+      "sha256": "1fc9138c73249ba41afa906e0403478ab9a8c1d115e144669827e8856e221fd7",
+      "encoding": "gzip",
+      "contentBytes": 2305,
+      "contentSha256": "23882ba0f59c45f995487763a1d6ba73384e1f1228bcbc296be65c5317d3fb58"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/public-design-deployment-files.sha256.gz",
+      "source": ".work\\sites130-20261029\\public-2026-10-29T04-30-42-246Z\\design-deployment-files.sha256",
+      "bytes": 51043,
+      "sha256": "af6965ab26b74716de179f4192616bc5e5a3a652cee561fce51c0b6f84eeebdf",
+      "encoding": "gzip",
+      "contentBytes": 118656,
+      "contentSha256": "c1b35897032d638914c774a8df21d44e0955a1d93c8253d425394299fa25562f"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/public-design-deployment-source.json.gz",
+      "source": ".work\\sites130-20261029\\public-2026-10-29T04-30-42-246Z\\design-deployment-source.json",
+      "bytes": 246,
+      "sha256": "44945190aa67d20d6a2f1e433f75d21e5e4ff284e6739e5ff5afaa9f83365fa0",
+      "encoding": "gzip",
+      "contentBytes": 314,
+      "contentSha256": "3ea757e2e16f21b79f11880c37c9b3c4ffe865e5ac3f781b3ff0c022ac00dbf0"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/public-docs-deployment-files.sha256.gz",
+      "source": ".work\\sites130-20261029\\public-2026-10-29T04-30-42-246Z\\docs-deployment-files.sha256",
+      "bytes": 147611,
+      "sha256": "3f15a9b6ded1a98d829393f9ef45f25f1171603a34fe8758064f6e34ca856892",
+      "encoding": "gzip",
+      "contentBytes": 362625,
+      "contentSha256": "ddadecc0cec561d830f54a7ed186e9b08d2cf14ac3e9498c37f57e464811096a"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/public-docs-deployment-source.json.gz",
+      "source": ".work\\sites130-20261029\\public-2026-10-29T04-30-42-246Z\\docs-deployment-source.json",
+      "bytes": 242,
+      "sha256": "0c5c9b61422d58b06d039ce7f3231bd9150580b49ff9d535de835a59af616e1c",
+      "encoding": "gzip",
+      "contentBytes": 313,
+      "contentSha256": "00a41416742a91472ad90e1320325eb9c46ef37ffd5a10fd6c3760a0ebe637b7"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/public-readback.json.gz",
+      "source": ".work\\sites130-20261029\\public-2026-10-29T04-30-42-246Z\\readback.json",
+      "bytes": 1490,
+      "sha256": "366c305462c76fe0e2c31ec64dea07bb777e6a4d53d259d60816bcf2b5dc0397",
+      "encoding": "gzip",
+      "contentBytes": 5674,
+      "contentSha256": "6314892be49183d461e2b8760bbc6a090f62167977573f2f59c9cae2e7325770"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/public-www-deployment-files.sha256.gz",
+      "source": ".work\\sites130-20261029\\public-2026-10-29T04-30-42-246Z\\www-deployment-files.sha256",
+      "bytes": 2206,
+      "sha256": "d723f0eb2bb99b9b1a2080604d6b385cdfacb879914d6a80fe1690f9e308be2b",
+      "encoding": "gzip",
+      "contentBytes": 4455,
+      "contentSha256": "f25df73508b116758b9d8a7272bf79f2fe468fbd6a6615f5d60858f6ea1f5abf"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/public-www-deployment-source.json.gz",
+      "source": ".work\\sites130-20261029\\public-2026-10-29T04-30-42-246Z\\www-deployment-source.json",
+      "bytes": 243,
+      "sha256": "658e5c9fd2f104c46cb84db0612662196c78ce61620d6de2a9733b307c2b3111",
+      "encoding": "gzip",
+      "contentBytes": 309,
+      "contentSha256": "84a3a5de1fa9caf106527dbf51ec1ed58f5a5cd80d833deb76ba9574921dd81e"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/deploy-process.json.gz",
+      "source": ".work\\sites130-20261029\\deploy-process.json",
+      "bytes": 1113,
+      "sha256": "9b8035fe7f4b38d27e928f312fd94fc68f98d9c6fceac9829c854d7247eadbe3",
+      "encoding": "gzip",
+      "contentBytes": 2852,
+      "contentSha256": "f95d77264a00ca9561c2120e8a010a750debf703b4ed473c7725c33513eea99e"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/deploy.log.gz",
+      "source": ".work\\sites130-20261029\\deploy.log",
+      "bytes": 778,
+      "sha256": "feeb19e836b86b1c6704fd3531c34f6d9a04c098fd4907a4b6f6a44522c8fc9b",
+      "encoding": "gzip",
+      "contentBytes": 1966,
+      "contentSha256": "6e5ce327c90beb7251fc7095931ca78afc12c9669645b6e35688e321445973b7"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/snapshot-dispatch.json.gz",
+      "source": ".work\\sites130-20261029\\snapshot-dispatch.json",
+      "bytes": 239,
+      "sha256": "7118858900c4c24e4569ba5bd33afb58398652cc1243083d6d2684e1998aaa63",
+      "encoding": "gzip",
+      "contentBytes": 348,
+      "contentSha256": "e642dae607bfaf63568fa3a0e70d8aab857445480dc511c65f9b0a94b6792b5a"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/code-ci-2026-10-29T04-21-59-315Z.json.gz",
+      "source": ".work\\sites130-20261029\\code-ci-2026-10-29T04-21-59-315Z.json",
+      "bytes": 398,
+      "sha256": "7ced739d043f3f8fcd49d4e7a0c9770f386043b1cbc3501d30744ad9749ab83a",
+      "encoding": "gzip",
+      "contentBytes": 1537,
+      "contentSha256": "4139df038d8ae6ffa8134a4ad023c0f60a036ec2486c120e906cb66a430193c3"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/code-ci-2026-10-29T04-30-49-506Z.json.gz",
+      "source": ".work\\sites130-20261029\\code-ci-2026-10-29T04-30-49-506Z.json",
+      "bytes": 398,
+      "sha256": "67afa11c44840ee79329183a3b107b5c7c1d08833e02eb4d1d7ac0f574e18b02",
+      "encoding": "gzip",
+      "contentBytes": 1537,
+      "contentSha256": "a4a27493ba84787100bb8bb84beb5fe6c0272d7d46228938fa9e9d0f11e97f9d"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/snapshot-readback-2026-10-29T04-20-10-381Z.json.gz",
+      "source": ".work\\sites130-20261029\\snapshot-readback-2026-10-29T04-20-10-381Z.json",
+      "bytes": 224,
+      "sha256": "98a5481f18a397c4d9750e2d4a9764fc7fc913e8cd75f8f1171b43e1686dc47e",
+      "encoding": "gzip",
+      "contentBytes": 302,
+      "contentSha256": "806221abb87145643b570132caf87e729b62f1a188a3963b06bd398d3ddde53b"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites130-2026-10-29/raw/snapshot-readback-2026-10-29T04-30-52-379Z.json.gz",
+      "source": ".work\\sites130-20261029\\snapshot-readback-2026-10-29T04-30-52-379Z.json",
+      "bytes": 224,
+      "sha256": "6fa06b643fca4ce52e9d25af79889b4450f8231bd3cb522eabb8965db9795445",
+      "encoding": "gzip",
+      "contentBytes": 302,
+      "contentSha256": "a7f9d0a9b462eef632c66f2cc846a9fe7e8ccd34cc0b7c9119bafeb0b1e8fb01"
     }
-  ]
+  ],
+  "documentationSource": "787da99f4a7101af23cf1b974e1137d35cbfad2a",
+  "builds": [
+    {
+      "site": "docs",
+      "source": "787da99f4a7101af23cf1b974e1137d35cbfad2a",
+      "node": "v22.22.2",
+      "exitCode": 0,
+      "htmlPages": 661,
+      "files": 2010,
+      "sourceStable": true,
+      "boundary": "Windows local source-bound build"
+    },
+    {
+      "site": "design",
+      "source": "787da99f4a7101af23cf1b974e1137d35cbfad2a",
+      "node": "v22.22.2",
+      "exitCode": 0,
+      "htmlPages": 290,
+      "files": 896,
+      "sourceStable": true,
+      "boundary": "Windows local source-bound build"
+    },
+    {
+      "site": "www",
+      "source": "787da99f4a7101af23cf1b974e1137d35cbfad2a",
+      "node": "v22.22.2",
+      "exitCode": 0,
+      "htmlPages": 20,
+      "files": 45,
+      "sourceStable": true,
+      "boundary": "Windows local source-bound build"
+    }
+  ],
+  "deployment": {
+    "source": "787da99f4a7101af23cf1b974e1137d35cbfad2a",
+    "stamp": "20261029-042823-787da99f4a-docs",
+    "exitCode": 0,
+    "rollbackDirectoriesRetained": true,
+    "archiveHashes": {
+      "docs": "1755e698ed39c8c1fc16d978f9392309085213911e55b212bf63674673ff197d",
+      "design": "4097b214d1ae28a0368319b0fbb38d3ed89058bb993e4caff863adcdaf38e8f6",
+      "www": "d768537a9cfe8310e69238ef46888b17f0498735528fed142d59396243622613"
+    },
+    "sites": [
+      {
+        "site": "docs",
+        "deployment": {
+          "schema": "chainlesschain.site-deployment/v1",
+          "stamp": "20261029-042823-787da99f4a-docs",
+          "sourceHeadCommit": "787da99f4a7101af23cf1b974e1137d35cbfad2a",
+          "sourceStatus": "clean-commit",
+          "site": "docs",
+          "archiveSha256": "1755e698ed39c8c1fc16d978f9392309085213911e55b212bf63674673ff197d",
+          "newHtmlPages": 661,
+          "newFiles": 2010
+        },
+        "newFileHashesMatched": 2010,
+        "checksumManifestSha256": "ddadecc0cec561d830f54a7ed186e9b08d2cf14ac3e9498c37f57e464811096a",
+        "sampledPages": [
+          {
+            "url": "https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-29-130.html?deployment=20261029-042823-787da99f4a-docs",
+            "path": "chainlesschain/cli-ide-update-2026-10-29-130.html",
+            "status": 200,
+            "bytes": 267558,
+            "sha256": "0437ef74ec9f31f19809c9504c93071386ea101fe29b896f44c3b578c9abe7d3",
+            "matchesLocalBuild": true
+          },
+          {
+            "url": "https://docs.chainlesschain.com/chainlesschain/cli-agent.html?deployment=20261029-042823-787da99f4a-docs",
+            "path": "chainlesschain/cli-agent.html",
+            "status": 200,
+            "bytes": 398941,
+            "sha256": "c68972872a6b05d443001a9b57e8d0827d1e9729225802a0033750a04911ba28",
+            "matchesLocalBuild": true
+          },
+          {
+            "url": "https://docs.chainlesschain.com/chainlesschain/ide-plugin.html?deployment=20261029-042823-787da99f4a-docs",
+            "path": "chainlesschain/ide-plugin.html",
+            "status": 200,
+            "bytes": 338065,
+            "sha256": "16113450f09fdb81481dc7daf7251acb01d7b005e776711d9634437bef983afd",
+            "matchesLocalBuild": true
+          }
+        ]
+      },
+      {
+        "site": "design",
+        "deployment": {
+          "schema": "chainlesschain.site-deployment/v1",
+          "stamp": "20261029-042823-787da99f4a-docs",
+          "sourceHeadCommit": "787da99f4a7101af23cf1b974e1137d35cbfad2a",
+          "sourceStatus": "clean-commit",
+          "site": "design",
+          "archiveSha256": "4097b214d1ae28a0368319b0fbb38d3ed89058bb993e4caff863adcdaf38e8f6",
+          "newHtmlPages": 290,
+          "newFiles": 896
+        },
+        "newFileHashesMatched": 896,
+        "checksumManifestSha256": "c1b35897032d638914c774a8df21d44e0955a1d93c8253d425394299fa25562f",
+        "sampledPages": [
+          {
+            "url": "https://design.chainlesschain.com/release-runtime-update-2026-10-29-130.html?deployment=20261029-042823-787da99f4a-docs",
+            "path": "release-runtime-update-2026-10-29-130.html",
+            "status": 200,
+            "bytes": 153267,
+            "sha256": "b1aa1c130286933767f829d563d2650438f7f6628e845c3a4f69daa98c18b9e2",
+            "matchesLocalBuild": true
+          },
+          {
+            "url": "https://design.chainlesschain.com/cli-runtime-current.html?deployment=20261029-042823-787da99f4a-docs",
+            "path": "cli-runtime-current.html",
+            "status": 200,
+            "bytes": 260413,
+            "sha256": "fcfea36f71a9ee41c87acfbb51649ccbdd378858823819784a92ed73d56865dd",
+            "matchesLocalBuild": true
+          }
+        ]
+      },
+      {
+        "site": "www",
+        "deployment": {
+          "schema": "chainlesschain.site-deployment/v1",
+          "stamp": "20261029-042823-787da99f4a-docs",
+          "sourceHeadCommit": "787da99f4a7101af23cf1b974e1137d35cbfad2a",
+          "sourceStatus": "clean-commit",
+          "site": "www",
+          "archiveSha256": "d768537a9cfe8310e69238ef46888b17f0498735528fed142d59396243622613",
+          "newHtmlPages": 20,
+          "newFiles": 45
+        },
+        "newFileHashesMatched": 45,
+        "checksumManifestSha256": "f25df73508b116758b9d8a7272bf79f2fe468fbd6a6615f5d60858f6ea1f5abf",
+        "sampledPages": [
+          {
+            "url": "https://www.chainlesschain.com/index.html?deployment=20261029-042823-787da99f4a-docs",
+            "path": "index.html",
+            "status": 200,
+            "bytes": 63298,
+            "sha256": "452639c87508d8752b522a4b3b370c516d5a5dccf0b8a3cf578bc91f59186711",
+            "matchesLocalBuild": true
+          },
+          {
+            "url": "https://www.chainlesschain.com/en/index.html?deployment=20261029-042823-787da99f4a-docs",
+            "path": "en/index.html",
+            "status": 200,
+            "bytes": 64025,
+            "sha256": "e4270ebfa93e87a4e1e4507ee64eccbdb9fb0f4c17c44e36c6163b79757eb607",
+            "matchesLocalBuild": true
+          },
+          {
+            "url": "https://www.chainlesschain.com/cli/index.html?deployment=20261029-042823-787da99f4a-docs",
+            "path": "cli/index.html",
+            "status": 200,
+            "bytes": 123106,
+            "sha256": "55d0593cf5eb76b5b9b112fc6896ba2bbb5a5a68d3243f47c36247e43628f2de",
+            "matchesLocalBuild": true
+          },
+          {
+            "url": "https://www.chainlesschain.com/ide/index.html?deployment=20261029-042823-787da99f4a-docs",
+            "path": "ide/index.html",
+            "status": 200,
+            "bytes": 44307,
+            "sha256": "dda9f802310303fbda1876e8adb6e18ae82e6ba9eaaae9cc8a65ef70f9f775f0",
+            "matchesLocalBuild": true
+          }
+        ]
+      }
+    ]
+  },
+  "cloudSnapshot": {
+    "runId": 40817023233,
+    "source": "787da99f4a7101af23cf1b974e1137d35cbfad2a",
+    "status": "queued",
+    "conclusion": null
+  },
+  "boundary": "Deployment and all public hashes match local Windows builds at the frozen documentation source. No uncompleted cloud snapshot is reported as passed. CLI/npm/IDE releases are unchanged; code source 0d67 has separate queued exact-source checks. Original .129 dispatch remains unresolved and no model task is replayed.",
+  "completedAt": "2026-10-29T04:31:51.353Z"
 }
