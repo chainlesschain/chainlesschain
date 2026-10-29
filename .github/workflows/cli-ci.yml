@@ -280,6 +280,13 @@ jobs:
       - name: Verify provider role projection without changing session authority
         working-directory: packages/cli
         run: npx vitest run src/runtime/__tests__/message-roles.test.js
+      - name: Verify assisted pagination and history source regressions
+        working-directory: packages/cli
+        run: >-
+          npx vitest run
+          __tests__/verify-07.test.js
+          __tests__/verify-09.test.js
+          __tests__/verify-10.test.js
       - name: Verify calibration capture accounting and public install identity
         run: >-
           node --test

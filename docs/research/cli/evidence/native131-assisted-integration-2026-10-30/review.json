@@ -1,0 +1,163 @@
+{
+  "schema": "chainlesschain.assisted-regression-integration/v1",
+  "observedAt": "2026-10-29T17:07:19.224Z",
+  "baseSource": "44fd177967e498707ae904fd2efed7a78f2045fb",
+  "sourceKind": "modified-worktree-before-commit",
+  "platform": "win32",
+  "node": "v22.22.2",
+  "tests": {
+    "files": 6,
+    "total": 70,
+    "passed": 70,
+    "failed": 0
+  },
+  "command": "npx vitest run __tests__/verify-07.test.js __tests__/verify-09.test.js __tests__/verify-10.test.js __tests__/unit/session-transcript-history.test.js __tests__/unit/session-history-origins.test.js __tests__/unit/background-agent-list-index.test.js --reporter=default --reporter=json --outputFile.json=../../.work/native131-assisted-integration-20261030/current-main.json",
+  "assistedCI": {
+    "verify-07": "40916508225",
+    "verify-09": "40916174023",
+    "verify-10": "40907857461"
+  },
+  "runtimeSourceChangedByInstallation": false,
+  "automaticAccepted": 34,
+  "automaticTotal": 45,
+  "assistedDelivered": 3,
+  "main44Gates": {
+    "cliCi": "40894275588",
+    "strict": "40894275389",
+    "status": "INCOMPLETE_HOSTED_MACOS_RUNNER_NOT_ACQUIRED",
+    "newHeadVerified": false
+  },
+  "sourceBindings": {
+    "packages/cli/__tests__/verify-07.test.js": "sha256:c3c3313a5d2f58c3af3339a8674b246e617acf99d4eccf182379763159ce8402",
+    "packages/cli/__tests__/verify-09.test.js": "sha256:f202a78d3e33d5dc72557d127083e97cbf09723e7b3f1c2c7048ebfa48375887",
+    "packages/cli/__tests__/verify-10.test.js": "sha256:489596052d138ec496256861ded5d4ba262f2017a0fc78d6534c5eaa57ca0899",
+    "packages/cli/src/lib/session-transcript-history.js": "sha256:117b2b9822bb8a88df33aa8f2b55067cc43309738cee1877eaa28f14c289910b",
+    "packages/cli/src/lib/session-history-origins.js": "sha256:0d29c8373dfd984b36a1fe164ee5472a603edd65cd27ee4e63fda6f79ca10757",
+    "packages/cli/src/lib/background-agent-list-index.js": "sha256:178296fb536522ccfbc3dc214d38a964517bb16f514d8c805e5e32f70a1e7e55",
+    "packages/cli/__tests__/unit/session-transcript-history.test.js": "sha256:3ad2e774a3be6bb48c8d6e33b72697931273e056ecc2b09198ecb190e6831e7c",
+    "packages/cli/__tests__/unit/session-history-origins.test.js": "sha256:3a174fd178476afab7bbb139993675322cba1af1237fa728766a8a083cea2942",
+    "packages/cli/__tests__/unit/background-agent-list-index.test.js": "sha256:d355ba8f94dbf77028466425c501cb74f28ce473b5a8c26d5f0c46feb7eb63a1",
+    "packages/cli/vitest.config.js": "sha256:a1b30cb7d677348dd9c9a625373c7532b6c333436a357b633237bd911b1f3770",
+    ".github/workflows/cli-ci.yml": "sha256:3bf8d929b58bf14e28076111489c328f7d9106ab7ca08173767ad4f514a53541"
+  },
+  "artifacts": [
+    {
+      "name": "current-main-vitest.json",
+      "source": ".work/native131-assisted-integration-20261030/current-main.json",
+      "path": "objects/723d4ac66b1b7168eb1f943b7e0dab048c2462a17287c79fc950f0e20d27dc11.gz",
+      "originalBytes": 26008,
+      "originalDigest": "sha256:723d4ac66b1b7168eb1f943b7e0dab048c2462a17287c79fc950f0e20d27dc11",
+      "storedBytes": 3832,
+      "storedDigest": "sha256:6ef557fd9a9f4da5bb49a93647ccbd2f10b453446a4bca82acfe4bb2e3c80e71"
+    },
+    {
+      "name": "installation.json",
+      "source": ".work/native131-assisted-integration-20261030/installation.json",
+      "path": "objects/fee009f589b30258c7e37f4c6a811f61f2f827f4b71134736c7476970fee520b.gz",
+      "originalBytes": 1771,
+      "originalDigest": "sha256:fee009f589b30258c7e37f4c6a811f61f2f827f4b71134736c7476970fee520b",
+      "storedBytes": 737,
+      "storedDigest": "sha256:6e20999eea33f42f7f2c59c7c6d429dd304c86b52b50c10ac59bb928c3bef6ba"
+    },
+    {
+      "name": "main44-ci/review.json",
+      "source": ".work/cli131-main44-ci-review-20261030/review.json",
+      "path": "objects/75225b654f3775ebb0e79812e67c183821c2bf791d5c9ce8989f5fa464a524c2.gz",
+      "originalBytes": 4946,
+      "originalDigest": "sha256:75225b654f3775ebb0e79812e67c183821c2bf791d5c9ce8989f5fa464a524c2",
+      "storedBytes": 1325,
+      "storedDigest": "sha256:25d38b0e8d5f4781f2517082a57af68382a3ab2a68b5a9fb80a1ec866dcdab83"
+    },
+    {
+      "name": "main44-ci/REVIEW.txt",
+      "source": ".work/cli131-main44-ci-review-20261030/REVIEW.txt",
+      "path": "objects/cc518677c0cdfd83f45ac8b143889f500cd2c5a34cd8d33396a535e8272fb5a1.gz",
+      "originalBytes": 3734,
+      "originalDigest": "sha256:cc518677c0cdfd83f45ac8b143889f500cd2c5a34cd8d33396a535e8272fb5a1",
+      "storedBytes": 1738,
+      "storedDigest": "sha256:e00336dc2332c17bfa25b128fb3e1e70fd814fc42adbf24dd2d96f5474c20ca8"
+    },
+    {
+      "name": "main44-ci/annotations-123522346195.json",
+      "source": ".work/cli131-main44-ci-review-20261030/annotations-123522346195.json",
+      "path": "objects/02ec939f0bd9c2f871aee8dcbdfc7443f7fb61298facd06bef6e48552d057ee6.gz",
+      "originalBytes": 1463,
+      "originalDigest": "sha256:02ec939f0bd9c2f871aee8dcbdfc7443f7fb61298facd06bef6e48552d057ee6",
+      "storedBytes": 347,
+      "storedDigest": "sha256:3d8416f147a16ad0fb8c8989243bccc2d6e46250968b61521c4598694578acfb"
+    },
+    {
+      "name": "main44-ci/annotations-123519404354.json",
+      "source": ".work/cli131-main44-ci-review-20261030/annotations-123519404354.json",
+      "path": "objects/02ec939f0bd9c2f871aee8dcbdfc7443f7fb61298facd06bef6e48552d057ee6.gz",
+      "originalBytes": 1463,
+      "originalDigest": "sha256:02ec939f0bd9c2f871aee8dcbdfc7443f7fb61298facd06bef6e48552d057ee6",
+      "storedBytes": 347,
+      "storedDigest": "sha256:3d8416f147a16ad0fb8c8989243bccc2d6e46250968b61521c4598694578acfb"
+    },
+    {
+      "name": "main44-ci/check-123519404354.json",
+      "source": ".work/cli131-main44-ci-review-20261030/check-123519404354.json",
+      "path": "objects/3625d1d3898e984c5109efc9423a6cc1de769a99dae0f1a651de3afd8c089b06.gz",
+      "originalBytes": 3123,
+      "originalDigest": "sha256:3625d1d3898e984c5109efc9423a6cc1de769a99dae0f1a651de3afd8c089b06",
+      "storedBytes": 1185,
+      "storedDigest": "sha256:69870a902be4917ac94ce5caa551e22a95b4983ac47920c65b2a00b33e05ae3b"
+    },
+    {
+      "name": "main44-ci/check-123522346195.json",
+      "source": ".work/cli131-main44-ci-review-20261030/check-123522346195.json",
+      "path": "objects/76633bfac1a7e5139995faaf7904ce3adb34f3bb99a1e64c0d687fcd0483d554.gz",
+      "originalBytes": 3143,
+      "originalDigest": "sha256:76633bfac1a7e5139995faaf7904ce3adb34f3bb99a1e64c0d687fcd0483d554",
+      "storedBytes": 1202,
+      "storedDigest": "sha256:cefffb7010c9c9ad88cdcdd9edd522f14f29d56fcc5ac704d8b25fc4fa321dae"
+    },
+    {
+      "name": "main44-ci/job-123522346195.json",
+      "source": ".work/cli131-main44-ci-review-20261030/job-123522346195.json",
+      "path": "objects/ce1c5088bc536ae997d76b5adea01f1fd75ca4ffa043709086f311ac42d08ecf.gz",
+      "originalBytes": 920,
+      "originalDigest": "sha256:ce1c5088bc536ae997d76b5adea01f1fd75ca4ffa043709086f311ac42d08ecf",
+      "storedBytes": 436,
+      "storedDigest": "sha256:8aa88262e12822a493a072156043e36346fc11e8f7787ecc1d14ab4309968301"
+    },
+    {
+      "name": "main44-ci/job-123519404354.json",
+      "source": ".work/cli131-main44-ci-review-20261030/job-123519404354.json",
+      "path": "objects/b2aa712d6ff64686ee98d36567e5e5099c88fc24a3404cfeab3f09428d25aa04.gz",
+      "originalBytes": 912,
+      "originalDigest": "sha256:b2aa712d6ff64686ee98d36567e5e5099c88fc24a3404cfeab3f09428d25aa04",
+      "storedBytes": 437,
+      "storedDigest": "sha256:074b2363e3ade5058427336bc3caab5a383cdfffe1b682d222f5bead23d84df4"
+    },
+    {
+      "name": "main44-ci/job-123566875810.log",
+      "source": ".work/cli131-main44-ci-review-20261030/job-123566875810.log",
+      "path": "objects/67dc2b9de9007f29b3a08cfd32f1982abda40b393003d802f0971006c8af72b7.gz",
+      "originalBytes": 4053,
+      "originalDigest": "sha256:67dc2b9de9007f29b3a08cfd32f1982abda40b393003d802f0971006c8af72b7",
+      "storedBytes": 1435,
+      "storedDigest": "sha256:af267427bb0af9feba7851beaa20df4a6bc0ac47268a62d061de5666d1be4174"
+    },
+    {
+      "name": "main44-ci/run-40894275389.json",
+      "source": ".work/cli131-main44-ci-review-20261030/run-40894275389.json",
+      "path": "objects/ce27e6721925197b60a2f7673c71b4a398b4974b7ba99da62ca255d7417b9f3c.gz",
+      "originalBytes": 18046,
+      "originalDigest": "sha256:ce27e6721925197b60a2f7673c71b4a398b4974b7ba99da62ca255d7417b9f3c",
+      "storedBytes": 1912,
+      "storedDigest": "sha256:6cc232fdf737f9ad93295bbba172edd4df4b12c66a72db98f1845dd12c4b99bc"
+    },
+    {
+      "name": "main44-ci/run-40894275588.json",
+      "source": ".work/cli131-main44-ci-review-20261030/run-40894275588.json",
+      "path": "objects/ce5cc9e57d5ca43ad293b9ef1c13790eaa02fa5edc73b8ffe026f8d251591610.gz",
+      "originalBytes": 135249,
+      "originalDigest": "sha256:ce5cc9e57d5ca43ad293b9ef1c13790eaa02fa5edc73b8ffe026f8d251591610",
+      "storedBytes": 9020,
+      "storedDigest": "sha256:284c68007206ef01a0750eb75e3d8c212b81faf80b995a4622a1147addac4dd2"
+    }
+  ],
+  "boundary": "Formatting-only installation of separately checked assisted candidates, followed by a distinct current-worktree regression run. Frozen project, public runtime and this worktree are not claimed to have identical dependency closure. Local tests do not substitute for exact-source full GitHub Actions gates, new publication, real-model retests, or complete first-run journeys."
+}

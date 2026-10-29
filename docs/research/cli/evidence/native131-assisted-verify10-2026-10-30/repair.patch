@@ -1,0 +1,52 @@
+--- a/packages/cli/__tests__/verify-10.test.js
++++ b/packages/cli/__tests__/verify-10.test.js
+@@ -70,7 +70,7 @@
+       readState: reader(),
+     });
+ 
+-    const pageSize = 2;
++    const pageSize = 3;
+     const pages = paginateAll(result.entries, pageSize);
+     expect(pages.length).toBeGreaterThan(1);
+     // The last page must not be empty and must include the final entry.
+@@ -78,6 +78,31 @@
+     expect(pages[pages.length - 1][0].id).toBe("bg-d");
+     expect(flat(pages)).toEqual(orderedIds(result));
+     expect(flat(pages)).toEqual(["bg-a", "bg-b", "bg-c", "bg-d"]);
++
++    // Keep the full four-ID index, then change only an existing authority file.
++    // A names/count-only check cannot detect this same-ID state replacement.
++    writeState("bg-b", { startedAt: 2, status: "running" });
++    const updated = loadBackgroundAgentListIndex({
++      directory,
++      readState: reader(),
++    });
++    const updatedPages = paginateAll(updated.entries, pageSize);
++    expect(updated.entries).toHaveLength(4);
++    expect(updatedPages).toHaveLength(2);
++    expect(updatedPages[updatedPages.length - 1]).toHaveLength(1);
++    expect(flat(updatedPages)).toEqual(orderedIds(updated));
++    expect(flat(updatedPages)).toEqual(["bg-a", "bg-b", "bg-c", "bg-d"]);
++    expect(updated.entries.find((entry) => entry.id === "bg-b")).toEqual({
++      id: "bg-b",
++      startedAt: 2,
++      status: "running",
++    });
++    expect(updatedPages.flat()).toEqual(updated.entries);
++    expect(updatedPages[0][1]).toEqual({
++      id: "bg-b",
++      startedAt: 2,
++      status: "running",
++    });
+   });
+ 
+   it("after a delete, index pagination reproduces the full snapshot including the last page", () => {
+@@ -90,7 +115,7 @@
+       readState: reader(),
+     });
+ 
+-    const pageSize = 3;
++    const pageSize = 2;
+     const pages = paginateAll(result.entries, pageSize);
+     expect(pages.length).toBeGreaterThan(1);
+     expect(pages[pages.length - 1]).toHaveLength(1);

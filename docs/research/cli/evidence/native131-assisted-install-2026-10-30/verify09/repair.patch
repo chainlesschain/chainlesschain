@@ -1,0 +1,47 @@
+--- a/packages/cli/__tests__/verify-09.test.js
++++ b/packages/cli/__tests__/verify-09.test.js
+@@ -1,3 +1,5 @@
++import { normalizeContextItem } from "@chainlesschain/context-memory-kernel";
++import { messagesToContextItems, contextItemsToMessages } from "../src/lib/context-memory-kernel/message-adapter.js";
+ import { describe, expect, it } from "vitest";
+ import {
+   createSessionHistoryOrigins,
+@@ -25,7 +27,7 @@
+     prevHash,
+     data: {
+       action: "restore-conversation",
+-      messages: messages.slice(0, retainedMessageCount),
++      messages: structuredClone(messages.slice(0, retainedMessageCount)),
+       historyPrefix: {
+         schema: HISTORY_PREFIX_SCHEMA,
+         sourceHead,
+@@ -130,6 +132,29 @@
+     tampered.data.messages[0].content = "tampered";
+     expect(origins.rewind(tampered, 3)).toBeNull();
+     expect(origins.rewind(prefixEvent(messages, 2), 3)).toBe(2);
++
++    // Keep valid content and sequence, changing only the claimed source digest.
++    const item = messagesToContextItems(messages, { sessionId: "source-test" })[0];
++    const forged = normalizeContextItem({
++      ...item,
++      digest: undefined,
++      sourceRef: { ...item.sourceRef, digest: "sha256:" + "b".repeat(64) },
++    });
++    const output = contextItemsToMessages([item]);
++    expect(contextItemsToMessages([forged])).toEqual(output);
++    const compactOrigins = createSessionHistoryOrigins();
++    compactOrigins.snapshot(messages);
++    compactOrigins.compact({
++      messages: output,
++      canonical: { sessionId: "source-test", outputItems: [forged] },
++    });
++    expect(compactOrigins.rewind(prefixEvent(output, 0), 3)).toBeNull();
++    compactOrigins.snapshot(messages);
++    compactOrigins.compact({
++      messages: output,
++      canonical: { sessionId: "source-test", outputItems: [item] },
++    });
++    expect(compactOrigins.rewind(prefixEvent(output, 0), 3)).toBe(0);
+   });
+ 
+   it("reads a correct verified summary source and its ancestry through a later rewind", () => {

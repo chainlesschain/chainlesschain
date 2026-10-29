@@ -1,0 +1,818 @@
+{
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-29-review-131.json",
+  "packageSetDigest": "sha256:120f53d500bfc9b923cc713bea8f6040c28ad92df8ba3490ce914197aa0ccd81",
+  "versions": {
+    "cli": "0.166.131",
+    "vscode": "0.37.169",
+    "jetbrains": "0.4.186",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "frozenProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "ledgerPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-131-preflight-repair-20261029.json",
+  "archivePrefix": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-131-preflight-repair-20261029",
+  "plannedNewSamples": 11,
+  "reusedAcceptedSampleIds": [
+    "first-run-darwin-vscode",
+    "first-run-linux-cli",
+    "first-run-linux-jetbrains",
+    "first-run-linux-vscode",
+    "first-run-win32-cli",
+    "first-run-win32-jetbrains",
+    "first-run-win32-vscode",
+    "verify-01",
+    "verify-02",
+    "verify-03",
+    "verify-05",
+    "verify-06",
+    "verify-12",
+    "verify-14",
+    "verify-15",
+    "verify-16",
+    "verify-17",
+    "verify-18",
+    "verify-20",
+    "verify-21",
+    "verify-22",
+    "verify-23",
+    "verify-24",
+    "verify-25",
+    "verify-26",
+    "verify-27",
+    "verify-28",
+    "verify-29",
+    "verify-31",
+    "verify-32",
+    "verify-33",
+    "verify-34",
+    "verify-35",
+    "verify-36"
+  ],
+  "schema": "chainlesschain.native-package-retest-round/v1",
+  "billingAssessed": false,
+  "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-131-preflight-repair-20261029-plan.json",
+  "planDigest": "sha256:acfae4ee045f0b15b5bb14fdf8da6a8f655e733f8f4077b7ad8226583a89286a",
+  "status": "IN_PROGRESS",
+  "runs": [
+    {
+      "shardId": "win32-cli--verify-10",
+      "group": "win32-cli",
+      "runId": "40897500088",
+      "sourceCommit": "44fd177967e498707ae904fd2efed7a78f2045fb",
+      "selectedSampleIds": [
+        "verify-10"
+      ],
+      "status": "COMPLETED",
+      "remoteState": {
+        "path": "next-package-131-preflight-repair-20261029/40897500088/objects/1f8561a9e66d9971ec13edbe749a28e65a52f4b2660592837dcac54d27eb8d75.gz",
+        "originalDigest": "sha256:1f8561a9e66d9971ec13edbe749a28e65a52f4b2660592837dcac54d27eb8d75",
+        "storedDigest": "sha256:1b307c1e474613d2fa42a59824e2fc037021c3c4ff5549a9697e2c2ba4dee694",
+        "originalBytes": 11229
+      },
+      "remoteStatus": "completed",
+      "conclusion": "failure",
+      "activeJobs": [],
+      "evidence": [
+        {
+          "stage": "acceptance",
+          "originalArtifactPath": "pack/acceptance-evidence/verify-10-check-8d1596fa-a592-40e3-8b8b-a089ce28936c.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40897500088/objects/3caa5017bf269b2a3e8375d4ad74d244e6dcce47855edf5771403907fad026ff.gz",
+            "originalDigest": "sha256:3caa5017bf269b2a3e8375d4ad74d244e6dcce47855edf5771403907fad026ff",
+            "storedDigest": "sha256:b4dd2b8741e026222d815a14b46375d532dc6fbcc9a6c29772f52a0c41e77b13",
+            "originalBytes": 8087
+          }
+        },
+        {
+          "stage": "acceptance",
+          "originalArtifactPath": "pack/acceptance-evidence/verify-10-setup-7927a9fd-7660-44a1-9fe4-d08989038273.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40897500088/objects/6076bb90cacbafa912257376789f43e884721970612b377408fa627b03166381.gz",
+            "originalDigest": "sha256:6076bb90cacbafa912257376789f43e884721970612b377408fa627b03166381",
+            "storedDigest": "sha256:6276cdbedc065524b8aa77ba010b1a273a850c7f190c2b5eaebe36676331b2c5",
+            "originalBytes": 12181
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "package-set.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40897500088/objects/120f53d500bfc9b923cc713bea8f6040c28ad92df8ba3490ce914197aa0ccd81.gz",
+            "originalDigest": "sha256:120f53d500bfc9b923cc713bea8f6040c28ad92df8ba3490ce914197aa0ccd81",
+            "storedDigest": "sha256:8587368901969e0476ad2fc724d7cc0f28fecac71edc1038aa5d9536b22dad6b",
+            "originalBytes": 1606
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-10/broker/request-1.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40897500088/objects/b8e62fb10ab03ccc5683b8f2c55fe12a02eba7e42fb1779ad801a9d6a1261a86.gz",
+            "originalDigest": "sha256:b8e62fb10ab03ccc5683b8f2c55fe12a02eba7e42fb1779ad801a9d6a1261a86",
+            "storedDigest": "sha256:0d43b09d38174184e2f4a642ed428f1c72c53da28ff817eb54d2d9f3c8e11574",
+            "originalBytes": 1303
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-10/broker/request-10.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40897500088/objects/de2b2af5168528554da9c07b8bd1e38f2226ebdb195751ffbf60db097fed58dc.gz",
+            "originalDigest": "sha256:de2b2af5168528554da9c07b8bd1e38f2226ebdb195751ffbf60db097fed58dc",
+            "storedDigest": "sha256:db2328fb793bba83dd08e2e003289ca22687c80184bb8df3485aca4ef4d7eab8",
+            "originalBytes": 1316
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-10/broker/request-2.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40897500088/objects/ac3fd0916a5cf7cebb6266797f05b270bea10ca0c4f4e44b234bddf44f191093.gz",
+            "originalDigest": "sha256:ac3fd0916a5cf7cebb6266797f05b270bea10ca0c4f4e44b234bddf44f191093",
+            "storedDigest": "sha256:0d185bc1a2316ee372b6cd4f67750f386db914eb760f1719a24cbc65dd75298a",
+            "originalBytes": 1304
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-10/broker/request-3.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40897500088/objects/3b3bf7a6a72529ae34e6caa98d093c364664fa687ad96e9971fce89f60aedb5b.gz",
+            "originalDigest": "sha256:3b3bf7a6a72529ae34e6caa98d093c364664fa687ad96e9971fce89f60aedb5b",
+            "storedDigest": "sha256:fd4e125ec2c5664a87b27f23afd4bb198cc34bd37bb901fe586f3872dad1573d",
+            "originalBytes": 1313
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-10/broker/request-4.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40897500088/objects/f33ee1dbd6ae7fcbbe9cab7f98e3ca53bc3e1bcb5ef00faaf400ab52f3fcd9b3.gz",
+            "originalDigest": "sha256:f33ee1dbd6ae7fcbbe9cab7f98e3ca53bc3e1bcb5ef00faaf400ab52f3fcd9b3",
+            "storedDigest": "sha256:8133d8abb82588dee340c2f1d6887db5104edcc6e8b66a1d3c6c259bb5ecbdea",
+            "originalBytes": 1308
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-10/broker/request-5.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40897500088/objects/d0bcf5e545e79c5c815cb513941a8e4c146e0df8b019083daa5a336494ae7088.gz",
+            "originalDigest": "sha256:d0bcf5e545e79c5c815cb513941a8e4c146e0df8b019083daa5a336494ae7088",
+            "storedDigest": "sha256:76be24326ab7839d02d2669fc48e2ac02ad415a592b628c1154c88744bdcb6b1",
+            "originalBytes": 1315
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-10/broker/request-6.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40897500088/objects/f650d880f782b1ef0498c16a12b49238523cf61070809731222a197138d450c4.gz",
+            "originalDigest": "sha256:f650d880f782b1ef0498c16a12b49238523cf61070809731222a197138d450c4",
+            "storedDigest": "sha256:3dd97d38fbcec1e1e784c481c6048c153c07fc5ca40a4b72df67068382adbf78",
+            "originalBytes": 1316
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-10/broker/request-7.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40897500088/objects/5c573247e8f9a707c94fb8995c42ce5287460cf28701f55fe1c00baf2ba62a74.gz",
+            "originalDigest": "sha256:5c573247e8f9a707c94fb8995c42ce5287460cf28701f55fe1c00baf2ba62a74",
+            "storedDigest": "sha256:6fb03dc350cc04d09fad54e9d9b9c1756cd1e6eb4aaf345f800794ce69d649e8",
+            "originalBytes": 1304
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-10/broker/request-8.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40897500088/objects/3d14b68ba17f3692b807fbc51d71895036db04ceb4c176c27a811249f2a8a48f.gz",
+            "originalDigest": "sha256:3d14b68ba17f3692b807fbc51d71895036db04ceb4c176c27a811249f2a8a48f",
+            "storedDigest": "sha256:4a8176f5784795c9e58e5386a8da42281b34671644033f15a74e967fe086e876",
+            "originalBytes": 1313
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-10/broker/request-9.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40897500088/objects/0702880c1b20891b7efb27a385839a2bc143d4e089c68a734dd4da291009db12.gz",
+            "originalDigest": "sha256:0702880c1b20891b7efb27a385839a2bc143d4e089c68a734dd4da291009db12",
+            "storedDigest": "sha256:2c3ca970e6b823076bb0ca219246a6a49f16288691b80140fef4018199b92e1b",
+            "originalBytes": 1321
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-10/candidate/packages/cli/__tests__/verify-10.test.js",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40897500088/objects/de5d61da09be63d267a35b6eec3e8d6deaf470ed713ca61cb149abd1241cf93e.gz",
+            "originalDigest": "sha256:de5d61da09be63d267a35b6eec3e8d6deaf470ed713ca61cb149abd1241cf93e",
+            "storedDigest": "sha256:e65e0eddc860b89b48745abfc1dfd380c667bd3462f2b12368a8b5fbb5606848",
+            "originalBytes": 5813
+          }
+        }
+      ],
+      "generation": {
+        "artifactId": 12908950575,
+        "artifactName": "verify01-native-subset-delivery-win32-cli-44fd177967e498707ae904fd2efed7a78f2045fb",
+        "artifactMetadata": {
+          "path": "next-package-131-preflight-repair-20261029/40897500088/objects/d17fbe9e47514fdd28911b7e964f7220e406375d416e9474f231be50fc288e46.gz",
+          "originalDigest": "sha256:d17fbe9e47514fdd28911b7e964f7220e406375d416e9474f231be50fc288e46",
+          "storedDigest": "sha256:d62dacacd3db8a0a97adae85dbccaa1d63ae4ba8243d5ec95b05fdcbb07334b7",
+          "originalBytes": 852
+        },
+        "rawSummary": {
+          "path": "next-package-131-preflight-repair-20261029/40897500088/objects/93aba1858f6a6a39a4e5b6e9eb931e4dfdc56e3909b26d57d1de4e50ac3356d8.gz",
+          "originalDigest": "sha256:93aba1858f6a6a39a4e5b6e9eb931e4dfdc56e3909b26d57d1de4e50ac3356d8",
+          "storedDigest": "sha256:a3d1d4ce3bff02e25c93fd62900effc6de8b4e8f9514e806243fb1e1ba5e73bf",
+          "originalBytes": 104802
+        },
+        "sampleIds": [
+          "verify-10"
+        ]
+      },
+      "acceptance": {
+        "artifactId": 12909036700,
+        "artifactName": "verify01-native-subset-acceptance-win32-cli-44fd177967e498707ae904fd2efed7a78f2045fb",
+        "artifactMetadata": {
+          "path": "next-package-131-preflight-repair-20261029/40897500088/objects/70cdff4c7f0f2c4f4f006c0576155befb07f55941697c6760dd4b803f6108021.gz",
+          "originalDigest": "sha256:70cdff4c7f0f2c4f4f006c0576155befb07f55941697c6760dd4b803f6108021",
+          "storedDigest": "sha256:80d0ac59391903d83415e05b7d1cc98c3b7e90b6281a1e2aba70ab407b21ff90",
+          "originalBytes": 853
+        },
+        "rawSummary": {
+          "path": "next-package-131-preflight-repair-20261029/40897500088/objects/9788c91ae941e2b564025b8f081c80ec222b90627d870b06615e07c3aec10563.gz",
+          "originalDigest": "sha256:9788c91ae941e2b564025b8f081c80ec222b90627d870b06615e07c3aec10563",
+          "storedDigest": "sha256:43ebba254004124da045b40442c14e4d21f51c8b7f15689e2fb176e0bb33b14d",
+          "originalBytes": 98383
+        },
+        "sampleIds": [
+          "verify-10"
+        ]
+      }
+    },
+    {
+      "shardId": "darwin-cli--first-run-darwin-cli",
+      "group": "darwin-cli",
+      "runId": "40905249327",
+      "sourceCommit": "44fd177967e498707ae904fd2efed7a78f2045fb",
+      "selectedSampleIds": [
+        "first-run-darwin-cli"
+      ],
+      "status": "COMPLETED",
+      "remoteState": {
+        "path": "next-package-131-preflight-repair-20261029/40905249327/objects/8576fff7ab5a3eaf1657be3413a06867ac12c5cfe967ad4455a8137ca90720e4.gz",
+        "originalDigest": "sha256:8576fff7ab5a3eaf1657be3413a06867ac12c5cfe967ad4455a8137ca90720e4",
+        "storedDigest": "sha256:3e58afc22364638d2d475a00679e2d5d8b9093b357d024f9b2716b547a2a0ce3",
+        "originalBytes": 10969
+      },
+      "remoteStatus": "completed",
+      "conclusion": "failure",
+      "activeJobs": [],
+      "generation": {
+        "artifactId": 12911446804,
+        "artifactName": "verify01-native-subset-delivery-darwin-cli-44fd177967e498707ae904fd2efed7a78f2045fb",
+        "artifactMetadata": {
+          "path": "next-package-131-preflight-repair-20261029/40905249327/objects/b2aee301dc89c5abab804cae265eb4c2809c08a61067c9d4757f58aedfa697e2.gz",
+          "originalDigest": "sha256:b2aee301dc89c5abab804cae265eb4c2809c08a61067c9d4757f58aedfa697e2",
+          "storedDigest": "sha256:4b1c746ae40de1638b4b78648681d38ca2ee36c0b9dfb6e14b9ad28c56a67fd9",
+          "originalBytes": 853
+        },
+        "rawSummary": {
+          "path": "next-package-131-preflight-repair-20261029/40905249327/objects/b23a1dbf8fc2ca08e4e6fba272d06fd633158e4bb361703cce0c4317ba6ab1b7.gz",
+          "originalDigest": "sha256:b23a1dbf8fc2ca08e4e6fba272d06fd633158e4bb361703cce0c4317ba6ab1b7",
+          "storedDigest": "sha256:f895f7749d763d89b3d84b8286e348a7be17117f29d63e377fcfd04ae221ac5e",
+          "originalBytes": 78070
+        },
+        "sampleIds": [
+          "first-run-darwin-cli"
+        ]
+      },
+      "acceptance": {
+        "artifactId": 12912380795,
+        "artifactName": "verify01-native-subset-acceptance-darwin-cli-44fd177967e498707ae904fd2efed7a78f2045fb",
+        "artifactMetadata": {
+          "path": "next-package-131-preflight-repair-20261029/40905249327/objects/9a5736037b0a42d2f59f1368afacf2f6fa049568c15732c3ab39ac2d94ce5f94.gz",
+          "originalDigest": "sha256:9a5736037b0a42d2f59f1368afacf2f6fa049568c15732c3ab39ac2d94ce5f94",
+          "storedDigest": "sha256:175f0a82f606ee8847062afc86cb7aa95f12c60fd77b1b18fb36a49eb9bd012d",
+          "originalBytes": 854
+        },
+        "rawSummary": {
+          "path": "next-package-131-preflight-repair-20261029/40905249327/objects/889787587aee4133b1b6d79216b1c7e5a6de1bbc9ff0c060e8c47aead79fe512.gz",
+          "originalDigest": "sha256:889787587aee4133b1b6d79216b1c7e5a6de1bbc9ff0c060e8c47aead79fe512",
+          "storedDigest": "sha256:e7ee8ed696084ec3f7cc255ea5a8c45f52bbad906a1762ebec8cef6a9d21d8af",
+          "originalBytes": 71468
+        },
+        "sampleIds": [
+          "first-run-darwin-cli"
+        ]
+      },
+      "evidence": [
+        {
+          "stage": "acceptance",
+          "originalArtifactPath": "pack/acceptance-evidence/verify-07-check-726da50d-ec3e-4092-a836-fb314c261a41.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40905249327/objects/d5017a27c3d3b3dc534a323100c610dc3ba9247ef5f3208ebcaf76687d9051fc.gz",
+            "originalDigest": "sha256:d5017a27c3d3b3dc534a323100c610dc3ba9247ef5f3208ebcaf76687d9051fc",
+            "storedDigest": "sha256:aebdcbc2071cdf93981c71475bc000fe2a8d622c3c3f6d1369c914ba6fc1b556",
+            "originalBytes": 17487
+          }
+        },
+        {
+          "stage": "acceptance",
+          "originalArtifactPath": "pack/acceptance-evidence/verify-07-setup-3156337b-ae19-4fde-b796-228163dee1ba.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40905249327/objects/989bfff2109f81c2da59b73ef276d375d1c181a99d664462d294f44af12ba6e1.gz",
+            "originalDigest": "sha256:989bfff2109f81c2da59b73ef276d375d1c181a99d664462d294f44af12ba6e1",
+            "storedDigest": "sha256:a61902e8f688d3977869eb26a25600bbb0f70c8eb618004cc791a2be72897774",
+            "originalBytes": 25779
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-cli/broker/request-1.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40905249327/objects/f7489fe1fde35dc2b8c65a1665e2012e52a1c535b46cb952321a62a3e10319cb.gz",
+            "originalDigest": "sha256:f7489fe1fde35dc2b8c65a1665e2012e52a1c535b46cb952321a62a3e10319cb",
+            "storedDigest": "sha256:22f9d384f78e7184f868821a2d182178891ee34483de5d8a98dc774b89b7b5c0",
+            "originalBytes": 1318
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-cli/broker/request-2.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40905249327/objects/e94213ebc1ec339e718530d113896655781e34d92f1d45437895122f297f87d7.gz",
+            "originalDigest": "sha256:e94213ebc1ec339e718530d113896655781e34d92f1d45437895122f297f87d7",
+            "storedDigest": "sha256:d309199bf3c5ebdd20f42ec8e142df968700da3dc6470ca462e07f4c289c9fed",
+            "originalBytes": 1314
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-cli/broker/request-3.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40905249327/objects/53c717b86c76801c0d31c7240a4d4777ebd4756a6a8de01bf18889bc11605f09.gz",
+            "originalDigest": "sha256:53c717b86c76801c0d31c7240a4d4777ebd4756a6a8de01bf18889bc11605f09",
+            "storedDigest": "sha256:66c8e9878451200945f963284da0b1ab0ed272310420394294f55f96b2cd728c",
+            "originalBytes": 1345
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-cli/candidate/packages/cli/__tests__/verify-07.test.js",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40905249327/objects/72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa.gz",
+            "originalDigest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+            "storedDigest": "sha256:cb08cff712b004e31f6a342c4bd35c3e11481cf6c05bf25687814d4666923328",
+            "originalBytes": 27
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "package-set.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40905249327/objects/120f53d500bfc9b923cc713bea8f6040c28ad92df8ba3490ce914197aa0ccd81.gz",
+            "originalDigest": "sha256:120f53d500bfc9b923cc713bea8f6040c28ad92df8ba3490ce914197aa0ccd81",
+            "storedDigest": "sha256:8587368901969e0476ad2fc724d7cc0f28fecac71edc1038aa5d9536b22dad6b",
+            "originalBytes": 1606
+          }
+        }
+      ]
+    },
+    {
+      "shardId": "darwin-jetbrains--first-run-darwin-jetbrains",
+      "group": "darwin-jetbrains",
+      "runId": "40909552042",
+      "sourceCommit": "44fd177967e498707ae904fd2efed7a78f2045fb",
+      "selectedSampleIds": [
+        "first-run-darwin-jetbrains"
+      ],
+      "status": "COMPLETED",
+      "remoteState": {
+        "path": "next-package-131-preflight-repair-20261029/40909552042/objects/a5f057360ac8febdf4de3dce563afc05c7a7b174e92d0d1f1fc6728fa57a1549.gz",
+        "originalDigest": "sha256:a5f057360ac8febdf4de3dce563afc05c7a7b174e92d0d1f1fc6728fa57a1549",
+        "storedDigest": "sha256:8348d67a49ef8f1e0082f56b8f4c073020e2904825947208660455fecb42156b",
+        "originalBytes": 11241
+      },
+      "remoteStatus": "completed",
+      "conclusion": "failure",
+      "activeJobs": [],
+      "generation": {
+        "artifactId": 12913524759,
+        "artifactName": "verify01-native-subset-delivery-darwin-jetbrains-44fd177967e498707ae904fd2efed7a78f2045fb",
+        "artifactMetadata": {
+          "path": "next-package-131-preflight-repair-20261029/40909552042/objects/1f27c2ad184bbf06196026a6687162bbdbf258b32267c356d545b7845013119a.gz",
+          "originalDigest": "sha256:1f27c2ad184bbf06196026a6687162bbdbf258b32267c356d545b7845013119a",
+          "storedDigest": "sha256:281baff508397e834a9afe4cb2687be90feed7740549052670f92fbb3801e22c",
+          "originalBytes": 859
+        },
+        "rawSummary": {
+          "path": "next-package-131-preflight-repair-20261029/40909552042/objects/aa7c49ed572e75e758c0515962d4c039886bfcd2f41b601ddd14fdd3eca509f3.gz",
+          "originalDigest": "sha256:aa7c49ed572e75e758c0515962d4c039886bfcd2f41b601ddd14fdd3eca509f3",
+          "storedDigest": "sha256:98ef7bf844d0f0d732092666765ec94a83858ae6035ab001f8c34b8bd3c93581",
+          "originalBytes": 110789
+        },
+        "sampleIds": [
+          "first-run-darwin-jetbrains"
+        ]
+      },
+      "acceptance": {
+        "artifactId": 12913773491,
+        "artifactName": "verify01-native-subset-acceptance-darwin-jetbrains-44fd177967e498707ae904fd2efed7a78f2045fb",
+        "artifactMetadata": {
+          "path": "next-package-131-preflight-repair-20261029/40909552042/objects/696a250af74f6e4d09a583d5d1f6995d2ce8b2b867f9d88b0fc2f8625892b211.gz",
+          "originalDigest": "sha256:696a250af74f6e4d09a583d5d1f6995d2ce8b2b867f9d88b0fc2f8625892b211",
+          "storedDigest": "sha256:9ef126d1e422a8bb6d071a56ab277248e925117cd4381ea75f0211b9b1cffc54",
+          "originalBytes": 860
+        },
+        "rawSummary": {
+          "path": "next-package-131-preflight-repair-20261029/40909552042/objects/50d8f9de7a126568658c116dde803592622109468b01cc27de1294ea367b056a.gz",
+          "originalDigest": "sha256:50d8f9de7a126568658c116dde803592622109468b01cc27de1294ea367b056a",
+          "storedDigest": "sha256:5a27f49eea968a3e962728326b293aee75505b4ba8432eb9dd6e82ba95c39f31",
+          "originalBytes": 102688
+        },
+        "sampleIds": [
+          "first-run-darwin-jetbrains"
+        ]
+      },
+      "evidence": [
+        {
+          "stage": "acceptance",
+          "originalArtifactPath": "pack/acceptance-evidence/verify-09-check-f4b17415-004e-4f8b-883f-c065a7c71934.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/e428caa31842927640be51f4dfb7f0d0147abda743dd32ddd6c6a1763e51693c.gz",
+            "originalDigest": "sha256:e428caa31842927640be51f4dfb7f0d0147abda743dd32ddd6c6a1763e51693c",
+            "storedDigest": "sha256:1e2803f75f0e08da01c5ae2573ab4a9c77350019d6e5fc97d485ada15a79bbf7",
+            "originalBytes": 10272
+          }
+        },
+        {
+          "stage": "acceptance",
+          "originalArtifactPath": "pack/acceptance-evidence/verify-09-setup-b79e04c7-2368-4342-ae60-2f605c0e3940.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/7a512dfe21c88ed82f8e3a90594252ed7666f3f4dcb3ad3047c203530b4605b0.gz",
+            "originalDigest": "sha256:7a512dfe21c88ed82f8e3a90594252ed7666f3f4dcb3ad3047c203530b4605b0",
+            "storedDigest": "sha256:b4da687f3f5ac8c803727506ede39fcae7dfd0e08267a0bc4f365f8901e001f9",
+            "originalBytes": 15372
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/broker/request-1.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/dc08fad02a818e7957f019e4128073eaa717e335245da22f2f9f99fc5956231c.gz",
+            "originalDigest": "sha256:dc08fad02a818e7957f019e4128073eaa717e335245da22f2f9f99fc5956231c",
+            "storedDigest": "sha256:3512c39aa34dbdf4aa416e4992f670e11c7bcb9abf093f6741233fe6764f9309",
+            "originalBytes": 1322
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/broker/request-10.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/d689959414689dd5ac1c8736e261e348524daaadc291d9e6bb0f08b9a7ff4030.gz",
+            "originalDigest": "sha256:d689959414689dd5ac1c8736e261e348524daaadc291d9e6bb0f08b9a7ff4030",
+            "storedDigest": "sha256:96a3231043b9d1aa6d867507f3c446e1b33d81c29cd4809949c9f04f86eeaf56",
+            "originalBytes": 1340
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/broker/request-11.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/acd7ceb078035c0d38faec09868de3c09c5a7662cfce93088cdcdb43efb35639.gz",
+            "originalDigest": "sha256:acd7ceb078035c0d38faec09868de3c09c5a7662cfce93088cdcdb43efb35639",
+            "storedDigest": "sha256:cc3725d4b76ad682dea37d9a2c0987de7a6294f2425c4e37ba88d4aa82abd708",
+            "originalBytes": 1328
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/broker/request-12.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/fe7ba2b76055905358c0003d70cd983838574b90e40cb01ac5a16bab0037a39d.gz",
+            "originalDigest": "sha256:fe7ba2b76055905358c0003d70cd983838574b90e40cb01ac5a16bab0037a39d",
+            "storedDigest": "sha256:e954ddd4c33f53d96410bd0477b9e3168a47f640d7c849cc4b5ef14adee03852",
+            "originalBytes": 1330
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/broker/request-13.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/10bc5a61a29c3c189a3ff5eebc289f3aef0a839a96a90be3b389a048c53d0f1e.gz",
+            "originalDigest": "sha256:10bc5a61a29c3c189a3ff5eebc289f3aef0a839a96a90be3b389a048c53d0f1e",
+            "storedDigest": "sha256:2e25ededa39c9fea917dac7cb6066c38bf6cdb80cfadb87f100910686dc61512",
+            "originalBytes": 1331
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/broker/request-14.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/fb1400202a00591566f5d0fd0e332daa91b9e085b79d15580cb54f772725dba9.gz",
+            "originalDigest": "sha256:fb1400202a00591566f5d0fd0e332daa91b9e085b79d15580cb54f772725dba9",
+            "storedDigest": "sha256:3389f56e73ffc6fce9533d9875d968dd5702ee95ef2b2df79e365094a6cd791e",
+            "originalBytes": 1324
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/broker/request-2.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/f12283aab920da934db3cdbf8ade586e47b8932eae4a3da2b8b43715e379f8b1.gz",
+            "originalDigest": "sha256:f12283aab920da934db3cdbf8ade586e47b8932eae4a3da2b8b43715e379f8b1",
+            "storedDigest": "sha256:c6e5c1967cc474720b9f76ce58a6a8626146a692f8bd2642f32e2a01ce09ffbc",
+            "originalBytes": 1324
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/broker/request-3.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/baa1e12afb3ebe6955daef4bb10996457d2afe2afc63bb94d07c8c06dc9000f4.gz",
+            "originalDigest": "sha256:baa1e12afb3ebe6955daef4bb10996457d2afe2afc63bb94d07c8c06dc9000f4",
+            "storedDigest": "sha256:873c25723bc0020045e2d9b518abb438f4838b0b0345d9161f2b82e44df54b00",
+            "originalBytes": 1337
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/broker/request-4.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/b9a0419b09d6ed63c7b68eea95ed221749c43be72a61e526316ac682e0cc4435.gz",
+            "originalDigest": "sha256:b9a0419b09d6ed63c7b68eea95ed221749c43be72a61e526316ac682e0cc4435",
+            "storedDigest": "sha256:efe0d9ec4efbde16fbbd623fe2f42fed17715312c79cf8007f06d607ff4ed539",
+            "originalBytes": 1344
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/broker/request-5.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/779e9dbd3839d9e6767b559c82740ca9258478b3479e6a5124fe99fe03e11c4e.gz",
+            "originalDigest": "sha256:779e9dbd3839d9e6767b559c82740ca9258478b3479e6a5124fe99fe03e11c4e",
+            "storedDigest": "sha256:05d0c9a0a383ba6c8bce712395a13d1f827e479bebcf6d3ed52ad1809a8c349b",
+            "originalBytes": 1330
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/broker/request-6.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/7c9e92b8d6383b1acce3b73bd20d94a1a8939cb477f16b186862f7997baba15b.gz",
+            "originalDigest": "sha256:7c9e92b8d6383b1acce3b73bd20d94a1a8939cb477f16b186862f7997baba15b",
+            "storedDigest": "sha256:2f17d80b4a81f0ea762a7300f9f6762a9f3ea599ad2dc177ac4ef8b2d42f8966",
+            "originalBytes": 1327
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/broker/request-7.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/b2ca4c62407725fb0b9dd5a17e604aa679ba50df0601d5042e4386bcd69915c6.gz",
+            "originalDigest": "sha256:b2ca4c62407725fb0b9dd5a17e604aa679ba50df0601d5042e4386bcd69915c6",
+            "storedDigest": "sha256:d096aa3eea414285dc670d1b19035b39c3d1384435e8c9f3bf84178f14cf29df",
+            "originalBytes": 1324
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/broker/request-8.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/68156a711b7a4c7ac7cd85099f93d90a92182f6fe4076116b04ac07d7c69141c.gz",
+            "originalDigest": "sha256:68156a711b7a4c7ac7cd85099f93d90a92182f6fe4076116b04ac07d7c69141c",
+            "storedDigest": "sha256:5376bf2fb253eefeef9624d3a68940357568fdade3efa4127f432b305b95f82e",
+            "originalBytes": 1341
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/broker/request-9.receipt.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/2f47e8062f2efc86ce8452fa4764706ce0d42fce332531e136eb4e4705f34396.gz",
+            "originalDigest": "sha256:2f47e8062f2efc86ce8452fa4764706ce0d42fce332531e136eb4e4705f34396",
+            "storedDigest": "sha256:77c51be037a17e7359eaed8103bb10550657b0f67924c4111e98a78103ef62f0",
+            "originalBytes": 1339
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/candidate/packages/cli/__tests__/verify-09.test.js",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/3a194ef2990c21bf2cfdcd33736a4d4421e9d54888b67bbce920e7c7909c1adb.gz",
+            "originalDigest": "sha256:3a194ef2990c21bf2cfdcd33736a4d4421e9d54888b67bbce920e7c7909c1adb",
+            "storedDigest": "sha256:2716fe343294fd3c5c6cd2be606656459e5cf330dc0ea38b761f05c69dba5459",
+            "originalBytes": 4723
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/capture/restart-state.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/3e25ec3ab3a3dbc250911d8fdfa06609dc8be5a9d15cf00c428dd6cac52b2385.gz",
+            "originalDigest": "sha256:3e25ec3ab3a3dbc250911d8fdfa06609dc8be5a9d15cf00c428dd6cac52b2385",
+            "storedDigest": "sha256:ed0f58cbabbb09c88fff23e2f09a8b2a0e6a2ae15c8a04cc28d415d5dbf02084",
+            "originalBytes": 441892
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/capture/ui-initial.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/96cc25e9d3a6dada168f6e69826602947befd0c40bb93f68a5cf991472bc892a.gz",
+            "originalDigest": "sha256:96cc25e9d3a6dada168f6e69826602947befd0c40bb93f68a5cf991472bc892a",
+            "storedDigest": "sha256:59884ed40eb300c73ec7854414401cdb0cc9dc07af1ae1de698d8128e4d5a27d",
+            "originalBytes": 780
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/cli-stderr-diagnostics/ffe2e44e-154f-4fa6-a4b7-e9ec917f8e11.stderr-redacted.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/1ea68fa2787ad70cf7d60a9f102eed6f64a0b94a629401d341805068823d6510.gz",
+            "originalDigest": "sha256:1ea68fa2787ad70cf7d60a9f102eed6f64a0b94a629401d341805068823d6510",
+            "storedDigest": "sha256:655cb775b230d4f363dc363a1d8c9ddee1f530b06e14ed745145601f33f016ae",
+            "originalBytes": 519
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-jetbrains/cli-stderr-diagnostics/ffe2e44e-154f-4fa6-a4b7-e9ec917f8e11.stderr-redacted.txt",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/dee64cc9380155cf4011f949cd954ca0d4d5af26bced585766bbafeced49c462.gz",
+            "originalDigest": "sha256:dee64cc9380155cf4011f949cd954ca0d4d5af26bced585766bbafeced49c462",
+            "storedDigest": "sha256:1b172d8d2a86a3048bf3b7177155947d443c05551c085847e1faccfa0efffe19",
+            "originalBytes": 282
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "package-set.json",
+          "archived": {
+            "path": "next-package-131-preflight-repair-20261029/40909552042/objects/120f53d500bfc9b923cc713bea8f6040c28ad92df8ba3490ce914197aa0ccd81.gz",
+            "originalDigest": "sha256:120f53d500bfc9b923cc713bea8f6040c28ad92df8ba3490ce914197aa0ccd81",
+            "storedDigest": "sha256:8587368901969e0476ad2fc724d7cc0f28fecac71edc1038aa5d9536b22dad6b",
+            "originalBytes": 1606
+          }
+        }
+      ]
+    }
+  ],
+  "samples": [
+    {
+      "sampleId": "verify-10",
+      "taskId": "verify-10",
+      "kind": "task",
+      "group": "win32-cli",
+      "status": "ATTEMPT_FAILED",
+      "generationObserved": true,
+      "generationRunId": "40897500088",
+      "sourceSummaryDigest": "sha256:93aba1858f6a6a39a4e5b6e9eb931e4dfdc56e3909b26d57d1de4e50ac3356d8",
+      "modelFailureCategory": null,
+      "generationPassed": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 10,
+        "usageCompleteRequests": 10,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      },
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false
+    },
+    {
+      "sampleId": "verify-04",
+      "taskId": "verify-04",
+      "kind": "task",
+      "group": "linux-cli",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-13",
+      "taskId": "verify-13",
+      "kind": "task",
+      "group": "linux-cli",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-09",
+      "taskId": "verify-09",
+      "kind": "task",
+      "group": "darwin-jetbrains",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-30",
+      "taskId": "verify-30",
+      "kind": "task",
+      "group": "win32-jetbrains",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-07",
+      "taskId": "verify-07",
+      "kind": "task",
+      "group": "darwin-cli",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-19",
+      "taskId": "verify-19",
+      "kind": "task",
+      "group": "win32-cli",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-08",
+      "taskId": "verify-08",
+      "kind": "task",
+      "group": "darwin-vscode",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "first-run-darwin-cli",
+      "taskId": "verify-07",
+      "kind": "first-run",
+      "group": "darwin-cli",
+      "status": "ATTEMPT_FAILED",
+      "generationObserved": true,
+      "generationRunId": "40905249327",
+      "sourceSummaryDigest": "sha256:b23a1dbf8fc2ca08e4e6fba272d06fd633158e4bb361703cce0c4317ba6ab1b7",
+      "modelFailureCategory": "agent-error",
+      "generationPassed": false,
+      "brokerStatus": {
+        "physicalRequestsStarted": 3,
+        "usageCompleteRequests": 3,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      },
+      "host": {
+        "passed": false,
+        "failure": null,
+        "restartRequired": false
+      },
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false
+    },
+    {
+      "sampleId": "first-run-darwin-jetbrains",
+      "taskId": "verify-09",
+      "kind": "first-run",
+      "group": "darwin-jetbrains",
+      "status": "ATTEMPT_FAILED",
+      "generationObserved": true,
+      "generationRunId": "40909552042",
+      "sourceSummaryDigest": "sha256:aa7c49ed572e75e758c0515962d4c039886bfcd2f41b601ddd14fdd3eca509f3",
+      "modelFailureCategory": null,
+      "generationPassed": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 14,
+        "usageCompleteRequests": 14,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false
+    },
+    {
+      "sampleId": "verify-11",
+      "taskId": "verify-11",
+      "kind": "task",
+      "group": "win32-vscode",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    }
+  ],
+  "partialDispatch": true,
+  "counts": {
+    "generationRecordsCollected": 3,
+    "acceptanceRecordsCollected": 3,
+    "candidateAcceptancePassed": 0,
+    "endToEndPassed": 0,
+    "reusedAcceptedDeliverables": 34,
+    "cumulativeAcceptedDeliverables": 34
+  }
+}
