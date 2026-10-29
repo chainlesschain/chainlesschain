@@ -1,0 +1,592 @@
+validate	Validate exact sample selection, candidate binding and host controls	﻿2026-10-29T13:58:27.3676572Z ##[group]Run node --test packages/cli/test-node/verify01-native-task-campaign.node-test.mjs packages/cli/test-node/verify01-native-subset.node-test.mjs packages/cli/test-node/verify01-native-retest-plan.node-test.mjs packages/cli/test-node/verify01-native-retest-round.node-test.mjs packages/cli/test-node/verify01-native-retest-supersession.node-test.mjs packages/cli/test-node/verify01-native-task-checker.node-test.mjs packages/cli/test-node/verify01-fetch-diagnostics.node-test.mjs packages/cli/test-node/verify01-legacy-windows-tar.node-test.mjs packages/cli/test-node/verify01-vscode-composer.node-test.mjs packages/cli/test-node/verify01-ide-terminal.node-test.mjs packages/cli/test-node/verify01-volcengine-diagnostic-broker.node-test.mjs packages/jetbrains-plugin/scripts/verify01-native-task-adapter.test.mjs
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:27.3688544Z [36;1mnode --test packages/cli/test-node/verify01-native-task-campaign.node-test.mjs packages/cli/test-node/verify01-native-subset.node-test.mjs packages/cli/test-node/verify01-native-retest-plan.node-test.mjs packages/cli/test-node/verify01-native-retest-round.node-test.mjs packages/cli/test-node/verify01-native-retest-supersession.node-test.mjs packages/cli/test-node/verify01-native-task-checker.node-test.mjs packages/cli/test-node/verify01-fetch-diagnostics.node-test.mjs packages/cli/test-node/verify01-legacy-windows-tar.node-test.mjs packages/cli/test-node/verify01-vscode-composer.node-test.mjs packages/cli/test-node/verify01-ide-terminal.node-test.mjs packages/cli/test-node/verify01-volcengine-diagnostic-broker.node-test.mjs packages/jetbrains-plugin/scripts/verify01-native-task-adapter.test.mjs[0m
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:27.3722766Z shell: /usr/bin/bash -e {0}
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:27.3723198Z env:
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:27.3723535Z   NATIVE_PACKAGE_SET: latest
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:27.3724295Z   NATIVE_PACKAGE_SET_FILE: docs/research/cli/verify01-package-sets/2026-10-29-review-131.json
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:27.3725087Z ##[endgroup]
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:27.4371462Z TAP version 13
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2492846Z # Subtest: fetch diagnostics are default off and affect only actual model child launch
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2552284Z ok 1 - fetch diagnostics are default off and affect only actual model child launch
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2562364Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2591336Z   duration_ms: 8.639891
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2612672Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2617321Z # Subtest: startup marker proves enabled observation without modifying stdout or exit
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2619018Z ok 2 - startup marker proves enabled observation without modifying stdout or exit
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2620057Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2620974Z   duration_ms: 125.754389
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2621622Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2622870Z # Subtest: only allowlisted fields persist, hostile errors cannot leak data, and records are bounded
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2625162Z ok 3 - only allowlisted fields persist, hostile errors cannot leak data, and records are bounded
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2626310Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2627056Z   duration_ms: 50.19996
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2627751Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2669217Z # Subtest: sink open and write failure cannot replace application errors
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2699189Z ok 4 - sink open and write failure cannot replace application errors
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2720192Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2721131Z   duration_ms: 123.15184
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2721857Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2726113Z # Subtest: actual local fetch rejection remains one request with unchanged original cause
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2732519Z ok 5 - actual local fetch rejection remains one request with unchanged original cause
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2759400Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2767458Z   duration_ms: 212.484075
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2768173Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2769369Z # Subtest: IDE accepts the exact persistent session shutdown; default one-shot remains strict
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2771226Z ok 6 - IDE accepts the exact persistent session shutdown; default one-shot remains strict
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2772352Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2772997Z   duration_ms: 4.560238
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2778982Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2780074Z # Subtest: IDE rejects foreign shutdown identity, sequence, extra records and error terminals
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2781882Z ok 7 - IDE rejects foreign shutdown identity, sequence, extra records and error terminals
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2783099Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2783658Z   duration_ms: 0.674297
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2784515Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2785876Z # Subtest: independent dialect reassessment retains original failure and requires host, broker and scope
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2788020Z ok 8 - independent dialect reassessment retains original failure and requires host, broker and scope
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2789339Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2789899Z   duration_ms: 3.496797
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2790722Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2792367Z # Subtest: real Windows bsdtar reproduces header CP437 and UTF-8 PAX with distinct parents
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2794528Z ok 9 - real Windows bsdtar reproduces header CP437 and UTF-8 PAX with distinct parents # SKIP
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2795869Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2796652Z   duration_ms: 4.125468
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:28.2797553Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.1821792Z # Subtest: explicit chain rejects duplicates, traversal and omitted current rounds
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.1912152Z ok 10 - explicit chain rejects duplicates, traversal and omitted current rounds
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.1971290Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2000875Z   duration_ms: 6.43913
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2017521Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2018397Z # Subtest: paid retests reject the original release even if its manifest bytes change
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2019666Z ok 11 - paid retests reject the original release even if its manifest bytes change
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2020964Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2021339Z   duration_ms: 1.843936
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2021798Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2022667Z # Subtest: a separate pinned manifest selects new versions without changing the original
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2023950Z ok 12 - a separate pinned manifest selects new versions without changing the original
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2024792Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2025182Z   duration_ms: 4.474628
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2025587Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2026454Z # Subtest: manifest selection rejects arbitrary paths, traversal, and linked directories
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2027751Z ok 13 - manifest selection rejects arbitrary paths, traversal, and linked directories
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2028497Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2029039Z   duration_ms: 3.099396
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2081000Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2101769Z # Subtest: strict existing validators bind accepted files before selecting unfinished groups
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2122406Z ok 14 - strict existing validators bind accepted files before selecting unfinished groups
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2140966Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2170919Z   duration_ms: 738.825369
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2201009Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2221916Z # Subtest: JetBrains execution shards isolate each unfinished sample without losing other groups
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2231515Z ok 15 - JetBrains execution shards isolate each unfinished sample without losing other groups
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2260912Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2281007Z   duration_ms: 0.89652
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2321719Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2331668Z # Subtest: an acceptance boolean without its bound checker evidence cannot suppress a task
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2333187Z ok 16 - an acceptance boolean without its bound checker evidence cannot suppress a task
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2334153Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2334693Z   duration_ms: 181.486116
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2335289Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2336275Z # Subtest: changed historical source binding cannot be reused as an accepted delivery
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2361635Z ok 17 - changed historical source binding cannot be reused as an accepted delivery
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2390894Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2415913Z   duration_ms: 81.507505
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2440787Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2451384Z # Subtest: generation rejects omitted IDs and every previously accepted candidate
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2479475Z ok 18 - generation rejects omitted IDs and every previously accepted candidate
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2510809Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2511193Z   duration_ms: 547.215515
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2511580Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2512454Z # Subtest: next-round preparation cannot overwrite an old round name or reuse the original packages
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2513765Z ok 19 - next-round preparation cannot overwrite an old round name or reuse the original packages
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2514540Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2514874Z   duration_ms: 563.968586
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2515259Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2516150Z # Subtest: new per-run verifier accepts real baseline, candidate, mutant and document receipts
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2517459Z ok 20 - new per-run verifier accepts real baseline, candidate, mutant and document receipts
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2518151Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2518546Z   duration_ms: 99.610078
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2519010Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2520008Z # Subtest: archive bytes, raw digests, lengths and same-run path constraints are enforced
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2521640Z ok 21 - archive bytes, raw digests, lengths and same-run path constraints are enforced
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2522520Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2522926Z   duration_ms: 32.583912
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2523406Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2524408Z # Subtest: remote run ID/SHA, artifact metadata and exact manifest binding reject substitution
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2526020Z ok 22 - remote run ID/SHA, artifact metadata and exact manifest binding reject substitution
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2526953Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2527380Z   duration_ms: 215.120572
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2527830Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2528831Z # Subtest: modified candidate bytes and mismatched acceptance projections cannot become passes
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2530434Z ok 23 - modified candidate bytes and mismatched acceptance projections cannot become passes
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2531205Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2531544Z   duration_ms: 36.2422
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2531915Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2532635Z # Subtest: a rewritten passing receipt still must reject its behavioral mutants
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2533698Z ok 24 - a rewritten passing receipt still must reject its behavioral mutants
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2534362Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2534696Z   duration_ms: 39.767949
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2535084Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2535814Z # Subtest: missing acceptance cannot be relabeled as a completed or accepted run
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2536890Z ok 25 - missing acceptance cannot be relabeled as a completed or accepted run
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2537572Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2537903Z   duration_ms: 27.214736
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2538277Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2561705Z # Subtest: explicit partial collection retains unrequested samples and cannot become a completed round
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2563613Z ok 26 - explicit partial collection retains unrequested samples and cannot become a completed round
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2564474Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2564833Z   duration_ms: 60.502359
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2565222Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2566151Z # Subtest: complete archive-backed prior round adds accepted deliveries and advances the version floor
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2567583Z ok 27 - complete archive-backed prior round adds accepted deliveries and advances the version floor
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2568415Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2568752Z   duration_ms: 41.265611
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2569133Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2570075Z # Subtest: prior ledger chain rejects incomplete evidence, changed digests, cycles and forged acceptance
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2571805Z ok 28 - prior ledger chain rejects incomplete evidence, changed digests, cycles and forged acceptance
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2572642Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2573003Z   duration_ms: 152.977992
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2573394Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2574234Z # Subtest: new plan binds the verified accepted set and cannot overlap old ledger/archive paths
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2575753Z ok 29 - new plan binds the verified accepted set and cannot overlap old ledger/archive paths
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2576511Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2576845Z   duration_ms: 3.067386
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2577261Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2578078Z # Subtest: single-sample shards permit multiple runs per group with exact disjoint coverage
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2579349Z ok 30 - single-sample shards permit multiple runs per group with exact disjoint coverage
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2580105Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2580612Z   duration_ms: 2.011699
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2580995Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2581907Z # Subtest: local collector does not clobber existing ledger/archive bytes or checkpoint failed evidence
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2583321Z ok 31 - local collector does not clobber existing ledger/archive bytes or checkpoint failed evidence
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2584145Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2584480Z   duration_ms: 85.478263
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2584862Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2585712Z # Subtest: collector keeps sample-bound broker receipts and excludes raw requests and responses
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2587033Z ok 32 - collector keeps sample-bound broker receipts and excludes raw requests and responses
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2587813Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2588143Z   duration_ms: 79.143888
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:30.2588519Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5816102Z # Subtest: archived partial round inherits only its two verified deliveries and stays incomplete
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5818136Z ok 33 - archived partial round inherits only its two verified deliveries and stays incomplete
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5819325Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5820002Z   duration_ms: 1816.537994
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5820995Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5822370Z # Subtest: supersession still verifies acceptance flags and archived bytes through the original strict validator
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5824415Z ok 34 - supersession still verifies acceptance flags and archived bytes through the original strict validator
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5842739Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5891197Z   duration_ms: 1152.921494
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5891826Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5893055Z # Subtest: obsolete partial-round disposition preserves failures, missing work and financial uncertainty
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5894835Z ok 35 - obsolete partial-round disposition preserves failures, missing work and financial uncertainty
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5895855Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5896359Z   duration_ms: 1.337219
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5896889Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5897522Z # Subtest: supersession rejects live remote work
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5898417Z ok 36 - supersession rejects live remote work
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5899099Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5899551Z   duration_ms: 0.909499
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5900056Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5901066Z # Subtest: supersession rejects unreconciled rerun
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5902343Z ok 37 - supersession rejects unreconciled rerun
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5902910Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5903293Z   duration_ms: 0.640577
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5903798Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5904355Z # Subtest: supersession rejects truncated inventory
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5905130Z ok 38 - supersession rejects truncated inventory
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5905675Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5906033Z   duration_ms: 0.561589
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5906420Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5906991Z # Subtest: supersession rejects uncollected remote run
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5907779Z ok 39 - supersession rejects uncollected remote run
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5908342Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5908689Z   duration_ms: 0.840169
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5909065Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5941587Z # Subtest: supersession rejects missing source inventory
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5971193Z ok 40 - supersession rejects missing source inventory
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5981143Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5997222Z   duration_ms: 0.72215
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5997970Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5998759Z # Subtest: supersession rejects unknown local request
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.5999828Z ok 41 - supersession rejects unknown local request
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6001436Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6002106Z   duration_ms: 1.334634
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6002785Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6003635Z # Subtest: supersession rejects omitted pending sample
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6004789Z ok 42 - supersession rejects omitted pending sample
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6005669Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6006317Z   duration_ms: 0.961737
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6006989Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6007910Z # Subtest: supersession rejects uncollected acceptance
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6009065Z ok 43 - supersession rejects uncollected acceptance
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6009914Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6010859Z   duration_ms: 0.611032
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6011556Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6012457Z # Subtest: supersession rejects claimed completion
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6013649Z ok 44 - supersession rejects claimed completion
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6014539Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6015187Z   duration_ms: 0.507107
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6015848Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6016704Z # Subtest: supersession rejects reset financial liability
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6017887Z ok 45 - supersession rejects reset financial liability
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6018801Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6019391Z   duration_ms: 0.475779
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6020048Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6021302Z # Subtest: supersession rejects fabricated billing reconciliation
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6022605Z ok 46 - supersession rejects fabricated billing reconciliation
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6023562Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6024209Z   duration_ms: 0.412941
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6024950Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6025877Z # Subtest: supersession rejects unpublished successor
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6027028Z ok 47 - supersession rejects unpublished successor
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6027814Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6028442Z   duration_ms: 0.592326
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6029121Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6030038Z # Subtest: supersession rejects unapproved JetBrains release
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6031505Z ok 48 - supersession rejects unapproved JetBrains release
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6032363Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6032935Z   duration_ms: 0.491859
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6033574Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6034350Z # Subtest: supersession rejects changed release archive
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6035380Z ok 49 - supersession rejects changed release archive
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6036208Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6036806Z   duration_ms: 0.585504
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6037395Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6038176Z # Subtest: supersession rejects changed receipt bytes
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6039142Z ok 50 - supersession rejects changed receipt bytes
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6039927Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6040783Z   duration_ms: 0.525091
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6041401Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6042165Z # Subtest: supersession rejects path traversal
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6043198Z ok 51 - supersession rejects path traversal
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6044291Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6044860Z   duration_ms: 6.412149
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6045461Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6046268Z # Subtest: supersession rejects post-closure observation
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6047283Z ok 52 - supersession rejects post-closure observation
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6048029Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6048603Z   duration_ms: 1.317331
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6049251Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6050592Z # Subtest: chain disposition requires both exact path and digest
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6051779Z ok 53 - chain disposition requires both exact path and digest
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6052631Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6053169Z   duration_ms: 0.890524
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:31.6053800Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.3992624Z # Subtest: explicit unfinished sample selection does not add first-run or completed peers
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.3996326Z ok 54 - explicit unfinished sample selection does not add first-run or completed peers
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.3997123Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.3997634Z   duration_ms: 3.727737
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.3998024Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4004928Z # Subtest: operator sample parser rejects empty and duplicate IDs before paid work
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4024596Z ok 55 - operator sample parser rejects empty and duplicate IDs before paid work
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4025348Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4025713Z   duration_ms: 1.026103
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4026092Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4026832Z # Subtest: subset acceptance requires the exact independent operator selection
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4027785Z ok 56 - subset acceptance requires the exact independent operator selection
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4028230Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4028752Z   duration_ms: 2.089855
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4029153Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4029920Z # Subtest: legacy full-group deliveries remain strict and cannot silently omit samples
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4031086Z ok 57 - legacy full-group deliveries remain strict and cannot silently omit samples
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4031573Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4031785Z   duration_ms: 0.674617
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4032018Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4032539Z # Subtest: workflow validates a single matching host and entry before subset dispatch
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4041810Z ok 58 - workflow validates a single matching host and entry before subset dispatch
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4042619Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4042909Z   duration_ms: 3193.298242
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4043191Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4156105Z # Subtest: an unconfirmed host cleanup prevents subsequent sample work without retry
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4157363Z ok 59 - an unconfirmed host cleanup prevents subsequent sample work without retry
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4158084Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4158454Z   duration_ms: 2.459755
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4158850Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4159687Z # Subtest: package set selects exact complete versions and binds original manifest bytes
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4181720Z ok 60 - package set selects exact complete versions and binds original manifest bytes
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4182589Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4182851Z   duration_ms: 9.433554
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4183114Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4183646Z # Subtest: native archive extraction accepts absolute drive paths even under Git Bash PATH
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4184712Z ok 61 - native archive extraction accepts absolute drive paths even under Git Bash PATH
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4186566Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4187221Z   duration_ms: 16.494061
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4187696Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4188517Z # Subtest: native extraction preserves git archive UTF-8 paths and frozen bytes
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4189741Z ok 62 - native extraction preserves git archive UTF-8 paths and frozen bytes
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4191146Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4191567Z   duration_ms: 63.852998
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4191987Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4192847Z # Subtest: nine native strata select exactly 36 ordinary and nine independent first samples
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4194167Z ok 63 - nine native strata select exactly 36 ordinary and nine independent first samples
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4195433Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4195805Z   duration_ms: 9.36732
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4196197Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4197105Z # Subtest: full tree diff isolates IDE metadata but rejects unrelated source and linked candidates
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4198505Z ok 64 - full tree diff isolates IDE metadata but rejects unrelated source and linked candidates
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4199335Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4199708Z   duration_ms: 3.673493
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4200107Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4201170Z # Subtest: adapter preserves protocol identity and forces six-file tools/worklog off
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4202398Z ok 65 - adapter preserves protocol identity and forces six-file tools/worklog off
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4203161Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4203546Z   duration_ms: 238.103857
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4203962Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4204725Z # Subtest: native review opt-in is strict and observation requires a runtime event
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4205877Z ok 66 - native review opt-in is strict and observation requires a runtime event
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4206578Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4206928Z   duration_ms: 0.906995
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4207583Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4208340Z # Subtest: dispatcher review opt-in preserves legacy argv and is journal-bound
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4209581Z not ok 67 - dispatcher review opt-in preserves legacy argv and is journal-bound
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4218597Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4219073Z   duration_ms: 104.080437
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4220587Z   location: '/home/runner/work/chainlesschain/chainlesschain/packages/cli/test-node/verify01-native-task-campaign.node-test.mjs:313:1'
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4221947Z   failureType: 'testCodeFailure'
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4222520Z   error: |-
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4223028Z     The expression evaluated to a falsy value:
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4223608Z     
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4223982Z       assert.ok(
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4224556Z         source.indexOf("context['reviewChanges'] = True") <
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4225495Z           source.indexOf("directory = WORK / 'next-package-dispatch'"),
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4226242Z       )
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4226616Z     
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4227038Z   code: 'ERR_ASSERTION'
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4227530Z   name: 'AssertionError'
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4228063Z   expected: true
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4228549Z   actual: false
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4228987Z   operator: '=='
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4229399Z   stack: |-
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4231344Z     TestContext.<anonymous> (file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/test-node/verify01-native-task-campaign.node-test.mjs:345:10)
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4233154Z     Test.runInAsyncScope (node:async_hooks:211:14)
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4233899Z     Test.run (node:internal/test_runner/test:934:25)
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4234915Z     Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4235959Z     Test.postRun (node:internal/test_runner/test:1045:19)
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4236735Z     Test.run (node:internal/test_runner/test:973:12)
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4237646Z     async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4238406Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4239438Z # Subtest: VSCode prompt preserves full UTF8 content up to 1 MiB and first-run deadline up to 30 minutes
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4241618Z ok 68 - VSCode prompt preserves full UTF8 content up to 1 MiB and first-run deadline up to 30 minutes
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4242513Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4242881Z   duration_ms: 6.490775
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4243271Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4244180Z # Subtest: failed JetBrains capture reads one raw JSONL stream and rejects ambiguous generations
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4245563Z ok 69 - failed JetBrains capture reads one raw JSONL stream and rejects ambiguous generations
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4246396Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4246766Z   duration_ms: 4.187874
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4247241Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4248194Z # Subtest: protocol conversion uses output only and Windows comparison leaves raw evidence unchanged
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4250002Z ok 70 - protocol conversion uses output only and Windows comparison leaves raw evidence unchanged
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4251568Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4251972Z   duration_ms: 3.046832
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4252370Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4253306Z # Subtest: native child storage recognizes its isolated profile and keeps ACL verification enabled
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4254725Z ok 71 - native child storage recognizes its isolated profile and keeps ACL verification enabled
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4255559Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4255881Z   duration_ms: 234.689951
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4256259Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4257106Z # Subtest: Windows PowerShell KnownFolders and module cache remain outside the task workspace
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4258457Z ok 72 - Windows PowerShell KnownFolders and module cache remain outside the task workspace # SKIP
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4259338Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4259772Z   duration_ms: 0.355063
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4260175Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4261355Z # Subtest: package set checker independently rejects missing, changed or mismatched version bindings
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4263282Z ok 73 - package set checker independently rejects missing, changed or mismatched version bindings
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4264080Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4264404Z   duration_ms: 9.339157
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4264770Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4265440Z # Subtest: accepts only exact bounded candidate bytes at the catalog path
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4266376Z ok 74 - accepts only exact bounded candidate bytes at the catalog path
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4266981Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4267307Z   duration_ms: 3.874348
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4267665Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4268477Z # Subtest: canonical source stays exact and Windows mismatches require archive-derived evidence
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4269748Z ok 75 - canonical source stays exact and Windows mismatches require archive-derived evidence
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4270792Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4271181Z   duration_ms: 0.875405
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4271556Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4272226Z # Subtest: artifact paths reject traversal and alternate stream syntax
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4273187Z ok 76 - artifact paths reject traversal and alternate stream syntax
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4273846Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4274162Z   duration_ms: 0.713463
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4274532Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4275375Z # Subtest: native initial tree must match all frozen content, permitting platform mode differences
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4276437Z ok 77 - native initial tree must match all frozen content, permitting platform mode differences
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4276907Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4277111Z   duration_ms: 0.770099
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4277338Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4278264Z # Subtest: explicit text-only policy allows internal summarization without adding tool authority
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4279595Z ok 78 - explicit text-only policy allows internal summarization without adding tool authority
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4280574Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4280908Z   duration_ms: 2.412447
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4281265Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4282071Z # Subtest: effective diagnostic request fixes model, thinking, service tier and token ceiling
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4283217Z ok 79 - effective diagnostic request fixes model, thinking, service tier and token ceiling
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4283919Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4284228Z   duration_ms: 3.503235
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4284578Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4285159Z # Subtest: pre-dispatch request size rejection fails only its own task
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4286029Z ok 80 - pre-dispatch request size rejection fails only its own task
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4286604Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4286941Z   duration_ms: 105.619894
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4287324Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4288051Z # Subtest: Ark transport gates HTTP dispatch on TLS and records the failure phase
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4289114Z ok 81 - Ark transport gates HTTP dispatch on TLS and records the failure phase
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4289993Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4290543Z   duration_ms: 9.372529
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4290926Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4291622Z # Subtest: proven pre-HTTP network failure fails one task without retrying it
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4292673Z ok 82 - proven pre-HTTP network failure fails one task without retrying it
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4293311Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4293615Z   duration_ms: 35.019482
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4293990Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4294738Z # Subtest: claimed pre-dispatch failure after HTTP submission still poisons the broker
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4295500Z ok 83 - claimed pre-dispatch failure after HTTP submission still poisons the broker
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4295927Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4296172Z   duration_ms: 20.667298
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4296539Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4296980Z # Subtest: unknown usage, model, tier, incomplete protocol and reasoning cannot settle
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4297666Z ok 84 - unknown usage, model, tier, incomplete protocol and reasoning cannot settle
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4298119Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4298313Z   duration_ms: 4.166403
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4298551Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4298981Z # Subtest: duplicate decoded members, overflow and incomplete JSON never become usage
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4299867Z ok 85 - duplicate decoded members, overflow and incomplete JSON never become usage
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4300569Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4300787Z   duration_ms: 0.452936
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4301011Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4301443Z # Subtest: public CLI nonstreaming JSON request preserves all diagnostic bounds
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4302124Z ok 86 - public CLI nonstreaming JSON request preserves all diagnostic bounds
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4302533Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4302731Z   duration_ms: 5.851421
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4302966Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4303480Z # Subtest: JSON response is persisted before forwarding and unknown JSON usage poisons the next call
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4304294Z ok 87 - JSON response is persisted before forwarding and unknown JSON usage poisons the next call
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4304769Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4304962Z   duration_ms: 56.979068
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4305186Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4305685Z # Subtest: campaign policy binds selected task IDs, request allowance and transport timeout
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4306422Z ok 88 - campaign policy binds selected task IDs, request allowance and transport timeout
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4306852Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4307052Z   duration_ms: 210.176553
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4307292Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4307792Z # Subtest: physical slots persist before dispatch; secret is absent; restart and 15th request reject
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4308607Z ok 89 - physical slots persist before dispatch; secret is absent; restart and 15th request reject
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4309062Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4309261Z   duration_ms: 96.168038
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4309489Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4309992Z # Subtest: validated truncated output settles usage, fails its task and never forwards tool arguments
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4310872Z     # Subtest: sse
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4311106Z     ok 1 - sse
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4311311Z       ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4311524Z       duration_ms: 20.881342
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4311768Z       ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4311978Z     # Subtest: json
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4312192Z     ok 2 - json
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4312407Z       ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4312602Z       duration_ms: 19.969155
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4312830Z       ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4313014Z     1..2
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4313549Z ok 90 - validated truncated output settles usage, fails its task and never forwards tool arguments
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4314034Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4314224Z   duration_ms: 41.846238
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4314443Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4314858Z # Subtest: usage unknown poisons allowance, stays null, and never silently retries
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4315488Z ok 91 - usage unknown poisons allowance, stays null, and never silently retries
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4316126Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4316318Z   duration_ms: 16.225211
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4316536Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4316933Z # Subtest: last-call receipt failure prevents HTTP 200 and poisons task status
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4317587Z ok 92 - last-call receipt failure prevents HTTP 200 and poisons task status
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4318007Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4318211Z   duration_ms: 9.159652
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4318426Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4318916Z # Subtest: literal and JSON-escaped credentials are redacted from saved requests and responses
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4319701Z ok 93 - literal and JSON-escaped credentials are redacted from saved requests and responses
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4320169Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4320605Z   duration_ms: 12.420133
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4320846Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4321329Z # Subtest: real IncomingMessage abort on limit teardown preserves the limit failure
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4322085Z ok 94 - real IncomingMessage abort on limit teardown preserves the limit failure
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4322492Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4322682Z   duration_ms: 2.372001
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4322932Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4323417Z # Subtest: explicit bounded transport capacity accepts over 1 MiB without changing token limits
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4324320Z ok 95 - explicit bounded transport capacity accepts over 1 MiB without changing token limits
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4324769Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4324960Z   duration_ms: 11.670693
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4325172Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4325568Z # Subtest: response limit remains unknown usage and poisons further dispatch
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4326150Z ok 96 - response limit remains unknown usage and poisons further dispatch
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4326525Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4326718Z   duration_ms: 15.011293
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4326936Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4327404Z # Subtest: public relay rejects task prompts; CDP composer preserves full UTF8 and clicks once
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4328130Z ok 97 - public relay rejects task prompts; CDP composer preserves full UTF8 and clicks once
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4328571Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4328764Z   duration_ms: 6.459838
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4328976Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4329429Z # Subtest: composer refuses disabled UI, mismatched snapshot, or altered text before send
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4330116Z ok 98 - composer refuses disabled UI, mismatched snapshot, or altered text before send
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4330832Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4331032Z   duration_ms: 6.836481
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4331243Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4331609Z # Subtest: composer enforces byte limit without trimming or submitting
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4332150Z ok 99 - composer enforces byte limit without trimming or submitting
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4332500Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4332694Z   duration_ms: 13.883016
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.4332908Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9168662Z # Subtest: review opt-in survives both plain and stderr capture wrappers without changing limits
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9190047Z ok 100 - review opt-in survives both plain and stderr capture wrappers without changing limits
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9191516Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9192018Z   duration_ms: 298.063723
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9192481Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9193433Z # Subtest: optional capture preserves stdout, stdin, tool arguments and nonzero exit
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9194857Z ok 101 - optional capture preserves stdout, stdin, tool arguments and nonzero exit
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9195583Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9195923Z   duration_ms: 126.728299
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9196320Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9197139Z # Subtest: stderr forwarding stays byte exact while split secrets and UTF-8 are captured safely
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9198395Z ok 102 - stderr forwarding stays byte exact while split secrets and UTF-8 are captured safely
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9199219Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9199590Z   duration_ms: 130.141153
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9199969Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9201031Z # Subtest: byte cap keeps whole UTF-8 lines and continues forwarding all stderr
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9202652Z ok 103 - byte cap keeps whole UTF-8 lines and continues forwarding all stderr
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9203421Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9203836Z   duration_ms: 60.096392
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9204273Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9205126Z # Subtest: overlong unfinished line is omitted entirely, including partial secrets
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9206583Z ok 104 - overlong unfinished line is omitted entirely, including partial secrets
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9207502Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9208040Z   duration_ms: 60.200023
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9208597Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9209637Z # Subtest: diagnostic write failure is recorded without changing CLI stderr/stdout/exit
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9211251Z ok 105 - diagnostic write failure is recorded without changing CLI stderr/stdout/exit
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9212061Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9212440Z   duration_ms: 57.529254
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9212862Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9213898Z # Subtest: unwritable diagnostic location cannot turn CLI failure into success
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9219624Z ok 106 - unwritable diagnostic location cannot turn CLI failure into success
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9220589Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9221432Z   duration_ms: 56.335304
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9221832Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9222532Z # Subtest: overlong lines do not suppress subsequent bounded diagnostics
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9223545Z ok 107 - overlong lines do not suppress subsequent bounded diagnostics
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9224181Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9224553Z   duration_ms: 57.44149
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9224931Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9225565Z # Subtest: partial UTF-8 diagnostic write is discarded on failure
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9226509Z ok 108 - partial UTF-8 diagnostic write is discarded on failure
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9227145Z   ---
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9227507Z   duration_ms: 57.618861
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9227932Z   ...
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9318950Z 1..108
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9319415Z # tests 110
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9319839Z # suites 0
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9320464Z # pass 107
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9320803Z # fail 1
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9321121Z # cancelled 0
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9323120Z # skipped 2
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9323549Z # todo 0
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9324096Z # duration_ms 5526.935248
+validate	Validate exact sample selection, candidate binding and host controls	2026-10-29T13:58:32.9389659Z ##[error]Process completed with exit code 1.

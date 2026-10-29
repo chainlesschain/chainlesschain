@@ -1,0 +1,98 @@
+{
+  "schema": "chainlesschain.native-dispatch-journal/v1",
+  "repository": "chainlesschain/chainlesschain",
+  "workflow": "verify01-native-task-campaign.yml",
+  "branch": "main",
+  "sourceCommit": "8e72ccf5b30cff3f6edb8ed8c9c326e72c3c6304",
+  "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-131-easy-first-20261029-plan.json",
+  "planDigest": "sha256:0ef9a3640f8a67fb399e47e99f9bd5466f637fba0954b3fade4f9a2b2e718519",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-29-review-131.json",
+  "packageSetDigest": "sha256:120f53d500bfc9b923cc713bea8f6040c28ad92df8ba3490ce914197aa0ccd81",
+  "versions": {
+    "cli": "0.166.131",
+    "vscode": "0.37.169",
+    "jetbrains": "0.4.186",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "executionShards": [
+    {
+      "shardId": "win32-cli--verify-10",
+      "group": "win32-cli",
+      "sampleIds": [
+        "verify-10"
+      ]
+    },
+    {
+      "shardId": "linux-cli--verify-04",
+      "group": "linux-cli",
+      "sampleIds": [
+        "verify-04"
+      ]
+    },
+    {
+      "shardId": "linux-cli--verify-13",
+      "group": "linux-cli",
+      "sampleIds": [
+        "verify-13"
+      ]
+    },
+    {
+      "shardId": "darwin-jetbrains--verify-09",
+      "group": "darwin-jetbrains",
+      "sampleIds": [
+        "verify-09"
+      ]
+    },
+    {
+      "shardId": "win32-jetbrains--verify-30",
+      "group": "win32-jetbrains",
+      "sampleIds": [
+        "verify-30"
+      ]
+    },
+    {
+      "shardId": "darwin-cli--verify-07",
+      "group": "darwin-cli",
+      "sampleIds": [
+        "verify-07"
+      ]
+    },
+    {
+      "shardId": "win32-cli--verify-19",
+      "group": "win32-cli",
+      "sampleIds": [
+        "verify-19"
+      ]
+    },
+    {
+      "shardId": "darwin-vscode--verify-08",
+      "group": "darwin-vscode",
+      "sampleIds": [
+        "verify-08"
+      ]
+    },
+    {
+      "shardId": "darwin-cli--first-run-darwin-cli",
+      "group": "darwin-cli",
+      "sampleIds": [
+        "first-run-darwin-cli"
+      ]
+    },
+    {
+      "shardId": "darwin-jetbrains--first-run-darwin-jetbrains",
+      "group": "darwin-jetbrains",
+      "sampleIds": [
+        "first-run-darwin-jetbrains"
+      ]
+    },
+    {
+      "shardId": "win32-vscode--verify-11",
+      "group": "win32-vscode",
+      "sampleIds": [
+        "verify-11"
+      ]
+    }
+  ],
+  "reviewChanges": true
+}

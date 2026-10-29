@@ -310,16 +310,24 @@ test("native review opt-in is strict and observation requires a runtime event", 
   assert.throws(() => inspectNativeChangeReview("not json", true));
 });
 
-test("dispatcher review opt-in preserves legacy argv and is journal-bound", () => {
+test("dispatcher review opt-in preserves legacy argv and is journal-bound", (t) => {
   const dispatcher = new URL(
     "../scripts/verify01-dispatch-native-retest.py",
     import.meta.url,
   );
   const script = String.raw`
-import importlib.util, sys
+import contextlib, importlib.util, io, json, pathlib, subprocess, sys
+from unittest.mock import patch
+root = pathlib.Path(sys.argv[2])
+common = root / '.git'
+common.mkdir()
+def import_git(args, **kwargs):
+    assert args == ['git', 'rev-parse', '--path-format=absolute', '--git-common-dir']
+    return subprocess.CompletedProcess(args, 0, str(common).encode(), b'')
 spec = importlib.util.spec_from_file_location('review_dispatch', sys.argv[1])
 m = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(m)
+with patch('subprocess.run', side_effect=import_git):
+    spec.loader.exec_module(m)
 context = {'branch': 'review-test', 'packageSetPath': 'exact.json'}
 shard = {'group': 'linux-cli', 'sampleIds': ['verify-09']}
 base = m.dispatch_args(context, shard)
@@ -332,20 +340,104 @@ except RuntimeError:
     pass
 else:
     raise AssertionError('string flag accepted')
+
+def forbidden(*args, **kwargs):
+    raise AssertionError('unexpected external command or network access')
+
+def rejected(call, message):
+    try:
+        call()
+    except RuntimeError as error:
+        assert message in str(error), str(error)
+    else:
+        raise AssertionError('expected rejection: ' + message)
+
+# Execute production main/execute/journal/resolve logic against only temporary
+# files. The fixture supplies committed evidence and GitHub observations; no
+# real command, network request, old journal or model is accessible.
+with patch('subprocess.run', side_effect=forbidden), patch('urllib.request.urlopen', side_effect=forbidden):
+    for review in (False, True):
+        m.TREE = root / str(review)
+        m.TREE.mkdir()
+        m.WORK = m.TREE / '.work'
+        plan = m.TREE / 'plan.json'
+        plan.write_bytes(b'{"fixture":true}')
+        bound = {**context, 'planPath': 'plan.json', 'planDigest': m.digest(plan.read_bytes()),
+                 'sourceCommit': 'original-commit', 'executionShards': [{**shard, 'shardId': 'one'}]}
+        expected = {**bound, **({'reviewChanges': True} if review else {})}
+        directory = m.WORK / 'next-package-dispatch' / bound['planDigest'].split(':')[1]
+        events = []
+        requests = []
+        resolutions = []
+        def load(plan_file, resolution_context=None):
+            assert plan_file == 'plan.json'
+            if resolution_context is not None:
+                assert {k: v for k, v in resolution_context.items() if k != 'reviewChanges'} == bound
+                resolutions.append(resolution_context['sourceCommit'])
+            return dict(bound), {'fixture': True}
+        def remote(c):
+            assert c == expected
+            events.append('remote')
+        def public(manifest):
+            assert manifest == {'fixture': True}
+            events.append('public')
+        def runs(c):
+            assert c == expected
+            events.append('runs')
+            return []
+        def dispatch(args):
+            # The opt-in must already be durably bound before any dispatch.
+            assert json.loads((directory / 'context.json').read_bytes()) == expected
+            intent = json.loads((directory / 'one.intent.json').read_bytes())
+            assert intent['binding'] == expected
+            assert intent['shard'] == bound['executionShards'][0]
+            assert args == base + (['-f', 'review_changes=true'] if review else [])
+            assert events == ['remote', 'public', 'remote', 'runs', 'remote']
+            requests.append(args)
+            return subprocess.CompletedProcess(args, 1, b'', b'')
+        real_execute = m.execute
+        def execute(c, d, **kwargs):
+            return real_execute(c, d, dispatch=dispatch, **kwargs)
+        def invoke(*flags):
+            with patch.object(sys, 'argv', ['dispatcher', '--plan', 'plan.json', *flags]), contextlib.redirect_stdout(io.StringIO()) as output:
+                m.main()
+            return json.loads(output.getvalue())
+        with patch.object(m, 'load_context', side_effect=load), patch.object(m, 'assert_remote_head', side_effect=remote), patch.object(m, 'verify_public', side_effect=public), patch.object(m, 'list_runs', side_effect=runs), patch.object(m, 'execute', side_effect=execute):
+            flags = ['--review-changes'] if review else []
+            rejected(lambda: invoke('--submit', *flags), 'Dispatch returned failure')
+            assert len(requests) == 1
+            original = (directory / 'context.json').read_bytes()
+            intent_bytes = (directory / 'one.intent.json').read_bytes()
+            # Flipping opt-in must fail before public checks or another request.
+            events.clear()
+            opposite = [] if review else ['--review-changes']
+            rejected(lambda: invoke('--submit', *opposite), 'Existing journal belongs')
+            assert events == [] and len(requests) == 1
+            rejected(lambda: invoke('--submit', *flags), 'Unresolved intent blocks submit')
+            assert len(requests) == 1
+            # Resolve without repeating the flag reuses the original evidence,
+            # even though the current branch could have advanced. It never
+            # checks current remote HEAD, verifies public packages or dispatches.
+            with patch.object(m, 'assert_remote_head', side_effect=forbidden), patch.object(m, 'verify_public', side_effect=forbidden), patch.object(m, 'list_runs', side_effect=lambda c: [{'id': 42}] if c == expected else forbidden()):
+                assert invoke('--resolve')['status'] == 'RESOLVED'
+            assert resolutions == ['original-commit']
+            assert len(requests) == 1
+            assert (directory / 'context.json').read_bytes() == original
+            assert (directory / 'one.intent.json').read_bytes() == intent_bytes
+            result = json.loads((directory / 'one.resolved.json').read_bytes())
+            assert result['sourceCommit'] == 'original-commit' and result['runId'] == '42'
+            # A forged non-boolean mode cannot be inherited by resolution.
+            (directory / 'context.json').write_text(json.dumps({**expected, 'reviewChanges': 'true'}))
+            rejected(lambda: invoke('--resolve'), 'Resolution journal context differs')
 print('review dispatcher argv passed')
 `;
   const { fileURLToPath } = createRequire(import.meta.url)("node:url");
   const output = execFileSync(
     process.platform === "win32" ? "python" : "python3",
-    ["-B", "-c", script, fileURLToPath(dispatcher)],
+    ["-B", "-c", script, fileURLToPath(dispatcher), temporary(t)],
     { encoding: "utf8", timeout: 30000 },
   );
   assert.match(output, /review dispatcher argv passed/);
-  const source = fs.readFileSync(dispatcher, "utf8");
-  assert.ok(
-    source.indexOf("context['reviewChanges'] = True") <
-      source.indexOf("directory = WORK / 'next-package-dispatch'"),
-  );
 });
 test("VSCode prompt preserves full UTF8 content up to 1 MiB and first-run deadline up to 30 minutes", () => {
   const root = path.resolve(os.tmpdir(), "cc-native-config");

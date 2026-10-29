@@ -1,0 +1,83 @@
+{
+  "schema": "chainlesschain.native-preexecution-terminal/v1",
+  "outcome": "VALIDATION_FAILED_BEFORE_GENERATION",
+  "sourceCommit": "8e72ccf5b30cff3f6edb8ed8c9c326e72c3c6304",
+  "runId": "40886343743",
+  "runAttempt": 1,
+  "shardId": "win32-cli--verify-10",
+  "group": "win32-cli",
+  "sampleIds": [
+    "verify-10"
+  ],
+  "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-131-easy-first-20261029-plan.json",
+  "planDigest": "sha256:0ef9a3640f8a67fb399e47e99f9bd5466f637fba0954b3fade4f9a2b2e718519",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-29-review-131.json",
+  "packageSetDigest": "sha256:120f53d500bfc9b923cc713bea8f6040c28ad92df8ba3490ce914197aa0ccd81",
+  "successorPlanPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-131-preflight-repair-20261029-plan.json",
+  "generationExecution": "NOT_STARTED",
+  "acceptanceExecution": "NOT_STARTED",
+  "billingAssessed": false,
+  "liabilitiesPreserved": true,
+  "evidence": {
+    "plan": {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/plan.json",
+      "digest": "sha256:0ef9a3640f8a67fb399e47e99f9bd5466f637fba0954b3fade4f9a2b2e718519",
+      "bytes": 8923
+    },
+    "packageSet": {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/packageSet.json",
+      "digest": "sha256:120f53d500bfc9b923cc713bea8f6040c28ad92df8ba3490ce914197aa0ccd81",
+      "bytes": 1606
+    },
+    "context": {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/context.json",
+      "digest": "sha256:bd0f235282e66bc3cd4446b46396bbbcb2d9646901ef66f448507069af091d3e",
+      "bytes": 2432
+    },
+    "intent": {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/intent.json",
+      "digest": "sha256:b19deb1be93a0649259794d3be6bd91a17a7cee658fc4bf2350b51f0ebef6419",
+      "bytes": 2842
+    },
+    "request": {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/request.json",
+      "digest": "sha256:703c543e8899697dc590ad0a8c7b74e5e5f174d0c7ed89e00f27b0387f256154",
+      "bytes": 134
+    },
+    "resolved": {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/resolved.json",
+      "digest": "sha256:b74c9e9e1ddfd01681bbc2a3f0c89437880774f228076e08173346c1d533a2fd",
+      "bytes": 152
+    },
+    "ledger": {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/ledger.json",
+      "digest": "sha256:52125b9fa17811f52bb80ce483f5998b77cc652a6ed0dde405cab448b7a718fa",
+      "bytes": 5059
+    },
+    "run": {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/run.json",
+      "digest": "sha256:7105c328b138ad77f4b2fe8f81f57c1327924306f266c3acf3097343bb27ca4b",
+      "bytes": 13206
+    },
+    "jobs": {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/jobs.json",
+      "digest": "sha256:71d19daf6533de1a2c90345fdfb8a1b363d0aec33410eb821112ab277caaadef",
+      "bytes": 4479
+    },
+    "artifacts": {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/artifacts.json",
+      "digest": "sha256:244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c",
+      "bytes": 32
+    },
+    "workflow": {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/workflow.yml",
+      "digest": "sha256:650a30daa24f3962fcbfeb15b2b9fd8ac54f85dc5c61926d8f0445cbdaca5a78",
+      "bytes": 16489
+    },
+    "log": {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/log.log",
+      "digest": "sha256:45e0c6247b1c9552aab0338fdeb8f88782d914df65fde560c230ba9dc07daba8",
+      "bytes": 88341
+    }
+  }
+}

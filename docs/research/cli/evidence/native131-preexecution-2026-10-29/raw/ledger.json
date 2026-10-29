@@ -1,0 +1,177 @@
+{
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-29-review-131.json",
+  "packageSetDigest": "sha256:120f53d500bfc9b923cc713bea8f6040c28ad92df8ba3490ce914197aa0ccd81",
+  "versions": {
+    "cli": "0.166.131",
+    "vscode": "0.37.169",
+    "jetbrains": "0.4.186",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "frozenProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "ledgerPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-131-easy-first-20261029.json",
+  "archivePrefix": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-131-easy-first-20261029",
+  "plannedNewSamples": 11,
+  "reusedAcceptedSampleIds": [
+    "first-run-darwin-vscode",
+    "first-run-linux-cli",
+    "first-run-linux-jetbrains",
+    "first-run-linux-vscode",
+    "first-run-win32-cli",
+    "first-run-win32-jetbrains",
+    "first-run-win32-vscode",
+    "verify-01",
+    "verify-02",
+    "verify-03",
+    "verify-05",
+    "verify-06",
+    "verify-12",
+    "verify-14",
+    "verify-15",
+    "verify-16",
+    "verify-17",
+    "verify-18",
+    "verify-20",
+    "verify-21",
+    "verify-22",
+    "verify-23",
+    "verify-24",
+    "verify-25",
+    "verify-26",
+    "verify-27",
+    "verify-28",
+    "verify-29",
+    "verify-31",
+    "verify-32",
+    "verify-33",
+    "verify-34",
+    "verify-35",
+    "verify-36"
+  ],
+  "schema": "chainlesschain.native-package-retest-round/v1",
+  "billingAssessed": false,
+  "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-131-easy-first-20261029-plan.json",
+  "planDigest": "sha256:0ef9a3640f8a67fb399e47e99f9bd5466f637fba0954b3fade4f9a2b2e718519",
+  "status": "IN_PROGRESS",
+  "runs": [
+    {
+      "shardId": "win32-cli--verify-10",
+      "group": "win32-cli",
+      "runId": "40886343743",
+      "sourceCommit": "8e72ccf5b30cff3f6edb8ed8c9c326e72c3c6304",
+      "selectedSampleIds": [
+        "verify-10"
+      ],
+      "status": "IN_PROGRESS",
+      "remoteState": {
+        "path": "next-package-131-easy-first-20261029/40886343743/objects/cd7b0b884983319f4ce9c8d00abbc1079d0db44abc21a5324673d32426f63ece.gz",
+        "originalDigest": "sha256:cd7b0b884983319f4ce9c8d00abbc1079d0db44abc21a5324673d32426f63ece",
+        "storedDigest": "sha256:f923a275571c075d2509a8357eabb2bdcfe605bc8f737a4378d859e393348879",
+        "originalBytes": 3678
+      },
+      "remoteStatus": "completed",
+      "conclusion": "failure",
+      "activeJobs": [],
+      "evidence": []
+    }
+  ],
+  "samples": [
+    {
+      "sampleId": "verify-10",
+      "taskId": "verify-10",
+      "kind": "task",
+      "group": "win32-cli",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-04",
+      "taskId": "verify-04",
+      "kind": "task",
+      "group": "linux-cli",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-13",
+      "taskId": "verify-13",
+      "kind": "task",
+      "group": "linux-cli",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-09",
+      "taskId": "verify-09",
+      "kind": "task",
+      "group": "darwin-jetbrains",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-30",
+      "taskId": "verify-30",
+      "kind": "task",
+      "group": "win32-jetbrains",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-07",
+      "taskId": "verify-07",
+      "kind": "task",
+      "group": "darwin-cli",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-19",
+      "taskId": "verify-19",
+      "kind": "task",
+      "group": "win32-cli",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-08",
+      "taskId": "verify-08",
+      "kind": "task",
+      "group": "darwin-vscode",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "first-run-darwin-cli",
+      "taskId": "verify-07",
+      "kind": "first-run",
+      "group": "darwin-cli",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "first-run-darwin-jetbrains",
+      "taskId": "verify-09",
+      "kind": "first-run",
+      "group": "darwin-jetbrains",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-11",
+      "taskId": "verify-11",
+      "kind": "task",
+      "group": "win32-vscode",
+      "status": "PENDING_DISPATCH",
+      "generationObserved": false
+    }
+  ],
+  "partialDispatch": true,
+  "counts": {
+    "generationRecordsCollected": 0,
+    "acceptanceRecordsCollected": 0,
+    "candidateAcceptancePassed": 0,
+    "endToEndPassed": 0,
+    "reusedAcceptedDeliverables": 34,
+    "cumulativeAcceptedDeliverables": 34
+  }
+}

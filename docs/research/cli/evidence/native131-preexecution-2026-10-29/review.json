@@ -1,0 +1,287 @@
+{
+  "schema": "chainlesschain.native131-preexecution-review/v1",
+  "observedAt": "2026-10-29T14:38:17.462Z",
+  "runId": "40886343743",
+  "sourceCommit": "8e72ccf5b30cff3f6edb8ed8c9c326e72c3c6304",
+  "publicRuntimeSource": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+  "publicVersions": {
+    "cli": "0.166.131",
+    "vscode": "0.37.169",
+    "jetbrains": "0.4.186",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "outcome": "VALIDATION_FAILED_BEFORE_GENERATION",
+  "generationExecution": "NOT_STARTED",
+  "acceptanceExecution": "NOT_STARTED",
+  "billingAssessed": false,
+  "liabilitiesPreserved": true,
+  "certificatePath": "docs/research/cli/evidence/native131-preexecution-2026-10-29/terminal.json",
+  "certificateDigest": "sha256:1337173028b704ad9ce262e47ace9631c4220005e66239efbba245f36805df70",
+  "originalPlanPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-131-easy-first-20261029-plan.json",
+  "originalPlanDigest": "sha256:0ef9a3640f8a67fb399e47e99f9bd5466f637fba0954b3fade4f9a2b2e718519",
+  "originalLedgerPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-131-easy-first-20261029.json",
+  "originalLedgerStatus": "IN_PROGRESS",
+  "successorPlanPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-131-preflight-repair-20261029-plan.json",
+  "successorPlanDigest": "sha256:acfae4ee045f0b15b5bb14fdf8da6a8f655e733f8f4077b7ad8226583a89286a",
+  "successorStatus": "PREPARED_NOT_DISPATCHED",
+  "localPreflight": [
+    {
+      "label": "node2212",
+      "version": "v22.12.0",
+      "exitCode": 1,
+      "source": "8e72ccf5b30cff3f6edb8ed8c9c326e72c3c6304",
+      "dirty": [
+        "packages/cli/test-node/verify01-native-task-campaign.node-test.mjs"
+      ],
+      "sourceStable": true,
+      "summary": [
+        "# tests 110",
+        "# suites 0",
+        "# pass 100",
+        "# fail 10",
+        "# cancelled 0",
+        "# skipped 0",
+        "# todo 0",
+        "# duration_ms 15003.3904"
+      ]
+    },
+    {
+      "label": "node2212-escalated",
+      "version": "v22.12.0",
+      "exitCode": 0,
+      "source": "8e72ccf5b30cff3f6edb8ed8c9c326e72c3c6304",
+      "dirty": [
+        "packages/cli/test-node/verify01-native-task-campaign.node-test.mjs"
+      ],
+      "sourceStable": true,
+      "summary": [
+        "# tests 110",
+        "# suites 0",
+        "# pass 110",
+        "# fail 0",
+        "# cancelled 0",
+        "# skipped 0",
+        "# todo 0",
+        "# duration_ms 9670.4284"
+      ]
+    },
+    {
+      "label": "node2222",
+      "version": "v22.22.2",
+      "exitCode": 0,
+      "source": "8e72ccf5b30cff3f6edb8ed8c9c326e72c3c6304",
+      "dirty": [
+        "packages/cli/test-node/verify01-native-task-campaign.node-test.mjs"
+      ],
+      "sourceStable": true,
+      "summary": [
+        "# tests 110",
+        "# suites 0",
+        "# pass 110",
+        "# fail 0",
+        "# cancelled 0",
+        "# skipped 0",
+        "# todo 0",
+        "# duration_ms 16511.1211"
+      ]
+    }
+  ],
+  "offlineTerminalVerifier": {
+    "tests": 37,
+    "passed": 37,
+    "failed": 0,
+    "skipped": 0
+  },
+  "ciChange": "Add the unchanged 12-file native campaign preflight suite to CLI CI, without provider execution. Exact new-source CI is tracked after this commit; local results do not stand in for it.",
+  "taskAcceptance": {
+    "accepted": 34,
+    "total": 45,
+    "remaining": 11,
+    "newAccepted": 0,
+    "generationRecords": 0,
+    "acceptanceRecords": 0
+  },
+  "preparationRecovery": "The original plan constructor created the default successor file before an exclusive second write was refused. Its exact full default object was verified before finalizing priority and certificate metadata. No dispatch or journal was created by plan preparation.",
+  "boundary": "The terminal certificate proves only this exact pre-execution validation failure, not a model failure, successful task, reconciled invoice, or general retry permission. The original journal and IN_PROGRESS delivery ledger are retained. The successor remains the same public package set and original task/budget contracts. Fixed certificate/plan digests, a single claim keyed by original run/attempt/source, parent-wrapper handoff, complete input/code hashes and fresh remote checks are required by the local operator path. These guards prevent incomplete or accidental handoffs; they are not isolation against an operator with the same filesystem and credential privileges. No live provider request has started in this new plan.",
+  "artifacts": [
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/local-preflight-node2212.json.gz",
+      "source": ".work/native131-easy-first-20261029/local-preflight-node2212.json",
+      "encoding": "gzip",
+      "bytes": 1343,
+      "digest": "sha256:1bb1c169aad2392bf404cd82340dbf8a48c3f25cc340c45d43139230b373667c",
+      "originalBytes": 5617,
+      "originalDigest": "sha256:fcae20bba36f4104b5377bccb04dfae596eb9e2d77ee7ec22f9e6b1b6608560b"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/local-preflight-node2212.stdout.log.gz",
+      "source": ".work/native131-easy-first-20261029/local-preflight-node2212.stdout.log",
+      "encoding": "gzip",
+      "bytes": 6520,
+      "digest": "sha256:8e78976a5b35fbad9765a94c8621cbb55c7a56e5854e1c111982a4114498e141",
+      "originalBytes": 32575,
+      "originalDigest": "sha256:6e3dc43ad6d3ddf3c1e20878e2ceeaa234283d908abea9c3635a67d4f099ded4"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/local-preflight-node2212.stderr.log.gz",
+      "source": ".work/native131-easy-first-20261029/local-preflight-node2212.stderr.log",
+      "encoding": "gzip",
+      "bytes": 20,
+      "digest": "sha256:9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/local-preflight-node2212-escalated.json.gz",
+      "source": ".work/native131-easy-first-20261029/local-preflight-node2212-escalated.json",
+      "encoding": "gzip",
+      "bytes": 1338,
+      "digest": "sha256:60cbd5c580fd0ec8405c9210b33d1f78facd90c3df3bd2b5707ca837fe56adf2",
+      "originalBytes": 5615,
+      "originalDigest": "sha256:8c331fb8a2fe02e326508a86b7ffa4df64a8b3b1151d0f94a3f2fe4ed487215f"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/local-preflight-node2212-escalated.stdout.log.gz",
+      "source": ".work/native131-easy-first-20261029/local-preflight-node2212-escalated.stdout.log",
+      "encoding": "gzip",
+      "bytes": 5105,
+      "digest": "sha256:fa6fbed6a3c2d56d3bf487921df248fbe0c743b8325aaff415791d2d1741290b",
+      "originalBytes": 21917,
+      "originalDigest": "sha256:c80f71ccd8eb87cbf63c79399f33bbca793f5ac0e8ca39f46d7fd87e297152f7"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/local-preflight-node2212-escalated.stderr.log.gz",
+      "source": ".work/native131-easy-first-20261029/local-preflight-node2212-escalated.stderr.log",
+      "encoding": "gzip",
+      "bytes": 20,
+      "digest": "sha256:9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/local-preflight-node2222.json.gz",
+      "source": ".work/native131-easy-first-20261029/local-preflight-node2222.json",
+      "encoding": "gzip",
+      "bytes": 1307,
+      "digest": "sha256:089f4e02e5bc01dec2e7ad80d4e770ced78bf1f06a8b2cd761ba584ea33a6068",
+      "originalBytes": 5571,
+      "originalDigest": "sha256:00526a37cac9264480353afa834bb430f567b6ef1190687e5ad9f158e24f9c13"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/local-preflight-node2222.stdout.log.gz",
+      "source": ".work/native131-easy-first-20261029/local-preflight-node2222.stdout.log",
+      "encoding": "gzip",
+      "bytes": 5247,
+      "digest": "sha256:788235d019aacd5f1a4dd38502f57a1c147bcbffb4669640db68bb020311ab72",
+      "originalBytes": 23927,
+      "originalDigest": "sha256:be57a41bf10c55f9118abbd72252b517b3fa5eac339dc72f0b4f92521c0cda56"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/local-preflight-node2222.stderr.log.gz",
+      "source": ".work/native131-easy-first-20261029/local-preflight-node2222.stderr.log",
+      "encoding": "gzip",
+      "bytes": 20,
+      "digest": "sha256:9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/terminal-verifier-tests.log.gz",
+      "source": ".work/native131-easy-first-20261029/terminal-verifier-tests.log",
+      "encoding": "gzip",
+      "bytes": 1324,
+      "digest": "sha256:62dceb41c022304f46943aeb170827e3390643a46e6e91fff82402f0d8f93fc3",
+      "originalBytes": 11122,
+      "originalDigest": "sha256:45ff64a1a8836ba9ea8f17c1b88f19b91496c8eeae543afa140f91850f3ae988"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/preexecution-terminal.test.mjs.gz",
+      "source": ".work/native131-easy-first-20261029/preexecution-terminal.test.mjs",
+      "encoding": "gzip",
+      "bytes": 3013,
+      "digest": "sha256:84f513a9aa42e59f4f654641a16ff8f8949b6a69029688e399827621c0d744c5",
+      "originalBytes": 10411,
+      "originalDigest": "sha256:c49939f61ec77754fee5980120fe2fda8e595ea4cab834d933965c9c4da75361"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/admit-repaired.mjs.gz",
+      "source": ".work/native131-easy-first-20261029/admit-repaired.mjs",
+      "encoding": "gzip",
+      "bytes": 10957,
+      "digest": "sha256:330093acf2c018ea6e002aec271aa3f9e228f8b9057d92003785067ef37fcc73",
+      "originalBytes": 35485,
+      "originalDigest": "sha256:91745e25643807d89abaa3b76201f74ac344bac4b00a9cf2af9172d809c0152a"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/dispatch-once-repaired.py.gz",
+      "source": ".work/native131-easy-first-20261029/dispatch-once-repaired.py",
+      "encoding": "gzip",
+      "bytes": 5238,
+      "digest": "sha256:8ae174432dd0b5f645e1d5d80bb076cb1bd5bc78bfbf8cb5b3503be00b361006",
+      "originalBytes": 16478,
+      "originalDigest": "sha256:1b6d236ab2dab801ac5deda16bbc76d4379f01a436acd963cc46e3f5bda04c55"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/verify-terminal-current.mjs.gz",
+      "source": ".work/native131-easy-first-20261029/verify-terminal-current.mjs",
+      "encoding": "gzip",
+      "bytes": 1237,
+      "digest": "sha256:717ef4427a98d30d9ab188455cffd6dc1d417724da13cde0a00b0a2606a706dc",
+      "originalBytes": 2928,
+      "originalDigest": "sha256:fc8ecc6f2cb716a0cbcc8cea12d256f3023c94792c35d3afe2db9334c70139cb"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/preflight-repair-plan-only.json.gz",
+      "source": ".work/native131-easy-first-20261029/preflight-repair-plan-only.json",
+      "encoding": "gzip",
+      "bytes": 2057,
+      "digest": "sha256:32e35b45f47bbcfe423532e622c0066cdd93013239310c7b70350f5bbdff4dd6",
+      "originalBytes": 8040,
+      "originalDigest": "sha256:7a22d1b920e96b6f5bb05417ed8d30cadaa76ef727be4030211a9a056112112c"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/dispatch-once-repaired.test.py.gz",
+      "source": ".work/native131-easy-first-20261029/dispatch-once-repaired.test.py",
+      "encoding": "gzip",
+      "bytes": 3282,
+      "digest": "sha256:6f152627f1d1f5ec269dc9723383a2fe2806365b1d4ca0fc9d01d4d957b47711",
+      "originalBytes": 12185,
+      "originalDigest": "sha256:44a967d0f24552ec35d735c020aeae4f4c51a2ae77c070b69ba27b735bc80c5a"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/dispatch-once-repaired-tests.log.gz",
+      "source": ".work/native131-easy-first-20261029/dispatch-once-repaired-tests.log",
+      "encoding": "gzip",
+      "bytes": 327,
+      "digest": "sha256:8cc2df12de79d8c8dbc65cb264423ae4ec7046bc4a8d0d616e19f0dc1f6ed6c0",
+      "originalBytes": 902,
+      "originalDigest": "sha256:b641b0be53b6bec2a33796c36eee0e9917055a5dbedda593fd6c1b8dff3a1fe5"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/fresh-2026-10-29T14-20-04-018Z.json.gz",
+      "source": ".work/native131-easy-first-20261029/preflight-fresh/2026-10-29T14-20-04-018Z.json",
+      "encoding": "gzip",
+      "bytes": 2715,
+      "digest": "sha256:8caaa8f64757cc520dc52680de3e4b419d0672d26ea3eee44e8d94a3580a92c5",
+      "originalBytes": 36440,
+      "originalDigest": "sha256:0e4cae149862a9cc2d56ae31944bb0c285650fd03e3086d9ebaefa97fcfc79af"
+    },
+    {
+      "path": "docs/research/cli/evidence/native131-preexecution-2026-10-29/raw/initial-invocation.json.gz",
+      "source": ".work/native131-easy-first-20261029/attempts/0ef9a3640f8a67fb399e47e99f9bd5466f637fba0954b3fade4f9a2b2e718519--win32-cli--verify-10.invocation.json",
+      "encoding": "gzip",
+      "bytes": 166,
+      "digest": "sha256:151dbc0de76c5d57985baea04fa31ab4d005003981a113cdc7d81d678431d1b6",
+      "originalBytes": 183,
+      "originalDigest": "sha256:ef9ba374752443eed71afdf887397ef4fe0c8c3c344897f6d919f8c9c820ba41"
+    }
+  ],
+  "offlineHandoffTests": {
+    "tests": 16,
+    "passed": 16,
+    "failed": 0,
+    "processExitCode": 0,
+    "boundary": "Offline temporary fixtures; no actual funding, journal writes, or network. Saved PowerShell transcript includes its stderr formatting and is not claimed to be byte-exact Python stderr."
+  }
+}
