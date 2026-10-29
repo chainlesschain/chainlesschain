@@ -1,0 +1,3 @@
+artifacts=C:\code\chainlesschain\.work\memory-query-bundle\canonical-allocation-byee2x
+phase=fixture-and-parity
+{"status":"parity-passed","checks":43332,"invalidChecks":56}

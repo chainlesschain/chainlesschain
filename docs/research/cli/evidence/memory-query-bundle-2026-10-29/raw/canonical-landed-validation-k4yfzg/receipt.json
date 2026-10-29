@@ -1,0 +1,42 @@
+{
+  "node": "v22.22.2",
+  "platform": "win32",
+  "before": {
+    "packages/context-memory-kernel/lib/canonical.js": "3684851f7a89cf4e992134df914b0702a3dbbe93376c0623ab89333627f9a079",
+    "packages/context-memory-kernel/test/canonical-allocation.test.js": "9dee3793dbc1e46f08040e821b52da023f0a0023b8306dc73f845d4b6f647b95"
+  },
+  "after": {
+    "packages/context-memory-kernel/lib/canonical.js": "3684851f7a89cf4e992134df914b0702a3dbbe93376c0623ab89333627f9a079",
+    "packages/context-memory-kernel/test/canonical-allocation.test.js": "9dee3793dbc1e46f08040e821b52da023f0a0023b8306dc73f845d4b6f647b95"
+  },
+  "publicCanonicalizeUnchangedFromE7": true,
+  "commands": [
+    {
+      "label": "npm-test",
+      "args": [
+        "C:\\nvm4w\\nodejs\\node_modules\\npm\\bin\\npm-cli.js",
+        "test"
+      ],
+      "cwd": "C:\\code\\chainlesschain\\packages\\context-memory-kernel",
+      "startedAt": "2026-10-29T02:07:29.600Z",
+      "endedAt": "2026-10-29T02:07:37.013Z",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "logSha256": "240765dcc3b2c9a627e57fc27fe9375f4385c0626f4eeb45261cee8d58a721c2"
+    },
+    {
+      "label": "e7-production-parity",
+      "args": [
+        "C:\\code\\chainlesschain\\.work\\memory-query-bundle\\canonical-landed-parity-20261029.mjs"
+      ],
+      "cwd": "C:\\code\\chainlesschain",
+      "startedAt": "2026-10-29T02:07:37.014Z",
+      "endedAt": "2026-10-29T02:07:41.346Z",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "logSha256": "9ece7a48a66431ba8d32dff2446c1d6167471603be2047fff3617af60989cfca"
+    }
+  ]
+}

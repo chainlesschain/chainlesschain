@@ -1,0 +1,5 @@
+
+--- stderr ---
+Memory Stop 1000: {"validate-disk":{"acknowledged":11,"targetMet":true,"deliveryP95":34.481},"verified-memory":{"acknowledged":11,"targetMet":true,"deliveryP95":22.221}}
+Memory Stop 10000: {"validate-disk":{"acknowledged":11,"targetMet":true,"deliveryP95":28.459},"verified-memory":{"acknowledged":11,"targetMet":true,"deliveryP95":26.86}}
+Memory Stop 100000: {"validate-disk":{"acknowledged":11,"targetMet":true,"deliveryP95":40.411},"verified-memory":{"acknowledged":11,"targetMet":true,"deliveryP95":29.632}}

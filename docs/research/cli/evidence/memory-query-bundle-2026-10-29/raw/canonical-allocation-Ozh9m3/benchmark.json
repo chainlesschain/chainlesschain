@@ -1,0 +1,595 @@
+{
+  "scope": "Single-process warm microbenchmark; 3000 records + 3000 events + whole state per invocation; 7 rotated rounds; GC outside measured sections. Not an SLO or release result.",
+  "node": "v22.22.2",
+  "sink": 0,
+  "validationSha256": "ec531fd3322dac9400a88a5712ca81051bf2ad8c00289ebd157d354b4c5cc501",
+  "summaries": [
+    {
+      "method": "canonicalJson",
+      "variant": "oracle",
+      "medianElapsedMs": 153.3051999999998,
+      "medianCpuUserMs": 172,
+      "medianCpuSystemMs": 0,
+      "minElapsedMs": 145.60080000000016,
+      "maxElapsedMs": 168.47860000000037
+    },
+    {
+      "method": "canonicalJson",
+      "variant": "direct",
+      "medianElapsedMs": 197.4969000000001,
+      "medianCpuUserMs": 203,
+      "medianCpuSystemMs": 0,
+      "minElapsedMs": 184.28840000000037,
+      "maxElapsedMs": 227.3756999999996
+    },
+    {
+      "method": "canonicalJson",
+      "variant": "tree",
+      "medianElapsedMs": 116.80479999999989,
+      "medianCpuUserMs": 141,
+      "medianCpuSystemMs": 0,
+      "minElapsedMs": 110.0023000000001,
+      "maxElapsedMs": 133.40369999999984
+    },
+    {
+      "method": "canonicalDigest",
+      "variant": "oracle",
+      "medianElapsedMs": 206.95370000000003,
+      "medianCpuUserMs": 250,
+      "medianCpuSystemMs": 0,
+      "minElapsedMs": 200.05519999999888,
+      "maxElapsedMs": 312.04379999999946
+    },
+    {
+      "method": "canonicalDigest",
+      "variant": "direct",
+      "medianElapsedMs": 249.98259999999937,
+      "medianCpuUserMs": 282,
+      "medianCpuSystemMs": 0,
+      "minElapsedMs": 241.41719999999987,
+      "maxElapsedMs": 399.16779999999926
+    },
+    {
+      "method": "canonicalDigest",
+      "variant": "tree",
+      "medianElapsedMs": 175.19530000000032,
+      "medianCpuUserMs": 188,
+      "medianCpuSystemMs": 0,
+      "minElapsedMs": 158.00909999999976,
+      "maxElapsedMs": 253.95739999999932
+    },
+    {
+      "method": "cloneCanonical",
+      "variant": "oracle",
+      "medianElapsedMs": 209.5689999999995,
+      "medianCpuUserMs": 235,
+      "medianCpuSystemMs": 0,
+      "minElapsedMs": 192.31880000000092,
+      "maxElapsedMs": 357.759
+    },
+    {
+      "method": "cloneCanonical",
+      "variant": "direct",
+      "medianElapsedMs": 253.6350999999995,
+      "medianCpuUserMs": 265,
+      "medianCpuSystemMs": 0,
+      "minElapsedMs": 234.3788000000004,
+      "maxElapsedMs": 363.7926000000007
+    },
+    {
+      "method": "cloneCanonical",
+      "variant": "tree",
+      "medianElapsedMs": 155.52819999999883,
+      "medianCpuUserMs": 156,
+      "medianCpuSystemMs": 0,
+      "minElapsedMs": 150.02460000000065,
+      "maxElapsedMs": 200.20400000000154
+    }
+  ],
+  "samples": [
+    {
+      "round": 0,
+      "method": "canonicalJson",
+      "variant": "oracle",
+      "elapsedMs": 160.2774000000004,
+      "cpuUserMs": 172,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 0,
+      "method": "canonicalJson",
+      "variant": "direct",
+      "elapsedMs": 189.9112,
+      "cpuUserMs": 203,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 0,
+      "method": "canonicalJson",
+      "variant": "tree",
+      "elapsedMs": 110.0023000000001,
+      "cpuUserMs": 172,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 0,
+      "method": "canonicalDigest",
+      "variant": "oracle",
+      "elapsedMs": 200.8526999999999,
+      "cpuUserMs": 266,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 0,
+      "method": "canonicalDigest",
+      "variant": "direct",
+      "elapsedMs": 248.79449999999997,
+      "cpuUserMs": 343,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 0,
+      "method": "canonicalDigest",
+      "variant": "tree",
+      "elapsedMs": 158.00909999999976,
+      "cpuUserMs": 157,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 0,
+      "method": "cloneCanonical",
+      "variant": "oracle",
+      "elapsedMs": 192.44759999999997,
+      "cpuUserMs": 235,
+      "cpuSystemMs": 16
+    },
+    {
+      "round": 0,
+      "method": "cloneCanonical",
+      "variant": "direct",
+      "elapsedMs": 255.5866000000001,
+      "cpuUserMs": 265,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 0,
+      "method": "cloneCanonical",
+      "variant": "tree",
+      "elapsedMs": 154.36450000000013,
+      "cpuUserMs": 156,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 1,
+      "method": "canonicalJson",
+      "variant": "direct",
+      "elapsedMs": 184.28840000000037,
+      "cpuUserMs": 187,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 1,
+      "method": "canonicalJson",
+      "variant": "tree",
+      "elapsedMs": 118.34469999999965,
+      "cpuUserMs": 110,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 1,
+      "method": "canonicalJson",
+      "variant": "oracle",
+      "elapsedMs": 150.71810000000005,
+      "cpuUserMs": 156,
+      "cpuSystemMs": 15
+    },
+    {
+      "round": 1,
+      "method": "canonicalDigest",
+      "variant": "direct",
+      "elapsedMs": 249.98259999999937,
+      "cpuUserMs": 281,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 1,
+      "method": "canonicalDigest",
+      "variant": "tree",
+      "elapsedMs": 185.0015000000003,
+      "cpuUserMs": 172,
+      "cpuSystemMs": 16
+    },
+    {
+      "round": 1,
+      "method": "canonicalDigest",
+      "variant": "oracle",
+      "elapsedMs": 204.13630000000012,
+      "cpuUserMs": 250,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 1,
+      "method": "cloneCanonical",
+      "variant": "direct",
+      "elapsedMs": 238.95940000000064,
+      "cpuUserMs": 250,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 1,
+      "method": "cloneCanonical",
+      "variant": "tree",
+      "elapsedMs": 152.21030000000064,
+      "cpuUserMs": 156,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 1,
+      "method": "cloneCanonical",
+      "variant": "oracle",
+      "elapsedMs": 209.5689999999995,
+      "cpuUserMs": 188,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 2,
+      "method": "canonicalJson",
+      "variant": "tree",
+      "elapsedMs": 111.58259999999973,
+      "cpuUserMs": 171,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 2,
+      "method": "canonicalJson",
+      "variant": "oracle",
+      "elapsedMs": 153.3051999999998,
+      "cpuUserMs": 188,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 2,
+      "method": "canonicalJson",
+      "variant": "direct",
+      "elapsedMs": 197.4969000000001,
+      "cpuUserMs": 188,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 2,
+      "method": "canonicalDigest",
+      "variant": "tree",
+      "elapsedMs": 175.19530000000032,
+      "cpuUserMs": 172,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 2,
+      "method": "canonicalDigest",
+      "variant": "oracle",
+      "elapsedMs": 210.97770000000037,
+      "cpuUserMs": 219,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 2,
+      "method": "canonicalDigest",
+      "variant": "direct",
+      "elapsedMs": 241.41719999999987,
+      "cpuUserMs": 313,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 2,
+      "method": "cloneCanonical",
+      "variant": "tree",
+      "elapsedMs": 185.09460000000036,
+      "cpuUserMs": 156,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 2,
+      "method": "cloneCanonical",
+      "variant": "oracle",
+      "elapsedMs": 239.32669999999962,
+      "cpuUserMs": 235,
+      "cpuSystemMs": 16
+    },
+    {
+      "round": 2,
+      "method": "cloneCanonical",
+      "variant": "direct",
+      "elapsedMs": 287.6378000000004,
+      "cpuUserMs": 297,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 3,
+      "method": "canonicalJson",
+      "variant": "oracle",
+      "elapsedMs": 168.47860000000037,
+      "cpuUserMs": 156,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 3,
+      "method": "canonicalJson",
+      "variant": "direct",
+      "elapsedMs": 227.3756999999996,
+      "cpuUserMs": 234,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 3,
+      "method": "canonicalJson",
+      "variant": "tree",
+      "elapsedMs": 133.40369999999984,
+      "cpuUserMs": 141,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 3,
+      "method": "canonicalDigest",
+      "variant": "oracle",
+      "elapsedMs": 224.44859999999971,
+      "cpuUserMs": 265,
+      "cpuSystemMs": 15
+    },
+    {
+      "round": 3,
+      "method": "canonicalDigest",
+      "variant": "direct",
+      "elapsedMs": 274.83649999999943,
+      "cpuUserMs": 282,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 3,
+      "method": "canonicalDigest",
+      "variant": "tree",
+      "elapsedMs": 253.95739999999932,
+      "cpuUserMs": 359,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 3,
+      "method": "cloneCanonical",
+      "variant": "oracle",
+      "elapsedMs": 357.759,
+      "cpuUserMs": 266,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 3,
+      "method": "cloneCanonical",
+      "variant": "direct",
+      "elapsedMs": 253.6350999999995,
+      "cpuUserMs": 250,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 3,
+      "method": "cloneCanonical",
+      "variant": "tree",
+      "elapsedMs": 155.52819999999883,
+      "cpuUserMs": 172,
+      "cpuSystemMs": 32
+    },
+    {
+      "round": 4,
+      "method": "canonicalJson",
+      "variant": "direct",
+      "elapsedMs": 186.84029999999984,
+      "cpuUserMs": 203,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 4,
+      "method": "canonicalJson",
+      "variant": "tree",
+      "elapsedMs": 117.0684999999994,
+      "cpuUserMs": 156,
+      "cpuSystemMs": 15
+    },
+    {
+      "round": 4,
+      "method": "canonicalJson",
+      "variant": "oracle",
+      "elapsedMs": 152.64110000000073,
+      "cpuUserMs": 250,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 4,
+      "method": "canonicalDigest",
+      "variant": "direct",
+      "elapsedMs": 244.64800000000105,
+      "cpuUserMs": 250,
+      "cpuSystemMs": 16
+    },
+    {
+      "round": 4,
+      "method": "canonicalDigest",
+      "variant": "tree",
+      "elapsedMs": 162.33770000000004,
+      "cpuUserMs": 203,
+      "cpuSystemMs": 16
+    },
+    {
+      "round": 4,
+      "method": "canonicalDigest",
+      "variant": "oracle",
+      "elapsedMs": 200.05519999999888,
+      "cpuUserMs": 235,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 4,
+      "method": "cloneCanonical",
+      "variant": "direct",
+      "elapsedMs": 237.46180000000095,
+      "cpuUserMs": 265,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 4,
+      "method": "cloneCanonical",
+      "variant": "tree",
+      "elapsedMs": 150.02460000000065,
+      "cpuUserMs": 157,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 4,
+      "method": "cloneCanonical",
+      "variant": "oracle",
+      "elapsedMs": 192.31880000000092,
+      "cpuUserMs": 234,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 5,
+      "method": "canonicalJson",
+      "variant": "tree",
+      "elapsedMs": 112.10289999999986,
+      "cpuUserMs": 109,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 5,
+      "method": "canonicalJson",
+      "variant": "oracle",
+      "elapsedMs": 162.8078999999998,
+      "cpuUserMs": 204,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 5,
+      "method": "canonicalJson",
+      "variant": "direct",
+      "elapsedMs": 202.29479999999967,
+      "cpuUserMs": 218,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 5,
+      "method": "canonicalDigest",
+      "variant": "tree",
+      "elapsedMs": 174.5702000000001,
+      "cpuUserMs": 188,
+      "cpuSystemMs": 15
+    },
+    {
+      "round": 5,
+      "method": "canonicalDigest",
+      "variant": "oracle",
+      "elapsedMs": 206.95370000000003,
+      "cpuUserMs": 234,
+      "cpuSystemMs": 16
+    },
+    {
+      "round": 5,
+      "method": "canonicalDigest",
+      "variant": "direct",
+      "elapsedMs": 250.08929999999964,
+      "cpuUserMs": 250,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 5,
+      "method": "cloneCanonical",
+      "variant": "tree",
+      "elapsedMs": 157.65499999999884,
+      "cpuUserMs": 156,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 5,
+      "method": "cloneCanonical",
+      "variant": "oracle",
+      "elapsedMs": 200.6334999999999,
+      "cpuUserMs": 204,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 5,
+      "method": "cloneCanonical",
+      "variant": "direct",
+      "elapsedMs": 234.3788000000004,
+      "cpuUserMs": 234,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 6,
+      "method": "canonicalJson",
+      "variant": "oracle",
+      "elapsedMs": 145.60080000000016,
+      "cpuUserMs": 140,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 6,
+      "method": "canonicalJson",
+      "variant": "direct",
+      "elapsedMs": 200.98329999999987,
+      "cpuUserMs": 219,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 6,
+      "method": "canonicalJson",
+      "variant": "tree",
+      "elapsedMs": 116.80479999999989,
+      "cpuUserMs": 125,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 6,
+      "method": "canonicalDigest",
+      "variant": "oracle",
+      "elapsedMs": 312.04379999999946,
+      "cpuUserMs": 360,
+      "cpuSystemMs": 15
+    },
+    {
+      "round": 6,
+      "method": "canonicalDigest",
+      "variant": "direct",
+      "elapsedMs": 399.16779999999926,
+      "cpuUserMs": 421,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 6,
+      "method": "canonicalDigest",
+      "variant": "tree",
+      "elapsedMs": 248.14110000000073,
+      "cpuUserMs": 234,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 6,
+      "method": "cloneCanonical",
+      "variant": "oracle",
+      "elapsedMs": 311.6940999999988,
+      "cpuUserMs": 328,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 6,
+      "method": "cloneCanonical",
+      "variant": "direct",
+      "elapsedMs": 363.7926000000007,
+      "cpuUserMs": 422,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 6,
+      "method": "cloneCanonical",
+      "variant": "tree",
+      "elapsedMs": 200.20400000000154,
+      "cpuUserMs": 234,
+      "cpuSystemMs": 0
+    }
+  ]
+}

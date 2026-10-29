@@ -1,0 +1,89 @@
+{
+  "schema": "chainlesschain.memory-bundle-cold-cpu-diagnostic/v1",
+  "scope": "one fresh-node cold query; diagnostic with profiler overhead, not an SLO sample",
+  "sourceBefore": {
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "191884dd6f1ad1809ca430c51c85d5aa6ba848949527b0be542ff904146991d2",
+    "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-index.js": "f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721",
+    "packages/cli/src/lib/context-memory-kernel/memory-service.js": "288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+    "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js": "b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "878307fc198d4d1fb299a1b243a6ab6af3411f39785b9d69d531c7660aa22621",
+    "packages/cli/src/lib/with-file-lock.js": "2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+    "packages/context-memory-kernel/lib/canonical.js": "267eb8a7af1d08dcfb8e590da266c5f283637e97e229633a784ef95fd85a0da9",
+    "packages/context-memory-kernel/lib/contracts.js": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+    "packages/cli/scripts/persistent-capacity-benchmark.mjs": "81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939",
+    "packages/cli/scripts/memory-query-index-benchmark.mjs": "03dbafa5caa1a97ee5af55d6e39ce97bf4dc926d86e6f60d8b8fcf205f1551dc"
+  },
+  "sourceAfter": {
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "191884dd6f1ad1809ca430c51c85d5aa6ba848949527b0be542ff904146991d2",
+    "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-index.js": "f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721",
+    "packages/cli/src/lib/context-memory-kernel/memory-service.js": "288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+    "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js": "b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "878307fc198d4d1fb299a1b243a6ab6af3411f39785b9d69d531c7660aa22621",
+    "packages/cli/src/lib/with-file-lock.js": "2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+    "packages/context-memory-kernel/lib/canonical.js": "267eb8a7af1d08dcfb8e590da266c5f283637e97e229633a784ef95fd85a0da9",
+    "packages/context-memory-kernel/lib/contracts.js": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+    "packages/cli/scripts/persistent-capacity-benchmark.mjs": "81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939",
+    "packages/cli/scripts/memory-query-index-benchmark.mjs": "03dbafa5caa1a97ee5af55d6e39ce97bf4dc926d86e6f60d8b8fcf205f1551dc"
+  },
+  "methods": {
+    "_readQueryBundleIndexes": {
+      "calls": 1,
+      "totalMs": 502.73990000000003,
+      "maxMs": 502.73990000000003,
+      "bytes": 0
+    },
+    "_readQueryIndex": {
+      "calls": 256,
+      "totalMs": 329.95659999999873,
+      "maxMs": 5.647699999999986,
+      "bytes": 24054876
+    },
+    "_readShardBytes": {
+      "calls": 19,
+      "totalMs": 33.53780000000006,
+      "maxMs": 2.38350000000014,
+      "bytes": 8831462
+    },
+    "_queryShardSnapshot": {
+      "calls": 19,
+      "totalMs": 874.9466999999995,
+      "maxMs": 62.62339999999995,
+      "bytes": 0
+    },
+    "_checkDirectories": {
+      "calls": 22,
+      "totalMs": 19.80860000000007,
+      "maxMs": 1.214900000000057,
+      "bytes": 0
+    }
+  },
+  "durationMs": 1470.619,
+  "cpuUsage": {
+    "user": 1953000,
+    "system": 234000
+  },
+  "pid": 19508,
+  "node": "v22.22.2",
+  "platform": "win32",
+  "arch": "x64",
+  "cacheMode": "validate-disk",
+  "indexLayout": "bundle",
+  "count": 20,
+  "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+  "expectedDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+  "resultVerified": true,
+  "methodTimingBoundary": "Inclusive elapsed timings overlap; do not sum them. Profiler excludes imports, fixture generation and warmup.",
+  "memory": {
+    "rss": 191795200,
+    "heapTotal": 123695104,
+    "heapUsed": 92653352,
+    "external": 13471948,
+    "arrayBuffers": 11008437
+  },
+  "peakRssBytes": 195010560,
+  "failure": null
+}

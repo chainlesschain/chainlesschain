@@ -1,0 +1,400 @@
+{
+  "scope": "Single-process warm microbenchmark; 3000 records + 3000 events + whole state per invocation; 7 rotated rounds; GC outside measured sections. Not an SLO or release result.",
+  "node": "v22.22.2",
+  "sink": 0,
+  "validationSha256": "dc34ad2b24c1c80251c3ca7eb28d77092fdd73de7f0faa2d545175d797d0ef34",
+  "summaries": [
+    {
+      "method": "canonicalJson",
+      "variant": "oracle",
+      "medianElapsedMs": 154.16010000000006,
+      "medianCpuUserMs": 219,
+      "medianCpuSystemMs": 0,
+      "minElapsedMs": 149.64410000000044,
+      "maxElapsedMs": 165.80499999999938
+    },
+    {
+      "method": "canonicalJson",
+      "variant": "compatible",
+      "medianElapsedMs": 131.46379999999954,
+      "medianCpuUserMs": 141,
+      "medianCpuSystemMs": 0,
+      "minElapsedMs": 129.1835000000001,
+      "maxElapsedMs": 137.0948000000003
+    },
+    {
+      "method": "canonicalDigest",
+      "variant": "oracle",
+      "medianElapsedMs": 198.84540000000015,
+      "medianCpuUserMs": 234,
+      "medianCpuSystemMs": 16,
+      "minElapsedMs": 194.77589999999964,
+      "maxElapsedMs": 210.41419999999925
+    },
+    {
+      "method": "canonicalDigest",
+      "variant": "compatible",
+      "medianElapsedMs": 183.2511999999997,
+      "medianCpuUserMs": 188,
+      "medianCpuSystemMs": 0,
+      "minElapsedMs": 181.625,
+      "maxElapsedMs": 189.34929999999986
+    },
+    {
+      "method": "cloneCanonical",
+      "variant": "oracle",
+      "medianElapsedMs": 198.23059999999987,
+      "medianCpuUserMs": 218,
+      "medianCpuSystemMs": 0,
+      "minElapsedMs": 196.03019999999924,
+      "maxElapsedMs": 212.08390000000054
+    },
+    {
+      "method": "cloneCanonical",
+      "variant": "compatible",
+      "medianElapsedMs": 175.67469999999958,
+      "medianCpuUserMs": 172,
+      "medianCpuSystemMs": 0,
+      "minElapsedMs": 169.9256000000005,
+      "maxElapsedMs": 188.1489999999999
+    }
+  ],
+  "samples": [
+    {
+      "round": 0,
+      "method": "canonicalJson",
+      "variant": "oracle",
+      "elapsedMs": 158.91820000000007,
+      "cpuUserMs": 234,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 0,
+      "method": "canonicalJson",
+      "variant": "compatible",
+      "elapsedMs": 133.33850000000007,
+      "cpuUserMs": 141,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 0,
+      "method": "canonicalDigest",
+      "variant": "oracle",
+      "elapsedMs": 199.84280000000012,
+      "cpuUserMs": 250,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 0,
+      "method": "canonicalDigest",
+      "variant": "compatible",
+      "elapsedMs": 181.625,
+      "cpuUserMs": 157,
+      "cpuSystemMs": 16
+    },
+    {
+      "round": 0,
+      "method": "cloneCanonical",
+      "variant": "oracle",
+      "elapsedMs": 197.70299999999997,
+      "cpuUserMs": 203,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 0,
+      "method": "cloneCanonical",
+      "variant": "compatible",
+      "elapsedMs": 188.1489999999999,
+      "cpuUserMs": 188,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 1,
+      "method": "canonicalJson",
+      "variant": "compatible",
+      "elapsedMs": 132.13110000000006,
+      "cpuUserMs": 172,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 1,
+      "method": "canonicalJson",
+      "variant": "oracle",
+      "elapsedMs": 154.57630000000017,
+      "cpuUserMs": 297,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 1,
+      "method": "canonicalDigest",
+      "variant": "compatible",
+      "elapsedMs": 184.79649999999992,
+      "cpuUserMs": 188,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 1,
+      "method": "canonicalDigest",
+      "variant": "oracle",
+      "elapsedMs": 198.84540000000015,
+      "cpuUserMs": 234,
+      "cpuSystemMs": 15
+    },
+    {
+      "round": 1,
+      "method": "cloneCanonical",
+      "variant": "compatible",
+      "elapsedMs": 178.48709999999983,
+      "cpuUserMs": 203,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 1,
+      "method": "cloneCanonical",
+      "variant": "oracle",
+      "elapsedMs": 198.23059999999987,
+      "cpuUserMs": 203,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 2,
+      "method": "canonicalJson",
+      "variant": "oracle",
+      "elapsedMs": 154.16010000000006,
+      "cpuUserMs": 219,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 2,
+      "method": "canonicalJson",
+      "variant": "compatible",
+      "elapsedMs": 137.0948000000003,
+      "cpuUserMs": 141,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 2,
+      "method": "canonicalDigest",
+      "variant": "oracle",
+      "elapsedMs": 210.41419999999925,
+      "cpuUserMs": 281,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 2,
+      "method": "canonicalDigest",
+      "variant": "compatible",
+      "elapsedMs": 181.89500000000044,
+      "cpuUserMs": 187,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 2,
+      "method": "cloneCanonical",
+      "variant": "oracle",
+      "elapsedMs": 207.83519999999953,
+      "cpuUserMs": 297,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 2,
+      "method": "cloneCanonical",
+      "variant": "compatible",
+      "elapsedMs": 174.96419999999944,
+      "cpuUserMs": 172,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 3,
+      "method": "canonicalJson",
+      "variant": "compatible",
+      "elapsedMs": 129.1835000000001,
+      "cpuUserMs": 125,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 3,
+      "method": "canonicalJson",
+      "variant": "oracle",
+      "elapsedMs": 152.32260000000042,
+      "cpuUserMs": 204,
+      "cpuSystemMs": 16
+    },
+    {
+      "round": 3,
+      "method": "canonicalDigest",
+      "variant": "compatible",
+      "elapsedMs": 184.6761000000006,
+      "cpuUserMs": 235,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 3,
+      "method": "canonicalDigest",
+      "variant": "oracle",
+      "elapsedMs": 197.97109999999975,
+      "cpuUserMs": 203,
+      "cpuSystemMs": 31
+    },
+    {
+      "round": 3,
+      "method": "cloneCanonical",
+      "variant": "compatible",
+      "elapsedMs": 180.38580000000002,
+      "cpuUserMs": 172,
+      "cpuSystemMs": 16
+    },
+    {
+      "round": 3,
+      "method": "cloneCanonical",
+      "variant": "oracle",
+      "elapsedMs": 196.03019999999924,
+      "cpuUserMs": 218,
+      "cpuSystemMs": 15
+    },
+    {
+      "round": 4,
+      "method": "canonicalJson",
+      "variant": "oracle",
+      "elapsedMs": 165.80499999999938,
+      "cpuUserMs": 219,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 4,
+      "method": "canonicalJson",
+      "variant": "compatible",
+      "elapsedMs": 131.46039999999994,
+      "cpuUserMs": 141,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 4,
+      "method": "canonicalDigest",
+      "variant": "oracle",
+      "elapsedMs": 194.77589999999964,
+      "cpuUserMs": 234,
+      "cpuSystemMs": 16
+    },
+    {
+      "round": 4,
+      "method": "canonicalDigest",
+      "variant": "compatible",
+      "elapsedMs": 182.11099999999988,
+      "cpuUserMs": 188,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 4,
+      "method": "cloneCanonical",
+      "variant": "oracle",
+      "elapsedMs": 196.23049999999967,
+      "cpuUserMs": 265,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 4,
+      "method": "cloneCanonical",
+      "variant": "compatible",
+      "elapsedMs": 169.9256000000005,
+      "cpuUserMs": 172,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 5,
+      "method": "canonicalJson",
+      "variant": "compatible",
+      "elapsedMs": 131.20320000000083,
+      "cpuUserMs": 172,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 5,
+      "method": "canonicalJson",
+      "variant": "oracle",
+      "elapsedMs": 149.64410000000044,
+      "cpuUserMs": 187,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 5,
+      "method": "canonicalDigest",
+      "variant": "compatible",
+      "elapsedMs": 183.2511999999997,
+      "cpuUserMs": 171,
+      "cpuSystemMs": 31
+    },
+    {
+      "round": 5,
+      "method": "canonicalDigest",
+      "variant": "oracle",
+      "elapsedMs": 197.00910000000022,
+      "cpuUserMs": 187,
+      "cpuSystemMs": 47
+    },
+    {
+      "round": 5,
+      "method": "cloneCanonical",
+      "variant": "compatible",
+      "elapsedMs": 175.67469999999958,
+      "cpuUserMs": 188,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 5,
+      "method": "cloneCanonical",
+      "variant": "oracle",
+      "elapsedMs": 212.08390000000054,
+      "cpuUserMs": 218,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 6,
+      "method": "canonicalJson",
+      "variant": "oracle",
+      "elapsedMs": 149.71609999999964,
+      "cpuUserMs": 156,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 6,
+      "method": "canonicalJson",
+      "variant": "compatible",
+      "elapsedMs": 131.46379999999954,
+      "cpuUserMs": 125,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 6,
+      "method": "canonicalDigest",
+      "variant": "oracle",
+      "elapsedMs": 210.0643,
+      "cpuUserMs": 234,
+      "cpuSystemMs": 31
+    },
+    {
+      "round": 6,
+      "method": "canonicalDigest",
+      "variant": "compatible",
+      "elapsedMs": 189.34929999999986,
+      "cpuUserMs": 219,
+      "cpuSystemMs": 16
+    },
+    {
+      "round": 6,
+      "method": "cloneCanonical",
+      "variant": "oracle",
+      "elapsedMs": 198.2559999999994,
+      "cpuUserMs": 203,
+      "cpuSystemMs": 0
+    },
+    {
+      "round": 6,
+      "method": "cloneCanonical",
+      "variant": "compatible",
+      "elapsedMs": 174.55229999999938,
+      "cpuUserMs": 171,
+      "cpuSystemMs": 0
+    }
+  ]
+}

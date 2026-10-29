@@ -1,0 +1,25 @@
+{
+  "sourceCommit": "e7a6f2585d62949794596767869423b0eb670104",
+  "sourcePath": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+  "gitBlob": "28560a8c6de169f36a1971b3db176470bf39e658",
+  "sha256": "c3a8040d5a267f0354090c11a4f5773c1ab0edccdcdfd9ddf2919e9b4e51f800",
+  "dependencies": [
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+      "gitBlob": "76d8fb77d61521361e842f9d01f8cf9771153f93"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+      "gitBlob": "9e7c10beb6dc23be1a3bf9639a1879c7c2af7833"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/memory-query-control.js",
+      "gitBlob": "4290c15c421db54b92003fa22e60d1b204465c06"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js",
+      "gitBlob": "10d291b0a92a16491a3f4bb8426c71b33674f2e3"
+    }
+  ],
+  "method": "Exact Git blob; test loader changes only import resolution to the same dependency files."
+}

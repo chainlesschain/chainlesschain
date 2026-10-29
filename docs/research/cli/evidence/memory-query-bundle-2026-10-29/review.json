@@ -1,0 +1,1006 @@
+{
+  "schema": "chainlesschain.memory-query-bundle-review/v1",
+  "observedAt": "2026-10-29T02:24:21.626Z",
+  "sourceHeadBeforeCommit": "60d28f289492fb1065d71722f230c6f593eb9428",
+  "sourceSha256": {
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+    "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-index.js": "f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721",
+    "packages/cli/src/lib/context-memory-kernel/memory-service.js": "288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+    "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js": "b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "f603c2b1683e04bcf8e9930a1bdba86c5be56bdd4d9b41c8e19a7a68a9b50472",
+    "packages/cli/src/lib/with-file-lock.js": "2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+    "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+    "packages/context-memory-kernel/lib/contracts.js": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+    "packages/context-memory-kernel/lib/memory-reducer.js": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+    "packages/cli/scripts/persistent-capacity-benchmark.mjs": "81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939",
+    "packages/cli/scripts/memory-query-index-benchmark.mjs": "03dbafa5caa1a97ee5af55d6e39ce97bf4dc926d86e6f60d8b8fcf205f1551dc",
+    "packages/cli/scripts/memory-query-responsiveness-benchmark.mjs": "212169364bdf876ec102d614ee37fc525779e8e20083b7487cad92f506ea0d34",
+    "packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs": "e66def2c936fee88eb3fc25724a155f1d79115dc6498f82de5a4c65c54f63927"
+  },
+  "validations": {
+    "cliVitest": {
+      "files": 10,
+      "passed": 110,
+      "skipped": 2,
+      "failed": 0,
+      "receipt": "raw/reviewed-regression-process.json"
+    },
+    "cliNode": {
+      "passed": 26,
+      "failed": 0,
+      "receipt": "raw/cli-node-reviewed-process.json",
+      "sandboxFirstAttempt": {
+        "passed": 22,
+        "failed": 4,
+        "reason": "native owner-only ACL verification",
+        "log": "raw/cli-node.log"
+      }
+    },
+    "kernel": {
+      "passed": 130,
+      "failed": 0,
+      "receipt": "raw/kernel-formatted-process.json"
+    },
+    "canonicalParity": {
+      "positive": 43332,
+      "rejection": 56,
+      "receipt": "raw/kernel-formatted-parity-process.json",
+      "result": "raw/canonical-allocation-BVg95p/validation.json"
+    },
+    "warmCacheNegativeControl": {
+      "killed": true,
+      "runs": [
+        {
+          "mutated": false,
+          "exitCode": 0,
+          "cases": [
+            {
+              "status": "passed",
+              "fullName": "default disk query bundle detects a damaged unselected frame despite a warm decoded cache and reconstructs current bytes",
+              "failureMessages": []
+            }
+          ]
+        },
+        {
+          "mutated": true,
+          "exitCode": 1,
+          "cases": [
+            {
+              "status": "failed",
+              "fullName": "default disk query bundle detects a damaged unselected frame despite a warm decoded cache and reconstructs current bytes",
+              "failureMessages": [
+                "AssertionError: expected \"_readQueryIndexBytes\" to be called 204 times, but got 0 times\n    at C:/code/chainlesschain/packages/cli/__tests__/integration/memory-query-bundle-port.test.js:86:21\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "identityBefore": {
+      "passed": 1,
+      "failed": 2,
+      "receipt": "raw/identity-negative-v2-process.json",
+      "earlierFixtureFailure": "raw/identity-negative-process.json"
+    },
+    "identityAfter": {
+      "passed": 3,
+      "failed": 0,
+      "receipt": "raw/identity-fixed-process.json"
+    }
+  },
+  "querySmoke": {
+    "samplesPerGroup": 11,
+    "cacheMode": "validate-disk",
+    "indexLayout": "bundle",
+    "scope": "11-sample diagnostic; no 100-sample SLO acceptance",
+    "tiers": [
+      {
+        "count": 1000,
+        "groups": {
+          "cold": {
+            "samples": 11,
+            "minMs": 134.52,
+            "p50Ms": 154.277,
+            "p95Ms": 177.569,
+            "p99Ms": 177.569,
+            "maxMs": 177.569
+          },
+          "hot": {
+            "samples": 11,
+            "minMs": 61.173,
+            "p50Ms": 66.539,
+            "p95Ms": 93.827,
+            "p99Ms": 93.827,
+            "maxMs": 93.827
+          }
+        }
+      },
+      {
+        "count": 10000,
+        "groups": {
+          "cold": {
+            "samples": 11,
+            "minMs": 250.04,
+            "p50Ms": 259.712,
+            "p95Ms": 295.6,
+            "p99Ms": 295.6,
+            "maxMs": 295.6
+          },
+          "hot": {
+            "samples": 11,
+            "minMs": 65.608,
+            "p50Ms": 67.469,
+            "p95Ms": 75.032,
+            "p99Ms": 75.032,
+            "maxMs": 75.032
+          }
+        }
+      },
+      {
+        "count": 100000,
+        "groups": {
+          "cold": {
+            "samples": 11,
+            "minMs": 1361.198,
+            "p50Ms": 1558.749,
+            "p95Ms": 2162.657,
+            "p99Ms": 2162.657,
+            "maxMs": 2162.657
+          },
+          "hot": {
+            "samples": 11,
+            "minMs": 165.792,
+            "p50Ms": 170.446,
+            "p95Ms": 274.514,
+            "p99Ms": 274.514,
+            "maxMs": 274.514
+          }
+        }
+      }
+    ]
+  },
+  "stop": {
+    "targetMet": true,
+    "report": "raw/reviewed-stop.json"
+  },
+  "release": {
+    "fixedSource": "e7a6f2585d62949794596767869423b0eb670104",
+    "published": false,
+    "retryReceipt": "raw/release130-ci-retry-receipt.json",
+    "scope": "Do not use this main-branch change as fixed e7 release evidence"
+  },
+  "boundaries": [
+    "With a valid bundle, individual query files are compatibility copies and are not checked on every warm query. Active bundle bytes are always checked.",
+    "Public canonicalize behavior is unchanged; final canonical.js also includes Prettier-only formatting compared with reviewed CLI regression source. Formatted kernel tests/parity and final measurement bind the final bytes.",
+    "Canonical parity raw helper retains prototype metadata/note from its origin; the source-bound process receipt and actual apis.compatible production import establish the tested implementation.",
+    "One synthetic 3K fixture is retained under compatible benchmark PMXXwt; identical omitted fixtures can be regenerated from the archived harness.",
+    "Archived experiment helpers expect restoration under .work/memory-query-bundle; raw execution paths are retained.",
+    "No real model requests; real accepted products remain 34/45. Microsoft channel deferred."
+  ],
+  "artifacts": [
+    {
+      "path": "raw/analyze-cold-cpu-20261029-bf40.mjs",
+      "originalPath": ".work/memory-query-bundle/analyze-cold-cpu-20261029-bf40.mjs",
+      "bytes": 2072,
+      "sha256": "d98e54b020464388755ded7a323ccc5c9e1452c40d790c2a859fbc50d91e45a1"
+    },
+    {
+      "path": "raw/archive.mjs",
+      "originalPath": ".work/memory-query-bundle/archive.mjs",
+      "bytes": 6103,
+      "sha256": "775cc2148a1de233ec4983849c12ebb6f1fc6cfee62cb4bbec6b27bd2e58a65b"
+    },
+    {
+      "path": "raw/attribute-cold-cpu-20261029-bf40.mjs",
+      "originalPath": ".work/memory-query-bundle/attribute-cold-cpu-20261029-bf40.mjs",
+      "bytes": 1835,
+      "sha256": "439946df91d87ce7ba4beef1a98c3ea60e92f00e75ae8a81ba30cfc8dd9d4b67"
+    },
+    {
+      "path": "raw/borrowed-buffer-process.json",
+      "originalPath": ".work/memory-query-bundle/borrowed-buffer-process.json",
+      "bytes": 422,
+      "sha256": "25cfa3bd6f34173a3d2b0ab3e17adc1e46898fb7bd3ddf6fce26f405985e5879"
+    },
+    {
+      "path": "raw/borrowed-buffer.json",
+      "originalPath": ".work/memory-query-bundle/borrowed-buffer.json",
+      "bytes": 14007,
+      "sha256": "a570b4a68160b47b9e3cb86e1aa1954134595c6ecbfcb5b994beaf2f543c5742"
+    },
+    {
+      "path": "raw/borrowed-buffer.log",
+      "originalPath": ".work/memory-query-bundle/borrowed-buffer.log",
+      "bytes": 109,
+      "sha256": "92a99fc45a9ca1bb0f105e143e755b4a246e5e08ebff892bccbd606471539354"
+    },
+    {
+      "path": "raw/canonical-before-prettier.js",
+      "originalPath": ".work/memory-query-bundle/canonical-before-prettier.js",
+      "bytes": 3234,
+      "sha256": "3684851f7a89cf4e992134df914b0702a3dbbe93376c0623ab89333627f9a079"
+    },
+    {
+      "path": "raw/canonical-compatible-boundaries-20261029.mjs",
+      "originalPath": ".work/memory-query-bundle/canonical-compatible-boundaries-20261029.mjs",
+      "bytes": 5914,
+      "sha256": "6049c7b5a26a47cae8bea653b4c366df24e53cb23c08d79a719d4829144e747d"
+    },
+    {
+      "path": "raw/canonical-compatible-experiment-20261029.mjs",
+      "originalPath": ".work/memory-query-bundle/canonical-compatible-experiment-20261029.mjs",
+      "bytes": 9073,
+      "sha256": "45c9b439c7080a5079d21355353bb7ce00c9d7a8f5f3ba0e1877bfed72279a19"
+    },
+    {
+      "path": "raw/canonical-compatible-prototype-20261029.mjs",
+      "originalPath": ".work/memory-query-bundle/canonical-compatible-prototype-20261029.mjs",
+      "bytes": 1863,
+      "sha256": "87cc81611c84486f108c8004b7e1d03faf8d22587e86a32164b3e5a6630596b6"
+    },
+    {
+      "path": "raw/canonical-experiment-20261029.mjs",
+      "originalPath": ".work/memory-query-bundle/canonical-experiment-20261029.mjs",
+      "bytes": 9020,
+      "sha256": "05624bbbc401e53557baada4653f121d9d834453cfbf9e8c18372cbcbca7d744"
+    },
+    {
+      "path": "raw/canonical-format-parity.json",
+      "originalPath": ".work/memory-query-bundle/canonical-format-parity.json",
+      "bytes": 61,
+      "sha256": "df77183aab465eebee35e55e31c9af7704eeedcd426129016d527e7409805080"
+    },
+    {
+      "path": "raw/canonical-landed-parity-20261029.mjs",
+      "originalPath": ".work/memory-query-bundle/canonical-landed-parity-20261029.mjs",
+      "bytes": 9098,
+      "sha256": "c47bf3f38a5e3ae8f7e1c2f2368fd226efe277a9aea8c57a7e389707a4a4a6b4"
+    },
+    {
+      "path": "raw/canonical-prototypes-20261029.mjs",
+      "originalPath": ".work/memory-query-bundle/canonical-prototypes-20261029.mjs",
+      "bytes": 3102,
+      "sha256": "430e448f546790509be43ea2159ef8ced634f9f666b5a5a094ab2b02366ccb42"
+    },
+    {
+      "path": "raw/cli-node-native-process.json",
+      "originalPath": ".work/memory-query-bundle/cli-node-native-process.json",
+      "bytes": 4321,
+      "sha256": "278c24c6cc496b359d5bda8390fe564b44d300b178f8683709da102fb03bd137"
+    },
+    {
+      "path": "raw/cli-node-native.log",
+      "originalPath": ".work/memory-query-bundle/cli-node-native.log",
+      "bytes": 5833,
+      "sha256": "8019cfc6cded11bcb66094ff11e03d0c1db4030ec6e0c2b8138090e50cbd2b04"
+    },
+    {
+      "path": "raw/cli-node-process.json",
+      "originalPath": ".work/memory-query-bundle/cli-node-process.json",
+      "bytes": 4321,
+      "sha256": "2203be12da1eed75e1441109405d5a9c7dc19c8ded052718c9b895c5aa1360ea"
+    },
+    {
+      "path": "raw/cli-node-reviewed-process.json",
+      "originalPath": ".work/memory-query-bundle/cli-node-reviewed-process.json",
+      "bytes": 4321,
+      "sha256": "bfc152081a7ea7cd699d8a82d4b51b4ddf1f4a6d36a28df50f24692f3dabad0a"
+    },
+    {
+      "path": "raw/cli-node-reviewed.log",
+      "originalPath": ".work/memory-query-bundle/cli-node-reviewed.log",
+      "bytes": 5836,
+      "sha256": "d878c9276e451eba6767295601810dee85fa7ca822fc2e098ec153a78c9a21ef"
+    },
+    {
+      "path": "raw/cli-node.log",
+      "originalPath": ".work/memory-query-bundle/cli-node.log",
+      "bytes": 10760,
+      "sha256": "603f5402295ce3ca585eda542fb2d876b46c2011722708e4c14fd5cfd351a18e"
+    },
+    {
+      "path": "raw/cold-cpu-diagnostic-20261029-bf40.mjs",
+      "originalPath": ".work/memory-query-bundle/cold-cpu-diagnostic-20261029-bf40.mjs",
+      "bytes": 9967,
+      "sha256": "dcb14a8c129da888f08f95a760dc90552db7e8acde7bd26a19dd9d43bb1ccc80"
+    },
+    {
+      "path": "raw/final-regression-process.json",
+      "originalPath": ".work/memory-query-bundle/final-regression-process.json",
+      "bytes": 4182,
+      "sha256": "25f1583a6936df3366601c0095e8c2ddc03e589ba79dd3ffd076c4a316168eaf"
+    },
+    {
+      "path": "raw/final-regression.json",
+      "originalPath": ".work/memory-query-bundle/final-regression.json",
+      "bytes": 40070,
+      "sha256": "32ad807871a26b58bfa2f3fed2e469a72211fc4d5b4b1cccf91273795c2100fb"
+    },
+    {
+      "path": "raw/final-regression.log",
+      "originalPath": ".work/memory-query-bundle/final-regression.log",
+      "bytes": 110,
+      "sha256": "e7b0e9475765b7f483c5aab90753d3460ac3e96cb9fd7b368ae133c807c2d650"
+    },
+    {
+      "path": "raw/final-smoke-process.json",
+      "originalPath": ".work/memory-query-bundle/final-smoke-process.json",
+      "bytes": 4544,
+      "sha256": "06313b741215970d2902d383c2809503a346d50cdda3f8860955f65157bff1fc"
+    },
+    {
+      "path": "raw/final-smoke.json",
+      "originalPath": ".work/memory-query-bundle/final-smoke.json",
+      "bytes": 42206,
+      "sha256": "f26b317805756cfbeeb330cbc57035fdd1d5b25c3f4d7920d4792a4edc3051db"
+    },
+    {
+      "path": "raw/final-smoke.log",
+      "originalPath": ".work/memory-query-bundle/final-smoke.log",
+      "bytes": 860,
+      "sha256": "7bd53e09f0ec1b1b87d3d06814230b48c09b20b352ba7d0bf685f76eb0a6074e"
+    },
+    {
+      "path": "raw/identity-fixed-process.json",
+      "originalPath": ".work/memory-query-bundle/identity-fixed-process.json",
+      "bytes": 1555,
+      "sha256": "dd36a1bb104352c144841e1935c0da8625e27a1990268546f238e1f285192c36"
+    },
+    {
+      "path": "raw/identity-fixed.json",
+      "originalPath": ".work/memory-query-bundle/identity-fixed.json",
+      "bytes": 2044,
+      "sha256": "1d8040553cf7fd79c0ed6a576c6708e58a46e2c7a3bb6067b5d88b28d7350644"
+    },
+    {
+      "path": "raw/identity-fixed.log",
+      "originalPath": ".work/memory-query-bundle/identity-fixed.log",
+      "bytes": 108,
+      "sha256": "612513cfef5c418bbd89c06bffda7957e0a1921423da9b5c9ace6ad120b78083"
+    },
+    {
+      "path": "raw/identity-negative-process.json",
+      "originalPath": ".work/memory-query-bundle/identity-negative-process.json",
+      "bytes": 1558,
+      "sha256": "604ca8958729c2d990dfc0187a0f5aef29accc0bd79b16714f3e7d3759649613"
+    },
+    {
+      "path": "raw/identity-negative-v2-process.json",
+      "originalPath": ".work/memory-query-bundle/identity-negative-v2-process.json",
+      "bytes": 1561,
+      "sha256": "a478bced7ddcd5324f7d8e0d153e924eec04487d8be6b78aead05fa0ddaa262c"
+    },
+    {
+      "path": "raw/identity-negative-v2.json",
+      "originalPath": ".work/memory-query-bundle/identity-negative-v2.json",
+      "bytes": 3357,
+      "sha256": "954f46e79c96de0947a47dddd7533f59e49164587d3b0cb66c1786aead63cd19"
+    },
+    {
+      "path": "raw/identity-negative-v2.log",
+      "originalPath": ".work/memory-query-bundle/identity-negative-v2.log",
+      "bytes": 114,
+      "sha256": "572d443e9c3149e89d81a9494ae22d4d9aa6009360cff2c4aae77cd6823292de"
+    },
+    {
+      "path": "raw/identity-negative.json",
+      "originalPath": ".work/memory-query-bundle/identity-negative.json",
+      "bytes": 3005,
+      "sha256": "adb10377690a23cc30601d38ed568cf963832151d7a44beb6d65d4668191e2f1"
+    },
+    {
+      "path": "raw/identity-negative.log",
+      "originalPath": ".work/memory-query-bundle/identity-negative.log",
+      "bytes": 111,
+      "sha256": "da8f593c8e5ce5b35bcdc9c1ca2de0280b14c7aa50c057fa9395f4c1ae8cc3af"
+    },
+    {
+      "path": "raw/integration-first-process.json",
+      "originalPath": ".work/memory-query-bundle/integration-first-process.json",
+      "bytes": 695,
+      "sha256": "42d8f43834213e80a8fb598cbc972ff42c986e3c2da81aa6b606c63edefd2bfe"
+    },
+    {
+      "path": "raw/integration-first.json",
+      "originalPath": ".work/memory-query-bundle/integration-first.json",
+      "bytes": 35245,
+      "sha256": "65a6480c62f90f55414bfc0910a08099be018e6c793018a1efeba841e86b8b64"
+    },
+    {
+      "path": "raw/integration-first.log",
+      "originalPath": ".work/memory-query-bundle/integration-first.log",
+      "bytes": 111,
+      "sha256": "5df22f12b7c12f91ddb8064d72619a878d3a9d3a46631a4cf90ef4313fd3038a"
+    },
+    {
+      "path": "raw/kernel-formatted-parity-process.json",
+      "originalPath": ".work/memory-query-bundle/kernel-formatted-parity-process.json",
+      "bytes": 4311,
+      "sha256": "47801a063993ba4a0bce17196bbd856b1ff10bdd07d4a9ad9a38e9323a26c4e6"
+    },
+    {
+      "path": "raw/kernel-formatted-parity.log",
+      "originalPath": ".work/memory-query-bundle/kernel-formatted-parity.log",
+      "bytes": 189,
+      "sha256": "ce7b0db531596e1e41f8f9fa45a8657872ec135a641993cfc26f83966de5eb27"
+    },
+    {
+      "path": "raw/kernel-formatted-process.json",
+      "originalPath": ".work/memory-query-bundle/kernel-formatted-process.json",
+      "bytes": 4372,
+      "sha256": "1cf0ceafaecde5e8b39508bc5b3582c650fd5e0ecf6a95b56a5c3f73d5c7fc18"
+    },
+    {
+      "path": "raw/kernel-formatted.log",
+      "originalPath": ".work/memory-query-bundle/kernel-formatted.log",
+      "bytes": 25490,
+      "sha256": "843febe920463612ddc123c5fff62c110755bf69140558fd59df243e6ee7b2eb"
+    },
+    {
+      "path": "raw/legacy-unit-process.json",
+      "originalPath": ".work/memory-query-bundle/legacy-unit-process.json",
+      "bytes": 138,
+      "sha256": "9706bc43cdee23f22b696fd7b782d0404afd0279952d6554febdb10a1fd3a466"
+    },
+    {
+      "path": "raw/legacy-unit.log",
+      "originalPath": ".work/memory-query-bundle/legacy-unit.log",
+      "bytes": 222,
+      "sha256": "cdab4786b9575bc70410d3740473b9c7010a9e8b485328f2845a2d5377564256"
+    },
+    {
+      "path": "raw/negative-control-baseline-process.json",
+      "originalPath": ".work/memory-query-bundle/negative-control-baseline-process.json",
+      "bytes": 947,
+      "sha256": "1034c30e3640a879cfd856413d50fb596bd1539025713e62bd8a4491e1288a1a"
+    },
+    {
+      "path": "raw/negative-control-baseline.json",
+      "originalPath": ".work/memory-query-bundle/negative-control-baseline.json",
+      "bytes": 3518,
+      "sha256": "97a0a88c7e884da5a94d754569efc3eeff86ace2276de9476599c97c6bdebeca"
+    },
+    {
+      "path": "raw/negative-control-baseline.log",
+      "originalPath": ".work/memory-query-bundle/negative-control-baseline.log",
+      "bytes": 119,
+      "sha256": "f273d9b087151e24b3037f8734aadc5e9205a030b1b16ee7bdd5e2f8b38e20fc"
+    },
+    {
+      "path": "raw/negative-control-process.json",
+      "originalPath": ".work/memory-query-bundle/negative-control-process.json",
+      "bytes": 1353,
+      "sha256": "d50e4a8a567ed4ea1000fd7867c703f91b454c156658a1bd9130aa6caaae9c7d"
+    },
+    {
+      "path": "raw/negative-control-summary.json",
+      "originalPath": ".work/memory-query-bundle/negative-control-summary.json",
+      "bytes": 976,
+      "sha256": "bf3c7841dcc18ed1bcfd985c1e49a2a62f27cf9cd8adfb275c1c48f773247b8e"
+    },
+    {
+      "path": "raw/negative-control-transform.json",
+      "originalPath": ".work/memory-query-bundle/negative-control-transform.json",
+      "bytes": 383,
+      "sha256": "dd90faab70b9ea76946b3f2ea773e0715734d1df3d6bc2dca8da4fd99a2dc706"
+    },
+    {
+      "path": "raw/negative-control.config.mjs",
+      "originalPath": ".work/memory-query-bundle/negative-control.config.mjs",
+      "bytes": 1437,
+      "sha256": "654cdf1ef4b5b84d9b35c3d845547e130feca5ef31b5600aa5ebfe3267b43861"
+    },
+    {
+      "path": "raw/negative-control.json",
+      "originalPath": ".work/memory-query-bundle/negative-control.json",
+      "bytes": 3814,
+      "sha256": "d773a6b35d0c706f480c5a75a2346badd53d8db3debff10c8f068376cba07c08"
+    },
+    {
+      "path": "raw/negative-control.log",
+      "originalPath": ".work/memory-query-bundle/negative-control.log",
+      "bytes": 110,
+      "sha256": "25a1f9ec88a4ee114cfd99736231c4c525635cd50bd8d9924083f817ef110239"
+    },
+    {
+      "path": "raw/port-first-process.json",
+      "originalPath": ".work/memory-query-bundle/port-first-process.json",
+      "bytes": 367,
+      "sha256": "9d83c5ede3f32adbd3c09b2852750806b4f745d512fa68e897efc6245ed9ff8e"
+    },
+    {
+      "path": "raw/port-first.json",
+      "originalPath": ".work/memory-query-bundle/port-first.json",
+      "bytes": 3741,
+      "sha256": "1546ff4ca79c0b990bab2c60ed9d709d6fcf4d3998770820c7675ed5d6034475"
+    },
+    {
+      "path": "raw/port-first.log",
+      "originalPath": ".work/memory-query-bundle/port-first.log",
+      "bytes": 104,
+      "sha256": "b72f4e27c3f4a16a73201d612cdcd25c7ad65da2cd24699c85fd0966db8ac4d8"
+    },
+    {
+      "path": "raw/regression-process.json",
+      "originalPath": ".work/memory-query-bundle/regression-process.json",
+      "bytes": 814,
+      "sha256": "71196c83fc72670a475c87426044ed0c05208d42b9afd7e3731df7ba17e4561c"
+    },
+    {
+      "path": "raw/regression.json",
+      "originalPath": ".work/memory-query-bundle/regression.json",
+      "bytes": 39378,
+      "sha256": "814ba2382d390b140dcb77d3dd451b0b4ff322076b19cd075bcbd17a9e583ffa"
+    },
+    {
+      "path": "raw/regression.log",
+      "originalPath": ".work/memory-query-bundle/regression.log",
+      "bytes": 104,
+      "sha256": "629b6600db3992845688f14ebb7187f8c601a9bcb8ae6f306247210863fe6977"
+    },
+    {
+      "path": "raw/release130-ci-before-retry.json",
+      "originalPath": ".work/memory-query-bundle/release130-ci-before-retry.json",
+      "bytes": 13829,
+      "sha256": "a98566a6e0817170e7c27cd5809d38f8c6ebeb38a5bd134994f39370a0298b6b"
+    },
+    {
+      "path": "raw/release130-ci-observation.json",
+      "originalPath": ".work/memory-query-bundle/release130-ci-observation.json",
+      "bytes": 134712,
+      "sha256": "4319b8a79ce15c0ed81f04be8a814f3a84aaf1ee5ff41979a9d82718bccb74f8"
+    },
+    {
+      "path": "raw/release130-ci-retry-receipt.json",
+      "originalPath": ".work/memory-query-bundle/release130-ci-retry-receipt.json",
+      "bytes": 558,
+      "sha256": "1f45cf2ad44017d7f812441c2932152835fd14fb76fb7020a838b556c652c54b"
+    },
+    {
+      "path": "raw/release130-ci-retry-state.json",
+      "originalPath": ".work/memory-query-bundle/release130-ci-retry-state.json",
+      "bytes": 165,
+      "sha256": "54ade22106139c7756fc12a33f40d1d7624234899185307ab88c13d62c224042"
+    },
+    {
+      "path": "raw/retry-release-gate.mjs",
+      "originalPath": ".work/memory-query-bundle/retry-release-gate.mjs",
+      "bytes": 1800,
+      "sha256": "c21f031dc6067deef86b8ed68ffd5a05d80d7ceac670b98f5bc761e595acdaaa"
+    },
+    {
+      "path": "raw/reviewed-regression-process.json",
+      "originalPath": ".work/memory-query-bundle/reviewed-regression-process.json",
+      "bytes": 4545,
+      "sha256": "07ed44f08435f5938be2b4334db209840573f4971b88968c9171f3eeda3003a2"
+    },
+    {
+      "path": "raw/reviewed-regression.json",
+      "originalPath": ".work/memory-query-bundle/reviewed-regression.json",
+      "bytes": 41603,
+      "sha256": "db47420c8a3d770636b5dd9ed06c508dae51738f86b884eb2ba76bbcfdd83a5e"
+    },
+    {
+      "path": "raw/reviewed-regression.log",
+      "originalPath": ".work/memory-query-bundle/reviewed-regression.log",
+      "bytes": 113,
+      "sha256": "423d6a8ffd3624b3be424503d3b6721fa0e2d72603a92f1ea12241df9014a695"
+    },
+    {
+      "path": "raw/reviewed-smoke-process.json",
+      "originalPath": ".work/memory-query-bundle/reviewed-smoke-process.json",
+      "bytes": 4547,
+      "sha256": "619206dc96946ab8fb205c9aecc154adac2c0a48a3a5e34a32275de26aff8608"
+    },
+    {
+      "path": "raw/reviewed-smoke.json",
+      "originalPath": ".work/memory-query-bundle/reviewed-smoke.json",
+      "bytes": 42176,
+      "sha256": "32e68cf82c4db3ff9d389bc74edfc1263ad4c109c16d0e7f6b92831a8a977370"
+    },
+    {
+      "path": "raw/reviewed-smoke.log",
+      "originalPath": ".work/memory-query-bundle/reviewed-smoke.log",
+      "bytes": 849,
+      "sha256": "4d567496e1d3fdeeb4707247222be4e51e0163bf0535e1672eec316a1bb9c0e2"
+    },
+    {
+      "path": "raw/reviewed-stop-process.json",
+      "originalPath": ".work/memory-query-bundle/reviewed-stop-process.json",
+      "bytes": 4477,
+      "sha256": "7a864699ae5498eff105ece387bedefc9d2ed1dd4fda57b194d4834616d5d336"
+    },
+    {
+      "path": "raw/reviewed-stop.json",
+      "originalPath": ".work/memory-query-bundle/reviewed-stop.json",
+      "bytes": 31643,
+      "sha256": "58434c001230e670cb7a755bc430dba465c7c68173d313926a3f5f86389453ec"
+    },
+    {
+      "path": "raw/reviewed-stop.log",
+      "originalPath": ".work/memory-query-bundle/reviewed-stop.log",
+      "bytes": 528,
+      "sha256": "af11d81965d95b801df11a7af367fc2c48ebc06a6084202cccd262b6ab88e318"
+    },
+    {
+      "path": "raw/run-canonical-landed-validation-20261029.mjs",
+      "originalPath": ".work/memory-query-bundle/run-canonical-landed-validation-20261029.mjs",
+      "bytes": 2681,
+      "sha256": "aab1644e4dbe646aecaa98988a6871e16a36faaf46615590ce2627e79ab7ce46"
+    },
+    {
+      "path": "raw/run-legacy.mjs",
+      "originalPath": ".work/memory-query-bundle/run-legacy.mjs",
+      "bytes": 866,
+      "sha256": "c9805be99bf9cedb4d126d2c07bab4aeba06ba5a7ba7c4c7c4e97a9bb12a2d26"
+    },
+    {
+      "path": "raw/run-measure.mjs",
+      "originalPath": ".work/memory-query-bundle/run-measure.mjs",
+      "bytes": 2162,
+      "sha256": "e261414e3a78b334a6c455082bc1f08b804658f118cf4a3e962f314ebc773141"
+    },
+    {
+      "path": "raw/run-negative-control.mjs",
+      "originalPath": ".work/memory-query-bundle/run-negative-control.mjs",
+      "bytes": 2230,
+      "sha256": "e50f1620a7d9cdfdc6a896c3da68a0c1d2be3721b4562176652f1ad4d5a252cd"
+    },
+    {
+      "path": "raw/run-tests.mjs",
+      "originalPath": ".work/memory-query-bundle/run-tests.mjs",
+      "bytes": 1811,
+      "sha256": "20bbbe74160c5f6dff56763c6b95bf619de25b9046da6085fa00b0560d8b609d"
+    },
+    {
+      "path": "raw/smoke-process.json",
+      "originalPath": ".work/memory-query-bundle/smoke-process.json",
+      "bytes": 81,
+      "sha256": "979a366757ca6df9618a8c688ee03f4a808ffe11fa5b75553559d0fe79d73fc9"
+    },
+    {
+      "path": "raw/smoke.json",
+      "originalPath": ".work/memory-query-bundle/smoke.json",
+      "bytes": 42210,
+      "sha256": "ca27b6ebe6df3f684944d5d495aa2f85e9143592cc90ed3ce719bb3db56db43d"
+    },
+    {
+      "path": "raw/smoke.log",
+      "originalPath": ".work/memory-query-bundle/smoke.log",
+      "bytes": 2358,
+      "sha256": "e2cc20ef369a0c86c905c9bd963ca1644357fc22adddfe4f4c26a83b7c6decf8"
+    },
+    {
+      "path": "raw/snapshot-legacy.mjs",
+      "originalPath": ".work/memory-query-bundle/snapshot-legacy.mjs",
+      "bytes": 1572,
+      "sha256": "8677ba3bb407ad7d0cd93f1f45891fa32235cf14053b322289761b3776990152"
+    },
+    {
+      "path": "raw/static-check-0.log",
+      "originalPath": ".work/memory-query-bundle/static-check-0.log",
+      "bytes": 82,
+      "sha256": "f23fa944c81bd11ad94e4496da8767b197ba2e407def62337241851aadc7bf86"
+    },
+    {
+      "path": "raw/static-check-1.log",
+      "originalPath": ".work/memory-query-bundle/static-check-1.log",
+      "bytes": 16,
+      "sha256": "d8760763be63067f00789fcf42648cb7e89259b37690e733415676ec0b8b6596"
+    },
+    {
+      "path": "raw/static-check-2.log",
+      "originalPath": ".work/memory-query-bundle/static-check-2.log",
+      "bytes": 149,
+      "sha256": "f1382454a8ad66557b5a7df0448a640a766c532f9836d02181dd83a7d22e52c9"
+    },
+    {
+      "path": "raw/static-check-3.log",
+      "originalPath": ".work/memory-query-bundle/static-check-3.log",
+      "bytes": 16,
+      "sha256": "d8760763be63067f00789fcf42648cb7e89259b37690e733415676ec0b8b6596"
+    },
+    {
+      "path": "raw/static-checks.json",
+      "originalPath": ".work/memory-query-bundle/static-checks.json",
+      "bytes": 2285,
+      "sha256": "59d797254eec7ae8b123d7eedf74b02294b626af0494dd118f04052516611ed5"
+    },
+    {
+      "path": "raw/static-checks.mjs",
+      "originalPath": ".work/memory-query-bundle/static-checks.mjs",
+      "bytes": 1693,
+      "sha256": "24d35f991a0f074b34dc24507194348084cc6b2c11126a2c863e03f0061f7d1e"
+    },
+    {
+      "path": "raw/unit.log",
+      "originalPath": ".work/memory-query-bundle/unit.log",
+      "bytes": 656,
+      "sha256": "814bc775a62b41d06184c47c6b3623c4573533a3b19e2d02f2f1b6e364a27df6"
+    },
+    {
+      "path": "raw/cold-cpu-cH1aAO/cold-query.cpuprofile",
+      "originalPath": ".work/memory-query-bundle/cold-cpu-cH1aAO/cold-query.cpuprofile",
+      "bytes": 109766,
+      "sha256": "31b509ab7617dfab905f5579eb0bb332a7089a56803844ac8dbc6ff4b3df079b"
+    },
+    {
+      "path": "raw/cold-cpu-cH1aAO/profile-analysis.json",
+      "originalPath": ".work/memory-query-bundle/cold-cpu-cH1aAO/profile-analysis.json",
+      "bytes": 25693,
+      "sha256": "a4e4d05e0002c5f84f91adf95f29f3d37bce8fd5e2d4ee50ca6d1e50557950ca"
+    },
+    {
+      "path": "raw/cold-cpu-cH1aAO/profile-attribution.json",
+      "originalPath": ".work/memory-query-bundle/cold-cpu-cH1aAO/profile-attribution.json",
+      "bytes": 489,
+      "sha256": "e74d911caa32e498b7926a01ea2120fd4091265c26c91458e2a6069426ae6b15"
+    },
+    {
+      "path": "raw/cold-cpu-cH1aAO/receipt.json",
+      "originalPath": ".work/memory-query-bundle/cold-cpu-cH1aAO/receipt.json",
+      "bytes": 4349,
+      "sha256": "e5423be296ab28daa033081b45a5a2446d0de91ea3ce208a4b54d4c057e114c5"
+    },
+    {
+      "path": "raw/cold-cpu-cH1aAO/worker-result.json",
+      "originalPath": ".work/memory-query-bundle/cold-cpu-cH1aAO/worker-result.json",
+      "bytes": 4951,
+      "sha256": "3223fdbce7c8775426ffd6979fecf0cd914de59fa96fe548ea3c661732e31fe4"
+    },
+    {
+      "path": "raw/cold-cpu-cH1aAO/worker.log",
+      "originalPath": ".work/memory-query-bundle/cold-cpu-cH1aAO/worker.log",
+      "bytes": 558,
+      "sha256": "b73be803c6f5af213a25d47a01b69944ad1e1e6289f239312db12920ef3b2735"
+    },
+    {
+      "path": "raw/canonical-allocation-Ozh9m3/benchmark.json",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-Ozh9m3/benchmark.json",
+      "bytes": 13831,
+      "sha256": "545b2f336986748fb52f856c3f3440d2cdf313ddda10db135f654db3526222c9"
+    },
+    {
+      "path": "raw/canonical-allocation-Ozh9m3/oracle/canonical.js",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-Ozh9m3/oracle/canonical.js",
+      "bytes": 1659,
+      "sha256": "267eb8a7af1d08dcfb8e590da266c5f283637e97e229633a784ef95fd85a0da9"
+    },
+    {
+      "path": "raw/canonical-allocation-Ozh9m3/oracle/constants.js",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-Ozh9m3/oracle/constants.js",
+      "bytes": 2941,
+      "sha256": "31ddefd99cb84bcf74e6829f13c547af0bc7c2eb34b0e3a7fdc36bfd08f82e5e"
+    },
+    {
+      "path": "raw/canonical-allocation-Ozh9m3/oracle/errors.js",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-Ozh9m3/oracle/errors.js",
+      "bytes": 621,
+      "sha256": "27a67aa4147317c28df95c7cada1d9ca39a86476c328f8fc9b0cadaf95a6aa70"
+    },
+    {
+      "path": "raw/canonical-allocation-Ozh9m3/oracle/package.json",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-Ozh9m3/oracle/package.json",
+      "bytes": 25,
+      "sha256": "8005a3491db7d92f36ac66369861589f9c47123d3a7c71e643fc2c06168cd45a"
+    },
+    {
+      "path": "raw/canonical-allocation-Ozh9m3/validation.json",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-Ozh9m3/validation.json",
+      "bytes": 1577,
+      "sha256": "ec531fd3322dac9400a88a5712ca81051bf2ad8c00289ebd157d354b4c5cc501"
+    },
+    {
+      "path": "raw/canonical-allocation-PMXXwt/benchmark.json",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-PMXXwt/benchmark.json",
+      "bytes": 9465,
+      "sha256": "cbe60f06e435f05fafdadaf21e0cd7bbd21ceb780e9e7a239d40eb194543808e"
+    },
+    {
+      "path": "raw/canonical-allocation-PMXXwt/fixture.json",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-PMXXwt/fixture.json",
+      "bytes": 3473461,
+      "sha256": "c5932ea861cb559d5f141a0b9f8b5161a1c33357c9587023be4ff50a5a9d32be"
+    },
+    {
+      "path": "raw/canonical-allocation-PMXXwt/oracle/canonical.js",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-PMXXwt/oracle/canonical.js",
+      "bytes": 1659,
+      "sha256": "267eb8a7af1d08dcfb8e590da266c5f283637e97e229633a784ef95fd85a0da9"
+    },
+    {
+      "path": "raw/canonical-allocation-PMXXwt/oracle/constants.js",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-PMXXwt/oracle/constants.js",
+      "bytes": 2941,
+      "sha256": "31ddefd99cb84bcf74e6829f13c547af0bc7c2eb34b0e3a7fdc36bfd08f82e5e"
+    },
+    {
+      "path": "raw/canonical-allocation-PMXXwt/oracle/errors.js",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-PMXXwt/oracle/errors.js",
+      "bytes": 621,
+      "sha256": "27a67aa4147317c28df95c7cada1d9ca39a86476c328f8fc9b0cadaf95a6aa70"
+    },
+    {
+      "path": "raw/canonical-allocation-PMXXwt/oracle/package.json",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-PMXXwt/oracle/package.json",
+      "bytes": 25,
+      "sha256": "8005a3491db7d92f36ac66369861589f9c47123d3a7c71e643fc2c06168cd45a"
+    },
+    {
+      "path": "raw/canonical-allocation-PMXXwt/validation.json",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-PMXXwt/validation.json",
+      "bytes": 1576,
+      "sha256": "dc34ad2b24c1c80251c3ca7eb28d77092fdd73de7f0faa2d545175d797d0ef34"
+    },
+    {
+      "path": "raw/canonical-allocation-byee2x/oracle/canonical.js",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-byee2x/oracle/canonical.js",
+      "bytes": 1659,
+      "sha256": "267eb8a7af1d08dcfb8e590da266c5f283637e97e229633a784ef95fd85a0da9"
+    },
+    {
+      "path": "raw/canonical-allocation-byee2x/oracle/constants.js",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-byee2x/oracle/constants.js",
+      "bytes": 2941,
+      "sha256": "31ddefd99cb84bcf74e6829f13c547af0bc7c2eb34b0e3a7fdc36bfd08f82e5e"
+    },
+    {
+      "path": "raw/canonical-allocation-byee2x/oracle/errors.js",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-byee2x/oracle/errors.js",
+      "bytes": 621,
+      "sha256": "27a67aa4147317c28df95c7cada1d9ca39a86476c328f8fc9b0cadaf95a6aa70"
+    },
+    {
+      "path": "raw/canonical-allocation-byee2x/oracle/package.json",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-byee2x/oracle/package.json",
+      "bytes": 25,
+      "sha256": "8005a3491db7d92f36ac66369861589f9c47123d3a7c71e643fc2c06168cd45a"
+    },
+    {
+      "path": "raw/canonical-allocation-byee2x/validation.json",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-byee2x/validation.json",
+      "bytes": 1576,
+      "sha256": "5227fdf9c83b82b57a51fb8f906e5e292ffa06bb0afd5a3da9d75b7aeb347a09"
+    },
+    {
+      "path": "raw/canonical-allocation-BVg95p/oracle/canonical.js",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-BVg95p/oracle/canonical.js",
+      "bytes": 1659,
+      "sha256": "267eb8a7af1d08dcfb8e590da266c5f283637e97e229633a784ef95fd85a0da9"
+    },
+    {
+      "path": "raw/canonical-allocation-BVg95p/oracle/constants.js",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-BVg95p/oracle/constants.js",
+      "bytes": 2941,
+      "sha256": "31ddefd99cb84bcf74e6829f13c547af0bc7c2eb34b0e3a7fdc36bfd08f82e5e"
+    },
+    {
+      "path": "raw/canonical-allocation-BVg95p/oracle/errors.js",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-BVg95p/oracle/errors.js",
+      "bytes": 621,
+      "sha256": "27a67aa4147317c28df95c7cada1d9ca39a86476c328f8fc9b0cadaf95a6aa70"
+    },
+    {
+      "path": "raw/canonical-allocation-BVg95p/oracle/package.json",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-BVg95p/oracle/package.json",
+      "bytes": 25,
+      "sha256": "8005a3491db7d92f36ac66369861589f9c47123d3a7c71e643fc2c06168cd45a"
+    },
+    {
+      "path": "raw/canonical-allocation-BVg95p/validation.json",
+      "originalPath": ".work/memory-query-bundle/canonical-allocation-BVg95p/validation.json",
+      "bytes": 1576,
+      "sha256": "5227fdf9c83b82b57a51fb8f906e5e292ffa06bb0afd5a3da9d75b7aeb347a09"
+    },
+    {
+      "path": "raw/canonical-landed-validation-k4yfzg/e7-production-parity.log",
+      "originalPath": ".work/memory-query-bundle/canonical-landed-validation-k4yfzg/e7-production-parity.log",
+      "bytes": 173,
+      "sha256": "9ece7a48a66431ba8d32dff2446c1d6167471603be2047fff3617af60989cfca"
+    },
+    {
+      "path": "raw/canonical-landed-validation-k4yfzg/npm-test.log",
+      "originalPath": ".work/memory-query-bundle/canonical-landed-validation-k4yfzg/npm-test.log",
+      "bytes": 25473,
+      "sha256": "240765dcc3b2c9a627e57fc27fe9375f4385c0626f4eeb45261cee8d58a721c2"
+    },
+    {
+      "path": "raw/canonical-landed-validation-k4yfzg/receipt.json",
+      "originalPath": ".work/memory-query-bundle/canonical-landed-validation-k4yfzg/receipt.json",
+      "bytes": 1596,
+      "sha256": "8f2d88699e703a87d6b2f243d8b2b6529c90f258844f95446a096de1ab84b413"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "originalPath": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "bytes": 40897,
+      "sha256": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+      "originalPath": "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+      "bytes": 12596,
+      "sha256": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+      "originalPath": "packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+      "bytes": 9606,
+      "sha256": "f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/context-memory-kernel/memory-service.js",
+      "originalPath": "packages/cli/src/lib/context-memory-kernel/memory-service.js",
+      "bytes": 23160,
+      "sha256": "288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/context-memory-kernel/memory-query-control.js",
+      "originalPath": "packages/cli/src/lib/context-memory-kernel/memory-query-control.js",
+      "bytes": 925,
+      "sha256": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js",
+      "originalPath": "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js",
+      "bytes": 1950,
+      "sha256": "b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js",
+      "originalPath": "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js",
+      "bytes": 11037,
+      "sha256": "f603c2b1683e04bcf8e9930a1bdba86c5be56bdd4d9b41c8e19a7a68a9b50472"
+    },
+    {
+      "path": "sources/packages/cli/src/lib/with-file-lock.js",
+      "originalPath": "packages/cli/src/lib/with-file-lock.js",
+      "bytes": 31146,
+      "sha256": "2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f"
+    },
+    {
+      "path": "sources/packages/context-memory-kernel/lib/canonical.js",
+      "originalPath": "packages/context-memory-kernel/lib/canonical.js",
+      "bytes": 3372,
+      "sha256": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7"
+    },
+    {
+      "path": "sources/packages/context-memory-kernel/lib/contracts.js",
+      "originalPath": "packages/context-memory-kernel/lib/contracts.js",
+      "bytes": 18376,
+      "sha256": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943"
+    },
+    {
+      "path": "sources/packages/context-memory-kernel/lib/memory-reducer.js",
+      "originalPath": "packages/context-memory-kernel/lib/memory-reducer.js",
+      "bytes": 23857,
+      "sha256": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72"
+    },
+    {
+      "path": "sources/packages/cli/scripts/persistent-capacity-benchmark.mjs",
+      "originalPath": "packages/cli/scripts/persistent-capacity-benchmark.mjs",
+      "bytes": 28848,
+      "sha256": "81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939"
+    },
+    {
+      "path": "sources/packages/cli/scripts/memory-query-index-benchmark.mjs",
+      "originalPath": "packages/cli/scripts/memory-query-index-benchmark.mjs",
+      "bytes": 13604,
+      "sha256": "03dbafa5caa1a97ee5af55d6e39ce97bf4dc926d86e6f60d8b8fcf205f1551dc"
+    },
+    {
+      "path": "sources/packages/cli/scripts/memory-query-responsiveness-benchmark.mjs",
+      "originalPath": "packages/cli/scripts/memory-query-responsiveness-benchmark.mjs",
+      "bytes": 7773,
+      "sha256": "212169364bdf876ec102d614ee37fc525779e8e20083b7487cad92f506ea0d34"
+    },
+    {
+      "path": "sources/packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs",
+      "originalPath": "packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs",
+      "bytes": 13960,
+      "sha256": "e66def2c936fee88eb3fc25724a155f1d79115dc6498f82de5a4c65c54f63927"
+    }
+  ]
+}

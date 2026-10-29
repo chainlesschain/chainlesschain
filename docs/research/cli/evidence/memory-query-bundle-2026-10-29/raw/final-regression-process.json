@@ -1,0 +1,50 @@
+{
+  "args": [
+    "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+    "run",
+    "__tests__/unit/memory-query-bundle.test.js",
+    "__tests__/unit/segmented-memory-port.test.js",
+    "__tests__/unit/memory-query-index.test.js",
+    "__tests__/unit/memory-query-cancellation.test.js",
+    "__tests__/unit/memory-shard-snapshots.test.js",
+    "__tests__/unit/segmented-memory-directory-identity.test.js",
+    "__tests__/unit/durable-memory-port-limits.test.js",
+    "__tests__/integration/memory-query-bundle-port.test.js",
+    "__tests__/integration/memory-query-bundle-legacy.test.js",
+    "--reporter=json",
+    "--outputFile=C:\\code\\chainlesschain\\.work\\memory-query-bundle\\final-regression.json"
+  ],
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "observedAt": "2026-10-29T02:08:53.218Z",
+  "sourceBefore": {
+    "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "33dcb40fca0eb6f6b18111d0a4d75ebe9cb1a1cdf42847fd6bc6a6482b84c2ec",
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "c311a9d017e5519bdddaa1a91ab6bc16f498a0ee7ffaa41ee4c2c107b232d149",
+    "packages/context-memory-kernel/lib/canonical.js": "3684851f7a89cf4e992134df914b0702a3dbbe93376c0623ab89333627f9a079",
+    "packages/cli/__tests__/unit/memory-query-bundle.test.js": "5d5286187c583098221cc964d13ea7699010a4435ec808ea10ced71405f1c85f",
+    "packages/cli/__tests__/unit/segmented-memory-port.test.js": "e7ca1ad1103d72732ed4255d5b40e4123f3f5330fdd36f575b042870e013ec09",
+    "packages/cli/__tests__/unit/memory-query-index.test.js": "9f5150075db64b053a29134a78e324f48202741d8a5630608191d6e0138db83f",
+    "packages/cli/__tests__/unit/memory-query-cancellation.test.js": "af2335a29f7cbc71d5364069fccf517a7df76c0522dfdd4d160f5c5ad4e87b49",
+    "packages/cli/__tests__/unit/memory-shard-snapshots.test.js": "4a4d963af7eff2ddfb11a73cdf58a45802d5cd327e9efd6df1b8f33350eae37a",
+    "packages/cli/__tests__/unit/segmented-memory-directory-identity.test.js": "3b7da552646f09b0773561a0f273c34b087438368c5a9cbbdacb2889b64c1df9",
+    "packages/cli/__tests__/unit/durable-memory-port-limits.test.js": "f3a9f3df8f510bc54ece7a3e55892cbafaadef76f10ab1564e537e77b27769e4",
+    "packages/cli/__tests__/integration/memory-query-bundle-port.test.js": "6e8266baacff642afc23512eef2cc5da87163fd7c509e3c0e4855a9a06df09c7",
+    "packages/cli/__tests__/integration/memory-query-bundle-legacy.test.js": "f29ea244e89d382ece3b87cfba3e5c3196a774c5b513b930793115a268de8ea1"
+  },
+  "sourceAfter": {
+    "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "33dcb40fca0eb6f6b18111d0a4d75ebe9cb1a1cdf42847fd6bc6a6482b84c2ec",
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "c311a9d017e5519bdddaa1a91ab6bc16f498a0ee7ffaa41ee4c2c107b232d149",
+    "packages/context-memory-kernel/lib/canonical.js": "3684851f7a89cf4e992134df914b0702a3dbbe93376c0623ab89333627f9a079",
+    "packages/cli/__tests__/unit/memory-query-bundle.test.js": "5d5286187c583098221cc964d13ea7699010a4435ec808ea10ced71405f1c85f",
+    "packages/cli/__tests__/unit/segmented-memory-port.test.js": "e7ca1ad1103d72732ed4255d5b40e4123f3f5330fdd36f575b042870e013ec09",
+    "packages/cli/__tests__/unit/memory-query-index.test.js": "9f5150075db64b053a29134a78e324f48202741d8a5630608191d6e0138db83f",
+    "packages/cli/__tests__/unit/memory-query-cancellation.test.js": "af2335a29f7cbc71d5364069fccf517a7df76c0522dfdd4d160f5c5ad4e87b49",
+    "packages/cli/__tests__/unit/memory-shard-snapshots.test.js": "4a4d963af7eff2ddfb11a73cdf58a45802d5cd327e9efd6df1b8f33350eae37a",
+    "packages/cli/__tests__/unit/segmented-memory-directory-identity.test.js": "3b7da552646f09b0773561a0f273c34b087438368c5a9cbbdacb2889b64c1df9",
+    "packages/cli/__tests__/unit/durable-memory-port-limits.test.js": "f3a9f3df8f510bc54ece7a3e55892cbafaadef76f10ab1564e537e77b27769e4",
+    "packages/cli/__tests__/integration/memory-query-bundle-port.test.js": "6e8266baacff642afc23512eef2cc5da87163fd7c509e3c0e4855a9a06df09c7",
+    "packages/cli/__tests__/integration/memory-query-bundle-legacy.test.js": "f29ea244e89d382ece3b87cfba3e5c3196a774c5b513b930793115a268de8ea1"
+  },
+  "sourcesStable": true
+}

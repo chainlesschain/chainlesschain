@@ -45,6 +45,11 @@ import {
   createMemoryQueryCheckpoint,
 } from "./memory-query-control.js";
 import { MemoryShardSnapshots } from "./memory-shard-snapshots.js";
+import {
+  createQueryBundlePlan,
+  readQueryBundle,
+  writeQueryBundle,
+} from "./memory-query-bundle.js";
 
 export const SEGMENTED_STORE_SCHEMA =
   "chainlesschain.cli-context-memory-store/v2";
@@ -178,6 +183,7 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     maxEvents = DEFAULT_SEGMENTED_MAX_EVENTS,
     readOnly = false,
     queryIndexCacheMode = "validate-disk",
+    queryIndexLayout = "bundle",
     decodedShardCacheBytes,
     ...options
   } = {}) {
@@ -189,6 +195,9 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     if (!["validate-disk", "verified-memory"].includes(queryIndexCacheMode))
       throw new TypeError("Unknown query index cache mode");
     this.queryIndexCacheMode = queryIndexCacheMode;
+    if (!["bundle", "individual"].includes(queryIndexLayout))
+      throw new TypeError("Unknown query index layout");
+    this.queryIndexLayout = queryIndexLayout;
     this.filePath = resolve(this.filePath);
     this.shardDirectory = `${this.filePath}.shards`;
     this._queryIndexes = new Map();
@@ -249,6 +258,44 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
       this.shardDirectory,
       `query-${bucket}-${descriptor.queryDigest.slice(7)}.json`,
     );
+  }
+
+  _queryBundlePlan(manifest) {
+    if (
+      this.queryIndexLayout !== "bundle" ||
+      manifest.schema !== SEGMENTED_STORE_SCHEMA ||
+      !manifest.digest
+    )
+      return null;
+    const compatibilityBytes = Object.values(manifest.shards).reduce(
+      (sum, entry) => sum + (entry.queryBytes || 0),
+      0,
+    );
+    // The bundle is an additional derived copy. Preserve the existing total
+    // capacity instead of making a query fail merely because it cannot fit.
+    const available =
+      this.maxTotalBytes - manifest.totalBytes - compatibilityBytes;
+    if (!Number.isSafeInteger(available) || available <= 0) return null;
+    const plan = createQueryBundlePlan(manifest, {
+      maxFrameBytes: this.maxStoreBytes,
+      maxBundleBytes: available,
+    });
+    if (!plan) return null;
+    const file = join(this.shardDirectory, plan.name);
+    const normalize = (value) =>
+      process.platform === "win32"
+        ? resolve(value).toLowerCase()
+        : resolve(value);
+    const authorityPaths = [
+      this.filePath,
+      ...Object.entries(manifest.shards).flatMap(([bucket, entry]) => [
+        this._shardPath(bucket, entry),
+        ...(entry.queryDigest ? [this._queryIndexPath(bucket, entry)] : []),
+      ]),
+    ];
+    if (authorityPaths.some((path) => normalize(path) === normalize(file)))
+      throw corruptStore(file, "query bundle path collides with authority");
+    return { ...plan, file };
   }
 
   _validateManifest(input) {
@@ -447,6 +494,8 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
           : []),
       ]),
     );
+    const bundle = this._queryBundlePlan(manifest);
+    if (bundle) live.add(bundle.name);
     // All readers hold the same authority lock. No reader can still be using
     // a superseded shard here. Unknown files are never treated as our garbage.
     const directory = opendirSync(this.shardDirectory);
@@ -487,6 +536,7 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     ensureSafeDirectory(this.shardDirectory);
     this._checkDirectories();
     this._collect(manifest);
+    const previousBundle = this._queryBundlePlan(manifest);
     const next = cloneCanonical(manifest);
     const pending = [];
     let pendingBytes = manifest.totalBytes;
@@ -542,6 +592,19 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     );
     next.digest = manifestDigest(next);
     this._validateManifest(next);
+    this._queryBundlePlan(next);
+    if (
+      previousBundle &&
+      pending.some(
+        ({ file }) =>
+          resolve(file).toLowerCase() ===
+          resolve(previousBundle.file).toLowerCase(),
+      )
+    )
+      throw corruptStore(
+        previousBundle.file,
+        "new query index path collides with the existing bundle",
+      );
     const serialized = `${JSON.stringify(next)}\n`;
     if (Buffer.byteLength(serialized) > MANIFEST_LIMIT)
       throw limit("manifest exceeds byte limit");
@@ -697,7 +760,7 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     );
   }
 
-  _readQueryIndex(manifest, bucket) {
+  _readQueryIndex(manifest, bucket, validatedFrame) {
     const descriptor = manifest.shards[bucket];
     const binding = JSON.stringify([
       manifest.digest,
@@ -712,14 +775,46 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     // decision based on filesystem timestamps. Re-read and verify the current
     // manifest on every operation; any generation/authority change invalidates
     // this binding. Selected authority shards are still read and verified.
-    // Disk repair remains eager in validate-disk mode; verified-memory repairs
-    // a derived index on the next cache miss, rather than every warm query.
+    // validate-disk verifies the bytes of the active layout on every query.
+    // With a valid bundle, individual indexes are compatibility copies and
+    // are repaired when rebuilding the bundle. verified-memory remains opt-in.
     if (
+      validatedFrame === undefined &&
       this.queryIndexCacheMode === "verified-memory" &&
       descriptor.queryDigest &&
       cached?.binding === binding
     )
       return cached.index;
+    const bytes =
+      validatedFrame === undefined
+        ? this._readQueryIndexBytes(manifest, bucket)
+        : validatedFrame;
+    // Bytes cross only the internal loader boundary: readQueryBundle hashes
+    // every on-disk frame before this callback; _readQueryIndexBytes validates
+    // or reproduces individual/read-only/rebuild frames. Do not hash the same
+    // frame twice. The compiled graph owns no Buffer views, so borrowed frame
+    // storage can be reused as soon as this synchronous decoder returns.
+    const digest = descriptor.queryDigest || queryDigest(bytes);
+    if (descriptor.queryDigest && bytes.length !== descriptor.queryBytes)
+      throw corruptStore(this.filePath, "query index frame changed");
+    if (cached?.digest === digest && cached.binding === binding)
+      return cached.index;
+    let index;
+    try {
+      index = compileQueryIndex(bytes, descriptor);
+    } catch (cause) {
+      throw corruptStore(
+        this.filePath,
+        "query index structure is invalid",
+        cause,
+      );
+    }
+    this._queryIndexes.set(bucket, { digest, binding, index });
+    return index;
+  }
+
+  _readQueryIndexBytes(manifest, bucket) {
+    const descriptor = manifest.shards[bucket];
     let bytes;
     if (descriptor.queryDigest) {
       const file = this._queryIndexPath(bucket, descriptor);
@@ -768,21 +863,57 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     } else {
       bytes = encodeQueryIndex(this._readShard(manifest, bucket));
     }
-    const digest = descriptor.queryDigest || queryDigest(bytes);
-    if (cached?.digest === digest && cached.binding === binding)
-      return cached.index;
-    let index;
+    return bytes;
+  }
+
+  async _readQueryBundleIndexes(manifest, checkpoint) {
+    if (this.queryIndexCacheMode === "verified-memory") return null;
+    const plan = this._queryBundlePlan(manifest);
+    if (!plan) return null;
+    const indexes = new Map();
+    const onFrame = (bucket, bytes) => {
+      indexes.set(bucket, this._readQueryIndex(manifest, bucket, bytes));
+    };
+    this._checkDirectories();
     try {
-      index = compileQueryIndex(bytes, descriptor);
-    } catch (cause) {
-      throw corruptStore(
-        this.filePath,
-        "query index structure is invalid",
-        cause,
-      );
+      await readQueryBundle(plan.file, plan, {
+        checkpoint,
+        onFrame,
+        reuseFrameBuffer: true,
+      });
+      return indexes;
+    } catch (error) {
+      if (
+        error.code !== "ENOENT" &&
+        error.code !== "CONTEXT_MEMORY_QUERY_BUNDLE_CORRUPT"
+      )
+        throw error;
+    } finally {
+      // Even an empty result must reject ancestor/directory redirection. On a
+      // content error, do this before deciding that rebuilding is safe.
+      this._checkDirectories();
     }
-    this._queryIndexes.set(bucket, { digest, binding, index });
-    return index;
+    await checkpoint(true);
+    indexes.clear();
+    if (this.readOnly) {
+      // A shadow query may validate the compatibility indexes in memory but
+      // never creates or repairs a bundle on disk.
+      for (const { bucket } of plan.frames) {
+        await checkpoint();
+        onFrame(bucket, this._readQueryIndexBytes(manifest, bucket));
+      }
+      return indexes;
+    }
+    await writeQueryBundle(plan.file, plan, {
+      checkpoint,
+      getFrame: (bucket) => {
+        const bytes = this._readQueryIndexBytes(manifest, bucket);
+        onFrame(bucket, bytes);
+        return bytes;
+      },
+      checkDirectories: () => this._checkDirectories(),
+    });
+    return indexes;
   }
 
   async _indexedRecords(
@@ -822,11 +953,17 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
         }
         // Merge each sorted posting lazily. Only the requested page is captured;
         // every candidate has already passed scope, sink and lifecycle filters.
+        const bundleIndexes = await this._readQueryBundleIndexes(
+          manifest,
+          checkpoint,
+        );
         const heads = [];
         for (const bucket of Object.keys(manifest.shards)) {
           await checkpoint();
           const iterator = selectQueryRows(
-            this._readQueryIndex(manifest, bucket),
+            bundleIndexes
+              ? bundleIndexes.get(bucket)
+              : this._readQueryIndex(manifest, bucket),
             query,
             after,
           );

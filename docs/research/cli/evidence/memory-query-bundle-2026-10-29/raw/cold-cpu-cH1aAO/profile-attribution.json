@@ -1,0 +1,14 @@
+{
+  "sampleAttributionMs": {
+    "any canonical.js frame on stack": 545.249,
+    "compileQueryIndex": 264.462,
+    "queryDigest under _readQueryIndex": 51.768,
+    "hash update under index duplicate hash": 51.768,
+    "hash update under bundle verification": 64.363,
+    "hash update under canonicalDigest": 68.027,
+    "queryDigest under _queryShardSnapshot": 20.127,
+    "hash update under other queryDigest": 20.127,
+    "hash update under other": 1.995
+  },
+  "fixtureRemoved": true
+}

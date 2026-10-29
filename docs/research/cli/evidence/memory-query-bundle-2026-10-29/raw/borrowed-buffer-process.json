@@ -1,0 +1,14 @@
+{
+  "args": [
+    "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+    "run",
+    "__tests__/unit/memory-query-bundle.test.js",
+    "__tests__/integration/memory-query-bundle-port.test.js",
+    "--reporter=json",
+    "--outputFile=C:\\code\\chainlesschain\\.work\\memory-query-bundle\\borrowed-buffer.json"
+  ],
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "observedAt": "2026-10-29T02:03:50.107Z"
+}

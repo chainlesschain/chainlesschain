@@ -1,0 +1,46 @@
+{
+  "args": [
+    "--test",
+    "packages/cli/test-node/context-memory-kernel.node-test.mjs"
+  ],
+  "startedAt": "2026-10-29T02:14:58.212Z",
+  "endedAt": "2026-10-29T02:15:06.538Z",
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "sourceBefore": {
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+    "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-index.js": "f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721",
+    "packages/cli/src/lib/context-memory-kernel/memory-service.js": "288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+    "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js": "b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "f603c2b1683e04bcf8e9930a1bdba86c5be56bdd4d9b41c8e19a7a68a9b50472",
+    "packages/cli/src/lib/with-file-lock.js": "2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+    "packages/context-memory-kernel/lib/canonical.js": "3684851f7a89cf4e992134df914b0702a3dbbe93376c0623ab89333627f9a079",
+    "packages/context-memory-kernel/lib/contracts.js": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+    "packages/context-memory-kernel/lib/memory-reducer.js": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+    "packages/cli/scripts/persistent-capacity-benchmark.mjs": "81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939",
+    "packages/cli/scripts/memory-query-index-benchmark.mjs": "03dbafa5caa1a97ee5af55d6e39ce97bf4dc926d86e6f60d8b8fcf205f1551dc",
+    "packages/cli/scripts/memory-query-responsiveness-benchmark.mjs": "212169364bdf876ec102d614ee37fc525779e8e20083b7487cad92f506ea0d34",
+    "packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs": "e66def2c936fee88eb3fc25724a155f1d79115dc6498f82de5a4c65c54f63927"
+  },
+  "sourceAfter": {
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+    "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-index.js": "f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721",
+    "packages/cli/src/lib/context-memory-kernel/memory-service.js": "288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+    "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js": "b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "f603c2b1683e04bcf8e9930a1bdba86c5be56bdd4d9b41c8e19a7a68a9b50472",
+    "packages/cli/src/lib/with-file-lock.js": "2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+    "packages/context-memory-kernel/lib/canonical.js": "3684851f7a89cf4e992134df914b0702a3dbbe93376c0623ab89333627f9a079",
+    "packages/context-memory-kernel/lib/contracts.js": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+    "packages/context-memory-kernel/lib/memory-reducer.js": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+    "packages/cli/scripts/persistent-capacity-benchmark.mjs": "81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939",
+    "packages/cli/scripts/memory-query-index-benchmark.mjs": "03dbafa5caa1a97ee5af55d6e39ce97bf4dc926d86e6f60d8b8fcf205f1551dc",
+    "packages/cli/scripts/memory-query-responsiveness-benchmark.mjs": "212169364bdf876ec102d614ee37fc525779e8e20083b7487cad92f506ea0d34",
+    "packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs": "e66def2c936fee88eb3fc25724a155f1d79115dc6498f82de5a4c65c54f63927"
+  },
+  "sourcesStable": true
+}

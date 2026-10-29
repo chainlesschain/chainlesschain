@@ -1,0 +1,819 @@
+{
+  "samples": 813,
+  "sampledMs": 1529.466,
+  "profileElapsedMs": 1529.983,
+  "note": "Self samples partition sampled time; inclusive functions overlap. Recursive identical function frames are counted only once per sample.",
+  "topSelf": [
+    {
+      "name": "canonicalize file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:6",
+      "ms": 277.621,
+      "percent": 18.15149862762559
+    },
+    {
+      "name": "update (native):0",
+      "ms": 199.478,
+      "percent": 13.042329806612244
+    },
+    {
+      "name": "compileQueryIndex file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js:50",
+      "ms": 182.571,
+      "percent": 11.936911314144936
+    },
+    {
+      "name": "(garbage collector) (native):0",
+      "ms": 119.298,
+      "percent": 7.7999772469607045
+    },
+    {
+      "name": "canonicalJson file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:32",
+      "ms": 107.298,
+      "percent": 7.015389685027324
+    },
+    {
+      "name": "timestamp file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js:81",
+      "ms": 58.437,
+      "percent": 3.8207452797250805
+    },
+    {
+      "name": "post node:inspector:118",
+      "ms": 57.431,
+      "percent": 3.7549706891163317
+    },
+    {
+      "name": "_decodeShard file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:435",
+      "ms": 57.097,
+      "percent": 3.7331330019758533
+    },
+    {
+      "name": "add file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js:64",
+      "ms": 40.02,
+      "percent": 2.6165995190478246
+    },
+    {
+      "name": "scopeKey file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js:46",
+      "ms": 27.641,
+      "percent": 1.8072320666167145
+    },
+    {
+      "name": "read (native):0",
+      "ms": 25.971,
+      "percent": 1.6980436309143192
+    },
+    {
+      "name": "lstat (native):0",
+      "ms": 19.202,
+      "percent": 1.2554708636870646
+    },
+    {
+      "name": "slice node:buffer:640",
+      "ms": 17.793,
+      "percent": 1.1633472074567202
+    },
+    {
+      "name": "normalizeMemoryRecord file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js:361",
+      "ms": 17.49,
+      "percent": 1.1435363715179023
+    },
+    {
+      "name": "cloneCanonical file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:42",
+      "ms": 16.208,
+      "percent": 1.0597162669846862
+    },
+    {
+      "name": "(anonymous) file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:27",
+      "ms": 14.762,
+      "percent": 0.9651734657717138
+    },
+    {
+      "name": "digest (native):0",
+      "ms": 14.752,
+      "percent": 0.9645196428034359
+    },
+    {
+      "name": "Hash (native):0",
+      "ms": 12.504,
+      "percent": 0.8175402395345828
+    },
+    {
+      "name": "stringSet file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js:88",
+      "ms": 12.245,
+      "percent": 0.8006062246561871
+    },
+    {
+      "name": "RegExp: \\b(?:recovery|backup)\\s+code\\s*[:=]\\s*[A-Za-z0-9 -]{8,} (native):0",
+      "ms": 12.09,
+      "percent": 0.790471968647881
+    },
+    {
+      "name": "RegExp: \\b(?:api[_-]?key|access[_-]?token|client[_-]?secret)\\s*[:=]\\s*[\"']?[A-Za-z0-9._~+/=-]{12,} (native):0",
+      "ms": 11.973,
+      "percent": 0.7828222399190305
+    },
+    {
+      "name": "containsSecretMaterial file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js:323",
+      "ms": 11.868,
+      "percent": 0.7759570987521135
+    },
+    {
+      "name": "normalizeProvenance file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js:129",
+      "ms": 11.586,
+      "percent": 0.757519291046679
+    },
+    {
+      "name": "(anonymous) file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:28",
+      "ms": 10.041,
+      "percent": 0.6565036424477563
+    },
+    {
+      "name": "canonicalDigest file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:36",
+      "ms": 8.866,
+      "percent": 0.5796794436751127
+    },
+    {
+      "name": "normalizeState file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js:77",
+      "ms": 8.232,
+      "percent": 0.5382270674862991
+    },
+    {
+      "name": "(anonymous) file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js:324",
+      "ms": 7.615,
+      "percent": 0.49788619034355786
+    },
+    {
+      "name": "Hash node:internal/crypto/hash:88",
+      "ms": 7.079,
+      "percent": 0.46284127924386675
+    },
+    {
+      "name": "computeMemoryRecordDigest file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js:355",
+      "ms": 7.048,
+      "percent": 0.4608144280422056
+    },
+    {
+      "name": "(anonymous) file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:15",
+      "ms": 6.777,
+      "percent": 0.44309582560187677
+    },
+    {
+      "name": "createUnsafeBuffer node:internal/buffer:1082",
+      "ms": 6.07,
+      "percent": 0.39687054174463504
+    },
+    {
+      "name": "join node:path:521",
+      "ms": 6.016,
+      "percent": 0.39333989771593486
+    },
+    {
+      "name": "update node:internal/crypto/hash:132",
+      "ms": 5.616,
+      "percent": 0.36718697898482217
+    },
+    {
+      "name": "createHash node:crypto:138",
+      "ms": 5.432,
+      "percent": 0.3551566363685103
+    },
+    {
+      "name": "realpath (native):0",
+      "ms": 5.356,
+      "percent": 0.3501875818095989
+    },
+    {
+      "name": "rename (native):0",
+      "ms": 5.183,
+      "percent": 0.33887644445839266
+    },
+    {
+      "name": "(anonymous) file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js:69",
+      "ms": 5.017,
+      "percent": 0.3280229831849809
+    },
+    {
+      "name": "readQueryBundle file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js:131",
+      "ms": 4.253,
+      "percent": 0.2780709084085557
+    },
+    {
+      "name": "_collect file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:487",
+      "ms": 4.032,
+      "percent": 0.2636214208096159
+    },
+    {
+      "name": "RegExp: ^sha256:[a-f0-9]{64}$ (native):0",
+      "ms": 4.029,
+      "percent": 0.26342527391913256
+    }
+  ],
+  "topInclusive": [
+    {
+      "name": "(root) (native):0",
+      "ms": 1529.466,
+      "percent": 100
+    },
+    {
+      "name": "port.<computed> file:///C:/code/chainlesschain/.work/memory-query-bundle/cold-cpu-diagnostic-20261029-bf40.mjs:69",
+      "ms": 1190.321,
+      "percent": 77.82592094234197
+    },
+    {
+      "name": "_indexedRecords file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:910",
+      "ms": 881.329,
+      "percent": 57.623314280932036
+    },
+    {
+      "name": "read file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js:30",
+      "ms": 831.572,
+      "percent": 54.3700873376721
+    },
+    {
+      "name": "_queryShardSnapshot file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:478",
+      "ms": 831.572,
+      "percent": 54.3700873376721
+    },
+    {
+      "name": "_decodeShard file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:435",
+      "ms": 809.449,
+      "percent": 52.92363478495109
+    },
+    {
+      "name": "(anonymous) file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:483",
+      "ms": 809.449,
+      "percent": 52.92363478495109
+    },
+    {
+      "name": "normalizeState file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js:77",
+      "ms": 727.007,
+      "percent": 47.5333874698751
+    },
+    {
+      "name": "canonicalDigest file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:36",
+      "ms": 477.208,
+      "percent": 31.200955104592058
+    },
+    {
+      "name": "canonicalJson file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:32",
+      "ms": 420.072,
+      "percent": 27.465272193039926
+    },
+    {
+      "name": "normalizeMemoryRecord file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js:361",
+      "ms": 410.345,
+      "percent": 26.829298591796093
+    },
+    {
+      "name": "readQueryBundle file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js:131",
+      "ms": 382.572,
+      "percent": 25.013436061998107
+    },
+    {
+      "name": "onFrame file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:873",
+      "ms": 321.803,
+      "percent": 21.040219266070643
+    },
+    {
+      "name": "_readQueryIndex file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:763",
+      "ms": 318.278,
+      "percent": 20.80974666975271
+    },
+    {
+      "name": "canonicalize file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:6",
+      "ms": 312.774,
+      "percent": 20.4498825080126
+    },
+    {
+      "name": "compileQueryIndex file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js:50",
+      "ms": 264.462,
+      "percent": 17.29113298366881
+    },
+    {
+      "name": "computeMemoryRecordDigest file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js:355",
+      "ms": 243.377,
+      "percent": 15.912547255055031
+    },
+    {
+      "name": "stateDigest file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js:54",
+      "ms": 239.305,
+      "percent": 15.646310542372305
+    },
+    {
+      "name": "(anonymous) file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:28",
+      "ms": 219.667,
+      "percent": 14.362332997268329
+    },
+    {
+      "name": "update node:internal/crypto/hash:132",
+      "ms": 206.28,
+      "percent": 13.487060189634814
+    },
+    {
+      "name": "update (native):0",
+      "ms": 199.478,
+      "percent": 13.042329806612244
+    },
+    {
+      "name": "(garbage collector) (native):0",
+      "ms": 119.298,
+      "percent": 7.7999772469607045
+    },
+    {
+      "name": "(anonymous) file:///C:/code/chainlesschain/.work/memory-query-bundle/cold-cpu-diagnostic-20261029-bf40.mjs:0",
+      "ms": 106.17,
+      "percent": 6.941638454205585
+    },
+    {
+      "name": "(anonymous) file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:15",
+      "ms": 97.625,
+      "percent": 6.3829467278121905
+    },
+    {
+      "name": "readBytes file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js:161",
+      "ms": 87.535,
+      "percent": 5.723239352819873
+    },
+    {
+      "name": "(anonymous) file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js:69",
+      "ms": 72.678,
+      "percent": 4.75185456884952
+    },
+    {
+      "name": "captured._locked.signal.signal file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:919",
+      "ms": 72.391,
+      "percent": 4.7330898496599465
+    },
+    {
+      "name": "queryDigest file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js:9",
+      "ms": 71.895,
+      "percent": 4.700660230433367
+    },
+    {
+      "name": "cloneCanonical file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:42",
+      "ms": 68.041,
+      "percent": 4.4486768584590966
+    },
+    {
+      "name": "post node:inspector:118",
+      "ms": 59.475,
+      "percent": 3.888612103832318
+    },
+    {
+      "name": "(anonymous) file:///C:/code/chainlesschain/.work/memory-query-bundle/cold-cpu-diagnostic-20261029-bf40.mjs:80",
+      "ms": 59.475,
+      "percent": 3.888612103832318
+    },
+    {
+      "name": "post file:///C:/code/chainlesschain/.work/memory-query-bundle/cold-cpu-diagnostic-20261029-bf40.mjs:80",
+      "ms": 59.475,
+      "percent": 3.888612103832318
+    },
+    {
+      "name": "timestamp file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js:81",
+      "ms": 58.437,
+      "percent": 3.8207452797250805
+    },
+    {
+      "name": "runLocked file:///C:/code/chainlesschain/packages/cli/src/lib/with-file-lock.js:72",
+      "ms": 48.566,
+      "percent": 3.175356627738047
+    },
+    {
+      "name": "withFileLockAsync file:///C:/code/chainlesschain/packages/cli/src/lib/with-file-lock.js:52",
+      "ms": 48.566,
+      "percent": 3.175356627738047
+    },
+    {
+      "name": "containsSecretMaterial file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js:323",
+      "ms": 48.516,
+      "percent": 3.1720875128966584
+    },
+    {
+      "name": "_locked file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:207",
+      "ms": 46.695,
+      "percent": 3.0530263503732677
+    },
+    {
+      "name": "listRecords file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:1031",
+      "ms": 46.695,
+      "percent": 3.0530263503732677
+    },
+    {
+      "name": "list file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-service.js:406",
+      "ms": 46.695,
+      "percent": 3.0530263503732677
+    },
+    {
+      "name": "normalizeProvenance file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js:129",
+      "ms": 45.225,
+      "percent": 2.9569143740364283
+    },
+    {
+      "name": "_locked file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js:268",
+      "ms": 44.537,
+      "percent": 2.9119313538189147
+    },
+    {
+      "name": "add file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js:64",
+      "ms": 40.02,
+      "percent": 2.6165995190478246
+    },
+    {
+      "name": "(anonymous) file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:211",
+      "ms": 37.416,
+      "percent": 2.446344018108281
+    },
+    {
+      "name": "withFileLockAsync.failIfUnavailable file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js:273",
+      "ms": 37.416,
+      "percent": 2.446344018108281
+    },
+    {
+      "name": "(anonymous) file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js:324",
+      "ms": 36.648,
+      "percent": 2.3961304141445443
+    },
+    {
+      "name": "_readShardBytes file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:420",
+      "ms": 32.704,
+      "percent": 2.1382626354557734
+    },
+    {
+      "name": "createHash node:crypto:138",
+      "ms": 28.524,
+      "percent": 1.8649646347156459
+    },
+    {
+      "name": "scopeKey file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js:46",
+      "ms": 27.641,
+      "percent": 1.8072320666167145
+    },
+    {
+      "name": "_loadManifest file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:370",
+      "ms": 26.161,
+      "percent": 1.7104662673115976
+    },
+    {
+      "name": "read (native):0",
+      "ms": 25.971,
+      "percent": 1.6980436309143192
+    },
+    {
+      "name": "_checkDirectories file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:222",
+      "ms": 24.362,
+      "percent": 1.5928435153184182
+    },
+    {
+      "name": "readSync node:fs:695",
+      "ms": 23.159,
+      "percent": 1.5141886122345969
+    },
+    {
+      "name": "Hash node:internal/crypto/hash:88",
+      "ms": 23.092,
+      "percent": 1.5098079983471355
+    },
+    {
+      "name": "directories file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:114",
+      "ms": 22.517,
+      "percent": 1.472213177671161
+    },
+    {
+      "name": "_collect file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:487",
+      "ms": 21.036,
+      "percent": 1.3753819960692164
+    },
+    {
+      "name": "lstat (native):0",
+      "ms": 19.202,
+      "percent": 1.2554708636870646
+    },
+    {
+      "name": "lstatSync node:fs:1716",
+      "ms": 19.202,
+      "percent": 1.2554708636870646
+    },
+    {
+      "name": "_queryBundlePlan file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:263",
+      "ms": 18.771,
+      "percent": 1.2272910937542907
+    },
+    {
+      "name": "slice node:buffer:640",
+      "ms": 17.793,
+      "percent": 1.1633472074567202
+    },
+    {
+      "name": "toString node:buffer:839",
+      "ms": 17.793,
+      "percent": 1.1633472074567202
+    }
+  ],
+  "sourceSelf": [
+    {
+      "name": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+      "ms": 445.146,
+      "percent": 29.10466790369972
+    },
+    {
+      "name": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+      "ms": 261.586,
+      "percent": 17.10309349799211
+    },
+    {
+      "name": "update",
+      "ms": 199.478,
+      "percent": 13.042329806612244
+    },
+    {
+      "name": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+      "ms": 140.226,
+      "percent": 9.16829795497252
+    },
+    {
+      "name": "(garbage collector)",
+      "ms": 119.298,
+      "percent": 7.7999772469607045
+    },
+    {
+      "name": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "ms": 77.543,
+      "percent": 5.069939442916678
+    },
+    {
+      "name": "node:inspector",
+      "ms": 57.431,
+      "percent": 3.7549706891163317
+    },
+    {
+      "name": "read",
+      "ms": 25.971,
+      "percent": 1.6980436309143192
+    },
+    {
+      "name": "node:buffer",
+      "ms": 21.219,
+      "percent": 1.3873469563887004
+    },
+    {
+      "name": "lstat",
+      "ms": 19.202,
+      "percent": 1.2554708636870646
+    },
+    {
+      "name": "digest",
+      "ms": 14.752,
+      "percent": 0.9645196428034359
+    },
+    {
+      "name": "node:internal/crypto/hash",
+      "ms": 14.215,
+      "percent": 0.9294093494069172
+    },
+    {
+      "name": "node:path",
+      "ms": 13.87,
+      "percent": 0.9068524570013324
+    },
+    {
+      "name": "Hash",
+      "ms": 12.504,
+      "percent": 0.8175402395345828
+    },
+    {
+      "name": "RegExp: \\b(?:recovery|backup)\\s+code\\s*[:=]\\s*[A-Za-z0-9 -]{8,}",
+      "ms": 12.09,
+      "percent": 0.790471968647881
+    },
+    {
+      "name": "RegExp: \\b(?:api[_-]?key|access[_-]?token|client[_-]?secret)\\s*[:=]\\s*[\"']?[A-Za-z0-9._~+/=-]{12,}",
+      "ms": 11.973,
+      "percent": 0.7828222399190305
+    },
+    {
+      "name": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+      "ms": 8.232,
+      "percent": 0.5382270674862991
+    },
+    {
+      "name": "node:internal/buffer",
+      "ms": 6.07,
+      "percent": 0.39687054174463504
+    },
+    {
+      "name": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js",
+      "ms": 5.796,
+      "percent": 0.3789557924138228
+    },
+    {
+      "name": "node:crypto",
+      "ms": 5.432,
+      "percent": 0.3551566363685103
+    },
+    {
+      "name": "realpath",
+      "ms": 5.356,
+      "percent": 0.3501875818095989
+    },
+    {
+      "name": "rename",
+      "ms": 5.183,
+      "percent": 0.33887644445839266
+    },
+    {
+      "name": "node:internal/validators",
+      "ms": 4.671,
+      "percent": 0.30540070848256845
+    },
+    {
+      "name": "RegExp: ^sha256:[a-f0-9]{64}$",
+      "ms": 4.029,
+      "percent": 0.26342527391913256
+    },
+    {
+      "name": "(program)",
+      "ms": 3.54,
+      "percent": 0.2314533307703473
+    },
+    {
+      "name": "RegExp: \\bBearer\\s+[A-Za-z0-9._~+/=-]{16,}\\b",
+      "ms": 2.967,
+      "percent": 0.19398927468802837
+    },
+    {
+      "name": "dispatch",
+      "ms": 2.044,
+      "percent": 0.13364141471598584
+    },
+    {
+      "name": "unlink",
+      "ms": 2.036,
+      "percent": 0.1331183563413636
+    },
+    {
+      "name": "(idle)",
+      "ms": 2.02,
+      "percent": 0.13207223959211908
+    },
+    {
+      "name": "opendirSync",
+      "ms": 2.018,
+      "percent": 0.13194147499846354
+    },
+    {
+      "name": "close",
+      "ms": 2.014,
+      "percent": 0.1316799458111524
+    },
+    {
+      "name": "mkdir",
+      "ms": 2.01,
+      "percent": 0.13141841662384127
+    },
+    {
+      "name": "fstat",
+      "ms": 2.006,
+      "percent": 0.13115688743653015
+    },
+    {
+      "name": "RegExp: \\b(?:session|auth)(?:id|_token)?\\s*=\\s*[A-Za-z0-9%._~+/=-]{16,}",
+      "ms": 2.003,
+      "percent": 0.13096074054604678
+    },
+    {
+      "name": "node:internal/options",
+      "ms": 2.001,
+      "percent": 0.13082997595239124
+    },
+    {
+      "name": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-control.js",
+      "ms": 1.999,
+      "percent": 0.13069921135873566
+    },
+    {
+      "name": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js",
+      "ms": 1.996,
+      "percent": 0.13050306446825233
+    },
+    {
+      "name": "file:///C:/code/chainlesschain/packages/cli/src/lib/with-file-lock.js",
+      "ms": 1.989,
+      "percent": 0.13004538839045784
+    },
+    {
+      "name": "writeFileUtf8",
+      "ms": 1.942,
+      "percent": 0.1269724204395521
+    },
+    {
+      "name": "RegExp: ^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$",
+      "ms": 1.812,
+      "percent": 0.11847272185194048
+    },
+    {
+      "name": "file:///C:/code/chainlesschain/.work/memory-query-bundle/cold-cpu-diagnostic-20261029-bf40.mjs",
+      "ms": 1.495,
+      "percent": 0.09774653375753367
+    },
+    {
+      "name": "node:internal/errors",
+      "ms": 1.186,
+      "percent": 0.07754340403774912
+    },
+    {
+      "name": "node:internal/timers",
+      "ms": 1.115,
+      "percent": 0.07290126096297661
+    }
+  ],
+  "shaAndCanonicalInclusive": [
+    {
+      "name": "_decodeShard file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:435",
+      "ms": 809.449,
+      "percent": 52.92363478495109
+    },
+    {
+      "name": "normalizeState file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js:77",
+      "ms": 727.007,
+      "percent": 47.5333874698751
+    },
+    {
+      "name": "canonicalDigest file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:36",
+      "ms": 477.208,
+      "percent": 31.200955104592058
+    },
+    {
+      "name": "canonicalJson file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:32",
+      "ms": 420.072,
+      "percent": 27.465272193039926
+    },
+    {
+      "name": "normalizeMemoryRecord file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js:361",
+      "ms": 410.345,
+      "percent": 26.829298591796093
+    },
+    {
+      "name": "readQueryBundle file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js:131",
+      "ms": 382.572,
+      "percent": 25.013436061998107
+    },
+    {
+      "name": "canonicalize file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:6",
+      "ms": 312.774,
+      "percent": 20.4498825080126
+    },
+    {
+      "name": "compileQueryIndex file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js:50",
+      "ms": 264.462,
+      "percent": 17.29113298366881
+    },
+    {
+      "name": "(anonymous) file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:28",
+      "ms": 219.667,
+      "percent": 14.362332997268329
+    },
+    {
+      "name": "(anonymous) file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:15",
+      "ms": 97.625,
+      "percent": 6.3829467278121905
+    },
+    {
+      "name": "queryDigest file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js:9",
+      "ms": 71.895,
+      "percent": 4.700660230433367
+    },
+    {
+      "name": "cloneCanonical file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:42",
+      "ms": 68.041,
+      "percent": 4.4486768584590966
+    },
+    {
+      "name": "createHash node:crypto:138",
+      "ms": 28.524,
+      "percent": 1.8649646347156459
+    },
+    {
+      "name": "Hash node:internal/crypto/hash:88",
+      "ms": 23.092,
+      "percent": 1.5098079983471355
+    },
+    {
+      "name": "(anonymous) file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:27",
+      "ms": 14.762,
+      "percent": 0.9651734657717138
+    },
+    {
+      "name": "Hash (native):0",
+      "ms": 12.504,
+      "percent": 0.8175402395345828
+    },
+    {
+      "name": "_readQueryBundleIndexes file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js:868",
+      "ms": 9.239,
+      "percent": 0.6040670403918753
+    },
+    {
+      "name": "(anonymous) file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js:26",
+      "ms": 3.573,
+      "percent": 0.2336109465656641
+    }
+  ]
+}

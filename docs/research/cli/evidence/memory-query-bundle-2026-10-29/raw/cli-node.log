@@ -1,0 +1,229 @@
+TAP version 13
+# Subtest: complete memory ID deletes without scanning and retains scope and audit
+ok 1 - complete memory ID deletes without scanning and retains scope and audit
+  ---
+  duration_ms: 345.0173
+  type: 'test'
+  ...
+# Subtest: memory prefix retains ambiguity and unique selection
+ok 2 - memory prefix retains ambiguity and unique selection
+  ---
+  duration_ms: 404.8058
+  type: 'test'
+  ...
+# Subtest: tombstones are excluded while longer prefix matches remain eligible
+ok 3 - tombstones are excluded while longer prefix matches remain eligible
+  ---
+  duration_ms: 513.0311
+  type: 'test'
+  ...
+# Subtest: an exact ID appearing before the prefix scan still takes precedence
+ok 4 - an exact ID appearing before the prefix scan still takes precedence
+  ---
+  duration_ms: 279.771
+  type: 'test'
+  ...
+# Subtest: point-read deletion preserves CAS conflict without retrying a mutation
+ok 5 - point-read deletion preserves CAS conflict without retrying a mutation
+  ---
+  duration_ms: 145.658
+  type: 'test'
+  ...
+# Subtest: CLI message projection preserves durable provenance and atomic tool bundles
+ok 6 - CLI message projection preserves durable provenance and atomic tool bundles
+  ---
+  duration_ms: 4.8973
+  type: 'test'
+  ...
+# Subtest: ordinary persisted system text cannot become a trusted policy
+ok 7 - ordinary persisted system text cannot become a trusted policy
+  ---
+  duration_ms: 2.0669
+  type: 'test'
+  ...
+# Subtest: durable CLI memory survives restart, deletion, and idempotent reconciliation
+ok 8 - durable CLI memory survives restart, deletion, and idempotent reconciliation
+  ---
+  duration_ms: 87.438
+  type: 'test'
+  ...
+# Subtest: durable CLI memory rejects digest tampering
+ok 9 - durable CLI memory rejects digest tampering
+  ---
+  duration_ms: 20.7153
+  type: 'test'
+  ...
+# Subtest: CLI cutover decisions keep shadow write-free and fence legacy after cutover
+ok 10 - CLI cutover decisions keep shadow write-free and fence legacy after cutover
+  ---
+  duration_ms: 1.1486
+  type: 'test'
+  ...
+# Subtest: shadow Kernel produces the canonical plan but cannot create authority state
+ok 11 - shadow Kernel produces the canonical plan but cannot create authority state
+  ---
+  duration_ms: 3.7771
+  type: 'test'
+  ...
+# Subtest: canonical production fences direct legacy CLI memory APIs
+ok 12 - canonical production fences direct legacy CLI memory APIs
+  ---
+  duration_ms: 1.1211
+  type: 'test'
+  ...
+# Subtest: canonical CLI Chinese lexical recall survives durable restart and preserves admission fences
+ok 13 - canonical CLI Chinese lexical recall survives durable restart and preserves admission fences
+  ---
+  duration_ms: 818.8546
+  type: 'test'
+  ...
+# Subtest: canonical provider context recalls Chinese substrings as data within scope and sink fences
+ok 14 - canonical provider context recalls Chinese substrings as data within scope and sink fences
+  ---
+  duration_ms: 657.3243
+  type: 'test'
+  ...
+# Subtest: every canonical provider request binds recalled memory to a ContextPlan
+ok 15 - every canonical provider request binds recalled memory to a ContextPlan
+  ---
+  duration_ms: 283.3651
+  type: 'test'
+  ...
+# Subtest: review excludes memory recall without skipping canonical context budgets
+ok 16 - review excludes memory recall without skipping canonical context budgets
+  ---
+  duration_ms: 78.8295
+  type: 'test'
+  ...
+# Subtest: canonical provider planning lets protected current-turn state consume recovery reserve
+ok 17 - canonical provider planning lets protected current-turn state consume recovery reserve
+  ---
+  duration_ms: 25.1361
+  type: 'test'
+  ...
+# Subtest: canonical CLI memory migrates legacy rows once and becomes the only writer
+ok 18 - canonical CLI memory migrates legacy rows once and becomes the only writer
+  ---
+  duration_ms: 485.4634
+  type: 'test'
+  ...
+# Subtest: tombstone survives a killed process and restart reconciliation purges legacy SQLite
+ok 19 - tombstone survives a killed process and restart reconciliation purges legacy SQLite
+  ---
+  duration_ms: 735.262
+  type: 'test'
+  ...
+# Subtest: canonical scoped memory migrates session-core rows and preserves scope fences
+ok 20 - canonical scoped memory migrates session-core rows and preserves scope fences
+  ---
+  duration_ms: 408.3377
+  type: 'test'
+  ...
+# Subtest: legacy privacy purge fails closed for corrupt, oversized, and symlink projections
+ok 21 - legacy privacy purge fails closed for corrupt, oversized, and symlink projections
+  ---
+  duration_ms: 20.1485
+  type: 'test'
+  ...
+# symlink assertion unavailable on this host: EPERM
+# Subtest: canonical live compaction owns selection and commits through its compatibility port
+not ok 22 - canonical live compaction owns selection and commits through its compatibility port
+  ---
+  duration_ms: 209.7
+  type: 'test'
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\context-memory-kernel.node-test.mjs:1291:1'
+  failureType: 'testCodeFailure'
+  error: 'owner-only native ACL verification failed'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    ensurePrivateDirectory (C:\code\chainlesschain\packages\session-core\lib\private-storage.js:1487:13)
+    getSessionsDir (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:744:7)
+    getSessionPresence (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:7326:15)
+    sessionExists (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:7377:10)
+    compactLiveMessagesCanonical (file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/live-compaction.js:252:5)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/context-memory-kernel.node-test.mjs:1320:26)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+  ...
+# Subtest: canonical live callback receipts bind the verified physical JSONL heads
+not ok 23 - canonical live callback receipts bind the verified physical JSONL heads
+  ---
+  duration_ms: 140.2383
+  type: 'test'
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\context-memory-kernel.node-test.mjs:1349:1'
+  failureType: 'testCodeFailure'
+  error: 'owner-only native ACL verification failed'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    ensurePrivateDirectory (C:\code\chainlesschain\packages\session-core\lib\private-storage.js:1487:13)
+    getSessionsDir (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:744:7)
+    sessionPath (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:847:15)
+    appendEventLocked (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:1624:20)
+    file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:1861:5
+    runClassifiedAppend (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:1847:12)
+    appendEvent (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:1860:10)
+    startSession (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:2804:3)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/context-memory-kernel.node-test.mjs:1357:5)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+  ...
+# Subtest: JSONL SessionContextPort commits one canonical compact event with restart idempotency
+not ok 24 - JSONL SessionContextPort commits one canonical compact event with restart idempotency
+  ---
+  duration_ms: 136.6034
+  type: 'test'
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\context-memory-kernel.node-test.mjs:1414:1'
+  failureType: 'testCodeFailure'
+  error: 'owner-only native ACL verification failed'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    ensurePrivateDirectory (C:\code\chainlesschain\packages\session-core\lib\private-storage.js:1487:13)
+    getSessionsDir (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:744:7)
+    sessionPath (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:847:15)
+    appendEventLocked (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:1624:20)
+    file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:1861:5
+    runClassifiedAppend (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:1847:12)
+    appendEvent (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:1860:10)
+    startSession (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:2804:3)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/context-memory-kernel.node-test.mjs:1422:5)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+  ...
+# Subtest: JSONL SessionContextPort reconciles a semantic compaction crash by operation id
+not ok 25 - JSONL SessionContextPort reconciles a semantic compaction crash by operation id
+  ---
+  duration_ms: 136.1747
+  type: 'test'
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\context-memory-kernel.node-test.mjs:1486:1'
+  failureType: 'testCodeFailure'
+  error: 'owner-only native ACL verification failed'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    ensurePrivateDirectory (C:\code\chainlesschain\packages\session-core\lib\private-storage.js:1487:13)
+    getSessionsDir (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:744:7)
+    sessionPath (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:847:15)
+    appendEventLocked (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:1624:20)
+    file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:1861:5
+    runClassifiedAppend (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:1847:12)
+    appendEvent (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:1860:10)
+    startSession (file:///C:/code/chainlesschain/packages/cli/src/harness/jsonl-session-store.js:2804:3)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/context-memory-kernel.node-test.mjs:1497:5)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+  ...
+# Subtest: CLI App Server mapping emits the shared canonical projection fixture
+ok 26 - CLI App Server mapping emits the shared canonical projection fixture
+  ---
+  duration_ms: 2.2002
+  type: 'test'
+  ...
+1..26
+# tests 26
+# suites 0
+# pass 22
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6332.1833
+
+--- stderr ---

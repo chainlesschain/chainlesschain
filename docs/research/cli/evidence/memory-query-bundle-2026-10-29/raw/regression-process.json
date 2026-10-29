@@ -1,0 +1,21 @@
+{
+  "args": [
+    "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+    "run",
+    "__tests__/unit/memory-query-bundle.test.js",
+    "__tests__/unit/segmented-memory-port.test.js",
+    "__tests__/unit/memory-query-index.test.js",
+    "__tests__/unit/memory-query-cancellation.test.js",
+    "__tests__/unit/memory-shard-snapshots.test.js",
+    "__tests__/unit/segmented-memory-directory-identity.test.js",
+    "__tests__/unit/durable-memory-port-limits.test.js",
+    "__tests__/integration/memory-query-bundle-port.test.js",
+    "__tests__/integration/memory-query-bundle-legacy.test.js",
+    "--reporter=json",
+    "--outputFile=C:\\code\\chainlesschain\\.work\\memory-query-bundle\\regression.json"
+  ],
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "observedAt": "2026-10-29T01:45:31.608Z"
+}

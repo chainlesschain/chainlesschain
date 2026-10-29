@@ -1,0 +1,21 @@
+{
+  "target": "e7a6f2585d62949794596767869423b0eb670104",
+  "runId": 40784878922,
+  "priorAttempt": 1,
+  "startedAt": "2026-10-29T02:13:48.319Z",
+  "scope": "Same-source failed-job retry after original full matrix terminated; retain original lease-observation failure and all successes",
+  "state": "request-acknowledged",
+  "args": [
+    "run",
+    "rerun",
+    "40784878922",
+    "--repo",
+    "chainlesschain/chainlesschain",
+    "--failed"
+  ],
+  "endedAt": "2026-10-29T02:13:52.195Z",
+  "exitCode": 0,
+  "signal": null,
+  "stdout": "",
+  "stderr": ""
+}

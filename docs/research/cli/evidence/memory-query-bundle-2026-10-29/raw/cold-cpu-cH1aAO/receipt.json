@@ -1,0 +1,54 @@
+{
+  "startedAt": "2026-10-29T01:55:09.565Z",
+  "endedAt": "2026-10-29T01:55:56.298Z",
+  "sourceHead": "60d28f289492fb1065d71722f230c6f593eb9428",
+  "sourceBefore": {
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "191884dd6f1ad1809ca430c51c85d5aa6ba848949527b0be542ff904146991d2",
+    "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-index.js": "f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721",
+    "packages/cli/src/lib/context-memory-kernel/memory-service.js": "288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+    "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js": "b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "878307fc198d4d1fb299a1b243a6ab6af3411f39785b9d69d531c7660aa22621",
+    "packages/cli/src/lib/with-file-lock.js": "2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+    "packages/context-memory-kernel/lib/canonical.js": "267eb8a7af1d08dcfb8e590da266c5f283637e97e229633a784ef95fd85a0da9",
+    "packages/context-memory-kernel/lib/contracts.js": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+    "packages/cli/scripts/persistent-capacity-benchmark.mjs": "81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939",
+    "packages/cli/scripts/memory-query-index-benchmark.mjs": "03dbafa5caa1a97ee5af55d6e39ce97bf4dc926d86e6f60d8b8fcf205f1551dc"
+  },
+  "sourceAfter": {
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "191884dd6f1ad1809ca430c51c85d5aa6ba848949527b0be542ff904146991d2",
+    "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-index.js": "f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721",
+    "packages/cli/src/lib/context-memory-kernel/memory-service.js": "288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+    "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js": "b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+    "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "878307fc198d4d1fb299a1b243a6ab6af3411f39785b9d69d531c7660aa22621",
+    "packages/cli/src/lib/with-file-lock.js": "2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+    "packages/context-memory-kernel/lib/canonical.js": "267eb8a7af1d08dcfb8e590da266c5f283637e97e229633a784ef95fd85a0da9",
+    "packages/context-memory-kernel/lib/contracts.js": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+    "packages/cli/scripts/persistent-capacity-benchmark.mjs": "81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939",
+    "packages/cli/scripts/memory-query-index-benchmark.mjs": "03dbafa5caa1a97ee5af55d6e39ce97bf4dc926d86e6f60d8b8fcf205f1551dc"
+  },
+  "helperSha256": "dcb14a8c129da888f08f95a760dc90552db7e8acde7bd26a19dd9d43bb1ccc80",
+  "childExitCode": 0,
+  "childSignal": null,
+  "fixtureCount": 100000,
+  "categoryCount": 32,
+  "query": {
+    "category": "category-7",
+    "limit": 20
+  },
+  "expectedDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+  "bundleBytes": 24085261,
+  "frameCount": 256,
+  "artifactSha256": {
+    "cold-query.cpuprofile": "31b509ab7617dfab905f5579eb0bb332a7089a56803844ac8dbc6ff4b3df079b",
+    "worker-result.json": "3223fdbce7c8775426ffd6979fecf0cd914de59fa96fe548ea3c661732e31fe4",
+    "worker.log": "b73be803c6f5af213a25d47a01b69944ad1e1e6289f239312db12920ef3b2735"
+  },
+  "cpu": "Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz",
+  "fixtureRoot": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-memory-bundle-cpu-ARgkAC",
+  "fixtureCleanup": "verified root removed in finally",
+  "scope": "diagnostic, not SLO or release evidence"
+}
