@@ -1,0 +1,1084 @@
+{
+  "schema": "chainlesschain.memory-slo131/v1",
+  "observedAt": "2026-10-29T06:31:51.597Z",
+  "sourceHead": "c0783cea93c368913316dba1e80ca49a52f2ec9a",
+  "frozenCandidateSource": "7a5d38d151d437f94f8c223dec1fbca52a44da5b",
+  "sourceBinding": {
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": {
+      "sha256": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+      "frozenGitBlob": "d16c2f55a6ae32ed2b1a02c1413647b6ea5e8d8e"
+    },
+    "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": {
+      "sha256": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+      "frozenGitBlob": "76d8fb77d61521361e842f9d01f8cf9771153f93"
+    },
+    "packages/cli/src/lib/context-memory-kernel/memory-query-index.js": {
+      "sha256": "f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721",
+      "frozenGitBlob": "9e7c10beb6dc23be1a3bf9639a1879c7c2af7833"
+    },
+    "packages/cli/src/lib/context-memory-kernel/memory-service.js": {
+      "sha256": "288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3",
+      "frozenGitBlob": "841c9273a26410b2e78d16a649c58fe7bbeb6a19"
+    },
+    "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": {
+      "sha256": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+      "frozenGitBlob": "4290c15c421db54b92003fa22e60d1b204465c06"
+    },
+    "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js": {
+      "sha256": "b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+      "frozenGitBlob": "10d291b0a92a16491a3f4bb8426c71b33674f2e3"
+    },
+    "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": {
+      "sha256": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+      "frozenGitBlob": "256d96495d1964e72932dc26161fe10ef2b58038"
+    },
+    "packages/cli/src/lib/with-file-lock.js": {
+      "sha256": "2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+      "frozenGitBlob": "464f460436fb4b6c0c8184853bdd91104f10f82b"
+    },
+    "packages/context-memory-kernel/lib/canonical.js": {
+      "sha256": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+      "frozenGitBlob": "1eaf7dcc188e8e90865c161fa98b9b486db3c106"
+    },
+    "packages/context-memory-kernel/lib/contracts.js": {
+      "sha256": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+      "frozenGitBlob": "a5fa22b19ebdd5c75c7816e58f6a52ec04a2f278"
+    },
+    "packages/context-memory-kernel/lib/memory-reducer.js": {
+      "sha256": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+      "frozenGitBlob": "e7f8e85ca27a203692011317790e64fd253ced21"
+    },
+    "packages/cli/scripts/persistent-capacity-benchmark.mjs": {
+      "sha256": "81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939",
+      "frozenGitBlob": "1a0c801ce76a5299f1e15b61ee67906706da8f91"
+    },
+    "packages/cli/scripts/memory-query-index-benchmark.mjs": {
+      "sha256": "2a04c3b3263707502468794aaeaba420e896b8ac5c758a8a7a1d9535628f71c2",
+      "frozenGitBlob": "1d7806251f1cadf0bb769bedb6a91a9270763261"
+    },
+    "packages/cli/scripts/memory-query-responsiveness-benchmark.mjs": {
+      "sha256": "0725e839bda441a378930f266692a9d603e532a83cdce8d5a64ffbd2eebe82ad",
+      "frozenGitBlob": "8d8501d58a2f5a00022f14518b79f2b679296bf1"
+    },
+    "packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs": {
+      "sha256": "786bf2fded0101e1229a834549460a945d0bc8d70d20ed2a41e73779cdd803be",
+      "frozenGitBlob": "97ad6fa05c68f1923ce9a7a4cfe761e06ebe82d6"
+    },
+    "packages/cli/src/lib/secure-file-identity.js": {
+      "sha256": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+      "frozenGitBlob": "626fec7377a8d4adb505ef7fde28c2ea4c85abb4"
+    },
+    "packages/context-memory-kernel/lib/runtime.js": {
+      "sha256": "8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+      "frozenGitBlob": "79b0bcb5cb940f48ea74bbaa4e4660c33aef95a5"
+    }
+  },
+  "productionSourceChanged": false,
+  "listQueries": {
+    "query": {
+      "category": "category-7",
+      "limit": 20
+    },
+    "samplesPerCase": 100,
+    "totalSamples": 600,
+    "cacheMode": "validate-disk",
+    "indexLayout": "bundle",
+    "tiers": [
+      {
+        "count": 1000,
+        "hot": {
+          "samples": 100,
+          "minMs": 54.234,
+          "p50Ms": 58.941,
+          "p95Ms": 73.745,
+          "p99Ms": 90.053,
+          "maxMs": 96.008
+        },
+        "cold": {
+          "samples": 100,
+          "minMs": 122.127,
+          "p50Ms": 131.08,
+          "p95Ms": 169.084,
+          "p99Ms": 183.235,
+          "maxMs": 282.212
+        },
+        "hotTargetMet": true,
+        "coldTargetMet": true,
+        "hotIndexOpens": [1],
+        "authorityBytesPerQuery": [102516],
+        "hotPeakRssBytes": 134066176,
+        "coldPeakRssBytes": 87154688,
+        "hotMaxEventLoopDelayMs": 50.233343,
+        "coldMaxEventLoopDelayMs": 109.903871
+      },
+      {
+        "count": 10000,
+        "hot": {
+          "samples": 100,
+          "minMs": 62.181,
+          "p50Ms": 66.183,
+          "p95Ms": 76.412,
+          "p99Ms": 83.84,
+          "maxMs": 84.203
+        },
+        "cold": {
+          "samples": 100,
+          "minMs": 247.822,
+          "p50Ms": 272.94,
+          "p95Ms": 386.576,
+          "p99Ms": 410.231,
+          "maxMs": 431.964
+        },
+        "hotTargetMet": true,
+        "coldTargetMet": true,
+        "hotIndexOpens": [1],
+        "authorityBytesPerQuery": [875720],
+        "hotPeakRssBytes": 285224960,
+        "coldPeakRssBytes": 113078272,
+        "hotMaxEventLoopDelayMs": 38.436863,
+        "coldMaxEventLoopDelayMs": 90.111999
+      },
+      {
+        "count": 100000,
+        "hot": {
+          "samples": 100,
+          "minMs": 152.412,
+          "p50Ms": 162.654,
+          "p95Ms": 178.866,
+          "p99Ms": 184.389,
+          "maxMs": 192.808
+        },
+        "cold": {
+          "samples": 100,
+          "minMs": 1303.393,
+          "p50Ms": 1592.828,
+          "p95Ms": 2258.233,
+          "p99Ms": 2595.537,
+          "maxMs": 2855.604
+        },
+        "hotTargetMet": true,
+        "coldTargetMet": false,
+        "hotIndexOpens": [1],
+        "authorityBytesPerQuery": [8831462],
+        "hotPeakRssBytes": 1751437312,
+        "coldPeakRssBytes": 198836224,
+        "hotMaxEventLoopDelayMs": 36.700159,
+        "coldMaxEventLoopDelayMs": 248.905727
+      }
+    ],
+    "boundary": "Windows / Node 22.22.2 category-filtered list limit 20. Cold is a fresh Node process, OS caches are not flushed; startup/import/fixture setup excluded. Not all recall workloads or full cross-platform SLO admission."
+  },
+  "stop": {
+    "samplesPerCase": 100,
+    "totalSamples": 600,
+    "succeeded": 600,
+    "tiers": [
+      {
+        "count": 1000,
+        "modes": {
+          "validate-disk": {
+            "acknowledged": 100,
+            "targetMet": true,
+            "delivery": {
+              "samples": 100,
+              "minMs": 22.277,
+              "p50Ms": 28.488,
+              "p95Ms": 34.071,
+              "p99Ms": 35.638,
+              "maxMs": 37.035
+            },
+            "acknowledgement": {
+              "samples": 100,
+              "minMs": 3.254,
+              "p50Ms": 4.207,
+              "p95Ms": 5.883,
+              "p99Ms": 6.729,
+              "maxMs": 6.822
+            },
+            "authorityManifestBytesUnchangedAcrossGroup": true
+          },
+          "verified-memory": {
+            "acknowledged": 100,
+            "targetMet": true,
+            "delivery": {
+              "samples": 100,
+              "minMs": 10.43,
+              "p50Ms": 20.08,
+              "p95Ms": 24.566,
+              "p99Ms": 28.255,
+              "maxMs": 28.873
+            },
+            "acknowledgement": {
+              "samples": 100,
+              "minMs": 3.457,
+              "p50Ms": 4.044,
+              "p95Ms": 5.199,
+              "p99Ms": 5.657,
+              "maxMs": 5.887
+            },
+            "authorityManifestBytesUnchangedAcrossGroup": true
+          }
+        }
+      },
+      {
+        "count": 10000,
+        "modes": {
+          "validate-disk": {
+            "acknowledged": 100,
+            "targetMet": true,
+            "delivery": {
+              "samples": 100,
+              "minMs": 23.42,
+              "p50Ms": 32.946,
+              "p95Ms": 45.802,
+              "p99Ms": 52.054,
+              "maxMs": 54.787
+            },
+            "acknowledgement": {
+              "samples": 100,
+              "minMs": 4.389,
+              "p50Ms": 6.238,
+              "p95Ms": 7.793,
+              "p99Ms": 10.442,
+              "maxMs": 16.609
+            },
+            "authorityManifestBytesUnchangedAcrossGroup": true
+          },
+          "verified-memory": {
+            "acknowledged": 100,
+            "targetMet": true,
+            "delivery": {
+              "samples": 100,
+              "minMs": 13.445,
+              "p50Ms": 20.61,
+              "p95Ms": 28.624,
+              "p99Ms": 30.082,
+              "maxMs": 33.636
+            },
+            "acknowledgement": {
+              "samples": 100,
+              "minMs": 3.463,
+              "p50Ms": 4.006,
+              "p95Ms": 5.109,
+              "p99Ms": 5.94,
+              "maxMs": 6.015
+            },
+            "authorityManifestBytesUnchangedAcrossGroup": true
+          }
+        }
+      },
+      {
+        "count": 100000,
+        "modes": {
+          "validate-disk": {
+            "acknowledged": 100,
+            "targetMet": true,
+            "delivery": {
+              "samples": 100,
+              "minMs": 23.573,
+              "p50Ms": 27.387,
+              "p95Ms": 33.522,
+              "p99Ms": 36.509,
+              "maxMs": 36.664
+            },
+            "acknowledgement": {
+              "samples": 100,
+              "minMs": 4.224,
+              "p50Ms": 5.065,
+              "p95Ms": 6.575,
+              "p99Ms": 7.194,
+              "maxMs": 7.444
+            },
+            "authorityManifestBytesUnchangedAcrossGroup": true
+          },
+          "verified-memory": {
+            "acknowledged": 100,
+            "targetMet": true,
+            "delivery": {
+              "samples": 100,
+              "minMs": 15.461,
+              "p50Ms": 20.774,
+              "p95Ms": 26.637,
+              "p99Ms": 29.931,
+              "maxMs": 39.415
+            },
+            "acknowledgement": {
+              "samples": 100,
+              "minMs": 3.423,
+              "p50Ms": 4.033,
+              "p95Ms": 5.054,
+              "p99Ms": 5.401,
+              "maxMs": 5.639
+            },
+            "authorityManifestBytesUnchangedAcrossGroup": true
+          }
+        }
+      }
+    ],
+    "boundary": "Each sample checks released authority lock; authority manifest bytes are compared before/after each cache-mode group, not a proof that every physical shard byte was unchanged at every instant. Real IDE Stop remains separate."
+  },
+  "coldProfile": {
+    "schema": "chainlesschain.memory-bundle-cold-cpu-diagnostic/v1",
+    "scope": "one fresh-node cold query; diagnostic with profiler overhead, not an SLO sample",
+    "sourceBefore": {
+      "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+      "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+      "packages/cli/src/lib/context-memory-kernel/memory-query-index.js": "f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721",
+      "packages/cli/src/lib/context-memory-kernel/memory-service.js": "288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3",
+      "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+      "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js": "b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+      "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+      "packages/cli/src/lib/with-file-lock.js": "2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+      "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+      "packages/context-memory-kernel/lib/contracts.js": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+      "packages/cli/scripts/persistent-capacity-benchmark.mjs": "81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939",
+      "packages/cli/scripts/memory-query-index-benchmark.mjs": "2a04c3b3263707502468794aaeaba420e896b8ac5c758a8a7a1d9535628f71c2"
+    },
+    "sourceAfter": {
+      "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+      "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+      "packages/cli/src/lib/context-memory-kernel/memory-query-index.js": "f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721",
+      "packages/cli/src/lib/context-memory-kernel/memory-service.js": "288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3",
+      "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+      "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js": "b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+      "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+      "packages/cli/src/lib/with-file-lock.js": "2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+      "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+      "packages/context-memory-kernel/lib/contracts.js": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+      "packages/cli/scripts/persistent-capacity-benchmark.mjs": "81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939",
+      "packages/cli/scripts/memory-query-index-benchmark.mjs": "2a04c3b3263707502468794aaeaba420e896b8ac5c758a8a7a1d9535628f71c2"
+    },
+    "methods": {
+      "_readQueryBundleIndexes": {
+        "calls": 1,
+        "totalMs": 424.1164000000001,
+        "maxMs": 424.1164000000001,
+        "bytes": 0
+      },
+      "_readQueryIndex": {
+        "calls": 256,
+        "totalMs": 267.8764000000001,
+        "maxMs": 4.824700000000007,
+        "bytes": 24054876
+      },
+      "_readShardBytes": {
+        "calls": 19,
+        "totalMs": 36.267199999999775,
+        "maxMs": 2.766499999999951,
+        "bytes": 8831462
+      },
+      "_queryShardSnapshot": {
+        "calls": 19,
+        "totalMs": 833.7674000000002,
+        "maxMs": 57.30640000000017,
+        "bytes": 0
+      },
+      "_checkDirectories": {
+        "calls": 23,
+        "totalMs": 23.187999999999874,
+        "maxMs": 1.33400000000006,
+        "bytes": 0
+      }
+    },
+    "durationMs": 1355.3454000000002,
+    "cpuUsage": {
+      "user": 1750000,
+      "system": 109000
+    },
+    "pid": 16716,
+    "node": "v22.22.2",
+    "platform": "win32",
+    "arch": "x64",
+    "cacheMode": "validate-disk",
+    "indexLayout": "bundle",
+    "count": 20,
+    "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+    "expectedDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+    "resultVerified": true,
+    "methodTimingBoundary": "Inclusive elapsed timings overlap; do not sum them. Profiler excludes imports, fixture generation and warmup.",
+    "memory": {
+      "rss": 196792320,
+      "heapTotal": 129359872,
+      "heapUsed": 107062368,
+      "external": 14395755,
+      "arrayBuffers": 11932244
+    },
+    "peakRssBytes": 199352320,
+    "failure": null
+  },
+  "prototypeDecision": {
+    "productionAdmitted": false,
+    "canonicalShapeMicro": {
+      "observedAt": "2026-10-29T06:04:58.067Z",
+      "sourceFile": "C:\\code\\chainlesschain\\packages\\context-memory-kernel\\lib\\canonical.js",
+      "sourceSha256": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+      "prototypeSha256": "3465e69d2d2e4e1462985577399cc50827549329fc8b0cd0fdbb392837f85ff6",
+      "positiveChecks": 6105,
+      "getterOutcomes": [
+        {
+          "value": "{\"a\":1,\"b\":2}",
+          "reads": ["b", "a", "a", "b"]
+        },
+        {
+          "value": "{\"a\":1,\"b\":2}",
+          "reads": ["b", "a", "a", "b"]
+        },
+        {
+          "value": "{\"a\":1,\"b\":2}",
+          "reads": ["b", "a", "a", "b"]
+        },
+        {
+          "value": "{\"a\":1,\"b\":2}",
+          "reads": ["b", "a", "a", "b"]
+        }
+      ],
+      "durations": [
+        {
+          "round": 0,
+          "variant": "original",
+          "ms": 347.7866999999999
+        },
+        {
+          "round": 0,
+          "variant": "prototype",
+          "ms": 340.50869999999986
+        },
+        {
+          "round": 1,
+          "variant": "prototype",
+          "ms": 296.8806999999997
+        },
+        {
+          "round": 1,
+          "variant": "original",
+          "ms": 408.7551000000003
+        },
+        {
+          "round": 2,
+          "variant": "original",
+          "ms": 399.1256000000003
+        },
+        {
+          "round": 2,
+          "variant": "prototype",
+          "ms": 317.85609999999997
+        },
+        {
+          "round": 3,
+          "variant": "prototype",
+          "ms": 292.03620000000046
+        },
+        {
+          "round": 3,
+          "variant": "original",
+          "ms": 353.21090000000004
+        },
+        {
+          "round": 4,
+          "variant": "original",
+          "ms": 342.72419999999966
+        },
+        {
+          "round": 4,
+          "variant": "prototype",
+          "ms": 266.7650000000003
+        },
+        {
+          "round": 5,
+          "variant": "prototype",
+          "ms": 265.53949999999986
+        },
+        {
+          "round": 5,
+          "variant": "original",
+          "ms": 343.01960000000054
+        },
+        {
+          "round": 6,
+          "variant": "original",
+          "ms": 355.7488999999996
+        },
+        {
+          "round": 6,
+          "variant": "prototype",
+          "ms": 299.2354000000005
+        }
+      ],
+      "scope": "Unlanded in-memory key-order cache prototype; all canonical validation, values and hashes still run. This is a microbenchmark, not full query performance or SLO evidence."
+    },
+    "lazyParityMicro": {
+      "observedAt": "2026-10-29T06:17:30.750Z",
+      "positiveQueries": 8,
+      "allPostingMapsEqual": true,
+      "unrequestedInvalidFieldRejections": [
+        {
+          "field": "tags",
+          "value": null
+        },
+        {
+          "field": "tags",
+          "value": 42
+        },
+        {
+          "field": "tags",
+          "value": {}
+        },
+        {
+          "field": "allowedSinks",
+          "value": null
+        },
+        {
+          "field": "allowedSinks",
+          "value": 42
+        },
+        {
+          "field": "allowedSinks",
+          "value": {}
+        }
+      ],
+      "durations": [
+        {
+          "round": 0,
+          "name": "original",
+          "ms": 331.99059999999986
+        },
+        {
+          "round": 0,
+          "name": "lazy",
+          "ms": 296.8777
+        },
+        {
+          "round": 1,
+          "name": "lazy",
+          "ms": 221.85649999999987
+        },
+        {
+          "round": 1,
+          "name": "original",
+          "ms": 229.8800000000001
+        },
+        {
+          "round": 2,
+          "name": "original",
+          "ms": 415.01900000000023
+        },
+        {
+          "round": 2,
+          "name": "lazy",
+          "ms": 149.89279999999962
+        },
+        {
+          "round": 3,
+          "name": "lazy",
+          "ms": 184.94759999999997
+        },
+        {
+          "round": 3,
+          "name": "original",
+          "ms": 186.19360000000006
+        },
+        {
+          "round": 4,
+          "name": "original",
+          "ms": 187.97929999999997
+        },
+        {
+          "round": 4,
+          "name": "lazy",
+          "ms": 156.8782000000001
+        },
+        {
+          "round": 5,
+          "name": "lazy",
+          "ms": 139.90049999999974
+        },
+        {
+          "round": 5,
+          "name": "original",
+          "ms": 160.9496999999992
+        },
+        {
+          "round": 6,
+          "name": "original",
+          "ms": 165.67630000000008
+        },
+        {
+          "round": 6,
+          "name": "lazy",
+          "ms": 132.9319000000005
+        }
+      ],
+      "boundary": "In-memory compilation prototype only. Production compiler and trust checks remain unchanged. This is not an SLO or query speedup claim."
+    },
+    "lazyRejection": {
+      "observedAt": "2026-10-29T06:22:42.478Z",
+      "node": "v22.22.2",
+      "scopeDepth": 12000,
+      "sourceSha256": "f488b20b8e337ca82b47d423e203895876d3b883030b8003397a70349a1bc721",
+      "prototypeSha256": "5d1f220143e5774b038ada11ae6044f938e86a67230b87e91860b24d83c78979",
+      "inputSha256": "d5e07577c3de0fc03bce49a8c43822933f91f0ad0c570a6308be51a20c51502e",
+      "inputBytes": 24319,
+      "baseline": {
+        "rejected": true,
+        "error": {
+          "name": "RangeError",
+          "message": "Maximum call stack size exceeded"
+        }
+      },
+      "prototype": {
+        "rejected": false,
+        "resultRows": 1
+      },
+      "rejectionParityPreserved": false,
+      "prototypeAdmittedForProduction": false,
+      "boundary": "A deterministic compiler compatibility counterexample found by Astra and independently reproduced. This is not a production bypass claim: the input is passed directly to the compiler, not forged into an authority-bound bundle."
+    },
+    "loaderAndPreloadExecuted": false,
+    "astraReadOnlyReview": "raw/astra-cold-review-20261029.md.gz",
+    "reason": "Partial micro gains do not establish cold SLO and lazy prototype failed an existing rejection condition. Full authority validation remains active; new smaller-shard layout or internal serialization needs design/migration and separate exact-source validation."
+  },
+  "gateMeta": [
+    {
+      "id": 40825996255,
+      "workflow": "CLI CI",
+      "source": "7a5d38d151d437f94f8c223dec1fbca52a44da5b",
+      "ref": "ci-cli131-7a5d38d151d4",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40825996255"
+    },
+    {
+      "id": 40826001600,
+      "workflow": "CLI Strict Sandbox",
+      "source": "7a5d38d151d437f94f8c223dec1fbca52a44da5b",
+      "ref": "ci-cli131-7a5d38d151d4",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40826001600"
+    },
+    {
+      "id": 40826006659,
+      "workflow": "Context Memory Kernel CI",
+      "source": "7a5d38d151d437f94f8c223dec1fbca52a44da5b",
+      "ref": "ci-cli131-7a5d38d151d4",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40826006659"
+    },
+    {
+      "id": 40826012460,
+      "workflow": "IDE Extensions",
+      "source": "7a5d38d151d437f94f8c223dec1fbca52a44da5b",
+      "ref": "ci-cli131-7a5d38d151d4",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40826012460"
+    }
+  ],
+  "supersededIdeCleanup": [
+    {
+      "id": 40819683763,
+      "source": "ebc2aef24fa00c4f55cb9d872369694e8e2cc095",
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    {
+      "id": 40816026027,
+      "source": "0d67a7d43bca2a41baf4fe5fd662bc5d97954954",
+      "status": "completed",
+      "conclusion": "cancelled"
+    }
+  ],
+  "publication": {
+    "executed": false,
+    "releaseTagCreated": false,
+    "requiredWorkflow": "npm-publish.yml",
+    "blockedBy": "CLI CI exact-source full matrix is incomplete; the dedicated OIDC workflow gates protected Kernel publication together with CLI prerequisites. Do not route through workspace-npm-publish or local tokens.",
+    "requiredOrder": "verified child -> CLI -> IDE -> clients"
+  },
+  "limitations": [
+    "Shared workstation and background activity; do not attribute differences from older short runs solely to code changes",
+    "Hot peak RSS includes fixture construction; cold peak RSS includes worker imports and query",
+    "Rebuild/corruption/mixed processes at 100 samples on this source, all crash windows, real IDE, semantics and global latency SLO remain incomplete"
+  ],
+  "acceptance": {
+    "accepted": 34,
+    "total": 45,
+    "original129Dispatch": "REQUEST_UNRESOLVED",
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD",
+    "microsoft": "deferred"
+  },
+  "artifacts": [
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/candidate131-hot100.json.gz",
+      "source": ".work/memory-query-bundle/candidate131-hot100.json",
+      "encoding": "gzip",
+      "bytes": 11299,
+      "sha256": "7d55d0c4e9ffd1e0e9cb245220bddf66553f2a0de12d5ae6017ff8f054094f40",
+      "contentBytes": 171510,
+      "contentSha256": "bd89021afad918aed4b541be2157e7e3de73c463dabcb2add3f37bd09b88a9c9"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/candidate131-hot100-process.json.gz",
+      "source": ".work/memory-query-bundle/candidate131-hot100-process.json",
+      "encoding": "gzip",
+      "bytes": 1091,
+      "sha256": "fe471e9a48a7dd5b86b74b380998c98ffb0fa1ce926c2f43a8cfebdf6b3e5460",
+      "contentBytes": 4471,
+      "contentSha256": "1fc0baa4357714439a2c103131d84baa7e88f24bea1ad2902f85f8f24748d479"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/candidate131-hot100.log.gz",
+      "source": ".work/memory-query-bundle/candidate131-hot100.log",
+      "encoding": "gzip",
+      "bytes": 258,
+      "sha256": "4aa633fa87960162bb6a7614a4865fcbbc9e1fb6b8f98238347ecf1a40fdbec1",
+      "contentBytes": 881,
+      "contentSha256": "47c97fad6366e79ebe3404e2d1c98d9f393aabc328273687841e7a5b91d01e5f"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/candidate131-cold100.json.gz",
+      "source": ".work/memory-query-bundle/candidate131-cold100.json",
+      "encoding": "gzip",
+      "bytes": 12313,
+      "sha256": "3c86fed69f06ff373440f74059bec406fb65f90ae492bb2237131b4f1b7f7c0c",
+      "contentBytes": 170168,
+      "contentSha256": "8de0bf5ffa357767e4a1c7d6960f101e3da9251624b5986989d0b597a7577e02"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/candidate131-cold100-process.json.gz",
+      "source": ".work/memory-query-bundle/candidate131-cold100-process.json",
+      "encoding": "gzip",
+      "bytes": 1092,
+      "sha256": "baf916bc81363b24a6e4eb6dc4dacaa6d288995bf2a152ce544ce9de78b43022",
+      "contentBytes": 4473,
+      "contentSha256": "7f4dac458db7b290b58d3e80f13c98facab6818abd6b98307007f7c45a2fedea"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/candidate131-cold100.log.gz",
+      "source": ".work/memory-query-bundle/candidate131-cold100.log",
+      "encoding": "gzip",
+      "bytes": 263,
+      "sha256": "39db793eecb98d35028b4e73cc2e4fd4a19ed84c4a52a9a49544cedc11a9149c",
+      "contentBytes": 928,
+      "contentSha256": "c150872c98dc7296c4a4c5ce50c87118846f912f461144bc5c2f2970b301cf13"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/candidate131-stop100.json.gz",
+      "source": ".work/memory-query-bundle/candidate131-stop100.json",
+      "encoding": "gzip",
+      "bytes": 18150,
+      "sha256": "88233e787f1db9e75aeb3d3b8c97d1085d156588500e3007cf3d802bbf4fa1f4",
+      "contentBytes": 236228,
+      "contentSha256": "31f08fb1c8271cddee8ba0c245740382af3897350b2b19442fa5ad28e2956ae2"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/candidate131-stop100-process.json.gz",
+      "source": ".work/memory-query-bundle/candidate131-stop100-process.json",
+      "encoding": "gzip",
+      "bytes": 1104,
+      "sha256": "eeafc2d9293ff81d5ed7369877060aa161006deaff98c21ec55a1d1eec97c73a",
+      "contentBytes": 4485,
+      "contentSha256": "4596683bb9244d2edd7a6cf154184a908b6451e7bb1314365388c118df2d3259"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/candidate131-stop100.log.gz",
+      "source": ".work/memory-query-bundle/candidate131-stop100.log",
+      "encoding": "gzip",
+      "bytes": 177,
+      "sha256": "a539da7b8492cc9dddea0387fb1228059424ed56976d943a7ed80c4a2da91fae",
+      "contentBytes": 535,
+      "contentSha256": "55ddbbf03a4b04971c46bbdda4243e0f26ba4f715f11ab21f139297e1cda2287"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/candidate131-cold-cpu-process.json.gz",
+      "source": ".work/memory-query-bundle/candidate131-cold-cpu-process.json",
+      "encoding": "gzip",
+      "bytes": 1046,
+      "sha256": "3abd7cf0b257f1aa283c37768acda22cd205d2c32233a5872c478fb11da2577f",
+      "contentBytes": 4312,
+      "contentSha256": "8c052b03c132c23f51a8ecf503bbe73eb93a2c540e020234388cf924112fea0f"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/candidate131-cold-cpu.log.gz",
+      "source": ".work/memory-query-bundle/candidate131-cold-cpu.log",
+      "encoding": "gzip",
+      "bytes": 397,
+      "sha256": "7ad5f7a669ca339f350f5a104addae957fe1c2081d8840b9477f0d01b6bc7893",
+      "contentBytes": 813,
+      "contentSha256": "4f80ba30df736bd477b5d2c5986a348a78e6f4411c533cc8dbe2aeba8d00be14"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/cold-cpu-cold-query.cpuprofile.gz",
+      "source": ".work/memory-query-bundle/cold-cpu-PtgIEH/cold-query.cpuprofile",
+      "encoding": "gzip",
+      "bytes": 9177,
+      "sha256": "a730adf703dd7f87996aba256f2114044b7762b9c64f26971db09f9e618f981f",
+      "contentBytes": 108035,
+      "contentSha256": "971178dde061fd69dd92a4c93adfd99500c3b7f872230f6c86f8706be2c03038"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/cold-cpu-profile-attribution.json.gz",
+      "source": ".work/memory-query-bundle/cold-cpu-PtgIEH/profile-attribution.json",
+      "encoding": "gzip",
+      "bytes": 243,
+      "sha256": "38434dbd92c5fa902e027ae727b0fc7558e1832eaf5aabb56c69c9253605d9d1",
+      "contentBytes": 385,
+      "contentSha256": "bf9e0d9c725881617fe281aed59b3bf81a6581c995666b97427d082bbc5c6b4f"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/cold-cpu-receipt.json.gz",
+      "source": ".work/memory-query-bundle/cold-cpu-PtgIEH/receipt.json",
+      "encoding": "gzip",
+      "bytes": 1380,
+      "sha256": "956670fc0b1e66b3d583cbe794ac4127c136d057a537c2600fcc2f66ac8c3e07",
+      "contentBytes": 4349,
+      "contentSha256": "5e2caa4caba388c8a48d914aea3a20e859ed557222173a62bb634473ee694d65"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/cold-cpu-worker-result.json.gz",
+      "source": ".work/memory-query-bundle/cold-cpu-PtgIEH/worker-result.json",
+      "encoding": "gzip",
+      "bytes": 1461,
+      "sha256": "7e321f8de68708f1ba83c1e782a565d14fc70a4bd1bb4f5729f73f4fe707f55a",
+      "contentBytes": 4961,
+      "contentSha256": "a0c4de03ea63fa156272f61062db9b41bf9d15ef95a0118c2591ed47a6ef5465"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/cold-cpu-worker.log.gz",
+      "source": ".work/memory-query-bundle/cold-cpu-PtgIEH/worker.log",
+      "encoding": "gzip",
+      "bytes": 276,
+      "sha256": "3d7cb930d3b3a033a24b5d8784bb44fbd7a68c0025086195078e4c333a60d7ac",
+      "contentBytes": 567,
+      "contentSha256": "91e88771da621a25a7c4c145d2dea7b286869dfba57498de6911e049c51df390"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/canonical-shape-experiment-20261029.mjs.gz",
+      "source": ".work/memory-query-bundle/canonical-shape-experiment-20261029.mjs",
+      "encoding": "gzip",
+      "bytes": 2013,
+      "sha256": "28c15ab4eb32c785fdd0770f7b50ff27024ddfe7abf5ec8580e8efb182510354",
+      "contentBytes": 5557,
+      "contentSha256": "95cb0e7da4bba937fc2a02cada33d64bb6c91c396995a53c18f255c798b7fba7"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/canonical-shape-experiment-20261029.json.gz",
+      "source": ".work/memory-query-bundle/canonical-shape-experiment-20261029.json",
+      "encoding": "gzip",
+      "bytes": 676,
+      "sha256": "354ef8beff897fe05d5f5d93d4e333da4f6799e509293fd053d1c206ed49273f",
+      "contentBytes": 2350,
+      "contentSha256": "bbd666b77a705acf5267dcd2fd5fe7f5963e34edf7f6b52fdb4a3456df094b7a"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/canonical-shape-prototype-20261029.cjs.gz",
+      "source": ".work/memory-query-bundle/canonical-shape-prototype-20261029.cjs",
+      "encoding": "gzip",
+      "bytes": 1437,
+      "sha256": "0342029f5a56a4cb99b1c053f2adc1bb40950e07858b2d5594170109712b812b",
+      "contentBytes": 4637,
+      "contentSha256": "3465e69d2d2e4e1462985577399cc50827549329fc8b0cd0fdbb392837f85ff6"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/lazy-index-transform-20261029.mjs.gz",
+      "source": ".work/memory-query-bundle/lazy-index-transform-20261029.mjs",
+      "encoding": "gzip",
+      "bytes": 682,
+      "sha256": "168a885d54fdb71633e1f1f84c0f25e2b1f8fbd8d7f8bf736e7086749c620cc1",
+      "contentBytes": 1556,
+      "contentSha256": "980caf191d221dfa375bd0a2a7253c8ee1f244d2f1e2adf0109d78cba67de619"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/lazy-index-loader-20261029.mjs.gz",
+      "source": ".work/memory-query-bundle/lazy-index-loader-20261029.mjs",
+      "encoding": "gzip",
+      "bytes": 235,
+      "sha256": "d18a9b3fbb450af1feeda56a796f2e7e4844f5c88d677c1db0aba09a590861b3",
+      "contentBytes": 328,
+      "contentSha256": "3a688d2541d39f47f88b7c88e235224af2660581b4172d0ffdd97b8ecc797de1"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/lazy-index-preload-20261029.mjs.gz",
+      "source": ".work/memory-query-bundle/lazy-index-preload-20261029.mjs",
+      "encoding": "gzip",
+      "bytes": 446,
+      "sha256": "df85029ad07a7ff073771478b8243dfcc5d1c7e2588b162050c89ace4a47b9c6",
+      "contentBytes": 846,
+      "contentSha256": "3fa495c29167a44c27bbf038eadae4a832a9448f9632bf3cec76b6a4b7102d7c"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/lazy-index-parity-20261029.mjs.gz",
+      "source": ".work/memory-query-bundle/lazy-index-parity-20261029.mjs",
+      "encoding": "gzip",
+      "bytes": 1359,
+      "sha256": "4df26b2bc7ca0f90b488668cca8fd735ac60ae609b582ac9863d16ef8066f5b9",
+      "contentBytes": 3442,
+      "contentSha256": "699fbfcf6a6dde7445d3c643096b98ca522e185c321687125aee4aae48a8608d"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/lazy-index-parity-20261029.json.gz",
+      "source": ".work/memory-query-bundle/lazy-index-parity-20261029.json",
+      "encoding": "gzip",
+      "bytes": 526,
+      "sha256": "92e7588d1ff47d4f1d2314457957514169a824dff15013b2e0ff1bf0b21a86fa",
+      "contentBytes": 1863,
+      "contentSha256": "44aeb7845a9efe0547659b2dbf0e5eca446bed9543699c4178de237999f71473"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/lazy-index-rejection-20261029.mjs.gz",
+      "source": ".work/memory-query-bundle/lazy-index-rejection-20261029.mjs",
+      "encoding": "gzip",
+      "bytes": 1183,
+      "sha256": "5849f55438be0f5c68bd2cb9db0dc1fe2c540ae79287705e551bbef04be9e429",
+      "contentBytes": 2582,
+      "contentSha256": "9c95ea94eebe184f570f5a5549454ad09bbac43998fab79a4e449d5cb6fc994c"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/lazy-index-rejection-20261029.json.gz",
+      "source": ".work/memory-query-bundle/lazy-index-rejection-20261029.json",
+      "encoding": "gzip",
+      "bytes": 552,
+      "sha256": "d47a11e0e495ba481d21b244fa9a2a7dfd86f8b46e6ed9fbd954a9875513b0b5",
+      "contentBytes": 908,
+      "contentSha256": "2a75a1b87bef628f463c2f3614c357ed7fd56e0c13b0f91d9580878d48966010"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/astra-cold-review-20261029.md.gz",
+      "source": ".work/memory-query-bundle/astra-cold-review-20261029.md",
+      "encoding": "gzip",
+      "bytes": 1797,
+      "sha256": "72b08b6a49d10f024a14a41f02b327902ebdade767cc192b27e7b0ab2cc70d81",
+      "contentBytes": 2630,
+      "contentSha256": "36b6adeda0eda95b975827ca28d5235b685f5629e105626d4492d45a892a16fd"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/cancel-superseded-ide-20261029.mjs.gz",
+      "source": ".work/memory-query-bundle/cancel-superseded-ide-20261029.mjs",
+      "encoding": "gzip",
+      "bytes": 1162,
+      "sha256": "95d68dee3fafa30a0167d8ed53ba37bbccedf15afd282a5d1f46938beb01fd67",
+      "contentBytes": 2672,
+      "contentSha256": "d099798a5e8ac9427a9ce77fdbe270656eb1b38d4ec3e570ca126307745e63e5"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/superseded-ide-cleanup-20261029.json.gz",
+      "source": ".work/memory-query-bundle/superseded-ide-cleanup-20261029.json",
+      "encoding": "gzip",
+      "bytes": 3112,
+      "sha256": "51d47150ded0145830a380fc3e92c5eaeee81fc0d034da1933eb42fce3d63e4f",
+      "contentBytes": 72069,
+      "contentSha256": "0f1cfa086031c396de275616ace49ae073b0ddf672911bc9f9c0f6bbcf6f6e95"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/slo44-cloud-status.json.gz",
+      "source": ".work/memory-query-bundle/slo44-cloud-status.json",
+      "encoding": "gzip",
+      "bytes": 464,
+      "sha256": "495332a08add48cde738b3ae5cc44b1cb791126332614e3fc045f38c68200b51",
+      "contentBytes": 1682,
+      "contentSha256": "667bb6cea6f49848f5d2ba12cec208e28c78df28bd446a8d55c96e3aa8ad0950"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/archive-slo44-20261029.mjs.gz",
+      "source": ".work/memory-query-bundle/archive-slo44-20261029.mjs",
+      "encoding": "gzip",
+      "bytes": 3850,
+      "sha256": "0b8955384ba443e50fee732c05f588c05f5b5a5c573ecb37169034f73167eb66",
+      "contentBytes": 10876,
+      "contentSha256": "998dfa4cd952fd91348df2ed0f096c18a7dc11553921f83b14cb44342a5076eb"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/gates-poll.mjs.gz",
+      "source": ".work/release131-immutable-validation/ci-cli131-7a5d38d151d4/poll.mjs",
+      "encoding": "gzip",
+      "bytes": 1215,
+      "sha256": "2f2e1e6c601e46ec6888c2b39ad0102cf73edb77c5d63457e2e535bfbf034b8e",
+      "contentBytes": 2682,
+      "contentSha256": "34f86f0a0fc7a349d873ddbfa12341b5ad14911b968ff08e764569725ca16049"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/gates-observation-memory-baseline.json.gz",
+      "source": ".work/release131-immutable-validation/ci-cli131-7a5d38d151d4/observation-memory-baseline.json",
+      "encoding": "gzip",
+      "bytes": 10482,
+      "sha256": "3ba77a08f4259e23457ba361a3ea8b6c6f03ae85abf811344e0514530da45f7e",
+      "contentBytes": 226065,
+      "contentSha256": "3390f017bf2e1db474cb739bb131c14e8564cd006e4155694cf42a562ef79d35"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/gates-observation-memory-final.json.gz",
+      "source": ".work/release131-immutable-validation/ci-cli131-7a5d38d151d4/observation-memory-final.json",
+      "encoding": "gzip",
+      "bytes": 12834,
+      "sha256": "b7b64fd5a84c9fd7cb916c0cb56883f4eabab01eb469de77dd1cd9128a4203a8",
+      "contentBytes": 277528,
+      "contentSha256": "0c7b4d72b70ace5699946af113217b4f66a865a8abc56db794d70d40e43c7e6c"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/gates-observation-memory-report.json.gz",
+      "source": ".work/release131-immutable-validation/ci-cli131-7a5d38d151d4/observation-memory-report.json",
+      "encoding": "gzip",
+      "bytes": 8081,
+      "sha256": "b99f3af1a9093d3e422d24289896d2e32ed8098b7ff6475c115ebd4da141b02a",
+      "contentBytes": 139814,
+      "contentSha256": "b6fddfba90703202c6680a3b428c10d54ba8711328c8bcdb6ec3fdf0b8094274"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/release-target-current.json.gz",
+      "source": ".work/release131-immutable-validation/ci-cli131-7a5d38d151d4/release-target.json",
+      "encoding": "gzip",
+      "bytes": 2157,
+      "sha256": "13349df4cf799f6cc9c0e356afe42db5903572b5475a7912692ce7d1d95e9dc2",
+      "contentBytes": 15923,
+      "contentSha256": "fd0630e74ceb2095351579bbbd6fab2f2c85b30df313c5344ee0a9fa3cf9e467"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/complete-slo44-bindings-20261029.mjs.gz",
+      "source": ".work/memory-query-bundle/complete-slo44-bindings-20261029.mjs",
+      "encoding": "gzip",
+      "bytes": 1193,
+      "sha256": "52405db0401d74ada519f4cb6d60217aeda52520dde20cd6e56eccbaf5fab302",
+      "contentBytes": 2903,
+      "contentSha256": "e1426edbbe671a0e0fc913c1506916b5d4558c0ee5bbeac1524aefbf7842f1a7"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-slo131-2026-10-29/raw/write-slo44-progress-20261029.mjs.gz",
+      "source": ".work/memory-query-bundle/write-slo44-progress-20261029.mjs",
+      "encoding": "gzip",
+      "bytes": 4494,
+      "sha256": "720236cf246abe5ec9e15ec86bb5728568f4a3ffa14b9dbd73bb26b066dc2828",
+      "contentBytes": 8540,
+      "contentSha256": "c3081f54e6aec46e6f1801e35cdde9f3800aab58d16cae58a773a1970ce96570"
+    }
+  ],
+  "additionalSourceBinding": {
+    "observedAt": "2026-10-29T06:34:09.500Z",
+    "filesVerified": [
+      "packages/cli/src/lib/secure-file-identity.js",
+      "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+      "packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+      "packages/cli/src/lib/context-memory-kernel/memory-service.js",
+      "packages/cli/src/lib/context-memory-kernel/memory-query-control.js",
+      "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js",
+      "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js",
+      "packages/cli/src/lib/with-file-lock.js",
+      "packages/cli/src/lib/secure-file-identity.js",
+      "packages/context-memory-kernel/lib/runtime.js",
+      "packages/cli/scripts/memory-query-responsiveness-benchmark.mjs"
+    ],
+    "scopedGitDiffExitCode": 0,
+    "scopes": [
+      "packages/cli/src",
+      "packages/context-memory-kernel/lib",
+      "packages/cli/scripts/memory-query-index-benchmark.mjs",
+      "packages/cli/scripts/memory-query-responsiveness-benchmark.mjs",
+      "packages/cli/scripts/persistent-capacity-benchmark.mjs",
+      "packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs"
+    ],
+    "nodeOptionsPresent": false
+  }
+}
