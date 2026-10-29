@@ -19,3 +19,16 @@
 本机服务仅实现确定性的模型协议响应，每次返回 input_tokens=10 / output_tokens=5；所有子进程使用精简环境，未继承真实 provider 凭据、Evolution 部署、NODE_OPTIONS、Vitest 模型适配器或外部 IDE 端点。真实模型语义质量、费用收益、双 IDE / 交互 REPL、三系统完整旅程及其他崩溃窗口继续验收。累计真实交付仍为 **34/45**，原 verify-11 未知请求未重放，NOT_PAID_READY / NOT_ADMITTED / HOLD 保留。
 
 [本批证据](./cli/evidence/cli-memory-executable-restart-2026-10-29/review.json)保存每个子进程的实际 argv / PID / 退出码、原始协议请求及 stdout / stderr、前后 canonical 回执、Memory revision、用量行、完整来源摘要和两个探索失败；gzip 归档逐一核对压缩 / 解压 SHA-256。
+
+本批源码已随 `7a5d38d151d437f94f8c223dec1fbca52a44da5b` 提交并推送 main；验证引用 `ci-cli131-7a5d38d151d4` 指向该准确提交，创建后不重定向。该引用不匹配仓库任何发布标签模式。独立 .131 journal 改为绑定此 SHA，旧 e7ab 候选标记 SUPERSEDED_BEFORE_PUBLICATION 并保留原门禁 / 回执，不移用旧源码的部分通过结果。
+
+| 固定源码完整门禁         | Run ID                                                                                   | 回读状态    |
+| ------------------------ | ---------------------------------------------------------------------------------------- | ----------- |
+| CLI CI                   | [40825996255](https://github.com/chainlesschain/chainlesschain/actions/runs/40825996255) | queued      |
+| CLI Strict Sandbox       | [40826001600](https://github.com/chainlesschain/chainlesschain/actions/runs/40826001600) | in_progress |
+| Context Memory Kernel CI | [40826006659](https://github.com/chainlesschain/chainlesschain/actions/runs/40826006659) | queued      |
+| IDE Extensions           | [40826012460](https://github.com/chainlesschain/chainlesschain/actions/runs/40826012460) | queued      |
+
+四个工作流均按固定引用仅派发一次；IDE 明确 publish_vscode_marketplace=false。确认四份准确源码运行存在后，取消同 SHA / main push 自动产生的重复 CLI CI 40825988659 和 Strict 40825988560；保留固定引用的完整平台矩阵，没有删减任何用例或发行门禁。后续主线提交不会取消这组固定引用验证。初次 Git 原子推送发生连接重置，远端读回确认 main 仍为 4d4478、标签不存在，才以 HTTP/1.1 重试；两引用成功到达后才开始工作流派发。原失败与核对过程保留。
+
+[固定引用、派发及重复验证清理回执](./cli/evidence/cli-memory-executable-restart-2026-10-29/immutable-validation.json)另存独立 journal、请求响应、准确 run ID 与 read_file 实际成功结果；四项完整门禁尚未全部完成，没有发布子包、CLI、IDE 或客户端。

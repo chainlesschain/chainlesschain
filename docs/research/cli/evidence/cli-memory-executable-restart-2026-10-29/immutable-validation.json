@@ -1,0 +1,213 @@
+{
+  "schema": "chainlesschain.cli-memory-restart-freeze/v1",
+  "observedAt": "2026-10-29T05:57:26.325Z",
+  "source": "7a5d38d151d437f94f8c223dec1fbca52a44da5b",
+  "validationTag": "ci-cli131-7a5d38d151d4",
+  "pushedToMain": true,
+  "immutableValidationRef": true,
+  "publishingTag": false,
+  "requiredGates": [
+    {
+      "conclusion": "",
+      "createdAt": "2026-10-29T05:53:45Z",
+      "databaseId": 40825996255,
+      "event": "workflow_dispatch",
+      "headBranch": "ci-cli131-7a5d38d151d4",
+      "headSha": "7a5d38d151d437f94f8c223dec1fbca52a44da5b",
+      "status": "queued",
+      "updatedAt": "2026-10-29T05:54:36Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40825996255",
+      "workflowName": "CLI CI"
+    },
+    {
+      "conclusion": "",
+      "createdAt": "2026-10-29T05:53:48Z",
+      "databaseId": 40826001600,
+      "event": "workflow_dispatch",
+      "headBranch": "ci-cli131-7a5d38d151d4",
+      "headSha": "7a5d38d151d437f94f8c223dec1fbca52a44da5b",
+      "status": "in_progress",
+      "updatedAt": "2026-10-29T05:54:45Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40826001600",
+      "workflowName": "CLI Strict Sandbox"
+    },
+    {
+      "conclusion": "",
+      "createdAt": "2026-10-29T05:53:52Z",
+      "databaseId": 40826006659,
+      "event": "workflow_dispatch",
+      "headBranch": "ci-cli131-7a5d38d151d4",
+      "headSha": "7a5d38d151d437f94f8c223dec1fbca52a44da5b",
+      "status": "queued",
+      "updatedAt": "2026-10-29T05:53:52Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40826006659",
+      "workflowName": "Context Memory Kernel CI"
+    },
+    {
+      "conclusion": "",
+      "createdAt": "2026-10-29T05:53:55Z",
+      "databaseId": 40826012460,
+      "event": "workflow_dispatch",
+      "headBranch": "ci-cli131-7a5d38d151d4",
+      "headSha": "7a5d38d151d437f94f8c223dec1fbca52a44da5b",
+      "status": "queued",
+      "updatedAt": "2026-10-29T05:53:55Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40826012460",
+      "workflowName": "IDE Extensions"
+    }
+  ],
+  "duplicatePushValidationCleanup": [
+    {
+      "id": 40825988659,
+      "name": "CLI CI",
+      "source": "7a5d38d151d437f94f8c223dec1fbca52a44da5b",
+      "purpose": "Duplicate push validation only; exact same SHA is validated by the four immutable-ref workflows.",
+      "state": "cancellation_accepted",
+      "observedAt": "2026-10-29T05:55:21.397Z"
+    },
+    {
+      "id": 40825988560,
+      "name": "CLI Strict Sandbox",
+      "source": "7a5d38d151d437f94f8c223dec1fbca52a44da5b",
+      "purpose": "Duplicate push validation only; exact same SHA is validated by the four immutable-ref workflows.",
+      "state": "cancellation_accepted",
+      "observedAt": "2026-10-29T05:55:29.548Z"
+    }
+  ],
+  "duplicateFinalStates": [
+    {
+      "conclusion": "cancelled",
+      "createdAt": "2026-10-29T05:53:40Z",
+      "databaseId": 40825988659,
+      "event": "push",
+      "headBranch": "main",
+      "headSha": "7a5d38d151d437f94f8c223dec1fbca52a44da5b",
+      "status": "completed",
+      "updatedAt": "2026-10-29T05:55:22Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40825988659",
+      "workflowName": "CLI CI"
+    },
+    {
+      "conclusion": "",
+      "createdAt": "2026-10-29T05:53:40Z",
+      "databaseId": 40825988560,
+      "event": "push",
+      "headBranch": "main",
+      "headSha": "7a5d38d151d437f94f8c223dec1fbca52a44da5b",
+      "status": "in_progress",
+      "updatedAt": "2026-10-29T05:55:31Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40825988560",
+      "workflowName": "CLI Strict Sandbox"
+    }
+  ],
+  "old131Candidate": {
+    "source": "e7ab05ceb3fb5e4dda57e233f80a16a0d5619b75",
+    "state": "SUPERSEDED_BEFORE_PUBLICATION",
+    "evidenceRetained": true
+  },
+  "releaseTagCreated": false,
+  "published": false,
+  "microsoft": "deferred",
+  "original129Dispatch": "REQUEST_UNRESOLVED; not replayed",
+  "artifacts": [
+    {
+      "path": "docs/research/cli/evidence/cli-memory-executable-restart-2026-10-29/raw/validation-release-target.json.gz",
+      "source": ".work/release131-immutable-validation/ci-cli131-7a5d38d151d4/release-target.json",
+      "bytes": 2016,
+      "sha256": "33adfa4c8cabd013f1befd8566d265aeca36698def81571e50cf8540912bca58",
+      "encoding": "gzip",
+      "contentBytes": 14475,
+      "contentSha256": "0a6ff25bf99e198633480ffad7d360918d1784916c8d796aecb23e6827d4f5ce"
+    },
+    {
+      "path": "docs/research/cli/evidence/cli-memory-executable-restart-2026-10-29/raw/validation-previous-release-target.json.gz",
+      "source": ".work/release131-immutable-validation/ci-cli131-7a5d38d151d4/previous-release-target.json",
+      "bytes": 1073,
+      "sha256": "bba5ce18f06daf9e11ee12825b276477a047e4e78257f2f1213e229753d5af67",
+      "encoding": "gzip",
+      "contentBytes": 6910,
+      "contentSha256": "154b659a7d428c4b4326c1a4ebd4459abe8966eb7da93d163ce3ba0dd0016c9b"
+    },
+    {
+      "path": "docs/research/cli/evidence/cli-memory-executable-restart-2026-10-29/raw/validation-duplicate-validation-cleanup.json.gz",
+      "source": ".work/release131-immutable-validation/ci-cli131-7a5d38d151d4/duplicate-validation-cleanup.json",
+      "bytes": 2679,
+      "sha256": "2eb41ba225cbf84acb490db54a4c7106c2061761df39203b5c9ace755816dd7b",
+      "encoding": "gzip",
+      "contentBytes": 34980,
+      "contentSha256": "9a970d0da58fd9442690de56bc52e15a7381f41e55022c501d07d9a94ed76394"
+    },
+    {
+      "path": "docs/research/cli/evidence/cli-memory-executable-restart-2026-10-29/raw/validation-gate-status.json.gz",
+      "source": ".work/release131-immutable-validation/ci-cli131-7a5d38d151d4/gate-status.json",
+      "bytes": 3540,
+      "sha256": "e114a34b8ecd5e9d90aa952e55751c2e0bf1cd75eb46a0e1d80110ac73081e10",
+      "encoding": "gzip",
+      "contentBytes": 46563,
+      "contentSha256": "b17ff6aa0ab44d078880904eec1c696ba6f5d5a69c130459600b2be6befdc596"
+    },
+    {
+      "path": "docs/research/cli/evidence/cli-memory-executable-restart-2026-10-29/raw/post-freeze.mjs.gz",
+      "source": ".work/cli-memory-restart-20261029/freeze.mjs",
+      "bytes": 2457,
+      "sha256": "333f53313961d216a8704787f6765a6bca103c936489c25b2f147c75e54b28fc",
+      "encoding": "gzip",
+      "contentBytes": 6216,
+      "contentSha256": "995b076309111aea6602e0f1b26ab2e9c8ce68f1e1f4342dcf300efa9fe3b161"
+    },
+    {
+      "path": "docs/research/cli/evidence/cli-memory-executable-restart-2026-10-29/raw/post-frozen-status.mjs.gz",
+      "source": ".work/cli-memory-restart-20261029/frozen-status.mjs",
+      "bytes": 1293,
+      "sha256": "af0124a0fd2b3d5a3dfc5b785a45c90fd77851db7038fc8ceafe1a02da22af80",
+      "encoding": "gzip",
+      "contentBytes": 3516,
+      "contentSha256": "ce05039f26b63e359e983d9c89a8f49deb4e51e28ae9b9e83707498bac8cc08e"
+    },
+    {
+      "path": "docs/research/cli/evidence/cli-memory-executable-restart-2026-10-29/raw/post-push-interrupted.json.gz",
+      "source": ".work/cli-memory-restart-20261029/push-interrupted.json",
+      "bytes": 461,
+      "sha256": "e1b172891fe97b4fca35bf9d73470435eca0205a837d1c75fd019ac808376a7f",
+      "encoding": "gzip",
+      "contentBytes": 757,
+      "contentSha256": "a5bf3b4707d19c7e222ab4f004153daaddd6e07f43a4f75bf859582477392aea"
+    },
+    {
+      "path": "docs/research/cli/evidence/cli-memory-executable-restart-2026-10-29/raw/post-probe-cleanup.json.gz",
+      "source": ".work/cli-memory-restart-20261029/probe-cleanup.json",
+      "bytes": 242,
+      "sha256": "161114816aed3a37c235c675cdc9ee3b0050490f45316798a1df7c0e46100607",
+      "encoding": "gzip",
+      "contentBytes": 349,
+      "contentSha256": "bb715729c0c5b11350906b907525a0d8701d77747908e73186ec94b5f1894807"
+    },
+    {
+      "path": "docs/research/cli/evidence/cli-memory-executable-restart-2026-10-29/raw/post-read-tool-evidence.json.gz",
+      "source": ".work/cli-memory-restart-20261029/read-tool-evidence.json",
+      "bytes": 349,
+      "sha256": "fb43511f26d2621afdfabab8bf42716180392ff43f755a464de5aaec75408617",
+      "encoding": "gzip",
+      "contentBytes": 2676,
+      "contentSha256": "214e95690abcf0fef2fb3c5661260902e8775f6344fddcabdf38c63057b59a66"
+    },
+    {
+      "path": "docs/research/cli/evidence/cli-memory-executable-restart-2026-10-29/raw/post-write-progress.mjs.gz",
+      "source": ".work/cli-memory-restart-20261029/write-progress.mjs",
+      "bytes": 3838,
+      "sha256": "491214343b39492e046ab32600d7fac6d61bafcc2201a9ae447ef8c504102db5",
+      "encoding": "gzip",
+      "contentBytes": 6991,
+      "contentSha256": "afc7df50797560ae61663367c2b61a600315b7d4661fc1a83b0eed905850f31a"
+    },
+    {
+      "path": "docs/research/cli/evidence/cli-memory-executable-restart-2026-10-29/raw/post-finalize.mjs.gz",
+      "source": ".work/cli-memory-restart-20261029/finalize.mjs",
+      "bytes": 3403,
+      "sha256": "ece8275c176155c1108d81655a14477149dc4ebf66e250b4be73f26c87a35424",
+      "encoding": "gzip",
+      "contentBytes": 7252,
+      "contentSha256": "2ee3bdacf388885ff9d0d0d9e5b31911791ef0a30aa8221efc7a37b20024ba3c"
+    }
+  ]
+}
