@@ -1,5 +1,18 @@
 import fs from "node:fs";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
+
+// Publish only complete JSON and keep the original exclusive-create contract.
+function publishJson(file, value) {
+  const pending = `${file}.${process.pid}.${randomUUID()}.pending`;
+  fs.writeFileSync(pending, JSON.stringify(value), { flag: "wx" });
+  try {
+    fs.linkSync(pending, file);
+  } finally {
+    fs.unlinkSync(pending);
+  }
+}
+
 const artifacts = path.resolve(process.argv[2]);
 const mode = process.argv[3];
 const worktree = process.argv[4]
@@ -21,18 +34,14 @@ await new Promise((resolve, reject) => {
     watcher.close();
     reject(new Error("parent release handshake timed out"));
   }, 20000);
-  fs.writeFileSync(
-    path.join(artifacts, "ready.json"),
-    JSON.stringify({
-      pid: process.pid,
-      ppid: process.ppid,
-      worktree,
-      currentCwd: process.cwd(),
-      before,
-      mode,
-    }),
-    { flag: "wx" },
-  );
+  publishJson(path.join(artifacts, "ready.json"), {
+    pid: process.pid,
+    ppid: process.ppid,
+    worktree,
+    currentCwd: process.cwd(),
+    before,
+    mode,
+  });
   if (fs.existsSync(release)) {
     watcher.close();
     clearTimeout(timer);
@@ -45,8 +54,9 @@ try {
 } catch (error) {
   result = { ok: false, code: error.code, message: error.message };
 }
-fs.writeFileSync(
-  path.join(artifacts, "result.json"),
-  JSON.stringify({ pid: process.pid, worktree, target, result }),
-  { flag: "wx" },
-);
+publishJson(path.join(artifacts, "result.json"), {
+  pid: process.pid,
+  worktree,
+  target,
+  result,
+});

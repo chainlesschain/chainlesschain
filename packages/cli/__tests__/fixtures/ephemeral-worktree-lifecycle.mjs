@@ -228,9 +228,53 @@ try {
         iterationCount: 0,
       });
     };
+    // Ordinary worktree failures are returned as failed results. Preserve the
+    // original fixture exception so assertions cannot silently become passes.
+    let coreFailure;
+    let coreFailed = false;
+    const fixtureCore = context._runCore;
+    context._runCore = async function (...args) {
+      try {
+        return await fixtureCore.apply(this, args);
+      } catch (error) {
+        coreFailed = true;
+        coreFailure = error;
+        throw error;
+      }
+    };
     const completion = await context.run("Fixture only").finally(() => {
       runSettled = true;
     });
+    const cancellationExpected =
+      mode === "refuse-cancel" || mode === "foreground-cancel";
+    if (
+      coreFailed &&
+      (!cancellationExpected ||
+        !controller.signal.aborted ||
+        coreFailure !== controller.signal.reason)
+    )
+      throw coreFailure;
+    if (cancellationExpected) {
+      assert.equal(controller.signal.aborted, true, JSON.stringify(completion));
+      assert.equal(coreFailed, true, JSON.stringify(completion));
+      assert.equal(coreFailure, controller.signal.reason);
+      assert.equal(context.status, "failed", JSON.stringify(completion));
+      assert.equal(
+        completion.summary,
+        `Worktree isolation failed: ${coreFailure.message}`,
+      );
+    } else {
+      assert.equal(coreFailed, false);
+      assert.equal(context.status, "completed", JSON.stringify(completion));
+    }
+    if (mode === "foreground-cancel") {
+      assert.deepEqual(atAbort, {
+        runSettled: false,
+        childAlive: true,
+        worktreeExists: true,
+        fileExists: true,
+      });
+    }
     if (isolated) {
       assert.equal(
         fs.existsSync(context.cwd),

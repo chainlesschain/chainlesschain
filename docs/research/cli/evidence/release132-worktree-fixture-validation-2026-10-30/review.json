@@ -1,0 +1,239 @@
+{
+  "schema": "chainlesschain.release132-worktree-fixture-validation/v1",
+  "observedAt": "2026-10-29T21:15:02.854Z",
+  "baseSource": "abbe13ad3658ff9e2e100989a4cfefc409d9261c",
+  "sourceKind": "fixture-only-modified-worktree-before-replacement-commit",
+  "status": "LOCAL_FIXTURE_REPAIR_VALIDATED_NEW_EXACT_SOURCE_GATES_REQUIRED",
+  "versions": {
+    "cli": "0.166.132",
+    "kernel": "0.1.11",
+    "openVsx": "0.37.170",
+    "jetbrains": "0.4.187"
+  },
+  "published": false,
+  "productRuntimeChanged": false,
+  "validation": {
+    "originalIntegration": {
+      "files": 1,
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "scenarios": 5
+    },
+    "privateControls": {
+      "fiveCasePositive": true,
+      "unexpectedErrorNegativeRejected": true,
+      "atomicPublication": true,
+      "noClobber": true
+    },
+    "priorRuntimeComponent": {
+      "observedAt": "2026-10-29T21:15:02.727Z",
+      "executionSource": "abbe13ad3658ff9e2e100989a4cfefc409d9261c",
+      "reference": "docs/research/cli/evidence/release132-read-context-validation-2026-10-30/review.json",
+      "referenceDigest": "sha256:e43353be125044fe4a84cc309573d90a5bf39c0188ae84c8d0e6270edf18dcd2",
+      "selectedFiles": 24,
+      "allSelectedBytesUnchanged": true,
+      "priorUnit": 456,
+      "priorRealCliTests": 10,
+      "executionRepeated": false,
+      "boundary": "This is exact component-byte verification against the preserved abbe execution, not a new execution of that 456+10 suite or a new cloud gate."
+    }
+  },
+  "knownDefects": [
+    "Exists-only ready/result handshake can expose an empty file before JSON write completes.",
+    "Fixture treated a returned failed _runCore result as passed and concealed the original non-cancellation exception."
+  ],
+  "cloudException": "The original failing cloud completion was not retained. Its exact underlying exception is unknown; the publication race is independently reproduced, not asserted as the unique cloud cause.",
+  "repair": "Only the two test fixtures change. Publish complete JSON via same-directory wx pending plus no-clobber hard link; remove pending. Capture original _runCore errors, accept only the exact expected controller cancellation, enforce completed normal cases and all four foreground-cancel snapshot values. Root also checks that cancellation result text corresponds to that captured reason. Original 15s/20s limits, runtime lifecycle and outer assertions stay unchanged.",
+  "superseded": {
+    "source": "abbe13ad3658ff9e2e100989a4cfefc409d9261c",
+    "runId": 40947344227,
+    "jobId": 123710924819,
+    "published": false,
+    "releaseTagCreated": false,
+    "gates": [
+      {
+        "workflow": "CLI CI",
+        "id": 40947344227,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "workflow": "CLI Strict Sandbox",
+        "id": 40947344102,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "workflow": "Context Memory Kernel CI",
+        "id": 40947344114,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "workflow": "IDE Extensions",
+        "id": 40947344235,
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "acceptance": {
+    "automaticAccepted": 34,
+    "total": 45,
+    "assistedDeliveries": 3,
+    "unchanged": true
+  },
+  "sourceBindings": {
+    "packages/cli/src/runtime/agent-core.js": "sha256:92c081e30a0ca4523ab7e3797fb38c29e69296bbcce380c8157f9d84f24c64a2",
+    "packages/cli/src/runtime/message-roles.js": "sha256:05631b7268a7476ee088c9156f092a5f29efa267f7311a55a388696060c0b352",
+    "packages/cli/src/runtime/provider-stream-state.js": "sha256:be1c3f7e29e752835a09c70fef427ebe241c91c5c862a8bdf70650c5206e548e",
+    "packages/cli/src/lib/context-memory-kernel/provider-context.js": "sha256:d075c4c4fb91b64fe9d590ff8403600de83648a898137e14399d6af9da45b272",
+    "packages/cli/src/lib/context-memory-kernel/message-adapter.js": "sha256:8dbec7f148760bc4f3169c1cb33c85c01f810ca28d2d8cb9024087673326e93b",
+    "packages/cli/__tests__/unit/resume-task-binding.test.js": "sha256:4b0f68095b442b568e6ef56b3d7c391991aa1a950447aa954fb2f89ef802ffb4",
+    "packages/cli/__tests__/unit/context-task-binding-race.test.js": "sha256:9c362b6efac1d67f18a5c097904f283825c89bccca6ddb0d248856cf5baba90b",
+    "packages/cli/__tests__/unit/output-limit-recovery.test.js": "sha256:91dc84821216674e769466351572c36aec854a161eac3cf0f6599370cfa32d76",
+    "packages/cli/__tests__/unit/content-filter.test.js": "sha256:9a64f207f87fba6e7121ee006c5da8daa7bd83b8c6a7a879593c4599a223dd47",
+    "packages/cli/__tests__/unit/termination-integrity.test.js": "sha256:ab0722b29bc7a717814b8408652a22a600a3d44c1610b2ba7b51777ec428c083",
+    "packages/cli/__tests__/unit/agent-core-host-continuation.test.js": "sha256:4103ab0459bac57c4d19f3224ef76b3898e287f33101f9d0a4275c1dbe136542",
+    "packages/cli/__tests__/e2e/resume-role-alternation-e2e.test.js": "sha256:38d929c32d9f1479dcf89175a9047ddf1ad7ce78525dfaae7237e96553492621",
+    "packages/cli/__tests__/e2e/output-limit-recovery.test.js": "sha256:1fc98a78e21246b1ba20b4e2ac339bec2eaffc1d1949551a050a7a8319e95668",
+    "packages/cli/__tests__/e2e/compaction-memory-restart-e2e.test.js": "sha256:5a2b16ffa315d9d5a1b9b2542a5e4616c0131df9641c1ab950738813f5ad4395",
+    "packages/cli/package.json": "sha256:1400def71832d1b4668d5b021fc0c5a2b37c973052094a532720bb590f1bdd43",
+    "packages/context-memory-kernel/package.json": "sha256:ed0a010ee0146aebc4aed67cf7f7a79073298c517c6f85c83b21d0afb030e3a7",
+    "packages/cli/scripts/budget-egress-reviewed-sources.json": "sha256:d1ed39972f87fa488b1f2297cc9da8ac292921e08d50e5316de79725e89af330",
+    "packages/cli/src/data/changelog.json": "sha256:d32286e87f0b7b5f1773e0e002443e4e5fc6352fa1e6151ef06eb829b808f542",
+    "packages/vscode-extension/package.json": "sha256:74a42f113f2b37fb9b3a5fbcd27950f87c19513b653f3be1b99134049bda4f1a",
+    "packages/jetbrains-plugin/build.gradle.kts": "sha256:ed9ad77cdfa97b4f002d6a52fb24e166477d439937d0251aea668914e55b5411",
+    "packages/jetbrains-plugin/gradle.properties": "sha256:4e827de53b04a87cf241177d2a05658fdc30c2b9cf4115b7e81d2764defec984",
+    "packages/cli/README.md": "sha256:79df2a02676c5156660a57b1c0979e6962d00eb1f6d2fade36c80196a92b925e",
+    "packages/vscode-extension/README.md": "sha256:7e1afd2d9a3d2a3c36ed6429ce5132bc6fa3f3e068f10536d81f3ac9462ebea1",
+    "packages/jetbrains-plugin/README.md": "sha256:243a200c1654e03d16926ae9c30c22fe472bde0b01ab97c04f26448e9cefc781",
+    "packages/cli/__tests__/fixtures/ephemeral-worktree-consumer.mjs": "sha256:bf796778ef2288200366dfb1dfe6aa97379f48a31d94b790a07fe40bdb9c0e9f",
+    "packages/cli/__tests__/fixtures/ephemeral-worktree-lifecycle.mjs": "sha256:98277629a8bbfe48ffa5fee661e80bc60d4c6006886349ba1ebdb1e6ac3e2ae6",
+    "packages/cli/__tests__/integration/ephemeral-worktree-lifecycle.test.js": "sha256:b110af8d6f07ebe8472d0cd80c47f919c6d8f52a427bc46dfb292d6fa8cb0dc3",
+    "packages/cli/src/lib/sub-agent-context.js": "sha256:8f7ddc14300084c1071f8a5e70f000725106bc4a91afde3d2dfeacb418c42d01",
+    "packages/cli/src/lib/ephemeral-worktree-scope.js": "sha256:e83a645eab3459754a75a3a08466f81d480aab4c70c53c299d27e6876014901b",
+    "packages/cli/src/harness/worktree-isolator.js": "sha256:ad13e1f333711049637092f810e7bffd004304c5de66a4c337c42c341151214a",
+    ".github/workflows/cli-ci.yml": "sha256:3bf8d929b58bf14e28076111489c328f7d9106ab7ca08173767ad4f514a53541",
+    ".github/workflows/cli-strict-sandbox.yml": "sha256:81ff3c38967892933746f09b3b6d4829b7250099cfbf66eeca7dcd17fcc5d786",
+    ".github/workflows/context-memory-kernel.yml": "sha256:5ea444ebc24c01a73daca5b0cd8ea84def810f3b14cf972efbe5c17d39d3fbbf",
+    ".github/workflows/ide-extensions.yml": "sha256:ff43eb19b6328ca94aad5ccca6f81e5427c9ad8e9a82513a72ee6ecc48857531"
+  },
+  "artifacts": [
+    {
+      "name": "original-ci-job.json",
+      "path": "objects/1328bb19f5ab319b57fd4a4d93bfced566118ffa80e2d6a13ae66b76d3601c95.gz",
+      "originalDigest": "sha256:1328bb19f5ab319b57fd4a4d93bfced566118ffa80e2d6a13ae66b76d3601c95",
+      "originalBytes": 3314,
+      "storedDigest": "sha256:9333bb9149fe2241633642ff47a8d54ce3ab14eb8fb7cc2b6e77ddb1514cb41f",
+      "storedBytes": 732
+    },
+    {
+      "name": "original-ci-job.log",
+      "path": "objects/50dcd08f0e86ea4188c978964a21d57310df8d0958edc905df285272f3816e9d.gz",
+      "originalDigest": "sha256:50dcd08f0e86ea4188c978964a21d57310df8d0958edc905df285272f3816e9d",
+      "originalBytes": 56442,
+      "storedDigest": "sha256:1a1ce2bd0fef47761f5faac8264e0561fa4a41377efa670b8588674f8776f850",
+      "storedBytes": 14036
+    },
+    {
+      "name": "original-ci-disposition.json",
+      "path": "objects/0c1cf5188a2764629ab57208dbb2bdd82fc7a0510bfbec60321924dfe7b6595f.gz",
+      "originalDigest": "sha256:0c1cf5188a2764629ab57208dbb2bdd82fc7a0510bfbec60321924dfe7b6595f",
+      "originalBytes": 1092,
+      "storedDigest": "sha256:b665dd05e85689408eaad9be74e8be07991494136c6ef4568ce47dc230e3d288",
+      "storedBytes": 701
+    },
+    {
+      "name": "superseded-abbe-cancellation.json",
+      "path": "objects/37304dba1e3d653c7472c51c08409dfc6878c1877e7ee75460a9c6ecb9437923.gz",
+      "originalDigest": "sha256:37304dba1e3d653c7472c51c08409dfc6878c1877e7ee75460a9c6ecb9437923",
+      "originalBytes": 826,
+      "storedDigest": "sha256:bc9eb2a3077462979b4c93b38e8267d4ece847a78da12622a218562722d9adbd",
+      "storedBytes": 452
+    },
+    {
+      "name": "superseded-abbe-final-gates.json",
+      "path": "objects/1749a24e878af5f4c253886e2f41b517dc80f44f858cb6a3d472cb44243ebb49.gz",
+      "originalDigest": "sha256:1749a24e878af5f4c253886e2f41b517dc80f44f858cb6a3d472cb44243ebb49",
+      "originalBytes": 464007,
+      "storedDigest": "sha256:774e5267062545f90dd2fda27e410a8ee6667e93810b7ce937855034fd787714",
+      "storedBytes": 20986
+    },
+    {
+      "name": "fixture-integration.json",
+      "path": "objects/e780fca2a7d7151493591772f8dc95e4626c893856d3a4894276bf76577bb25c.gz",
+      "originalDigest": "sha256:e780fca2a7d7151493591772f8dc95e4626c893856d3a4894276bf76577bb25c",
+      "originalBytes": 1117,
+      "storedDigest": "sha256:42e019f6ea73501c05ba8a92ab65871467fa789176fc51f6f3eb6b91cd009b33",
+      "storedBytes": 504
+    },
+    {
+      "name": "private-controls.json",
+      "path": "objects/774b096e20fc1a3e7747e47d740e913c237b0fb8217b780f6ded6d04c4a7fb04.gz",
+      "originalDigest": "sha256:774b096e20fc1a3e7747e47d740e913c237b0fb8217b780f6ded6d04c4a7fb04",
+      "originalBytes": 1747,
+      "storedDigest": "sha256:848ed2b5e5b7636af2defd4bccb9c30ac4e02820820a0747c2193f25e3c34bb0",
+      "storedBytes": 504
+    },
+    {
+      "name": "private-positive.json",
+      "path": "objects/930fd33368b12b1fe9d2630fc0e2ac92df7dae6b2ba6bf2ae15cd34e86733ab4.gz",
+      "originalDigest": "sha256:930fd33368b12b1fe9d2630fc0e2ac92df7dae6b2ba6bf2ae15cd34e86733ab4",
+      "originalBytes": 46692,
+      "storedDigest": "sha256:712c69ac6e561ad4538955634c3f3e346e98345d09f400a3a4eee6b3765ea4e3",
+      "storedBytes": 6294
+    },
+    {
+      "name": "private-negative.json",
+      "path": "objects/8e65b465e5a40c132bc866b9ba392f8b430002583c95216e4afeccf76823e211.gz",
+      "originalDigest": "sha256:8e65b465e5a40c132bc866b9ba392f8b430002583c95216e4afeccf76823e211",
+      "originalBytes": 38909,
+      "storedDigest": "sha256:2447cb65c38669a088bfb6ba275903f88426ce2ce2d3dee385931eab6d793a21",
+      "storedBytes": 6145
+    },
+    {
+      "name": "publication-boundaries.json",
+      "path": "objects/a417b5d796ce06813e05fd37d1cad080a0dbcc45c9cc1937a578ca3892321485.gz",
+      "originalDigest": "sha256:a417b5d796ce06813e05fd37d1cad080a0dbcc45c9cc1937a578ca3892321485",
+      "originalBytes": 5201,
+      "storedDigest": "sha256:a63b747bb6245598c3171bffd7fd4288e059e36635fb2927412bcd77412c3eea",
+      "storedBytes": 1070
+    },
+    {
+      "name": "publication-initial-race.json",
+      "path": "objects/57847ee569f1c22aa36ea351e5831cfc0071b0d3664c2ac0ef6fabc611bb9374.gz",
+      "originalDigest": "sha256:57847ee569f1c22aa36ea351e5831cfc0071b0d3664c2ac0ef6fabc611bb9374",
+      "originalBytes": 2248,
+      "storedDigest": "sha256:4621ce3d91e50e96553cf9ae656af5cb57ad1cb09a273e10e55d58d6cc582848",
+      "storedBytes": 458
+    },
+    {
+      "name": "candidate-original.patch",
+      "path": "objects/23c53c52e03e882c36ec90cec9aadf670ed1bff29431d575782fd3ce06bf61dd.gz",
+      "originalDigest": "sha256:23c53c52e03e882c36ec90cec9aadf670ed1bff29431d575782fd3ce06bf61dd",
+      "originalBytes": 3681,
+      "storedDigest": "sha256:682119adb6b95750d187adca239348f6adbc1e3ec8684283a7ebb33840ed68b4",
+      "storedBytes": 1294
+    },
+    {
+      "name": "actual-fixture-diff.patch",
+      "path": "objects/77c57f3361364289504337cb5a1b66524ec1b5983d20e8eafa4d694bc413fe26.gz",
+      "originalDigest": "sha256:77c57f3361364289504337cb5a1b66524ec1b5983d20e8eafa4d694bc413fe26",
+      "originalBytes": 4101,
+      "storedDigest": "sha256:ecbc4e409e6919d7dc4e377fbf3a933f3dd9e4626ea08191d577df7cb07b33c6",
+      "storedBytes": 1425
+    },
+    {
+      "name": "runtime-component-check.json",
+      "path": "objects/66bc45dd65b9b0bd25f8e2dbde719aff5f3f0077bce7dfb066e59bdfe8be7b92.gz",
+      "originalDigest": "sha256:66bc45dd65b9b0bd25f8e2dbde719aff5f3f0077bce7dfb066e59bdfe8be7b92",
+      "originalBytes": 607,
+      "storedDigest": "sha256:342feade58c95090858d2ad72ecafc9e2ed95a14131c857638894231af79610c",
+      "storedBytes": 407
+    }
+  ],
+  "boundary": "This archive proves the scoped fixture repair and unchanged selected runtime components. Prior 456+10 results are preserved as abbe component execution, not a fresh suite at the replacement commit. Complete configured OS gates on the new exact commit, OIDC and public readback remain required. No financial records or original native journals are included or modified."
+}
