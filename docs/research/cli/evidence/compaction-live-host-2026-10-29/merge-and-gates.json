@@ -1,0 +1,159 @@
+{
+  "schema": "chainlesschain.compaction-live-host-merge/v1",
+  "observedAt": "2026-10-29T05:23:39.811Z",
+  "source": "e7ab05ceb3fb5e4dda57e233f80a16a0d5619b75",
+  "pushedToMain": true,
+  "parents": [
+    "ebc2aef24fa00c4f55cb9d872369694e8e2cc095",
+    "11e698755ca603cfd639f6857f87b5db6ae6ea9d"
+  ],
+  "cleanup": {
+    "localBranchDeleted": true,
+    "remoteBranchDeleted": true,
+    "remainingLocalBranches": ["main"],
+    "worktreeRetained": true,
+    "staleTrackingRefRemoved": "refs/remotes/origin/feature/release130-public-docs"
+  },
+  "gates": [
+    {
+      "conclusion": "",
+      "createdAt": "2026-10-29T05:19:37Z",
+      "databaseId": 40822738893,
+      "event": "push",
+      "headSha": "e7ab05ceb3fb5e4dda57e233f80a16a0d5619b75",
+      "status": "queued",
+      "updatedAt": "2026-10-29T05:20:04Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40822738893",
+      "workflowName": "CLI CI"
+    },
+    {
+      "conclusion": "",
+      "createdAt": "2026-10-29T05:19:37Z",
+      "databaseId": 40822738898,
+      "event": "push",
+      "headSha": "e7ab05ceb3fb5e4dda57e233f80a16a0d5619b75",
+      "status": "queued",
+      "updatedAt": "2026-10-29T05:22:20Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40822738898",
+      "workflowName": "CLI Strict Sandbox"
+    },
+    {
+      "conclusion": "",
+      "createdAt": "2026-10-29T05:19:37Z",
+      "databaseId": 40822738878,
+      "event": "push",
+      "headSha": "e7ab05ceb3fb5e4dda57e233f80a16a0d5619b75",
+      "status": "queued",
+      "updatedAt": "2026-10-29T05:19:37Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40822738878",
+      "workflowName": "Context Memory Kernel CI"
+    },
+    {
+      "conclusion": "",
+      "createdAt": "2026-10-29T05:21:33Z",
+      "databaseId": 40822931865,
+      "event": "workflow_dispatch",
+      "headSha": "e7ab05ceb3fb5e4dda57e233f80a16a0d5619b75",
+      "status": "queued",
+      "updatedAt": "2026-10-29T05:21:33Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40822931865",
+      "workflowName": "IDE Extensions"
+    }
+  ],
+  "allRequiredWorkflowsCompletedSuccessfully": false,
+  "releaseSourceFrozen": true,
+  "publicationExecuted": false,
+  "microsoft": "deferred",
+  "original129DispatchReplayed": false,
+  "boundary": "Source and gates are bound to e7ab05ceb3. The following commit records receipts/documentation only; it does not replace the candidate source or convert queued runs to success.",
+  "artifacts": [
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/postmerge-cleanup.json.gz",
+      "sha256": "f01515fb49f992b3d0048567a0a74f6a92940103749da6556f57de4e324c8ad8",
+      "contentSha256": "8523290dc4e8c3935de059fc7b70d6206fe52b0e051028c268020619a3468326",
+      "bytes": 735,
+      "contentBytes": 4341,
+      "encoding": "gzip"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/postmerge-tracking-cleanup.json.gz",
+      "sha256": "24b3fe23eba531ab9cd85db2cf2bc5ab42f269ad2d3a6847ada7d18bb5569253",
+      "contentSha256": "5a2ad13776e6ae92a7418538371b7d18687ca9f9efd11b680859e9c64fb46cba",
+      "bytes": 551,
+      "contentBytes": 2289,
+      "encoding": "gzip"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/postmerge-remote-refs.json.gz",
+      "sha256": "2ab2eb183a8804147212874fc6e333a52d3c5ca048ff0dd950b844da8c183479",
+      "contentSha256": "dc8e77286ac0aed5cd166445d0b89d10d37f2d7820ae2bbb9f36de4303321e66",
+      "bytes": 279,
+      "contentBytes": 499,
+      "encoding": "gzip"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/postmerge-cloud-status.json.gz",
+      "sha256": "eabff0585341c7ba007b18825326eaca10e594ee75a9c5e54327507d51db1f99",
+      "contentSha256": "18f8ab94c0c3b5584a111d7d1ecc3c097957cd65095fb34b06933627d723ee91",
+      "bytes": 803,
+      "contentBytes": 5973,
+      "encoding": "gzip"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/postmerge-cloud-status-final.json.gz",
+      "sha256": "19a6240285dffd700c12a9d45a02f67ac8d978db7782e47bfb3950b260a86dc7",
+      "contentSha256": "204c7e3718ac729db43044d0c57965248d491d2ec14d1e60951808afcd80b902",
+      "bytes": 749,
+      "contentBytes": 6202,
+      "encoding": "gzip"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/postmerge-cleanup.mjs.gz",
+      "sha256": "da7c7cb685c53ef60c821aec927988f9e86b9849eb871818da214b3a1f15843c",
+      "contentSha256": "0cebad425a7dc97f7de19b874a997209816834c7aef6639a55e2417eaf6f1e8c",
+      "bytes": 1090,
+      "contentBytes": 2886,
+      "encoding": "gzip"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/postmerge-sync-tracking.mjs.gz",
+      "sha256": "05a21059ca09347b6562889d566b78e6443f2adc13404113b96eb73c51dcd928",
+      "contentSha256": "97aa369b9a73b9b56af03451282a0cd96a47777a00536b5e64494e28fde1e3e5",
+      "bytes": 912,
+      "contentBytes": 2016,
+      "encoding": "gzip"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/postmerge-capture-cloud.mjs.gz",
+      "sha256": "750d4e82eeccd4683cf50ffd3a2b53bc8f1080ad364730862eb8915411aca329",
+      "contentSha256": "a0d192fa5012df881e573950fd674a3e4fbffd07ed3d869edc5641e7e04780c8",
+      "bytes": 1581,
+      "contentBytes": 3771,
+      "encoding": "gzip"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/postmerge-finalize-receipts.mjs.gz",
+      "sha256": "8aab3bd2fa16b89fbc001dd3b3d17258687ecfe7790e285ce0b755a42717715a",
+      "contentSha256": "36ddc35797b020959afcaec61a886e19a2963b1cc47ef55bdcbe6f32829c1d6f",
+      "bytes": 3205,
+      "contentBytes": 7246,
+      "encoding": "gzip"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/release131-release-target.json.gz",
+      "sha256": "bba5ce18f06daf9e11ee12825b276477a047e4e78257f2f1213e229753d5af67",
+      "contentSha256": "154b659a7d428c4b4326c1a4ebd4459abe8966eb7da93d163ce3ba0dd0016c9b",
+      "bytes": 1073,
+      "contentBytes": 6910,
+      "encoding": "gzip"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/release131-ide-validation-dispatch.json.gz",
+      "sha256": "c705a28622f43162e02eeeb2c797b57a2212be0f43a92af2fd9724fee07d1b95",
+      "contentSha256": "33620173d3a83e0596b402667183927dcc02212db9686fe2ffd4128e5b53208d",
+      "bytes": 280,
+      "contentBytes": 439,
+      "encoding": "gzip"
+    }
+  ]
+}

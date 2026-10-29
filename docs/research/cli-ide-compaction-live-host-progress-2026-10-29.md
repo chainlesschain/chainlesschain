@@ -2,21 +2,32 @@
 
 日期：2026-10-29。第四十二批，承接[项目上下文刷新](./cli-ide-compaction-context-progress-2026-10-29.md)及[新候选准备](./cli-ide-release131-preparation-progress-2026-10-29.md)。按用户要求直接合并到 main，Microsoft 渠道继续暂缓。
 
-| 项目                  | 本批完成情况                                   | 证据与边界                                                                                                                                                                                                                      |
-| --------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 真实缺陷复现          | **复现并修复**                                 | 未保存会话的 canonical 压缩实际 committed，但丢失基础 system 对象，下一次刷新报 CC_COMPACTION_CONTEXT_REFRESH_FAILED。前后探针均无网络请求；两份回执的 HEAD 都是合并前 ebc，按文件摘要区分修复，不能说 ebc 已包含修复。         |
-| 宿主消息身份          | **私有身份保留**                               | 只接受宿主构造或成功渲染的基础对象；WeakSet 身份不随复制 / 序列化传播。临时 runtime nudges 同样保留其私有身份，任意 system 文本不能绕过 authority planner。                                                                     |
-| hermetic / 子代理遗漏 | **新增失败负例后修复**                         | hermetic 不注册项目刷新器，故在 headless / stream 构造时标记基础消息；SubAgentContext 只标记自己构造的基础消息。两项修复前失败回执保留。                                                                                        |
-| 三个真实入口          | **各两次压缩提交通过**                         | 普通 headless、stream 和 hermetic headless 均为 ephemeral；每轮实际读取两份本机文件，共三次注入模型回调、两次 canonical committed。普通入口看到更新后的规则及导入文件 Memory，hermetic 保留原规则；未创建会话。                 |
-| 输入预算与用量        | **原约束保留并回归通过**                       | 基础上下文计入 safety margin；预算不足时摘要与 commit 均不调用。已知 / 未知用量、成本上限、取消、提交失败和伪造错误的原断言保留。                                                                                               |
-| 完整 CLI 定向回归     | **16 文件、231 项通过，零失败 / 跳过，退出 0** | 最终源码前后摘要稳定。Node 22.12 的三个关键文件另有 43 项通过，与完整套件重叠，不跨批累加。                                                                                                                                     |
-| 原生恢复 / changelog  | **29 项 / 22 项通过**                          | 29 项实际 canonical / killed-writer 恢复套件；4 文件 22 项验证候选 changelog 与打包离线数据一致。均退出 0，来源摘要稳定。Kernel lib 本批未变，没有把旧 135 项当作本批重跑。                                                     |
-| 审计与打包            | **82 候选零问题；1844 文件**                   | 沿用完整来源审计和付费限制；CLI pack dry-run 跳过生命周期，新 helper 确实进入清单。没有 npm / IDE 发布。                                                                                                                        |
-| 合并范围              | **原分支及主线补修一并纳入**                   | feature/cli130-compaction-followup 原尖端 11e698755ca603cfd639f6857f87b5db6ae6ea9d。合并后核对干净 worktree 和祖先，再 detach 保留文件、删除已合并本地 / 远端引用；真实清理回执另记。                                           |
-| 正式发行与任务验收    | **仍待完成**                                   | 候选 CLI .131 / Kernel .11 / Open VSX .169 / JetBrains .186 尚未发布；公开仍 .130 / .10 / .168 / .185。准确新提交需自己的三系统门禁与依赖顺序 OIDC 发布，不能沿用 ebc 的检查。真实产物仍为 34/45，原 verify-11 未知请求未重放。 |
+| 项目                  | 本批完成情况                                   | 证据与边界                                                                                                                                                                                                                              |
+| --------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 真实缺陷复现          | **复现并修复**                                 | 未保存会话的 canonical 压缩实际 committed，但丢失基础 system 对象，下一次刷新报 CC_COMPACTION_CONTEXT_REFRESH_FAILED。前后探针均无网络请求；两份回执的 HEAD 都是合并前 ebc，按文件摘要区分修复，不能说 ebc 已包含修复。                 |
+| 宿主消息身份          | **私有身份保留**                               | 只接受宿主构造或成功渲染的基础对象；WeakSet 身份不随复制 / 序列化传播。临时 runtime nudges 同样保留其私有身份，任意 system 文本不能绕过 authority planner。                                                                             |
+| hermetic / 子代理遗漏 | **新增失败负例后修复**                         | hermetic 不注册项目刷新器，故在 headless / stream 构造时标记基础消息；SubAgentContext 只标记自己构造的基础消息。两项修复前失败回执保留。                                                                                                |
+| 三个真实入口          | **各两次压缩提交通过**                         | 普通 headless、stream 和 hermetic headless 均为 ephemeral；每轮实际读取两份本机文件，共三次注入模型回调、两次 canonical committed。普通入口看到更新后的规则及导入文件 Memory，hermetic 保留原规则；未创建会话。                         |
+| 输入预算与用量        | **原约束保留并回归通过**                       | 基础上下文计入 safety margin；预算不足时摘要与 commit 均不调用。已知 / 未知用量、成本上限、取消、提交失败和伪造错误的原断言保留。                                                                                                       |
+| 完整 CLI 定向回归     | **16 文件、231 项通过，零失败 / 跳过，退出 0** | 最终源码前后摘要稳定。Node 22.12 的三个关键文件另有 43 项通过，与完整套件重叠，不跨批累加。                                                                                                                                             |
+| 原生恢复 / changelog  | **29 项 / 22 项通过**                          | 29 项实际 canonical / killed-writer 恢复套件；4 文件 22 项验证候选 changelog 与打包离线数据一致。均退出 0，来源摘要稳定。Kernel lib 本批未变，没有把旧 135 项当作本批重跑。                                                             |
+| 审计与打包            | **82 候选零问题；1844 文件**                   | 沿用完整来源审计和付费限制；CLI pack dry-run 跳过生命周期，新 helper 确实进入清单。没有 npm / IDE 发布。                                                                                                                                |
+| 合并范围              | **已合并推送并清理分支**                       | feature/cli130-compaction-followup 原尖端 11e698755ca603cfd639f6857f87b5db6ae6ea9d。已核对干净 worktree 和祖先，detach 保留文件并删除已合并本地 / 远端引用；本地仅余 main，旧 release130-public-docs 的过期远端跟踪引用亦已核验并清理。 |
+| 正式发行与任务验收    | **仍待完成**                                   | 候选 CLI .131 / Kernel .11 / Open VSX .169 / JetBrains .186 尚未发布；公开仍 .130 / .10 / .168 / .185。准确新提交需自己的三系统门禁与依赖顺序 OIDC 发布，不能沿用 ebc 的检查。真实产物仍为 34/45，原 verify-11 未知请求未重放。         |
 
 原始失败分开保留：最初单文件读取夹具未满足已有消息数量门槛，后改成每轮两份实际文件读取；完整回归首次为 224 通过 / 7 失败，诊断回执确认旧用量夹具的大型宿主规则超过其 60% 目标预算，在调用 provider 前被拒绝。用量夹具现使用固定短 systemPrompt、临时 cwd 和 projectMemory=false，以实际进入其要验证的摘要后拒绝路径；所有原用量 / 预算断言保留，没有改动运行时门槛或放宽预算。
 
 本批模型为确定性注入夹具，不代表真实语义摘要、付费账单或完整 REPL / 双 IDE 旅程。完整跨平台恢复、其他崩溃窗口、Memory 语义质量与全场景 SLO 继续跟踪；NOT_PAID_READY / NOT_ADMITTED / HOLD 保留。
 
 [本批证据](./cli/evidence/compaction-live-host-2026-10-29/review.json)保存原失败、诊断、最终测试 JSON、实际退出码、来源摘要、原生日志、完整审计和 pack 清单；原始文件用 gzip 保留字节，并逐一校验压缩与解压摘要。
+
+合并与推送源码为 `e7ab05ceb3fb5e4dda57e233f80a16a0d5619b75`，两个 parent 分别为 ebc2aef24f 和 11e698755c。独立 .131 发行 journal 绑定该 SHA；后续只记录文档回执，不移动已冻结候选源码。2026-10-29T05:23:39.811Z 回读如下，未创建发行标签或执行发布：
+
+| 准确源码门禁             | Run ID                                                                                   | 本次回读状态 |
+| ------------------------ | ---------------------------------------------------------------------------------------- | ------------ |
+| CLI CI                   | [40822738893](https://github.com/chainlesschain/chainlesschain/actions/runs/40822738893) | queued       |
+| CLI Strict Sandbox       | [40822738898](https://github.com/chainlesschain/chainlesschain/actions/runs/40822738898) | queued       |
+| Context Memory Kernel CI | [40822738878](https://github.com/chainlesschain/chainlesschain/actions/runs/40822738878) | queued       |
+| IDE Extensions           | [40822931865](https://github.com/chainlesschain/chainlesschain/actions/runs/40822931865) | queued       |
+
+IDE Extensions 未由本次路径变化自动触发，故在 main 仍指向该 SHA 时仅手动发起一次构建 / 测试验证，显式 publish_vscode_marketplace=false；未发布 Microsoft 或其他 IDE 渠道。其余三项沿用本次 push 自动触发的准确源码运行，没有重复派发。[合并、清理与门禁回执](./cli/evidence/compaction-live-host-2026-10-29/merge-and-gates.json)保留实际命令退出码、精确远端尖端 lease 和分支回读。
