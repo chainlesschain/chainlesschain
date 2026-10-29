@@ -1,0 +1,448 @@
+{
+  "schema": "chainlesschain.release130-source-gates/v1",
+  "sourceSha": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+  "verifiedAt": "2026-10-29T01:03:17.655Z",
+  "cliReleaseVerifier": {
+    "schema": 1,
+    "verifiedAt": "2026-10-29T01:03:17.655Z",
+    "repository": "chainlesschain/chainlesschain",
+    "sha": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+    "gates": [
+      {
+        "workflow": "cli-ci.yml",
+        "name": "CLI CI",
+        "sha": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+        "runId": 40746844892,
+        "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40746844892",
+        "conclusion": "success",
+        "platforms": ["linux", "macos", "windows"]
+      },
+      {
+        "workflow": "cli-strict-sandbox.yml",
+        "name": "CLI Strict Sandbox",
+        "sha": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+        "runId": 40746845171,
+        "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40746845171",
+        "conclusion": "success",
+        "platforms": ["linux", "macos", "windows"]
+      }
+    ]
+  },
+  "runs": [
+    {
+      "name": "CLI CI",
+      "runId": 40746844892,
+      "attempt": 1,
+      "sourceSha": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40746844892"
+    },
+    {
+      "name": "CLI Strict Sandbox",
+      "runId": 40746845171,
+      "attempt": 1,
+      "sourceSha": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40746845171"
+    },
+    {
+      "name": "IDE Extensions",
+      "runId": 40746845223,
+      "attempt": 1,
+      "sourceSha": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40746845223"
+    },
+    {
+      "name": "IDE ARM64 Host Validation",
+      "runId": 40746845038,
+      "attempt": 2,
+      "sourceSha": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40746845038"
+    },
+    {
+      "name": "IDE Roadmap Safety Matrix",
+      "runId": 40746844865,
+      "attempt": 1,
+      "sourceSha": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40746844865"
+    },
+    {
+      "name": "Context Memory Kernel CI",
+      "runId": 40746844925,
+      "attempt": 1,
+      "sourceSha": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40746844925"
+    }
+  ],
+  "latestSourceCheckSummary": {
+    "success": 217,
+    "skipped": 11
+  },
+  "cliCiJobs": [
+    {
+      "id": 123022788846,
+      "name": "Scoped documentation check / Detect and validate scoped documentation",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916505,
+      "name": "PDH native release tests (ubuntu-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916689,
+      "name": "PDH native release tests (macos-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916766,
+      "name": "test-macos / unit (macos-latest, shard 4/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916790,
+      "name": "test-macos / e2e (macos-latest, shard 4/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916793,
+      "name": "test-windows / e2e (windows-latest, shard 3/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916802,
+      "name": "test-windows / e2e (windows-latest, shard 4/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916804,
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 2/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916809,
+      "name": "test-macos / e2e (macos-latest, shard 3/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916821,
+      "name": "linux-subreaper / Linux packaged subreaper (x64)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916846,
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 2/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916870,
+      "name": "test-macos / e2e (macos-latest, shard 1/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916914,
+      "name": "PDH native release tests (windows-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916916,
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 1/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916920,
+      "name": "test-macos / unit (macos-latest, shard 2/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916921,
+      "name": "test-windows / e2e (windows-latest, shard 1/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916935,
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 3/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916953,
+      "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916964,
+      "name": "test-macos / unit (macos-latest, shard 1/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040916966,
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 4/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917009,
+      "name": "test-windows / e2e (windows-latest, shard 2/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917017,
+      "name": "test-macos / e2e (macos-latest, shard 2/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917023,
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 4/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917079,
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 1/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917088,
+      "name": "test-macos / integration (macos-latest, shard 1/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917090,
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917146,
+      "name": "test-macos / integration (macos-latest, shard 4/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917167,
+      "name": "test-macos / integration (macos-latest, shard 8/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917168,
+      "name": "test-macos / integration (macos-latest, shard 6/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917194,
+      "name": "test-macos / integration (macos-latest, shard 2/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917197,
+      "name": "test-macos / integration (macos-latest, shard 5/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917206,
+      "name": "test-macos / integration (macos-latest, shard 3/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917232,
+      "name": "test-macos / unit (macos-latest, shard 3/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917238,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 2/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917280,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 5/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917307,
+      "name": "test-windows / integration (windows-latest, shard 1/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917312,
+      "name": "test-windows / integration (windows-latest, shard 2/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917314,
+      "name": "test-macos / integration (macos-latest, shard 7/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917346,
+      "name": "test-windows / integration (windows-latest, shard 7/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917353,
+      "name": "test-windows / integration (windows-latest, shard 8/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917359,
+      "name": "test-windows / integration (windows-latest, shard 4/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917370,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917374,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 4/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917389,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 6/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917406,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 3/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917420,
+      "name": "test-windows / integration (windows-latest, shard 5/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917452,
+      "name": "test-windows / integration (windows-latest, shard 6/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917461,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917497,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 1/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917539,
+      "name": "test-windows / integration (windows-latest, shard 3/8)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917572,
+      "name": "test-windows / unit (windows-latest, shard 14/16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917643,
+      "name": "test-windows / unit (windows-latest, shard 12/16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917655,
+      "name": "test-windows / unit (windows-latest, shard 4/16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917658,
+      "name": "test-windows / unit (windows-latest, shard 6/16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917669,
+      "name": "test-windows / unit (windows-latest, shard 13/16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917674,
+      "name": "test-windows / unit (windows-latest, shard 5/16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917697,
+      "name": "test-windows / unit (windows-latest, shard 9/16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917704,
+      "name": "test-windows / unit (windows-latest, shard 10/16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917756,
+      "name": "test-windows / unit (windows-latest, shard 1/16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917802,
+      "name": "test-windows / unit (windows-latest, shard 11/16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917857,
+      "name": "test-windows / unit (windows-latest, shard 2/16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917869,
+      "name": "test-windows / unit (windows-latest, shard 3/16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917933,
+      "name": "test-windows / unit (windows-latest, shard 7/16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040917999,
+      "name": "test-windows / unit (windows-latest, shard 8/16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040920158,
+      "name": "test-windows / unit (windows-latest, shard 15/16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123040920272,
+      "name": "test-windows / unit (windows-latest, shard 16/16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123084754462,
+      "name": "pack-linux-dryrun",
+      "conclusion": "success"
+    },
+    {
+      "id": 123084754477,
+      "name": "dry-run-publish",
+      "conclusion": "success"
+    },
+    {
+      "id": 123169701572,
+      "name": "verify-cli (windows-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123169701659,
+      "name": "verify-cli (macos-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123169701693,
+      "name": "verify-cli (ubuntu-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 123198110209,
+      "name": "Test-only PM exploration recovery three-OS aggregate",
+      "conclusion": "success"
+    }
+  ],
+  "scope": "Prepublication exact-source gates; formal IDE tag run evidence is recorded with each marketplace public receipt."
+}

@@ -2,17 +2,19 @@
 
 <!-- docs-code-git-sync-2026-10-29 -->
 
+`.130` 将模型 Goal 复查纳入原预算、取消和输出限制，并以当前工作区字节绑定完成证据。公开 `.130` 固定使用 `@chainlesschain/context-memory-kernel@0.1.10`；主分支后续的 kernel `0.1.11`、独立 `verify:` Goal checker、Memory 磁盘取消 / 缓存和 Terra 能力 / 计费改动尚未发布，需另行完成子包发布与精确源码门禁。
+
 ## 2026-10-29 当前增量
 
 公开 `.129` 加强交付复查上下文隔离，并统一实验性 Codex App Server 兼容清单；`--review-changes` 和实验路由默认关闭。主分支后续的独立 Goal checker、Memory 磁盘 / 缓存修复及 Terra 能力 / 计费尚未发布。
 
 公开 `.128` 已包含当前轮工具证据约束的自然语言 Goal 判定、显式检查点错误和默认关闭的 `--review-changes`。MCP 支持默认 `stubs` 与可选 `compact` 目录；MCP/Skills 改进多语言检索；Memory 候选选择避免不必要的 posting 并集，原过滤与磁盘校验继续执行。
 
-这些入口仍由 CLI 的权限、预算、会话和工具执行路径控制；不因新增复查或目录投影而获得新的 authority。具体使用见 [Agent](./cli-agent)、[MCP Tool Search](./cli-tool-search)、[Skills](./cli-skill)、[Memory](./cli-memory) 与 [IDE 模型配置](./ide-plugin)。跨版本累计验收为 **34/45**，剩余 **11** 项；不是 `.129` 单轮成功率。
+这些入口仍由 CLI 的权限、预算、会话和工具执行路径控制；不因新增复查或目录投影而获得新的 authority。具体使用见 [Agent](./cli-agent)、[MCP Tool Search](./cli-tool-search)、[Skills](./cli-skill)、[Memory](./cli-memory) 与 [IDE 模型配置](./ide-plugin)。跨版本累计验收为 **34/45**，剩余 **11** 项；不是 `.130` 单轮成功率。
 
-> 当前核对（2026-10-29）：CLI **0.166.129**、Open VSX **0.37.167**、JetBrains **0.4.184**；两个 IDE 均推荐 CLI `.129`，PC / 移动端 **v5.0.3.143** 独立发行。安装、渠道与回执见[升级指南](./cli-ide-update-2026-10-29)。后文带日期段落保留历史范围，Microsoft Marketplace 暂缓。
+> 当前核对（2026-10-29）：CLI **0.166.130**、Open VSX **0.37.168**、JetBrains **0.4.185**；两个 IDE 均推荐 CLI `.130`，PC / 移动端 **v5.0.3.143** 独立发行。安装、渠道与回执见[升级指南](./agent-platform-release)。后文带日期段落保留历史范围，Microsoft Marketplace 暂缓。
 
-当前安装：`npm i -g chainlesschain@0.166.129 --registry https://registry.npmjs.org`。升级后重启聊天宿主并运行 Doctor。详见[本轮升级指南](./cli-ide-update-2026-10-29)、[开关配置](./self-evolution-configuration)和[图片预算与恢复](./agent-input-and-recovery)。Microsoft Marketplace 仍未发布；VS Code 可安装 Open VSX 的版本化 VSIX。
+当前安装：`npm i -g chainlesschain@0.166.130 --registry https://registry.npmjs.org`。升级后重启聊天宿主并运行 Doctor。详见[本轮升级指南](./agent-platform-release)、[开关配置](./self-evolution-configuration)和[图片预算与恢复](./agent-input-and-recovery)。Microsoft Marketplace 仍未发布；VS Code 可安装 Open VSX 的版本化 VSIX。
 
 ## 历史版本与架构记录
 
@@ -92,12 +94,12 @@ git merge-base --is-ancestor 退出码 1 是合法的 predicateResult:false，�
 
 | 用途                                    | 当前公开版本                                                               | 来源与范围                                                                   |
 | --------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| CLI                                     | 0.166.129                                                                  | 正式源 `fd8a21637a`；完整三系统 CLI CI / Strict Sandbox、OIDC 与独立回读通过 |
-| IDE                                     | Open VSX 0.37.167 / JetBrains 0.4.184                                      | 两者推荐 .129，发行源 `800e9cc997`，公共下载已核验                           |
+| CLI                                     | 0.166.130                                                                  | 正式源 `f3015e7996`；完整三系统 CLI CI / Strict Sandbox、OIDC 与独立回读通过 |
+| IDE                                     | Open VSX 0.37.168 / JetBrains 0.4.185                                      | 两者推荐 .130，发行源 `f3015e7996`，公共下载已核验                           |
 | 共享服务                                | Session Core 0.3.24 / Memory Kernel 0.1.10 / PDH 0.4.66 / Agent SDK 0.2.16 | 子包版本本轮不变，CLI 使用已公开的精确依赖                                   |
 | Windows / macOS / Linux / Android / iOS | v5.0.3.143                                                                 | 独立冻结源 `036d2b8be2`，22 个公开资产及桌面更新元数据通过回读               |
 
-安装 `npm i -g chainlesschain@0.166.129 --registry https://registry.npmjs.org`，随后重启宿主，运行 `cc --version` 与 `cc doctor`。实验运行时胶囊与完整 native 任务验收保持独立准入；详见[当前升级指南](./cli-ide-update-2026-10-29)。
+安装 `npm i -g chainlesschain@0.166.130 --registry https://registry.npmjs.org`，随后重启宿主，运行 `cc --version` 与 `cc doctor`。实验运行时胶囊与完整 native 任务验收保持独立准入；详见[当前升级指南](./agent-platform-release)。
 
 ## 核心特性
 

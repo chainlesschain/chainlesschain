@@ -1,0 +1,368 @@
+{
+  "schema": "chainlesschain.jetbrains-public-readback/v1",
+  "observedAt": "2026-10-29T02:34:52.095368+00:00",
+  "sourceSha": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+  "runId": 40800404557,
+  "version": "0.4.185",
+  "recommendedCliVersion": "0.166.130",
+  "status": "public",
+  "updateId": 1205656,
+  "approve": true,
+  "listed": true,
+  "hidden": false,
+  "downloadUrl": "https://plugins.jetbrains.com/files/32208/1205656/chainlesschain-ide-bridge-0.4.185.zip",
+  "publicBytes": 1561088,
+  "publicSha256": "28724dd6d05401acea944a8fc1cfb8c7cc894b3fa8c0c29215db21fafd95f3f6",
+  "taggedArchiveSha256": "fd00cacce323d0e681474dad3ec87401a94bbfa8b98900ae79358a25a9e6f4a3",
+  "taggedPayloadVerified": true,
+  "verifiedOriginalEntryCount": 2,
+  "additionalMarketplaceEntries": [],
+  "identity": {
+    "pluginVersion": "0.4.185",
+    "jarPath": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.185.jar",
+    "jarDigest": "sha256:d80c899d213dcc9bffc328afea2afcda57d787d19987e077834dab829bcb3d9c",
+    "pluginXmlDigest": "sha256:fa956ac1a6eb09f44627fb52a663ef7ddbb72e869fa006a0fe985897c8792975",
+    "recommendedCliConstant": {
+      "field": "RECOMMENDED_CLI_VERSION",
+      "value": "0.166.130",
+      "accessFlags": 25
+    },
+    "classes": [
+      {
+        "path": "com/chainlesschain/ide/CliVersionCheck.class",
+        "digest": "sha256:90152a601d0fa4f461c42e04af7386ea4887ecfae2a2748cb39e1fc9a258c47d",
+        "bytes": 3569,
+        "className": "com/chainlesschain/ide/CliVersionCheck",
+        "majorVersion": 65
+      },
+      {
+        "path": "com/chainlesschain/ide/MarkdownLite.class",
+        "digest": "sha256:4e2a034f92f350fd4f010cc4a3f4656e2caf9a6dad98169093b393795a0a1433",
+        "bytes": 2724,
+        "className": "com/chainlesschain/ide/MarkdownLite",
+        "majorVersion": 65
+      },
+      {
+        "path": "com/chainlesschain/ide/intellij/ChatTranscriptRendering.class",
+        "digest": "sha256:720f9d80a79e91cf91034dfe3701a08f39424169558d66b762f7e31e3ae43b0b",
+        "bytes": 3463,
+        "className": "com/chainlesschain/ide/intellij/ChatTranscriptRendering",
+        "majorVersion": 65
+      },
+      {
+        "path": "com/chainlesschain/ide/intellij/ConversationView.class",
+        "digest": "sha256:c701a7e08fee04a762e3d7edd9a3f5102097f7ff58231e787a38c8c70daaef14",
+        "bytes": 160448,
+        "className": "com/chainlesschain/ide/intellij/ConversationView",
+        "majorVersion": 65
+      }
+    ]
+  },
+  "inspectionHelperSha256": "836f9cb0cf0c7e306beb0b0ff7ee686b8fb72628700abc163521300de29fa1d5",
+  "workflowInitialPublicStatus": {
+    "status": "pending",
+    "reason": "version-not-visible",
+    "jobId": 123225915559,
+    "observedAt": "2026-10-29T02:28:09.0038813Z"
+  },
+  "publicVisibilityObservations": [
+    {
+      "observedAt": "2026-10-29T02:27:59.097Z",
+      "version": "0.4.185",
+      "public": false,
+      "matches": []
+    },
+    {
+      "observedAt": "2026-10-29T02:28:45.871Z",
+      "version": "0.4.185",
+      "public": false,
+      "matches": []
+    },
+    {
+      "observedAt": "2026-10-29T02:29:32.956Z",
+      "version": "0.4.185",
+      "public": false,
+      "matches": []
+    },
+    {
+      "observedAt": "2026-10-29T02:30:20.934Z",
+      "version": "0.4.185",
+      "public": false,
+      "matches": []
+    },
+    {
+      "observedAt": "2026-10-29T02:31:07.806Z",
+      "version": "0.4.185",
+      "public": false,
+      "matches": []
+    },
+    {
+      "observedAt": "2026-10-29T02:31:55.174Z",
+      "version": "0.4.185",
+      "public": false,
+      "matches": []
+    },
+    {
+      "observedAt": "2026-10-29T02:32:41.709Z",
+      "version": "0.4.185",
+      "public": false,
+      "matches": []
+    },
+    {
+      "observedAt": "2026-10-29T02:33:28.441Z",
+      "version": "0.4.185",
+      "public": false,
+      "matches": []
+    },
+    {
+      "observedAt": "2026-10-29T02:34:15.642Z",
+      "version": "0.4.185",
+      "public": true,
+      "matches": [
+        {
+          "id": 1205656,
+          "version": "0.4.185",
+          "approve": true,
+          "listed": true,
+          "hidden": false,
+          "file": "32208/1205656/chainlesschain-ide-bridge-0.4.185.zip"
+        }
+      ]
+    }
+  ],
+  "releaseGate": {
+    "observedAt": "2026-10-29T02:28:44.896Z",
+    "runId": 40800404557,
+    "sourceSha": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+    "tag": "ide-jetbrains-v0.4.185",
+    "attempt": 1,
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557",
+    "jobs": [
+      {
+        "id": 123206870000,
+        "name": "Public IDE capability manifest (drift gate)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123206870000"
+      },
+      {
+        "id": 123207195241,
+        "name": "Browser evidence (windows)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123207195241"
+      },
+      {
+        "id": 123207195254,
+        "name": "Browser evidence (macos)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123207195254"
+      },
+      {
+        "id": 123207195273,
+        "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123207195273"
+      },
+      {
+        "id": 123207195287,
+        "name": "JetBrains real host (macos-latest, 2024.2)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123207195287"
+      },
+      {
+        "id": 123207195312,
+        "name": "JetBrains real host (macos-latest, 2025.2)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123207195312"
+      },
+      {
+        "id": 123207195313,
+        "name": "JetBrains real host (windows-latest, 2024.2)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123207195313"
+      },
+      {
+        "id": 123207195321,
+        "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123207195321"
+      },
+      {
+        "id": 123207195343,
+        "name": "Browser evidence (linux)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123207195343"
+      },
+      {
+        "id": 123207195348,
+        "name": "JetBrains real host (windows-latest, 2025.2)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123207195348"
+      },
+      {
+        "id": 123207196476,
+        "name": "VS Code extension (immutable candidate)",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123207196476"
+      },
+      {
+        "id": 123207196693,
+        "name": "VS Code extension (Windows host gate)",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123207196693"
+      },
+      {
+        "id": 123207196856,
+        "name": "VS Code Remote-SSH container (scoped trusted cell)",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123207196856"
+      },
+      {
+        "id": 123207196957,
+        "name": "VS Code extension (macOS host gate)",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123207196957"
+      },
+      {
+        "id": 123207197322,
+        "name": "IDE roadmap evidence (trusted scoped aggregate)",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123207197322"
+      },
+      {
+        "id": 123216332265,
+        "name": "Browser evidence (three-OS required aggregate)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123216332265"
+      },
+      {
+        "id": 123216648280,
+        "name": "VS Code extension (Linux host gate + publish)",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123216648280"
+      },
+      {
+        "id": 123223660737,
+        "name": "JetBrains plugin (build + publish)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123223660737"
+      },
+      {
+        "id": 123225915559,
+        "name": "JetBrains Marketplace (post-publish verification)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557/job/123225915559"
+      }
+    ]
+  },
+  "artifacts": [
+    {
+      "id": 12868210653,
+      "name": "jetbrains-macOS-2024.2-host-evidence-1",
+      "bytes": 3884609,
+      "digest": "sha256:1542770faf1b13f82aba063f2218e087eb7d96e54584bab167d3cb542fecbcef"
+    },
+    {
+      "id": 12868206586,
+      "name": "jetbrains-macOS-2025.2-host-evidence-1",
+      "bytes": 3890769,
+      "digest": "sha256:f7859d3a72af2bb9d79d6534fac5c25d224a793013fe7b98b6a2e239df1d74ab"
+    },
+    {
+      "id": 12867899031,
+      "name": "ide-cli-prerequisite-jetbrains-1",
+      "bytes": 1424,
+      "digest": "sha256:e57348e503d9b86a847a5d6c230cf2babd3817e0520ef97d326e9a67fe094b73"
+    },
+    {
+      "id": 12867719364,
+      "name": "chainlesschain-ide-jetbrains-1",
+      "bytes": 1555649,
+      "digest": "sha256:e391cc7e0d0559614022b8e7571728877055e9f402008e4c3fc00e1183b38808"
+    },
+    {
+      "id": 12867315983,
+      "name": "browser-evidence-macos-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 59114,
+      "digest": "sha256:efbba08ef20ee700beef8555fd297be3d7161f08f612cff15db48ec0208a1070"
+    },
+    {
+      "id": 12867311088,
+      "name": "browser-evidence-aggregate-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 1045,
+      "digest": "sha256:4bb3d32c50914037b9ceca3979e884cd18faeb058558e556fd431c3dee03b880"
+    },
+    {
+      "id": 12867111987,
+      "name": "image-codec-budget-macos-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 799,
+      "digest": "sha256:41a59da9f2d04bada031a7de553a7303ac8d72160f200fe3b3dc6a141c655f84"
+    },
+    {
+      "id": 12867092074,
+      "name": "evolution-workbench-macos-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 1233185,
+      "digest": "sha256:f88acacb80bd404ae843b5ae096af15235543971e776b21db1cc9c63d615d705"
+    },
+    {
+      "id": 12866871342,
+      "name": "jetbrains-Linux-2025.2-host-evidence-1",
+      "bytes": 3905609,
+      "digest": "sha256:7390e2a33bbac1d92faba0413560dd59dca774c1446529d7898a5728b98bc1f6"
+    },
+    {
+      "id": 12866766771,
+      "name": "jetbrains-Windows-2024.2-host-evidence-1",
+      "bytes": 3883948,
+      "digest": "sha256:446c6dc410258dd4b11d8e8449f30457a5a25cbb4068fe1931d3d4f2d3b3cc0d"
+    },
+    {
+      "id": 12866535526,
+      "name": "image-codec-budget-linux-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 789,
+      "digest": "sha256:d789726789d8986db3ba49fc094b465b1557763a5ea4bcb0b0ff35f02739c031"
+    },
+    {
+      "id": 12866498245,
+      "name": "jetbrains-Windows-2025.2-host-evidence-1",
+      "bytes": 3906660,
+      "digest": "sha256:3961790fac3131eeb45228c71edb9c238baf88dc11b2b0e17031f6017a7226d6"
+    },
+    {
+      "id": 12866241311,
+      "name": "evolution-workbench-linux-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 1396205,
+      "digest": "sha256:33d6a52b70c70087db423bc3006219a08d2d569a7b19832cf872d39c7251ac16"
+    },
+    {
+      "id": 12866236548,
+      "name": "jetbrains-Linux-2024.2-host-evidence-1",
+      "bytes": 3889557,
+      "digest": "sha256:d0723a5dbb87d4dae876637646ffe20d9f94bd8e6248248184c5c5838bb7d0a5"
+    },
+    {
+      "id": 12865827322,
+      "name": "browser-evidence-linux-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 54183,
+      "digest": "sha256:612a5824b8667de9f01d43829092bc9d56bcd9b0458fe0f8e457d3b974bd74c7"
+    },
+    {
+      "id": 12865821381,
+      "name": "image-codec-budget-windows-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 796,
+      "digest": "sha256:69169d38ca01359e4e81a4790bbf1a86020252652a7cdefd3d659c6d35ea9956"
+    },
+    {
+      "id": 12865767202,
+      "name": "browser-evidence-windows-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 39003,
+      "digest": "sha256:91d88d2acade7cfb8a8cef4e947d4cb5b7488539bfadf7981918ebce02495176"
+    },
+    {
+      "id": 12865349789,
+      "name": "evolution-workbench-windows-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 711947,
+      "digest": "sha256:c1fa7d4c4e09b1eb3e248124bce89772fa021d1e37d9b52dd42f903056359e7d"
+    }
+  ]
+}
