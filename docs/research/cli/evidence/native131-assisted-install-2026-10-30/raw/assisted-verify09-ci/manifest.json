@@ -1,0 +1,17 @@
+{
+  "sourceRun": "40909552042",
+  "sampleId": "first-run-darwin-jetbrains",
+  "acceptanceArtifactId": "12913773491",
+  "frozenProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "kind": "assisted-non-native",
+  "files": {
+    "clone-only.test.js": "703c449223ec7c89db2c0310b7fa2125ae7100cdd6f62ba4d6000cd26d7c928c",
+    "original.test.js": "3a194ef2990c21bf2cfdcd33736a4d4421e9d54888b67bbce920e7c7909c1adb",
+    "repair.patch": "d0c7af445a34a4f3c458df9b5a259c90006ec485cb8100362334a1c27c186736",
+    "repaired.test.js": "65b20b2906ad57b5c1a1e9d3621b250c86cc747e2c81d7de9d81e7cec040de9f",
+    "verify-09-check.mjs": "dcbe6ab1606c575d78e72787f8b46a885c8d71df898f3226b7c3df79843c62a2",
+    "verify-09-setup.mjs": "49eb697c2cef5134c879baaedc5d36fd0d38fd98907bb67ce126c392188564da"
+  },
+  "archiveSha256": "747a329388dd55bc4905dbca7a63e38787286c09b2ee34e931dfdc294a117840"
+}

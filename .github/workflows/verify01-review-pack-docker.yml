@@ -1,57 +1,43 @@
-name: VERIFY01 Docker Review Pack
+name: VERIFY01 Assisted Historical Source Repair (no model)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main, "feature/cli-ide-gap-*"]
-    paths:
-      - "packages/cli/scripts/verify01-review-*.mjs"
-      - "packages/cli/src/lib/eval/**"
-      - "packages/cli/__tests__/unit/verify01-review-*.test.js"
-      - ".github/workflows/verify01-review-pack-docker.yml"
-  pull_request:
-    paths:
-      - "packages/cli/scripts/verify01-review-*.mjs"
-      - "packages/cli/src/lib/eval/**"
-      - "packages/cli/__tests__/unit/verify01-review-*.test.js"
-      - ".github/workflows/verify01-review-pack-docker.yml"
 
 permissions:
   contents: read
 
 jobs:
-  diagnostic:
-    name: generated pack (${{ matrix.shard }}/6)
-    runs-on: ubuntu-latest
+  assisted:
+    name: Original checker, original failure, assisted repair
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
-      - name: Pin real acceptance image outside the task deadline
+      - name: Pin the same independent checker image
         run: |
           docker pull node:22.12.0-bookworm
-          echo "REVIEW_IMAGE_ID=$(docker image inspect node:22.12.0-bookworm --format '{{.Id}}')" >> "$GITHUB_ENV"
-      - name: Run generated stages and behavioral controls in real Docker
+          test "$(docker image inspect node:22.12.0-bookworm --format '{{.Id}}')" = 'sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da'
+      - name: Reproduce the original failure and check the assisted repair
         run: >-
-          node packages/cli/scripts/verify01-review-pack-diagnostic.mjs
-          --source-sha '${{ github.event.pull_request.head.sha || github.sha }}'
-          --image-id "$REVIEW_IMAGE_ID"
-          --shard '${{ matrix.shard }}/6'
-          --output-dir "$RUNNER_TEMP/verify01-review-pack"
-      - name: Preserve raw scripts, executed receipts and failures
+          node docs/research/cli/evidence/native131-assisted-install-2026-10-30/raw/assisted-verify09-ci/run-assisted.mjs
+          "$RUNNER_TEMP/assisted-verify09"
+      - name: Preserve actual checker receipts and bounded diagnostics
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: verify01-review-pack-${{ matrix.shard }}-${{ github.event.pull_request.head.sha || github.sha }}
-          path: ${{ runner.temp }}/verify01-review-pack/
+          name: assisted-verify09-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/assisted-verify09/summary.json
+            ${{ runner.temp }}/assisted-verify09/commands/
+            ${{ runner.temp }}/assisted-verify09/pack/acceptance-evidence/
+            docs/research/cli/evidence/native131-assisted-install-2026-10-30/raw/assisted-verify09-ci/
           include-hidden-files: true
           if-no-files-found: error
+          retention-days: 30
