@@ -291,6 +291,9 @@ export function _openaiCachedTokens(usage) {
 export function _openaiInitState() {
   return {
     responseId: null,
+    finishReason: null,
+    streamDone: false,
+    terminationInvalid: false,
     text: "",
     tools: [],
     inputTokens: null,
@@ -304,12 +307,38 @@ export function _openaiReduceLine(state, raw, onToken) {
   const line = (raw || "").trim();
   if (!line.startsWith("data:")) return state;
   const payload = line.slice(5).trim();
-  if (!payload || payload === "[DONE]") return state;
+  if (!payload) return state;
+  if (payload === "[DONE]") {
+    if (!state.finishReason || state.streamDone)
+      state.terminationInvalid = true;
+    state.streamDone = true;
+    return state;
+  }
   let obj;
   try {
     obj = JSON.parse(payload);
   } catch {
+    state.terminationInvalid = true;
     return state;
+  }
+  if (state.streamDone || obj.error) state.terminationInvalid = true;
+  if (!Array.isArray(obj.choices) || obj.choices.length > 1) {
+    state.terminationInvalid = true;
+  }
+  const choice = obj.choices?.[0];
+  if (choice) {
+    if (state.finishReason || (choice.index != null && choice.index !== 0))
+      state.terminationInvalid = true;
+    if (choice.finish_reason != null) {
+      // Terminal filtering cannot be downgraded to stop/tools by a later
+      // conflicting frame. Length likewise remains non-complete.
+      if (
+        state.finishReason !== "content_filter" &&
+        (state.finishReason !== "length" ||
+          choice.finish_reason === "content_filter")
+      )
+        state.finishReason = choice.finish_reason;
+    }
   }
   if (!state.responseId) state.responseId = _providerReceiptId(obj.id);
   const pricing = projectEnvelopePricingContext(obj.usage || {}, obj);
@@ -376,6 +405,11 @@ export function _openaiFinalize(state) {
   const message = { role: "assistant", content: state.text };
   if (toolCalls.length) message.tool_calls = toolCalls;
   const out = { message };
+  if (state.finishReason != null) {
+    out.finishReason = state.finishReason;
+    out.providerTerminationComplete =
+      state.streamDone && !state.terminationInvalid;
+  }
   if (
     state.usageInvalid !== true &&
     _isNonNegativeSafeInteger(state.inputTokens) &&

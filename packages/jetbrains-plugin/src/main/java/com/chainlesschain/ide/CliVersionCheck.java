@@ -19,7 +19,7 @@ public final class CliVersionCheck {
     public static final String UPGRADE_COMMAND = "npm i -g chainlesschain@latest";
 
     /** CLI version recommended by this plugin source. */
-    public static final String RECOMMENDED_CLI_VERSION = "0.166.131";
+    public static final String RECOMMENDED_CLI_VERSION = "0.166.132";
 
     /** Keep consumers from inlining a previous release through transitive constants. */
     public static String recommendedCliVersion() {

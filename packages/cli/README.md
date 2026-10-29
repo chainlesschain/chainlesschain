@@ -2,6 +2,10 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## Source candidate 0.166.132 (unreleased, 2026-10-30)
+
+CLI **0.166.132** keeps Kernel **0.1.11** and pairs with Open VSX **0.37.170** / JetBrains **0.4.187** source candidates. The candidate CLI stops tools from running on a truncated response and can replan once when complete usage has been recorded and budget remains. Recovery keeps the original task available even in a small context window. Filtered responses, explicitly incomplete terminal responses, and missing task context now stop with a clear failure. The combined source changes passed 417 local unit tests and 5 real CLI tests; exact-source release checks are pending. This candidate is not published, and the original broker evaluation remains unresolved. Require complete exact-source Linux/Windows/macOS CLI CI and Strict Sandbox, OIDC publication and public readback before releasing the paired IDEs. The verified public versions and installation below remain **0.166.131 / 0.37.169 / 0.4.186**; PC/mobile remain independent **v5.0.3.143**.
+
 ## CLI 0.166.131 — current public release (2026-10-29)
 
 Install: `npm i -g chainlesschain@0.166.131 --registry https://registry.npmjs.org`. Kernel **0.1.11** was published first. Restart the chat host, then run `cc --version` and `cc doctor`. Public Open VSX **0.37.169** / JetBrains **0.4.186** both recommend CLI **0.166.131**; their downloaded packages match the official CI payloads. Microsoft Marketplace is deferred.

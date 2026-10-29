@@ -1,5 +1,9 @@
 # ChainlessChain IDE Bridge (JetBrains)
 
+## Source candidate 0.4.187 (unreleased, 2026-10-30)
+
+This IDE source candidate recommends CLI **0.166.132** and pairs with Open VSX **0.37.170**; Kernel remains **0.1.11**. No independent IDE UI change is included in this version preparation. The candidate CLI stops tools from running on a truncated response and can replan once when complete usage has been recorded and budget remains. Recovery keeps the original task available even in a small context window. Filtered responses, explicitly incomplete terminal responses, and missing task context now stop with a clear failure. The combined source changes passed 417 local unit tests and 5 real CLI tests; exact-source release checks are pending. This candidate is not published, and the original broker evaluation remains unresolved. Release only after verified upstream CLI publication, exact-source IDE checks and public artifact readback. Existing public **CLI 0.166.131 / Open VSX 0.37.169 / JetBrains 0.4.186** installation instructions below remain current. Microsoft Marketplace remains deferred.
+
 ## Self-evolution switch
 
 完整中文配置与排查步骤见[CLI 与 IDE 自进化开关配置](../../docs/cli/SELF_EVOLUTION_CONFIGURATION.md)。
@@ -128,7 +132,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.186** is the current release candidate. It recommends `chainlesschain@0.166.131` and pairs with Open VSX **0.37.169** after the changed kernel and CLI are public and verified. This candidate is unpublished; exact-source host/release gates, approval and public ZIP readback remain required.
+Plugin **0.4.187** is the current release candidate. It recommends `chainlesschain@0.166.132` and pairs with Open VSX **0.37.170**; Kernel remains **0.1.11**. This source candidate is unpublished and contains no independent IDE UI changes. Exact-source host/release checks and verified upstream CLI publication must precede plugin publication and public ZIP readback. The Current release section above retains the verified public installation instructions.
 
 ## Previous candidates and development notes
 

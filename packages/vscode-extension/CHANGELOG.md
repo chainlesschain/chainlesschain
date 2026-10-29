@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.170] - CLI .132 pairing (unreleased candidate, 2026-10-30)
+
+- Recommend CLI 0.166.132; pair with JetBrains 0.4.187. Kernel remains 0.1.11.
+- CLI candidate work preserves truncated provider responses, prevents tool execution from them, and allows at most one budgeted replan after complete usage settlement; private testing remains in progress. No independent IDE UI changes.
+- This is unpublished source preparation, not a claim that the original broker evaluation is repaired. Require verified upstream CLI publication, exact-source IDE checks and public artifact readback.
+
 ## [0.37.169] - CLI .131 runtime pairing (candidate, 2026-10-29)
 
 - Recommend CLI 0.166.131 and pair with JetBrains 0.4.186 after the required CLI and kernel releases are public and verified.

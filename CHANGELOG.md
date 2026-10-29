@@ -5,11 +5,22 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Public release scope: CLI **0.166.130** is the immutable package from `f3015e799624b81af564aaaa1b7701c0a5c70e26`, with `@chainlesschain/context-memory-kernel@0.1.10`. Its OIDC publication and independent public readback passed; see [publication evidence](docs/research/cli/evidence/release130-public/publication.json).
+> Public release scope: CLI **0.166.131** is the immutable package from `c9d0bab231850697df38f2d476c2dd974cbcb6c0`, with `@chainlesschain/context-memory-kernel@0.1.11`. Its OIDC publication and independent public readback passed; see [publication evidence](docs/research/cli/evidence/release131-public/publication.json).
 >
-> `Unreleased` is a rolling source-development log that retains historical candidate labels, not a publication ledger. The `.130` candidate subsection below also records later main-branch independent Goal checks, Memory cancellation/cache changes and Terra capability/billing work. Those later changes and main's kernel `0.1.11` are not in the public `.130` archive and require a separate future release with fresh exact-source gates.
+> `Unreleased` is a rolling source-development log that retains historical candidate labels, not a publication ledger. Public `.131` includes the later Goal, Memory, MCP/Skills, worktree and Terra changes verified in its release evidence. The `.132` changes below remain unpublished until their own exact-source gates and publication complete.
 
 ## [Unreleased]
+
+### Fixed - cc CLI 0.166.132: output-limit integrity and bounded recovery (candidate, 2026-10-30)
+
+- Preserve OpenAI-compatible chat-completions termination evidence in JSON and streaming responses. A response ending with `length` cannot execute any of its tool calls or become a successful final answer, even when its arguments happen to be valid JSON.
+- Settle complete physical-call usage before permitting at most one fresh planning iteration within the existing budget. Discard the truncated assistant/tool group; missing usage, incomplete streams, exhausted budgets and repeated truncation remain failures. Cancellation and final-synthesis limits still apply.
+- Reject `content_filter` and explicitly incomplete or ambiguous provider termination before executing tools or reporting completion. Filtered or ambiguous responses do not trigger a recovery request; conflicting SSE frames cannot clear an earlier filter.
+- Bind the current real user task across ordinary tool rounds, recovery, thinking-only turns and review, including canonical planning and recall. Resolve the owned task after provider projection, reject lost or ambiguous mappings, and retain the existing hermetic review contract. Recovery hints remain temporary system suffixes and do not replace the task.
+- Add protocol and real canonical CLI process regressions for recovery, repeated truncation, missing usage, filtered output and ambiguous termination. Separately install three assisted pagination/history regression deliveries; their independent checks do not change the original 34/45 automatic task result.
+- Repair the VS Code README's current-public and unpublished-candidate sections against the existing Marketplace overview contract, retaining versioned artifacts and historical releases.
+- Pair the candidate with Open VSX 0.37.170 / JetBrains 0.4.187 after CLI publication is verified; Context/Memory Kernel remains 0.1.11. Exact-source full multi-OS gates, OIDC publication and public readback are required. Microsoft Marketplace remains deferred.
+- This change does not bypass the diagnostic broker's HTTP403 rejection or guarantee that a model will produce smaller writes. Real-model task retests follow verified publication of the new versions.
 
 ### Fixed - cc CLI 0.166.131: memory consistency and temporary worktree ownership (candidate, 2026-10-29)
 

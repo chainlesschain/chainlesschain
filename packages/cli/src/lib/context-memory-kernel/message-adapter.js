@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import {
   canonicalDigest,
   canonicalJson,
@@ -205,6 +206,17 @@ export function messagesToContextItems(messagesInput, options = {}) {
     ? [...options.allowedSinks]
     : DEFAULT_ALLOWED_SINKS;
   const items = [];
+  const requiredUser = options.requiredUserMessage;
+  if (
+    requiredUser != null &&
+    (!Number.isSafeInteger(requiredUser.index) ||
+      requiredUser.index < 0 ||
+      requiredUser.index >= messages.length ||
+      requiredUser.message?.role !== "user" ||
+      !isDeepStrictEqual(messages[requiredUser.index], requiredUser.message))
+  ) {
+    throw new TypeError("Invalid current-user task binding");
+  }
   const trustedSystemIndexes = new Set(
     Array.isArray(options.trustedSystemIndexes)
       ? options.trustedSystemIndexes.filter(Number.isSafeInteger)
@@ -289,11 +301,20 @@ export function messagesToContextItems(messagesInput, options = {}) {
   const lastIndex = items.findLastIndex(
     (item) => item.kind !== "system-policy",
   );
-  const last = items[lastIndex];
-  if (last) {
-    const payload = JSON.parse(loadBundleContent(last, sessionId));
-    if (payload.messages.at(-1)?.role === "user") {
-      const protectedItem = { ...last };
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index];
+    if (
+      index !== lastIndex &&
+      item.sourceRef.eventSequence !== requiredUser?.index
+    )
+      continue;
+    const payload = JSON.parse(loadBundleContent(item, sessionId));
+    if (
+      payload.messages.at(-1)?.role === "user" &&
+      (index === lastIndex ||
+        item.sourceRef.eventSequence === requiredUser?.index)
+    ) {
+      const protectedItem = { ...item };
       delete protectedItem.digest;
       protectedItem.kind = "task-state";
       protectedItem.priority = 900_000;
@@ -301,7 +322,7 @@ export function messagesToContextItems(messagesInput, options = {}) {
         taskState: "waiting",
         requiredForRecovery: true,
       };
-      items[lastIndex] = normalizeContextItem(protectedItem);
+      items[index] = normalizeContextItem(protectedItem);
     }
   }
   return items;

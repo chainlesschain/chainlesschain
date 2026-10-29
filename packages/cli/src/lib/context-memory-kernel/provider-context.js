@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import {
   canonicalDigest,
   canonicalJson,
@@ -203,6 +204,39 @@ export async function prepareCanonicalProviderContext(
     };
   }
 
+  // Resolve against the final provider projection, never a pre-projection index.
+  // Exact role/content/metadata matching prevents a transformed tool result or
+  // an ambiguous duplicate from taking the original user's task-state binding.
+  const taskBinding = options.contextMemoryRequiredUserBinding;
+  const requiredUserMessage = taskBinding?.message;
+  let requiredUserIndex = null;
+  if (requiredUserMessage != null) {
+    const identities = messages.flatMap((message, index) =>
+      message === taskBinding.original ? [index] : [],
+    );
+    const candidates = identities.length
+      ? identities
+      : taskBinding.allowContentRelocation === true
+        ? messages.map((_, index) => index)
+        : [];
+    const matches = candidates.filter((index) => {
+      const message = messages[index];
+      return (
+        message?.role === "user" &&
+        requiredUserMessage.role === "user" &&
+        isDeepStrictEqual(message, requiredUserMessage)
+      );
+    });
+    if (matches.length !== 1 || identities.length > 1) {
+      const error = new Error(
+        "The current user task was lost, changed or duplicated in provider context",
+      );
+      error.code = "CC_AGENT_TASK_CONTEXT_LOST";
+      throw error;
+    }
+    requiredUserIndex = matches[0];
+  }
+
   // Review can exclude recalled author/session data while retaining the exact
   // canonical context, tool and output-token planning boundary.
   const recallEnabled = options.contextMemoryRecall !== false;
@@ -211,9 +245,9 @@ export async function prepareCanonicalProviderContext(
     : null;
   const sink = String(options.contextMemorySink || `provider.${provider}`);
   const scopeAdmissions = defaultAdmissions(sessionId, options);
-  const lastUser = [...messages]
-    .reverse()
-    .find((message) => message?.role === "user");
+  const lastUser =
+    requiredUserMessage ||
+    [...messages].reverse().find((message) => message?.role === "user");
   const query =
     typeof lastUser?.content === "string" && lastUser.content.trim()
       ? lastUser.content.trim().slice(0, 32 * 1024)
@@ -261,6 +295,13 @@ export async function prepareCanonicalProviderContext(
       allowedSinks: [sink],
       trustCurrentSystemPolicy: true,
       trustedSystemIndexes: options.contextMemoryTrustedSystemIndexes,
+      requiredUserMessage:
+        requiredUserIndex === null
+          ? null
+          : {
+              index: requiredUserIndex,
+              message: imageTransport.messages[requiredUserIndex],
+            },
       allowExternalization: false,
     }),
     imageTransport.captures,

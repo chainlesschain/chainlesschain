@@ -28,6 +28,7 @@ import { resolveLlmConnection } from "../lib/llm-connection-resolution.js";
  */
 
 import fs from "fs";
+import { isDeepStrictEqual } from "node:util";
 import { isUtf8 } from "node:buffer";
 import {
   _isNonNegativeSafeInteger,
@@ -272,6 +273,8 @@ import { isMcpRpcError } from "../harness/mcp-client.js";
 import {
   projectCanonicalResumeMessages,
   markRuntimeOnlySessionMessage,
+  isRuntimeOnlySessionMessage,
+  encodePersistedMessage,
 } from "../lib/session-message-provenance.js";
 import { releaseOldLiveSessionResults } from "../lib/session-runtime-retention.js";
 import {
@@ -12748,6 +12751,10 @@ export async function chatWithTools(rawMessages, options) {
     message.tool_calls = providerMessage.tool_calls;
   }
   const out = { message };
+  if (choice.finish_reason != null) {
+    out.finishReason = choice.finish_reason;
+    out.providerTerminationComplete = data.choices.length === 1;
+  }
   const providerReceipt = supportsOpenAIRequestIdentity
     ? _openAIProviderRequestReceipt(response, data, providerRequestId)
     : null;
@@ -14800,6 +14807,30 @@ function permissionDecision(callId, tool, result) {
 }
 
 export async function* agentLoop(messages, options) {
+  // Bind the actual task before compaction, runtime nudges or provider projection.
+  // A new host-admitted user turn starts a new loop and receives its own binding.
+  const currentUserTask = messages.findLast(
+    (message) =>
+      message?.role === "user" && !isRuntimeOnlySessionMessage(message),
+  );
+  const currentUserTaskSnapshot = currentUserTask
+    ? encodePersistedMessage(currentUserTask)
+    : null;
+  const currentUserTaskBinding = currentUserTaskSnapshot
+    ? {
+        message: currentUserTaskSnapshot,
+        original: currentUserTask,
+        allowContentRelocation:
+          messages.filter(
+            (message) =>
+              message?.role === "user" &&
+              isDeepStrictEqual(
+                encodePersistedMessage(message),
+                currentUserTaskSnapshot,
+              ),
+          ).length === 1,
+      }
+    : null;
   if (options.serviceTier != null) {
     resolveModelServiceTier(
       resolveModelCapabilityProfile(options),
@@ -15384,6 +15415,8 @@ export async function* agentLoop(messages, options) {
   // one-shot guard means a model that keeps returning empty turns completes
   // rather than looping forever (the iteration budget is the hard backstop).
   let emptyThinkingReprompted = false;
+  let outputLimitRecoveryUsed = false;
+  let outputLimitRecoveryPending = null;
   let readFileLoopGuard = new ReadFileLoopGuard();
   let remoteReadLoopGuard = new RemoteReadLoopGuard();
   const prActionTask = isPrActionRequest(messages);
@@ -16337,6 +16370,17 @@ export async function* agentLoop(messages, options) {
       callMessages = options.projectProviderMessages(callMessages);
     }
     const contextMemoryTrustedSystemIndexes = [];
+    if (outputLimitRecoveryPending !== null) {
+      // A synthetic user turn would replace the protected real task under
+      // canonical context pressure. Keep this one-request hint out of history
+      // and explicitly admit it as trusted system policy in the next plan.
+      callMessages = [
+        ...callMessages,
+        { role: "system", content: outputLimitRecoveryPending },
+      ];
+      contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
+      outputLimitRecoveryPending = null;
+    }
     if (Number.isFinite(budget.limit)) {
       // consume() already charged this dispatch. The current request may still
       // act even when no further provider request remains. Rebuild this hint
@@ -16496,6 +16540,11 @@ export async function* agentLoop(messages, options) {
           contextMemoryToolDefinitions:
             getProviderToolDefinitions(iterationToolOptions),
           contextMemoryTrustedSystemIndexes,
+          // Independent review uses its existing merged requirement journal and
+          // validates every original requirement after planning below.
+          contextMemoryRequiredUserBinding: independentReviewContext?.active
+            ? null
+            : currentUserTaskBinding,
         },
       );
       if (canonicalProviderContext.plan) {
@@ -16759,6 +16808,78 @@ export async function* agentLoop(messages, options) {
       );
       error.code = "CC_CHANGE_REVIEW_USAGE_UNKNOWN";
       throw error;
+    }
+
+    if (result?.finishReason === "content_filter") {
+      // Usage has settled above. A provider-filtered round is never a complete
+      // answer or an executable tool batch, and must not trigger a fresh call.
+      await _awaitBackgroundUsageSettlement(
+        backgroundSubAgents,
+        backgroundUsageFailureState,
+      );
+      const error = new Error(
+        "The provider filtered this response. No tools from that response were executed; the task remains incomplete.",
+      );
+      error.code = "CC_MODEL_CONTENT_FILTER";
+      throw error;
+    }
+
+    if (
+      result?.providerTerminationComplete === false &&
+      result.finishReason != null &&
+      result.finishReason !== "length"
+    ) {
+      // Explicit ambiguity is not an executable or final provider round.
+      // Keep absent-reason compatibility and the separate length policy.
+      await _awaitBackgroundUsageSettlement(
+        backgroundSubAgents,
+        backgroundUsageFailureState,
+      );
+      const error = new Error(
+        "The provider response has an incomplete or ambiguous termination. No tools from that response were executed; the task remains incomplete.",
+      );
+      error.code = "CC_MODEL_TERMINATION_INCOMPLETE";
+      throw error;
+    }
+
+    if (result?.finishReason === "length") {
+      // Settle the completed physical request above before any decision. Never
+      // execute even syntactically valid calls from an incomplete generation,
+      // and never insert its partial assistant/tool group into canonical history.
+      const canRecover =
+        result.providerTerminationComplete === true &&
+        !msg?._truncated &&
+        _hasCompleteProviderUsage(result.usage) &&
+        !outputLimitRecoveryUsed &&
+        budget.hasRemaining() &&
+        !prInvestigationExhausted &&
+        !inspectionSynthesisRequired;
+      if (!canRecover) {
+        await _awaitBackgroundUsageSettlement(
+          backgroundSubAgents,
+          backgroundUsageFailureState,
+        );
+        const error = new Error(
+          "Model output reached its token limit. No tools from that response were executed; the task remains incomplete.",
+        );
+        error.code = "CC_MODEL_OUTPUT_LIMIT";
+        throw error;
+      }
+      outputLimitRecoveryUsed = true;
+      outputLimitRecoveryPending =
+        "The previous model response reached its output token limit and was discarded. " +
+        "None of its tool calls were executed. Continue from the last confirmed tool results. " +
+        "Produce one small, complete operation per response. For large files, write a minimal " +
+        "complete scaffold first, then use separate small edit_file calls to add sections. " +
+        "Do not resend the entire large file or continue an unfinished JSON fragment. " +
+        "If no tools are needed, give a shorter complete answer.";
+      yield {
+        type: "iteration-warning",
+        message:
+          "Model output was truncated; requesting one smaller complete step within the remaining budget.",
+      };
+      // This is a fresh budgeted iteration with new input, never a transport retry.
+      continue;
     }
 
     if (!msg) {
