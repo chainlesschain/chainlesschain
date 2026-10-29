@@ -18,6 +18,7 @@ import {
   collectSchedulerSoakOccurrenceDiagnostics,
   createSchedulerSoakFailureRecorder,
   createWorkerProcess,
+  waitForLeaseExpiry,
 } from "../../scripts/scheduler-kernel-soak.mjs";
 
 const WORKER_PATH = fileURLToPath(
@@ -66,10 +67,15 @@ function seedOccurrence(db, kind, id, payload = {}, maxAttempts = 3) {
   return occurrence;
 }
 
-function waitUntil(epochMs, paddingMs = 100) {
-  return new Promise((resolve) =>
-    setTimeout(resolve, Math.max(0, epochMs - Date.now() + paddingMs)),
-  );
+async function waitForCrashedWorkerLeaseExpiry(db, checkpoint) {
+  // Call only after the child has exited: checkpoint evidence retains the
+  // original claim, while effect-boundary checks and heartbeats renew SQLite.
+  const store = openSchedulerStore({ file: db });
+  try {
+    return await waitForLeaseExpiry(store, checkpoint.occurrence.id);
+  } finally {
+    store.close();
+  }
 }
 
 function startWorker({
@@ -157,6 +163,7 @@ describe("scheduler kernel soak worker", () => {
   const cleanups = [];
 
   afterEach(async () => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     while (cleanups.length > 0) await cleanups.pop()();
   });
@@ -206,6 +213,70 @@ describe("scheduler kernel soak worker", () => {
         "unsafe",
       ]),
     ).toThrow(/--pause must be one of/);
+  });
+
+  it("waits for the persisted renewed lease instead of the crash checkpoint snapshot", async () => {
+    const f = fixture();
+    const seeded = seedOccurrence(
+      f.db,
+      "soak.renewed-crash",
+      "renewed-crash-job",
+      {},
+      1,
+    );
+    const store = openSchedulerStore({ file: f.db, clock: () => Date.now() });
+    try {
+      vi.useFakeTimers({
+        toFake: ["Date", "performance", "setTimeout", "clearTimeout"],
+      });
+      const claim = store.claimNext({
+        ownerId: "crashed-owner",
+        leaseMs: 1000,
+      });
+      await vi.advanceTimersByTimeAsync(500);
+      const renewed = store.renew({
+        occurrenceId: seeded.id,
+        ownerId: "crashed-owner",
+        fence: claim.fence,
+        leaseMs: 1000,
+      });
+      expect(renewed.leaseExpiresAt).toBe(claim.leaseExpiresAt + 500);
+
+      let completed = false;
+      const waiting = waitForCrashedWorkerLeaseExpiry(f.db, {
+        occurrence: claim,
+      }).then((occurrence) => {
+        completed = true;
+        return occurrence;
+      });
+      // Cross the old snapshot deadline AND its former 100 ms padding.
+      await vi.advanceTimersByTimeAsync(650);
+      expect(Date.now()).toBeGreaterThan(claim.leaseExpiresAt + 100);
+      expect(Date.now()).toBeLessThan(renewed.leaseExpiresAt);
+      expect(completed).toBe(false);
+      expect(
+        store.claimNext({ ownerId: "early-observer", leaseMs: 1000 }),
+      ).toBeNull();
+      expect(store.getOccurrence(seeded.id).status).toBe("running");
+
+      await vi.advanceTimersByTimeAsync(400);
+      expect(completed).toBe(true);
+      expect(await waiting).toMatchObject({
+        leaseExpiresAt: renewed.leaseExpiresAt,
+      });
+      expect(
+        store.claimNext({ ownerId: "observer", leaseMs: 1000 }),
+      ).toBeNull();
+      expect(store.getOccurrence(seeded.id)).toMatchObject({
+        status: "dead_letter",
+        attempt: 1,
+        fence: 1,
+        lastError: { code: "lease_expired" },
+      });
+    } finally {
+      vi.useRealTimers();
+      store.close();
+    }
   });
 
   it("runs one real runtime claim, writes one exclusive effect, and settles", async () => {
@@ -562,7 +633,7 @@ describe("scheduler kernel soak worker", () => {
     expect(fs.existsSync(path.join(f.effectsDir, `${seeded.id}.json`))).toBe(
       false,
     );
-    await waitUntil(checkpoint.occurrence.leaseExpiresAt);
+    await waitForCrashedWorkerLeaseExpiry(f.db, checkpoint);
 
     const replacement = f.worker({
       owner: "replacement-owner",
@@ -640,7 +711,7 @@ describe("scheduler kernel soak worker", () => {
 
     expect(crashed.child.kill()).toBe(true);
     await crashed.done;
-    await waitUntil(checkpoint.occurrence.leaseExpiresAt);
+    await waitForCrashedWorkerLeaseExpiry(f.db, checkpoint);
 
     const observer = f.worker({ owner: "outcome-observer", kind });
     const observerResult = await observer.done;

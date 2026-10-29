@@ -1660,7 +1660,7 @@ export async function waitForOccurrences(store, occurrenceIds, options = {}) {
   }
 }
 
-async function waitForLeaseExpiry(
+export async function waitForLeaseExpiry(
   store,
   occurrenceId,
   onWait,

@@ -1,0 +1,100 @@
+{
+  "observedAt": "2026-10-29T00:45:27.084Z",
+  "releaseSource": "e7a6f2585d62949794596767869423b0eb670104",
+  "sourceBase": "a5617f05a31e3f3f856d16059392ebcf89d3b23f",
+  "ci": {
+    "run": 40784878922,
+    "job": 123157200073,
+    "platform": "windows-latest",
+    "status": "queued",
+    "conclusion": "",
+    "succeededJobs": 56,
+    "failedJobs": 1,
+    "failedShard": {
+      "passed": 215,
+      "failed": 1,
+      "skipped": 9
+    }
+  },
+  "finding": "Runtime renewals update SQLite, but checkpoint evidence retains the original claim. Waiting for the stale deadline can run a one-shot observer while the persisted lease is still valid; running is the expected production state then.",
+  "tests": {
+    "local": {
+      "files": 1,
+      "passed": 11,
+      "failed": 0,
+      "durationSeconds": 30.09,
+      "command": "npm.cmd run test -- --run __tests__/integration/scheduler-kernel-soak-worker.test.js"
+    },
+    "negative": {
+      "selected": 1,
+      "failed": 1,
+      "skipped": 10,
+      "failure": "Stale-deadline waiting completed before the persisted renewed lease expired."
+    }
+  },
+  "boundaries": [
+    "Historical CI did not capture the current database deadline; matching mechanism and deterministic reproduction support timing-race attribution, not direct observation of that historical renewal.",
+    "New regression uses real SQLite and a controlled clock; original real-process hard-kill, stale-fence, takeover and no-replay tests remain intact.",
+    "No production scheduler runtime/store changes. Fixed e7 release source and validation tag unchanged; the new test is only on main and cannot be claimed as part of e7.",
+    "Existing run remains active; no rerun, cancellation, publication or new native model dispatch performed at this observation."
+  ],
+  "sources": [
+    {
+      "path": "packages/cli/__tests__/integration/scheduler-kernel-soak-worker.test.js",
+      "sha256": "428eae8be8b93d6cab63c593b5d9204fb8c7319aa94b18024c56ca5a021a00bc",
+      "gitBlob": "96eb6cad65a363a5caa135881dc2fd7e73134f8b"
+    },
+    {
+      "path": "packages/cli/scripts/scheduler-kernel-soak.mjs",
+      "sha256": "3123988103b653b180ebf5d4cdcec37699f5f2dd6d8650679b7aa00f73a4f9b5",
+      "gitBlob": "71736331f7f65649d2993b68a00a7ac4890748c1"
+    },
+    {
+      "path": "packages/cli/scripts/scheduler-kernel-soak-worker.mjs",
+      "sha256": "346b5d69f6336e3fcb7c7330ee01326758b3715f2f270a2f8ace7a11c304c6cf",
+      "gitBlob": "e458f7c193c1ac052f515aabe33016f499a2b556"
+    },
+    {
+      "path": "packages/session-core/lib/scheduler-runtime.js",
+      "sha256": "0ac020e1bfe608e74e4b153c86069b231cffc10820df3aa07ed96ddbe175689d",
+      "gitBlob": "2048b2b937d67bbb28ccbf32ed4e3fd2be41f9a0"
+    },
+    {
+      "path": "packages/session-core/lib/scheduler-store.js",
+      "sha256": "541568136fb85e5ce61c5f1af028b5d46483f98b1ed002c5b93d065a81952933",
+      "gitBlob": "6b6bb7320c117852055974a99b0e4b72417d633a"
+    }
+  ],
+  "artifacts": [
+    {
+      "file": "windows-integration-5.log.gz",
+      "sha256": "7bdec93e8ba31fd317ca711c46034ea4b7ca6de302c5a8935189409fae181403",
+      "originalSha256": "e64a3630e011e1e8686ace3fcd1d9577ca2b3263711703befecaa18ea4a5614c",
+      "bytes": 17548
+    },
+    {
+      "file": "scheduler-stale-checkpoint-negative.log.gz",
+      "sha256": "11c3bc246189b343d60ea22addc55fdb8fb4eba23b753c4048c39a68ca1a8aa4",
+      "originalSha256": "51abb6660744c3bf5eea724bb0ce7641a279c40e4553eebe9238544172eb8936",
+      "bytes": 1141
+    },
+    {
+      "file": "scheduler-stale-checkpoint-negative.patch.gz",
+      "sha256": "9bfa5376c719a32c4bb5a0f0cd637a7cc10a48ca2ea980177e6ec8829358f59d",
+      "originalSha256": "8ad409b6c70160ef14bb939904d8ae8d5b42b42b3c9f463edbcbb45a277cc9c0",
+      "bytes": 1684
+    },
+    {
+      "file": "scheduler-worker-final.log.gz",
+      "sha256": "8f95317537596fc8c4b265af0f860845486d69c8241bbe805d90b1dc0da83f38",
+      "originalSha256": "46d408b536e5181a71921931c79d7a3884bacac1e14e6f05ddc613a3c8b250f8",
+      "bytes": 323
+    },
+    {
+      "file": "cli-run.json.gz",
+      "sha256": "e9a39d3fc5b98be6bafca33225161da7d5c958105f72afce0aaefe53b82136fe",
+      "originalSha256": "f04fe71e9865ff444323a4b360c03bca4e24386540cf88ebb4f5cc6702c2d025",
+      "bytes": 7768
+    }
+  ]
+}
