@@ -1,0 +1,1036 @@
+{
+  "schema": "chainlesschain.sites131-review/v1",
+  "observedAt": "2026-10-29T13:49:13.216Z",
+  "documentationSource": "14e8bce45cf2de15187c0d7b0fb53730c07d1b05",
+  "publicRuntimeSource": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+  "publicVersions": {
+    "cli": "0.166.131",
+    "kernel": "0.1.11",
+    "openVsx": "0.37.169",
+    "jetBrains": "0.4.186",
+    "product": "v5.0.3.143",
+    "microsoft": "deferred"
+  },
+  "sourceChecks": {
+    "checkedAt": "2026-10-29T13:38:10.625Z",
+    "publicSource": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+    "reviewBaseline": "83c281f4e81aed6943ec8aef37ca9c240b970275",
+    "phase": "source verification; build receipts bind the final commit",
+    "historicalReleaseRecordsPreserved": true,
+    "clientSizesAndFetchDatePreserved": true,
+    "publicVersionsAndCountsMatch": true,
+    "pinnedResearchLinksVerified": 17,
+    "npmReadmeUsesPublicGuideLinks": true,
+    "templates": [
+      {
+        "file": "docs-website-v2\\src\\pages\\404.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\about.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\cli.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\desktop.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\en\\404.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\en\\about.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\en\\cli.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\en\\desktop.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\en\\enterprise.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\en\\ide.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\en\\index.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\en\\mobile.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\en\\security.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\en\\web.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\enterprise.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\ide.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\index.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\mobile.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\security.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2\\src\\pages\\web.astro",
+        "diagnostics": 0
+      },
+      {
+        "file": "docs-website-v2/src/components/SourceUpdate.astro",
+        "diagnostics": 0
+      }
+    ],
+    "userDocSections": "用户文档结构检查通过：326 个文件均包含 11 个必需模块。",
+    "deploymentVerified": false
+  },
+  "buildStatus": "local_complete_three_sites",
+  "builds": [
+    {
+      "site": "docs",
+      "source": "14e8bce45cf2de15187c0d7b0fb53730c07d1b05",
+      "node": "v22.22.2",
+      "exitCode": 0,
+      "htmlPages": 663,
+      "files": 2016,
+      "sourceStable": true,
+      "buildOutputVerified": true
+    },
+    {
+      "site": "design",
+      "source": "14e8bce45cf2de15187c0d7b0fb53730c07d1b05",
+      "node": "v22.22.2",
+      "exitCode": 0,
+      "htmlPages": 291,
+      "files": 899,
+      "sourceStable": true,
+      "buildOutputVerified": true
+    },
+    {
+      "site": "www",
+      "source": "14e8bce45cf2de15187c0d7b0fb53730c07d1b05",
+      "node": "v22.22.2",
+      "exitCode": 0,
+      "htmlPages": 20,
+      "files": 45,
+      "sourceStable": true,
+      "buildOutputVerified": true
+    }
+  ],
+  "deploymentStatus": "deployed_public_readback_verified",
+  "deployment": {
+    "source": "14e8bce45cf2de15187c0d7b0fb53730c07d1b05",
+    "stamp": "20261029-134502-14e8bce45c-docs",
+    "exitCode": 0,
+    "rollbackDirectoriesRetained": true,
+    "sites": [
+      {
+        "site": "docs",
+        "deployment": {
+          "schema": "chainlesschain.site-deployment/v1",
+          "stamp": "20261029-134502-14e8bce45c-docs",
+          "sourceHeadCommit": "14e8bce45cf2de15187c0d7b0fb53730c07d1b05",
+          "sourceStatus": "clean-commit",
+          "site": "docs",
+          "archiveSha256": "af5a3c461e04e28852865de4be10cb3b7dd7404035f808efe45802e67a57ea0d",
+          "newHtmlPages": 663,
+          "newFiles": 2016
+        },
+        "newFileHashesMatched": 2016,
+        "checksumManifestSha256": "e28dfd92a33bf2176a4fc83c3b584ab54371cd5105b67706a5731e1cce896174",
+        "sampledPages": [
+          {
+            "url": "https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-29-131.html?deployment=20261029-134502-14e8bce45c-docs",
+            "path": "chainlesschain/cli-ide-update-2026-10-29-131.html",
+            "status": 200,
+            "bytes": 274115,
+            "sha256": "6281eb79870d612bcb100c9e3103be37de538d336b888f82020f0d2bb58583c7",
+            "matchesLocalBuild": true
+          },
+          {
+            "url": "https://docs.chainlesschain.com/chainlesschain/cli-agent.html?deployment=20261029-134502-14e8bce45c-docs",
+            "path": "chainlesschain/cli-agent.html",
+            "status": 200,
+            "bytes": 412833,
+            "sha256": "94c60bc58cf44c534e593c39380f79b984051868be95dfdbc5665c86b2da8d7c",
+            "matchesLocalBuild": true
+          },
+          {
+            "url": "https://docs.chainlesschain.com/chainlesschain/ide-plugin.html?deployment=20261029-134502-14e8bce45c-docs",
+            "path": "chainlesschain/ide-plugin.html",
+            "status": 200,
+            "bytes": 341230,
+            "sha256": "de5670cc2c8cbf10d8f7232de42fe04ad41f9d83269652bf2781953d8b575aa5",
+            "matchesLocalBuild": true
+          },
+          {
+            "url": "https://docs.chainlesschain.com/chainlesschain/cli-memory.html?deployment=20261029-134502-14e8bce45c-docs",
+            "path": "chainlesschain/cli-memory.html",
+            "status": 200,
+            "bytes": 324208,
+            "sha256": "853ec44221f34d85a26bd0b6c9e91d38c35543df1a3e5878058e0f4c9c57497a",
+            "matchesLocalBuild": true
+          },
+          {
+            "url": "https://docs.chainlesschain.com/design/release-runtime-update-2026-10-29-131.html?deployment=20261029-134502-14e8bce45c-docs",
+            "path": "design/release-runtime-update-2026-10-29-131.html",
+            "status": 200,
+            "bytes": 196608,
+            "sha256": "0f7b6b9bc0c9c6ab8387b041d161fc6f49a7d9e8a398a900e7fa797728b594aa",
+            "matchesLocalBuild": true
+          }
+        ]
+      },
+      {
+        "site": "design",
+        "deployment": {
+          "schema": "chainlesschain.site-deployment/v1",
+          "stamp": "20261029-134502-14e8bce45c-docs",
+          "sourceHeadCommit": "14e8bce45cf2de15187c0d7b0fb53730c07d1b05",
+          "sourceStatus": "clean-commit",
+          "site": "design",
+          "archiveSha256": "a1fdb3bec40043eac57c105107d3d094d46faba4a565c8e77e1443c56f0e9589",
+          "newHtmlPages": 291,
+          "newFiles": 899
+        },
+        "newFileHashesMatched": 899,
+        "checksumManifestSha256": "370dd80129f6146da9cec921ca3d02c508bd361919001d536bb8022e1903ccaa",
+        "sampledPages": [
+          {
+            "url": "https://design.chainlesschain.com/release-runtime-update-2026-10-29-131.html?deployment=20261029-134502-14e8bce45c-docs",
+            "path": "release-runtime-update-2026-10-29-131.html",
+            "status": 200,
+            "bytes": 161196,
+            "sha256": "8e5dc8ae36f79854620b0309d9c6305f41c768b92513ec756f8a6aafe8ecee4b",
+            "matchesLocalBuild": true
+          },
+          {
+            "url": "https://design.chainlesschain.com/cli-runtime-current.html?deployment=20261029-134502-14e8bce45c-docs",
+            "path": "cli-runtime-current.html",
+            "status": 200,
+            "bytes": 261174,
+            "sha256": "fd9cc6031a186ec90acefebd48617e7fe6da659fb70e5b663c56564b908ff127",
+            "matchesLocalBuild": true
+          }
+        ]
+      },
+      {
+        "site": "www",
+        "deployment": {
+          "schema": "chainlesschain.site-deployment/v1",
+          "stamp": "20261029-134502-14e8bce45c-docs",
+          "sourceHeadCommit": "14e8bce45cf2de15187c0d7b0fb53730c07d1b05",
+          "sourceStatus": "clean-commit",
+          "site": "www",
+          "archiveSha256": "1439657240bc72acfc2a4307c764e9c16b9864946d3618abd6a608eb035d9a0c",
+          "newHtmlPages": 20,
+          "newFiles": 45
+        },
+        "newFileHashesMatched": 45,
+        "checksumManifestSha256": "f2efc851dbca1098bb024a37a64bb32016843136a7f0a01c3bfb036c1ee07634",
+        "sampledPages": [
+          {
+            "url": "https://www.chainlesschain.com/index.html?deployment=20261029-134502-14e8bce45c-docs",
+            "path": "index.html",
+            "status": 200,
+            "bytes": 63676,
+            "sha256": "b2fbc85131f50e39ab25e27c61ffc15e93aac25e27a7e6ea4e0d0ce39cd28bec",
+            "matchesLocalBuild": true
+          },
+          {
+            "url": "https://www.chainlesschain.com/en/index.html?deployment=20261029-134502-14e8bce45c-docs",
+            "path": "en/index.html",
+            "status": 200,
+            "bytes": 64410,
+            "sha256": "07e8110c713eaddda92aed925a7e105bc0648d7dcd7e3591667abfbd698b8cb7",
+            "matchesLocalBuild": true
+          },
+          {
+            "url": "https://www.chainlesschain.com/cli/index.html?deployment=20261029-134502-14e8bce45c-docs",
+            "path": "cli/index.html",
+            "status": 200,
+            "bytes": 123418,
+            "sha256": "428b4a58eafd27798255e1677a036c136319f46b853ddd5817283e3286f6c1fa",
+            "matchesLocalBuild": true
+          },
+          {
+            "url": "https://www.chainlesschain.com/ide/index.html?deployment=20261029-134502-14e8bce45c-docs",
+            "path": "ide/index.html",
+            "status": 200,
+            "bytes": 44612,
+            "sha256": "37c3184572124c24ef80df9e24cd1d7ce0e7109b7ca77a3c6a16c7f86ac4890e",
+            "matchesLocalBuild": true
+          }
+        ]
+      }
+    ]
+  },
+  "publicSampledPages": 11,
+  "newFileHashesMatched": 2960,
+  "cloudSnapshot": {
+    "id": 40883943577,
+    "source": "14e8bce45cf2de15187c0d7b0fb53730c07d1b05",
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40883943577",
+    "observedAt": "2026-10-29T13:43:25.704Z",
+    "jobs": [
+      {
+        "id": 123482525790,
+        "name": "Snapshot (www)",
+        "status": "completed",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-29T13:39:32Z",
+            "completed_at": "2026-10-29T13:39:32Z"
+          },
+          {
+            "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-29T13:39:32Z",
+            "completed_at": "2026-10-29T13:39:44Z"
+          },
+          {
+            "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-29T13:39:44Z",
+            "completed_at": "2026-10-29T13:39:51Z"
+          },
+          {
+            "name": "Install locked site dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-29T13:39:51Z",
+            "completed_at": "2026-10-29T13:39:56Z"
+          },
+          {
+            "name": "Build committed documentation",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-29T13:39:56Z",
+            "completed_at": "2026-10-29T13:39:59Z"
+          },
+          {
+            "name": "Verify rendered pages and archive the exact build",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-29T13:39:59Z",
+            "completed_at": "2026-10-29T13:40:00Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@v6",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-29T13:40:00Z",
+            "completed_at": "2026-10-29T13:40:01Z"
+          },
+          {
+            "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13,
+            "started_at": "2026-10-29T13:40:01Z",
+            "completed_at": "2026-10-29T13:40:01Z"
+          },
+          {
+            "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14,
+            "started_at": "2026-10-29T13:40:01Z",
+            "completed_at": "2026-10-29T13:40:01Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15,
+            "started_at": "2026-10-29T13:40:01Z",
+            "completed_at": "2026-10-29T13:40:01Z"
+          }
+        ]
+      },
+      {
+        "id": 123482526262,
+        "name": "Snapshot (docs)",
+        "status": "completed",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-29T13:39:32Z",
+            "completed_at": "2026-10-29T13:39:33Z"
+          },
+          {
+            "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-29T13:39:33Z",
+            "completed_at": "2026-10-29T13:39:50Z"
+          },
+          {
+            "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-29T13:39:50Z",
+            "completed_at": "2026-10-29T13:40:02Z"
+          },
+          {
+            "name": "Install locked site dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-29T13:40:02Z",
+            "completed_at": "2026-10-29T13:40:03Z"
+          },
+          {
+            "name": "Build committed documentation",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-29T13:40:03Z",
+            "completed_at": "2026-10-29T13:41:28Z"
+          },
+          {
+            "name": "Verify rendered pages and archive the exact build",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-29T13:41:28Z",
+            "completed_at": "2026-10-29T13:41:31Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@v6",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-29T13:41:31Z",
+            "completed_at": "2026-10-29T13:41:34Z"
+          },
+          {
+            "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13,
+            "started_at": "2026-10-29T13:41:34Z",
+            "completed_at": "2026-10-29T13:41:34Z"
+          },
+          {
+            "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14,
+            "started_at": "2026-10-29T13:41:34Z",
+            "completed_at": "2026-10-29T13:41:34Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15,
+            "started_at": "2026-10-29T13:41:34Z",
+            "completed_at": "2026-10-29T13:41:34Z"
+          }
+        ]
+      },
+      {
+        "id": 123482526584,
+        "name": "Snapshot (design)",
+        "status": "completed",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-29T13:39:33Z",
+            "completed_at": "2026-10-29T13:39:34Z"
+          },
+          {
+            "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-29T13:39:34Z",
+            "completed_at": "2026-10-29T13:39:45Z"
+          },
+          {
+            "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-29T13:39:45Z",
+            "completed_at": "2026-10-29T13:39:53Z"
+          },
+          {
+            "name": "Install locked site dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-29T13:39:53Z",
+            "completed_at": "2026-10-29T13:39:55Z"
+          },
+          {
+            "name": "Build committed documentation",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-29T13:39:55Z",
+            "completed_at": "2026-10-29T13:40:51Z"
+          },
+          {
+            "name": "Verify rendered pages and archive the exact build",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-29T13:40:51Z",
+            "completed_at": "2026-10-29T13:40:53Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@v6",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-29T13:40:53Z",
+            "completed_at": "2026-10-29T13:40:56Z"
+          },
+          {
+            "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13,
+            "started_at": "2026-10-29T13:40:56Z",
+            "completed_at": "2026-10-29T13:40:56Z"
+          },
+          {
+            "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14,
+            "started_at": "2026-10-29T13:40:56Z",
+            "completed_at": "2026-10-29T13:40:56Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15,
+            "started_at": "2026-10-29T13:40:56Z",
+            "completed_at": "2026-10-29T13:40:56Z"
+          }
+        ]
+      }
+    ]
+  },
+  "taskAcceptance": {
+    "accepted": 34,
+    "total": 45,
+    "remaining": 11,
+    "newAccepted": 0,
+    "currentReleaseLiveModelTasks": "NOT_RUN"
+  },
+  "boundary": "Source-bound Windows local builds were deployed with archive verification, staging, a shared lock and rollback backups. Public metadata, sampled page bytes and every new build file hash in the server manifests match the local builds. Older retained server files are not claimed to be from this build. The cloud build is reported only at the observed state; no local build is substituted for its result. This documents an already published package set and adds no live-model task acceptance.",
+  "artifacts": [
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/build-docs-process.json.gz",
+      "source": ".work/sites131-final-20261029/build-docs-process.json",
+      "encoding": "gzip",
+      "bytes": 109986,
+      "sha256": "fcbf5e9ed224e1fa22a36c94cab1458d45090fa314f740331a9870c4fe5b9bd1",
+      "contentBytes": 372131,
+      "contentSha256": "83c99578f456b8b83bbfad0446c0e5c8d2d4f04136752a29941bc8de107234c3"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/build-docs.log.gz",
+      "source": ".work/sites131-final-20261029/build-docs.log",
+      "encoding": "gzip",
+      "bytes": 4724,
+      "sha256": "90c12f91a73e99b1a6cc018b991bff61efc170197add2983260268858d54820d",
+      "contentBytes": 10841,
+      "contentSha256": "a97b81a1c8f5efb2c9fc9e56ee058cea9a3455aa985fb0a3c73b96604058d28c"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/build-design-process.json.gz",
+      "source": ".work/sites131-final-20261029/build-design-process.json",
+      "encoding": "gzip",
+      "bytes": 51112,
+      "sha256": "61ae311e66eb004c937c98e55e86e6cde62a35809b43fc15b5c8d1c3e37dfc42",
+      "contentBytes": 164667,
+      "contentSha256": "3418bfd4641d09902529df452b59096a25ad535c2a345abcd69b6ae336b15eac"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/build-design.log.gz",
+      "source": ".work/sites131-final-20261029/build-design.log",
+      "encoding": "gzip",
+      "bytes": 4646,
+      "sha256": "1b21ff64d33543a3ebdaae8e952e1cfe87a95f931c9b9f110e5a0bd1abac9553",
+      "contentBytes": 10276,
+      "contentSha256": "ff73f5ea1cccfbd2dde44b33504a864f558278ab23576420c4a20e4ed25259a4"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/build-www-process.json.gz",
+      "source": ".work/sites131-final-20261029/build-www-process.json",
+      "encoding": "gzip",
+      "bytes": 2605,
+      "sha256": "3061f887861d9c1a45141a6a7f84c7b663481b0012a64266d0ad8f071bc46418",
+      "contentBytes": 7653,
+      "contentSha256": "5b8d278d28ea89135b70e47c1d2af6d8d02ec259561e9ee1edc3940d826197a8"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/build-www.log.gz",
+      "source": ".work/sites131-final-20261029/build-www.log",
+      "encoding": "gzip",
+      "bytes": 600,
+      "sha256": "f1487efe4c29b64890b96cb0c7c8d90f90efc36b3363c9eb5ca1748510d09470",
+      "contentBytes": 2290,
+      "contentSha256": "cfb15ae16c4c5fc960ba7d899acf5b2dfe2f6ab4df15fbdb10cf2e66c80e7e9f"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/source.json.gz",
+      "source": ".work/sites131-final-20261029/source.json",
+      "encoding": "gzip",
+      "bytes": 113,
+      "sha256": "ef43ce210817134b4f266da3b055ddd011e9a5d5c09b2180f6f00cefcd78994d",
+      "contentBytes": 101,
+      "contentSha256": "c1039e213228390e8dae01142ce23ce7dfaa944039f1038375e917901e42f462"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/source-checks.json.gz",
+      "source": ".work/sites131-final-20261029/source-checks.json",
+      "encoding": "gzip",
+      "bytes": 640,
+      "sha256": "8b053fb71beb9d35a931722d2846dd71b052d96158199998d4386475148d4eff",
+      "contentBytes": 2634,
+      "contentSha256": "3d5d1057c7ce31df736bef2aaacf01a5e2d63ab1df0c0dca71487c93dbef9787"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/user-doc-sections.log.gz",
+      "source": ".work/sites131-final-20261029/user-doc-sections.log",
+      "encoding": "gzip",
+      "bytes": 101,
+      "sha256": "c6aec92764325312a89377869dc8b262d787e820731f880c0b421a41d9080faa",
+      "contentBytes": 78,
+      "contentSha256": "8af11483c25d3bb9aec3eef780056580afbe260dbfbb928f0097b19746cc41ce"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/rendered-link-checks.json.gz",
+      "source": ".work/sites131-final-20261029/rendered-link-checks.json",
+      "encoding": "gzip",
+      "bytes": 343,
+      "sha256": "762ee416cc9af5f5a314ae7a322c6b871d57ebaea9d224a3a8c7525fb97dec25",
+      "contentBytes": 1057,
+      "contentSha256": "842fedd9311d1c3c02d10ab89fde7cc4b566e889f13647140c553d35751827ce"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/build-local.mjs.gz",
+      "source": ".work/sites131-final-20261029/build-local.mjs",
+      "encoding": "gzip",
+      "bytes": 1513,
+      "sha256": "d15010d096ab8e7e0e6dde19772a13715fb9fa580f7cb0c92c781ee4c622f0ef",
+      "contentBytes": 3720,
+      "contentSha256": "8219378b7797d6a4fd76c84ef81bed396a8c80b1de1557b7ea3f2d170c4c3f6c"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/deploy-local.mjs.gz",
+      "source": ".work/sites131-final-20261029/deploy-local.mjs",
+      "encoding": "gzip",
+      "bytes": 1246,
+      "sha256": "8e19b0a29e58a8e1971572028487975ff42bcf72bb60283a844f29fe610824c2",
+      "contentBytes": 2729,
+      "contentSha256": "ac067dca15fdb10c7aed5b6163730a2baa0dd4ec1872a955584e677158ae9f4c"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/read-deployment.mjs.gz",
+      "source": ".work/sites131-final-20261029/read-deployment.mjs",
+      "encoding": "gzip",
+      "bytes": 1871,
+      "sha256": "3e0591d2f22d7be9be0a2ecdf9bb8c55285efd664c0677b6c935f7c038c96df6",
+      "contentBytes": 4415,
+      "contentSha256": "ff8dbe8ba25e8a53a2404afd070a6248d423201a2211201baa647db190e66e14"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/dispatch-snapshot.mjs.gz",
+      "source": ".work/sites131-final-20261029/dispatch-snapshot.mjs",
+      "encoding": "gzip",
+      "bytes": 656,
+      "sha256": "c8ce7f1c97aa8c31fa1925a1180cfa8d700b25d20e165b3e78798dcd6fdcec32",
+      "contentBytes": 1308,
+      "contentSha256": "4b30e2707239812382e0fb1cfba97d99b7d4e81d591e016c12605c7043331ffa"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/read-snapshot.mjs.gz",
+      "source": ".work/sites131-final-20261029/read-snapshot.mjs",
+      "encoding": "gzip",
+      "bytes": 611,
+      "sha256": "c92d16f3c2688f2efb91d4a949cd36f858c6367fd39c287bff98e573da63b51e",
+      "contentBytes": 1178,
+      "contentSha256": "7641e8853b6856b019953615fee880688f9b9fff3c6e39e041932b3bf5dcac2a"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/deploy-process.json.gz",
+      "source": ".work/sites131-final-20261029/deploy-process.json",
+      "encoding": "gzip",
+      "bytes": 1119,
+      "sha256": "5d842379dc0ac15bac853a92821160e460b8b793ddd10c43ab164ef271c72217",
+      "contentBytes": 2869,
+      "contentSha256": "20dbd9b3de9b5098b037e8bbf11bd52a0c98dc1edd89ae1ed3dfd40353483b1b"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/deploy.log.gz",
+      "source": ".work/sites131-final-20261029/deploy.log",
+      "encoding": "gzip",
+      "bytes": 776,
+      "sha256": "3c38165cd66f22920c68a9613e07142eaea4c0005fcfeb374f25c96a76742e35",
+      "contentBytes": 1966,
+      "contentSha256": "95bee89b7f8ab924d8e837f07fc41f2e660c18d4ded1b0d7d8453d3c8b1b389b"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/snapshot-dispatch.json.gz",
+      "source": ".work/sites131-final-20261029/snapshot-dispatch.json",
+      "encoding": "gzip",
+      "bytes": 273,
+      "sha256": "5f22cfba83c33886ab655eba90b8a6cebc44e5b924d15bf86a4b11c7a91fcc3e",
+      "contentBytes": 428,
+      "contentSha256": "eb07a467c5668d32c9ebb57d5e5c50fe8f007c889d4f3e251d03eee1c6acf29b"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/snapshot-readback-2026-10-29T13-41-11-910Z.json.gz",
+      "source": ".work/sites131-final-20261029/snapshot-readback-2026-10-29T13-41-11-910Z.json",
+      "encoding": "gzip",
+      "bytes": 877,
+      "sha256": "147507617575fd706fc87342f81681c8cf121c20e7fab874898115c11189de55",
+      "contentBytes": 8607,
+      "contentSha256": "fdd967c41251a2b4c65da8aa961776f1315ec2eb8e104701317f88a4a798eebe"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/snapshot-readback-2026-10-29T13-43-25-704Z.json.gz",
+      "source": ".work/sites131-final-20261029/snapshot-readback-2026-10-29T13-43-25-704Z.json",
+      "encoding": "gzip",
+      "bytes": 843,
+      "sha256": "541c8b63fd6cfc5923d73f9d141c756598ae971416b0e5ef717a8fc2b18b3338",
+      "contentBytes": 9050,
+      "contentSha256": "87e4b1a2ae264be9017304321f71a5a33119ae27f125c0a4ce2adca20aadba53"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/check-site-sources.mjs.gz",
+      "source": ".work/sites131-final-20261029/check-site-sources.mjs",
+      "encoding": "gzip",
+      "bytes": 1846,
+      "sha256": "3a09cdfe37ac778a1a3406a99a8f2471bf48195ae4202590e873c25ec95daa07",
+      "contentBytes": 4354,
+      "contentSha256": "3dd8564885349bb2842e17a7ac0a171714d49f51809e2322682df7162a42a623"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/superseded-source.json.gz",
+      "source": ".work/sites131-20261029/source.json",
+      "encoding": "gzip",
+      "bytes": 112,
+      "sha256": "f6333c9fe24ce659eaaef86c86e37e62406eb1f0be1f2da67680ae59ee95026d",
+      "contentBytes": 101,
+      "contentSha256": "6c4a405df95b56a8bebe95a1980eb4b7564887b6d9254e303f84796d429f3414"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/superseded-build-docs-process.json.gz",
+      "source": ".work/sites131-20261029/build-docs-process.json",
+      "encoding": "gzip",
+      "bytes": 389,
+      "sha256": "150b0e6715b00c69cf59e0dbc04864a5695c5e31e4fd7933d48b12b9a550cad4",
+      "contentBytes": 598,
+      "contentSha256": "d3718f6a0be0fbdeb84d281a59a26f3b2f306dd3224be9a8e802a2657a6374d2"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/superseded-build-design-process.json.gz",
+      "source": ".work/sites131-20261029/build-design-process.json",
+      "encoding": "gzip",
+      "bytes": 51080,
+      "sha256": "51355f643ca8a846e3023f605d008eb53e0a4b9b74aa3459f7a3333b3dea7d67",
+      "contentBytes": 164667,
+      "contentSha256": "7710908a218572ededf676f32fa63790df36aa2f26a5f7cce050f5e0c6027ca1"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/superseded-build-www-process.json.gz",
+      "source": ".work/sites131-20261029/build-www-process.json",
+      "encoding": "gzip",
+      "bytes": 2606,
+      "sha256": "7a49d14a002f4298744836fa8b8c6a57342784f1e9f6fed860e1178ee14161ab",
+      "contentBytes": 7653,
+      "contentSha256": "6f9e8900218fcd642d8b2d1e187c3cf3c595c7a515fa8be254a8207c6239d919"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/superseded-snapshot-dispatch.json.gz",
+      "source": ".work/sites131-20261029/snapshot-dispatch.json",
+      "encoding": "gzip",
+      "bytes": 272,
+      "sha256": "0ffa4250a14bc5256a6bed6e37029f4b9f395a109cf17ae28b888b03cbc62ad6",
+      "contentBytes": 428,
+      "contentSha256": "4df398553982a56b98c4f3046a8328f28f9edf52c5b005c22232bddc7f808cb8"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/superseded-snapshot-cancel-precheck-failed.json.gz",
+      "source": ".work/sites131-20261029/snapshot-cancel-precheck-failed.json",
+      "encoding": "gzip",
+      "bytes": 206,
+      "sha256": "5a412a1841ed98c841cdc0e76257edb0983aa30a0f06668750865e8e0dd9a880",
+      "contentBytes": 246,
+      "contentSha256": "c3a60f8f38dec60eed3567acf394eea8685dc1c89689d82e4cdc6234c0090e89"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/superseded-snapshot-superseded.json.gz",
+      "source": ".work/sites131-20261029/snapshot-superseded.json",
+      "encoding": "gzip",
+      "bytes": 288,
+      "sha256": "9cbd3ef43a67fe386f05874a08c5bb2147e66a11f759fc6f1583d41fb6a8513b",
+      "contentBytes": 389,
+      "contentSha256": "61137a861c4368d72185587aff17976332a47ae1ee6ca98298229c563b22a48f"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-design-deployment-files.sha256.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/design-deployment-files.sha256",
+      "encoding": "gzip",
+      "bytes": 51952,
+      "sha256": "56b243eddcbd8b87d592f5c7b8358e4c2901ce0e7490187a4093e400acd70669",
+      "contentBytes": 120838,
+      "contentSha256": "370dd80129f6146da9cec921ca3d02c508bd361919001d536bb8022e1903ccaa"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-design-deployment-source.json.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/design-deployment-source.json",
+      "encoding": "gzip",
+      "bytes": 247,
+      "sha256": "1003e799ac9a94fc2e6341dbd8f9a9a567e9c6af3ca0b0297a334af608aa89d5",
+      "contentBytes": 314,
+      "contentSha256": "2a788e13dda3bf00fd42131d6545f25d134a3daf432c3551f44bf8c414c36644"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-design-page-cli-runtime-current.html.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/design-page-cli-runtime-current.html",
+      "encoding": "gzip",
+      "bytes": 64325,
+      "sha256": "655926d63984d6894162d59a3353bf545caaf6f495cb7dcc87b627aa78ee722d",
+      "contentBytes": 261174,
+      "contentSha256": "fd9cc6031a186ec90acefebd48617e7fe6da659fb70e5b663c56564b908ff127"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-design-page-release-runtime-update-2026-10-29-131.html.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/design-page-release-runtime-update-2026-10-29-131.html",
+      "encoding": "gzip",
+      "bytes": 29489,
+      "sha256": "40569b725baf1e42410b47f6fa9af95e318fd54c93aff76da1b806d3c85fbee4",
+      "contentBytes": 161196,
+      "contentSha256": "8e5dc8ae36f79854620b0309d9c6305f41c768b92513ec756f8a6aafe8ecee4b"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-docs-deployment-files.sha256.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/docs-deployment-files.sha256",
+      "encoding": "gzip",
+      "bytes": 149285,
+      "sha256": "66372e1850bf2cddc72d8d14705db493ccbe27ce8b3ec650b418fa96636ae42a",
+      "contentBytes": 366946,
+      "contentSha256": "e28dfd92a33bf2176a4fc83c3b584ab54371cd5105b67706a5731e1cce896174"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-docs-deployment-source.json.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/docs-deployment-source.json",
+      "encoding": "gzip",
+      "bytes": 240,
+      "sha256": "cfe7e936598ae92abce22d79498c34eb3aa4619bd6e26b4e728ffaf9dda6535a",
+      "contentBytes": 313,
+      "contentSha256": "08d087a9b960e91bb1d92b3903943275cd2e7e81b4cf85b8771fc24ee2615648"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-docs-page-chainlesschain__cli-agent.html.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/docs-page-chainlesschain__cli-agent.html",
+      "encoding": "gzip",
+      "bytes": 71131,
+      "sha256": "eca93b98b71e4e210bc3ae2d2588449006e503a2df0dd24872e34870446bd96f",
+      "contentBytes": 412833,
+      "contentSha256": "94c60bc58cf44c534e593c39380f79b984051868be95dfdbc5665c86b2da8d7c"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-docs-page-chainlesschain__cli-ide-update-2026-10-29-131.html.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/docs-page-chainlesschain__cli-ide-update-2026-10-29-131.html",
+      "encoding": "gzip",
+      "bytes": 45103,
+      "sha256": "59ac2638a1dc40841e135b34db7367d9050be1e5c5105dcaff7a08cbeb31edd0",
+      "contentBytes": 274115,
+      "contentSha256": "6281eb79870d612bcb100c9e3103be37de538d336b888f82020f0d2bb58583c7"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-docs-page-chainlesschain__cli-memory.html.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/docs-page-chainlesschain__cli-memory.html",
+      "encoding": "gzip",
+      "bytes": 47692,
+      "sha256": "cb26a88b539fa5db209cad5c35adb96590724073a5074856ba12ddf5d90829d6",
+      "contentBytes": 324208,
+      "contentSha256": "853ec44221f34d85a26bd0b6c9e91d38c35543df1a3e5878058e0f4c9c57497a"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-docs-page-chainlesschain__ide-plugin.html.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/docs-page-chainlesschain__ide-plugin.html",
+      "encoding": "gzip",
+      "bytes": 65749,
+      "sha256": "311f206674c662ae59e85d4f06420d4e4ac830183e192877bce119dc12b40273",
+      "contentBytes": 341230,
+      "contentSha256": "de5670cc2c8cbf10d8f7232de42fe04ad41f9d83269652bf2781953d8b575aa5"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-docs-page-design__release-runtime-update-2026-10-29-131.html.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/docs-page-design__release-runtime-update-2026-10-29-131.html",
+      "encoding": "gzip",
+      "bytes": 40053,
+      "sha256": "56e3909edcc2a1486431e89a439fda1bc9579d795123e2fb70829e4c718de8e5",
+      "contentBytes": 196608,
+      "contentSha256": "0f7b6b9bc0c9c6ab8387b041d161fc6f49a7d9e8a398a900e7fa797728b594aa"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-readback.json.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/readback.json",
+      "encoding": "gzip",
+      "bytes": 1620,
+      "sha256": "8c1a51efa05f629a53874790d69bcfd493a66b64b59211f1bcb0b34b12511fca",
+      "contentBytes": 6493,
+      "contentSha256": "d60aa20953691afdc26164a66a21969105fbdfa67e330f81b509ab53c4fac740"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-www-deployment-files.sha256.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/www-deployment-files.sha256",
+      "encoding": "gzip",
+      "bytes": 2208,
+      "sha256": "d89cb5737f18578df26b45bf7695b3aa7a4349e38104124d19f98fb3bc7156c6",
+      "contentBytes": 4455,
+      "contentSha256": "f2efc851dbca1098bb024a37a64bb32016843136a7f0a01c3bfb036c1ee07634"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-www-deployment-source.json.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/www-deployment-source.json",
+      "encoding": "gzip",
+      "bytes": 240,
+      "sha256": "a321a25b44a2e214df87d865d4b66a90ed0377dadc29f7219efc8af6fb56db14",
+      "contentBytes": 309,
+      "contentSha256": "0b6c24d74ae6dfbafffea1305592a4eaf6557125fd305efcd49273a88dacaa9f"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-www-page-cli__index.html.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/www-page-cli__index.html",
+      "encoding": "gzip",
+      "bytes": 25822,
+      "sha256": "f086c23fe0a3889cd5dfc2f8b581d65aa530f5736d752859308d80e91f902795",
+      "contentBytes": 123418,
+      "contentSha256": "428b4a58eafd27798255e1677a036c136319f46b853ddd5817283e3286f6c1fa"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-www-page-en__index.html.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/www-page-en__index.html",
+      "encoding": "gzip",
+      "bytes": 16149,
+      "sha256": "3561fad769d0cf38cb820dc9ad88e5d2d00758f94b388de3b0da3f99ad826b87",
+      "contentBytes": 64410,
+      "contentSha256": "07e8110c713eaddda92aed925a7e105bc0648d7dcd7e3591667abfbd698b8cb7"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-www-page-ide__index.html.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/www-page-ide__index.html",
+      "encoding": "gzip",
+      "bytes": 13661,
+      "sha256": "ff18807fbe9f2f2c1cd24c34e87b9baf219fc5ce992f6e5ce67ef57e2e0cf855",
+      "contentBytes": 44612,
+      "contentSha256": "37c3184572124c24ef80df9e24cd1d7ce0e7109b7ca77a3c6a16c7f86ac4890e"
+    },
+    {
+      "path": "docs/research/cli/evidence/sites131-2026-10-29/raw/public-www-page-index.html.gz",
+      "source": ".work/sites131-final-20261029/public-2026-10-29T13-48-45-718Z/www-page-index.html",
+      "encoding": "gzip",
+      "bytes": 17275,
+      "sha256": "509b9852bbcf7efd07e73f0d4521b55a0c6690a1d460f6c531880be87b210cb8",
+      "contentBytes": 63676,
+      "contentSha256": "b2fbc85131f50e39ab25e27c61ffc15e93aac25e27a7e6ea4e0d0ce39cd28bec"
+    }
+  ],
+  "renderedLinkChecks": {
+    "source": "14e8bce45cf2de15187c0d7b0fb53730c07d1b05",
+    "checkedAt": "2026-10-29T13:44:50.086Z",
+    "designPages": [
+      {
+        "file": "docs-site-design/docs/.vitepress/dist/release-runtime-update-2026-10-29-131.html",
+        "pinnedResearchLinks": 17,
+        "noUnmirroredResearchLinks": true
+      },
+      {
+        "file": "docs-site/docs/.vitepress/dist/design/release-runtime-update-2026-10-29-131.html",
+        "pinnedResearchLinks": 17,
+        "noUnmirroredResearchLinks": true
+      }
+    ],
+    "requiredRenderedPages": [
+      "docs-site/docs/.vitepress/dist/chainlesschain/cli-ide-update-2026-10-29-131.html",
+      "docs-site/docs/.vitepress/dist/chainlesschain/cli-agent.html",
+      "docs-site/docs/.vitepress/dist/chainlesschain/cli-memory.html",
+      "docs-site/docs/.vitepress/dist/chainlesschain/ide-plugin.html",
+      "docs-site-design/docs/.vitepress/dist/cli-runtime-current.html",
+      "docs-website-v2/dist/index.html",
+      "docs-website-v2/dist/en/index.html",
+      "docs-website-v2/dist/cli/index.html",
+      "docs-website-v2/dist/ide/index.html"
+    ]
+  },
+  "supersededAttempt": {
+    "source": "a975fc795c9eee85599486ff956f67ed8878f479",
+    "reason": "Research references resolved within the repository but not the deployed design site; fixed to pinned GitHub URLs. npm README references changed to public site URLs. Earlier local outputs were not deployed; source changes invalidated the first docs build verification.",
+    "cloud": {
+      "runId": 40882755721,
+      "source": "a975fc795c9eee85599486ff956f67ed8878f479",
+      "supersededBy": "14e8bce45cf2de15187c0d7b0fb53730c07d1b05",
+      "before": {
+        "status": "completed",
+        "conclusion": "success"
+      },
+      "at": "2026-10-29T13:41:12.793Z",
+      "reason": "Deployment source changed to repair rendered research links; preserve prior result and avoid an obsolete queued build."
+    }
+  }
+}
