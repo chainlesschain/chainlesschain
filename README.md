@@ -2,7 +2,7 @@
 
 ## 当前公开 CLI：0.166.131（2026-10-29）
 
-安装：`npm i -g chainlesschain@0.166.131 --registry https://registry.npmjs.org`。Kernel **0.1.11** 已先行公开。升级后重启聊天宿主，运行 `cc --version` 与 `cc doctor`。Open VSX **0.37.169** / JetBrains **0.4.186** 正在发行；当前已核验的旧配对 **0.37.168 / 0.4.185** 仍标记推荐 CLI **0.166.130**。Microsoft Marketplace 暂缓。
+安装：`npm i -g chainlesschain@0.166.131 --registry https://registry.npmjs.org`。Kernel **0.1.11** 已先行公开。升级后重启聊天宿主，运行 `cc --version` 与 `cc doctor`。Open VSX **0.37.169** / JetBrains **0.4.186** 均已公开并通过官方制品比对，均推荐 CLI **0.166.131**。Microsoft Marketplace 暂缓。
 
 本版包含显式独立 Goal `verify:` 检查、Memory 目录身份与取消修复、MCP 子任务与晚连接隔离、Skills 下载取消、压缩前后规则刷新和临时 worktree 生命周期修复，并更新 Terra 能力与计费合同。完整三系统 CLI / Strict / Kernel 检查已通过；[OIDC 发行](https://github.com/chainlesschain/chainlesschain/actions/runs/40862685540)与[独立公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/40866417524)确认不可变包和签名来源；[发行证据](docs/research/cli/evidence/release131-public/publication.json)。
 

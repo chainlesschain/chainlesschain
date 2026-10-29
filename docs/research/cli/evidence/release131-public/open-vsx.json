@@ -1,0 +1,86 @@
+{
+  "schema": "chainlesschain.vscode-only-public-readback/v1",
+  "status": "VERIFIED_PUBLIC_VSCODE_ONLY",
+  "version": "0.37.169",
+  "releaseBinding": {
+    "releaseSourceCommit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+    "versions": {
+      "cli": "0.166.131",
+      "vscode": "0.37.169",
+      "jetbrains": "0.4.186",
+      "vscodeHost": "1.132.0",
+      "jetbrainsHost": "2025.2"
+    },
+    "newManifest": "docs/research/cli/verify01-package-sets/2026-10-29-review-131.json",
+    "previousManifest": {
+      "path": "docs/research/cli/verify01-package-sets/2026-10-29-review-129.json",
+      "digest": "sha256:f9e533463ec27e3c510e313e6cfa4658d7accc867452409dbcc7c17f7934cb32",
+      "bytes": 2582
+    },
+    "sourceIdentities": [
+      {
+        "path": "packages/cli/package.json",
+        "digest": "sha256:4444d25abdb08eb8e100a0d76423ced5efed4d900ba2a0aa4dd6b68c2f75b20a"
+      },
+      {
+        "path": "packages/vscode-extension/package.json",
+        "digest": "sha256:107735cc2e05e982654c7b083b0ef6a58d1eaa7208e5035e27aa9469c6f13a7a"
+      },
+      {
+        "path": "packages/jetbrains-plugin/build.gradle.kts",
+        "digest": "sha256:42d2a1b5ced1d73247130dde5a82b0207e71b28671ba6d23d7fda18a0a00c6a5"
+      },
+      {
+        "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CliVersionCheck.java",
+        "digest": "sha256:b33bb0768b0ef8060d337e425660c310cf6e1df8cc01e2ad21bb1e66f2367532"
+      }
+    ]
+  },
+  "workflowRunId": 40866847689,
+  "artifactId": 12893588967,
+  "cliReadbackDigest": "sha256:aee94601b18a19b38aae94482f9813363a14f2099c85030c81d1fe1eb326f59a",
+  "recommendedCliVersion": "0.166.131",
+  "releaseSourceCommit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+  "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/40866847689",
+  "publicVsixDigest": "sha256:a41b5806e67e6fd509bae6463cffbf8bd5e7ea105466ab603684e31a90a90d7d",
+  "publicVsixBytes": 743016,
+  "officialManifestDigest": "sha256:39031e35eaf823c78e55ca58f1fb5792c7b5b45f54bf1f108cb86d6ba5efdb46",
+  "officialCandidateBytesMatch": true,
+  "checks": {
+    "packageVersion": "0.37.169",
+    "manifestVersion": "0.37.169",
+    "recommendedCliVersion": "0.166.131",
+    "packageManifestDigest": "sha256:107735cc2e05e982654c7b083b0ef6a58d1eaa7208e5035e27aa9469c6f13a7a",
+    "vsixManifestDigest": "sha256:21f5701859568868a5b3ecc06a1803d24076386f2acc003472cae46156fbf214"
+  },
+  "jetbrainsPublicationVerified": false,
+  "microsoftMarketplacePublicationVerified": false,
+  "newVersionTaskRetest": "NOT_RUN",
+  "limitations": [
+    "VS Code/Open VSX only; JetBrains and Microsoft Marketplace publication are not verified.",
+    "No package installation, module execution, IDE startup, candidate execution, or model request.",
+    "No full three-package manifest or new-version task acceptance is created.",
+    "GitHub artifact/API and HTTPS byte bindings are verified; no additional publisher signature is asserted."
+  ],
+  "verifiedAt": "2026-10-29T11:59:09.126229+00:00",
+  "officialArtifactMetadata": {
+    "id": 12893588967,
+    "node_id": "MDg6QXJ0aWZhY3QxMjg5MzU4ODk2Nw==",
+    "name": "chainlesschain-ide-vscode-candidate",
+    "size_in_bytes": 726472,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12893588967",
+    "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12893588967/zip",
+    "expired": false,
+    "digest": "sha256:adbde9709e40da019952361a4d73c6199b49baa3cab8afbf8a20c79704cd34f3",
+    "created_at": "2026-10-29T11:39:02Z",
+    "updated_at": "2026-10-29T11:39:02Z",
+    "expires_at": "2027-01-27T11:37:43Z",
+    "workflow_run": {
+      "id": 40866847689,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "ide-vscode-v0.37.169",
+      "head_sha": "c9d0bab231850697df38f2d476c2dd974cbcb6c0"
+    }
+  }
+}

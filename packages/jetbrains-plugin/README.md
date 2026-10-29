@@ -11,13 +11,13 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
-## Source candidate (unreleased)
+## Current public release: 0.4.186
 
-Plugin source **0.4.186** pairs with CLI **0.166.131** and Open VSX **0.37.169** after verified upstream publication. It has not been published or approved; exact-source host gates and public ZIP verification remain required. The existing public pairing is documented below.
+Plugin **0.4.186** is approved, listed, visible and publicly downloadable. It recommends CLI **0.166.131** and pairs with Open VSX **0.37.169**. Exact-source release [40866846685](https://github.com/chainlesschain/chainlesschain/actions/runs/40866846685) passed; public update **1206001** matches all **2** official ZIP payload entries from artifact **12896140907**, with no added members. [Public ZIP](https://plugins.jetbrains.com/files/32208/1206001/chainlesschain-ide-bridge-0.4.186.zip) · [Readback](../../docs/research/cli/evidence/release131-public/jetbrains.json). Install CLI with `npm i -g chainlesschain@0.166.131 --registry https://registry.npmjs.org`, restart the host and run `cc --version` and `cc doctor`. Acceptance remains **34/45**; full Memory, semantic and paid/native admission limits remain. Older notes below retain their historical scope.
 
-## Current release
+## Previous public release: 0.4.185
 
-Plugin **0.4.185** is the current public release. It recommends CLI **`0.166.130`** and pairs with public Open VSX **0.37.168**. It is approved, listed, not hidden and publicly downloadable. Immutable tag `ide-jetbrains-v0.4.185` selects source `f3015e799624b81af564aaaa1b7701c0a5c70e26`; the exact-source [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557) passed, including real host and browser journeys. Clean-home onboarding validates the actual IDE configuration root.
+Plugin **0.4.185** was the previous public release. It recommends CLI **`0.166.130`** and pairs with public Open VSX **0.37.168**. It is approved, listed, not hidden and publicly downloadable. Immutable tag `ide-jetbrains-v0.4.185` selects source `f3015e799624b81af564aaaa1b7701c0a5c70e26`; the exact-source [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557) passed, including real host and browser journeys. Clean-home onboarding validates the actual IDE configuration root.
 
 The public [plugin ZIP](https://plugins.jetbrains.com/files/32208/1205656/chainlesschain-ide-bridge-0.4.185.zip) contains plugin **0.4.185** and compiled CLI recommendation **0.166.130**. All **2** original ZIP payload entries match tagged CI, with no added entries. Public SHA-256: `28724dd6d05401acea944a8fc1cfb8c7cc894b3fa8c0c29215db21fafd95f3f6`, **1,561,088 bytes**. [Archive readback](../../docs/research/cli/evidence/release130-public/jetbrains.json) · [Publication evidence](../../docs/research/cli/evidence/release130-public/publication.json).
 

@@ -4,7 +4,7 @@
 
 ## 当前公开 CLI：0.166.131（2026-10-29）
 
-安装：`npm i -g chainlesschain@0.166.131 --registry https://registry.npmjs.org`。Kernel **0.1.11** 已先行公开。升级后重启聊天宿主，运行 `cc --version` 与 `cc doctor`。Open VSX **0.37.169** / JetBrains **0.4.186** 正在发行；当前已核验的旧配对 **0.37.168 / 0.4.185** 仍标记推荐 CLI **0.166.130**。Microsoft Marketplace 暂缓。
+安装：`npm i -g chainlesschain@0.166.131 --registry https://registry.npmjs.org`。Kernel **0.1.11** 已先行公开。升级后重启聊天宿主，运行 `cc --version` 与 `cc doctor`。Open VSX **0.37.169** / JetBrains **0.4.186** 均已公开并通过官方制品比对，均推荐 CLI **0.166.131**。Microsoft Marketplace 暂缓。
 
 本版包含显式独立 Goal `verify:` 检查、Memory 目录身份与取消修复、MCP 子任务与晚连接隔离、Skills 下载取消、压缩前后规则刷新和临时 worktree 生命周期修复，并更新 Terra 能力与计费合同。完整三系统 CLI / Strict / Kernel 检查已通过；[OIDC 发行](https://github.com/chainlesschain/chainlesschain/actions/runs/40862685540)与[独立公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/40866417524)确认不可变包和签名来源；[发行证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release131-public/publication.json)。
 
@@ -504,7 +504,7 @@ Open VSX `0.37.92` 与 JetBrains Marketplace `0.4.119` 已公开并推荐 CLI `0
 全新安装后先核对版本与能力面，再按需进入交互 Agent：
 
 ```bash
-npm install --global chainlesschain@0.166.130 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.131 --registry https://registry.npmjs.org
 cc --version
 cc agent --capabilities
 cc agent
@@ -515,12 +515,12 @@ cc agent
 ### CLI
 
 ```bash
-npm install --global chainlesschain@0.166.130 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.131 --registry https://registry.npmjs.org
 cc --version
 cc agent --capabilities
 ```
 
-`cc --version` 预期输出 `0.166.130`。`cc agent --capabilities` 应能执行，但其中某项显示 disabled/unavailable 可能只是当前宿主没有注入生产 authority，不应以测试密钥或环境变量绕过。
+`cc --version` 预期输出 `0.166.131`。`cc agent --capabilities` 应能执行，但其中某项显示 disabled/unavailable 可能只是当前宿主没有注入生产 authority，不应以测试密钥或环境变量绕过。
 
 ### SDK 与协议
 
@@ -548,7 +548,7 @@ python -m pip install chainlesschain-agent-sdk==0.2.9
 | Skill 检索     | `cc skill search ...`                                   | 命中不等于安装或晋升                                                  |
 | Jev 决策试点   | `cc agent --session <id> --decision-mode shadow -p ...` | 默认关闭；需要 TypeSafe 凭据；shadow 不改变路由                       |
 | Agent 能力     | `cc agent --capabilities`                               | 显示能力不等于 production composition 已启用                          |
-| IDE 安装       | Open VSX / JetBrains Marketplace                        | Open VSX `0.37.168` 与 JetBrains `0.4.185` 均推荐公开 CLI `0.166.130` |
+| IDE 安装       | Open VSX / JetBrains Marketplace                        | Open VSX `0.37.169` 与 JetBrains `0.4.186` 均推荐公开 CLI `0.166.131` |
 | 更新检查       | `npm view chainlesschain version`                       | 应从官方 npm registry 回读                                            |
 
 - candidate 创建、Wiki 更新或 Memory 接受都不授予 active 写权限。
@@ -589,19 +589,19 @@ PDH 三平台各 4482 项通过、0 失败，125 项显式停用的历史测试�
 
 ## 故障排查
 
-**`unknown command 'agent'`**：这通常是旧版公共安装与 Session Core 导出不匹配。升级到本轮公开 CLI `0.166.130`，再运行 `cc agent --capabilities`。
+**`unknown command 'agent'`**：这通常是旧版公共安装与 Session Core 导出不匹配。升级到本轮公开 CLI `0.166.131`，再运行 `cc agent --capabilities`。
 
 **npm 镜像返回 E404**：显式使用官方 registry：
 
 ```bash
-npm install --global chainlesschain@0.166.130 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.131 --registry https://registry.npmjs.org
 ```
 
-**官方 VS Code 搜不到扩展**：Microsoft Marketplace 尚未公开；从 Open VSX 下载 `0.37.168` VSIX。
+**官方 VS Code 搜不到扩展**：Microsoft Marketplace 尚未公开；从 Open VSX 下载 `0.37.169` VSIX。
 
-**JetBrains 版本过旧**：本轮已核验公开版本为 `0.4.185`；若本机搜索仍显示旧版，刷新插件列表并确认 IDE 版本至少为 2024.2。
+**JetBrains 版本过旧**：本轮已核验公开版本为 `0.4.186`；若本机搜索仍显示旧版，刷新插件列表并确认 IDE 版本至少为 2024.2。
 
-**普通启动仍检查 Docker**：确认 `cc --version` 为 `0.166.130`，再检查 CLI flag、settings 或 managed policy 是否显式选择容器隔离。
+**普通启动仍检查 Docker**：确认 `cc --version` 为 `0.166.131`，再检查 CLI flag、settings 或 managed policy 是否显式选择容器隔离。
 
 **Workbench/Knowledge 提示 trusted deployment host required**：当前进程未接入部署治理宿主。保持失败闭合，由管理员配置 identity/policy/ledger/KMS authority；不要回退到本地直写。
 

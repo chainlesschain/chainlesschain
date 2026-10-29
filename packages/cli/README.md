@@ -4,7 +4,7 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## CLI 0.166.131 — current public release (2026-10-29)
 
-Install: `npm i -g chainlesschain@0.166.131 --registry https://registry.npmjs.org`. Kernel **0.1.11** was published first. Restart the chat host, then run `cc --version` and `cc doctor`. Open VSX **0.37.169** / JetBrains **0.4.186** are publishing; the verified older pair **0.37.168 / 0.4.185** still recommends CLI **0.166.130**. Microsoft Marketplace is deferred.
+Install: `npm i -g chainlesschain@0.166.131 --registry https://registry.npmjs.org`. Kernel **0.1.11** was published first. Restart the chat host, then run `cc --version` and `cc doctor`. Public Open VSX **0.37.169** / JetBrains **0.4.186** both recommend CLI **0.166.131**; their downloaded packages match the official CI payloads. Microsoft Marketplace is deferred.
 
 This release includes explicit independent Goal `verify:` checks, Memory directory identity and cancellation fixes, MCP subtask and late-connection isolation, Skills download cancellation, rule refresh around compaction, temporary-worktree lifetime fixes and updated Terra capability/billing contracts. Exact-source three-OS CLI / Strict / Kernel checks passed. [OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/40862685540) and [independent public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/40866417524) verified immutable package bytes and signed provenance. [Publication evidence](../../docs/research/cli/evidence/release131-public/publication.json).
 

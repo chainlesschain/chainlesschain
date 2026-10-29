@@ -10,11 +10,11 @@ MCP bridge.
 
 Open **Skill 自进化配置** from the command palette to enable or disable self-evolution. It defaults to off and shares `evolution.enabled` in the CLI user `config.json` with `cc ui` and JetBrains. Enabling can initialize the local signed runtime; disabling keeps ordinary Agent use available and preserves deployment data. Stop and restart a running Agent session after switching. These controls require CLI 0.166.127 and the paired extension version below.
 
-## Next release candidate
+## Current public release: 0.37.169
 
-Source candidate **0.37.169** recommends CLI **0.166.131** and pairs with JetBrains **0.4.186** after the new kernel and CLI are public and independently verified. The extension has not been published. Exact-source host/release gates and public VSIX readback are still required. The verified public pairing remains documented below. Microsoft Marketplace is deferred.
+Open VSX **0.37.169** is public and recommends verified CLI **0.166.131**, paired with approved JetBrains **0.4.186**. Exact-source release [40866847689](https://github.com/chainlesschain/chainlesschain/actions/runs/40866847689) passed. The [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.169/file/chainlesschain.chainlesschain-ide-0.37.169.vsix) matches official candidate artifact **12893588967** byte for byte. [Public readback](../../docs/research/cli/evidence/release131-public/open-vsx.json). Microsoft Marketplace remains deferred. Install CLI with `npm i -g chainlesschain@0.166.131 --registry https://registry.npmjs.org`, restart the host and run `cc --version` and `cc doctor`. Acceptance remains **34/45**; older notes below retain their historical scope.
 
-## Current release
+## Previous public release: 0.37.168
 
 <!-- release168-status -->
 
