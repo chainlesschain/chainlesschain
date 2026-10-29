@@ -6,10 +6,117 @@ import { createHash } from "node:crypto";
 import {
   assertCompleteScanHistory,
   collectHistoryPages,
+  createHistoryCheckRecorder,
   copyHistoryRollouts,
   observeRawThreadHistory,
   observeThreadHistory,
+  parseHistoryProbeOptions,
+  runHistoryProbe,
 } from "../../scripts/codex-app-server-history-probe.mjs";
+
+describe("Codex history probe scope", () => {
+  it("defaults to the database contract and requires an explicit scan-repair scope", () => {
+    expect(parseHistoryProbeOptions([])).toEqual({ scope: "database" });
+    expect(
+      parseHistoryProbeOptions([
+        "--version",
+        "0.160.0",
+        "--scope",
+        "scan-repair",
+      ]),
+    ).toEqual({ version: "0.160.0", scope: "scan-repair" });
+    expect(parseHistoryProbeOptions(["--scope", "database"])).toEqual({
+      scope: "database",
+    });
+  });
+
+  it.each(["all", "", "rollout"])(
+    "rejects unsupported scope %j before inspecting source or starting a process",
+    async (scope) => {
+      expect(() => parseHistoryProbeOptions(["--scope", scope])).toThrow(
+        /invalid history probe/,
+      );
+      await expect(runHistoryProbe({ scope })).rejects.toThrow(
+        /invalid history probe scope/,
+      );
+    },
+  );
+
+  it("rejects inherited object names as CLI options", () => {
+    for (const option of ["constructor", "__proto__", "toString"])
+      expect(() => parseHistoryProbeOptions([option, "scan-repair"])).toThrow(
+        /invalid history probe arguments/,
+      );
+  });
+
+  it("keeps a cold first-page omission fatal after full reads and known-ID recovery succeed", async () => {
+    const checks = createHistoryCheckRecorder();
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce({ data: [{ id: "a" }], nextCursor: null })
+      .mockResolvedValueOnce({
+        data: [{ id: "a" }, { id: "b" }],
+        nextCursor: null,
+      });
+    let observed;
+    expect(
+      await checks.check("cold-asc:first-scan", async () => {
+        observed = await observeThreadHistory(
+          request,
+          { limit: 1, sortKey: "recency_at", useStateDbOnly: false },
+          ["a", "b"],
+        );
+        assertCompleteScanHistory({ asc: observed, desc: observed });
+      }),
+    ).toBe(false);
+    const recover = vi.fn(async () => {
+      expect(observed.allIds).toEqual(["a", "b"]);
+    });
+    expect(await checks.check("cold-asc:known-id-recovery", recover)).toBe(
+      true,
+    );
+    expect(recover).toHaveBeenCalledOnce();
+    expect(observed.pages).toEqual([{ ids: ["a"], nextCursor: null }]);
+    expect(checks.failures).toMatchObject([
+      {
+        name: "cold-asc:first-scan",
+        error: { message: expect.stringContaining("omitted") },
+      },
+    ]);
+    expect(() => checks.assertPassed()).toThrow(/omitted/);
+  });
+
+  it("preserves the earliest failure and records an independent second cold case", async () => {
+    const checks = createHistoryCheckRecorder();
+    const first = new Error("cold asc omitted a known identity");
+    await checks.check("cold-asc:first-scan", async () => {
+      throw first;
+    });
+    await checks.check("cold-desc:fixture", async () => {
+      throw new Error("missing-index sample not formed");
+    });
+    expect(checks.failures.map((entry) => entry.name)).toEqual([
+      "cold-asc:first-scan",
+      "cold-desc:fixture",
+    ]);
+    expect(() => checks.assertPassed()).toThrow(first);
+  });
+
+  it("does not count an unformed missing-index sample as a successful strict check", async () => {
+    const checks = createHistoryCheckRecorder();
+    expect(
+      await checks.check("cold-desc:fixture", async () => {
+        throw new Error(
+          "upstream indexed rollouts before the missing-index observation",
+        );
+      }),
+    ).toBe(false);
+    await checks.check("later-observation", async () => {});
+    expect(() => checks.assertPassed()).toThrow(
+      /before the missing-index observation/,
+    );
+  });
+});
 
 describe("bounded Codex history pagination", () => {
   it("passes opaque cursors back with the original filters and keeps chronological identities", async () => {

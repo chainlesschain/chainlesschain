@@ -27,6 +27,63 @@ import {
 
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
+function validateScope(scope) {
+  assert.ok(
+    ["database", "scan-repair"].includes(scope),
+    "invalid history probe scope",
+  );
+  return scope;
+}
+
+export function parseHistoryProbeOptions(argv) {
+  const options = { scope: "database" };
+  const names = {
+    "--codex-js": "codexJs",
+    "--commit-sha": "commitSha",
+    "--output": "output",
+    "--version": "version",
+    "--scope": "scope",
+  };
+  for (let index = 0; index < argv.length; index += 2) {
+    assert.ok(
+      Object.hasOwn(names, argv[index]) && argv[index + 1],
+      "invalid history probe arguments",
+    );
+    options[names[argv[index]]] = argv[index + 1];
+  }
+  validateScope(options.scope);
+  return options;
+}
+
+// Continue independent observations after a strict failure, but never turn a
+// successful later repair into acceptance of the original incomplete scan.
+export function createHistoryCheckRecorder() {
+  const failures = [];
+  let firstError;
+  return {
+    failures,
+    async check(name, operation) {
+      try {
+        await operation();
+        return true;
+      } catch (error) {
+        firstError ||= error;
+        failures.push({
+          name,
+          error: {
+            name: error.name,
+            message: String(error.message).slice(0, 2000),
+          },
+        });
+        return false;
+      }
+    },
+    assertPassed() {
+      if (firstError) throw firstError;
+    },
+  };
+}
+
 export async function collectHistoryPages(
   request,
   method,
@@ -322,7 +379,9 @@ export async function runHistoryProbe({
   commitSha,
   output,
   version = PROBE_VERSION,
+  scope = "database",
 }) {
+  validateScope(scope);
   exactSource(commitSha);
   const upstream = resolveBinary(codexJs, version);
   const root = mkdtempSync(resolve(tmpdir(), "cc-codex-history-probe-"));
@@ -346,10 +405,20 @@ export async function runHistoryProbe({
     clients = [],
     closures = [];
   const historyChecks = {
-    rawUpstreamQueries: {},
-    rolloutScanRecency: {},
-    rolloutRepair: { status: "not-run", verified: false },
+    database: { status: "not-run", verified: false },
+    rawUpstreamQueries: { status: "not-run" },
+    rolloutScanRecency: { status: "not-run", verified: false },
+    rolloutRepair: {
+      status: "not-run",
+      verified: false,
+      orderComparison: { status: "not-run", verified: false },
+      cases: {
+        asc: { status: "not-run", verified: false },
+        desc: { status: "not-run", verified: false },
+      },
+    },
   };
+  const strictChecks = createHistoryCheckRecorder();
   let threadSample;
   let client, report, failure;
   const guard = (promise, label) =>
@@ -405,6 +474,7 @@ export async function runHistoryProbe({
     return { threadId, turnId: result.turnId, output: result.output };
   }
   try {
+    historyChecks.database.status = "checking";
     await bounded(
       new Promise((yes, no) => {
         provider.server.once("error", no);
@@ -496,34 +566,45 @@ export async function runHistoryProbe({
       listed.pages.length >= 2,
       "thread cursor continuation was not exercised",
     );
-    // Keep upstream-default and explicit created_at observations separate from
-    // the supported query. Never silently rewrite an explicitly requested sort.
-    for (const [name, extra] of [
-      ["defaults", {}],
-      ["createdAt", { sortKey: "created_at" }],
-      ["databaseCreatedAt", { sortKey: "created_at", useStateDbOnly: true }],
-    ]) {
-      historyChecks.rawUpstreamQueries[name] = await observeRawThreadHistory(
-        request,
-        { ...historyFilters, sortDirection: "asc", ...extra },
-        expectedIds,
-      );
-    }
-    for (const sortDirection of ["asc", "desc"]) {
-      historyChecks.rolloutScanRecency[sortDirection] =
-        await observeThreadHistory(
+    if (scope === "scan-repair") {
+      // Never rewrite explicit created_at or count raw-default omissions as
+      // supported behavior. These diagnostics retain their own failures.
+      for (const [name, extra] of [
+        ["defaults", {}],
+        ["createdAt", { sortKey: "created_at" }],
+        ["databaseCreatedAt", { sortKey: "created_at", useStateDbOnly: true }],
+      ]) {
+        historyChecks.rawUpstreamQueries[name] = await observeRawThreadHistory(
           request,
-          {
-            ...historyFilters,
-            sortDirection,
-            sortKey: "recency_at",
-            useStateDbOnly: false,
-          },
+          { ...historyFilters, sortDirection: "asc", ...extra },
           expectedIds,
         );
+      }
+      historyChecks.rawUpstreamQueries.status = "observed";
+      const verified = await strictChecks.check(
+        "indexed-rollout-recency",
+        async () => {
+          for (const sortDirection of ["asc", "desc"]) {
+            historyChecks.rolloutScanRecency[sortDirection] =
+              await observeThreadHistory(
+                request,
+                {
+                  ...historyFilters,
+                  sortDirection,
+                  sortKey: "recency_at",
+                  useStateDbOnly: false,
+                },
+                expectedIds,
+              );
+          }
+          assertCompleteScanHistory(historyChecks.rolloutScanRecency);
+        },
+      );
+      Object.assign(historyChecks.rolloutScanRecency, {
+        verified,
+        status: verified ? "verified" : "failed",
+      });
     }
-    assertCompleteScanHistory(historyChecks.rolloutScanRecency);
-    historyChecks.rolloutScanRecency.verified = true;
     const metadata = await request("thread/read", {
       threadId: first.threadId,
       includeTurns: false,
@@ -590,134 +671,246 @@ export async function runHistoryProbe({
     );
     closures.push(await client.stop());
     assert.equal(client.running, false);
-    const repair = historyChecks.rolloutRepair;
-    const rolloutThreads = listed.data.map(({ id, path }) => ({ id, path }));
-    if (rolloutThreads.some((thread) => typeof thread.path !== "string")) {
-      repair.status = "not-exercised";
-      repair.reason = "upstream did not expose both genuine rollout paths";
-    } else {
-      repair.status = "preparing";
-      const repairRoot = resolve(root, "rollout-repair");
-      const repairEnv = isolatedEnvironment(repairRoot);
-      for (const directory of Object.values(repairEnv).filter((value) =>
-        value.startsWith(repairRoot),
-      ))
-        mkdirSync(directory, { recursive: true });
-      writeFileSync(
-        resolve(repairEnv.CODEX_HOME, "config.toml"),
-        readFileSync(resolve(env.CODEX_HOME, "config.toml")),
-        { flag: "wx", mode: 0o600 },
-      );
-      await connect(repairEnv);
-      const databaseParams = {
-        ...historyFilters,
-        sortDirection: "asc",
-        sortKey: "recency_at",
-        useStateDbOnly: true,
-      };
-      repair.beforeCopy = await collectHistoryPages(
-        request,
-        "thread/list",
-        databaseParams,
-      );
-      assert.deepEqual(
-        repair.beforeCopy.data,
-        [],
-        "new isolated home unexpectedly contains history",
-      );
-      repair.rollouts = copyHistoryRollouts(
-        rolloutThreads,
-        env.CODEX_HOME,
-        repairEnv.CODEX_HOME,
-      );
-      repair.afterCopy = await collectHistoryPages(
-        request,
-        "thread/list",
-        databaseParams,
-      );
-      repair.indexAbsenceEvidence =
-        "fresh-home-without-copied-state-db-and-state-db-only-list";
-      if (repair.afterCopy.data.length > 0) {
-        repair.status = "not-exercised";
-        repair.reason =
-          "upstream indexed rollouts before the missing-index observation";
-      } else {
-        repair.status = "checking";
-        repair.missingIndexObserved = true;
-        repair.scan = {};
-        for (const sortDirection of ["asc", "desc"]) {
-          repair.scan[sortDirection] = await observeThreadHistory(
-            request,
-            {
+    Object.assign(historyChecks.database, {
+      status: "verified",
+      verified: true,
+      settingsRestored: true,
+      completedRequestReplayed: false,
+      threadPages: listed.pages,
+      turnPagesBeforeResume: before.pages,
+      turnPagesAfterResume: after.pages,
+    });
+    if (scope === "scan-repair") {
+      const rolloutThreads = listed.data.map(({ id, path }) => ({ id, path }));
+      const repairSummary = historyChecks.rolloutRepair;
+      repairSummary.status = "checking";
+      for (const sortDirection of ["asc", "desc"]) {
+        const repair = repairSummary.cases[sortDirection];
+        const failuresBefore = strictChecks.failures.length;
+        repair.status = "preparing";
+        await strictChecks.check(`cold-${sortDirection}:fixture`, async () => {
+          try {
+            if (
+              rolloutThreads.some((thread) => typeof thread.path !== "string")
+            ) {
+              repair.status = "not-exercised";
+              repair.reason =
+                "upstream did not expose both genuine rollout paths";
+              assert.fail(repair.reason);
+            }
+            // Each direction gets an independent cold index. No full query or
+            // scan in the opposite direction may warm its first limit:1 call.
+            const repairRoot = resolve(root, `rollout-repair-${sortDirection}`);
+            const repairEnv = isolatedEnvironment(repairRoot);
+            repair.home = repairEnv.CODEX_HOME;
+            for (const directory of Object.values(repairEnv).filter((value) =>
+              value.startsWith(repairRoot),
+            ))
+              mkdirSync(directory, { recursive: true });
+            writeFileSync(
+              resolve(repairEnv.CODEX_HOME, "config.toml"),
+              readFileSync(resolve(env.CODEX_HOME, "config.toml")),
+              { flag: "wx", mode: 0o600 },
+            );
+            await connect(repairEnv);
+            const databaseParams = {
               ...historyFilters,
               sortDirection,
               sortKey: "recency_at",
-              useStateDbOnly: false,
-            },
-            expectedIds,
-          );
-        }
-        assertCompleteScanHistory(repair.scan);
-        repair.afterScan = await observeThreadHistory(
-          request,
-          databaseParams,
-          expectedIds,
-        );
-        assert.equal(
-          repair.afterScan.complete,
-          true,
-          "rollout scan did not repair the database index",
-        );
-        const repaired = await request("thread/resume", {
-          threadId: first.threadId,
-          excludeTurns: true,
+              useStateDbOnly: true,
+            };
+            repair.beforeCopy = await collectHistoryPages(
+              request,
+              "thread/list",
+              databaseParams,
+            );
+            assert.deepEqual(
+              repair.beforeCopy.data,
+              [],
+              "new isolated home unexpectedly contains history",
+            );
+            repair.rollouts = copyHistoryRollouts(
+              rolloutThreads,
+              env.CODEX_HOME,
+              repairEnv.CODEX_HOME,
+            );
+            repair.afterCopy = await collectHistoryPages(
+              request,
+              "thread/list",
+              databaseParams,
+            );
+            repair.indexAbsenceEvidence =
+              "fresh-home-without-copied-state-db-and-state-db-only-list";
+            if (repair.afterCopy.data.length > 0) {
+              repair.status = "not-exercised";
+              repair.reason =
+                "upstream indexed rollouts before the missing-index observation";
+              assert.fail(repair.reason);
+            }
+            repair.status = "checking";
+            repair.missingIndexObserved = true;
+            const scanParams = { ...databaseParams, useStateDbOnly: false };
+            repair.firstScanVerified = await strictChecks.check(
+              `cold-${sortDirection}:first-scan`,
+              async () => {
+                const scanned = await collectHistoryPages(
+                  request,
+                  "thread/list",
+                  scanParams,
+                );
+                repair.firstScan = { params: scanParams, ...scanned };
+                assert.deepEqual(
+                  new Set(scanned.data.map((thread) => thread.id)),
+                  new Set(expectedIds),
+                  `cold rollout scan ${sortDirection} omitted known identities`,
+                );
+                assert.ok(
+                  scanned.pages.length >= 2,
+                  "cold rollout scan did not exercise cursor continuation",
+                );
+              },
+            );
+            // These are later observations, never replacements for firstScan.
+            await strictChecks.check(
+              `cold-${sortDirection}:full-scan`,
+              async () => {
+                repair.fullScan = await request("thread/list", {
+                  ...scanParams,
+                  limit: 100,
+                });
+                assert.equal(
+                  repair.fullScan.nextCursor,
+                  null,
+                  "full rollout scan is unexpectedly truncated",
+                );
+                assert.deepEqual(
+                  new Set(repair.fullScan.data.map((thread) => thread.id)),
+                  new Set(expectedIds),
+                );
+                assert.equal(repair.fullScan.data.length, expectedIds.length);
+              },
+            );
+            await strictChecks.check(
+              `cold-${sortDirection}:database-after-full-scan`,
+              async () => {
+                repair.afterFullScan = await observeThreadHistory(
+                  request,
+                  databaseParams,
+                  expectedIds,
+                );
+                assert.equal(
+                  repair.afterFullScan.complete,
+                  true,
+                  "full rollout scan did not repair the database index",
+                );
+              },
+            );
+            repair.knownIdRecovery = {};
+            for (const expectedTurns of [[first, second], [unrelated]]) {
+              const threadId = expectedTurns[0].threadId;
+              const recovery = { status: "checking", verified: false };
+              repair.knownIdRecovery[threadId] = recovery;
+              const recovered = await strictChecks.check(
+                `cold-${sortDirection}:known-id:${threadId}`,
+                async () => {
+                  const resumedThread = await request("thread/resume", {
+                    threadId,
+                    excludeTurns: true,
+                  });
+                  assert.equal(resumedThread.thread.id, threadId);
+                  assert.equal(resumedThread.model, "fixture-codex");
+                  assert.equal(resumedThread.modelProvider, "fixture");
+                  assert.equal(resolve(resumedThread.cwd), workspace);
+                  assert.equal(resumedThread.approvalPolicy, "never");
+                  assert.equal(resumedThread.sandbox.type, "readOnly");
+                  recovery.settingsRestored = true;
+                  const turns = await collectHistoryPages(
+                    request,
+                    "thread/turns/list",
+                    {
+                      threadId,
+                      limit: 1,
+                      sortDirection: "asc",
+                      itemsView: "full",
+                    },
+                  );
+                  recovery.turnPages = turns.pages;
+                  assert.deepEqual(
+                    turns.data.map((turn) => turn.id),
+                    expectedTurns.map((result) => result.turnId),
+                  );
+                  if (expectedTurns.length > 1)
+                    assert.ok(
+                      turns.pages.length >= 2,
+                      "repaired turn history did not exercise cursor continuation",
+                    );
+                  for (const [index, result] of expectedTurns.entries()) {
+                    assert.equal(turns.data[index].status, "completed");
+                    assert.ok(
+                      turns.data[index].items.some(
+                        (item) =>
+                          item.type === "agentMessage" &&
+                          item.text === result.output,
+                      ),
+                      "repaired rollout lost persisted assistant output",
+                    );
+                  }
+                  assert.equal(
+                    provider.requests.length,
+                    3,
+                    "rollout recovery launched a model request",
+                  );
+                },
+              );
+              Object.assign(recovery, {
+                verified: recovered,
+                status: recovered ? "verified" : "failed",
+              });
+            }
+          } finally {
+            if (client?.running) closures.push(await client.stop());
+          }
         });
-        assert.equal(repaired.thread.id, first.threadId);
-        assert.equal(repaired.model, "fixture-codex");
-        assert.equal(repaired.modelProvider, "fixture");
-        assert.equal(resolve(repaired.cwd), workspace);
-        assert.equal(repaired.approvalPolicy, "never");
-        assert.equal(repaired.sandbox.type, "readOnly");
-        const repairedTurns = await collectHistoryPages(
-          request,
-          "thread/turns/list",
-          {
-            threadId: first.threadId,
-            limit: 1,
-            sortDirection: "asc",
-            itemsView: "full",
+        repair.verified =
+          strictChecks.failures.length === failuresBefore &&
+          repair.missingIndexObserved === true;
+        if (repair.status !== "not-exercised")
+          repair.status = repair.verified ? "verified" : "failed";
+      }
+      repairSummary.orderComparison = { status: "not-run", verified: false };
+      if (
+        Object.values(repairSummary.cases).every(
+          (entry) => entry.firstScanVerified,
+        )
+      ) {
+        const verified = await strictChecks.check(
+          "cold-direction-order",
+          async () => {
+            assert.deepEqual(
+              repairSummary.cases.desc.firstScan.data.map(
+                (thread) => thread.id,
+              ),
+              repairSummary.cases.asc.firstScan.data
+                .map((thread) => thread.id)
+                .reverse(),
+              "independent cold scan directions did not reverse the identity order",
+            );
           },
         );
-        assert.deepEqual(
-          repairedTurns.data.map((turn) => turn.id),
-          [first.turnId, second.turnId],
-        );
-        for (const [index, result] of [first, second].entries()) {
-          assert.equal(repairedTurns.data[index].status, "completed");
-          assert.ok(
-            repairedTurns.data[index].items.some(
-              (item) =>
-                item.type === "agentMessage" && item.text === result.output,
-            ),
-            "repaired rollout lost persisted assistant output",
-          );
-        }
-        repair.turnPages = repairedTurns.pages;
-        assert.equal(
-          provider.requests.length,
-          3,
-          "rollout repair or resume launched a model request",
-        );
-        repair.status = "verified";
-        repair.verified = true;
+        repairSummary.orderComparison = {
+          verified,
+          status: verified ? "verified" : "failed",
+        };
       }
+      repairSummary.verified =
+        Object.values(repairSummary.cases).every((entry) => entry.verified) &&
+        repairSummary.orderComparison.verified;
+      repairSummary.status = repairSummary.verified ? "verified" : "failed";
       assert.equal(
         provider.requests.length,
         3,
-        "rollout repair or resume launched a model request",
+        "rollout observations launched a model request",
       );
-      closures.push(await client.stop());
-      assert.equal(client.running, false);
     }
     exactSource(commitSha);
     report = {
@@ -749,8 +942,11 @@ export async function runHistoryProbe({
         validatedMessages: validators.counts,
       },
     };
+    strictChecks.assertPassed();
   } catch (error) {
-    if (["preparing", "checking"].includes(historyChecks.rolloutRepair.status))
+    if (historyChecks.database.status === "checking")
+      historyChecks.database.status = "failed";
+    if (historyChecks.rolloutRepair.status === "checking")
       historyChecks.rolloutRepair.status = "failed";
     failure = error;
   } finally {
@@ -780,6 +976,32 @@ export async function runHistoryProbe({
       realProviderAcceptance: false,
     }),
     status: failure ? "failed" : "passed",
+    scope,
+    requiredChecks:
+      scope === "database"
+        ? ["database"]
+        : [
+            "database",
+            "indexed-rollout-recency",
+            "cold-asc",
+            "cold-desc",
+            "cold-direction-order",
+          ],
+    unverifiedScopes: [
+      "raw-upstream-default-pagination",
+      "created-at-pagination",
+      ...(!historyChecks.database.verified ? ["database"] : []),
+      ...(!historyChecks.rolloutScanRecency.verified
+        ? ["indexed-rollout-recency"]
+        : []),
+      ...Object.entries(historyChecks.rolloutRepair.cases)
+        .filter(([, result]) => !result.verified)
+        .map(([direction]) => `cold-${direction}`),
+      ...(!historyChecks.rolloutRepair.orderComparison.verified
+        ? ["cold-direction-order"]
+        : []),
+    ],
+    strictFailures: strictChecks.failures,
     arch: process.arch,
     upstream: { version, reported, binarySha256: upstream.binarySha256 },
     officialSchema: {
@@ -813,20 +1035,7 @@ if (
   process.argv[1] &&
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
-  const options = {};
-  for (let index = 2; index < process.argv.length; index += 2) {
-    const names = {
-      "--codex-js": "codexJs",
-      "--commit-sha": "commitSha",
-      "--output": "output",
-      "--version": "version",
-    };
-    assert.ok(
-      names[process.argv[index]] && process.argv[index + 1],
-      "invalid history probe arguments",
-    );
-    options[names[process.argv[index]]] = process.argv[index + 1];
-  }
+  const options = parseHistoryProbeOptions(process.argv.slice(2));
   runHistoryProbe(options)
     .then((report) => process.stdout.write(JSON.stringify(report) + "\n"))
     .catch((error) => {
