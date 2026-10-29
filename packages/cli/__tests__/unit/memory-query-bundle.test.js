@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { syncBuiltinESMExports } from "node:module";
+import { isAffectedWindowsZeroDeviceStatRuntime } from "../../src/lib/secure-file-identity.js";
 import {
   createQueryBundlePlan,
   readQueryBundle,
@@ -85,6 +86,15 @@ function expectClosed(fd) {
   expect(() => fs.fstatSync(fd)).toThrow(
     expect.objectContaining({ code: "EBADF" }),
   );
+}
+
+function expectClosedDataDescriptors(opened, count) {
+  // Affected Windows hosts also open short-lived parent/volume/file handles
+  // to bind the legacy path-stat projection. All handles must be released.
+  if (isAffectedWindowsZeroDeviceStatRuntime())
+    expect(opened.length).toBeGreaterThanOrEqual(count);
+  else expect(opened).toHaveLength(count);
+  for (const fd of opened) expectClosed(fd);
 }
 
 describe("manifest-bound query bundle plans", () => {
@@ -174,8 +184,7 @@ describe("bounded query bundle reads", () => {
       onFrame: async (bucket, bytes) => received.set(bucket, bytes),
     });
     expect(received).toEqual(f.frames);
-    expect(opened).toHaveLength(1);
-    expectClosed(opened[0]);
+    expectClosedDataDescriptors(opened, 1);
     expect(sizes.every((size) => size <= 64 * 1024)).toBe(true);
     expect(checkpoint.mock.calls.length).toBeGreaterThan(4);
     const changed = Buffer.from(f.bytes);
@@ -184,8 +193,7 @@ describe("bounded query bundle reads", () => {
     await expect(readQueryBundle(f.file, f.plan)).rejects.toMatchObject({
       code: "CONTEXT_MEMORY_QUERY_BUNDLE_CORRUPT",
     });
-    expect(opened).toHaveLength(2);
-    expectClosed(opened[1]);
+    expectClosedDataDescriptors(opened, 2);
   });
 
   it("can reuse borrowed storage after an asynchronous frame consumer settles", async () => {
@@ -441,8 +449,7 @@ describe("atomic query bundle writes", () => {
       ).rejects.toBeDefined();
       expect(fs.readFileSync(f.file)).toEqual(old);
       expect(fs.readdirSync(f.root)).toEqual([f.plan.name]);
-      expect(opened).toHaveLength(1);
-      expectClosed(opened[0]);
+      expectClosedDataDescriptors(opened, 1);
     },
   );
 

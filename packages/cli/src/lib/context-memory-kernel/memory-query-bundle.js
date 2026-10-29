@@ -12,6 +12,8 @@ import {
   writeSync,
 } from "node:fs";
 import { basename, dirname, join } from "node:path";
+import { pathMatchesOpenedFileIdentitySync } from "../packer/file-identity.js";
+import { isAffectedWindowsZeroDeviceStatRuntime } from "../secure-file-identity.js";
 import { corruptStore, syncDirectory } from "./durable-memory-port.js";
 
 const CHUNK_BYTES = 64 * 1024;
@@ -19,6 +21,7 @@ const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const MAGIC = "chainlesschain.memory-query-bundle/v1\n";
 const NAME_DOMAIN = "chainlesschain.memory-query-bundle/name/v1\0";
 const noop = () => {};
+const STAT_OPTIONS = Object.freeze({ bigint: true });
 
 function corruptBundle(file, reason) {
   return Object.assign(
@@ -31,18 +34,20 @@ function corruptBundle(file, reason) {
 }
 
 function sameIdentity(left, right) {
-  return left.dev === right.dev && left.ino === right.ino;
+  return Boolean(
+    left && right && left.dev === right.dev && left.ino === right.ino,
+  );
 }
 
 function regular(stat, file) {
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1)
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1n)
     throw corruptStore(file, "query bundle must be an unlinked regular file");
   return stat;
 }
 
 function targetStat(file) {
   try {
-    return regular(lstatSync(file), file);
+    return regular(lstatSync(file, STAT_OPTIONS), file);
   } catch (error) {
     if (error.code === "ENOENT") return null;
     throw error;
@@ -56,8 +61,30 @@ function sameFile(file, expected) {
   return current;
 }
 
+function samePathHandleIdentity(file, current, expected) {
+  if (sameIdentity(current, expected)) return true;
+  // Node 22.12/libuv 1.49 can project a different Windows path device.
+  // Reopen synchronously and compare precise handle identities, bound to an
+  // independently opened parent/volume root. Never relax same-API comparisons
+  // or keep this synchronous authority scope across a cooperative checkpoint.
+  return (
+    isAffectedWindowsZeroDeviceStatRuntime() &&
+    current.ino === expected.ino &&
+    current.mode === expected.mode &&
+    pathMatchesOpenedFileIdentitySync(file, expected) &&
+    sameIdentity(current, targetStat(file))
+  );
+}
+
+function sameOpenedFile(file, expected) {
+  const current = targetStat(file);
+  if (!current || !samePathHandleIdentity(file, current, expected))
+    throw corruptStore(file, "query bundle file identity changed");
+  return current;
+}
+
 function sameDirectory(directory, expected) {
-  const current = lstatSync(directory);
+  const current = lstatSync(directory, STAT_OPTIONS);
   if (
     !current.isDirectory() ||
     current.isSymbolicLink() ||
@@ -139,7 +166,7 @@ export async function readQueryBundle(
   { checkpoint = noop, onFrame = noop, reuseFrameBuffer = false } = {},
 ) {
   await checkpoint();
-  const before = regular(lstatSync(file), file);
+  const before = regular(lstatSync(file, STAT_OPTIONS), file);
   let fd;
   try {
     try {
@@ -158,10 +185,10 @@ export async function readQueryBundle(
         );
       throw error;
     }
-    const opened = regular(fstatSync(fd), file);
-    if (!sameIdentity(before, opened))
+    const opened = regular(fstatSync(fd, STAT_OPTIONS), file);
+    if (!samePathHandleIdentity(file, before, opened))
       throw corruptStore(file, "query bundle changed while opening");
-    if (opened.size !== plan.byteLength)
+    if (opened.size !== BigInt(plan.byteLength))
       throw corruptBundle(file, "byte length does not match manifest plan");
     async function readBytes(bytes, hash) {
       let offset = 0;
@@ -204,14 +231,14 @@ export async function readQueryBundle(
     if (readSync(fd, Buffer.allocUnsafe(1), 0, 1, null) !== 0)
       throw corruptBundle(file, "trailing data");
     await checkpoint();
-    const after = regular(fstatSync(fd), file);
+    const after = regular(fstatSync(fd, STAT_OPTIONS), file);
     if (!sameIdentity(opened, after))
       throw corruptStore(file, "query bundle descriptor identity changed");
-    sameFile(file, opened);
+    sameOpenedFile(file, opened);
     if (
       after.size !== opened.size ||
-      after.mtimeMs !== opened.mtimeMs ||
-      after.ctimeMs !== opened.ctimeMs
+      after.mtimeNs !== opened.mtimeNs ||
+      after.ctimeNs !== opened.ctimeNs
     )
       throw corruptBundle(file, "file changed while reading");
   } catch (error) {
@@ -219,7 +246,7 @@ export async function readQueryBundle(
       // Content errors are repairable only while the pathname still names the
       // inode we opened. Otherwise a failed read could authorize replacing an
       // unrelated file that appeared during a cooperative checkpoint.
-      regular(fstatSync(fd), file);
+      regular(fstatSync(fd, STAT_OPTIONS), file);
       sameFile(file, before);
     }
     throw error;
@@ -243,7 +270,7 @@ export async function writeQueryBundle(
   await checkpoint();
   await checkDirectories();
   const directory = dirname(file);
-  const parent = lstatSync(directory);
+  const parent = lstatSync(directory, STAT_OPTIONS);
   sameDirectory(directory, parent);
   const originalTarget = targetStat(file);
   const temporary = join(directory, `query-rebuild-${randomUUID()}.tmp`);
@@ -258,7 +285,7 @@ export async function writeQueryBundle(
         (constants.O_NOFOLLOW || 0),
       0o600,
     );
-    created = regular(fstatSync(fd), temporary);
+    created = regular(fstatSync(fd, STAT_OPTIONS), temporary);
     async function writeBytes(bytes, hash) {
       let offset = 0;
       while (offset < bytes.length) {
@@ -304,10 +331,10 @@ export async function writeQueryBundle(
           `source frame changed while writing bucket ${frame.bucket}`,
         );
     }
-    const written = regular(fstatSync(fd), temporary);
+    const written = regular(fstatSync(fd, STAT_OPTIONS), temporary);
     if (!sameIdentity(created, written))
       throw corruptStore(temporary, "query bundle temporary identity changed");
-    if (written.size !== plan.byteLength)
+    if (written.size !== BigInt(plan.byteLength))
       throw corruptBundle(file, "written byte length does not match plan");
     fsyncSync(fd);
     await checkpoint();
@@ -315,7 +342,7 @@ export async function writeQueryBundle(
     fd = undefined;
     await checkDirectories();
     sameDirectory(directory, parent);
-    sameFile(temporary, created);
+    sameOpenedFile(temporary, created);
     const currentTarget = targetStat(file);
     if (
       Boolean(originalTarget) !== Boolean(currentTarget) ||
@@ -336,7 +363,7 @@ export async function writeQueryBundle(
       try {
         await checkDirectories();
         sameDirectory(directory, parent);
-        sameFile(temporary, created);
+        sameOpenedFile(temporary, created);
         unlinkSync(temporary);
       } catch {
         /* Leave an untrusted/redirected temporary path untouched. */
