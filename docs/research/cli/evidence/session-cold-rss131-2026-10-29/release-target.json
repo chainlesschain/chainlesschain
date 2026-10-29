@@ -1,0 +1,153 @@
+{
+  "schema": "chainlesschain.release131-immutable-validation/v1",
+  "createdAt": "2026-10-29T06:56:57.275Z",
+  "source": "98c4be4a76e22b127518b1ea1116dabdfb95dd10",
+  "validationTag": "ci-cli131-98c4be4a76e2",
+  "state": "GATES_PENDING",
+  "versions": {
+    "kernel": "0.1.11",
+    "cli": "0.166.131",
+    "openVsx": "0.37.169",
+    "jetbrains": "0.4.186"
+  },
+  "published": false,
+  "releaseTagCreated": false,
+  "microsoft": "deferred",
+  "requiredOrder": "verified child npm package -> CLI OIDC/public readback -> IDE/public readback -> clients",
+  "supersedes": "7a5d38d151d437f94f8c223dec1fbca52a44da5b",
+  "reason": "Cold CLI session read eagerly loaded unused Evolution config and process broker; Ubuntu RSS 100.25390625 MiB failed the unchanged <100 MiB gate.",
+  "original129Dispatch": "REQUEST_UNRESOLVED; not replayed",
+  "records": [
+    {
+      "args": [
+        "rev-parse",
+        "HEAD"
+      ],
+      "stdout": "98c4be4a76e22b127518b1ea1116dabdfb95dd10\n",
+      "completedAt": "2026-10-29T06:56:57.344Z"
+    },
+    {
+      "args": [
+        "status",
+        "--porcelain=v1"
+      ],
+      "stdout": "",
+      "completedAt": "2026-10-29T06:56:57.723Z"
+    },
+    {
+      "args": [
+        "-c",
+        "credential.helper=!gh auth git-credential",
+        "ls-remote",
+        "https://github.com/chainlesschain/chainlesschain.git",
+        "refs/heads/main",
+        "refs/tags/ci-cli131-98c4be4a76e2"
+      ],
+      "stdout": "52b2e34cf6cf5679e5dbf610d9d5e16a82a97663\trefs/heads/main\n",
+      "completedAt": "2026-10-29T06:57:01.739Z"
+    },
+    {
+      "args": [
+        "tag",
+        "ci-cli131-98c4be4a76e2",
+        "98c4be4a76e22b127518b1ea1116dabdfb95dd10"
+      ],
+      "stdout": "",
+      "completedAt": "2026-10-29T06:57:01.817Z"
+    },
+    {
+      "args": [
+        "-c",
+        "credential.helper=!gh auth git-credential",
+        "-c",
+        "http.version=HTTP/1.1",
+        "-c",
+        "http.postBuffer=52428800",
+        "push",
+        "--atomic",
+        "https://github.com/chainlesschain/chainlesschain.git",
+        "refs/heads/main:refs/heads/main",
+        "refs/tags/ci-cli131-98c4be4a76e2:refs/tags/ci-cli131-98c4be4a76e2"
+      ],
+      "stdout": "",
+      "completedAt": "2026-10-29T06:57:06.695Z"
+    },
+    {
+      "args": [
+        "-c",
+        "credential.helper=!gh auth git-credential",
+        "ls-remote",
+        "https://github.com/chainlesschain/chainlesschain.git",
+        "refs/heads/main",
+        "refs/tags/ci-cli131-98c4be4a76e2"
+      ],
+      "stdout": "98c4be4a76e22b127518b1ea1116dabdfb95dd10\trefs/heads/main\n98c4be4a76e22b127518b1ea1116dabdfb95dd10\trefs/tags/ci-cli131-98c4be4a76e2\n",
+      "completedAt": "2026-10-29T06:57:11.322Z"
+    }
+  ],
+  "runs": [
+    {
+      "conclusion": "",
+      "createdAt": "2026-10-29T06:57:08Z",
+      "databaseId": 40832331503,
+      "event": "push",
+      "headBranch": "main",
+      "headSha": "98c4be4a76e22b127518b1ea1116dabdfb95dd10",
+      "status": "in_progress",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40832331503",
+      "workflowName": "CLI CI",
+      "purpose": "Adopt exact-source automatic push run; immutable validation tag resolves to this same SHA. No duplicate matrix dispatch."
+    },
+    {
+      "conclusion": "",
+      "createdAt": "2026-10-29T06:57:08Z",
+      "databaseId": 40832331475,
+      "event": "push",
+      "headBranch": "main",
+      "headSha": "98c4be4a76e22b127518b1ea1116dabdfb95dd10",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40832331475",
+      "workflowName": "CLI Strict Sandbox",
+      "purpose": "Adopt exact-source automatic push run; immutable validation tag resolves to this same SHA. No duplicate matrix dispatch."
+    },
+    {
+      "conclusion": "",
+      "createdAt": "2026-10-29T06:57:08Z",
+      "databaseId": 40832331367,
+      "event": "push",
+      "headBranch": "main",
+      "headSha": "98c4be4a76e22b127518b1ea1116dabdfb95dd10",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40832331367",
+      "workflowName": "Context Memory Kernel CI",
+      "purpose": "Adopt exact-source automatic push run; immutable validation tag resolves to this same SHA. No duplicate matrix dispatch."
+    },
+    {
+      "databaseId": 40832465569,
+      "workflowName": "IDE Extensions",
+      "headSha": "98c4be4a76e22b127518b1ea1116dabdfb95dd10",
+      "headBranch": "ci-cli131-98c4be4a76e2",
+      "event": "workflow_dispatch",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40832465569",
+      "createdAt": "2026-10-29T06:58:30Z"
+    }
+  ],
+  "dispatches": [
+    {
+      "name": "IDE Extensions",
+      "workflow": "ide-extensions.yml",
+      "ref": "ci-cli131-98c4be4a76e2",
+      "source": "98c4be4a76e22b127518b1ea1116dabdfb95dd10",
+      "state": "request_accepted",
+      "startedAt": "2026-10-29T06:58:27.766Z",
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null,
+      "endedAt": "2026-10-29T06:58:31.955Z"
+    }
+  ],
+  "validationTagCreated": true,
+  "validationTagPushed": true
+}
