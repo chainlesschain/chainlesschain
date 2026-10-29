@@ -1,0 +1,919 @@
+{
+  "schema": "chainlesschain.memory-process-restart-review/v1",
+  "observedAt": "2026-10-29T03:59:31.787Z",
+  "implementationSource": "999fdeb546f3f9e790f7ab860087d338c17c5d74",
+  "runs": [
+    {
+      "label": "process-restart-smoke",
+      "exitCode": 0,
+      "passed": 3,
+      "skipped": 0,
+      "sourceSha256": {
+        "packages/context-memory-kernel/lib/runtime.js": "8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+        "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+        "packages/context-memory-kernel/lib/memory-reducer.js": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+        "packages/context-memory-kernel/lib/compaction.js": "c20037ed2d90d6aa62e8d642ffc65f48b27282b048896a40d840ff0b93c59a98",
+        "packages/cli/src/lib/context-memory-kernel/provider-context.js": "ab74480036676afc883aa1027653c16d1bf94c09eaa5355652940ea7c158a9a2",
+        "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+        "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+        "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+        "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+        "packages/cli/src/lib/context-memory-kernel/message-adapter.js": "d4448c48d109ea851577a847cbbd4c29058b2e6fc163be9ee589399399cbba41",
+        "packages/cli/src/lib/context-memory-kernel/live-compaction.js": "cbf7077bd3fc1b022333d5663604cdd4f1fbd223f9290b3a26e61b53470395f1",
+        "packages/cli/src/lib/context-memory-kernel/jsonl-session-context-port.js": "1b5652e6154a2bba1ec792b0319b0918ed19345464e9f5da06c981c784419db3",
+        "packages/cli/src/lib/abort-utils.js": "7f1c1703150e71c46ad80b3f6688edc1a489fc389bca462a65091bef11dd692b",
+        "packages/cli/src/lib/secure-file-identity.js": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+        "packages/cli/test-node/fixtures/context-memory-compaction-restart-child.mjs": "4f34590794a3ab30f1052f37c79d21328a560c02b71f90ebb0130999ccfa2e57",
+        "packages/cli/src/runtime/agent-core.js": "7400641ff5d5dcf398a1f917f6f5231b45bf2531e4e29011ae12804a686c109e",
+        "packages/cli/src/runtime/headless-runner.js": "9e871811fd02aa7c05e7a6ed4bab9704c06d3f74a39f600bb874a3e62f3c0bac",
+        "packages/cli/src/runtime/headless-stream.js": "39b8e7914a7b942dfd3c1688d07db4ba60efff42f8b1f0d4f491894f455797e3",
+        "packages/cli/src/harness/prompt-compressor.js": "4706b1b493e87289084115c247542ed8a8cd07164eef5362350dfc7c2e65c7b5",
+        "packages/cli/src/harness/provider-backed-compaction.js": "c17ac6556491e6f5959c44cc866543715ea445600979d0350c8d5367cf15e45f",
+        "packages/cli/src/harness/jsonl-session-store.js": "f0f3322c126f2249e47dcc0afced010394f4c30a50e50a94970e926b17ee5146",
+        "packages/cli/test-node/context-memory-kernel.node-test.mjs": "423398866bd9e5845b964c88d36572ea4f3e270413176fe223c367e3910ba37a"
+      },
+      "sourceStable": true,
+      "reports": [
+        {
+          "writer": {
+            "ready": true,
+            "receipt": {
+              "schema": "chainlesschain.context-compaction/v1",
+              "schemaVersion": 1,
+              "operationId": "durable-process-compaction",
+              "sessionId": "compaction-process-supersede",
+              "status": "committed",
+              "inputHead": "cd58649f5ed79a31ceeda1a8b02258985b8334fc1b3e4ee09c1c06ce959ec3ba",
+              "inputDigest": "sha256:f2a90d1e284f5414dd6fa3829b62ba2db6b98d0c72ba9c831d371c52f30f0dae",
+              "outputDigest": "sha256:270fc1b02960f9dcec5ccdc1044264a262777e6d51876d7786362841bc313179",
+              "contextPlanDigest": "sha256:648e75a9a46d6b9f6dcec0ba2b2b15dabf0af546fa7934179bf96edca6ede9a3",
+              "memoryRevision": 3,
+              "selectedItemIds": [
+                "cli-msg-d1d27463c9ee5be27340d788b4373a46-2"
+              ],
+              "lifecycle": [
+                {
+                  "state": "evaluating",
+                  "at": "2026-10-29T00:00:00.000Z"
+                },
+                {
+                  "state": "preparing",
+                  "at": "2026-10-29T03:48:15.639Z",
+                  "details": {
+                    "inputDigest": "sha256:f2a90d1e284f5414dd6fa3829b62ba2db6b98d0c72ba9c831d371c52f30f0dae"
+                  }
+                },
+                {
+                  "state": "verifying",
+                  "at": "2026-10-29T03:48:15.641Z"
+                },
+                {
+                  "state": "committing",
+                  "at": "2026-10-29T03:48:15.642Z"
+                },
+                {
+                  "state": "committed",
+                  "at": "2026-10-29T03:48:15.642Z"
+                }
+              ],
+              "newHead": "78fdd06b5cc7b3b95675d192c2985001d3e5863b8e3f9912f959c5b7f8a7e942",
+              "eventDigest": "sha256:1ebbe86322a006e65269fc0b6a7fc6a84b35c733d962cb8a0ca1aa701dd35875",
+              "digest": "sha256:7900cfe869266eab4aa6b67addbb6aae199ed4ac597cbe7aa6bfb7ec993cdd0f"
+            },
+            "initialRevision": 3,
+            "pid": 15292,
+            "physicalRequests": 0
+          },
+          "mutation": {
+            "mutated": true,
+            "before": 3,
+            "after": 6,
+            "pid": 21556,
+            "physicalRequests": 0
+          },
+          "reader": {
+            "resumed": true,
+            "receipt": {
+              "schema": "chainlesschain.context-compaction/v1",
+              "schemaVersion": 1,
+              "operationId": "durable-process-compaction",
+              "sessionId": "compaction-process-supersede",
+              "status": "committed",
+              "inputHead": "cd58649f5ed79a31ceeda1a8b02258985b8334fc1b3e4ee09c1c06ce959ec3ba",
+              "inputDigest": "sha256:f2a90d1e284f5414dd6fa3829b62ba2db6b98d0c72ba9c831d371c52f30f0dae",
+              "outputDigest": "sha256:270fc1b02960f9dcec5ccdc1044264a262777e6d51876d7786362841bc313179",
+              "contextPlanDigest": "sha256:648e75a9a46d6b9f6dcec0ba2b2b15dabf0af546fa7934179bf96edca6ede9a3",
+              "memoryRevision": 3,
+              "selectedItemIds": [
+                "cli-msg-d1d27463c9ee5be27340d788b4373a46-2"
+              ],
+              "lifecycle": [
+                {
+                  "state": "evaluating",
+                  "at": "2026-10-29T00:00:00.000Z"
+                },
+                {
+                  "state": "preparing",
+                  "at": "2026-10-29T03:48:15.639Z",
+                  "details": {
+                    "inputDigest": "sha256:f2a90d1e284f5414dd6fa3829b62ba2db6b98d0c72ba9c831d371c52f30f0dae"
+                  }
+                },
+                {
+                  "state": "verifying",
+                  "at": "2026-10-29T03:48:15.641Z"
+                },
+                {
+                  "state": "committing",
+                  "at": "2026-10-29T03:48:15.642Z"
+                },
+                {
+                  "state": "committed",
+                  "at": "2026-10-29T03:48:15.642Z"
+                }
+              ],
+              "newHead": "78fdd06b5cc7b3b95675d192c2985001d3e5863b8e3f9912f959c5b7f8a7e942",
+              "eventDigest": "sha256:1ebbe86322a006e65269fc0b6a7fc6a84b35c733d962cb8a0ca1aa701dd35875",
+              "digest": "sha256:7900cfe869266eab4aa6b67addbb6aae199ed4ac597cbe7aa6bfb7ec993cdd0f"
+            },
+            "memoryRevision": 6,
+            "recalledIds": [
+              "current",
+              "successor"
+            ],
+            "compactEvents": 1,
+            "pid": 11880,
+            "physicalRequests": 0
+          }
+        },
+        {
+          "writer": {
+            "ready": true,
+            "receipt": {
+              "schema": "chainlesschain.context-compaction/v1",
+              "schemaVersion": 1,
+              "operationId": "durable-process-compaction",
+              "sessionId": "compaction-process-delete",
+              "status": "committed",
+              "inputHead": "c75f33951e7b102e956ead7669f2de78984cad50f6529a656d24cd6ece88388c",
+              "inputDigest": "sha256:435dfab87bf010c57b8ae08d07fe8423bee2995c6314ff97ca7b2096af38f52b",
+              "outputDigest": "sha256:73288f36b11d1256e828b28d5eb1a3e8751a031a569b878de80ca857ba4c0f18",
+              "contextPlanDigest": "sha256:d6b64eca851bb1676b21d85c7b87042b691b1ed390c9e4c2a784c3fcaa5a3382",
+              "memoryRevision": 3,
+              "selectedItemIds": [
+                "cli-msg-f5676cd61e8e18a11bb94ece9cd3a69d-2"
+              ],
+              "lifecycle": [
+                {
+                  "state": "evaluating",
+                  "at": "2026-10-29T00:00:00.000Z"
+                },
+                {
+                  "state": "preparing",
+                  "at": "2026-10-29T03:48:18.437Z",
+                  "details": {
+                    "inputDigest": "sha256:435dfab87bf010c57b8ae08d07fe8423bee2995c6314ff97ca7b2096af38f52b"
+                  }
+                },
+                {
+                  "state": "verifying",
+                  "at": "2026-10-29T03:48:18.438Z"
+                },
+                {
+                  "state": "committing",
+                  "at": "2026-10-29T03:48:18.439Z"
+                },
+                {
+                  "state": "committed",
+                  "at": "2026-10-29T03:48:18.439Z"
+                }
+              ],
+              "newHead": "ccc1f26c5554c2567379cfa7963f20c20766088b00ea92b0da894258f4126620",
+              "eventDigest": "sha256:80d2c7d91654a302b47273f23692bf1515a4748441759bdec0742d4474fbb0df",
+              "digest": "sha256:d39d3254f26004dfaa40b72445dd04db3656fcdf9018e9f824cf47a25a56ea57"
+            },
+            "initialRevision": 3,
+            "pid": 21620,
+            "physicalRequests": 0
+          },
+          "mutation": {
+            "mutated": true,
+            "before": 3,
+            "after": 8,
+            "pid": 9800,
+            "physicalRequests": 0
+          },
+          "reader": {
+            "resumed": true,
+            "receipt": {
+              "schema": "chainlesschain.context-compaction/v1",
+              "schemaVersion": 1,
+              "operationId": "durable-process-compaction",
+              "sessionId": "compaction-process-delete",
+              "status": "committed",
+              "inputHead": "c75f33951e7b102e956ead7669f2de78984cad50f6529a656d24cd6ece88388c",
+              "inputDigest": "sha256:435dfab87bf010c57b8ae08d07fe8423bee2995c6314ff97ca7b2096af38f52b",
+              "outputDigest": "sha256:73288f36b11d1256e828b28d5eb1a3e8751a031a569b878de80ca857ba4c0f18",
+              "contextPlanDigest": "sha256:d6b64eca851bb1676b21d85c7b87042b691b1ed390c9e4c2a784c3fcaa5a3382",
+              "memoryRevision": 3,
+              "selectedItemIds": [
+                "cli-msg-f5676cd61e8e18a11bb94ece9cd3a69d-2"
+              ],
+              "lifecycle": [
+                {
+                  "state": "evaluating",
+                  "at": "2026-10-29T00:00:00.000Z"
+                },
+                {
+                  "state": "preparing",
+                  "at": "2026-10-29T03:48:18.437Z",
+                  "details": {
+                    "inputDigest": "sha256:435dfab87bf010c57b8ae08d07fe8423bee2995c6314ff97ca7b2096af38f52b"
+                  }
+                },
+                {
+                  "state": "verifying",
+                  "at": "2026-10-29T03:48:18.438Z"
+                },
+                {
+                  "state": "committing",
+                  "at": "2026-10-29T03:48:18.439Z"
+                },
+                {
+                  "state": "committed",
+                  "at": "2026-10-29T03:48:18.439Z"
+                }
+              ],
+              "newHead": "ccc1f26c5554c2567379cfa7963f20c20766088b00ea92b0da894258f4126620",
+              "eventDigest": "sha256:80d2c7d91654a302b47273f23692bf1515a4748441759bdec0742d4474fbb0df",
+              "digest": "sha256:d39d3254f26004dfaa40b72445dd04db3656fcdf9018e9f824cf47a25a56ea57"
+            },
+            "memoryRevision": 8,
+            "recalledIds": [
+              "current"
+            ],
+            "compactEvents": 1,
+            "pid": 22812,
+            "physicalRequests": 0
+          }
+        },
+        {
+          "reconciliationRequired": true,
+          "receipt": {
+            "schema": "chainlesschain.context-compaction/v1",
+            "schemaVersion": 1,
+            "operationId": "unfinished-semantic-compaction",
+            "sessionId": "compaction-process-unfinished",
+            "status": "reconciliation_required",
+            "inputHead": "5c94be8953038d70dd51475a3c34b5c5526373be334e417e9e82e5c2fd18acea",
+            "currentHead": "09b93830a7bb6cef5a6c382dd5b626971837d8b497b95bdb969007b41bb72947",
+            "startedAt": "2026-10-29T03:48:21.111Z",
+            "lifecycle": [
+              {
+                "state": "reconciliation_required",
+                "at": "2026-10-29T03:48:21.111Z",
+                "details": {
+                  "code": "semantic_usage_without_compaction_commit"
+                }
+              }
+            ],
+            "digest": "sha256:5873ed86207a5a20c19485397d494ef2ba762e46491e8bfdb0fba4bb5b3412ff"
+          },
+          "compactEvents": 0,
+          "pid": 16752,
+          "physicalRequests": 0
+        }
+      ]
+    },
+    {
+      "label": "process-restart-full-2212",
+      "exitCode": 0,
+      "passed": 29,
+      "skipped": 0,
+      "sourceSha256": {
+        "packages/context-memory-kernel/lib/runtime.js": "8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+        "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+        "packages/context-memory-kernel/lib/memory-reducer.js": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+        "packages/context-memory-kernel/lib/compaction.js": "c20037ed2d90d6aa62e8d642ffc65f48b27282b048896a40d840ff0b93c59a98",
+        "packages/cli/src/lib/context-memory-kernel/provider-context.js": "ab74480036676afc883aa1027653c16d1bf94c09eaa5355652940ea7c158a9a2",
+        "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+        "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+        "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+        "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+        "packages/cli/src/lib/context-memory-kernel/message-adapter.js": "d4448c48d109ea851577a847cbbd4c29058b2e6fc163be9ee589399399cbba41",
+        "packages/cli/src/lib/context-memory-kernel/live-compaction.js": "cbf7077bd3fc1b022333d5663604cdd4f1fbd223f9290b3a26e61b53470395f1",
+        "packages/cli/src/lib/context-memory-kernel/jsonl-session-context-port.js": "1b5652e6154a2bba1ec792b0319b0918ed19345464e9f5da06c981c784419db3",
+        "packages/cli/src/lib/abort-utils.js": "7f1c1703150e71c46ad80b3f6688edc1a489fc389bca462a65091bef11dd692b",
+        "packages/cli/src/lib/secure-file-identity.js": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+        "packages/cli/test-node/fixtures/context-memory-compaction-restart-child.mjs": "4f34590794a3ab30f1052f37c79d21328a560c02b71f90ebb0130999ccfa2e57",
+        "packages/cli/src/runtime/agent-core.js": "7400641ff5d5dcf398a1f917f6f5231b45bf2531e4e29011ae12804a686c109e",
+        "packages/cli/src/runtime/headless-runner.js": "9e871811fd02aa7c05e7a6ed4bab9704c06d3f74a39f600bb874a3e62f3c0bac",
+        "packages/cli/src/runtime/headless-stream.js": "39b8e7914a7b942dfd3c1688d07db4ba60efff42f8b1f0d4f491894f455797e3",
+        "packages/cli/src/harness/prompt-compressor.js": "4706b1b493e87289084115c247542ed8a8cd07164eef5362350dfc7c2e65c7b5",
+        "packages/cli/src/harness/provider-backed-compaction.js": "c17ac6556491e6f5959c44cc866543715ea445600979d0350c8d5367cf15e45f",
+        "packages/cli/src/harness/jsonl-session-store.js": "f0f3322c126f2249e47dcc0afced010394f4c30a50e50a94970e926b17ee5146",
+        "packages/cli/test-node/context-memory-kernel.node-test.mjs": "423398866bd9e5845b964c88d36572ea4f3e270413176fe223c367e3910ba37a"
+      },
+      "sourceStable": true,
+      "reports": [
+        {
+          "writer": {
+            "ready": true,
+            "receipt": {
+              "schema": "chainlesschain.context-compaction/v1",
+              "schemaVersion": 1,
+              "operationId": "durable-process-compaction",
+              "sessionId": "compaction-process-supersede",
+              "status": "committed",
+              "inputHead": "eed14c6a4241a22af886efbbc8700dd7ff3a65ec51f3f421907f7e7b98abfc41",
+              "inputDigest": "sha256:ed71c1e27e70749421182cd9afcbf36c96a9bfed2561b80f567191ca922602ea",
+              "outputDigest": "sha256:270fc1b02960f9dcec5ccdc1044264a262777e6d51876d7786362841bc313179",
+              "contextPlanDigest": "sha256:2d5e5640a758dc2183064e9320c32e78aecb343cf78cb6da8bdfeb4b0b09efc9",
+              "memoryRevision": 3,
+              "selectedItemIds": [
+                "cli-msg-d1d27463c9ee5be27340d788b4373a46-2"
+              ],
+              "lifecycle": [
+                {
+                  "state": "evaluating",
+                  "at": "2026-10-29T00:00:00.000Z"
+                },
+                {
+                  "state": "preparing",
+                  "at": "2026-10-29T03:48:49.676Z",
+                  "details": {
+                    "inputDigest": "sha256:ed71c1e27e70749421182cd9afcbf36c96a9bfed2561b80f567191ca922602ea"
+                  }
+                },
+                {
+                  "state": "verifying",
+                  "at": "2026-10-29T03:48:49.678Z"
+                },
+                {
+                  "state": "committing",
+                  "at": "2026-10-29T03:48:49.679Z"
+                },
+                {
+                  "state": "committed",
+                  "at": "2026-10-29T03:48:49.679Z"
+                }
+              ],
+              "newHead": "59d853ffcf2302fd4a34ea424f51f113f47a534cf77a682848e3036a0d44ff4c",
+              "eventDigest": "sha256:0cbad1aff4e685b15e794e7fe6a739ef12a47b04d63d786d594cf32a14c732c7",
+              "digest": "sha256:54a00de17bf6901a6aa48ec3f21da163824369981916fa0474d4f9b8df8a78f0"
+            },
+            "initialRevision": 3,
+            "pid": 22120,
+            "physicalRequests": 0
+          },
+          "mutation": {
+            "mutated": true,
+            "before": 3,
+            "after": 6,
+            "pid": 9908,
+            "physicalRequests": 0
+          },
+          "reader": {
+            "resumed": true,
+            "receipt": {
+              "schema": "chainlesschain.context-compaction/v1",
+              "schemaVersion": 1,
+              "operationId": "durable-process-compaction",
+              "sessionId": "compaction-process-supersede",
+              "status": "committed",
+              "inputHead": "eed14c6a4241a22af886efbbc8700dd7ff3a65ec51f3f421907f7e7b98abfc41",
+              "inputDigest": "sha256:ed71c1e27e70749421182cd9afcbf36c96a9bfed2561b80f567191ca922602ea",
+              "outputDigest": "sha256:270fc1b02960f9dcec5ccdc1044264a262777e6d51876d7786362841bc313179",
+              "contextPlanDigest": "sha256:2d5e5640a758dc2183064e9320c32e78aecb343cf78cb6da8bdfeb4b0b09efc9",
+              "memoryRevision": 3,
+              "selectedItemIds": [
+                "cli-msg-d1d27463c9ee5be27340d788b4373a46-2"
+              ],
+              "lifecycle": [
+                {
+                  "state": "evaluating",
+                  "at": "2026-10-29T00:00:00.000Z"
+                },
+                {
+                  "state": "preparing",
+                  "at": "2026-10-29T03:48:49.676Z",
+                  "details": {
+                    "inputDigest": "sha256:ed71c1e27e70749421182cd9afcbf36c96a9bfed2561b80f567191ca922602ea"
+                  }
+                },
+                {
+                  "state": "verifying",
+                  "at": "2026-10-29T03:48:49.678Z"
+                },
+                {
+                  "state": "committing",
+                  "at": "2026-10-29T03:48:49.679Z"
+                },
+                {
+                  "state": "committed",
+                  "at": "2026-10-29T03:48:49.679Z"
+                }
+              ],
+              "newHead": "59d853ffcf2302fd4a34ea424f51f113f47a534cf77a682848e3036a0d44ff4c",
+              "eventDigest": "sha256:0cbad1aff4e685b15e794e7fe6a739ef12a47b04d63d786d594cf32a14c732c7",
+              "digest": "sha256:54a00de17bf6901a6aa48ec3f21da163824369981916fa0474d4f9b8df8a78f0"
+            },
+            "memoryRevision": 6,
+            "recalledIds": [
+              "current",
+              "successor"
+            ],
+            "compactEvents": 1,
+            "pid": 21996,
+            "physicalRequests": 0
+          }
+        },
+        {
+          "writer": {
+            "ready": true,
+            "receipt": {
+              "schema": "chainlesschain.context-compaction/v1",
+              "schemaVersion": 1,
+              "operationId": "durable-process-compaction",
+              "sessionId": "compaction-process-delete",
+              "status": "committed",
+              "inputHead": "73de3bb22dcb196b31efc71fe2de560d6f747be65683a53a19f1da01c8d0ddd9",
+              "inputDigest": "sha256:c9d48ba763474ab07652ca1b395e0105c647c4f42ea66de7bd4701d1c46f6244",
+              "outputDigest": "sha256:73288f36b11d1256e828b28d5eb1a3e8751a031a569b878de80ca857ba4c0f18",
+              "contextPlanDigest": "sha256:8c5d03ec188f9c8408b8e062611acc856325b4880cc5ed0b6cf9f7f0facb0f2a",
+              "memoryRevision": 3,
+              "selectedItemIds": [
+                "cli-msg-f5676cd61e8e18a11bb94ece9cd3a69d-2"
+              ],
+              "lifecycle": [
+                {
+                  "state": "evaluating",
+                  "at": "2026-10-29T00:00:00.000Z"
+                },
+                {
+                  "state": "preparing",
+                  "at": "2026-10-29T03:48:54.026Z",
+                  "details": {
+                    "inputDigest": "sha256:c9d48ba763474ab07652ca1b395e0105c647c4f42ea66de7bd4701d1c46f6244"
+                  }
+                },
+                {
+                  "state": "verifying",
+                  "at": "2026-10-29T03:48:54.027Z"
+                },
+                {
+                  "state": "committing",
+                  "at": "2026-10-29T03:48:54.027Z"
+                },
+                {
+                  "state": "committed",
+                  "at": "2026-10-29T03:48:54.027Z"
+                }
+              ],
+              "newHead": "1d19775e0be14989767c2049722dc0e8dca0de5accd052c580e855aede0f5c87",
+              "eventDigest": "sha256:955237a96fe32a3b04fcf8519a64427deb80e5d30e4bba3d8626a48200d58163",
+              "digest": "sha256:a5252ff477b441ace175851ad36d7325227924dfb4513f9fb3de6146f98efc5d"
+            },
+            "initialRevision": 3,
+            "pid": 22788,
+            "physicalRequests": 0
+          },
+          "mutation": {
+            "mutated": true,
+            "before": 3,
+            "after": 8,
+            "pid": 19084,
+            "physicalRequests": 0
+          },
+          "reader": {
+            "resumed": true,
+            "receipt": {
+              "schema": "chainlesschain.context-compaction/v1",
+              "schemaVersion": 1,
+              "operationId": "durable-process-compaction",
+              "sessionId": "compaction-process-delete",
+              "status": "committed",
+              "inputHead": "73de3bb22dcb196b31efc71fe2de560d6f747be65683a53a19f1da01c8d0ddd9",
+              "inputDigest": "sha256:c9d48ba763474ab07652ca1b395e0105c647c4f42ea66de7bd4701d1c46f6244",
+              "outputDigest": "sha256:73288f36b11d1256e828b28d5eb1a3e8751a031a569b878de80ca857ba4c0f18",
+              "contextPlanDigest": "sha256:8c5d03ec188f9c8408b8e062611acc856325b4880cc5ed0b6cf9f7f0facb0f2a",
+              "memoryRevision": 3,
+              "selectedItemIds": [
+                "cli-msg-f5676cd61e8e18a11bb94ece9cd3a69d-2"
+              ],
+              "lifecycle": [
+                {
+                  "state": "evaluating",
+                  "at": "2026-10-29T00:00:00.000Z"
+                },
+                {
+                  "state": "preparing",
+                  "at": "2026-10-29T03:48:54.026Z",
+                  "details": {
+                    "inputDigest": "sha256:c9d48ba763474ab07652ca1b395e0105c647c4f42ea66de7bd4701d1c46f6244"
+                  }
+                },
+                {
+                  "state": "verifying",
+                  "at": "2026-10-29T03:48:54.027Z"
+                },
+                {
+                  "state": "committing",
+                  "at": "2026-10-29T03:48:54.027Z"
+                },
+                {
+                  "state": "committed",
+                  "at": "2026-10-29T03:48:54.027Z"
+                }
+              ],
+              "newHead": "1d19775e0be14989767c2049722dc0e8dca0de5accd052c580e855aede0f5c87",
+              "eventDigest": "sha256:955237a96fe32a3b04fcf8519a64427deb80e5d30e4bba3d8626a48200d58163",
+              "digest": "sha256:a5252ff477b441ace175851ad36d7325227924dfb4513f9fb3de6146f98efc5d"
+            },
+            "memoryRevision": 8,
+            "recalledIds": [
+              "current"
+            ],
+            "compactEvents": 1,
+            "pid": 19856,
+            "physicalRequests": 0
+          }
+        },
+        {
+          "reconciliationRequired": true,
+          "receipt": {
+            "schema": "chainlesschain.context-compaction/v1",
+            "schemaVersion": 1,
+            "operationId": "unfinished-semantic-compaction",
+            "sessionId": "compaction-process-unfinished",
+            "status": "reconciliation_required",
+            "inputHead": "469e4c5b80140883d7131fa55bc585ad704d938a418117b8fc4c120f32c744d7",
+            "currentHead": "dc83ab341da560a84d248a9d1622b160cebcdd35767a0f46cc8f32ee85e1b2b8",
+            "startedAt": "2026-10-29T03:48:58.426Z",
+            "lifecycle": [
+              {
+                "state": "reconciliation_required",
+                "at": "2026-10-29T03:48:58.426Z",
+                "details": {
+                  "code": "semantic_usage_without_compaction_commit"
+                }
+              }
+            ],
+            "digest": "sha256:34d40d757d659fdec489b269bb053d093e123be75a396f6ce2a422c16df4213b"
+          },
+          "compactEvents": 0,
+          "pid": 12920,
+          "physicalRequests": 0
+        }
+      ]
+    },
+    {
+      "label": "process-restart-full-2222",
+      "exitCode": 0,
+      "passed": 29,
+      "skipped": 0,
+      "sourceSha256": {
+        "packages/context-memory-kernel/lib/runtime.js": "8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+        "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+        "packages/context-memory-kernel/lib/memory-reducer.js": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+        "packages/context-memory-kernel/lib/compaction.js": "c20037ed2d90d6aa62e8d642ffc65f48b27282b048896a40d840ff0b93c59a98",
+        "packages/cli/src/lib/context-memory-kernel/provider-context.js": "ab74480036676afc883aa1027653c16d1bf94c09eaa5355652940ea7c158a9a2",
+        "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+        "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+        "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+        "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+        "packages/cli/src/lib/context-memory-kernel/message-adapter.js": "d4448c48d109ea851577a847cbbd4c29058b2e6fc163be9ee589399399cbba41",
+        "packages/cli/src/lib/context-memory-kernel/live-compaction.js": "cbf7077bd3fc1b022333d5663604cdd4f1fbd223f9290b3a26e61b53470395f1",
+        "packages/cli/src/lib/context-memory-kernel/jsonl-session-context-port.js": "1b5652e6154a2bba1ec792b0319b0918ed19345464e9f5da06c981c784419db3",
+        "packages/cli/src/lib/abort-utils.js": "7f1c1703150e71c46ad80b3f6688edc1a489fc389bca462a65091bef11dd692b",
+        "packages/cli/src/lib/secure-file-identity.js": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+        "packages/cli/test-node/fixtures/context-memory-compaction-restart-child.mjs": "4f34590794a3ab30f1052f37c79d21328a560c02b71f90ebb0130999ccfa2e57",
+        "packages/cli/src/runtime/agent-core.js": "7400641ff5d5dcf398a1f917f6f5231b45bf2531e4e29011ae12804a686c109e",
+        "packages/cli/src/runtime/headless-runner.js": "9e871811fd02aa7c05e7a6ed4bab9704c06d3f74a39f600bb874a3e62f3c0bac",
+        "packages/cli/src/runtime/headless-stream.js": "39b8e7914a7b942dfd3c1688d07db4ba60efff42f8b1f0d4f491894f455797e3",
+        "packages/cli/src/harness/prompt-compressor.js": "4706b1b493e87289084115c247542ed8a8cd07164eef5362350dfc7c2e65c7b5",
+        "packages/cli/src/harness/provider-backed-compaction.js": "c17ac6556491e6f5959c44cc866543715ea445600979d0350c8d5367cf15e45f",
+        "packages/cli/src/harness/jsonl-session-store.js": "f0f3322c126f2249e47dcc0afced010394f4c30a50e50a94970e926b17ee5146",
+        "packages/cli/test-node/context-memory-kernel.node-test.mjs": "423398866bd9e5845b964c88d36572ea4f3e270413176fe223c367e3910ba37a"
+      },
+      "sourceStable": true,
+      "reports": [
+        {
+          "writer": {
+            "ready": true,
+            "receipt": {
+              "schema": "chainlesschain.context-compaction/v1",
+              "schemaVersion": 1,
+              "operationId": "durable-process-compaction",
+              "sessionId": "compaction-process-supersede",
+              "status": "committed",
+              "inputHead": "38d602bd61b9f4192674b24637d99d7122ee12aa31559e3ae47fcc7eaa84045e",
+              "inputDigest": "sha256:bd780e7d4af7eba116c8e4c6986d679f8226a3e45670ecb8cb98ef5d856669c3",
+              "outputDigest": "sha256:270fc1b02960f9dcec5ccdc1044264a262777e6d51876d7786362841bc313179",
+              "contextPlanDigest": "sha256:02ebe3a98db6699e8724a8c5bb92a5c18fe2240b442a7f1ae0b284b7093e6e16",
+              "memoryRevision": 3,
+              "selectedItemIds": [
+                "cli-msg-d1d27463c9ee5be27340d788b4373a46-2"
+              ],
+              "lifecycle": [
+                {
+                  "state": "evaluating",
+                  "at": "2026-10-29T00:00:00.000Z"
+                },
+                {
+                  "state": "preparing",
+                  "at": "2026-10-29T03:48:59.397Z",
+                  "details": {
+                    "inputDigest": "sha256:bd780e7d4af7eba116c8e4c6986d679f8226a3e45670ecb8cb98ef5d856669c3"
+                  }
+                },
+                {
+                  "state": "verifying",
+                  "at": "2026-10-29T03:48:59.399Z"
+                },
+                {
+                  "state": "committing",
+                  "at": "2026-10-29T03:48:59.399Z"
+                },
+                {
+                  "state": "committed",
+                  "at": "2026-10-29T03:48:59.399Z"
+                }
+              ],
+              "newHead": "a44e7e654f94059d67cb1e18b0830d8e7ede3e7b4f39d648a3cdf17debc2a525",
+              "eventDigest": "sha256:aa8f70e2ed107f7bf2a92ef067ce46d508305fa76f1a96f0499d0f9c3e138970",
+              "digest": "sha256:f8393d073a4105e2ebd1e1320e06cc73b0aa75b20e7fc2065862a8139ef1408d"
+            },
+            "initialRevision": 3,
+            "pid": 5220,
+            "physicalRequests": 0
+          },
+          "mutation": {
+            "mutated": true,
+            "before": 3,
+            "after": 6,
+            "pid": 16084,
+            "physicalRequests": 0
+          },
+          "reader": {
+            "resumed": true,
+            "receipt": {
+              "schema": "chainlesschain.context-compaction/v1",
+              "schemaVersion": 1,
+              "operationId": "durable-process-compaction",
+              "sessionId": "compaction-process-supersede",
+              "status": "committed",
+              "inputHead": "38d602bd61b9f4192674b24637d99d7122ee12aa31559e3ae47fcc7eaa84045e",
+              "inputDigest": "sha256:bd780e7d4af7eba116c8e4c6986d679f8226a3e45670ecb8cb98ef5d856669c3",
+              "outputDigest": "sha256:270fc1b02960f9dcec5ccdc1044264a262777e6d51876d7786362841bc313179",
+              "contextPlanDigest": "sha256:02ebe3a98db6699e8724a8c5bb92a5c18fe2240b442a7f1ae0b284b7093e6e16",
+              "memoryRevision": 3,
+              "selectedItemIds": [
+                "cli-msg-d1d27463c9ee5be27340d788b4373a46-2"
+              ],
+              "lifecycle": [
+                {
+                  "state": "evaluating",
+                  "at": "2026-10-29T00:00:00.000Z"
+                },
+                {
+                  "state": "preparing",
+                  "at": "2026-10-29T03:48:59.397Z",
+                  "details": {
+                    "inputDigest": "sha256:bd780e7d4af7eba116c8e4c6986d679f8226a3e45670ecb8cb98ef5d856669c3"
+                  }
+                },
+                {
+                  "state": "verifying",
+                  "at": "2026-10-29T03:48:59.399Z"
+                },
+                {
+                  "state": "committing",
+                  "at": "2026-10-29T03:48:59.399Z"
+                },
+                {
+                  "state": "committed",
+                  "at": "2026-10-29T03:48:59.399Z"
+                }
+              ],
+              "newHead": "a44e7e654f94059d67cb1e18b0830d8e7ede3e7b4f39d648a3cdf17debc2a525",
+              "eventDigest": "sha256:aa8f70e2ed107f7bf2a92ef067ce46d508305fa76f1a96f0499d0f9c3e138970",
+              "digest": "sha256:f8393d073a4105e2ebd1e1320e06cc73b0aa75b20e7fc2065862a8139ef1408d"
+            },
+            "memoryRevision": 6,
+            "recalledIds": [
+              "current",
+              "successor"
+            ],
+            "compactEvents": 1,
+            "pid": 13024,
+            "physicalRequests": 0
+          }
+        },
+        {
+          "writer": {
+            "ready": true,
+            "receipt": {
+              "schema": "chainlesschain.context-compaction/v1",
+              "schemaVersion": 1,
+              "operationId": "durable-process-compaction",
+              "sessionId": "compaction-process-delete",
+              "status": "committed",
+              "inputHead": "da4cbc97ae433755559f09d7fe77f112a7245e28ed8fcbcc5a1e98a452dfd208",
+              "inputDigest": "sha256:bb8517777cf39f30ed190ad6de5328a7fd46bc94317d9d78d2751cc63890d566",
+              "outputDigest": "sha256:73288f36b11d1256e828b28d5eb1a3e8751a031a569b878de80ca857ba4c0f18",
+              "contextPlanDigest": "sha256:1e0af0c53728251d7e757f770f5e85a806a2c0c2ee6b38900a48b53979f94183",
+              "memoryRevision": 3,
+              "selectedItemIds": [
+                "cli-msg-f5676cd61e8e18a11bb94ece9cd3a69d-2"
+              ],
+              "lifecycle": [
+                {
+                  "state": "evaluating",
+                  "at": "2026-10-29T00:00:00.000Z"
+                },
+                {
+                  "state": "preparing",
+                  "at": "2026-10-29T03:49:03.499Z",
+                  "details": {
+                    "inputDigest": "sha256:bb8517777cf39f30ed190ad6de5328a7fd46bc94317d9d78d2751cc63890d566"
+                  }
+                },
+                {
+                  "state": "verifying",
+                  "at": "2026-10-29T03:49:03.501Z"
+                },
+                {
+                  "state": "committing",
+                  "at": "2026-10-29T03:49:03.502Z"
+                },
+                {
+                  "state": "committed",
+                  "at": "2026-10-29T03:49:03.502Z"
+                }
+              ],
+              "newHead": "340f7f492eb16651c296ac26a407cf8da7167b5fab9c476ac4621ceec1c6c26b",
+              "eventDigest": "sha256:16580402ed3f62ba31a3d2e433f2b3fc2bbb208b8c29a17131948b27cf3d5f40",
+              "digest": "sha256:e0d4d56a781b7c7b9a1bd6cb1a6a9523dbb16c72c653fc15ce3d41b48de2e6ee"
+            },
+            "initialRevision": 3,
+            "pid": 7804,
+            "physicalRequests": 0
+          },
+          "mutation": {
+            "mutated": true,
+            "before": 3,
+            "after": 8,
+            "pid": 12360,
+            "physicalRequests": 0
+          },
+          "reader": {
+            "resumed": true,
+            "receipt": {
+              "schema": "chainlesschain.context-compaction/v1",
+              "schemaVersion": 1,
+              "operationId": "durable-process-compaction",
+              "sessionId": "compaction-process-delete",
+              "status": "committed",
+              "inputHead": "da4cbc97ae433755559f09d7fe77f112a7245e28ed8fcbcc5a1e98a452dfd208",
+              "inputDigest": "sha256:bb8517777cf39f30ed190ad6de5328a7fd46bc94317d9d78d2751cc63890d566",
+              "outputDigest": "sha256:73288f36b11d1256e828b28d5eb1a3e8751a031a569b878de80ca857ba4c0f18",
+              "contextPlanDigest": "sha256:1e0af0c53728251d7e757f770f5e85a806a2c0c2ee6b38900a48b53979f94183",
+              "memoryRevision": 3,
+              "selectedItemIds": [
+                "cli-msg-f5676cd61e8e18a11bb94ece9cd3a69d-2"
+              ],
+              "lifecycle": [
+                {
+                  "state": "evaluating",
+                  "at": "2026-10-29T00:00:00.000Z"
+                },
+                {
+                  "state": "preparing",
+                  "at": "2026-10-29T03:49:03.499Z",
+                  "details": {
+                    "inputDigest": "sha256:bb8517777cf39f30ed190ad6de5328a7fd46bc94317d9d78d2751cc63890d566"
+                  }
+                },
+                {
+                  "state": "verifying",
+                  "at": "2026-10-29T03:49:03.501Z"
+                },
+                {
+                  "state": "committing",
+                  "at": "2026-10-29T03:49:03.502Z"
+                },
+                {
+                  "state": "committed",
+                  "at": "2026-10-29T03:49:03.502Z"
+                }
+              ],
+              "newHead": "340f7f492eb16651c296ac26a407cf8da7167b5fab9c476ac4621ceec1c6c26b",
+              "eventDigest": "sha256:16580402ed3f62ba31a3d2e433f2b3fc2bbb208b8c29a17131948b27cf3d5f40",
+              "digest": "sha256:e0d4d56a781b7c7b9a1bd6cb1a6a9523dbb16c72c653fc15ce3d41b48de2e6ee"
+            },
+            "memoryRevision": 8,
+            "recalledIds": [
+              "current"
+            ],
+            "compactEvents": 1,
+            "pid": 19084,
+            "physicalRequests": 0
+          }
+        },
+        {
+          "reconciliationRequired": true,
+          "receipt": {
+            "schema": "chainlesschain.context-compaction/v1",
+            "schemaVersion": 1,
+            "operationId": "unfinished-semantic-compaction",
+            "sessionId": "compaction-process-unfinished",
+            "status": "reconciliation_required",
+            "inputHead": "836c8a2706a67cb127f24b985ac460ff47352116ae6d67ac155168d46b716a8e",
+            "currentHead": "83721b1cab587399bb7195f65a36a956368ed5480a2319199b9db116296593ac",
+            "startedAt": "2026-10-29T03:49:07.424Z",
+            "lifecycle": [
+              {
+                "state": "reconciliation_required",
+                "at": "2026-10-29T03:49:07.424Z",
+                "details": {
+                  "code": "semantic_usage_without_compaction_commit"
+                }
+              }
+            ],
+            "digest": "sha256:68c3c6bacd31c46f75ac2a27594fa2e050f9fb1aca25c47ac44c4b841a5f4f25"
+          },
+          "compactEvents": 0,
+          "pid": 8428,
+          "physicalRequests": 0
+        }
+      ]
+    }
+  ],
+  "coverage": [
+    "real writer process killed only after durable canonical compact event and receipt",
+    "independent mutator supersedes or purges recalled memory",
+    "independent reader reopens JSONL and disk authority",
+    "same compaction operation returns original receipt and creates no second event",
+    "provider context uses current revision and rejects old/scope/sink-forbidden recall",
+    "durable semantic usage intent killed before commit requires reconciliation, with no implicit request or fabricated compact event"
+  ],
+  "boundary": "Native canonical adapters only, not a complete headless/REPL/IDE restart journey. Compaction uses deterministic selection without paid semantic generation. Crash points are after durable commit and after usage intent; arbitrary torn writes and physical erasure are not proven. Windows local tests on Node 22.12 and 22.22 do not replace exact-source three-OS CI. Runs overlap and are not cumulative acceptance.",
+  "acceptance": {
+    "accepted": 34,
+    "total": 45,
+    "fullMemoryRecoveryAccepted": false,
+    "paidReady": false,
+    "released": false
+  },
+  "artifacts": [
+    {
+      "path": "docs/research/cli/evidence/memory-process-restart-2026-10-29/raw/process-restart-smoke-process.json",
+      "source": ".work/structured-memory-20261029/process-restart-smoke-process.json",
+      "bytes": 6137,
+      "sha256": "e4efc33714f5ae802d06e216172f43137ab05bdc5abe1fda73a2612e6f652129"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-process-restart-2026-10-29/raw/process-restart-smoke.log",
+      "source": ".work/structured-memory-20261029/process-restart-smoke.log",
+      "bytes": 7104,
+      "sha256": "cb6eb5d46931250c9d298e9565599ff16776dd0ef2e34ec48e9478028affb901"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-process-restart-2026-10-29/raw/process-restart-full-2212-process.json",
+      "source": ".work/structured-memory-20261029/process-restart-full-2212-process.json",
+      "bytes": 6074,
+      "sha256": "c0986476beb47693f176317d9a8e924b762ee5aa1560ae67172d7aa549e49279"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-process-restart-2026-10-29/raw/process-restart-full-2212.log",
+      "source": ".work/structured-memory-20261029/process-restart-full-2212.log",
+      "bytes": 12378,
+      "sha256": "c9ba3c9c59947c143eb44be09d4f56c3c67ce63253f8e4273bcce937442a9ede"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-process-restart-2026-10-29/raw/process-restart-full-2222-process.json",
+      "source": ".work/structured-memory-20261029/process-restart-full-2222-process.json",
+      "bytes": 6074,
+      "sha256": "4aef024141085e4f2c440d7dc2de249bd1e336a3e2004de6c30ba140588f80bb"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-process-restart-2026-10-29/raw/process-restart-full-2222.log",
+      "source": ".work/structured-memory-20261029/process-restart-full-2222.log",
+      "bytes": 12812,
+      "sha256": "4c40baa3ee013e6c9c977b47dc0d5c16a575963cdf102464a965751882dc6162"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-process-restart-2026-10-29/raw/context-memory-kernel.node-test.mjs",
+      "source": "packages/cli/test-node/context-memory-kernel.node-test.mjs",
+      "bytes": 57629,
+      "sha256": "423398866bd9e5845b964c88d36572ea4f3e270413176fe223c367e3910ba37a"
+    },
+    {
+      "path": "docs/research/cli/evidence/memory-process-restart-2026-10-29/raw/context-memory-compaction-restart-child.mjs",
+      "source": "packages/cli/test-node/fixtures/context-memory-compaction-restart-child.mjs",
+      "bytes": 7233,
+      "sha256": "4f34590794a3ab30f1052f37c79d21328a560c02b71f90ebb0130999ccfa2e57"
+    }
+  ]
+}

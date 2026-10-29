@@ -12,7 +12,7 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   applyMemoryCommand,
@@ -1553,3 +1553,146 @@ test("CLI App Server mapping emits the shared canonical projection fixture", () 
     rows.map(({ method, type }) => ({ method, type })),
   );
 });
+
+function startCompactionRecoveryChild(mode, directory, change) {
+  const fixturePath = fileURLToPath(
+    new URL(
+      "./fixtures/context-memory-compaction-restart-child.mjs",
+      import.meta.url,
+    ),
+  );
+  const child = spawn(
+    process.execPath,
+    [fixturePath, mode, directory, change],
+    {
+      windowsHide: true,
+      env: {
+        ...process.env,
+        CHAINLESSCHAIN_HOME: join(directory, "home"),
+        CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: join(directory, "anchors"),
+        CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default",
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+  let stdout = "",
+    stderr = "",
+    pending = "",
+    markReady;
+  const ready = new Promise((resolve) => {
+    markReady = resolve;
+  });
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+  const timer = setTimeout(() => child.kill(), 30_000);
+  const records = [];
+  const done = new Promise((resolve, reject) => {
+    child.on("error", (error) => {
+      markReady(null);
+      reject(error);
+    });
+    child.on("close", (code, signal) => {
+      clearTimeout(timer);
+      // A failing child must release a waiter that has not observed READY.
+      markReady(null);
+      resolve({ code, signal, stdout, stderr, records });
+    });
+  });
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk;
+    pending += chunk;
+    if (stdout.length > 1024 * 1024) {
+      child.kill();
+      return;
+    }
+    const lines = pending.split("\n");
+    pending = lines.pop();
+    for (const line of lines) {
+      try {
+        const value = JSON.parse(line);
+        records.push(value);
+        if (value.ready === true) markReady(value);
+      } catch {
+        /* Non-protocol diagnostics remain in captured stdout. */
+      }
+    }
+  });
+  child.stderr.on("data", (chunk) => {
+    stderr += chunk;
+    if (stderr.length > 1024 * 1024) child.kill();
+  });
+  return { child, ready, done };
+}
+
+async function compactionRecoveryFixture(t, change) {
+  const directory = mkdtempSync(join(TEMPORARY_ROOT, "cc-compact-process-"));
+  const children = [];
+  t.after(async () => {
+    for (const item of children) {
+      if (item.child.exitCode === null && item.child.signalCode === null)
+        item.child.kill();
+      await item.done;
+    }
+    assert.equal(dirname(directory), TEMPORARY_ROOT);
+    assert.ok(basename(directory).startsWith("cc-compact-process-"));
+    assert.equal(realpathSync.native(directory), directory);
+    rmSync(directory, { recursive: true, force: true });
+  });
+  const launch = (mode) => {
+    const item = startCompactionRecoveryChild(mode, directory, change);
+    children.push(item);
+    return item;
+  };
+  const killAtReady = async (mode) => {
+    const item = launch(mode);
+    const ready = await item.ready;
+    if (!ready) assert.fail(JSON.stringify(await item.done));
+    assert.equal(ready.physicalRequests, 0);
+    assert.equal(item.child.exitCode, null);
+    assert.equal(item.child.kill(), true);
+    const stopped = await item.done;
+    assert.ok(stopped.signal !== null || stopped.code !== 0);
+    return ready;
+  };
+  const run = async (mode) => {
+    const result = await launch(mode).done;
+    assert.equal(result.code, 0, JSON.stringify(result));
+    const report = result.records.at(-1);
+    assert.equal(report.physicalRequests, 0);
+    return report;
+  };
+  return { killAtReady, run };
+}
+
+for (const change of ["supersede", "delete"]) {
+  test(
+    `killed compaction writer resumes in an independent process after ${change}`,
+    { timeout: 60_000 },
+    async (t) => {
+      const fixture = await compactionRecoveryFixture(t, change);
+      const writer = await fixture.killAtReady("write");
+      assert.equal(writer.receipt.status, "committed");
+      const mutation = await fixture.run("mutate");
+      const reader = await fixture.run("resume");
+      assert.equal(reader.resumed, true);
+      assert.equal(reader.compactEvents, 1);
+      assert.equal(reader.memoryRevision, mutation.after);
+      assert.ok(reader.memoryRevision > writer.initialRevision);
+      assert.deepEqual(reader.receipt, writer.receipt);
+      t.diagnostic(JSON.stringify({ writer, mutation, reader }));
+    },
+  );
+}
+
+test(
+  "a killed semantic-compaction intent requires reconciliation after process restart",
+  { timeout: 60_000 },
+  async (t) => {
+    const fixture = await compactionRecoveryFixture(t, "unfinished");
+    await fixture.killAtReady("uncommitted");
+    const result = await fixture.run("reconcile");
+    assert.equal(result.reconciliationRequired, true);
+    assert.equal(result.compactEvents, 0);
+    t.diagnostic(JSON.stringify(result));
+  },
+);

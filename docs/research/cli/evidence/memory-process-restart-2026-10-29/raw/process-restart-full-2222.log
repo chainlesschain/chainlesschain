@@ -1,0 +1,190 @@
+TAP version 13
+# Subtest: complete memory ID deletes without scanning and retains scope and audit
+ok 1 - complete memory ID deletes without scanning and retains scope and audit
+  ---
+  duration_ms: 814.3793
+  type: 'test'
+  ...
+# Subtest: memory prefix retains ambiguity and unique selection
+ok 2 - memory prefix retains ambiguity and unique selection
+  ---
+  duration_ms: 754.7054
+  type: 'test'
+  ...
+# Subtest: tombstones are excluded while longer prefix matches remain eligible
+ok 3 - tombstones are excluded while longer prefix matches remain eligible
+  ---
+  duration_ms: 884.4257
+  type: 'test'
+  ...
+# Subtest: an exact ID appearing before the prefix scan still takes precedence
+ok 4 - an exact ID appearing before the prefix scan still takes precedence
+  ---
+  duration_ms: 473.6994
+  type: 'test'
+  ...
+# Subtest: point-read deletion preserves CAS conflict without retrying a mutation
+ok 5 - point-read deletion preserves CAS conflict without retrying a mutation
+  ---
+  duration_ms: 282.554
+  type: 'test'
+  ...
+# Subtest: CLI message projection preserves durable provenance and atomic tool bundles
+ok 6 - CLI message projection preserves durable provenance and atomic tool bundles
+  ---
+  duration_ms: 8.6296
+  type: 'test'
+  ...
+# Subtest: ordinary persisted system text cannot become a trusted policy
+ok 7 - ordinary persisted system text cannot become a trusted policy
+  ---
+  duration_ms: 3.191
+  type: 'test'
+  ...
+# Subtest: durable CLI memory survives restart, deletion, and idempotent reconciliation
+ok 8 - durable CLI memory survives restart, deletion, and idempotent reconciliation
+  ---
+  duration_ms: 116.2186
+  type: 'test'
+  ...
+# Subtest: durable CLI memory rejects digest tampering
+ok 9 - durable CLI memory rejects digest tampering
+  ---
+  duration_ms: 63.3008
+  type: 'test'
+  ...
+# Subtest: CLI cutover decisions keep shadow write-free and fence legacy after cutover
+ok 10 - CLI cutover decisions keep shadow write-free and fence legacy after cutover
+  ---
+  duration_ms: 1.2031
+  type: 'test'
+  ...
+# Subtest: shadow Kernel produces the canonical plan but cannot create authority state
+ok 11 - shadow Kernel produces the canonical plan but cannot create authority state
+  ---
+  duration_ms: 3.5307
+  type: 'test'
+  ...
+# Subtest: canonical production fences direct legacy CLI memory APIs
+ok 12 - canonical production fences direct legacy CLI memory APIs
+  ---
+  duration_ms: 1.0728
+  type: 'test'
+  ...
+# Subtest: canonical CLI Chinese lexical recall survives durable restart and preserves admission fences
+ok 13 - canonical CLI Chinese lexical recall survives durable restart and preserves admission fences
+  ---
+  duration_ms: 1244.6202
+  type: 'test'
+  ...
+# Subtest: canonical provider context recalls Chinese substrings as data within scope and sink fences
+ok 14 - canonical provider context recalls Chinese substrings as data within scope and sink fences
+  ---
+  duration_ms: 1210.5576
+  type: 'test'
+  ...
+# Subtest: every canonical provider request binds recalled memory to a ContextPlan
+ok 15 - every canonical provider request binds recalled memory to a ContextPlan
+  ---
+  duration_ms: 436.8431
+  type: 'test'
+  ...
+# Subtest: review excludes memory recall without skipping canonical context budgets
+ok 16 - review excludes memory recall without skipping canonical context budgets
+  ---
+  duration_ms: 111.7579
+  type: 'test'
+  ...
+# Subtest: canonical provider planning lets protected current-turn state consume recovery reserve
+ok 17 - canonical provider planning lets protected current-turn state consume recovery reserve
+  ---
+  duration_ms: 57.194
+  type: 'test'
+  ...
+# Subtest: canonical CLI memory migrates legacy rows once and becomes the only writer
+ok 18 - canonical CLI memory migrates legacy rows once and becomes the only writer
+  ---
+  duration_ms: 672.3124
+  type: 'test'
+  ...
+# Subtest: tombstone survives a killed process and restart reconciliation purges legacy SQLite
+ok 19 - tombstone survives a killed process and restart reconciliation purges legacy SQLite
+  ---
+  duration_ms: 1421.2445
+  type: 'test'
+  ...
+# Subtest: canonical scoped memory migrates session-core rows and preserves scope fences
+ok 20 - canonical scoped memory migrates session-core rows and preserves scope fences
+  ---
+  duration_ms: 694.7821
+  type: 'test'
+  ...
+# Subtest: legacy privacy purge fails closed for corrupt, oversized, and symlink projections
+ok 21 - legacy privacy purge fails closed for corrupt, oversized, and symlink projections
+  ---
+  duration_ms: 26.7442
+  type: 'test'
+  ...
+# symlink assertion unavailable on this host: EPERM
+# Subtest: canonical live compaction owns selection and commits through its compatibility port
+ok 22 - canonical live compaction owns selection and commits through its compatibility port
+  ---
+  duration_ms: 427.9517
+  type: 'test'
+  ...
+# Subtest: canonical live callback receipts bind the verified physical JSONL heads
+ok 23 - canonical live callback receipts bind the verified physical JSONL heads
+  ---
+  duration_ms: 942.9258
+  type: 'test'
+  ...
+# Subtest: JSONL SessionContextPort commits one canonical compact event with restart idempotency
+ok 24 - JSONL SessionContextPort commits one canonical compact event with restart idempotency
+  ---
+  duration_ms: 1073.7084
+  type: 'test'
+  ...
+# Subtest: JSONL SessionContextPort reconciles a semantic compaction crash by operation id
+ok 25 - JSONL SessionContextPort reconciles a semantic compaction crash by operation id
+  ---
+  duration_ms: 425.8437
+  type: 'test'
+  ...
+# Subtest: CLI App Server mapping emits the shared canonical projection fixture
+ok 26 - CLI App Server mapping emits the shared canonical projection fixture
+  ---
+  duration_ms: 7.0305
+  type: 'test'
+  ...
+# Subtest: killed compaction writer resumes in an independent process after supersede
+ok 27 - killed compaction writer resumes in an independent process after supersede
+  ---
+  duration_ms: 4343.8522
+  type: 'test'
+  ...
+# {"writer":{"ready":true,"receipt":{"schema":"chainlesschain.context-compaction/v1","schemaVersion":1,"operationId":"durable-process-compaction","sessionId":"compaction-process-supersede","status":"committed","inputHead":"38d602bd61b9f4192674b24637d99d7122ee12aa31559e3ae47fcc7eaa84045e","inputDigest":"sha256:bd780e7d4af7eba116c8e4c6986d679f8226a3e45670ecb8cb98ef5d856669c3","outputDigest":"sha256:270fc1b02960f9dcec5ccdc1044264a262777e6d51876d7786362841bc313179","contextPlanDigest":"sha256:02ebe3a98db6699e8724a8c5bb92a5c18fe2240b442a7f1ae0b284b7093e6e16","memoryRevision":3,"selectedItemIds":["cli-msg-d1d27463c9ee5be27340d788b4373a46-2"],"lifecycle":[{"state":"evaluating","at":"2026-10-29T00:00:00.000Z"},{"state":"preparing","at":"2026-10-29T03:48:59.397Z","details":{"inputDigest":"sha256:bd780e7d4af7eba116c8e4c6986d679f8226a3e45670ecb8cb98ef5d856669c3"}},{"state":"verifying","at":"2026-10-29T03:48:59.399Z"},{"state":"committing","at":"2026-10-29T03:48:59.399Z"},{"state":"committed","at":"2026-10-29T03:48:59.399Z"}],"newHead":"a44e7e654f94059d67cb1e18b0830d8e7ede3e7b4f39d648a3cdf17debc2a525","eventDigest":"sha256:aa8f70e2ed107f7bf2a92ef067ce46d508305fa76f1a96f0499d0f9c3e138970","digest":"sha256:f8393d073a4105e2ebd1e1320e06cc73b0aa75b20e7fc2065862a8139ef1408d"},"initialRevision":3,"pid":5220,"physicalRequests":0},"mutation":{"mutated":true,"before":3,"after":6,"pid":16084,"physicalRequests":0},"reader":{"resumed":true,"receipt":{"schema":"chainlesschain.context-compaction/v1","schemaVersion":1,"operationId":"durable-process-compaction","sessionId":"compaction-process-supersede","status":"committed","inputHead":"38d602bd61b9f4192674b24637d99d7122ee12aa31559e3ae47fcc7eaa84045e","inputDigest":"sha256:bd780e7d4af7eba116c8e4c6986d679f8226a3e45670ecb8cb98ef5d856669c3","outputDigest":"sha256:270fc1b02960f9dcec5ccdc1044264a262777e6d51876d7786362841bc313179","contextPlanDigest":"sha256:02ebe3a98db6699e8724a8c5bb92a5c18fe2240b442a7f1ae0b284b7093e6e16","memoryRevision":3,"selectedItemIds":["cli-msg-d1d27463c9ee5be27340d788b4373a46-2"],"lifecycle":[{"state":"evaluating","at":"2026-10-29T00:00:00.000Z"},{"state":"preparing","at":"2026-10-29T03:48:59.397Z","details":{"inputDigest":"sha256:bd780e7d4af7eba116c8e4c6986d679f8226a3e45670ecb8cb98ef5d856669c3"}},{"state":"verifying","at":"2026-10-29T03:48:59.399Z"},{"state":"committing","at":"2026-10-29T03:48:59.399Z"},{"state":"committed","at":"2026-10-29T03:48:59.399Z"}],"newHead":"a44e7e654f94059d67cb1e18b0830d8e7ede3e7b4f39d648a3cdf17debc2a525","eventDigest":"sha256:aa8f70e2ed107f7bf2a92ef067ce46d508305fa76f1a96f0499d0f9c3e138970","digest":"sha256:f8393d073a4105e2ebd1e1320e06cc73b0aa75b20e7fc2065862a8139ef1408d"},"memoryRevision":6,"recalledIds":["current","successor"],"compactEvents":1,"pid":13024,"physicalRequests":0}}
+# Subtest: killed compaction writer resumes in an independent process after delete
+ok 28 - killed compaction writer resumes in an independent process after delete
+  ---
+  duration_ms: 4358.1859
+  type: 'test'
+  ...
+# {"writer":{"ready":true,"receipt":{"schema":"chainlesschain.context-compaction/v1","schemaVersion":1,"operationId":"durable-process-compaction","sessionId":"compaction-process-delete","status":"committed","inputHead":"da4cbc97ae433755559f09d7fe77f112a7245e28ed8fcbcc5a1e98a452dfd208","inputDigest":"sha256:bb8517777cf39f30ed190ad6de5328a7fd46bc94317d9d78d2751cc63890d566","outputDigest":"sha256:73288f36b11d1256e828b28d5eb1a3e8751a031a569b878de80ca857ba4c0f18","contextPlanDigest":"sha256:1e0af0c53728251d7e757f770f5e85a806a2c0c2ee6b38900a48b53979f94183","memoryRevision":3,"selectedItemIds":["cli-msg-f5676cd61e8e18a11bb94ece9cd3a69d-2"],"lifecycle":[{"state":"evaluating","at":"2026-10-29T00:00:00.000Z"},{"state":"preparing","at":"2026-10-29T03:49:03.499Z","details":{"inputDigest":"sha256:bb8517777cf39f30ed190ad6de5328a7fd46bc94317d9d78d2751cc63890d566"}},{"state":"verifying","at":"2026-10-29T03:49:03.501Z"},{"state":"committing","at":"2026-10-29T03:49:03.502Z"},{"state":"committed","at":"2026-10-29T03:49:03.502Z"}],"newHead":"340f7f492eb16651c296ac26a407cf8da7167b5fab9c476ac4621ceec1c6c26b","eventDigest":"sha256:16580402ed3f62ba31a3d2e433f2b3fc2bbb208b8c29a17131948b27cf3d5f40","digest":"sha256:e0d4d56a781b7c7b9a1bd6cb1a6a9523dbb16c72c653fc15ce3d41b48de2e6ee"},"initialRevision":3,"pid":7804,"physicalRequests":0},"mutation":{"mutated":true,"before":3,"after":8,"pid":12360,"physicalRequests":0},"reader":{"resumed":true,"receipt":{"schema":"chainlesschain.context-compaction/v1","schemaVersion":1,"operationId":"durable-process-compaction","sessionId":"compaction-process-delete","status":"committed","inputHead":"da4cbc97ae433755559f09d7fe77f112a7245e28ed8fcbcc5a1e98a452dfd208","inputDigest":"sha256:bb8517777cf39f30ed190ad6de5328a7fd46bc94317d9d78d2751cc63890d566","outputDigest":"sha256:73288f36b11d1256e828b28d5eb1a3e8751a031a569b878de80ca857ba4c0f18","contextPlanDigest":"sha256:1e0af0c53728251d7e757f770f5e85a806a2c0c2ee6b38900a48b53979f94183","memoryRevision":3,"selectedItemIds":["cli-msg-f5676cd61e8e18a11bb94ece9cd3a69d-2"],"lifecycle":[{"state":"evaluating","at":"2026-10-29T00:00:00.000Z"},{"state":"preparing","at":"2026-10-29T03:49:03.499Z","details":{"inputDigest":"sha256:bb8517777cf39f30ed190ad6de5328a7fd46bc94317d9d78d2751cc63890d566"}},{"state":"verifying","at":"2026-10-29T03:49:03.501Z"},{"state":"committing","at":"2026-10-29T03:49:03.502Z"},{"state":"committed","at":"2026-10-29T03:49:03.502Z"}],"newHead":"340f7f492eb16651c296ac26a407cf8da7167b5fab9c476ac4621ceec1c6c26b","eventDigest":"sha256:16580402ed3f62ba31a3d2e433f2b3fc2bbb208b8c29a17131948b27cf3d5f40","digest":"sha256:e0d4d56a781b7c7b9a1bd6cb1a6a9523dbb16c72c653fc15ce3d41b48de2e6ee"},"memoryRevision":8,"recalledIds":["current"],"compactEvents":1,"pid":19084,"physicalRequests":0}}
+# Subtest: a killed semantic-compaction intent requires reconciliation after process restart
+ok 29 - a killed semantic-compaction intent requires reconciliation after process restart
+  ---
+  duration_ms: 2024.0896
+  type: 'test'
+  ...
+# {"reconciliationRequired":true,"receipt":{"schema":"chainlesschain.context-compaction/v1","schemaVersion":1,"operationId":"unfinished-semantic-compaction","sessionId":"compaction-process-unfinished","status":"reconciliation_required","inputHead":"836c8a2706a67cb127f24b985ac460ff47352116ae6d67ac155168d46b716a8e","currentHead":"83721b1cab587399bb7195f65a36a956368ed5480a2319199b9db116296593ac","startedAt":"2026-10-29T03:49:07.424Z","lifecycle":[{"state":"reconciliation_required","at":"2026-10-29T03:49:07.424Z","details":{"code":"semantic_usage_without_compaction_commit"}}],"digest":"sha256:68c3c6bacd31c46f75ac2a27594fa2e050f9fb1aca25c47ac44c4b841a5f4f25"},"compactEvents":0,"pid":8428,"physicalRequests":0}
+1..29
+# tests 29
+# suites 0
+# pass 29
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 23744.0178
+
+--- stderr ---
