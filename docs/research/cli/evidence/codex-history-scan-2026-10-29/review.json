@@ -1,0 +1,675 @@
+{
+  "observedAt": "2026-10-29T01:20:06.963Z",
+  "source": "92142ea61b8dbfef009e6acf68a848fcd803d1a3",
+  "platform": "win32",
+  "unitTests": {
+    "files": 5,
+    "passed": 95,
+    "failed": 0,
+    "skipped": 0,
+    "processExitCode": 0
+  },
+  "nativeReports": [
+    {
+      "label": "native-0-160-0",
+      "source": "a6461cc2a01e1455ef44e9c6de1f391b17a2c415",
+      "version": "0.160.0",
+      "scope": "initial-experiment",
+      "status": "failed",
+      "exitCode": 1,
+      "providerRequests": 3,
+      "binarySha256": "fdda5fa3cf3fb3d000b876720742857676293e4315e4b045fae6f8bd7e866d1d",
+      "schemaHashes": {
+        "request": "1c7fec8758deb95ffe967060130e8d1ddb7a0a5a437ee9b64086dddbed8f5831",
+        "notification": "d3479ecf59ca421a8b052d3d15e8196d23d297a0bd85ae5a270a34ddd9c865c9",
+        "server-request": "f339be472737a0003efa25fba2e6e6c9237e621cd065b6d6995c51256e9dc1fb",
+        "approval-response": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7"
+      },
+      "indexedScanVerified": true,
+      "error": {
+        "name": "AssertionError",
+        "message": "rollout scan asc omitted or changed known thread identities\n\nfalse !== true\n"
+      }
+    },
+    {
+      "label": "native-0-164-0",
+      "source": "a6461cc2a01e1455ef44e9c6de1f391b17a2c415",
+      "version": "0.164.0",
+      "scope": "initial-experiment",
+      "status": "failed",
+      "exitCode": 1,
+      "providerRequests": 3,
+      "binarySha256": "6f267830b029ee25d9339864aa867cd45de9f8fd4c5ea007d2e63c13a0c66d36",
+      "schemaHashes": {
+        "request": "9b89e2459362d20cec67a429ef9430fe6b0e9fb8bd87d445d4c9a6acccd87450",
+        "notification": "0352806952c06bf4b802b45966ca8d6f6442464aeebd816db74158da784d3c1c",
+        "server-request": "f339be472737a0003efa25fba2e6e6c9237e621cd065b6d6995c51256e9dc1fb",
+        "approval-response": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7"
+      },
+      "indexedScanVerified": true,
+      "error": {
+        "name": "AssertionError",
+        "message": "rollout scan asc omitted or changed known thread identities\n\nfalse !== true\n"
+      }
+    },
+    {
+      "label": "native-0-160-0-database",
+      "source": "92142ea61b8dbfef009e6acf68a848fcd803d1a3",
+      "version": "0.160.0",
+      "scope": "database",
+      "status": "passed",
+      "exitCode": 0,
+      "providerRequests": 3,
+      "binarySha256": "fdda5fa3cf3fb3d000b876720742857676293e4315e4b045fae6f8bd7e866d1d",
+      "schemaHashes": {
+        "request": "1c7fec8758deb95ffe967060130e8d1ddb7a0a5a437ee9b64086dddbed8f5831",
+        "notification": "d3479ecf59ca421a8b052d3d15e8196d23d297a0bd85ae5a270a34ddd9c865c9",
+        "server-request": "f339be472737a0003efa25fba2e6e6c9237e621cd065b6d6995c51256e9dc1fb",
+        "approval-response": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7"
+      },
+      "databaseVerified": true,
+      "indexedScanVerified": false,
+      "error": null
+    },
+    {
+      "label": "native-0-160-0-scan-repair",
+      "source": "92142ea61b8dbfef009e6acf68a848fcd803d1a3",
+      "version": "0.160.0",
+      "scope": "scan-repair",
+      "status": "failed",
+      "exitCode": 1,
+      "providerRequests": 3,
+      "binarySha256": "fdda5fa3cf3fb3d000b876720742857676293e4315e4b045fae6f8bd7e866d1d",
+      "schemaHashes": {
+        "request": "1c7fec8758deb95ffe967060130e8d1ddb7a0a5a437ee9b64086dddbed8f5831",
+        "notification": "d3479ecf59ca421a8b052d3d15e8196d23d297a0bd85ae5a270a34ddd9c865c9",
+        "server-request": "f339be472737a0003efa25fba2e6e6c9237e621cd065b6d6995c51256e9dc1fb",
+        "approval-response": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7"
+      },
+      "databaseVerified": false,
+      "indexedScanVerified": true,
+      "error": {
+        "name": "Error",
+        "message": "Codex SIGKILL shutdown timed out"
+      }
+    },
+    {
+      "label": "native-0-164-0-database",
+      "source": "92142ea61b8dbfef009e6acf68a848fcd803d1a3",
+      "version": "0.164.0",
+      "scope": "database",
+      "status": "passed",
+      "exitCode": 0,
+      "providerRequests": 3,
+      "binarySha256": "6f267830b029ee25d9339864aa867cd45de9f8fd4c5ea007d2e63c13a0c66d36",
+      "schemaHashes": {
+        "request": "9b89e2459362d20cec67a429ef9430fe6b0e9fb8bd87d445d4c9a6acccd87450",
+        "notification": "0352806952c06bf4b802b45966ca8d6f6442464aeebd816db74158da784d3c1c",
+        "server-request": "f339be472737a0003efa25fba2e6e6c9237e621cd065b6d6995c51256e9dc1fb",
+        "approval-response": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7"
+      },
+      "databaseVerified": true,
+      "indexedScanVerified": false,
+      "error": null
+    },
+    {
+      "label": "native-0-164-0-scan-repair",
+      "source": "92142ea61b8dbfef009e6acf68a848fcd803d1a3",
+      "version": "0.164.0",
+      "scope": "scan-repair",
+      "status": "failed",
+      "exitCode": 1,
+      "providerRequests": 3,
+      "binarySha256": "6f267830b029ee25d9339864aa867cd45de9f8fd4c5ea007d2e63c13a0c66d36",
+      "schemaHashes": {
+        "request": "9b89e2459362d20cec67a429ef9430fe6b0e9fb8bd87d445d4c9a6acccd87450",
+        "notification": "0352806952c06bf4b802b45966ca8d6f6442464aeebd816db74158da784d3c1c",
+        "server-request": "f339be472737a0003efa25fba2e6e6c9237e621cd065b6d6995c51256e9dc1fb",
+        "approval-response": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7"
+      },
+      "databaseVerified": true,
+      "indexedScanVerified": true,
+      "error": {
+        "name": "AssertionError",
+        "message": "cold rollout scan asc omitted known identities\n+ actual - expected\n\n+ Set(1) {\n- Set(2) {\n    '01a18538-e223-7b73-96a9-e705c72ae30c',\n-   '01a18538-e224-7cb0-8c31-4cacda3bf8a8'\n  }\n"
+      }
+    },
+    {
+      "label": "native-0-160-0-scan-repair-confirmation",
+      "source": "92142ea61b8dbfef009e6acf68a848fcd803d1a3",
+      "version": "0.160.0",
+      "scope": "scan-repair",
+      "status": "failed",
+      "exitCode": 1,
+      "providerRequests": 3,
+      "binarySha256": "fdda5fa3cf3fb3d000b876720742857676293e4315e4b045fae6f8bd7e866d1d",
+      "schemaHashes": {
+        "request": "1c7fec8758deb95ffe967060130e8d1ddb7a0a5a437ee9b64086dddbed8f5831",
+        "notification": "d3479ecf59ca421a8b052d3d15e8196d23d297a0bd85ae5a270a34ddd9c865c9",
+        "server-request": "f339be472737a0003efa25fba2e6e6c9237e621cd065b6d6995c51256e9dc1fb",
+        "approval-response": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7"
+      },
+      "databaseVerified": true,
+      "indexedScanVerified": true,
+      "error": {
+        "name": "AssertionError",
+        "message": "cold rollout scan asc omitted known identities\n+ actual - expected\n\n+ Set(1) {\n- Set(2) {\n    '01a1853b-b0e2-7d82-8a92-594c700a6fe6',\n-   '01a1853b-b0e2-7d82-8a92-5957ef1a5f93'\n  }\n"
+      }
+    }
+  ],
+  "selected": [
+    {
+      "version": "0.160.0",
+      "databaseLabel": "native-0-160-0-database",
+      "strictLabel": "native-0-160-0-scan-repair-confirmation",
+      "source": "92142ea61b8dbfef009e6acf68a848fcd803d1a3",
+      "databasePassed": true,
+      "indexedScanPassed": true,
+      "coldCases": [
+        {
+          "direction": "asc",
+          "missingIndexObserved": true,
+          "firstPageIds": ["01a1853b-b0e2-7d82-8a92-594c700a6fe6"],
+          "firstPageCursor": null,
+          "firstScanCount": 1,
+          "firstScanVerified": false,
+          "fullScanCount": 2,
+          "databaseAfterFullVerified": true,
+          "knownIdRecoveries": 2
+        },
+        {
+          "direction": "desc",
+          "missingIndexObserved": true,
+          "firstPageIds": ["01a1853b-b0e2-7d82-8a92-594c700a6fe6"],
+          "firstPageCursor": "2026-10-29T01:17:30.084Z|01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+          "firstScanCount": 2,
+          "firstScanVerified": true,
+          "fullScanCount": 2,
+          "databaseAfterFullVerified": true,
+          "knownIdRecoveries": 2
+        }
+      ],
+      "strictPassed": false,
+      "rawQueries": {
+        "defaults": {
+          "complete": false,
+          "ids": ["01a1853b-b0e2-7d82-8a92-594c700a6fe6"],
+          "allIds": [
+            "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+            "01a1853b-b0e2-7d82-8a92-5957ef1a5f93"
+          ],
+          "error": null
+        },
+        "createdAt": {
+          "complete": false,
+          "ids": ["01a1853b-b0e2-7d82-8a92-594c700a6fe6"],
+          "allIds": [
+            "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+            "01a1853b-b0e2-7d82-8a92-5957ef1a5f93"
+          ],
+          "error": null
+        },
+        "databaseCreatedAt": {
+          "complete": false,
+          "ids": ["01a1853b-b0e2-7d82-8a92-594c700a6fe6"],
+          "allIds": [
+            "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+            "01a1853b-b0e2-7d82-8a92-5957ef1a5f93"
+          ],
+          "error": null
+        }
+      }
+    },
+    {
+      "version": "0.164.0",
+      "databaseLabel": "native-0-164-0-database",
+      "strictLabel": "native-0-164-0-scan-repair",
+      "source": "92142ea61b8dbfef009e6acf68a848fcd803d1a3",
+      "databasePassed": true,
+      "indexedScanPassed": true,
+      "coldCases": [
+        {
+          "direction": "asc",
+          "missingIndexObserved": true,
+          "firstPageIds": ["01a18538-e223-7b73-96a9-e705c72ae30c"],
+          "firstPageCursor": null,
+          "firstScanCount": 1,
+          "firstScanVerified": false,
+          "fullScanCount": 2,
+          "databaseAfterFullVerified": true,
+          "knownIdRecoveries": 2
+        },
+        {
+          "direction": "desc",
+          "missingIndexObserved": true,
+          "firstPageIds": ["01a18538-e223-7b73-96a9-e705c72ae30c"],
+          "firstPageCursor": "2026-10-29T01:14:29.65Z|01a18538-e223-7b73-96a9-e705c72ae30c",
+          "firstScanCount": 2,
+          "firstScanVerified": true,
+          "fullScanCount": 2,
+          "databaseAfterFullVerified": true,
+          "knownIdRecoveries": 2
+        }
+      ],
+      "strictPassed": false,
+      "rawQueries": {
+        "defaults": {
+          "complete": false,
+          "ids": ["01a18538-e223-7b73-96a9-e705c72ae30c"],
+          "allIds": [
+            "01a18538-e223-7b73-96a9-e705c72ae30c",
+            "01a18538-e224-7cb0-8c31-4cacda3bf8a8"
+          ],
+          "error": null
+        },
+        "createdAt": {
+          "complete": false,
+          "ids": ["01a18538-e223-7b73-96a9-e705c72ae30c"],
+          "allIds": [
+            "01a18538-e223-7b73-96a9-e705c72ae30c",
+            "01a18538-e224-7cb0-8c31-4cacda3bf8a8"
+          ],
+          "error": null
+        },
+        "databaseCreatedAt": {
+          "complete": true,
+          "ids": [
+            "01a18538-e223-7b73-96a9-e705c72ae30c",
+            "01a18538-e224-7cb0-8c31-4cacda3bf8a8"
+          ],
+          "allIds": [
+            "01a18538-e223-7b73-96a9-e705c72ae30c",
+            "01a18538-e224-7cb0-8c31-4cacda3bf8a8"
+          ],
+          "error": null
+        }
+      }
+    }
+  ],
+  "providerRequests": {
+    "finalSelectedJourneys": 12,
+    "allRetainedJourneys": 21,
+    "realExternalModel": 0,
+    "provider": "synthetic-loopback-responses"
+  },
+  "scope": "Exact-source Windows native observations. Strict scan failures remain failures; known-ID recovery does not repair the initial discovery assertion.",
+  "boundaries": [
+    "Two a646 initial failures retained; their descending reads followed a full ascending query and are not independent cold-desc evidence.",
+    "One 921 .160 strict attempt timed out during shutdown before cold cases; original evidence retained. OS readback showed no cached .160 process before one targeted confirmation.",
+    "Final strict asc/desc use independent fresh homes with DB-only absence proved before the first scan and no copied SQLite state.",
+    "Copy-time rollout digests are reverified against the stopped original source home. Destination files append legitimate session events during later resume and are not expected to retain the original digest.",
+    "Cold ascending first page returns 1 of 2 identities with nextCursor:null in both versions. Full-read and known-ID recovery successes never erase this failure.",
+    "No production history API or allowlist expanded; default database probe retains its existing contract. Strict --scope scan-repair remains unpassed.",
+    "No current-source Linux/macOS matrix or real-provider acceptance is claimed. Prior 21-job matrix remains historical.",
+    "Current changes excluded from fixed e7 .130 release source. Native task products remain 34/45."
+  ],
+  "sources": [
+    {
+      "path": "packages/cli/scripts/codex-app-server-history-probe.mjs",
+      "sha256": "6ed9b64316456e4ebf5d107100df7b6623737b36d0282b618c4fa4d2bfd7a7b3",
+      "gitBlob": "79a89f7b5598250de0bcc37fa2e6835dc8eee092"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/codex-app-server-history-probe.test.js",
+      "sha256": "6cb0f1e3133bad82bbc7012b51db6fcb46a94f34630d6c30cf7e8aff9a4a8b16",
+      "gitBlob": "fb394e5909877afe730e601e9ae09b5e4f7fd2ae"
+    },
+    {
+      "path": "packages/cli/scripts/codex-app-server-turn-probe.mjs",
+      "sha256": "3a524201cbcb91931a67bf58be137923ef186ca099431179b8ff3f5d1d588934",
+      "gitBlob": "d77142bc9f2a9ce3a68b4e9451285d9c227b50f5"
+    },
+    {
+      "path": "packages/cli/src/lib/codex-app-server-adapter.js",
+      "sha256": "2cbcdd47df66418a26ff3f7fe3392e75636f12c3167c89bb3112eaa688838afb",
+      "gitBlob": "a63d123385781127d59e787cd25b0147ddfad67f"
+    },
+    {
+      "path": "packages/cli/src/lib/codex-app-server-support.js",
+      "sha256": "ba16c57a9ee529a64806eab4ead218d9c33750b1a8d2ad4f3418ac12c9209fc3",
+      "gitBlob": "49d957ee1d8b0287785a5b39175f6c08b1f90d74"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "native-0-160-0.json.gz",
+      "sha256": "8238042b5d834b508c685f482da1bb555d1e64d62e9ce2245fbd1445befe7b70",
+      "originalSha256": "93cca9a1c2a1c5502cb5dfce1e428aad227a0b0dfb268875ca0767a26cb513d2",
+      "originalBytes": 11384,
+      "bytes": 2023
+    },
+    {
+      "path": "native-0-160-0.json.notifications.json.gz",
+      "sha256": "4854bf89aa2c081217a28b5d6e79626eac48d29d3836c662520bf99657324250",
+      "originalSha256": "7fb66eb04331621ce7c292e6f7c721cf0d761315b0e987f1e1dc5a5a1affeda4",
+      "originalBytes": 14754,
+      "bytes": 1913
+    },
+    {
+      "path": "native-0-160-0.log.gz",
+      "sha256": "7d1c34052a71594130e169dbf0295453a181b6dcff23ec6a858fbe8144b9c6ea",
+      "originalSha256": "9e0b8a28a452b3406947bc74de0ae59dcebbdc037ed3bcb31f1f3c52d350a5e9",
+      "originalBytes": 455,
+      "bytes": 286
+    },
+    {
+      "path": "native-0-160-0-process.json.gz",
+      "sha256": "aa06a2f76b4ffd886f3f9d1ce46afd337f722cc791cf9827e7eef2251aa87227",
+      "originalSha256": "9d72043d1ebad2c2b624e9ce6ca1b3fe002200d9870a262118fae16189a1a9db",
+      "originalBytes": 485,
+      "bytes": 328
+    },
+    {
+      "path": "native-0-164-0.json.gz",
+      "sha256": "ff5269631f76acfa74446bf650d913f7d6dc6b07faa0851be7d8f3115c94d683",
+      "originalSha256": "0dd274b50075dccd3525f517a26efeeaeb9254ce8214321ada0d9c73cedf149e",
+      "originalBytes": 11478,
+      "bytes": 2026
+    },
+    {
+      "path": "native-0-164-0.json.notifications.json.gz",
+      "sha256": "0f93afed1c058990cfaea975eb267f4e01c0be4e3b319b0ed73a37bfd64d82d5",
+      "originalSha256": "639724b5b6d15a5b77b32f644b5e631cbc89b752862a2276d59c1b1490909040",
+      "originalBytes": 15066,
+      "bytes": 1932
+    },
+    {
+      "path": "native-0-164-0.log.gz",
+      "sha256": "7d1c34052a71594130e169dbf0295453a181b6dcff23ec6a858fbe8144b9c6ea",
+      "originalSha256": "9e0b8a28a452b3406947bc74de0ae59dcebbdc037ed3bcb31f1f3c52d350a5e9",
+      "originalBytes": 455,
+      "bytes": 286
+    },
+    {
+      "path": "native-0-164-0-process.json.gz",
+      "sha256": "891512b15aca9e3b25625d473a8cff786aaf4908d2348ef2874e1bb2a50b1ffa",
+      "originalSha256": "aa2b1b00dbef0b4bd11dc25d15dd23c7327e16bf5ae82980a6df864dd47fba5e",
+      "originalBytes": 485,
+      "bytes": 329
+    },
+    {
+      "path": "native-0-160-0-database.json.gz",
+      "sha256": "730422c5b48c4bee31559c066d1a045295c728a0af8aa958432e173eff4531ce",
+      "originalSha256": "77819242846fd2df02eec5f4f71fc2862f0650f9368f653fec278e34e7320991",
+      "originalBytes": 6080,
+      "bytes": 1715
+    },
+    {
+      "path": "native-0-160-0-database.json.notifications.json.gz",
+      "sha256": "34dc13399179824d9b1415cd3051b52ce8867798a79de71b65db226057a4d6a0",
+      "originalSha256": "50e41769adc08f7b3d6f39f4c5ea983880cfefe7adbc84c0813bbf654bb3e830",
+      "originalBytes": 14543,
+      "bytes": 1882
+    },
+    {
+      "path": "native-0-160-0-database.log.gz",
+      "sha256": "b0abaf7d9f18e7391f775b02206ad3de4dbdbd8f0a4a2bb4392bbdea49b6a186",
+      "originalSha256": "b18a9484c211988701614865c44aabe1de22c3423dde8af0e307977dd3eeb96f",
+      "originalBytes": 4518,
+      "bytes": 1562
+    },
+    {
+      "path": "native-0-160-0-database-process.json.gz",
+      "sha256": "d79dfa073464e38294eee6e6a4db5d4dd97122cf69e1a341ea47fed14d73234d",
+      "originalSha256": "7dc1638a8792ded8dd5404b64b339d7552373e3295519feda2777abe3d0689bc",
+      "originalBytes": 525,
+      "bytes": 343
+    },
+    {
+      "path": "native-0-160-0-scan-repair.json.gz",
+      "sha256": "6f6915277cb79ffef0fc4aca32fdc6b62958040e988a9d0111956e7d53943573",
+      "originalSha256": "96dd735b2a32f590a33bd718c6c9dd76141bb1b3a596570d2533e753eacc27ba",
+      "originalBytes": 8720,
+      "bytes": 1717
+    },
+    {
+      "path": "native-0-160-0-scan-repair.json.notifications.json.gz",
+      "sha256": "4fddf1921e0e9630b52f7309588bab7837112dd02a7ec1764c95a35ea8ebe9c5",
+      "originalSha256": "c27fb8cdcd79facf32c0a6c7f321827ced63be7d98f9c21c0bbf03533649db21",
+      "originalBytes": 14543,
+      "bytes": 1867
+    },
+    {
+      "path": "native-0-160-0-scan-repair.log.gz",
+      "sha256": "df5285bfee4958ae036f5ed9d9131543bbb79837f19563245309d6fda665e773",
+      "originalSha256": "0a702c4642fcabb3e06cdaf8f708a4472345379dd1969c04f862ed1d20b5d7f4",
+      "originalBytes": 284,
+      "bytes": 217
+    },
+    {
+      "path": "native-0-160-0-scan-repair-process.json.gz",
+      "sha256": "6a014915b8906644cf6a72356f32e45fcedc8027a9fb81a8faad2d2e38cd2242",
+      "originalSha256": "f3db752717b4c9dbee381f653748ffdce7ee4fd0c6753ba4ad59146b366d5450",
+      "originalBytes": 531,
+      "bytes": 341
+    },
+    {
+      "path": "native-0-164-0-database.json.gz",
+      "sha256": "46728a9457d6ad1759c4c748f8d309085ce7d3209a7621bbf15f0d2489908eb9",
+      "originalSha256": "615b1e62c9d093c538ca4f583048d4dd772d4dca1ffa4b660944d95dc54afdb3",
+      "originalBytes": 6080,
+      "bytes": 1725
+    },
+    {
+      "path": "native-0-164-0-database.json.notifications.json.gz",
+      "sha256": "fd46f3606b3ec5369161135b31431b88ae19e30b9276860cd48d1b449d7f6866",
+      "originalSha256": "dc45bfb2a77e2a7c947376603b912524ba2d89652cc3dd8fb456bd1e194e29bc",
+      "originalBytes": 14855,
+      "bytes": 1909
+    },
+    {
+      "path": "native-0-164-0-database.log.gz",
+      "sha256": "2193722ba23de7ac335f2a0dae7dccd13ce44873e4a9cc2f5813fba54662d66e",
+      "originalSha256": "d225bc5511b042727ac6f95d09a1ff71842b4acae3aa565c762b359fb133fa78",
+      "originalBytes": 4518,
+      "bytes": 1570
+    },
+    {
+      "path": "native-0-164-0-database-process.json.gz",
+      "sha256": "2201235097584639438245c0c1be7836ff9ebcd722aa09230de081330ab5a29e",
+      "originalSha256": "7d0f2df59742ca9b945cdb89191feac3e42bb183cef2a265513f5430517f7d50",
+      "originalBytes": 525,
+      "bytes": 343
+    },
+    {
+      "path": "native-0-164-0-scan-repair.json.gz",
+      "sha256": "6285f5107f53c1ed6e37fd92cad2769232e54ba5c1cca8c81decc9b1cd0f14e1",
+      "originalSha256": "918f42035500fbd03ec91ed6fa66e6f5d25cb6641e5ecfc4af011a465b353905",
+      "originalBytes": 34518,
+      "bytes": 3566
+    },
+    {
+      "path": "native-0-164-0-scan-repair.json.notifications.json.gz",
+      "sha256": "494e8f7fd0ffd0d75a7ed67a8a9a5fa7e7917d0d198c00f6d315da0a0a34dade",
+      "originalSha256": "d2922046b5928fd02e5b841fc61fd1fcf329f9bda503f62caf53aba26e658a0e",
+      "originalBytes": 18313,
+      "bytes": 2073
+    },
+    {
+      "path": "native-0-164-0-scan-repair.log.gz",
+      "sha256": "77a9ac3ffdb742bbf1f56a330af2b478b937c41b500ccd3e30941c600f5d82ff",
+      "originalSha256": "bc8787d501693d0e25c7fc4d3b89417425eeb00e19f427e119b1071533462e2b",
+      "originalBytes": 885,
+      "bytes": 370
+    },
+    {
+      "path": "native-0-164-0-scan-repair-process.json.gz",
+      "sha256": "3efa6052e4519eee6697ceb88f579c818530babd57d5dc82518c72380a668d17",
+      "originalSha256": "9f93c5eb55b1682eb56bcc303b29dea1843242d4c107bfdc18cface6db1b6221",
+      "originalBytes": 531,
+      "bytes": 343
+    },
+    {
+      "path": "native-0-160-0-scan-repair-confirmation.json.gz",
+      "sha256": "f5cebb29c097debe638053c5931f46b9fc0ab10c1c102af809b9c37735852782",
+      "originalSha256": "fb44abf070dea4dcc157c8ecf435c55f8a193caf51b02e358b5106f63804dc7e",
+      "originalBytes": 33602,
+      "bytes": 3492
+    },
+    {
+      "path": "native-0-160-0-scan-repair-confirmation.json.notifications.json.gz",
+      "sha256": "65aa4d0047e7c3c8d64b0b4fc8dac42a6bbd2e3a2e45b46a79ac1b5ed6c08669",
+      "originalSha256": "0f29c47a065c4a19f67f8961f18dc16c579cc777fef4ab91d8bc30bacb1ebb32",
+      "originalBytes": 18001,
+      "bytes": 2033
+    },
+    {
+      "path": "native-0-160-0-scan-repair-confirmation.log.gz",
+      "sha256": "7e28b09c8bc9cd56665f840d9408b80be279357c4e48bd33d983fbcb002a1bc3",
+      "originalSha256": "109ba6480c506c66e15cf52d359bcbf585ba17d6aff07a6a8897d386bde35f54",
+      "originalBytes": 885,
+      "bytes": 361
+    },
+    {
+      "path": "native-0-160-0-scan-repair-confirmation-process.json.gz",
+      "sha256": "8de2ab256138765e2a5bed59e8b6d81f235bbc5c7dcad0be40ab7ca1d1344b93",
+      "originalSha256": "ab1ccbace2982c3338cee7615b0d1d16f95ce39992e528c9dd26a335e1a55b31",
+      "originalBytes": 544,
+      "bytes": 351
+    },
+    {
+      "path": "rollout-0.160.0-01a1853b-b0e2-7d82-8a92-594c700a6fe6.jsonl.gz",
+      "sha256": "d9d84d31dfc5649e622070fe63ad2775faaf4b6904b4f37a332a7c95155a4aa4",
+      "originalSha256": "aa779c2e2ba99a4198a66ffecbba4f598f8e6eee67781d6755016802a4621512",
+      "originalBytes": 40977,
+      "bytes": 12057
+    },
+    {
+      "path": "rollout-0.160.0-01a1853b-b0e2-7d82-8a92-5957ef1a5f93.jsonl.gz",
+      "sha256": "5efb068d36c86dbb2bb11c6a1cb25f48da8ee9fb7699a14f508be19d71289170",
+      "originalSha256": "146b8be74ca7949b6826ccd1ce406071f7f53376fbcdef9ed328fe41184b8a40",
+      "originalBytes": 34872,
+      "bytes": 11578
+    },
+    {
+      "path": "rollout-0.164.0-01a18538-e223-7b73-96a9-e705c72ae30c.jsonl.gz",
+      "sha256": "eb94cda5653cd8baea1f2c40356cc813500471e46233b7b6be4a72550661d5b5",
+      "originalSha256": "4fe8efb4e099cf7217f59efcd3839cecf33e9881b2a581a5f2a47d18ed053fdc",
+      "originalBytes": 42417,
+      "bytes": 12187
+    },
+    {
+      "path": "rollout-0.164.0-01a18538-e224-7cb0-8c31-4cacda3bf8a8.jsonl.gz",
+      "sha256": "d3431ca73b789416b1792ab1d3a3e8c663aa834cccf0f2b8cec15d88394d1351",
+      "originalSha256": "6ef77cccbde01999df192cd58f9cf083bef2fa7f2ffd19b1f5f6f3146ecd7c86",
+      "originalBytes": 36128,
+      "bytes": 11761
+    },
+    {
+      "path": "regression.json.gz",
+      "sha256": "ca3a20a4f5724564c6e0fa03c9523633c11ab2c1a9983ae443bbd8cced32eedd",
+      "originalSha256": "25621564dc752b60c8718d1bffb90f02d746fe6d7eb3398fa7cb6ea7bc5b705d",
+      "originalBytes": 30959,
+      "bytes": 4127
+    },
+    {
+      "path": "regression.log.gz",
+      "sha256": "6068be31d6baf49145224f70b43bad5cf70bc93e28f3eca466e831f54eadad08",
+      "originalSha256": "1f7d32537efdd270cbb840b14df18ce04d3441db590bfc0c706eae47ff87e18a",
+      "originalBytes": 103,
+      "bytes": 108
+    },
+    {
+      "path": "regression-process.json.gz",
+      "sha256": "31e6c7e03de1c7c9fcffa7338d132bea97a4c9b955a30557294ba5a64a3be1b0",
+      "originalSha256": "e1d6de46b0f0b1e300515b1e7c5a055903ca6fb79cf7ce551f615c0967e435b4",
+      "originalBytes": 596,
+      "bytes": 285
+    },
+    {
+      "path": "regression-final.json.gz",
+      "sha256": "f84e58e12f84c773b18c87011e331980cab220b42cb9113bf6f5de27410f7a0f",
+      "originalSha256": "de1aa8ff3af7383fb1ce1d8114bf9fa1d66d73fcc1bde2439ccc1cb0d44e0d98",
+      "originalBytes": 33388,
+      "bytes": 4442
+    },
+    {
+      "path": "regression-final.log.gz",
+      "sha256": "d71974348a5324c917ada0d7337abc4d63b75e2234aebdc8372f570e9bc00e12",
+      "originalSha256": "13dffcf913d185377994f4f48e40954c1b68e04bf99b5dbd86d53dc31be8f8b0",
+      "originalBytes": 109,
+      "bytes": 114
+    },
+    {
+      "path": "regression-final-process.json.gz",
+      "sha256": "08f1762a810853017d4af8bb695de3f6d9ef4319a8aaed87a6e9a988e0fed269",
+      "originalSha256": "6f3c2057d7dabccfcbe7d2ddc2d55ee5a315eb3efa0eb131dced9f10f9670a1f",
+      "originalBytes": 602,
+      "bytes": 289
+    },
+    {
+      "path": "regression-scoped.json.gz",
+      "sha256": "c918defbcded9fe02ad14518bcee91c8ec59900967851265481c699f81fba7ea",
+      "originalSha256": "d3c2429f789a95b450994fa7da972adeb78ec4c4492349b66e13bd1de76a4cfc",
+      "originalBytes": 33681,
+      "bytes": 4480
+    },
+    {
+      "path": "regression-scoped.log.gz",
+      "sha256": "21002f315126fe0cbf3b37b8751de1e390afc6a66d896bb182be2e5add5ef1df",
+      "originalSha256": "69df2eef545ff0aac04b6ed6fc8865cd15d0d9f6275553d957056c4afa727b02",
+      "originalBytes": 110,
+      "bytes": 114
+    },
+    {
+      "path": "regression-scoped-process.json.gz",
+      "sha256": "817a4c3a8d63304d05c030b0e012be04ec35dde5512f6e5aef195b9c63c0e967",
+      "originalSha256": "726a74114c2b15402afe8eb8f6c36d4d03539e42ff8279131a9628e0302f32fa",
+      "originalBytes": 603,
+      "bytes": 290
+    },
+    {
+      "path": "unit.log.gz",
+      "sha256": "9e70ed971d0e7917d1b930e9ed8ac68442605bf603cfbf7113497b0f6b483e3c",
+      "originalSha256": "4f18fe4ed89ab08bf6776dc66b3723eba6281d8743411717f83674fac0ed1d8d",
+      "originalBytes": 678,
+      "bytes": 315
+    },
+    {
+      "path": "unit-scopes.log.gz",
+      "sha256": "32547fdaa8fb2219ec85ae979ec02e12b2e7a58289cee027cc7bd49eaf089a92",
+      "originalSha256": "1208f46149000a74d8972eecc25ce562847b31107a524295dff1832e744c27bb",
+      "originalBytes": 678,
+      "bytes": 314
+    },
+    {
+      "path": "native-160-terminal-readback.json.gz",
+      "sha256": "5d134fa55e056516189a9c841a223b445588ad966ed9ad0d2a5f969937655744",
+      "originalSha256": "337bd155e79d55c78bc7b40a99764ef94ab9db41aaa84900de705b9eb1db2fcd",
+      "originalBytes": 190,
+      "bytes": 158
+    },
+    {
+      "path": "scoped-summary.json.gz",
+      "sha256": "119ee04fc16701aebe074d6ff4c8f277b05679c6fc43002e013ab0c94d7ba1d8",
+      "originalSha256": "f4df886c137637a54b4f12897b3ac9bafa4c16e9f566cea2c38a8a46ce4233c2",
+      "originalBytes": 3819,
+      "bytes": 711
+    },
+    {
+      "path": "release-cli-run.json.gz",
+      "sha256": "bfd1b9e1ae87b5892d5c9578a5a25b39e9cd41375ae2d1f8b80cb882d69ce785",
+      "originalSha256": "c4e2c7f58282bbf662b72ed8ad73cb7245622a11e187d80527d15a8119c9c774",
+      "originalBytes": 122741,
+      "bytes": 8105
+    }
+  ],
+  "releaseCandidate": {
+    "source": "e7a6f2585d62949794596767869423b0eb670104",
+    "run": 40784878922,
+    "status": "queued",
+    "conclusion": "",
+    "observedAt": "2026-10-29T01:22:46.553Z",
+    "successes": 60,
+    "failures": 1,
+    "queued": [
+      "test-macos / integration (macos-latest, shard 5/8)",
+      "test-macos / integration (macos-latest, shard 7/8)",
+      "test-macos / integration (macos-latest, shard 6/8)",
+      "test-macos / integration (macos-latest, shard 8/8)",
+      "test-macos / unit (macos-latest, shard 4/4)",
+      "test-macos / unit (macos-latest, shard 3/4)"
+    ],
+    "publishedByThisBatch": false
+  }
+}
