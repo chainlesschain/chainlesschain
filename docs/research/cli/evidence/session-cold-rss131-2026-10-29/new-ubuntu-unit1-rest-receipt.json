@@ -1,0 +1,23 @@
+{
+  "observedAt": "2026-10-29T07:30:32.647Z",
+  "source": "98c4be4a76e22b127518b1ea1116dabdfb95dd10",
+  "run": 40832331503,
+  "job": 123309705347,
+  "name": "test-ubuntu / unit (ubuntu-latest, shard 1/4)",
+  "status": "completed",
+  "conclusion": "success",
+  "startedAt": "2026-10-29T07:09:52Z",
+  "completedAt": "2026-10-29T07:23:42Z",
+  "bytes": 167534,
+  "sha256": "e4963ae7f21716b6ccf242c6c0352d2cfba89d97b88867432d7e71e62992aaec",
+  "relevant": [
+    "2026-10-29T07:19:42.5332240Z  ✓ __tests__/unit/session-scale-gate.test.js (5 tests) 4251ms",
+    "2026-10-29T07:23:38.3190664Z  Test Files  468 passed | 2 skipped (470)",
+    "2026-10-29T07:23:38.3251743Z       Tests  10613 passed | 51 skipped (10664)",
+    "2026-10-29T07:23:38.3258953Z    Duration  736.93s (transform 20.66s, setup 7.03s, import 145.41s, tests 1254.63s, environment 58ms)"
+  ],
+  "artifact": "new-ubuntu-unit1-rest.log.gz",
+  "gzipBytes": 35196,
+  "gzipSha256": "78a8681edda990b697eafcc4e35789c8655fec6256ce817f2b36dc2480c8b6f0",
+  "boundary": "Exact-source original failing unit shard now passed; full CLI CI remains separately gated. The successful unit log confirms all five session-scale tests ran, but does not publish per-sample RSS JSON."
+}
