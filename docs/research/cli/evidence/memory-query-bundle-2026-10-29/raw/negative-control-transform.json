@@ -1,0 +1,6 @@
+{
+  "id": "C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+  "originalSha256": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+  "transformedSha256": "ad00fb9d58c011d95ebd84acdcdcde77b225f5237e58682b72dfaec54d7db1f7",
+  "mutation": "Return decoded indexes without validating any active bundle bytes on a warm query"
+}

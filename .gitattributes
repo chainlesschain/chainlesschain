@@ -199,3 +199,6 @@ docs/research/cli/evidence/remaining-tasks-2026-10-28/** -text !eol -whitespace
 docs/research/cli/evidence/recovery-2026-10-24/changelog-artifact-parity/** -text !eol -whitespace linguist-generated
 docs/research/cli/evidence/recovery-2026-10-24/changelog-artifact-parity/preparation.json -linguist-generated
 docs/research/cli/evidence/recovery-2026-10-24/changelog-artifact-parity/README.md -linguist-generated
+
+# Memory bundle diagnostics and negative controls retain source-bound bytes.
+docs/research/cli/evidence/memory-query-bundle-2026-10-29/** -text !eol -whitespace linguist-generated

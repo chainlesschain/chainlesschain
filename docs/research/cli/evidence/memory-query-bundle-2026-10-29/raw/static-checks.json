@@ -1,0 +1,65 @@
+{
+  "observedAt": "2026-10-29T02:24:02.472Z",
+  "receipts": [
+    {
+      "program": "C:\\nvm4w\\nodejs\\node.exe",
+      "args": [
+        "node_modules/prettier/bin/prettier.cjs",
+        "--check",
+        ".github/workflows/memory-query-index.yml",
+        "docs/research/cli-ide-codex-claude-gap-review-2026-10-27.md",
+        "docs/research/cli-ide-release130-ci-recovery-2026-10-29.md",
+        "packages/cli/__tests__/unit/memory-query-index.test.js",
+        "packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs",
+        "packages/cli/scripts/memory-query-index-benchmark.mjs",
+        "packages/cli/scripts/memory-query-responsiveness-benchmark.mjs",
+        "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "packages/context-memory-kernel/lib/canonical.js",
+        "docs/research/cli-ide-memory-bundle-progress-2026-10-29.md",
+        "packages/cli/__tests__/fixtures/segmented-memory-port-e7.provenance.json",
+        "packages/cli/__tests__/helpers/legacy-segmented-memory-port.js",
+        "packages/cli/__tests__/integration/memory-query-bundle-identity.test.js",
+        "packages/cli/__tests__/integration/memory-query-bundle-legacy.test.js",
+        "packages/cli/__tests__/integration/memory-query-bundle-port.test.js",
+        "packages/cli/__tests__/unit/memory-query-bundle.test.js",
+        "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js",
+        "packages/context-memory-kernel/test/canonical-allocation.test.js"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "log": "static-check-0.log"
+    },
+    {
+      "program": "actionlint",
+      "args": [
+        ".github/workflows/memory-query-index.yml"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "log": "static-check-1.log"
+    },
+    {
+      "program": "C:\\nvm4w\\nodejs\\node.exe",
+      "args": [
+        "packages/context-memory-kernel/scripts/validate-inventory.mjs"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "log": "static-check-2.log"
+    },
+    {
+      "program": "git",
+      "args": [
+        "diff",
+        "--check"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "log": "static-check-3.log"
+    }
+  ]
+}

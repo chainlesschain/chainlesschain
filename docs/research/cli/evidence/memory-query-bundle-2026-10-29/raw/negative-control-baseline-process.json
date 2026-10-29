@@ -1,0 +1,29 @@
+{
+  "args": [
+    "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+    "run",
+    "__tests__/integration/memory-query-bundle-port.test.js",
+    "-t",
+    "detects a damaged unselected frame despite a warm decoded cache",
+    "--reporter=json",
+    "--outputFile=C:\\code\\chainlesschain\\.work\\memory-query-bundle\\negative-control-baseline.json"
+  ],
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "observedAt": "2026-10-29T02:15:40.579Z",
+  "cases": [
+    {
+      "ancestorTitles": [
+        "default disk query bundle"
+      ],
+      "fullName": "default disk query bundle detects a damaged unselected frame despite a warm decoded cache and reconstructs current bytes",
+      "status": "passed",
+      "title": "detects a damaged unselected frame despite a warm decoded cache and reconstructs current bytes",
+      "duration": 2509.9838999999997,
+      "failureMessages": [],
+      "meta": {},
+      "tags": []
+    }
+  ]
+}

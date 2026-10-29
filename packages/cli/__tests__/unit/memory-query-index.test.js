@@ -132,11 +132,11 @@ function fixture(count = 200) {
   state.digest = stateDigest(state);
   return state;
 }
-async function setup(count) {
+async function setup(count, options = {}) {
   const root = mkdtempSync(join(tmpdir(), "cc-memory-query-"));
   roots.push(root);
   const filePath = join(root, "authority.json");
-  const port = new SegmentedMemoryPort({ filePath });
+  const port = new SegmentedMemoryPort({ filePath, ...options });
   const state = fixture(count);
   await port.importSnapshot(state);
   return { port, state, filePath };
@@ -296,7 +296,9 @@ describe("authority-bound memory business index", () => {
   );
 
   it("fails closed when authoritative rebuild is corrupt or when publishing the repair fails", async () => {
-    const { port } = await setup(30);
+    // This case exercises the compatibility representation's own repair;
+    // active bundle publication failure is covered by its integration suite.
+    const { port } = await setup(30, { queryIndexLayout: "individual" });
     const file = indexes(port)[0];
     await port.listPage();
     rmSync(file);

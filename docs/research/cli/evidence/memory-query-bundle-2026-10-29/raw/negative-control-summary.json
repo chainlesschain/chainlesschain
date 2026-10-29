@@ -1,0 +1,29 @@
+{
+  "killed": true,
+  "runs": [
+    {
+      "mutated": false,
+      "exitCode": 0,
+      "cases": [
+        {
+          "status": "passed",
+          "fullName": "default disk query bundle detects a damaged unselected frame despite a warm decoded cache and reconstructs current bytes",
+          "failureMessages": []
+        }
+      ]
+    },
+    {
+      "mutated": true,
+      "exitCode": 1,
+      "cases": [
+        {
+          "status": "failed",
+          "fullName": "default disk query bundle detects a damaged unselected frame despite a warm decoded cache and reconstructs current bytes",
+          "failureMessages": [
+            "AssertionError: expected \"_readQueryIndexBytes\" to be called 204 times, but got 0 times\n    at C:/code/chainlesschain/packages/cli/__tests__/integration/memory-query-bundle-port.test.js:86:21\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          ]
+        }
+      ]
+    }
+  ]
+}

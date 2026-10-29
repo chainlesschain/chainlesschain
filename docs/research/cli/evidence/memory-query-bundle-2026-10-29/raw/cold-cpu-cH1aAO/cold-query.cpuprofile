@@ -1,0 +1,6093 @@
+{
+  "nodes": [
+    {
+      "id": 1,
+      "callFrame": {
+        "functionName": "(root)",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 0,
+      "children": [
+        2,
+        39,
+        78,
+        91,
+        97,
+        106,
+        113,
+        144,
+        159,
+        254
+      ]
+    },
+    {
+      "id": 2,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "88",
+        "url": "file:///C:/code/chainlesschain/.work/memory-query-bundle/cold-cpu-diagnostic-20261029-bf40.mjs",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 0,
+      "children": [
+        3,
+        6
+      ]
+    },
+    {
+      "id": 3,
+      "callFrame": {
+        "functionName": "post",
+        "scriptId": "88",
+        "url": "file:///C:/code/chainlesschain/.work/memory-query-bundle/cold-cpu-diagnostic-20261029-bf40.mjs",
+        "lineNumber": 79,
+        "columnNumber": 15
+      },
+      "hitCount": 0,
+      "children": [
+        4
+      ]
+    },
+    {
+      "id": 4,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "88",
+        "url": "file:///C:/code/chainlesschain/.work/memory-query-bundle/cold-cpu-diagnostic-20261029-bf40.mjs",
+        "lineNumber": 79,
+        "columnNumber": 52
+      },
+      "hitCount": 0,
+      "children": [
+        5
+      ]
+    },
+    {
+      "id": 5,
+      "callFrame": {
+        "functionName": "post",
+        "scriptId": "161",
+        "url": "node:inspector",
+        "lineNumber": 117,
+        "columnNumber": 6
+      },
+      "hitCount": 0,
+      "children": [
+        261
+      ]
+    },
+    {
+      "id": 261,
+      "callFrame": {
+        "functionName": "dispatch",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 142,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "callFrame": {
+        "functionName": "list",
+        "scriptId": "170",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-service.js",
+        "lineNumber": 405,
+        "columnNumber": 12
+      },
+      "hitCount": 0,
+      "children": [
+        7
+      ]
+    },
+    {
+      "id": 7,
+      "callFrame": {
+        "functionName": "listRecords",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 1030,
+        "columnNumber": 19
+      },
+      "hitCount": 0,
+      "children": [
+        8
+      ]
+    },
+    {
+      "id": 8,
+      "callFrame": {
+        "functionName": "_indexedRecords",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 909,
+        "columnNumber": 23
+      },
+      "hitCount": 0,
+      "children": [
+        9
+      ]
+    },
+    {
+      "id": 9,
+      "callFrame": {
+        "functionName": "_locked",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 206,
+        "columnNumber": 9
+      },
+      "hitCount": 0,
+      "children": [
+        10,
+        14
+      ]
+    },
+    {
+      "id": 10,
+      "callFrame": {
+        "functionName": "ensureSafeDirectory",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 163,
+        "columnNumber": 28
+      },
+      "hitCount": 0,
+      "children": [
+        11
+      ]
+    },
+    {
+      "id": 11,
+      "callFrame": {
+        "functionName": "directories",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 113,
+        "columnNumber": 20
+      },
+      "hitCount": 0,
+      "children": [
+        12
+      ]
+    },
+    {
+      "id": 12,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 2850,
+        "columnNumber": 22
+      },
+      "hitCount": 0,
+      "children": [
+        13
+      ]
+    },
+    {
+      "id": 13,
+      "callFrame": {
+        "functionName": "realpath",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 2855,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "callFrame": {
+        "functionName": "_locked",
+        "scriptId": "172",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+        "lineNumber": 267,
+        "columnNumber": 9
+      },
+      "hitCount": 0,
+      "children": [
+        15,
+        17
+      ]
+    },
+    {
+      "id": 15,
+      "callFrame": {
+        "functionName": "mkdirSync",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 1354,
+        "columnNumber": 18
+      },
+      "hitCount": 0,
+      "children": [
+        16
+      ]
+    },
+    {
+      "id": 16,
+      "callFrame": {
+        "functionName": "mkdir",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 1371,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "callFrame": {
+        "functionName": "withFileLockAsync",
+        "scriptId": "179",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/with-file-lock.js",
+        "lineNumber": 51,
+        "columnNumber": 39
+      },
+      "hitCount": 0,
+      "children": [
+        18
+      ]
+    },
+    {
+      "id": 18,
+      "callFrame": {
+        "functionName": "runLocked",
+        "scriptId": "179",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/with-file-lock.js",
+        "lineNumber": 71,
+        "columnNumber": 19
+      },
+      "hitCount": 0,
+      "children": [
+        19,
+        26
+      ]
+    },
+    {
+      "id": 19,
+      "callFrame": {
+        "functionName": "acquireOwnedDirectory",
+        "scriptId": "179",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/with-file-lock.js",
+        "lineNumber": 421,
+        "columnNumber": 30
+      },
+      "hitCount": 0,
+      "children": [
+        20,
+        23
+      ]
+    },
+    {
+      "id": 20,
+      "callFrame": {
+        "functionName": "writeFileSync",
+        "scriptId": "179",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/with-file-lock.js",
+        "lineNumber": 387,
+        "columnNumber": 17
+      },
+      "hitCount": 0,
+      "children": [
+        21
+      ]
+    },
+    {
+      "id": 21,
+      "callFrame": {
+        "functionName": "writeFileSync",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 2409,
+        "columnNumber": 22
+      },
+      "hitCount": 0,
+      "children": [
+        22
+      ]
+    },
+    {
+      "id": 22,
+      "callFrame": {
+        "functionName": "writeFileUtf8",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 2434,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "callFrame": {
+        "functionName": "renameSync",
+        "scriptId": "179",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/with-file-lock.js",
+        "lineNumber": 388,
+        "columnNumber": 14
+      },
+      "hitCount": 0,
+      "children": [
+        24
+      ]
+    },
+    {
+      "id": 24,
+      "callFrame": {
+        "functionName": "renameSync",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 1010,
+        "columnNumber": 19
+      },
+      "hitCount": 0,
+      "children": [
+        25
+      ]
+    },
+    {
+      "id": 25,
+      "callFrame": {
+        "functionName": "rename",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 2,
+      "positionTicks": [
+        {
+          "line": 1014,
+          "ticks": 2
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "callFrame": {
+        "functionName": "withFileLockAsync.failIfUnavailable",
+        "scriptId": "172",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+        "lineNumber": 272,
+        "columnNumber": 6
+      },
+      "hitCount": 0,
+      "children": [
+        27
+      ]
+    },
+    {
+      "id": 27,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 210,
+        "columnNumber": 25
+      },
+      "hitCount": 1,
+      "children": [
+        28
+      ],
+      "positionTicks": [
+        {
+          "line": 218,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "callFrame": {
+        "functionName": "captured._locked.signal.signal",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 918,
+        "columnNumber": 6
+      },
+      "hitCount": 0,
+      "children": [
+        29,
+        61
+      ]
+    },
+    {
+      "id": 29,
+      "callFrame": {
+        "functionName": "_loadManifest",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 369,
+        "columnNumber": 15
+      },
+      "hitCount": 0,
+      "children": [
+        30,
+        40,
+        45
+      ]
+    },
+    {
+      "id": 30,
+      "callFrame": {
+        "functionName": "_validateManifest",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 300,
+        "columnNumber": 19
+      },
+      "hitCount": 0,
+      "children": [
+        31
+      ]
+    },
+    {
+      "id": 31,
+      "callFrame": {
+        "functionName": "manifestDigest",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 81,
+        "columnNumber": 23
+      },
+      "hitCount": 1,
+      "children": [
+        32
+      ],
+      "positionTicks": [
+        {
+          "line": 85,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "callFrame": {
+        "functionName": "canonicalDigest",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 35,
+        "columnNumber": 24
+      },
+      "hitCount": 0,
+      "children": [
+        33
+      ]
+    },
+    {
+      "id": 33,
+      "callFrame": {
+        "functionName": "canonicalJson",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 31,
+        "columnNumber": 22
+      },
+      "hitCount": 0,
+      "children": [
+        34
+      ]
+    },
+    {
+      "id": 34,
+      "callFrame": {
+        "functionName": "canonicalize",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 5,
+        "columnNumber": 21
+      },
+      "hitCount": 0,
+      "children": [
+        35
+      ]
+    },
+    {
+      "id": 35,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 27,
+        "columnNumber": 11
+      },
+      "hitCount": 0,
+      "children": [
+        36
+      ]
+    },
+    {
+      "id": 36,
+      "callFrame": {
+        "functionName": "canonicalize",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 5,
+        "columnNumber": 21
+      },
+      "hitCount": 0,
+      "children": [
+        37
+      ]
+    },
+    {
+      "id": 37,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 27,
+        "columnNumber": 11
+      },
+      "hitCount": 0,
+      "children": [
+        38
+      ]
+    },
+    {
+      "id": 38,
+      "callFrame": {
+        "functionName": "canonicalize",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 5,
+        "columnNumber": 21
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 28,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "callFrame": {
+        "functionName": "port.<computed>",
+        "scriptId": "88",
+        "url": "file:///C:/code/chainlesschain/.work/memory-query-bundle/cold-cpu-diagnostic-20261029-bf40.mjs",
+        "lineNumber": 68,
+        "columnNumber": 28
+      },
+      "hitCount": 0,
+      "children": [
+        41
+      ]
+    },
+    {
+      "id": 41,
+      "callFrame": {
+        "functionName": "_checkDirectories",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 221,
+        "columnNumber": 19
+      },
+      "hitCount": 0,
+      "children": [
+        42
+      ]
+    },
+    {
+      "id": 42,
+      "callFrame": {
+        "functionName": "directories",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 113,
+        "columnNumber": 20
+      },
+      "hitCount": 0,
+      "children": [
+        43
+      ]
+    },
+    {
+      "id": 43,
+      "callFrame": {
+        "functionName": "lstatSync",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 1715,
+        "columnNumber": 18
+      },
+      "hitCount": 0,
+      "children": [
+        44
+      ]
+    },
+    {
+      "id": 44,
+      "callFrame": {
+        "functionName": "lstat",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 1722,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "callFrame": {
+        "functionName": "_collect",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 486,
+        "columnNumber": 10
+      },
+      "hitCount": 2,
+      "children": [
+        46,
+        57,
+        59
+      ],
+      "positionTicks": [
+        {
+          "line": 490,
+          "ticks": 1
+        },
+        {
+          "line": 514,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "callFrame": {
+        "functionName": "_queryBundlePlan",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 262,
+        "columnNumber": 18
+      },
+      "hitCount": 2,
+      "children": [
+        47,
+        54
+      ],
+      "positionTicks": [
+        {
+          "line": 281,
+          "ticks": 1
+        },
+        {
+          "line": 291,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 290,
+        "columnNumber": 49
+      },
+      "hitCount": 0,
+      "children": [
+        48,
+        50
+      ]
+    },
+    {
+      "id": 48,
+      "callFrame": {
+        "functionName": "_queryIndexPath",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 255,
+        "columnNumber": 17
+      },
+      "hitCount": 0,
+      "children": [
+        49
+      ]
+    },
+    {
+      "id": 49,
+      "callFrame": {
+        "functionName": "join",
+        "scriptId": "36",
+        "url": "node:path",
+        "lineNumber": 520,
+        "columnNumber": 6
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 601,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "callFrame": {
+        "functionName": "_shardPath",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 248,
+        "columnNumber": 12
+      },
+      "hitCount": 0,
+      "children": [
+        51
+      ]
+    },
+    {
+      "id": 51,
+      "callFrame": {
+        "functionName": "join",
+        "scriptId": "36",
+        "url": "node:path",
+        "lineNumber": 520,
+        "columnNumber": 6
+      },
+      "hitCount": 2,
+      "children": [
+        52
+      ],
+      "positionTicks": [
+        {
+          "line": 588,
+          "ticks": 1
+        },
+        {
+          "line": 594,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "callFrame": {
+        "functionName": "normalize",
+        "scriptId": "36",
+        "url": "node:path",
+        "lineNumber": 364,
+        "columnNumber": 11
+      },
+      "hitCount": 0,
+      "children": [
+        53
+      ]
+    },
+    {
+      "id": 53,
+      "callFrame": {
+        "functionName": "normalizeString",
+        "scriptId": "36",
+        "url": "node:path",
+        "lineNumber": 92,
+        "columnNumber": 24
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 148,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 295,
+        "columnNumber": 28
+      },
+      "hitCount": 0,
+      "children": [
+        55
+      ]
+    },
+    {
+      "id": 55,
+      "callFrame": {
+        "functionName": "normalize",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 284,
+        "columnNumber": 22
+      },
+      "hitCount": 0,
+      "children": [
+        56
+      ]
+    },
+    {
+      "id": 56,
+      "callFrame": {
+        "functionName": "resolve",
+        "scriptId": "36",
+        "url": "node:path",
+        "lineNumber": 204,
+        "columnNumber": 9
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 353,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "callFrame": {
+        "functionName": "opendirSync",
+        "scriptId": "123",
+        "url": "node:internal/fs/dir",
+        "lineNumber": 355,
+        "columnNumber": 20
+      },
+      "hitCount": 0,
+      "children": [
+        58
+      ]
+    },
+    {
+      "id": 58,
+      "callFrame": {
+        "functionName": "opendirSync",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 360,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 59,
+      "callFrame": {
+        "functionName": "readSync",
+        "scriptId": "123",
+        "url": "node:internal/fs/dir",
+        "lineNumber": 207,
+        "columnNumber": 10
+      },
+      "hitCount": 0,
+      "children": [
+        60
+      ]
+    },
+    {
+      "id": 60,
+      "callFrame": {
+        "functionName": "read",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 2,
+      "positionTicks": [
+        {
+          "line": 227,
+          "ticks": 2
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "callFrame": {
+        "functionName": "port.<computed>",
+        "scriptId": "88",
+        "url": "file:///C:/code/chainlesschain/.work/memory-query-bundle/cold-cpu-diagnostic-20261029-bf40.mjs",
+        "lineNumber": 61,
+        "columnNumber": 34
+      },
+      "hitCount": 0,
+      "children": [
+        62
+      ]
+    },
+    {
+      "id": 62,
+      "callFrame": {
+        "functionName": "_readQueryBundleIndexes",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 867,
+        "columnNumber": 31
+      },
+      "hitCount": 1,
+      "children": [
+        63,
+        73
+      ],
+      "positionTicks": [
+        {
+          "line": 878,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 63,
+      "callFrame": {
+        "functionName": "_queryBundlePlan",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 262,
+        "columnNumber": 18
+      },
+      "hitCount": 0,
+      "children": [
+        64,
+        65,
+        70
+      ]
+    },
+    {
+      "id": 64,
+      "callFrame": {
+        "functionName": "createQueryBundlePlan",
+        "scriptId": "177",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js",
+        "lineNumber": 69,
+        "columnNumber": 37
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 102,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 65,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 290,
+        "columnNumber": 49
+      },
+      "hitCount": 0,
+      "children": [
+        66
+      ]
+    },
+    {
+      "id": 66,
+      "callFrame": {
+        "functionName": "_queryIndexPath",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 255,
+        "columnNumber": 17
+      },
+      "hitCount": 1,
+      "children": [
+        67
+      ],
+      "positionTicks": [
+        {
+          "line": 257,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 67,
+      "callFrame": {
+        "functionName": "join",
+        "scriptId": "36",
+        "url": "node:path",
+        "lineNumber": 520,
+        "columnNumber": 6
+      },
+      "hitCount": 0,
+      "children": [
+        68
+      ]
+    },
+    {
+      "id": 68,
+      "callFrame": {
+        "functionName": "normalize",
+        "scriptId": "36",
+        "url": "node:path",
+        "lineNumber": 364,
+        "columnNumber": 11
+      },
+      "hitCount": 0,
+      "children": [
+        69
+      ]
+    },
+    {
+      "id": 69,
+      "callFrame": {
+        "functionName": "normalizeString",
+        "scriptId": "36",
+        "url": "node:path",
+        "lineNumber": 92,
+        "columnNumber": 24
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 99,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 70,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 295,
+        "columnNumber": 28
+      },
+      "hitCount": 0,
+      "children": [
+        71
+      ]
+    },
+    {
+      "id": 71,
+      "callFrame": {
+        "functionName": "normalize",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 284,
+        "columnNumber": 22
+      },
+      "hitCount": 1,
+      "children": [
+        72
+      ],
+      "positionTicks": [
+        {
+          "line": 287,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 72,
+      "callFrame": {
+        "functionName": "resolve",
+        "scriptId": "36",
+        "url": "node:path",
+        "lineNumber": 204,
+        "columnNumber": 9
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 353,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 73,
+      "callFrame": {
+        "functionName": "port.<computed>",
+        "scriptId": "88",
+        "url": "file:///C:/code/chainlesschain/.work/memory-query-bundle/cold-cpu-diagnostic-20261029-bf40.mjs",
+        "lineNumber": 68,
+        "columnNumber": 28
+      },
+      "hitCount": 0,
+      "children": [
+        74
+      ]
+    },
+    {
+      "id": 74,
+      "callFrame": {
+        "functionName": "_checkDirectories",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 221,
+        "columnNumber": 19
+      },
+      "hitCount": 0,
+      "children": [
+        75
+      ]
+    },
+    {
+      "id": 75,
+      "callFrame": {
+        "functionName": "directories",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 113,
+        "columnNumber": 20
+      },
+      "hitCount": 0,
+      "children": [
+        76
+      ]
+    },
+    {
+      "id": 76,
+      "callFrame": {
+        "functionName": "lstatSync",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 1715,
+        "columnNumber": 18
+      },
+      "hitCount": 0,
+      "children": [
+        77
+      ]
+    },
+    {
+      "id": 77,
+      "callFrame": {
+        "functionName": "lstat",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 1722,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "callFrame": {
+        "functionName": "(garbage collector)",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 65
+    },
+    {
+      "id": 78,
+      "callFrame": {
+        "functionName": "readQueryBundle",
+        "scriptId": "177",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js",
+        "lineNumber": 130,
+        "columnNumber": 37
+      },
+      "hitCount": 2,
+      "children": [
+        79,
+        87,
+        94,
+        111
+      ],
+      "positionTicks": [
+        {
+          "line": 190,
+          "ticks": 1
+        },
+        {
+          "line": 184,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 79,
+      "callFrame": {
+        "functionName": "onFrame",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 872,
+        "columnNumber": 20
+      },
+      "hitCount": 0,
+      "children": [
+        80
+      ]
+    },
+    {
+      "id": 80,
+      "callFrame": {
+        "functionName": "port.<computed>",
+        "scriptId": "88",
+        "url": "file:///C:/code/chainlesschain/.work/memory-query-bundle/cold-cpu-diagnostic-20261029-bf40.mjs",
+        "lineNumber": 68,
+        "columnNumber": 28
+      },
+      "hitCount": 1,
+      "children": [
+        81,
+        107
+      ],
+      "positionTicks": [
+        {
+          "line": 73,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 81,
+      "callFrame": {
+        "functionName": "_readQueryIndex",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 762,
+        "columnNumber": 17
+      },
+      "hitCount": 1,
+      "children": [
+        82,
+        84
+      ],
+      "positionTicks": [
+        {
+          "line": 765,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 82,
+      "callFrame": {
+        "functionName": "compileQueryIndex",
+        "scriptId": "171",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+        "lineNumber": 49,
+        "columnNumber": 33
+      },
+      "hitCount": 101,
+      "children": [
+        83,
+        100,
+        102
+      ],
+      "positionTicks": [
+        {
+          "line": 51,
+          "ticks": 97
+        },
+        {
+          "line": 61,
+          "ticks": 2
+        },
+        {
+          "line": 69,
+          "ticks": 1
+        },
+        {
+          "line": 54,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 83,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "171",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+        "lineNumber": 68,
+        "columnNumber": 21
+      },
+      "hitCount": 3,
+      "children": [
+        90,
+        105
+      ],
+      "positionTicks": [
+        {
+          "line": 66,
+          "ticks": 1
+        },
+        {
+          "line": 74,
+          "ticks": 1
+        },
+        {
+          "line": 47,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 90,
+      "callFrame": {
+        "functionName": "scopeKey",
+        "scriptId": "171",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+        "lineNumber": 45,
+        "columnNumber": 17
+      },
+      "hitCount": 16,
+      "positionTicks": [
+        {
+          "line": 47,
+          "ticks": 16
+        }
+      ]
+    },
+    {
+      "id": 105,
+      "callFrame": {
+        "functionName": "add",
+        "scriptId": "171",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+        "lineNumber": 63,
+        "columnNumber": 14
+      },
+      "hitCount": 21,
+      "positionTicks": [
+        {
+          "line": 66,
+          "ticks": 15
+        },
+        {
+          "line": 67,
+          "ticks": 5
+        },
+        {
+          "line": 65,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 100,
+      "callFrame": {
+        "functionName": "toString",
+        "scriptId": "24",
+        "url": "node:buffer",
+        "lineNumber": 838,
+        "columnNumber": 45
+      },
+      "hitCount": 0,
+      "children": [
+        101
+      ]
+    },
+    {
+      "id": 101,
+      "callFrame": {
+        "functionName": "slice",
+        "scriptId": "24",
+        "url": "node:buffer",
+        "lineNumber": 639,
+        "columnNumber": 11
+      },
+      "hitCount": 4,
+      "positionTicks": [
+        {
+          "line": 640,
+          "ticks": 4
+        }
+      ]
+    },
+    {
+      "id": 102,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "171",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+        "lineNumber": 61,
+        "columnNumber": 15
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 62,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 84,
+      "callFrame": {
+        "functionName": "queryDigest",
+        "scriptId": "171",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+        "lineNumber": 8,
+        "columnNumber": 27
+      },
+      "hitCount": 0,
+      "children": [
+        85
+      ]
+    },
+    {
+      "id": 85,
+      "callFrame": {
+        "functionName": "update",
+        "scriptId": "143",
+        "url": "node:internal/crypto/hash",
+        "lineNumber": 131,
+        "columnNumber": 39
+      },
+      "hitCount": 0,
+      "children": [
+        86
+      ]
+    },
+    {
+      "id": 86,
+      "callFrame": {
+        "functionName": "update",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 27,
+      "positionTicks": [
+        {
+          "line": 144,
+          "ticks": 27
+        }
+      ]
+    },
+    {
+      "id": 107,
+      "callFrame": {
+        "functionName": "now",
+        "scriptId": "156",
+        "url": "node:internal/perf/performance",
+        "lineNumber": 136,
+        "columnNumber": 5
+      },
+      "hitCount": 0,
+      "children": [
+        108
+      ]
+    },
+    {
+      "id": 108,
+      "callFrame": {
+        "functionName": "wrappedFn",
+        "scriptId": "7",
+        "url": "node:internal/errors",
+        "lineNumber": 534,
+        "columnNumber": 20
+      },
+      "hitCount": 0,
+      "children": [
+        109
+      ]
+    },
+    {
+      "id": 109,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "12",
+        "url": "node:internal/validators",
+        "lineNumber": 535,
+        "columnNumber": 50
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 537,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 87,
+      "callFrame": {
+        "functionName": "allocUnsafe",
+        "scriptId": "24",
+        "url": "node:buffer",
+        "lineNumber": 410,
+        "columnNumber": 41
+      },
+      "hitCount": 0,
+      "children": [
+        88
+      ]
+    },
+    {
+      "id": 88,
+      "callFrame": {
+        "functionName": "allocate",
+        "scriptId": "24",
+        "url": "node:buffer",
+        "lineNumber": 435,
+        "columnNumber": 17
+      },
+      "hitCount": 0,
+      "children": [
+        89
+      ]
+    },
+    {
+      "id": 89,
+      "callFrame": {
+        "functionName": "createUnsafeBuffer",
+        "scriptId": "25",
+        "url": "node:internal/buffer",
+        "lineNumber": 1081,
+        "columnNumber": 27
+      },
+      "hitCount": 2,
+      "positionTicks": [
+        {
+          "line": 1089,
+          "ticks": 2
+        }
+      ]
+    },
+    {
+      "id": 94,
+      "callFrame": {
+        "functionName": "readBytes",
+        "scriptId": "177",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js",
+        "lineNumber": 160,
+        "columnNumber": 28
+      },
+      "hitCount": 0,
+      "children": [
+        95,
+        103,
+        110
+      ]
+    },
+    {
+      "id": 95,
+      "callFrame": {
+        "functionName": "update",
+        "scriptId": "143",
+        "url": "node:internal/crypto/hash",
+        "lineNumber": 131,
+        "columnNumber": 39
+      },
+      "hitCount": 0,
+      "children": [
+        96
+      ]
+    },
+    {
+      "id": 96,
+      "callFrame": {
+        "functionName": "update",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 18,
+      "positionTicks": [
+        {
+          "line": 144,
+          "ticks": 18
+        }
+      ]
+    },
+    {
+      "id": 103,
+      "callFrame": {
+        "functionName": "readSync",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 694,
+        "columnNumber": 17
+      },
+      "hitCount": 0,
+      "children": [
+        104
+      ]
+    },
+    {
+      "id": 104,
+      "callFrame": {
+        "functionName": "read",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 9,
+      "positionTicks": [
+        {
+          "line": 736,
+          "ticks": 9
+        }
+      ]
+    },
+    {
+      "id": 110,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "175",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-control.js",
+        "lineNumber": 19,
+        "columnNumber": 9
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 23,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 111,
+      "callFrame": {
+        "functionName": "fstatSync",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 1697,
+        "columnNumber": 18
+      },
+      "hitCount": 0,
+      "children": [
+        112
+      ]
+    },
+    {
+      "id": 112,
+      "callFrame": {
+        "functionName": "fstat",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 1699,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 91,
+      "callFrame": {
+        "functionName": "readBytes",
+        "scriptId": "177",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js",
+        "lineNumber": 160,
+        "columnNumber": 28
+      },
+      "hitCount": 0,
+      "children": [
+        92,
+        98
+      ]
+    },
+    {
+      "id": 92,
+      "callFrame": {
+        "functionName": "update",
+        "scriptId": "143",
+        "url": "node:internal/crypto/hash",
+        "lineNumber": 131,
+        "columnNumber": 39
+      },
+      "hitCount": 0,
+      "children": [
+        93
+      ]
+    },
+    {
+      "id": 93,
+      "callFrame": {
+        "functionName": "update",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 17,
+      "positionTicks": [
+        {
+          "line": 144,
+          "ticks": 17
+        }
+      ]
+    },
+    {
+      "id": 98,
+      "callFrame": {
+        "functionName": "readSync",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 694,
+        "columnNumber": 17
+      },
+      "hitCount": 0,
+      "children": [
+        99
+      ]
+    },
+    {
+      "id": 99,
+      "callFrame": {
+        "functionName": "read",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 2,
+      "positionTicks": [
+        {
+          "line": 736,
+          "ticks": 2
+        }
+      ]
+    },
+    {
+      "id": 97,
+      "callFrame": {
+        "functionName": "processImmediate",
+        "scriptId": "10",
+        "url": "node:internal/timers",
+        "lineNumber": 435,
+        "columnNumber": 27
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 502,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 106,
+      "callFrame": {
+        "functionName": "(program)",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 5
+    },
+    {
+      "id": 113,
+      "callFrame": {
+        "functionName": "captured._locked.signal.signal",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 918,
+        "columnNumber": 6
+      },
+      "hitCount": 0,
+      "children": [
+        114,
+        115,
+        118
+      ]
+    },
+    {
+      "id": 114,
+      "callFrame": {
+        "functionName": "selectQueryRows",
+        "scriptId": "171",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+        "lineNumber": 126,
+        "columnNumber": 32
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 145,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 115,
+      "callFrame": {
+        "functionName": "mergeQueryRows",
+        "scriptId": "171",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+        "lineNumber": 187,
+        "columnNumber": 31
+      },
+      "hitCount": 0,
+      "children": [
+        116
+      ]
+    },
+    {
+      "id": 116,
+      "callFrame": {
+        "functionName": "push",
+        "scriptId": "171",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+        "lineNumber": 190,
+        "columnNumber": 15
+      },
+      "hitCount": 0,
+      "children": [
+        117
+      ]
+    },
+    {
+      "id": 117,
+      "callFrame": {
+        "functionName": "less",
+        "scriptId": "171",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+        "lineNumber": 189,
+        "columnNumber": 15
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 190,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 118,
+      "callFrame": {
+        "functionName": "port.<computed>",
+        "scriptId": "88",
+        "url": "file:///C:/code/chainlesschain/.work/memory-query-bundle/cold-cpu-diagnostic-20261029-bf40.mjs",
+        "lineNumber": 68,
+        "columnNumber": 28
+      },
+      "hitCount": 0,
+      "children": [
+        119
+      ]
+    },
+    {
+      "id": 119,
+      "callFrame": {
+        "functionName": "_readShardBytes",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 419,
+        "columnNumber": 17
+      },
+      "hitCount": 0,
+      "children": [
+        120,
+        128,
+        131
+      ]
+    },
+    {
+      "id": 120,
+      "callFrame": {
+        "functionName": "port.<computed>",
+        "scriptId": "88",
+        "url": "file:///C:/code/chainlesschain/.work/memory-query-bundle/cold-cpu-diagnostic-20261029-bf40.mjs",
+        "lineNumber": 68,
+        "columnNumber": 28
+      },
+      "hitCount": 0,
+      "children": [
+        121
+      ]
+    },
+    {
+      "id": 121,
+      "callFrame": {
+        "functionName": "_checkDirectories",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 221,
+        "columnNumber": 19
+      },
+      "hitCount": 1,
+      "children": [
+        122,
+        125
+      ],
+      "positionTicks": [
+        {
+          "line": 239,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 122,
+      "callFrame": {
+        "functionName": "directories",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 113,
+        "columnNumber": 20
+      },
+      "hitCount": 0,
+      "children": [
+        123,
+        136,
+        143
+      ]
+    },
+    {
+      "id": 123,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 2850,
+        "columnNumber": 22
+      },
+      "hitCount": 0,
+      "children": [
+        124
+      ]
+    },
+    {
+      "id": 124,
+      "callFrame": {
+        "functionName": "realpath",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 2,
+      "positionTicks": [
+        {
+          "line": 2853,
+          "ticks": 2
+        }
+      ]
+    },
+    {
+      "id": 136,
+      "callFrame": {
+        "functionName": "lstatSync",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 1715,
+        "columnNumber": 18
+      },
+      "hitCount": 0,
+      "children": [
+        137
+      ]
+    },
+    {
+      "id": 137,
+      "callFrame": {
+        "functionName": "lstat",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 6,
+      "positionTicks": [
+        {
+          "line": 1722,
+          "ticks": 6
+        }
+      ]
+    },
+    {
+      "id": 143,
+      "callFrame": {
+        "functionName": "dirname",
+        "scriptId": "36",
+        "url": "node:path",
+        "lineNumber": 817,
+        "columnNumber": 9
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 889,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 125,
+      "callFrame": {
+        "functionName": "identity",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 150,
+        "columnNumber": 17
+      },
+      "hitCount": 0,
+      "children": [
+        126
+      ]
+    },
+    {
+      "id": 126,
+      "callFrame": {
+        "functionName": "lstatSync",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 1715,
+        "columnNumber": 18
+      },
+      "hitCount": 0,
+      "children": [
+        127
+      ]
+    },
+    {
+      "id": 127,
+      "callFrame": {
+        "functionName": "lstat",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 1722,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 128,
+      "callFrame": {
+        "functionName": "regular",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 107,
+        "columnNumber": 16
+      },
+      "hitCount": 0,
+      "children": [
+        129
+      ]
+    },
+    {
+      "id": 129,
+      "callFrame": {
+        "functionName": "lstatSync",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 1715,
+        "columnNumber": 18
+      },
+      "hitCount": 0,
+      "children": [
+        130
+      ]
+    },
+    {
+      "id": 130,
+      "callFrame": {
+        "functionName": "lstat",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 1722,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 131,
+      "callFrame": {
+        "functionName": "readBoundedState",
+        "scriptId": "172",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+        "lineNumber": 155,
+        "columnNumber": 25
+      },
+      "hitCount": 0,
+      "children": [
+        132,
+        134,
+        138,
+        141
+      ]
+    },
+    {
+      "id": 132,
+      "callFrame": {
+        "functionName": "readSync",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 694,
+        "columnNumber": 17
+      },
+      "hitCount": 0,
+      "children": [
+        133
+      ]
+    },
+    {
+      "id": 133,
+      "callFrame": {
+        "functionName": "read",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 736,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 134,
+      "callFrame": {
+        "functionName": "concat",
+        "scriptId": "24",
+        "url": "node:buffer",
+        "lineNumber": 581,
+        "columnNumber": 31
+      },
+      "hitCount": 0,
+      "children": [
+        135
+      ]
+    },
+    {
+      "id": 135,
+      "callFrame": {
+        "functionName": "_copyActual",
+        "scriptId": "24",
+        "url": "node:buffer",
+        "lineNumber": 242,
+        "columnNumber": 20
+      },
+      "hitCount": 2,
+      "positionTicks": [
+        {
+          "line": 256,
+          "ticks": 2
+        }
+      ]
+    },
+    {
+      "id": 138,
+      "callFrame": {
+        "functionName": "allocUnsafe",
+        "scriptId": "24",
+        "url": "node:buffer",
+        "lineNumber": 410,
+        "columnNumber": 41
+      },
+      "hitCount": 0,
+      "children": [
+        139
+      ]
+    },
+    {
+      "id": 139,
+      "callFrame": {
+        "functionName": "allocate",
+        "scriptId": "24",
+        "url": "node:buffer",
+        "lineNumber": 435,
+        "columnNumber": 17
+      },
+      "hitCount": 0,
+      "children": [
+        140
+      ]
+    },
+    {
+      "id": 140,
+      "callFrame": {
+        "functionName": "createUnsafeBuffer",
+        "scriptId": "25",
+        "url": "node:internal/buffer",
+        "lineNumber": 1081,
+        "columnNumber": 27
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 1089,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 141,
+      "callFrame": {
+        "functionName": "closeSync",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 515,
+        "columnNumber": 18
+      },
+      "hitCount": 0,
+      "children": [
+        142
+      ]
+    },
+    {
+      "id": 142,
+      "callFrame": {
+        "functionName": "close",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 517,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 144,
+      "callFrame": {
+        "functionName": "withFileLockAsync",
+        "scriptId": "179",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/with-file-lock.js",
+        "lineNumber": 51,
+        "columnNumber": 39
+      },
+      "hitCount": 0,
+      "children": [
+        145
+      ]
+    },
+    {
+      "id": 145,
+      "callFrame": {
+        "functionName": "runLocked",
+        "scriptId": "179",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/with-file-lock.js",
+        "lineNumber": 71,
+        "columnNumber": 19
+      },
+      "hitCount": 1,
+      "children": [
+        146
+      ],
+      "positionTicks": [
+        {
+          "line": 321,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 146,
+      "callFrame": {
+        "functionName": "releaseOwnedDirectory",
+        "scriptId": "179",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/with-file-lock.js",
+        "lineNumber": 819,
+        "columnNumber": 30
+      },
+      "hitCount": 0,
+      "children": [
+        147,
+        150
+      ]
+    },
+    {
+      "id": 147,
+      "callFrame": {
+        "functionName": "renameSync",
+        "scriptId": "179",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/with-file-lock.js",
+        "lineNumber": 388,
+        "columnNumber": 14
+      },
+      "hitCount": 0,
+      "children": [
+        148
+      ]
+    },
+    {
+      "id": 148,
+      "callFrame": {
+        "functionName": "renameSync",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 1010,
+        "columnNumber": 19
+      },
+      "hitCount": 0,
+      "children": [
+        149
+      ]
+    },
+    {
+      "id": 149,
+      "callFrame": {
+        "functionName": "rename",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 1014,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 150,
+      "callFrame": {
+        "functionName": "rmSync",
+        "scriptId": "179",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/with-file-lock.js",
+        "lineNumber": 389,
+        "columnNumber": 10
+      },
+      "hitCount": 0,
+      "children": [
+        151
+      ]
+    },
+    {
+      "id": 151,
+      "callFrame": {
+        "functionName": "rmSync",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 1236,
+        "columnNumber": 15
+      },
+      "hitCount": 0,
+      "children": [
+        152
+      ]
+    },
+    {
+      "id": 152,
+      "callFrame": {
+        "functionName": "rimrafSync",
+        "scriptId": "378",
+        "url": "node:internal/fs/rimraf",
+        "lineNumber": 176,
+        "columnNumber": 19
+      },
+      "hitCount": 0,
+      "children": [
+        153
+      ]
+    },
+    {
+      "id": 153,
+      "callFrame": {
+        "functionName": "_rmdirSync",
+        "scriptId": "378",
+        "url": "node:internal/fs/rimraf",
+        "lineNumber": 233,
+        "columnNumber": 19
+      },
+      "hitCount": 0,
+      "children": [
+        154
+      ]
+    },
+    {
+      "id": 154,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "378",
+        "url": "node:internal/fs/rimraf",
+        "lineNumber": 250,
+        "columnNumber": 67
+      },
+      "hitCount": 0,
+      "children": [
+        155
+      ]
+    },
+    {
+      "id": 155,
+      "callFrame": {
+        "functionName": "rimrafSync",
+        "scriptId": "378",
+        "url": "node:internal/fs/rimraf",
+        "lineNumber": 176,
+        "columnNumber": 19
+      },
+      "hitCount": 0,
+      "children": [
+        156
+      ]
+    },
+    {
+      "id": 156,
+      "callFrame": {
+        "functionName": "_unlinkSync",
+        "scriptId": "378",
+        "url": "node:internal/fs/rimraf",
+        "lineNumber": 209,
+        "columnNumber": 20
+      },
+      "hitCount": 0,
+      "children": [
+        157
+      ]
+    },
+    {
+      "id": 157,
+      "callFrame": {
+        "functionName": "unlinkSync",
+        "scriptId": "46",
+        "url": "node:fs",
+        "lineNumber": 1946,
+        "columnNumber": 19
+      },
+      "hitCount": 0,
+      "children": [
+        158
+      ]
+    },
+    {
+      "id": 158,
+      "callFrame": {
+        "functionName": "unlink",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 1948,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 159,
+      "callFrame": {
+        "functionName": "_indexedRecords",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 909,
+        "columnNumber": 23
+      },
+      "hitCount": 1,
+      "children": [
+        160
+      ],
+      "positionTicks": [
+        {
+          "line": 1021,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 160,
+      "callFrame": {
+        "functionName": "port.<computed>",
+        "scriptId": "88",
+        "url": "file:///C:/code/chainlesschain/.work/memory-query-bundle/cold-cpu-diagnostic-20261029-bf40.mjs",
+        "lineNumber": 68,
+        "columnNumber": 28
+      },
+      "hitCount": 0,
+      "children": [
+        161,
+        244
+      ]
+    },
+    {
+      "id": 161,
+      "callFrame": {
+        "functionName": "_queryShardSnapshot",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 477,
+        "columnNumber": 21
+      },
+      "hitCount": 0,
+      "children": [
+        162
+      ]
+    },
+    {
+      "id": 162,
+      "callFrame": {
+        "functionName": "read",
+        "scriptId": "176",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js",
+        "lineNumber": 29,
+        "columnNumber": 6
+      },
+      "hitCount": 1,
+      "children": [
+        163,
+        213
+      ],
+      "positionTicks": [
+        {
+          "line": 46,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 163,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 482,
+        "columnNumber": 6
+      },
+      "hitCount": 0,
+      "children": [
+        164
+      ]
+    },
+    {
+      "id": 164,
+      "callFrame": {
+        "functionName": "_decodeShard",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 434,
+        "columnNumber": 14
+      },
+      "hitCount": 32,
+      "children": [
+        165,
+        208,
+        216
+      ],
+      "positionTicks": [
+        {
+          "line": 440,
+          "ticks": 32
+        }
+      ]
+    },
+    {
+      "id": 165,
+      "callFrame": {
+        "functionName": "normalizeState",
+        "scriptId": "172",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+        "lineNumber": 76,
+        "columnNumber": 23
+      },
+      "hitCount": 5,
+      "children": [
+        166,
+        186,
+        201,
+        248
+      ],
+      "positionTicks": [
+        {
+          "line": 114,
+          "ticks": 2
+        },
+        {
+          "line": 113,
+          "ticks": 2
+        },
+        {
+          "line": 118,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 166,
+      "callFrame": {
+        "functionName": "normalizeMemoryRecord",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 360,
+        "columnNumber": 30
+      },
+      "hitCount": 9,
+      "children": [
+        167,
+        169,
+        171,
+        221,
+        224,
+        232,
+        237,
+        243,
+        250,
+        251,
+        255
+      ],
+      "positionTicks": [
+        {
+          "line": 402,
+          "ticks": 2
+        },
+        {
+          "line": 358,
+          "ticks": 1
+        },
+        {
+          "line": 406,
+          "ticks": 1
+        },
+        {
+          "line": 414,
+          "ticks": 1
+        },
+        {
+          "line": 389,
+          "ticks": 1
+        },
+        {
+          "line": 365,
+          "ticks": 1
+        },
+        {
+          "line": 413,
+          "ticks": 1
+        },
+        {
+          "line": 383,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 167,
+      "callFrame": {
+        "functionName": "containsSecretMaterial",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 322,
+        "columnNumber": 31
+      },
+      "hitCount": 7,
+      "children": [
+        168
+      ],
+      "positionTicks": [
+        {
+          "line": 324,
+          "ticks": 7
+        }
+      ]
+    },
+    {
+      "id": 168,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 323,
+        "columnNumber": 30
+      },
+      "hitCount": 4,
+      "children": [
+        184,
+        185,
+        218,
+        249
+      ],
+      "positionTicks": [
+        {
+          "line": 324,
+          "ticks": 4
+        }
+      ]
+    },
+    {
+      "id": 184,
+      "callFrame": {
+        "functionName": "RegExp: \\b(?:api[_-]?key|access[_-]?token|client[_-]?secret)\\s*[:=]\\s*[\"']?[A-Za-z0-9._~+/=-]{12,}",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 6
+    },
+    {
+      "id": 185,
+      "callFrame": {
+        "functionName": "RegExp: \\b(?:recovery|backup)\\s+code\\s*[:=]\\s*[A-Za-z0-9 -]{8,}",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 6
+    },
+    {
+      "id": 218,
+      "callFrame": {
+        "functionName": "RegExp: \\b(?:session|auth)(?:id|_token)?\\s*=\\s*[A-Za-z0-9%._~+/=-]{16,}",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1
+    },
+    {
+      "id": 249,
+      "callFrame": {
+        "functionName": "RegExp: \\bBearer\\s+[A-Za-z0-9._~+/=-]{16,}\\b",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 2
+    },
+    {
+      "id": 169,
+      "callFrame": {
+        "functionName": "computeMemoryRecordDigest",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 354,
+        "columnNumber": 34
+      },
+      "hitCount": 4,
+      "children": [
+        170
+      ],
+      "positionTicks": [
+        {
+          "line": 357,
+          "ticks": 2
+        },
+        {
+          "line": 358,
+          "ticks": 1
+        },
+        {
+          "line": 356,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 170,
+      "callFrame": {
+        "functionName": "canonicalDigest",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 35,
+        "columnNumber": 24
+      },
+      "hitCount": 5,
+      "children": [
+        173,
+        175,
+        180,
+        219
+      ],
+      "positionTicks": [
+        {
+          "line": 39,
+          "ticks": 1
+        },
+        {
+          "line": 38,
+          "ticks": 1
+        },
+        {
+          "line": 37,
+          "ticks": 2
+        },
+        {
+          "line": 156,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 173,
+      "callFrame": {
+        "functionName": "createHash",
+        "scriptId": "130",
+        "url": "node:crypto",
+        "lineNumber": 137,
+        "columnNumber": 19
+      },
+      "hitCount": 3,
+      "children": [
+        174
+      ],
+      "positionTicks": [
+        {
+          "line": 139,
+          "ticks": 2
+        },
+        {
+          "line": 101,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 174,
+      "callFrame": {
+        "functionName": "Hash",
+        "scriptId": "143",
+        "url": "node:internal/crypto/hash",
+        "lineNumber": 87,
+        "columnNumber": 13
+      },
+      "hitCount": 3,
+      "children": [
+        225
+      ],
+      "positionTicks": [
+        {
+          "line": 103,
+          "ticks": 1
+        },
+        {
+          "line": 101,
+          "ticks": 2
+        }
+      ]
+    },
+    {
+      "id": 225,
+      "callFrame": {
+        "functionName": "Hash",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 7,
+      "positionTicks": [
+        {
+          "line": 101,
+          "ticks": 7
+        }
+      ]
+    },
+    {
+      "id": 175,
+      "callFrame": {
+        "functionName": "canonicalJson",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 31,
+        "columnNumber": 22
+      },
+      "hitCount": 25,
+      "children": [
+        176
+      ],
+      "positionTicks": [
+        {
+          "line": 33,
+          "ticks": 25
+        }
+      ]
+    },
+    {
+      "id": 176,
+      "callFrame": {
+        "functionName": "canonicalize",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 5,
+        "columnNumber": 21
+      },
+      "hitCount": 37,
+      "children": [
+        177,
+        235,
+        236
+      ],
+      "positionTicks": [
+        {
+          "line": 26,
+          "ticks": 1
+        },
+        {
+          "line": 27,
+          "ticks": 7
+        },
+        {
+          "line": 24,
+          "ticks": 26
+        },
+        {
+          "line": 28,
+          "ticks": 3
+        }
+      ]
+    },
+    {
+      "id": 177,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 27,
+        "columnNumber": 11
+      },
+      "hitCount": 0,
+      "children": [
+        178
+      ]
+    },
+    {
+      "id": 178,
+      "callFrame": {
+        "functionName": "canonicalize",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 5,
+        "columnNumber": 21
+      },
+      "hitCount": 8,
+      "children": [
+        179,
+        182
+      ],
+      "positionTicks": [
+        {
+          "line": 27,
+          "ticks": 1
+        },
+        {
+          "line": 24,
+          "ticks": 6
+        },
+        {
+          "line": 15,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 179,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 27,
+        "columnNumber": 11
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 28,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 182,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 14,
+        "columnNumber": 21
+      },
+      "hitCount": 1,
+      "children": [
+        183
+      ],
+      "positionTicks": [
+        {
+          "line": 15,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 183,
+      "callFrame": {
+        "functionName": "canonicalize",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 5,
+        "columnNumber": 21
+      },
+      "hitCount": 9,
+      "children": [
+        260
+      ],
+      "positionTicks": [
+        {
+          "line": 7,
+          "ticks": 1
+        },
+        {
+          "line": 27,
+          "ticks": 2
+        },
+        {
+          "line": 24,
+          "ticks": 6
+        }
+      ]
+    },
+    {
+      "id": 260,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 26,
+        "columnNumber": 12
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 27,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 235,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 25,
+        "columnNumber": 14
+      },
+      "hitCount": 2,
+      "positionTicks": [
+        {
+          "line": 26,
+          "ticks": 2
+        }
+      ]
+    },
+    {
+      "id": 236,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 26,
+        "columnNumber": 12
+      },
+      "hitCount": 4,
+      "positionTicks": [
+        {
+          "line": 27,
+          "ticks": 4
+        }
+      ]
+    },
+    {
+      "id": 180,
+      "callFrame": {
+        "functionName": "digest",
+        "scriptId": "143",
+        "url": "node:internal/crypto/hash",
+        "lineNumber": 149,
+        "columnNumber": 39
+      },
+      "hitCount": 1,
+      "children": [
+        227
+      ],
+      "positionTicks": [
+        {
+          "line": 156,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 227,
+      "callFrame": {
+        "functionName": "digest",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 4,
+      "positionTicks": [
+        {
+          "line": 156,
+          "ticks": 3
+        }
+      ]
+    },
+    {
+      "id": 219,
+      "callFrame": {
+        "functionName": "update",
+        "scriptId": "143",
+        "url": "node:internal/crypto/hash",
+        "lineNumber": 131,
+        "columnNumber": 39
+      },
+      "hitCount": 1,
+      "children": [
+        220,
+        226
+      ],
+      "positionTicks": [
+        {
+          "line": 144,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 220,
+      "callFrame": {
+        "functionName": "update",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 16,
+      "positionTicks": [
+        {
+          "line": 144,
+          "ticks": 15
+        }
+      ]
+    },
+    {
+      "id": 226,
+      "callFrame": {
+        "functionName": "wrappedFn",
+        "scriptId": "7",
+        "url": "node:internal/errors",
+        "lineNumber": 534,
+        "columnNumber": 20
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 537,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 171,
+      "callFrame": {
+        "functionName": "normalizeProvenance",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 128,
+        "columnNumber": 28
+      },
+      "hitCount": 6,
+      "children": [
+        172,
+        181,
+        252
+      ],
+      "positionTicks": [
+        {
+          "line": 135,
+          "ticks": 3
+        },
+        {
+          "line": 133,
+          "ticks": 1
+        },
+        {
+          "line": 142,
+          "ticks": 1
+        },
+        {
+          "line": 132,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 172,
+      "callFrame": {
+        "functionName": "timestamp",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 80,
+        "columnNumber": 18
+      },
+      "hitCount": 16,
+      "positionTicks": [
+        {
+          "line": 85,
+          "ticks": 13
+        },
+        {
+          "line": 83,
+          "ticks": 3
+        }
+      ]
+    },
+    {
+      "id": 181,
+      "callFrame": {
+        "functionName": "identifier",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 49,
+        "columnNumber": 19
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 52,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 252,
+      "callFrame": {
+        "functionName": "assertKnownFields",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 35,
+        "columnNumber": 26
+      },
+      "hitCount": 0,
+      "children": [
+        253
+      ]
+    },
+    {
+      "id": 253,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 36,
+        "columnNumber": 44
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 37,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 221,
+      "callFrame": {
+        "functionName": "stringSet",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 87,
+        "columnNumber": 18
+      },
+      "hitCount": 6,
+      "positionTicks": [
+        {
+          "line": 95,
+          "ticks": 4
+        },
+        {
+          "line": 96,
+          "ticks": 1
+        },
+        {
+          "line": 88,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 224,
+      "callFrame": {
+        "functionName": "timestamp",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 80,
+        "columnNumber": 18
+      },
+      "hitCount": 15,
+      "positionTicks": [
+        {
+          "line": 85,
+          "ticks": 11
+        },
+        {
+          "line": 81,
+          "ticks": 1
+        },
+        {
+          "line": 83,
+          "ticks": 3
+        }
+      ]
+    },
+    {
+      "id": 232,
+      "callFrame": {
+        "functionName": "assertScope",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 98,
+        "columnNumber": 20
+      },
+      "hitCount": 1,
+      "children": [
+        233
+      ],
+      "positionTicks": [
+        {
+          "line": 102,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 233,
+      "callFrame": {
+        "functionName": "identifier",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 49,
+        "columnNumber": 19
+      },
+      "hitCount": 0,
+      "children": [
+        234
+      ]
+    },
+    {
+      "id": 234,
+      "callFrame": {
+        "functionName": "RegExp: ^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1
+    },
+    {
+      "id": 237,
+      "callFrame": {
+        "functionName": "digestValue",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 55,
+        "columnNumber": 20
+      },
+      "hitCount": 1,
+      "children": [
+        238
+      ],
+      "positionTicks": [
+        {
+          "line": 58,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 238,
+      "callFrame": {
+        "functionName": "RegExp: ^sha256:[a-f0-9]{64}$",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 2
+    },
+    {
+      "id": 243,
+      "callFrame": {
+        "functionName": "normalizeRetentionPolicy",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 300,
+        "columnNumber": 33
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 304,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 250,
+      "callFrame": {
+        "functionName": "objectValue",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 24,
+        "columnNumber": 20
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 26,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 251,
+      "callFrame": {
+        "functionName": "assertKnownFields",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 35,
+        "columnNumber": 26
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 37,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 255,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 389,
+        "columnNumber": 19
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 114,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 186,
+      "callFrame": {
+        "functionName": "stateDigest",
+        "scriptId": "172",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+        "lineNumber": 53,
+        "columnNumber": 20
+      },
+      "hitCount": 0,
+      "children": [
+        187
+      ]
+    },
+    {
+      "id": 187,
+      "callFrame": {
+        "functionName": "canonicalDigest",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 35,
+        "columnNumber": 24
+      },
+      "hitCount": 0,
+      "children": [
+        188,
+        199
+      ]
+    },
+    {
+      "id": 188,
+      "callFrame": {
+        "functionName": "canonicalJson",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 31,
+        "columnNumber": 22
+      },
+      "hitCount": 29,
+      "children": [
+        189
+      ],
+      "positionTicks": [
+        {
+          "line": 33,
+          "ticks": 29
+        }
+      ]
+    },
+    {
+      "id": 189,
+      "callFrame": {
+        "functionName": "canonicalize",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 5,
+        "columnNumber": 21
+      },
+      "hitCount": 0,
+      "children": [
+        190
+      ]
+    },
+    {
+      "id": 190,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 27,
+        "columnNumber": 11
+      },
+      "hitCount": 0,
+      "children": [
+        191
+      ]
+    },
+    {
+      "id": 191,
+      "callFrame": {
+        "functionName": "canonicalize",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 5,
+        "columnNumber": 21
+      },
+      "hitCount": 19,
+      "children": [
+        192,
+        196
+      ],
+      "positionTicks": [
+        {
+          "line": 15,
+          "ticks": 2
+        },
+        {
+          "line": 28,
+          "ticks": 6
+        },
+        {
+          "line": 24,
+          "ticks": 11
+        }
+      ]
+    },
+    {
+      "id": 192,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 14,
+        "columnNumber": 21
+      },
+      "hitCount": 2,
+      "children": [
+        193
+      ],
+      "positionTicks": [
+        {
+          "line": 15,
+          "ticks": 1
+        },
+        {
+          "line": 28,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 193,
+      "callFrame": {
+        "functionName": "canonicalize",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 5,
+        "columnNumber": 21
+      },
+      "hitCount": 4,
+      "children": [
+        194
+      ],
+      "positionTicks": [
+        {
+          "line": 24,
+          "ticks": 4
+        }
+      ]
+    },
+    {
+      "id": 194,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 27,
+        "columnNumber": 11
+      },
+      "hitCount": 0,
+      "children": [
+        195
+      ]
+    },
+    {
+      "id": 195,
+      "callFrame": {
+        "functionName": "canonicalize",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 5,
+        "columnNumber": 21
+      },
+      "hitCount": 15,
+      "positionTicks": [
+        {
+          "line": 24,
+          "ticks": 13
+        },
+        {
+          "line": 27,
+          "ticks": 1
+        },
+        {
+          "line": 6,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 196,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 27,
+        "columnNumber": 11
+      },
+      "hitCount": 2,
+      "children": [
+        197
+      ],
+      "positionTicks": [
+        {
+          "line": 6,
+          "ticks": 1
+        },
+        {
+          "line": 7,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 197,
+      "callFrame": {
+        "functionName": "canonicalize",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 5,
+        "columnNumber": 21
+      },
+      "hitCount": 29,
+      "children": [
+        198,
+        222
+      ],
+      "positionTicks": [
+        {
+          "line": 24,
+          "ticks": 21
+        },
+        {
+          "line": 27,
+          "ticks": 8
+        }
+      ]
+    },
+    {
+      "id": 198,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 26,
+        "columnNumber": 12
+      },
+      "hitCount": 3,
+      "positionTicks": [
+        {
+          "line": 27,
+          "ticks": 3
+        }
+      ]
+    },
+    {
+      "id": 222,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 27,
+        "columnNumber": 11
+      },
+      "hitCount": 0,
+      "children": [
+        223
+      ]
+    },
+    {
+      "id": 223,
+      "callFrame": {
+        "functionName": "canonicalize",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 5,
+        "columnNumber": 21
+      },
+      "hitCount": 9,
+      "children": [
+        239,
+        242,
+        258
+      ],
+      "positionTicks": [
+        {
+          "line": 24,
+          "ticks": 8
+        },
+        {
+          "line": 27,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 239,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 27,
+        "columnNumber": 11
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 28,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 242,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 26,
+        "columnNumber": 12
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 27,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 258,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 14,
+        "columnNumber": 21
+      },
+      "hitCount": 0,
+      "children": [
+        259
+      ]
+    },
+    {
+      "id": 259,
+      "callFrame": {
+        "functionName": "canonicalize",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 5,
+        "columnNumber": 21
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 24,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 199,
+      "callFrame": {
+        "functionName": "update",
+        "scriptId": "143",
+        "url": "node:internal/crypto/hash",
+        "lineNumber": 131,
+        "columnNumber": 39
+      },
+      "hitCount": 3,
+      "children": [
+        200
+      ],
+      "positionTicks": [
+        {
+          "line": 144,
+          "ticks": 3
+        }
+      ]
+    },
+    {
+      "id": 200,
+      "callFrame": {
+        "functionName": "update",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 17,
+      "positionTicks": [
+        {
+          "line": 144,
+          "ticks": 17
+        }
+      ]
+    },
+    {
+      "id": 201,
+      "callFrame": {
+        "functionName": "cloneCanonical",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 41,
+        "columnNumber": 23
+      },
+      "hitCount": 9,
+      "children": [
+        202
+      ],
+      "positionTicks": [
+        {
+          "line": 44,
+          "ticks": 9
+        }
+      ]
+    },
+    {
+      "id": 202,
+      "callFrame": {
+        "functionName": "canonicalJson",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 31,
+        "columnNumber": 22
+      },
+      "hitCount": 8,
+      "children": [
+        203
+      ],
+      "positionTicks": [
+        {
+          "line": 33,
+          "ticks": 8
+        }
+      ]
+    },
+    {
+      "id": 203,
+      "callFrame": {
+        "functionName": "canonicalize",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 5,
+        "columnNumber": 21
+      },
+      "hitCount": 3,
+      "children": [
+        204
+      ],
+      "positionTicks": [
+        {
+          "line": 15,
+          "ticks": 3
+        }
+      ]
+    },
+    {
+      "id": 204,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 14,
+        "columnNumber": 21
+      },
+      "hitCount": 1,
+      "children": [
+        205
+      ],
+      "positionTicks": [
+        {
+          "line": 26,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 205,
+      "callFrame": {
+        "functionName": "canonicalize",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 5,
+        "columnNumber": 21
+      },
+      "hitCount": 3,
+      "children": [
+        206
+      ],
+      "positionTicks": [
+        {
+          "line": 27,
+          "ticks": 2
+        },
+        {
+          "line": 24,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 206,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 27,
+        "columnNumber": 11
+      },
+      "hitCount": 1,
+      "children": [
+        207
+      ],
+      "positionTicks": [
+        {
+          "line": 28,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 207,
+      "callFrame": {
+        "functionName": "canonicalize",
+        "scriptId": "310",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/canonical.js",
+        "lineNumber": 5,
+        "columnNumber": 21
+      },
+      "hitCount": 14,
+      "positionTicks": [
+        {
+          "line": 24,
+          "ticks": 11
+        },
+        {
+          "line": 6,
+          "ticks": 1
+        },
+        {
+          "line": 7,
+          "ticks": 1
+        },
+        {
+          "line": 28,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 248,
+      "callFrame": {
+        "functionName": "stringSet",
+        "scriptId": "311",
+        "url": "file:///C:/code/chainlesschain/packages/context-memory-kernel/lib/contracts.js",
+        "lineNumber": 87,
+        "columnNumber": 18
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 88,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 208,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 447,
+        "columnNumber": 38
+      },
+      "hitCount": 0,
+      "children": [
+        209
+      ]
+    },
+    {
+      "id": 209,
+      "callFrame": {
+        "functionName": "bucketOf",
+        "scriptId": "169",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+        "lineNumber": 61,
+        "columnNumber": 17
+      },
+      "hitCount": 0,
+      "children": [
+        210,
+        240,
+        256
+      ]
+    },
+    {
+      "id": 210,
+      "callFrame": {
+        "functionName": "createHash",
+        "scriptId": "130",
+        "url": "node:crypto",
+        "lineNumber": 137,
+        "columnNumber": 19
+      },
+      "hitCount": 0,
+      "children": [
+        211
+      ]
+    },
+    {
+      "id": 211,
+      "callFrame": {
+        "functionName": "Hash",
+        "scriptId": "143",
+        "url": "node:internal/crypto/hash",
+        "lineNumber": 87,
+        "columnNumber": 13
+      },
+      "hitCount": 1,
+      "children": [
+        212,
+        228
+      ],
+      "positionTicks": [
+        {
+          "line": 101,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 212,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "12",
+        "url": "node:internal/validators",
+        "lineNumber": 161,
+        "columnNumber": 39
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 162,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 228,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "13",
+        "url": "node:internal/util",
+        "lineNumber": 115,
+        "columnNumber": 17
+      },
+      "hitCount": 0,
+      "children": [
+        229
+      ]
+    },
+    {
+      "id": 229,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "143",
+        "url": "node:internal/crypto/hash",
+        "lineNumber": 80,
+        "columnNumber": 2
+      },
+      "hitCount": 0,
+      "children": [
+        230
+      ]
+    },
+    {
+      "id": 230,
+      "callFrame": {
+        "functionName": "isPendingDeprecation",
+        "scriptId": "13",
+        "url": "node:internal/util",
+        "lineNumber": 135,
+        "columnNumber": 29
+      },
+      "hitCount": 0,
+      "children": [
+        231
+      ]
+    },
+    {
+      "id": 231,
+      "callFrame": {
+        "functionName": "getOptionValue",
+        "scriptId": "14",
+        "url": "node:internal/options",
+        "lineNumber": 94,
+        "columnNumber": 23
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 96,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 240,
+      "callFrame": {
+        "functionName": "digest",
+        "scriptId": "143",
+        "url": "node:internal/crypto/hash",
+        "lineNumber": 149,
+        "columnNumber": 39
+      },
+      "hitCount": 0,
+      "children": [
+        241
+      ]
+    },
+    {
+      "id": 241,
+      "callFrame": {
+        "functionName": "digest",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 4,
+      "positionTicks": [
+        {
+          "line": 156,
+          "ticks": 4
+        }
+      ]
+    },
+    {
+      "id": 256,
+      "callFrame": {
+        "functionName": "update",
+        "scriptId": "143",
+        "url": "node:internal/crypto/hash",
+        "lineNumber": 131,
+        "columnNumber": 39
+      },
+      "hitCount": 0,
+      "children": [
+        257
+      ]
+    },
+    {
+      "id": 257,
+      "callFrame": {
+        "functionName": "update",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 144,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 216,
+      "callFrame": {
+        "functionName": "toString",
+        "scriptId": "24",
+        "url": "node:buffer",
+        "lineNumber": 838,
+        "columnNumber": 45
+      },
+      "hitCount": 0,
+      "children": [
+        217
+      ]
+    },
+    {
+      "id": 217,
+      "callFrame": {
+        "functionName": "slice",
+        "scriptId": "24",
+        "url": "node:buffer",
+        "lineNumber": 639,
+        "columnNumber": 11
+      },
+      "hitCount": 6,
+      "positionTicks": [
+        {
+          "line": 640,
+          "ticks": 6
+        }
+      ]
+    },
+    {
+      "id": 213,
+      "callFrame": {
+        "functionName": "queryDigest",
+        "scriptId": "171",
+        "url": "file:///C:/code/chainlesschain/packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+        "lineNumber": 8,
+        "columnNumber": 27
+      },
+      "hitCount": 0,
+      "children": [
+        214
+      ]
+    },
+    {
+      "id": 214,
+      "callFrame": {
+        "functionName": "update",
+        "scriptId": "143",
+        "url": "node:internal/crypto/hash",
+        "lineNumber": 131,
+        "columnNumber": 39
+      },
+      "hitCount": 0,
+      "children": [
+        215
+      ]
+    },
+    {
+      "id": 215,
+      "callFrame": {
+        "functionName": "update",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 11,
+      "positionTicks": [
+        {
+          "line": 144,
+          "ticks": 11
+        }
+      ]
+    },
+    {
+      "id": 244,
+      "callFrame": {
+        "functionName": "finish",
+        "scriptId": "88",
+        "url": "file:///C:/code/chainlesschain/.work/memory-query-bundle/cold-cpu-diagnostic-20261029-bf40.mjs",
+        "lineNumber": 53,
+        "columnNumber": 19
+      },
+      "hitCount": 0,
+      "children": [
+        245
+      ]
+    },
+    {
+      "id": 245,
+      "callFrame": {
+        "functionName": "now",
+        "scriptId": "156",
+        "url": "node:internal/perf/performance",
+        "lineNumber": 136,
+        "columnNumber": 5
+      },
+      "hitCount": 0,
+      "children": [
+        246
+      ]
+    },
+    {
+      "id": 246,
+      "callFrame": {
+        "functionName": "wrappedFn",
+        "scriptId": "7",
+        "url": "node:internal/errors",
+        "lineNumber": 534,
+        "columnNumber": 20
+      },
+      "hitCount": 0,
+      "children": [
+        247
+      ]
+    },
+    {
+      "id": 247,
+      "callFrame": {
+        "functionName": "",
+        "scriptId": "12",
+        "url": "node:internal/validators",
+        "lineNumber": 535,
+        "columnNumber": 50
+      },
+      "hitCount": 1,
+      "positionTicks": [
+        {
+          "line": 537,
+          "ticks": 1
+        }
+      ]
+    },
+    {
+      "id": 254,
+      "callFrame": {
+        "functionName": "(idle)",
+        "scriptId": "0",
+        "url": "",
+        "lineNumber": -1,
+        "columnNumber": -1
+      },
+      "hitCount": 1
+    }
+  ],
+  "startTime": 90389003948,
+  "endTime": 90390533931,
+  "samples": [
+    5,
+    13,
+    16,
+    22,
+    25,
+    25,
+    27,
+    31,
+    38,
+    39,
+    44,
+    45,
+    46,
+    49,
+    53,
+    51,
+    51,
+    46,
+    56,
+    58,
+    60,
+    45,
+    60,
+    64,
+    66,
+    39,
+    69,
+    72,
+    71,
+    77,
+    62,
+    39,
+    78,
+    82,
+    82,
+    83,
+    82,
+    39,
+    39,
+    82,
+    82,
+    82,
+    86,
+    82,
+    82,
+    89,
+    90,
+    93,
+    86,
+    96,
+    86,
+    82,
+    82,
+    97,
+    93,
+    82,
+    96,
+    39,
+    82,
+    99,
+    82,
+    82,
+    89,
+    93,
+    101,
+    86,
+    93,
+    82,
+    39,
+    39,
+    82,
+    82,
+    82,
+    82,
+    102,
+    104,
+    82,
+    105,
+    96,
+    86,
+    82,
+    82,
+    82,
+    96,
+    39,
+    81,
+    93,
+    86,
+    82,
+    82,
+    104,
+    82,
+    99,
+    39,
+    82,
+    82,
+    105,
+    82,
+    105,
+    83,
+    82,
+    90,
+    93,
+    82,
+    105,
+    82,
+    101,
+    101,
+    96,
+    82,
+    82,
+    96,
+    105,
+    82,
+    86,
+    90,
+    82,
+    104,
+    90,
+    39,
+    39,
+    39,
+    93,
+    82,
+    105,
+    86,
+    83,
+    105,
+    90,
+    96,
+    93,
+    86,
+    82,
+    105,
+    82,
+    82,
+    82,
+    82,
+    93,
+    39,
+    39,
+    39,
+    39,
+    82,
+    82,
+    82,
+    105,
+    86,
+    82,
+    96,
+    93,
+    82,
+    90,
+    90,
+    86,
+    82,
+    96,
+    82,
+    86,
+    86,
+    82,
+    82,
+    78,
+    82,
+    96,
+    82,
+    39,
+    39,
+    39,
+    39,
+    96,
+    109,
+    82,
+    96,
+    90,
+    86,
+    93,
+    82,
+    105,
+    82,
+    82,
+    82,
+    105,
+    96,
+    82,
+    105,
+    86,
+    82,
+    90,
+    39,
+    39,
+    39,
+    82,
+    90,
+    86,
+    82,
+    82,
+    93,
+    93,
+    82,
+    82,
+    110,
+    82,
+    105,
+    93,
+    82,
+    93,
+    86,
+    82,
+    105,
+    86,
+    82,
+    105,
+    86,
+    104,
+    39,
+    39,
+    39,
+    101,
+    105,
+    86,
+    82,
+    82,
+    90,
+    86,
+    82,
+    96,
+    82,
+    105,
+    82,
+    104,
+    82,
+    82,
+    86,
+    96,
+    96,
+    90,
+    82,
+    82,
+    39,
+    39,
+    39,
+    39,
+    82,
+    96,
+    82,
+    104,
+    82,
+    106,
+    105,
+    86,
+    82,
+    96,
+    82,
+    105,
+    93,
+    82,
+    105,
+    82,
+    82,
+    86,
+    82,
+    104,
+    82,
+    90,
+    86,
+    82,
+    39,
+    39,
+    90,
+    104,
+    82,
+    90,
+    39,
+    82,
+    105,
+    82,
+    86,
+    82,
+    82,
+    82,
+    104,
+    106,
+    82,
+    86,
+    90,
+    82,
+    82,
+    82,
+    82,
+    82,
+    93,
+    39,
+    39,
+    39,
+    39,
+    80,
+    112,
+    114,
+    117,
+    124,
+    127,
+    124,
+    130,
+    133,
+    135,
+    137,
+    135,
+    137,
+    137,
+    121,
+    140,
+    142,
+    143,
+    137,
+    137,
+    137,
+    145,
+    149,
+    158,
+    162,
+    164,
+    168,
+    166,
+    170,
+    172,
+    174,
+    176,
+    179,
+    166,
+    171,
+    172,
+    171,
+    180,
+    167,
+    181,
+    174,
+    166,
+    183,
+    184,
+    173,
+    185,
+    195,
+    198,
+    197,
+    39,
+    39,
+    188,
+    188,
+    200,
+    207,
+    202,
+    212,
+    215,
+    217,
+    164,
+    173,
+    218,
+    176,
+    176,
+    175,
+    176,
+    178,
+    172,
+    220,
+    221,
+    220,
+    176,
+    221,
+    220,
+    175,
+    176,
+    176,
+    191,
+    195,
+    39,
+    39,
+    223,
+    191,
+    197,
+    197,
+    191,
+    188,
+    188,
+    200,
+    207,
+    201,
+    211,
+    217,
+    164,
+    166,
+    224,
+    175,
+    175,
+    165,
+    178,
+    176,
+    225,
+    224,
+    226,
+    176,
+    39,
+    39,
+    39,
+    175,
+    224,
+    227,
+    176,
+    193,
+    195,
+    197,
+    197,
+    191,
+    188,
+    200,
+    205,
+    231,
+    215,
+    164,
+    164,
+    176,
+    175,
+    175,
+    178,
+    178,
+    175,
+    39,
+    39,
+    171,
+    171,
+    175,
+    166,
+    221,
+    221,
+    221,
+    176,
+    234,
+    195,
+    195,
+    197,
+    197,
+    191,
+    188,
+    188,
+    200,
+    203,
+    202,
+    39,
+    215,
+    164,
+    176,
+    167,
+    166,
+    176,
+    232,
+    235,
+    227,
+    167,
+    172,
+    236,
+    220,
+    176,
+    195,
+    192,
+    197,
+    197,
+    191,
+    188,
+    200,
+    39,
+    205,
+    201,
+    215,
+    164,
+    220,
+    224,
+    235,
+    220,
+    165,
+    166,
+    238,
+    238,
+    184,
+    185,
+    175,
+    176,
+    183,
+    193,
+    196,
+    239,
+    39,
+    191,
+    188,
+    200,
+    207,
+    207,
+    241,
+    217,
+    164,
+    176,
+    225,
+    185,
+    170,
+    178,
+    169,
+    220,
+    175,
+    176,
+    224,
+    176,
+    191,
+    197,
+    39,
+    191,
+    242,
+    188,
+    199,
+    203,
+    207,
+    201,
+    215,
+    164,
+    164,
+    176,
+    220,
+    168,
+    176,
+    224,
+    243,
+    184,
+    176,
+    176,
+    176,
+    224,
+    183,
+    165,
+    175,
+    182,
+    176,
+    168,
+    224,
+    39,
+    39,
+    195,
+    223,
+    197,
+    223,
+    188,
+    188,
+    200,
+    207,
+    201,
+    215,
+    164,
+    164,
+    172,
+    185,
+    175,
+    219,
+    172,
+    237,
+    173,
+    39,
+    172,
+    172,
+    172,
+    193,
+    197,
+    197,
+    191,
+    188,
+    200,
+    203,
+    241,
+    215,
+    164,
+    164,
+    176,
+    178,
+    176,
+    224,
+    225,
+    170,
+    185,
+    175,
+    166,
+    220,
+    195,
+    198,
+    191,
+    197,
+    197,
+    198,
+    223,
+    191,
+    188,
+    188,
+    199,
+    200,
+    207,
+    202,
+    201,
+    247,
+    39,
+    215,
+    164,
+    164,
+    224,
+    224,
+    225,
+    178,
+    178,
+    175,
+    225,
+    248,
+    175,
+    225,
+    236,
+    249,
+    169,
+    188,
+    195,
+    197,
+    197,
+    191,
+    188,
+    188,
+    200,
+    207,
+    201,
+    39,
+    217,
+    164,
+    164,
+    220,
+    172,
+    166,
+    167,
+    39,
+    250,
+    176,
+    224,
+    176,
+    221,
+    165,
+    251,
+    170,
+    195,
+    223,
+    196,
+    197,
+    191,
+    188,
+    200,
+    39,
+    207,
+    202,
+    215,
+    164,
+    164,
+    220,
+    167,
+    172,
+    172,
+    176,
+    253,
+    172,
+    175,
+    183,
+    195,
+    191,
+    197,
+    39,
+    197,
+    188,
+    188,
+    204,
+    202,
+    254,
+    164,
+    164,
+    175,
+    224,
+    176,
+    184,
+    172,
+    249,
+    220,
+    195,
+    197,
+    39,
+    197,
+    197,
+    188,
+    188,
+    199,
+    200,
+    207,
+    202,
+    241,
+    215,
+    217,
+    164,
+    164,
+    165,
+    175,
+    227,
+    185,
+    183,
+    225,
+    175,
+    175,
+    255,
+    176,
+    183,
+    175,
+    39,
+    195,
+    223,
+    223,
+    191,
+    188,
+    200,
+    206,
+    202,
+    257,
+    164,
+    164,
+    236,
+    175,
+    176,
+    184,
+    224,
+    164,
+    169,
+    171,
+    39,
+    176,
+    172,
+    192,
+    197,
+    197,
+    191,
+    188,
+    200,
+    207,
+    202,
+    201,
+    215,
+    164,
+    164,
+    171,
+    221,
+    168,
+    176,
+    39,
+    172,
+    174,
+    176,
+    170,
+    195,
+    223,
+    197,
+    197,
+    191,
+    188,
+    200,
+    207,
+    201,
+    39,
+    164,
+    164,
+    175,
+    167,
+    220,
+    224,
+    220,
+    183,
+    176,
+    220,
+    176,
+    220,
+    195,
+    259,
+    197,
+    188,
+    188,
+    200,
+    207,
+    205,
+    241,
+    217,
+    164,
+    183,
+    236,
+    169,
+    227,
+    183,
+    175,
+    260,
+    184,
+    167,
+    193,
+    191,
+    197,
+    223,
+    188,
+    39,
+    200,
+    207,
+    201,
+    159,
+    261
+  ],
+  "timeDeltas": [
+    57431,
+    2158,
+    2010,
+    1942,
+    2038,
+    1131,
+    2016,
+    1525,
+    1574,
+    1969,
+    2026,
+    2025,
+    1421,
+    2011,
+    1203,
+    1995,
+    2010,
+    1516,
+    2018,
+    2018,
+    1486,
+    2007,
+    1326,
+    1543,
+    1311,
+    1065,
+    1113,
+    1541,
+    1089,
+    1083,
+    1559,
+    1565,
+    2260,
+    1217,
+    1053,
+    2024,
+    1532,
+    2022,
+    2013,
+    1946,
+    1995,
+    2004,
+    1530,
+    2019,
+    1999,
+    1996,
+    1551,
+    2023,
+    1927,
+    1518,
+    2022,
+    2046,
+    1966,
+    1115,
+    2034,
+    1999,
+    2033,
+    2005,
+    1922,
+    2036,
+    2002,
+    1928,
+    2066,
+    2000,
+    1995,
+    1978,
+    1552,
+    2006,
+    1922,
+    2005,
+    2070,
+    2003,
+    1494,
+    1941,
+    2050,
+    2021,
+    1994,
+    1998,
+    1999,
+    1998,
+    1933,
+    2015,
+    1514,
+    2039,
+    1943,
+    2048,
+    1516,
+    2013,
+    1969,
+    2039,
+    1988,
+    1134,
+    2016,
+    1965,
+    1546,
+    2024,
+    1945,
+    1493,
+    2016,
+    1506,
+    1507,
+    2006,
+    2025,
+    2005,
+    2065,
+    1290,
+    1514,
+    1579,
+    1103,
+    1077,
+    1567,
+    1164,
+    1540,
+    1091,
+    1092,
+    1085,
+    1090,
+    1721,
+    1464,
+    1199,
+    1060,
+    1997,
+    1535,
+    2020,
+    1994,
+    2043,
+    1487,
+    1562,
+    1994,
+    2035,
+    1988,
+    1997,
+    1997,
+    1999,
+    1966,
+    1402,
+    2043,
+    1996,
+    3996,
+    2009,
+    1535,
+    1921,
+    1852,
+    1226,
+    1509,
+    1515,
+    2053,
+    1999,
+    1999,
+    2017,
+    1962,
+    1999,
+    1976,
+    1561,
+    2016,
+    1999,
+    2001,
+    2013,
+    1915,
+    1998,
+    1997,
+    2042,
+    1993,
+    1997,
+    1997,
+    2041,
+    1938,
+    1988,
+    1990,
+    1508,
+    2075,
+    2030,
+    1968,
+    1999,
+    1467,
+    2039,
+    1508,
+    2046,
+    1966,
+    1630,
+    1963,
+    2028,
+    1928,
+    2031,
+    2003,
+    1998,
+    1999,
+    1999,
+    1999,
+    2010,
+    1959,
+    1986,
+    1531,
+    2065,
+    1998,
+    1977,
+    1537,
+    2052,
+    1469,
+    2022,
+    2019,
+    1999,
+    1998,
+    2004,
+    1969,
+    2058,
+    1897,
+    2076,
+    1976,
+    2012,
+    1999,
+    1998,
+    2000,
+    2030,
+    1908,
+    1986,
+    2013,
+    1497,
+    2075,
+    1994,
+    1999,
+    1995,
+    1454,
+    2059,
+    1998,
+    2000,
+    1999,
+    1999,
+    1995,
+    2054,
+    1428,
+    1464,
+    1673,
+    1569,
+    1111,
+    1122,
+    1116,
+    1111,
+    1563,
+    1085,
+    1602,
+    1916,
+    1523,
+    1514,
+    1076,
+    2045,
+    2016,
+    1944,
+    1104,
+    1132,
+    2038,
+    1472,
+    2009,
+    2044,
+    1998,
+    1999,
+    1998,
+    1999,
+    1122,
+    1950,
+    1512,
+    2042,
+    2017,
+    1999,
+    1998,
+    1993,
+    2003,
+    3717,
+    3462,
+    1800,
+    2022,
+    1997,
+    1999,
+    2001,
+    1638,
+    1822,
+    1508,
+    1995,
+    1980,
+    1994,
+    1996,
+    2000,
+    2436,
+    1070,
+    1995,
+    1501,
+    2020,
+    2005,
+    2032,
+    2019,
+    1922,
+    1510,
+    1994,
+    2003,
+    1505,
+    2027,
+    1495,
+    2006,
+    2074,
+    2213,
+    1208,
+    2003,
+    1990,
+    2017,
+    1986,
+    1992,
+    2070,
+    1434,
+    2007,
+    1989,
+    2000,
+    2008,
+    2014,
+    1979,
+    2049,
+    1960,
+    1998,
+    1989,
+    2014,
+    2036,
+    1996,
+    2020,
+    2036,
+    1894,
+    2062,
+    1982,
+    1998,
+    1999,
+    1961,
+    2042,
+    2047,
+    1419,
+    1996,
+    1520,
+    1525,
+    1349,
+    1046,
+    2011,
+    1510,
+    2003,
+    1484,
+    2075,
+    2000,
+    1993,
+    2003,
+    1961,
+    1981,
+    2016,
+    1484,
+    2019,
+    1523,
+    2001,
+    1508,
+    2001,
+    1567,
+    2014,
+    1946,
+    2003,
+    1128,
+    2057,
+    2015,
+    1997,
+    1984,
+    1997,
+    2027,
+    1952,
+    1502,
+    2001,
+    2041,
+    1998,
+    1945,
+    1566,
+    2021,
+    1944,
+    1539,
+    1974,
+    1567,
+    1579,
+    1104,
+    1115,
+    1114,
+    1130,
+    1057,
+    1988,
+    2037,
+    1998,
+    1998,
+    2001,
+    1999,
+    1996,
+    2001,
+    1969,
+    1237,
+    2018,
+    1964,
+    1574,
+    1983,
+    2028,
+    1931,
+    1186,
+    1235,
+    1526,
+    1037,
+    1157,
+    1558,
+    1530,
+    1551,
+    1038,
+    1091,
+    1700,
+    2086,
+    1919,
+    2013,
+    1996,
+    1997,
+    2000,
+    2001,
+    2028,
+    2015,
+    1928,
+    2000,
+    1997,
+    1502,
+    2009,
+    1998,
+    2019,
+    2076,
+    1401,
+    2009,
+    1539,
+    2063,
+    2000,
+    1957,
+    2000,
+    121,
+    75,
+    1812,
+    1970,
+    2000,
+    1992,
+    1542,
+    2032,
+    1969,
+    1074,
+    1566,
+    1973,
+    1505,
+    2022,
+    1984,
+    2017,
+    1999,
+    2050,
+    2001,
+    1929,
+    2019,
+    1550,
+    2030,
+    1998,
+    2000,
+    2000,
+    1956,
+    1991,
+    2052,
+    1172,
+    2064,
+    1998,
+    1999,
+    1998,
+    1999,
+    1930,
+    2032,
+    2020,
+    2001,
+    2011,
+    1999,
+    1998,
+    2023,
+    1914,
+    2006,
+    1991,
+    2032,
+    1997,
+    1995,
+    1993,
+    1566,
+    1935,
+    1543,
+    1072,
+    2063,
+    1999,
+    1924,
+    2079,
+    1993,
+    1948,
+    1995,
+    1527,
+    2052,
+    1997,
+    1998,
+    2000,
+    1998,
+    1944,
+    1522,
+    2052,
+    2001,
+    1998,
+    2000,
+    1998,
+    1992,
+    1941,
+    1999,
+    2047,
+    1958,
+    1980,
+    1501,
+    2002,
+    1504,
+    2019,
+    1506,
+    1988,
+    1998,
+    2040,
+    1500,
+    2024,
+    1534,
+    2064,
+    1392,
+    2030,
+    1584,
+    2017,
+    1999,
+    1937,
+    2008,
+    1991,
+    5832,
+    1154,
+    1503,
+    1657,
+    1780,
+    1517,
+    2003,
+    2020,
+    1979,
+    1997,
+    1991,
+    1992,
+    1435,
+    1990,
+    1992,
+    2007,
+    1484,
+    2001,
+    2006,
+    2024,
+    1521,
+    1504,
+    2004,
+    1552,
+    1938,
+    1054,
+    2017,
+    2002,
+    1984,
+    2020,
+    1982,
+    2083,
+    1921,
+    2004,
+    1986,
+    1998,
+    2009,
+    2017,
+    1509,
+    2066,
+    1946,
+    1514,
+    2042,
+    1954,
+    2050,
+    2000,
+    1998,
+    2031,
+    1897,
+    2054,
+    2008,
+    1998,
+    1995,
+    2000,
+    1574,
+    1107,
+    1093,
+    1313,
+    1067,
+    1567,
+    1058,
+    1094,
+    1550,
+    1050,
+    1093,
+    1546,
+    1119,
+    1111,
+    1133,
+    1184,
+    1072,
+    1084,
+    1531,
+    1574,
+    1997,
+    2002,
+    1528,
+    1055,
+    1538,
+    1069,
+    1084,
+    1043,
+    1335,
+    1085,
+    1045,
+    1091,
+    1551,
+    1086,
+    1090,
+    1063,
+    1539,
+    2039,
+    2002,
+    1468,
+    2024,
+    1990,
+    2035,
+    1977,
+    1477,
+    1139,
+    1590,
+    2657,
+    1552,
+    1091,
+    1086,
+    1040,
+    1066,
+    1112,
+    1092,
+    1090,
+    2016,
+    1964,
+    1387,
+    2030,
+    1499,
+    2018,
+    1989,
+    1563,
+    2016,
+    2028,
+    1399,
+    2025,
+    1509,
+    1990,
+    1501,
+    2011,
+    1465,
+    2000,
+    1545,
+    1985,
+    2011,
+    2011,
+    2004,
+    1972,
+    1993,
+    2030,
+    2034,
+    1977,
+    1460,
+    2022,
+    2013,
+    1554,
+    2006,
+    1972,
+    2020,
+    1976,
+    2030,
+    1997,
+    1998,
+    3999,
+    1999,
+    2008,
+    1922,
+    2049,
+    2016,
+    2001,
+    2011,
+    1449,
+    2041,
+    1938,
+    1103,
+    1124,
+    1552,
+    1566,
+    1086,
+    1095,
+    1091,
+    1091,
+    1085,
+    1086,
+    1092,
+    1112,
+    1963,
+    2020,
+    1549,
+    2041,
+    1998,
+    1998,
+    1953,
+    1129,
+    1074,
+    2006,
+    2024,
+    1998,
+    2016,
+    2030,
+    1997,
+    1998,
+    1936,
+    2000,
+    1224,
+    1995,
+    2006,
+    1971,
+    1539,
+    1073,
+    2051,
+    1962,
+    2017,
+    2013,
+    2003,
+    1994,
+    1994,
+    2004,
+    2035,
+    1942,
+    1566,
+    2019,
+    1949,
+    2051,
+    1970,
+    1964,
+    1086,
+    1089,
+    2010,
+    1539,
+    2012,
+    2001,
+    2000,
+    1998,
+    1998,
+    1965,
+    2004,
+    2034,
+    2027,
+    1998,
+    1969,
+    2034,
+    1981,
+    1996,
+    1462,
+    2010,
+    1538,
+    2016,
+    1999,
+    1959,
+    2043,
+    1955,
+    2029,
+    1206,
+    2049,
+    2018,
+    1965,
+    2000,
+    2015,
+    2005,
+    1965,
+    1989,
+    2019,
+    1998,
+    1527,
+    2008,
+    2004,
+    1995,
+    1539,
+    2043,
+    1997,
+    1999,
+    1998,
+    2000,
+    1984,
+    1953,
+    1998,
+    2017,
+    1549,
+    2019,
+    1997,
+    1998,
+    1999,
+    1933,
+    2065,
+    1998,
+    1999,
+    1927,
+    2020,
+    2036,
+    2012,
+    1929,
+    2044
+  ]
+}

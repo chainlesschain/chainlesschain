@@ -1,0 +1,798 @@
+
+> @chainlesschain/context-memory-kernel@0.1.11 test
+> node --test test/*.test.js
+
+TAP version 13
+# Subtest: preserves getter filtering, sorted second reads, nested traversal, and skipped undefined
+ok 1 - preserves getter filtering, sorted second reads, nested traversal, and skipped undefined
+  ---
+  duration_ms: 33.5548
+  type: 'test'
+  ...
+# Subtest: uses native integer-key ordering and stable equivalent Unicode ordering
+ok 2 - uses native integer-key ordering and stable equivalent Unicode ordering
+  ---
+  duration_ms: 1.1972
+  type: 'test'
+  ...
+# Subtest: preserves holes, map overrides, native species, and inherited array indices
+ok 3 - preserves holes, map overrides, native species, and inherited array indices
+  ---
+  duration_ms: 1.7974
+  type: 'test'
+  ...
+# Subtest: matches inherited toJSON for normal and null-prototype inputs
+ok 4 - matches inherited toJSON for normal and null-prototype inputs
+  ---
+  duration_ms: 1.9071
+  type: 'test'
+  ...
+# Subtest: defines __proto__ and inherited-setter keys as own ordinary data properties
+ok 5 - defines __proto__ and inherited-setter keys as own ordinary data properties
+  ---
+  duration_ms: 0.9058
+  type: 'test'
+  ...
+# Subtest: retains JSON primitive encoding and complete type rejection
+ok 6 - retains JSON primitive encoding and complete type rejection
+  ---
+  duration_ms: 5.9792
+  type: 'test'
+  ...
+# Subtest: compaction commits with CAS and is idempotent by operation ID
+ok 7 - compaction commits with CAS and is idempotent by operation ID
+  ---
+  duration_ms: 23.5049
+  type: 'test'
+  ...
+# Subtest: summary derivation cannot raise trust, lower sensitivity, expand sinks, or invent control
+ok 8 - summary derivation cannot raise trust, lower sensitivity, expand sinks, or invent control
+  ---
+  duration_ms: 4.3619
+  type: 'test'
+  ...
+# Subtest: provider usage unknown is durably recorded for reconciliation
+ok 9 - provider usage unknown is durably recorded for reconciliation
+  ---
+  duration_ms: 3.2403
+  type: 'test'
+  ...
+# Subtest: compaction invariant rejects split tool pairs
+ok 10 - compaction invariant rejects split tool pairs
+  ---
+  duration_ms: 1.4693
+  type: 'test'
+  ...
+# Subtest: compaction preserves nonempty context when 200 tokens select nothing (summarizer=false)
+ok 11 - compaction preserves nonempty context when 200 tokens select nothing (summarizer=false)
+  ---
+  duration_ms: 2.5964
+  type: 'test'
+  ...
+# Subtest: compaction preserves nonempty context when 200 tokens select nothing (summarizer=true)
+ok 12 - compaction preserves nonempty context when 200 tokens select nothing (summarizer=true)
+  ---
+  duration_ms: 4.1247
+  type: 'test'
+  ...
+# Subtest: compaction preserves nonempty context when 1600 tokens select nothing (summarizer=false)
+ok 13 - compaction preserves nonempty context when 1600 tokens select nothing (summarizer=false)
+  ---
+  duration_ms: 2.4454
+  type: 'test'
+  ...
+# Subtest: compaction preserves nonempty context when 1600 tokens select nothing (summarizer=true)
+ok 14 - compaction preserves nonempty context when 1600 tokens select nothing (summarizer=true)
+  ---
+  duration_ms: 4.1955
+  type: 'test'
+  ...
+# Subtest: compaction rejects a dropped summary even with nonempty output (partial summary=false)
+ok 15 - compaction rejects a dropped summary even with nonempty output (partial summary=false)
+  ---
+  duration_ms: 3.9779
+  type: 'test'
+  ...
+# Subtest: compaction rejects a dropped summary even with nonempty output (partial summary=true)
+ok 16 - compaction rejects a dropped summary even with nonempty output (partial summary=true)
+  ---
+  duration_ms: 4.4956
+  type: 'test'
+  ...
+# Subtest: compaction commits retained summaries with their settled usage
+ok 17 - compaction commits retained summaries with their settled usage
+  ---
+  duration_ms: 6.298
+  type: 'test'
+  ...
+# Subtest: compaction still accepts an already empty context
+ok 18 - compaction still accepts an already empty context
+  ---
+  duration_ms: 1.3519
+  type: 'test'
+  ...
+# Subtest: commit callbacks cannot forge a branded precommit rejection
+ok 19 - commit callbacks cannot forge a branded precommit rejection
+  ---
+  duration_ms: 4.0135
+  type: 'test'
+  ...
+# Subtest: single cross-surface fixture executes every Context/Memory conformance scenario
+    # Subtest: multilingual-window-512
+    ok 1 - multilingual-window-512
+      ---
+      duration_ms: 75.2707
+      type: 'test'
+      ...
+    # Subtest: multilingual-window-4096
+    ok 2 - multilingual-window-4096
+      ---
+      duration_ms: 40.2426
+      type: 'test'
+      ...
+    # Subtest: parallel-tools-pending
+    ok 3 - parallel-tools-pending
+      ---
+      duration_ms: 3.3704
+      type: 'test'
+      ...
+    # Subtest: orphan-late-tool-result
+    ok 4 - orphan-late-tool-result
+      ---
+      duration_ms: 2.2632
+      type: 'test'
+      ...
+    # Subtest: overlapping-scopes
+    ok 5 - overlapping-scopes
+      ---
+      duration_ms: 16.6757
+      type: 'test'
+      ...
+    # Subtest: provider-normal
+    ok 6 - provider-normal
+      ---
+      duration_ms: 8.9539
+      type: 'test'
+      ...
+    # Subtest: provider-failure
+    ok 7 - provider-failure
+      ---
+      duration_ms: 3.6214
+      type: 'test'
+      ...
+    # Subtest: provider-usage-unknown
+    ok 8 - provider-usage-unknown
+      ---
+      duration_ms: 3.6295
+      type: 'test'
+      ...
+    # Subtest: provider-cancelled
+    ok 9 - provider-cancelled
+      ---
+      duration_ms: 4.2111
+      type: 'test'
+      ...
+    # Subtest: crash-restart
+    ok 10 - crash-restart
+      ---
+      duration_ms: 9.2206
+      type: 'test'
+      ...
+    # Subtest: cas-race
+    ok 11 - cas-race
+      ---
+      duration_ms: 3.5697
+      type: 'test'
+      ...
+    # Subtest: index-rebuild
+    ok 12 - index-rebuild
+      ---
+      duration_ms: 2.4627
+      type: 'test'
+      ...
+    # Subtest: offline-replica-reinjection
+    ok 13 - offline-replica-reinjection
+      ---
+      duration_ms: 2.9337
+      type: 'test'
+      ...
+    # Subtest: partial-delete-reconcile
+    ok 14 - partial-delete-reconcile
+      ---
+      duration_ms: 4.6274
+      type: 'test'
+      ...
+    1..14
+ok 20 - single cross-surface fixture executes every Context/Memory conformance scenario
+  ---
+  duration_ms: 196.5195
+  type: 'test'
+  ...
+# Subtest: conformance parser fails closed when a case or product surface is missing
+ok 21 - conformance parser fails closed when a case or product surface is missing
+  ---
+  duration_ms: 1.9049
+  type: 'test'
+  ...
+# Subtest: canonical JSON and digests ignore object insertion order
+ok 22 - canonical JSON and digests ignore object insertion order
+  ---
+  duration_ms: 3.4629
+  type: 'test'
+  ...
+# Subtest: ContextItem validates exact content representation, booleans, and digests
+ok 23 - ContextItem validates exact content representation, booleans, and digests
+  ---
+  duration_ms: 5.4619
+  type: 'test'
+  ...
+# Subtest: MemoryRecord rejects credential-like plaintext
+ok 24 - MemoryRecord rejects credential-like plaintext
+  ---
+  duration_ms: 4.4103
+  type: 'test'
+  ...
+# Subtest: planning is deterministic across input order and protects recovery state
+ok 25 - planning is deterministic across input order and protects recovery state
+  ---
+  duration_ms: 7.5107
+  type: 'test'
+  ...
+# Subtest: tool call and result are atomic and settled orphans fail closed
+ok 26 - tool call and result are atomic and settled orphans fail closed
+  ---
+  duration_ms: 3.9675
+  type: 'test'
+  ...
+# Subtest: protected content fails explicitly when the budget cannot fit
+ok 27 - protected content fails explicitly when the budget cannot fit
+  ---
+  duration_ms: 1.1894
+  type: 'test'
+  ...
+# [2026-10-29T02:16:23.017Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+# Subtest: Desktop exposes only fixed Context/Memory capabilities and bounded projection
+ok 28 - Desktop exposes only fixed Context/Memory capabilities and bounded projection
+  ---
+  duration_ms: 8.2395
+  type: 'test'
+  ...
+# Subtest: Desktop fixed IPC routes Context/Memory without a generic RPC escape hatch
+ok 29 - Desktop fixed IPC routes Context/Memory without a generic RPC escape hatch
+  ---
+  duration_ms: 8.1942
+  type: 'test'
+  ...
+# Subtest: Desktop legacy writers fail closed after canonical cutover
+ok 30 - Desktop legacy writers fail closed after canonical cutover
+  ---
+  duration_ms: 2.9151
+  type: 'test'
+  ...
+# Subtest: Desktop and VS Code consume the same canonical projection fixture
+ok 31 - Desktop and VS Code consume the same canonical projection fixture
+  ---
+  duration_ms: 4.7368
+  type: 'test'
+  ...
+# Subtest: machine-readable inventory covers every product surface and discovered writer
+ok 32 - machine-readable inventory covers every product surface and discovered writer
+  ---
+  duration_ms: 7016.1955
+  type: 'test'
+  ...
+# Subtest: production inventory has one canonical writer and no writable legacy cohort
+ok 33 - production inventory has one canonical writer and no writable legacy cohort
+  ---
+  duration_ms: 0.7218
+  type: 'test'
+  ...
+# Subtest: inventory gate fails for an unclassified candidate and duplicate authority
+ok 34 - inventory gate fails for an unclassified candidate and duplicate authority
+  ---
+  duration_ms: 1.0314
+  type: 'test'
+  ...
+# Subtest: synthetic multilingual fixture matches every positive and negative expectation
+ok 35 - synthetic multilingual fixture matches every positive and negative expectation
+  ---
+  duration_ms: 267.7314
+  type: 'test'
+  ...
+# Subtest: old token-exact comparator preserves English behavior but reproduces the Han counterexample
+ok 36 - old token-exact comparator preserves English behavior but reproduces the Han counterexample
+  ---
+  duration_ms: 208.9865
+  type: 'test'
+  ...
+# Subtest: baseline re-normalizes digests and shares all lifecycle and admission filters
+ok 37 - baseline re-normalizes digests and shares all lifecycle and admission filters
+  ---
+  duration_ms: 230.8016
+  type: 'test'
+  ...
+# Subtest: opaque baseline encoding reproduces old token-exact scores for every fixture pair
+ok 38 - opaque baseline encoding reproduces old token-exact scores for every fixture pair
+  ---
+  duration_ms: 27.9232
+  type: 'test'
+  ...
+# Subtest: fixed seed and clock produce stable scores and metrics apart from observed elapsed time
+ok 39 - fixed seed and clock produce stable scores and metrics apart from observed elapsed time
+  ---
+  duration_ms: 234.5924
+  type: 'test'
+  ...
+# Subtest: standalone evaluation emits JSON and explicitly disclaims production and semantic evidence
+ok 40 - standalone evaluation emits JSON and explicitly disclaims production and semantic evidence
+  ---
+  duration_ms: 395.2312
+  type: 'test'
+  ...
+# Subtest: memory proposal, recall, tombstone, purge, and idempotent receipt use revisions
+ok 41 - memory proposal, recall, tombstone, purge, and idempotent receipt use revisions
+  ---
+  duration_ms: 43.1708
+  type: 'test'
+  ...
+# Subtest: purge targets receive bounded source bindings and must return explicit receipts
+ok 42 - purge targets receive bounded source bindings and must return explicit receipts
+  ---
+  duration_ms: 23.7273
+  type: 'test'
+  ...
+# Subtest: wildcard recall lists active records without weakening scope admission
+ok 43 - wildcard recall lists active records without weakening scope admission
+  ---
+  duration_ms: 2.4556
+  type: 'test'
+  ...
+# Subtest: partial deletion remains tombstoned across Kernel restart until reconciliation
+ok 44 - partial deletion remains tombstoned across Kernel restart until reconciliation
+  ---
+  duration_ms: 5.4802
+  type: 'test'
+  ...
+# Subtest: legal hold, wrong scope, stale revision, and illegal transition fail closed
+ok 45 - legal hold, wrong scope, stale revision, and illegal transition fail closed
+  ---
+  duration_ms: 5.5983
+  type: 'test'
+  ...
+# Subtest: tombstone fencing rejects offline replica resurrection
+ok 46 - tombstone fencing rejects offline replica resurrection
+  ---
+  duration_ms: 2.6329
+  type: 'test'
+  ...
+# Subtest: authority registry fences shadow, stale, expired, and retired writers
+ok 47 - authority registry fences shadow, stale, expired, and retired writers
+  ---
+  duration_ms: 3.1402
+  type: 'test'
+  ...
+# Subtest: lexical "偏好使用确定性测试" against "偏好使用确定性测试" = 1
+ok 48 - lexical "偏好使用确定性测试" against "偏好使用确定性测试" = 1
+  ---
+  duration_ms: 17.1665
+  type: 'test'
+  ...
+# Subtest: lexical "确定性测试" against "偏好使用确定性测试" = 1
+ok 49 - lexical "确定性测试" against "偏好使用确定性测试" = 1
+  ---
+  duration_ms: 1.7589
+  type: 'test'
+  ...
+# Subtest: lexical "确定性测试" against "偏好使用确定性方法验证结果" = 0
+ok 50 - lexical "确定性测试" against "偏好使用确定性方法验证结果" = 0
+  ---
+  duration_ms: 0.5651
+  type: 'test'
+  ...
+# Subtest: lexical "数据库" against "数据处理" = 0
+ok 51 - lexical "数据库" against "数据处理" = 0
+  ---
+  duration_ms: 0.3586
+  type: 'test'
+  ...
+# Subtest: lexical "测试" against "偏好使用确定性测试" = 1
+ok 52 - lexical "测试" against "偏好使用确定性测试" = 1
+  ---
+  duration_ms: 1.9975
+  type: 'test'
+  ...
+# Subtest: lexical "测" against "偏好使用确定性测试" = 0
+ok 53 - lexical "测" against "偏好使用确定性测试" = 0
+  ---
+  duration_ms: 0.436
+  type: 'test'
+  ...
+# Subtest: lexical "测" against "测" = 1
+ok 54 - lexical "测" against "测" = 1
+  ---
+  duration_ms: 5.3032
+  type: 'test'
+  ...
+# Subtest: lexical "𠀀𠀁" against "采用𠀀𠀁作为名称" = 1
+ok 55 - lexical "𠀀𠀁" against "采用𠀀𠀁作为名称" = 1
+  ---
+  duration_ms: 0.3601
+  type: 'test'
+  ...
+# Subtest: lexical "𠀀" against "采用𠀀𠀁作为名称" = 0
+ok 56 - lexical "𠀀" against "采用𠀀𠀁作为名称" = 0
+  ---
+  duration_ms: 0.908
+  type: 'test'
+  ...
+# Subtest: lexical "𠀀" against "𠀀" = 1
+ok 57 - lexical "𠀀" against "𠀀" = 1
+  ---
+  duration_ms: 0.9626
+  type: 'test'
+  ...
+# Subtest: lexical "𠀀" against "a𠀀b" = 1
+ok 58 - lexical "𠀀" against "a𠀀b" = 1
+  ---
+  duration_ms: 0.5557
+  type: 'test'
+  ...
+# Subtest: lexical "Vue" against "偏好Vue组件测试" = 1
+ok 59 - lexical "Vue" against "偏好Vue组件测试" = 1
+  ---
+  duration_ms: 0.9847
+  type: 'test'
+  ...
+# Subtest: lexical "vue开发" against "使用Vue开发工具" = 1
+ok 60 - lexical "vue开发" against "使用Vue开发工具" = 1
+  ---
+  duration_ms: 0.2834
+  type: 'test'
+  ...
+# Subtest: lexical "Vue开发" against "Vue部署" = 0
+ok 61 - lexical "Vue开发" against "Vue部署" = 0
+  ---
+  duration_ms: 0.1917
+  type: 'test'
+  ...
+# Subtest: lexical "Vue开发" against "Python开发" = 0
+ok 62 - lexical "Vue开发" against "Python开发" = 0
+  ---
+  duration_ms: 1.5772
+  type: 'test'
+  ...
+# Subtest: lexical "Vue开发" against "Vue3开发" = 0
+ok 63 - lexical "Vue开发" against "Vue3开发" = 0
+  ---
+  duration_ms: 0.3483
+  type: 'test'
+  ...
+# Subtest: lexical "Vue开发" against "使用Vue开发工具和Vue组件" = 1
+ok 64 - lexical "Vue开发" against "使用Vue开发工具和Vue组件" = 1
+  ---
+  duration_ms: 0.2932
+  type: 'test'
+  ...
+# Subtest: lexical "Vue 开发" against "Vue部署" = 0.5
+ok 65 - lexical "Vue 开发" against "Vue部署" = 0.5
+  ---
+  duration_ms: 0.3034
+  type: 'test'
+  ...
+# Subtest: lexical "get_user_id" against "使用get_user_id读取用户" = 1
+ok 66 - lexical "get_user_id" against "使用get_user_id读取用户" = 1
+  ---
+  duration_ms: 0.2101
+  type: 'test'
+  ...
+# Subtest: lexical "get_user" against "使用get_user_id读取用户" = 0
+ok 67 - lexical "get_user" against "使用get_user_id读取用户" = 0
+  ---
+  duration_ms: 0.2045
+  type: 'test'
+  ...
+# Subtest: lexical "foo-bar" against "中文foobar说明" = 0
+ok 68 - lexical "foo-bar" against "中文foobar说明" = 0
+  ---
+  duration_ms: 0.2644
+  type: 'test'
+  ...
+# Subtest: lexical "foo_bar" against "foo_bar_extra" = 0
+ok 69 - lexical "foo_bar" against "foo_bar_extra" = 0
+  ---
+  duration_ms: 0.256
+  type: 'test'
+  ...
+# Subtest: lexical "gpt-5" against "gpt-50" = 0
+ok 70 - lexical "gpt-5" against "gpt-50" = 0
+  ---
+  duration_ms: 0.2653
+  type: 'test'
+  ...
+# Subtest: lexical "gpt-5" against "gpt-5.4" = 1
+ok 71 - lexical "gpt-5" against "gpt-5.4" = 1
+  ---
+  duration_ms: 0.1686
+  type: 'test'
+  ...
+# Subtest: lexical "v1" against "v10" = 0
+ok 72 - lexical "v1" against "v10" = 0
+  ---
+  duration_ms: 0.1759
+  type: 'test'
+  ...
+# Subtest: lexical "art" against "partial" = 0
+ok 73 - lexical "art" against "partial" = 0
+  ---
+  duration_ms: 0.169
+  type: 'test'
+  ...
+# Subtest: lexical "CAFÉ" against "café开发" = 1
+ok 74 - lexical "CAFÉ" against "café开发" = 1
+  ---
+  duration_ms: 0.184
+  type: 'test'
+  ...
+# Subtest: lexical "cafe" against "café开发" = 0
+ok 75 - lexical "cafe" against "café开发" = 0
+  ---
+  duration_ms: 0.1774
+  type: 'test'
+  ...
+# Subtest: lexical "确定性测试" against "偏好可复现的检查" = 0
+ok 76 - lexical "确定性测试" against "偏好可复现的检查" = 0
+  ---
+  duration_ms: 0.1817
+  type: 'test'
+  ...
+# Subtest: lexical "请说明确定性测试的方法" against "偏好使用确定性测试" = 0
+ok 77 - lexical "请说明确定性测试的方法" against "偏好使用确定性测试" = 0
+  ---
+  duration_ms: 0.177
+  type: 'test'
+  ...
+# Subtest: lexical "***" against "测试" = 0
+ok 78 - lexical "***" against "测试" = 0
+  ---
+  duration_ms: 0.1533
+  type: 'test'
+  ...
+# Subtest: lexical " * " against "测试" = 0
+ok 79 - lexical " * " against "测试" = 0
+  ---
+  duration_ms: 0.1554
+  type: 'test'
+  ...
+# Subtest: lexical "" against "测试" = 0
+ok 80 - lexical "" against "测试" = 0
+  ---
+  duration_ms: 0.1449
+  type: 'test'
+  ...
+# Subtest: lexical "*" against "测试" = 1
+ok 81 - lexical "*" against "测试" = 1
+  ---
+  duration_ms: 0.1489
+  type: 'test'
+  ...
+# Subtest: mixed-token parts may match searchable fields but contribute only one point
+ok 82 - mixed-token parts may match searchable fields but contribute only one point
+  ---
+  duration_ms: 0.5461
+  type: 'test'
+  ...
+# Subtest: non-Han lexical scores retain the former exact-token behavior
+ok 83 - non-Han lexical scores retain the former exact-token behavior
+  ---
+  duration_ms: 4.2603
+  type: 'test'
+  ...
+# Subtest: the existing first-2048-token boundary counts repeated occurrences
+ok 84 - the existing first-2048-token boundary counts repeated occurrences
+  ---
+  duration_ms: 17.0824
+  type: 'test'
+  ...
+# Subtest: a long single Han run is searchable at its end without character ngram expansion
+ok 85 - a long single Han run is searchable at its end without character ngram expansion
+  ---
+  duration_ms: 2625.7095
+  type: 'test'
+  ...
+# Subtest: long alternating scripts reuse segment comparisons without hiding later matches
+ok 86 - long alternating scripts reuse segment comparisons without hiding later matches
+  ---
+  duration_ms: 2646.1386
+  type: 'test'
+  ...
+# Subtest: a full segment comparison cache never becomes a recall cutoff
+ok 87 - a full segment comparison cache never becomes a recall cutoff
+  ---
+  duration_ms: 79.7304
+  type: 'test'
+  ...
+# Subtest: Chinese matching does not weaken scope, sink, lifecycle, expiry or deletion fences
+ok 88 - Chinese matching does not weaken scope, sink, lifecycle, expiry or deletion fences
+  ---
+  duration_ms: 12.4228
+  type: 'test'
+  ...
+# Subtest: ranking, recall digests and memory digests are deterministic without record mutation
+ok 89 - ranking, recall digests and memory digests are deterministic without record mutation
+  ---
+  duration_ms: 2.0698
+  type: 'test'
+  ...
+# Subtest: token budgets skip whole records and preserve category diversity
+ok 90 - token budgets skip whole records and preserve category diversity
+  ---
+  duration_ms: 2.1266
+  type: 'test'
+  ...
+# Subtest: digest-bound semantic candidates recover lexical misses after governance
+ok 91 - digest-bound semantic candidates recover lexical misses after governance
+  ---
+  duration_ms: 3.7779
+  type: 'test'
+  ...
+# Subtest: semantic evidence fails closed when its revision or digest is stale
+ok 92 - semantic evidence fails closed when its revision or digest is stale
+  ---
+  duration_ms: 1.7213
+  type: 'test'
+  ...
+# Subtest: semantic candidate validation is bounded and rejects ambiguous IDs
+ok 93 - semantic candidate validation is bounded and rejects ambiguous IDs
+  ---
+  duration_ms: 0.919
+  type: 'test'
+  ...
+# Subtest: Memory recall carries cancellation outside the serialized request contract
+ok 94 - Memory recall carries cancellation outside the serialized request contract
+  ---
+  duration_ms: 8.7005
+  type: 'test'
+  ...
+# Subtest: a pre-aborted Memory recall does not query its port
+ok 95 - a pre-aborted Memory recall does not query its port
+  ---
+  duration_ms: 1.645
+  type: 'test'
+  ...
+# Subtest: late Memory port success after cancellation never becomes a successful recall
+ok 96 - late Memory port success after cancellation never becomes a successful recall
+  ---
+  duration_ms: 0.619
+  type: 'test'
+  ...
+# Subtest: native records, scoped revisions and precise events survive reopen
+ok 97 - native records, scoped revisions and precise events survive reopen
+  ---
+  duration_ms: 68.7171
+  type: 'test'
+  ...
+# Subtest: scope binding rejects expansion and isolates identical memory IDs
+ok 98 - scope binding rejects expansion and isolates identical memory IDs
+  ---
+  duration_ms: 5.5628
+  type: 'test'
+  ...
+# Subtest: every public operation requires explicit synchronous authorization
+ok 99 - every public operation requires explicit synchronous authorization
+  ---
+  duration_ms: 8.5848
+  type: 'test'
+  ...
+# Subtest: CAS, duplicate events and reducer lineage roll back atomically
+ok 100 - CAS, duplicate events and reducer lineage roll back atomically
+  ---
+  duration_ms: 25.1067
+  type: 'test'
+  ...
+# Subtest: host native transaction can synchronously read and atomically roll back nested writes
+ok 101 - host native transaction can synchronously read and atomically roll back nested writes
+  ---
+  duration_ms: 4.8457
+  type: 'test'
+  ...
+# Subtest: query bound fails closed while exact read stays available
+ok 102 - query bound fails closed while exact read stays available
+  ---
+  duration_ms: 4.4891
+  type: 'test'
+  ...
+# Subtest: deletion erases canonical content, retains fencing and seals exact replay receipt
+ok 103 - deletion erases canonical content, retains fencing and seals exact replay receipt
+  ---
+  duration_ms: 26.6713
+  type: 'test'
+  ...
+# Subtest: failed purge recovery persists its tombstone and rejects forged completion or rebinding
+ok 104 - failed purge recovery persists its tombstone and rejects forged completion or rebinding
+  ---
+  duration_ms: 18.4794
+  type: 'test'
+  ...
+# Subtest: tampered canonical record, event and reconciliation JSON fail digest validation
+ok 105 - tampered canonical record, event and reconciliation JSON fail digest validation
+  ---
+  duration_ms: 39.8904
+  type: 'test'
+  ...
+# Subtest: invalid reconciliation makes the entire tombstone commit roll back
+ok 106 - invalid reconciliation makes the entire tombstone commit roll back
+  ---
+  duration_ms: 10.8434
+  type: 'test'
+  ...
+# Subtest: content purge retries keep real acknowledgments and erase sealed references
+ok 107 - content purge retries keep real acknowledgments and erase sealed references
+  ---
+  duration_ms: 28.7843
+  type: 'test'
+  ...
+# Subtest: native driver enforces legal hold even for direct reducer commits
+ok 108 - native driver enforces legal hold even for direct reducer commits
+  ---
+  duration_ms: 5.4969
+  type: 'test'
+  ...
+# Subtest: independent SQLite connections fence stale writes and reopen pending deletion
+ok 109 - independent SQLite connections fence stale writes and reopen pending deletion
+  ---
+  duration_ms: 69.5761
+  type: 'test'
+  ...
+# Subtest: release evidence accepts one exact-SHA complete platform matrix
+ok 110 - release evidence accepts one exact-SHA complete platform matrix
+  ---
+  duration_ms: 6.851
+  type: 'test'
+  ...
+# Subtest: release evidence assembler binds the four authoritative workflow runs
+ok 111 - release evidence assembler binds the four authoritative workflow runs
+  ---
+  duration_ms: 5.4918
+  type: 'test'
+  ...
+# Subtest: release evidence rejects mixed SHA, missing evidence, and non-passing checks
+ok 112 - release evidence rejects mixed SHA, missing evidence, and non-passing checks
+  ---
+  duration_ms: 2.3735
+  type: 'test'
+  ...
+# Subtest: published schema has executable contract entry points and immutable definitions
+ok 113 - published schema has executable contract entry points and immutable definitions
+  ---
+  duration_ms: 19.4145
+  type: 'test'
+  ...
+# Subtest: definition validator and runtime invariants reject drift and invalid digests
+ok 114 - definition validator and runtime invariants reject drift and invalid digests
+  ---
+  duration_ms: 5.3677
+  type: 'test'
+  ...
+# Subtest: task checkpoints preserve session scope, untrusted evidence and digest
+ok 115 - task checkpoints preserve session scope, untrusted evidence and digest
+  ---
+  duration_ms: 6.5798
+  type: 'test'
+  ...
+# Subtest: shadow mode never mutates a task checkpoint, canonical settlement checks revisions
+ok 116 - shadow mode never mutates a task checkpoint, canonical settlement checks revisions
+  ---
+  duration_ms: 1.2086
+  type: 'test'
+  ...
+1..116
+# tests 130
+# suites 0
+# pass 130
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7409.3153
+
+--- stderr ---

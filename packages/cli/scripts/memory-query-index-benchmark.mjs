@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { spawnSync, execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import {
+import fs, {
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -11,6 +11,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import { basename, join, resolve, sep } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -50,6 +51,7 @@ const sourceDigests = () =>
         "memory-service.js",
         "memory-query-control.js",
         "memory-shard-snapshots.js",
+        "memory-query-bundle.js",
       ].map((name) => [`../src/lib/context-memory-kernel/${name}`, name]),
       ["../src/lib/with-file-lock.js", "with-file-lock.js"],
       ["../../context-memory-kernel/lib/canonical.js", "kernel/canonical.js"],
@@ -68,6 +70,37 @@ async function measure(port, mode) {
   let authorityReads = 0;
   let authorityBytes = 0;
   const original = port._readShardBytes;
+  const open = fs.openSync;
+  const bundle = port._queryBundlePlan(
+    JSON.parse(readFileSync(port.filePath, "utf8")),
+  );
+  let indexReadOpens = 0;
+  let bundleReadOpens = 0;
+  let directoryChecks = 0;
+  const checkDirectories = port._checkDirectories;
+  port._checkDirectories = function (...args) {
+    directoryChecks++;
+    return checkDirectories.apply(this, args);
+  };
+  fs.openSync = function (file, flags, ...args) {
+    const fd = open(file, flags, ...args);
+    const reading =
+      typeof flags === "number"
+        ? (flags & (fs.constants.O_WRONLY | fs.constants.O_RDWR)) === 0
+        : flags === "r" || flags === "rs";
+    if (
+      reading &&
+      typeof file === "string" &&
+      /^query-[a-f0-9]{2}-[a-f0-9]{64}\.json$/u.test(
+        file.split(/[\\/]/u).at(-1),
+      )
+    ) {
+      indexReadOpens++;
+      if (bundle && file === bundle.file) bundleReadOpens++;
+    }
+    return fd;
+  };
+  syncBuiltinESMExports();
   port._readShardBytes = function (...args) {
     const bytes = original.apply(this, args);
     authorityReads++;
@@ -99,6 +132,9 @@ async function measure(port, mode) {
     await new Promise(setImmediate);
   } finally {
     port._readShardBytes = original;
+    port._checkDirectories = checkDirectories;
+    fs.openSync = open;
+    syncBuiltinESMExports();
     eventLoop.disable();
   }
   return {
@@ -107,6 +143,9 @@ async function measure(port, mode) {
     rowsDigest: digest(entries),
     authorityReads,
     authorityBytes,
+    indexReadOpens,
+    bundleReadOpens,
+    directoryChecks,
     peakRssBytes: process.resourceUsage().maxRSS * 1024,
     rssBytes: process.memoryUsage().rss,
     heapUsedBytes: process.memoryUsage().heapUsed,
@@ -116,13 +155,14 @@ async function measure(port, mode) {
 
 if (process.argv.includes("--help")) {
   process.stdout.write(
-    "Usage: node memory-query-index-benchmark.mjs [--counts 1000,10000,100000] [--samples 11] [--modes baseline,cold,hot,rebuild,corrupt] [--cache-mode validate-disk|verified-memory] [--output file.json]\nLocal fixture measurement; no paid model requests. Use --samples 100 for the gap-review sampling requirement.\n",
+    "Usage: node memory-query-index-benchmark.mjs [--counts 1000,10000,100000] [--samples 11] [--modes baseline,cold,hot,rebuild,corrupt] [--cache-mode validate-disk|verified-memory] [--index-layout bundle|individual] [--output file.json]\nLocal fixture measurement; no paid model requests. Use --samples 100 for the gap-review sampling requirement.\n",
   );
 } else if (option("--worker", null)) {
   const result = await measure(
     new SegmentedMemoryPort({
       filePath: option("--file", null),
       queryIndexCacheMode: option("--cache-mode", "validate-disk"),
+      queryIndexLayout: option("--index-layout", "bundle"),
     }),
     option("--worker", null),
   );
@@ -175,6 +215,7 @@ if (process.argv.includes("--help")) {
     modes,
     complete: false,
     cacheMode: option("--cache-mode", "validate-disk"),
+    indexLayout: option("--index-layout", "bundle"),
     counts,
     query: { category, limit },
     performanceThresholds: null,
@@ -197,6 +238,7 @@ if (process.argv.includes("--help")) {
       const port = new SegmentedMemoryPort({
         filePath,
         queryIndexCacheMode: option("--cache-mode", "validate-disk"),
+        queryIndexLayout: option("--index-layout", "bundle"),
       });
       const state = createDurableMemoryFixture(count);
       Object.entries(state.records).forEach(([id, record], index) => {
@@ -237,6 +279,8 @@ if (process.argv.includes("--help")) {
             filePath,
             "--cache-mode",
             option("--cache-mode", "validate-disk"),
+            "--index-layout",
+            option("--index-layout", "bundle"),
           ],
           {
             encoding: "utf8",

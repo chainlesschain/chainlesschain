@@ -1,0 +1,34 @@
+{
+  "status": "passed",
+  "node": "v22.22.2",
+  "platform": "win32",
+  "provenance": [
+    {
+      "sourcePath": "packages/context-memory-kernel/lib/canonical.js",
+      "commit": "e7a6f2585d62949794596767869423b0eb670104",
+      "blob": "dda8390fe2c0144960c14dbf913827ec53555389",
+      "sha256": "267eb8a7af1d08dcfb8e590da266c5f283637e97e229633a784ef95fd85a0da9"
+    },
+    {
+      "sourcePath": "packages/context-memory-kernel/lib/errors.js",
+      "commit": "e7a6f2585d62949794596767869423b0eb670104",
+      "blob": "61839c4b8c7035aa5574613e0293450cfd6eb104",
+      "sha256": "27a67aa4147317c28df95c7cada1d9ca39a86476c328f8fc9b0cadaf95a6aa70"
+    },
+    {
+      "sourcePath": "packages/context-memory-kernel/lib/constants.js",
+      "commit": "e7a6f2585d62949794596767869423b0eb670104",
+      "blob": "b18a5545f839eaf8d313e655c523c37782adeeba",
+      "sha256": "31ddefd99cb84bcf74e6829f13c547af0bc7c2eb34b0e3a7fdc36bfd08f82e5e"
+    }
+  ],
+  "fixtureRecords": 3000,
+  "fixtureEvents": 3000,
+  "validEdgeCases": 1221,
+  "checks": 43332,
+  "invalidChecks": 56,
+  "fixtureSha256": "c5932ea861cb559d5f141a0b9f8b5161a1c33357c9587023be4ff50a5a9d32be",
+  "prototypeSha256": "87cc81611c84486f108c8004b7e1d03faf8d22587e86a32164b3e5a6630596b6",
+  "harnessSha256": "c47bf3f38a5e3ae8f7e1c2f2368fd226efe277a9aea8c57a7e389707a4a4a6b4",
+  "note": "Exact e7 source oracle; pure JSON parity including holes, integer-key reordering, Unicode ties, null prototypes, __proto__, negative zero and unpaired surrogates. Public canonicalize is the original oracle function. No production edits."
+}

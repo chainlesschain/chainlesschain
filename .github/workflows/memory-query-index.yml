@@ -14,12 +14,14 @@ on:
     paths:
       - ".github/actions/setup-node-deps/action.yml"
       - "packages/cli/src/lib/context-memory-kernel/**"
+      - "packages/context-memory-kernel/lib/**"
       - "packages/cli/scripts/memory-query-index-benchmark.mjs"
       - ".github/workflows/memory-query-index.yml"
   pull_request:
     paths:
       - ".github/actions/setup-node-deps/action.yml"
       - "packages/cli/src/lib/context-memory-kernel/**"
+      - "packages/context-memory-kernel/lib/**"
       - "packages/cli/scripts/memory-query-index-benchmark.mjs"
       - ".github/workflows/memory-query-index.yml"
 
@@ -49,6 +51,10 @@ jobs:
           __tests__/unit/segmented-memory-port.test.js
           __tests__/unit/memory-shard-snapshots.test.js
           __tests__/unit/memory-query-cancellation.test.js
+          __tests__/unit/memory-query-bundle.test.js
+          __tests__/integration/memory-query-bundle-port.test.js
+          __tests__/integration/memory-query-bundle-legacy.test.js
+          __tests__/integration/memory-query-bundle-identity.test.js
       - name: Compare identical 1K, 10K and 100K datasets
         shell: bash
         run: >-
