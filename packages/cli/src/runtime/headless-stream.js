@@ -69,6 +69,7 @@ import {
 } from "./agent-core.js";
 import { composeSystemPrompt, hostProjectMemoryMode } from "./system-prompt.js";
 import { createCompactionHostContextRefresher } from "./compaction-host-context.js";
+import { markCompactionHostBase } from "../lib/compaction-host-provenance.js";
 import { createResumeRoleProjection } from "./message-roles.js";
 import {
   estimateMessagesTokens,
@@ -3134,7 +3135,9 @@ async function runAgentHeadlessStreamInWorkspace(
       },
     );
   const systemContent = renderSystemContent();
-  const messages = [{ role: "system", content: systemContent }];
+  const messages = [
+    markCompactionHostBase({ role: "system", content: systemContent }),
+  ];
 
   // settings.json InstructionsLoaded hooks (observe-only): fire once with the
   // exact loaded instruction file set right after the system prompt is built.

@@ -117,6 +117,7 @@ import { CLISkillLoader } from "../lib/skill-loader.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
 import { composeSystemPrompt, hostProjectMemoryMode } from "./system-prompt.js";
 import { createCompactionHostContextRefresher } from "./compaction-host-context.js";
+import { markCompactionHostBase } from "../lib/compaction-host-provenance.js";
 import { buildUserContent } from "../lib/image-input.js";
 import { createResumeRoleProjection } from "./message-roles.js";
 import { isHeadlessConfigCommand } from "../lib/headless-config-command.js";
@@ -2219,7 +2220,7 @@ async function runAgentHeadlessInWorkspace(
   // No-op on a healthy alternating transcript.
   // Keep the authority array identical to the durable transcript for CAS.
   const messages = [
-    { role: "system", content: systemContent },
+    markCompactionHostBase({ role: "system", content: systemContent }),
     ...(instructionsLoadedContext
       ? [{ role: "system", content: instructionsLoadedContext }]
       : []),

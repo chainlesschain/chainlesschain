@@ -14,6 +14,7 @@ import {
   resolveAgentToolSelection,
 } from "./agent-execution-policy.js";
 import { CLIContextEngineering } from "./cli-context-engineering.js";
+import { markCompactionHostBase } from "./compaction-host-provenance.js";
 import {
   agentLoop,
   buildSystemPrompt,
@@ -406,10 +407,12 @@ export class SubAgentContext {
       ? `\n\n## Parent Context\n${this.inheritedContext}`
       : "";
 
-    this.messages.push({
-      role: "system",
-      content: basePrompt + profilePrompt + rolePrompt + contextSection,
-    });
+    this.messages.push(
+      markCompactionHostBase({
+        role: "system",
+        content: basePrompt + profilePrompt + rolePrompt + contextSection,
+      }),
+    );
   }
 
   /**

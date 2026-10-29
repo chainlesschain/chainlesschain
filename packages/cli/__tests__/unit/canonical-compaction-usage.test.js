@@ -300,6 +300,12 @@ async function manualRun({
   let failure;
   const result = await runAgentHeadlessStream(
     {
+      // Usage tests need a bounded host base so the adapter reaches the
+      // deliberately oversized semantic summary instead of rejecting its
+      // input budget before the provider callback starts.
+      cwd: home,
+      systemPrompt: "Usage accounting fixture",
+      projectMemory: false,
       expandFileRefs: false,
       provider,
       model,
@@ -455,7 +461,7 @@ describe("manual canonical compaction usage", () => {
     "settles once and keeps context on a genuine rejection (persistent=%s)",
     async (persistent) => {
       const run = await manualRun({ persistent });
-      expect(run.query).toHaveBeenCalledOnce();
+      expect(run.query, JSON.stringify(run.events)).toHaveBeenCalledOnce();
       expect(run.compact).not.toHaveBeenCalled();
       expect(run.observed).toHaveLength(11);
       expect(run.observed.at(-1).filter((m) => m.role === "user")).toHaveLength(

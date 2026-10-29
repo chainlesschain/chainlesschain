@@ -1,4 +1,5 @@
 import { getDurableSystemMessageProvenance } from "../lib/session-message-provenance.js";
+import { markCompactionHostBase } from "../lib/compaction-host-provenance.js";
 
 export const COMPACTION_CONTEXT_REFRESH_ERROR =
   "CC_COMPACTION_CONTEXT_REFRESH_FAILED";
@@ -32,8 +33,11 @@ export function createCompactionHostContextRefresher({
       );
     if (messages[0] !== current)
       throw new Error("Host base context changed during rendering");
-    if (content === current.content) return candidate;
-    const replacement = { ...current, content };
+    if (content === current.content) {
+      markCompactionHostBase(current);
+      return candidate;
+    }
+    const replacement = markCompactionHostBase({ ...current, content });
     const projected = candidate.map((message) =>
       message === current ? replacement : message,
     );

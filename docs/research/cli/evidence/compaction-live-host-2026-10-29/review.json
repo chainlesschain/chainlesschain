@@ -1,0 +1,642 @@
+{
+  "schema": "chainlesschain.compaction-live-host-review/v1",
+  "observedAt": "2026-10-29T05:18:32.395Z",
+  "sourceHeadBeforeMerge": "ebc2aef24fa00c4f55cb9d872369694e8e2cc095",
+  "mergedBranch": {
+    "name": "feature/cli130-compaction-followup",
+    "tip": "11e698755ca603cfd639f6857f87b5db6ae6ea9d",
+    "rootFollowup": "Headless/stream constructor marking, sub-agent host marking, repeated unsaved host journeys, bounded usage fixtures and explicit pre-provider budget-refusal assertions."
+  },
+  "finalSourceSha256": {
+    "CHANGELOG.md": "c76cf786c54a990cced0988898d1e39dbdd759c81f9317e7cd85ab953febc7ad",
+    "packages/cli/src/data/changelog.json": "7d7c73bed4236da496d8ae832f2e0780e325ce0bbd8628211057dd32751acfe2",
+    "packages/cli/src/lib/compaction-host-provenance.js": "adee46e6c527ac2ad3b7a4d357e2188296d48a0efbe6c64cda431db6a9fbeede",
+    "packages/cli/src/lib/context-memory-kernel/live-compaction.js": "ced1865a6e5e7ec3a37b2a66546fef46a8f2954c83651a890074d131ad4cb253",
+    "packages/cli/src/runtime/compaction-host-context.js": "96fbc7c70d6b14935cd92d5d1b5d3c20bf854471f616892d80b9029bcd2b9442",
+    "packages/cli/src/runtime/headless-runner.js": "2af85937439cad24ff0448cea019326a766d22b4aa77b27d990e712902873d60",
+    "packages/cli/src/runtime/headless-stream.js": "13813c8e6e6f2e7aeddecc487be3fb6abbdb5a3510d149189615395803dd737a",
+    "packages/cli/src/lib/sub-agent-context.js": "8f7ddc14300084c1071f8a5e70f000725106bc4a91afde3d2dfeacb418c42d01",
+    "packages/cli/__tests__/unit/canonical-live-host-context.test.js": "78cd319c0537715d4a0ff1820d69f4475b9f3d3c6803d9cfd424d69a6318720e",
+    "packages/cli/__tests__/integration/compaction-project-context-refresh.test.js": "d6ef8defcb865167dbfd0bd9f2d982064b43e9d3c9688d2ca28a2904f4774280",
+    "packages/cli/__tests__/unit/canonical-compaction-usage.test.js": "b4da46548b9479aad671e6547caf09ec5fe9f1a5ddd954086bfe492d11c773fe"
+  },
+  "adapterReproduction": {
+    "before": {
+      "status": "committed",
+      "basePreserved": false,
+      "nextRefreshError": "CC_COMPACTION_CONTEXT_REFRESH_FAILED"
+    },
+    "after": {
+      "status": "committed",
+      "basePreserved": true,
+      "nextRefreshError": null
+    },
+    "networkCalls": 0,
+    "provenance": "Both receipts name the pre-merge HEAD; actual before/after bytes are identified by their recorded file digests. The fix was not present in ebc2aef24f."
+  },
+  "regression": {
+    "node2222": {
+      "label": "unsaved-host-merged-final-cli-v2",
+      "files": 16,
+      "passed": 231,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "sourcesStable": true,
+      "startedAt": "2026-10-29T05:15:56.367Z",
+      "endedAt": "2026-10-29T05:17:37.806Z"
+    },
+    "node2212": {
+      "label": "unsaved-host-node2212",
+      "files": 3,
+      "passed": 43,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "sourcesStable": true,
+      "startedAt": "2026-10-29T05:15:52.466Z",
+      "endedAt": "2026-10-29T05:16:34.183Z"
+    },
+    "native": {
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "sourcesStable": true,
+      "boundary": "Actual canonical adapter and killed-writer recovery; not complete CLI/IDE restart."
+    },
+    "changelog": {
+      "label": "unsaved-host-changelog",
+      "files": 4,
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "sourcesStable": true,
+      "startedAt": "2026-10-29T05:15:19.717Z",
+      "endedAt": "2026-10-29T05:15:22.411Z"
+    },
+    "overlap": "The 43 Node 22.12 cases and earlier smoke passes overlap the 231-case suite; do not add them as distinct tests."
+  },
+  "preservedFailures": [
+    {
+      "label": "unsaved-host-smoke",
+      "reason": "Two test expectations asked for a second compaction without enough message pairs; fixture corrected to use two real evidence-file reads per round without changing the production threshold."
+    },
+    {
+      "label": "unsaved-host-final-cli",
+      "reason": "Same single-read fixture expectations; 179 passed, 2 failed. Retained, not counted as a production fix failure."
+    },
+    {
+      "label": "unsaved-hermetic-before",
+      "reason": "Actual hermetic host base lost during canonical compaction; fixed in host constructors."
+    },
+    {
+      "label": "unsaved-subagent-before",
+      "reason": "Actual SubAgentContext base lost during canonical compaction; fixed in its constructor."
+    },
+    {
+      "label": "unsaved-host-merged-final-cli",
+      "reason": "224 passed / 7 failed. Old usage fixture retained a large repository host base that could not fit its 60% reduction target; pre-provider budget refusal correctly prevented the expected semantic call."
+    },
+    {
+      "label": "unsaved-host-usage-diagnostic",
+      "reason": "Two selected failures explicitly recorded safetyMarginTokens refusal before any provider call. Usage fixture now sets a bounded system prompt and projectMemory=false; all original accounting, cost, cancellation and rejection assertions remain."
+    }
+  ],
+  "invariants": [
+    "Only privately identified host objects and private runtime nudges bypass the unsaved authority planner; copies/serialized fields do not carry identity.",
+    "Retained host context consumes the existing input budget; oversized host policy rejects before summarizer/commit.",
+    "Persistent-session authority/CAS validation and known/unknown usage settlement remain active.",
+    "Three real local headless/stream/hermetic entry journeys each make three injected model callbacks and two committed canonical compactions; ordinary hosts refresh project rules/imported file Memory and hermetic hosts preserve their original policy."
+  ],
+  "pack": {
+    "version": "0.166.131",
+    "files": 1844,
+    "helperIncluded": true,
+    "dryRun": true,
+    "ignoreScripts": true,
+    "published": false
+  },
+  "egress": {
+    "candidates": 82,
+    "issues": 0,
+    "parseErrors": 0,
+    "paidReady": false,
+    "runtimeCoverageVerified": false
+  },
+  "release": {
+    "publicCli": "0.166.130",
+    "publicKernel": "0.1.10",
+    "candidateCli": "0.166.131",
+    "candidateKernel": "0.1.11",
+    "candidateOpenVsx": "0.37.169",
+    "candidateJetbrains": "0.4.186",
+    "published": false,
+    "exactSourceGates": "Require new final-SHA matrices; ebc2aef24f runs were queued and are not gates for this merge."
+  },
+  "remaining": [
+    "New exact-source three-OS CI and OIDC child -> CLI -> IDE publication",
+    "Real semantic model quality and billing",
+    "Full REPL/dual-IDE, crash windows and cross-platform journeys",
+    "Memory full latency SLO and remaining 11 deliverables",
+    "Original verify-11 dispatch remains unresolved; no replay"
+  ],
+  "acceptance": {
+    "accepted": 34,
+    "total": 45,
+    "originalDispatch": "REQUEST_UNRESOLVED",
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD",
+    "microsoft": "deferred"
+  },
+  "artifacts": [
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-hermetic-before-process.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-hermetic-before-process.json",
+      "bytes": 1928,
+      "sha256": "fa734fa509116fa830d8bc02beda145d8d93c9a5c47bba8814982a77f869f2a6",
+      "encoding": "gzip",
+      "contentBytes": 8167,
+      "contentSha256": "b5a9e68551a297c5665729d31b4a62e8f4f02054570bf41107a1532586375c96"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-hermetic-before.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-hermetic-before.json",
+      "bytes": 854,
+      "sha256": "85dca8d8f2d548a76f11baac60a6cce3143fbb049dbf2b872ff7aecb43778649",
+      "encoding": "gzip",
+      "contentBytes": 5213,
+      "contentSha256": "b5c5f28af0c591a2c2dd243d5e5d882e092bc21230da8c1252f7d9817d86034b"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-hermetic-before.log.gz",
+      "source": ".work/structured-memory-20261029/unsaved-hermetic-before.log",
+      "bytes": 128,
+      "sha256": "11c9ad2032d9f8bd42114674b8c7a9e705ff3d8012d27875df8365985982f80f",
+      "encoding": "gzip",
+      "contentBytes": 124,
+      "contentSha256": "7c14f77d19f80b958159949bd185a5262f88a1c07af60cba11d2d7de15ac01cb"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-changelog-process.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-changelog-process.json",
+      "bytes": 2055,
+      "sha256": "e6df5e4ceef9ef9353af0698f653d007951aafc3c6e42a8d7a93fd84cdf19426",
+      "encoding": "gzip",
+      "contentBytes": 8974,
+      "contentSha256": "b549355424d8577e3ee6d808f5a501ca724e8510bca203dea65b0b4700df783c"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-changelog.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-changelog.json",
+      "bytes": 1564,
+      "sha256": "f0fae2d18f14e978b032c924a2d421cdc5e996ca59293ca47a1e6ed73645d435",
+      "encoding": "gzip",
+      "contentBytes": 7562,
+      "contentSha256": "844e3b5cbf6e0861578ac05c92b64807431837df0ac22e8c85ba0e215e786fda"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-changelog.log.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-changelog.log",
+      "bytes": 128,
+      "sha256": "69eabed06739a43e886a4f1831c1bd95ccdca465d7065bf1eef7aea1122bab35",
+      "encoding": "gzip",
+      "contentBytes": 123,
+      "contentSha256": "c20218c32a22afb75e149257597ac0e1dcc1d60ed4ea36075fae9ca7e025ee4a"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-final-cli-process.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-final-cli-process.json",
+      "bytes": 2673,
+      "sha256": "c6f5905431acbbb989a7cf7b255e7b847a4161dcb189408fea553f4e8f67a09f",
+      "encoding": "gzip",
+      "contentBytes": 12748,
+      "contentSha256": "68e12a7ec2d382c98f49e893a241c2fc3fb1b3731f7b04e25b52fbdc7bd8a137"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-final-cli.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-final-cli.json",
+      "bytes": 8240,
+      "sha256": "902eb30275916f6392f8302b282263b721003e180df2782180921c6f64cffc41",
+      "encoding": "gzip",
+      "contentBytes": 63720,
+      "contentSha256": "c6964faff73fb3f0efbcadf4fed55dba92f22c5f14bef9f5ae9341aa67006d5f"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-final-cli.log.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-final-cli.log",
+      "bytes": 128,
+      "sha256": "84aa6615070916bce9e4a40fe749bb9dcd375401f4b35498cc15557646bf2000",
+      "encoding": "gzip",
+      "contentBytes": 123,
+      "contentSha256": "d743edc7f88646cde4981ea0e0ba63e75be01cd4d2d7dc0e74913d47d5061e26"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-final-node-process.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-final-node-process.json",
+      "bytes": 1788,
+      "sha256": "8765da241950d464727ce4217fbd0835c9f6b73d4dc5b2c31d6f5cce29540096",
+      "encoding": "gzip",
+      "contentBytes": 7862,
+      "contentSha256": "425ffc658f040219016db1eb3d16d79acf6a32789c836bd1bce4d7702c207e6f"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-final-node.log.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-final-node.log",
+      "bytes": 3013,
+      "sha256": "fff2cd867b0b71b9c8bb242c432793249e2c4ee6ef5c6710f4f0815911fdeb6b",
+      "encoding": "gzip",
+      "contentBytes": 12808,
+      "contentSha256": "36c81ad43b2dc7f2ba5e0126008f80e6ad9cc11919145bd030b8a1e452e78f31"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-final-smoke-process.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-final-smoke-process.json",
+      "bytes": 1970,
+      "sha256": "070851e1f0810154be68f1d67b0afbac36394bedb4dd7fccc7b727682b85e884",
+      "encoding": "gzip",
+      "contentBytes": 8454,
+      "contentSha256": "c2585d9cd0e523cafecc55c81b2d851f07a0cf642321eb651f1d62fe980c6997"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-final-smoke.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-final-smoke.json",
+      "bytes": 1242,
+      "sha256": "9e3025516946a33143d4a0a57709e1f2a73c8c66004eeac6b9d907bcf250bfd9",
+      "encoding": "gzip",
+      "contentBytes": 7752,
+      "contentSha256": "c74d1dc6d9c7a21184f124480645e6ed5982b6bec790e5c5bdf2f198c7e73aab"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-final-smoke.log.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-final-smoke.log",
+      "bytes": 129,
+      "sha256": "5f0aec6e13fd3289248f664a60c793e2d6722803c4a81b6983e7942a83a7df9c",
+      "encoding": "gzip",
+      "contentBytes": 125,
+      "contentSha256": "4c65fe6526a83ca2c95fce0f6989c46b0225e2571b54d48838685c560a752a99"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-merged-final-cli-process.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-merged-final-cli-process.json",
+      "bytes": 2728,
+      "sha256": "81c0049f45582ed5ba1cc0a16bec32dd853990503ccb2e8aa2d7c4fe335d2aa8",
+      "encoding": "gzip",
+      "contentBytes": 13061,
+      "contentSha256": "f28a9bcea1601b653923db6595364820b45a70e2bbc09fb4c6068bd2749c89f3"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-merged-final-cli-v2-process.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-merged-final-cli-v2-process.json",
+      "bytes": 2730,
+      "sha256": "4c0b2f6dae69428b2b292d6c5dbd2b3880119cf8f85455185797155aecc6f4a9",
+      "encoding": "gzip",
+      "contentBytes": 13064,
+      "contentSha256": "31d9afde8e568336dfc4d4f737f7f463f0b467246065b90ec91d7e10c705c2cc"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-merged-final-cli-v2.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-merged-final-cli-v2.json",
+      "bytes": 9905,
+      "sha256": "01a3697b2d65e86cbb52b14a6759ab9db7cd49444b5c1f485ed691c8db1e48cc",
+      "encoding": "gzip",
+      "contentBytes": 77479,
+      "contentSha256": "2d87041c99f342710ccf8e14994a5c7ca1960af2a07cdc12a53d425959f40029"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-merged-final-cli-v2.log.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-merged-final-cli-v2.log",
+      "bytes": 134,
+      "sha256": "b8e7b1795821dd49c0a2af23ae3a5706d6fde43a789a33f78e7b971ec23af7a6",
+      "encoding": "gzip",
+      "contentBytes": 133,
+      "contentSha256": "2d6dd7ac638fb6e7437ba3fe33f2f5abb26b0c67ce2465d5fc2b79ef4dc41a01"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-merged-final-cli.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-merged-final-cli.json",
+      "bytes": 10202,
+      "sha256": "52ab0840988b3ef9607da7167e7aab041931d4e456b01e760eb7f23fdca6e394",
+      "encoding": "gzip",
+      "contentBytes": 79914,
+      "contentSha256": "48e053dc770f2bd61a35fa2211347c459e6c7f133220ed390d1d90e9de02f1c0"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-merged-final-cli.log.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-merged-final-cli.log",
+      "bytes": 132,
+      "sha256": "7537237604782fbee87777c5d5dc7670bc4a5659d66f7998105dc0dc42f5701d",
+      "encoding": "gzip",
+      "contentBytes": 130,
+      "contentSha256": "d7db2c9fcd870b1f4e3fe519431625209d4a195b9189d542fd3495a4a15cb1f2"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-merged-final-node-process.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-merged-final-node-process.json",
+      "bytes": 1785,
+      "sha256": "a25053b1f1b762d6f60160c2ac3d91823c2a7d44616bc40a0978663cf620bead",
+      "encoding": "gzip",
+      "contentBytes": 7862,
+      "contentSha256": "34f4bc0c10ca0cf055979aac75bd21a86da456dd5ce93f227107067c33289a06"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-merged-final-node.log.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-merged-final-node.log",
+      "bytes": 3024,
+      "sha256": "0f47f2e30f7e7017e7d23a79d63f5f2f5fa5223321a6fce258cd95bbf9fa42fa",
+      "encoding": "gzip",
+      "contentBytes": 12808,
+      "contentSha256": "6bce2b5cf504581c802ddb46b951a7d593d83c1b14af16f4a9e9b3cc7fd7c27b"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-node2212-process.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-node2212-process.json",
+      "bytes": 2019,
+      "sha256": "714a46ac22f92ad91e7b4634ce5d0527700d6483b1c998ccc22b7f135ba09124",
+      "encoding": "gzip",
+      "contentBytes": 8784,
+      "contentSha256": "7a30831cb58d84e02ae890ad113ebeb379f3269efa736ae51a0a8e289e2be418"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-node2212.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-node2212.json",
+      "bytes": 2144,
+      "sha256": "020c85308a1d2c717d6c1d164629726b0ac9cbe79fdbba8aa39f0c903b4bb225",
+      "encoding": "gzip",
+      "contentBytes": 15817,
+      "contentSha256": "3b41a0920b5c45f20964796bd33beca9fea624824bf492016f6af1580f356053"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-node2212.log.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-node2212.log",
+      "bytes": 126,
+      "sha256": "d25f3b230b75ef834369b9212b7cfd68536f59657a8f6464532dcc8608db198b",
+      "encoding": "gzip",
+      "contentBytes": 122,
+      "contentSha256": "f64a11de2da34ccc910645507e7e016245d25befe2b392858bdd6489697bd7e7"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-smoke-process.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-smoke-process.json",
+      "bytes": 1966,
+      "sha256": "732f4aa95d16153f19cf6b98a3660f1419f683e5f137782668157ee6fdb40650",
+      "encoding": "gzip",
+      "contentBytes": 8448,
+      "contentSha256": "2e7ef76231e8e6a826eec213c019ee0adf84c9b4939fc35987c8e45ef98cf1f7"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-smoke.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-smoke.json",
+      "bytes": 1333,
+      "sha256": "642f043197e9429b7e49145ab58e40f8fa5954f24cfa92823cae840a04d6c3cd",
+      "encoding": "gzip",
+      "contentBytes": 7916,
+      "contentSha256": "89fcb0e42d5028c21f30f0ce0a210bf69a475a19e8b4d65aec757ec6a334451a"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-smoke.log.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-smoke.log",
+      "bytes": 125,
+      "sha256": "b1b7de86b974e2d54536878a873bcf099a7049b2310fc7fd94e214a0de656781",
+      "encoding": "gzip",
+      "contentBytes": 119,
+      "contentSha256": "74b77df6f1fdbee0316edf70e2555cf1dec9d647465cb95337b14069267ba92c"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-two-read-smoke-process.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-two-read-smoke-process.json",
+      "bytes": 1974,
+      "sha256": "b946d011c27ca81e9c1a6e72e828a9631f379739ba01bffc9887a3622301e1c8",
+      "encoding": "gzip",
+      "contentBytes": 8457,
+      "contentSha256": "b568733903dd4c1af98425cbd9421d0ab917975bf36cc7fab193462a43235311"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-two-read-smoke.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-two-read-smoke.json",
+      "bytes": 1217,
+      "sha256": "c7593ca9e97ce5311861c12fd790eecb702c08f4a3b74d68f647e01c6866462e",
+      "encoding": "gzip",
+      "contentBytes": 7324,
+      "contentSha256": "d3fbba87644fb344a98b8582cf44766c44d98119cf73338b089d7174238be407"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-two-read-smoke.log.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-two-read-smoke.log",
+      "bytes": 130,
+      "sha256": "8eec1726946cbf8bdc2a94605d314386cd34e2e14709a7cd6cf37064c0028165",
+      "encoding": "gzip",
+      "contentBytes": 128,
+      "contentSha256": "8bd315d3fcac37d121abc2b2cb3f76b3c3a4a8a34d00e2c06ea00218a957c88f"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-usage-bounded-fixture-process.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-usage-bounded-fixture-process.json",
+      "bytes": 1954,
+      "sha256": "c7340cdbf24c8c49d5123f7109d31349d3857273efa1609ac2b204abf98b4c01",
+      "encoding": "gzip",
+      "contentBytes": 8419,
+      "contentSha256": "bbabbec45c3dcc0323d3a839474f29bad9e85b362b46a7af502beb759a7a7105"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-usage-bounded-fixture.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-usage-bounded-fixture.json",
+      "bytes": 1667,
+      "sha256": "415a5d6cfce26ed7525ff319d04c085234582a6fd624e315eb79fb34d2af1e9f",
+      "encoding": "gzip",
+      "contentBytes": 11045,
+      "contentSha256": "a2ae492374aec0d73d0d0fe45e0b11553258305945955248cdd12f638042f80b"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-usage-bounded-fixture.log.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-usage-bounded-fixture.log",
+      "bytes": 135,
+      "sha256": "e60c6c082deb9e0cb2210aab5702fa5e10c38239d670a90a4f713f4efb6022d9",
+      "encoding": "gzip",
+      "contentBytes": 135,
+      "contentSha256": "cf398d0339e61f06a04c06c199aaf40e8a13e61ba36804e43249eb2de410a921"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-usage-diagnostic-process.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-usage-diagnostic-process.json",
+      "bytes": 1937,
+      "sha256": "506efd84c59837fb7959c45fda0f65b440e671eb17b9c5df56467b7c0ec365c9",
+      "encoding": "gzip",
+      "contentBytes": 8149,
+      "contentSha256": "378e22579131052325f07ba332f7efce86a5ab0abf52d45e823b227c83d71f80"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-usage-diagnostic.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-usage-diagnostic.json",
+      "bytes": 2110,
+      "sha256": "af62cf283cc6a8455a8bf4b69e0a60b740dc4c7788d258b2498116d402300e2d",
+      "encoding": "gzip",
+      "contentBytes": 17921,
+      "contentSha256": "16dbfcabff4fdd9016b6722e743045a3eb6e0f8dd0527d30c253f07c78ba7af9"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-host-usage-diagnostic.log.gz",
+      "source": ".work/structured-memory-20261029/unsaved-host-usage-diagnostic.log",
+      "bytes": 132,
+      "sha256": "7e9bd2f5be1f4e0da77c0f82933c7f3e71ea979431368e5c227bca3435a3aab4",
+      "encoding": "gzip",
+      "contentBytes": 130,
+      "contentSha256": "7e911d4ba0c93dc77858dde2c65a25ad12bf253e9271d16cf01a1eeb19da5807"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-subagent-before-process.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-subagent-before-process.json",
+      "bytes": 1913,
+      "sha256": "cb5b885d67c47ae16dc01c01d095066a23bb2ed046f33fa59d52fdfa4a2243ac",
+      "encoding": "gzip",
+      "contentBytes": 8117,
+      "contentSha256": "0827687fabcd684b008a9c39de66350db37419331f0a720eca84c3c4436e93a6"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-subagent-before.json.gz",
+      "source": ".work/structured-memory-20261029/unsaved-subagent-before.json",
+      "bytes": 937,
+      "sha256": "59925f5f2d2bb9c206070609105b264335a581e36177aa4743d8f70743bd7224",
+      "encoding": "gzip",
+      "contentBytes": 3522,
+      "contentSha256": "0808184d9165e1c12c2a1bfd7769a524550a77765c9000325ffd896ffd031942"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/unsaved-subagent-before.log.gz",
+      "source": ".work/structured-memory-20261029/unsaved-subagent-before.log",
+      "bytes": 128,
+      "sha256": "73807217e54e550da78d7b72954ea7a8a604de68964d9c02c3852abc27e66ef9",
+      "encoding": "gzip",
+      "contentBytes": 124,
+      "contentSha256": "f7b6b71491d626024d84834c6ee57d4b796cc2246ad615d85034153083aa008c"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/followup-archive.mjs.gz",
+      "source": ".work/compaction-host-followup-20261029/archive.mjs",
+      "bytes": 3443,
+      "sha256": "367d1f400ba811904e60646099701848a89020c557eb5f7150d202d48e55ddb6",
+      "encoding": "gzip",
+      "contentBytes": 8503,
+      "contentSha256": "0cecd36cf30f840b52990c60fd3481dd9d622f28b1c800b946961f45266aa616"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/followup-changelog-build.log.gz",
+      "source": ".work/compaction-host-followup-20261029/changelog-build.log",
+      "bytes": 110,
+      "sha256": "3e6e7b16b1bb4031ed8ba49784b54c18080f7964387b10102f42b3d10925ce65",
+      "encoding": "gzip",
+      "contentBytes": 97,
+      "contentSha256": "60333a67a9a3a7370808f6e728072e6a52f56c7a005a3586fa7d5ccfd2644d38"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/followup-checks.json.gz",
+      "source": ".work/compaction-host-followup-20261029/checks.json",
+      "bytes": 1140,
+      "sha256": "05e069466b654ce96b182dfb13147b06224902126a32bffcd8f02923f9be777b",
+      "encoding": "gzip",
+      "contentBytes": 2887,
+      "contentSha256": "67f73c886febdd50da85da7b76ecb19fe1b9ddb0275a466612cbfe6a801c99e6"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/followup-checks.mjs.gz",
+      "source": ".work/compaction-host-followup-20261029/checks.mjs",
+      "bytes": 1223,
+      "sha256": "4f4e0dd8b3764dfe84c7e9a949d973ad1b33905ebf873e7d3bda8dde734821b7",
+      "encoding": "gzip",
+      "contentBytes": 2995,
+      "contentSha256": "b18ff40e21343e9097c531fa59f734b5e4cf08704b20791a6582ae613146ca22"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/followup-cli-pack.json.gz",
+      "source": ".work/compaction-host-followup-20261029/cli-pack.json",
+      "bytes": 24989,
+      "sha256": "1d4b29e808e3a4f55f0ccb9509e10f6505fc89c5886b931927e9e7f2d822ab1d",
+      "encoding": "gzip",
+      "contentBytes": 216075,
+      "contentSha256": "a63d7abc7588235c16f5ef28cadf7a9a06a9b5e3fb932a4b731c4e938e2cb3b1"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/followup-cli-pack.log.gz",
+      "source": ".work/compaction-host-followup-20261029/cli-pack.log",
+      "bytes": 25116,
+      "sha256": "a31700c10bac2e9d0298f732a7749f9895040a87d08b8dfd0482bdab263dbf52",
+      "encoding": "gzip",
+      "contentBytes": 216299,
+      "contentSha256": "5cd000271bda8cf05c37bd30751dbae9b6b1702d7faf46477b78690ea80cd37b"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/followup-egress.json.gz",
+      "source": ".work/compaction-host-followup-20261029/egress.json",
+      "bytes": 20698,
+      "sha256": "364c229bba915924d6819688694d83d2a7220ba742c7f6951b7e45016f383f9e",
+      "encoding": "gzip",
+      "contentBytes": 90828,
+      "contentSha256": "fa5f06b53db018119af50ca2b5fb229f2f2c465ea0fb41c830ecfca98f8023f5"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/followup-egress.log.gz",
+      "source": ".work/compaction-host-followup-20261029/egress.log",
+      "bytes": 158,
+      "sha256": "f599775f2ef407792e17109acb953e16307d63e87457a393f99955fa62a25461",
+      "encoding": "gzip",
+      "contentBytes": 185,
+      "contentSha256": "0d0230b75df3730e8f64ae521d19937da157e15a664ce8b445f2f1ba518f94ef"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/followup-probe.mjs.gz",
+      "source": ".work/compaction-host-followup-20261029/probe.mjs",
+      "bytes": 1519,
+      "sha256": "03cd5dc931bf3ec05621e3c728f0c14bf36826c233570f9489ec800fdef13a7c",
+      "encoding": "gzip",
+      "contentBytes": 3455,
+      "contentSha256": "5c3ee4b0d9b12047f30618902a22e47f0ee9befb21c27223ea43be37718cdc29"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/followup-run-regressions.mjs.gz",
+      "source": ".work/compaction-host-followup-20261029/run-regressions.mjs",
+      "bytes": 416,
+      "sha256": "f0ae63a4732974eb7ae8eccb5070b8288d7b443e9b237866d274f508131af95b",
+      "encoding": "gzip",
+      "contentBytes": 742,
+      "contentSha256": "78c445e5a16c6aeaa4fc66a42cd36d0f052e1cdd5b745dedf211defbfa8f7389"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/followup-write-progress.mjs.gz",
+      "source": ".work/compaction-host-followup-20261029/write-progress.mjs",
+      "bytes": 3654,
+      "sha256": "38c6054646a9aedc4006b00e61e757f1a95d2073c3175b1a0a8a1637752e587d",
+      "encoding": "gzip",
+      "contentBytes": 6871,
+      "contentSha256": "aee75455b4e00a8954795f67fb0a30e29e658a4c6eaae16de50db7f381982bc6"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/source-bound-test-runner.mjs.gz",
+      "source": ".work/structured-memory-20261029/run.mjs",
+      "bytes": 1286,
+      "sha256": "0e795c9862f5193831fa3002600164cb36a326312d32e63772879623a5817243",
+      "encoding": "gzip",
+      "contentBytes": 3217,
+      "contentSha256": "8eb8070c3004fa97dbe50a2a61378dfbeff98d85deea7c896d77e9fc2b73f290"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/adapter-before.json.gz",
+      "source": ".work/compaction-host-followup-20261029/before-8Gv7M8/receipt.json",
+      "bytes": 617,
+      "sha256": "3252c99e78aa38e96b50ee100d19dbfb8052e8c2ff42191a909c1f2ec96e1df8",
+      "encoding": "gzip",
+      "contentBytes": 1296,
+      "contentSha256": "894e7f2c0d1a3375d4867b381464fb9bcd23e008653ec86534b4fa9282d3f2a6"
+    },
+    {
+      "path": "docs/research/cli/evidence/compaction-live-host-2026-10-29/raw/adapter-after.json.gz",
+      "source": ".work/compaction-host-followup-20261029/after-DCPlzb/receipt.json",
+      "bytes": 596,
+      "sha256": "51e63b868947043de7639ddc315c66aa0a1568ccbfdd4fcfd0e90fa334f00b68",
+      "encoding": "gzip",
+      "contentBytes": 1309,
+      "contentSha256": "54020d21cb8c61a455582e37722cb364bc67d770af758be1f35318e55859f68b"
+    }
+  ]
+}

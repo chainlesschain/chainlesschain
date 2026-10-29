@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { ContextMemoryKernel } from "@chainlesschain/context-memory-kernel";
 import { agentLoop, runAgentHeadless } from "../helpers/test-model-egress.js";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
 import { PromptCompressor } from "../../src/harness/prompt-compressor.js";
 import {
   readVerifiedEvents,
   readVerifiedMessages,
+  sessionExists,
 } from "../../src/harness/jsonl-session-store.js";
 
 let cwd;
@@ -40,6 +42,122 @@ afterEach(() => {
 });
 
 describe("project context around live compaction", () => {
+  it.each(["headless", "stream", "hermetic-headless"])(
+    "%s preserves fresh live rules across two canonical compactions without saving a session",
+    async (entry) => {
+      const hermetic = entry === "hermetic-headless";
+      vi.stubEnv(
+        "CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE",
+        "canonical_default",
+      );
+      const sessionId = `unsaved-host-${entry}`;
+      const requests = [];
+      const compactions = vi.spyOn(
+        ContextMemoryKernel.prototype,
+        "compactContext",
+      );
+      fs.writeFileSync(
+        path.join(cwd, "evidence-a.txt"),
+        "first local evidence",
+      );
+      fs.writeFileSync(
+        path.join(cwd, "evidence-b.txt"),
+        "second local evidence",
+      );
+      vi.spyOn(
+        PromptCompressor.prototype,
+        "shouldAutoCompact",
+      ).mockImplementation((messages) =>
+        messages.some((message) => message.role === "tool"),
+      );
+      const chatFn = async (messages) => {
+        requests.push(structuredClone(messages));
+        const round = requests.length;
+        if (round <= 2) {
+          fs.writeFileSync(
+            path.join(cwd, "memory.md"),
+            `UNSAVED_MEMORY_${round}_72146`,
+          );
+          fs.writeFileSync(
+            path.join(cwd, ".chainlesschain/rules.md"),
+            `UNSAVED_RULE_${round}_72146`,
+          );
+          return {
+            message: {
+              role: "assistant",
+              content: "Read local evidence",
+              tool_calls: ["a", "b"].map((name) => ({
+                id: `unsaved-read-${round}-${name}`,
+                type: "function",
+                function: {
+                  name: "read_file",
+                  arguments: JSON.stringify({ path: `evidence-${name}.txt` }),
+                },
+              })),
+            },
+            usage: { input_tokens: 10, output_tokens: 10 },
+          };
+        }
+        return {
+          message: { role: "assistant", content: "done" },
+          usage: { input_tokens: 10, output_tokens: 10 },
+        };
+      };
+      const options = {
+        cwd,
+        sessionId,
+        ephemeral: true,
+        projectMemory: !hermetic,
+        hermeticExecution: hermetic,
+        provider: "ollama",
+        model: "qwen2.5:7b",
+        useRegisteredMcp: false,
+        expandFileRefs: false,
+      };
+      const deps = {
+        bootstrap: async () => ({ db: null }),
+        getApprovalGate: async () => null,
+        resolveAgentMcp: async () => null,
+        writeOut: () => {},
+        writeErr: () => {},
+        chatFn,
+      };
+      const prompt =
+        "Read current project instructions and complete the local task";
+      const result =
+        entry === "stream"
+          ? await runAgentHeadlessStream(options, {
+              ...deps,
+              input: (async function* () {
+                yield JSON.stringify({ type: "user", content: prompt }) + "\n";
+              })(),
+            })
+          : await runAgentHeadless(
+              { ...options, prompt, outputFormat: "json" },
+              deps,
+            );
+      expect(result.exitCode, JSON.stringify(result)).toBe(0);
+      expect(requests).toHaveLength(3);
+      expect(compactions).toHaveBeenCalledTimes(2);
+      for (const call of compactions.mock.results)
+        expect((await call.value).status).toBe("committed");
+      expect(requests[0][0].role).toBe("system");
+      if (!hermetic)
+        expect(requests[0][0].content).toContain("PROJECT_RULE_OLD_82731");
+      for (const round of [1, 2]) {
+        const base = requests[round][0];
+        expect(base.role).toBe("system");
+        if (hermetic) expect(base.content).toBe(requests[0][0].content);
+        else {
+          expect(base.content).toContain(`UNSAVED_RULE_${round}_72146`);
+          expect(base.content).toContain(`UNSAVED_MEMORY_${round}_72146`);
+          expect(base.content).not.toContain("PROJECT_RULE_OLD_82731");
+        }
+      }
+      expect(sessionExists(sessionId)).toBe(false);
+    },
+  );
+
   it.each([false, "lean", "environment-off"])(
     "preserves the host project-memory mode %s",
     async (mode) => {

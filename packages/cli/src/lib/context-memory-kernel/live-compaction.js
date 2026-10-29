@@ -14,6 +14,7 @@ import { JsonlSessionContextPort } from "./jsonl-session-context-port.js";
 import { createCliContextMemoryRuntime } from "./runtime.js";
 import { imageTransportEstimate } from "../image-token-estimate.js";
 import { projectRuntimeTokenUsage } from "../runtime-usage-ledger.js";
+import { isCompactionHostBase } from "../compaction-host-provenance.js";
 import {
   projectCanonicalResumeMessages,
   getDurableSystemMessageProvenance,
@@ -252,16 +253,24 @@ export async function compactLiveMessagesCanonical(
     sessionExists(sessionId);
   // Host policy is live-only. Durable summary/lineage systems retain their
   // private provenance and remain part of the exact authority comparison.
+  // Unsaved sessions have no durable host projection: only privately admitted
+  // live bases/nudges may bypass the planner, never arbitrary system messages.
   const messages = persistentSession
     ? projectCanonicalResumeMessages(liveMessages, { strict: true })
-    : liveMessages;
+    : liveMessages.filter(
+        (message) =>
+          !isCompactionHostBase(message) &&
+          !isRuntimeOnlySessionMessage(message),
+      );
   const ephemeralMessages = [];
-  if (persistentSession) {
+  {
     let sequence = 0;
     for (const message of liveMessages) {
       if (
         isRuntimeOnlySessionMessage(message) ||
-        (message.role === "system" &&
+        isCompactionHostBase(message) ||
+        (persistentSession &&
+          message.role === "system" &&
           !getDurableSystemMessageProvenance(message))
       )
         ephemeralMessages.push({ sequence, message });
