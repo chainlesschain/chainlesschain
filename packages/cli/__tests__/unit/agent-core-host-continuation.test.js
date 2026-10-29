@@ -80,6 +80,116 @@ function expectTaskProtected(result, task, requestIndex) {
   ).toBe(true);
 }
 describe("trusted host continuations preserve the canonical user task", () => {
+  it("moves one metadata-bearing user after retained context without copying it", async () => {
+    const task = {
+      role: "user",
+      content: "TASK_SENTINEL implement the requested behavior",
+      name: "task-owner",
+      metadata: { requestId: "request-1", constraints: ["preserve"] },
+    };
+    let projected = false;
+    const result = await run(
+      [{ role: "system", content: "Follow the user's task." }, task],
+      [response("Done")],
+      {
+        getTaskWorklogContext: () => "retained source evidence",
+        projectProviderMessages(input) {
+          projected = true;
+          const users = input.filter((message) => message.role === "user");
+          expect(users).toHaveLength(1);
+          expect(users[0]).toBe(task);
+          expect(users[0].metadata).toEqual(task.metadata);
+          const evidenceIndex = input.findIndex(
+            (message) => message.content === "retained source evidence",
+          );
+          expect(evidenceIndex).toBeGreaterThan(-1);
+          expect(input.indexOf(task)).toBeGreaterThan(evidenceIndex);
+          return structuredClone(input);
+        },
+      },
+    );
+    expect(projected).toBe(true);
+    const plan = result.events.find(
+      (event) => event.type === "context.plan.created",
+    ).plan;
+    expect(
+      isProtected(
+        plan.selected.find((item) => item.content?.includes("TASK_SENTINEL")),
+      ),
+    ).toBe(true);
+    expect(
+      result.requests[0].filter((message) => message.role === "user"),
+    ).toEqual([task]);
+  });
+
+  it("moves only the latest user index and retains an equal historical user", async () => {
+    const earlier = { role: "user", content: "Continue the requested task" };
+    const current = { role: "user", content: "Continue the requested task" };
+    const result = await run(
+      [
+        { role: "system", content: "Follow the current task." },
+        earlier,
+        { role: "assistant", content: "Earlier completed work" },
+        current,
+      ],
+      [response("Done")],
+      {
+        getTaskWorklogContext: () => "retained source evidence",
+        projectProviderMessages(input) {
+          const users = input.filter((message) => message.role === "user");
+          expect(users).toHaveLength(2);
+          expect(users[0]).toBe(earlier);
+          expect(users[1]).toBe(current);
+          expect(input.indexOf(earlier)).toBe(1);
+          expect(input.indexOf(current)).toBeGreaterThan(
+            input.findIndex(
+              (message) => message.content === "retained source evidence",
+            ),
+          );
+          return input;
+        },
+      },
+    );
+    expect(result.requests).toHaveLength(1);
+  });
+
+  it("does not erase an aliased duplicate while moving the final user index", async () => {
+    const task = { role: "user", content: "TASK_SENTINEL active request" };
+    const chatFn = vi.fn(async () => response("must not dispatch"));
+    await expect(
+      run([{ role: "system", content: "Follow the user." }, task, task], [], {
+        getTaskWorklogContext: () => "retained source evidence",
+        chatFn,
+      }),
+    ).rejects.toMatchObject({ code: "CC_AGENT_TASK_CONTEXT_LOST" });
+    expect(chatFn).not.toHaveBeenCalled();
+  });
+
+  it("does not fabricate a user objective for retained context without a user turn", async () => {
+    let projected = false;
+    const result = await run(
+      [
+        { role: "system", content: "Follow admitted tasks." },
+        { role: "assistant", content: "Existing context" },
+      ],
+      [response("Done")],
+      {
+        getTaskWorklogContext: () => "retained source evidence",
+        projectProviderMessages(input) {
+          projected = true;
+          expect(input.filter((message) => message.role === "user")).toEqual(
+            [],
+          );
+          return input;
+        },
+      },
+    );
+    expect(projected).toBe(true);
+    expect(
+      result.requests[0].filter((message) => message.role === "user"),
+    ).toEqual([]);
+  });
+
   it("distinguishes repeated real user text by the current message identity", async () => {
     const messages = [
       { role: "system", content: "Follow the current task." },

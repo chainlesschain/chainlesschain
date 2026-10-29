@@ -16350,18 +16350,16 @@ export async function* agentLoop(messages, options) {
           index === resultIndex ? { ...result, content } : message,
         );
       } else {
-        // Full compaction can leave only the pinned request. Reiterate that
-        // exact request after the source data, not a replacement objective.
-        const request = requestMessages.findLast(
+        // Full compaction can leave only the pinned request. Move that same
+        // message after the source data, preserving its metadata and identity.
+        const requestIndex = requestMessages.findLastIndex(
           (message) => message.role === "user",
         );
+        const request = requestMessages[requestIndex];
         callMessages = [
-          ...requestMessages,
+          ...requestMessages.filter((_, index) => index !== requestIndex),
           ...readContext.map((content) => ({ role: "assistant", content })),
-          {
-            role: "user",
-            content: request?.content || "Continue the original user task.",
-          },
+          ...(request ? [request] : []),
         ];
       }
     }

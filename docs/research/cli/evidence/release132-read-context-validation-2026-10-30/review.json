@@ -1,0 +1,249 @@
+{
+  "schema": "chainlesschain.release132-read-context-validation/v1",
+  "observedAt": "2026-10-29T20:13:02.958Z",
+  "baseSource": "7f8ef64b4bd8b429f97d2e121c440143ed7ddf3b",
+  "sourceKind": "modified-worktree-before-replacement-commit",
+  "versions": {
+    "cli": "0.166.132",
+    "kernel": "0.1.11",
+    "openVsx": "0.37.170",
+    "jetbrains": "0.4.187"
+  },
+  "status": "LOCAL_VALIDATION_COMPLETE_NEW_EXACT_SOURCE_GATES_REQUIRED",
+  "published": false,
+  "node": "v22.22.2",
+  "platform": "win32",
+  "validation": {
+    "unit": {
+      "files": 18,
+      "total": 456,
+      "passed": 456,
+      "failed": 0,
+      "skipped": 0
+    },
+    "realCliTests": {
+      "files": 3,
+      "total": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    "egress": {
+      "candidates": 82,
+      "issues": 0
+    }
+  },
+  "rootCause": "Canonical compaction retained the real task. The host no-tool readContext layout copied that user content into another user message, making the precise task relocation ambiguous. The correction moves only the exact existing user index and preserves its object and metadata; it does not create a missing task.",
+  "superseded": {
+    "source": "7f8ef64b4bd8b429f97d2e121c440143ed7ddf3b",
+    "validationTag": "ci-cli132-7f8ef64b4bd8",
+    "releaseTagCreated": false,
+    "published": false,
+    "failedJobs": [123683988999, 123683989383],
+    "gates": [
+      {
+        "workflow": "CLI CI",
+        "id": 40937542966,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "workflow": "CLI Strict Sandbox",
+        "id": 40937543002,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "workflow": "Context Memory Kernel CI",
+        "id": 40937543105,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "workflow": "IDE Extensions",
+        "id": 40937542954,
+        "status": "completed",
+        "conclusion": "cancelled"
+      }
+    ]
+  },
+  "acceptance": {
+    "automaticAccepted": 34,
+    "total": 45,
+    "assistedDeliveries": 3,
+    "unchanged": true
+  },
+  "sourceBindings": {
+    "packages/cli/src/runtime/agent-core.js": "sha256:92c081e30a0ca4523ab7e3797fb38c29e69296bbcce380c8157f9d84f24c64a2",
+    "packages/cli/src/runtime/message-roles.js": "sha256:05631b7268a7476ee088c9156f092a5f29efa267f7311a55a388696060c0b352",
+    "packages/cli/src/runtime/provider-stream-state.js": "sha256:be1c3f7e29e752835a09c70fef427ebe241c91c5c862a8bdf70650c5206e548e",
+    "packages/cli/src/lib/context-memory-kernel/provider-context.js": "sha256:d075c4c4fb91b64fe9d590ff8403600de83648a898137e14399d6af9da45b272",
+    "packages/cli/src/lib/context-memory-kernel/message-adapter.js": "sha256:8dbec7f148760bc4f3169c1cb33c85c01f810ca28d2d8cb9024087673326e93b",
+    "packages/cli/__tests__/unit/resume-task-binding.test.js": "sha256:4b0f68095b442b568e6ef56b3d7c391991aa1a950447aa954fb2f89ef802ffb4",
+    "packages/cli/__tests__/unit/context-task-binding-race.test.js": "sha256:9c362b6efac1d67f18a5c097904f283825c89bccca6ddb0d248856cf5baba90b",
+    "packages/cli/__tests__/unit/output-limit-recovery.test.js": "sha256:91dc84821216674e769466351572c36aec854a161eac3cf0f6599370cfa32d76",
+    "packages/cli/__tests__/unit/content-filter.test.js": "sha256:9a64f207f87fba6e7121ee006c5da8daa7bd83b8c6a7a879593c4599a223dd47",
+    "packages/cli/__tests__/unit/termination-integrity.test.js": "sha256:ab0722b29bc7a717814b8408652a22a600a3d44c1610b2ba7b51777ec428c083",
+    "packages/cli/__tests__/unit/agent-core-host-continuation.test.js": "sha256:4103ab0459bac57c4d19f3224ef76b3898e287f33101f9d0a4275c1dbe136542",
+    "packages/cli/__tests__/e2e/resume-role-alternation-e2e.test.js": "sha256:38d929c32d9f1479dcf89175a9047ddf1ad7ce78525dfaae7237e96553492621",
+    "packages/cli/__tests__/e2e/output-limit-recovery.test.js": "sha256:1fc98a78e21246b1ba20b4e2ac339bec2eaffc1d1949551a050a7a8319e95668",
+    "packages/cli/__tests__/e2e/compaction-memory-restart-e2e.test.js": "sha256:5a2b16ffa315d9d5a1b9b2542a5e4616c0131df9641c1ab950738813f5ad4395",
+    "packages/cli/package.json": "sha256:1400def71832d1b4668d5b021fc0c5a2b37c973052094a532720bb590f1bdd43",
+    "packages/context-memory-kernel/package.json": "sha256:ed0a010ee0146aebc4aed67cf7f7a79073298c517c6f85c83b21d0afb030e3a7",
+    "packages/cli/scripts/budget-egress-reviewed-sources.json": "sha256:d1ed39972f87fa488b1f2297cc9da8ac292921e08d50e5316de79725e89af330",
+    "packages/cli/src/data/changelog.json": "sha256:d32286e87f0b7b5f1773e0e002443e4e5fc6352fa1e6151ef06eb829b808f542",
+    "packages/vscode-extension/package.json": "sha256:74a42f113f2b37fb9b3a5fbcd27950f87c19513b653f3be1b99134049bda4f1a",
+    "packages/jetbrains-plugin/build.gradle.kts": "sha256:ed9ad77cdfa97b4f002d6a52fb24e166477d439937d0251aea668914e55b5411",
+    "packages/jetbrains-plugin/gradle.properties": "sha256:4e827de53b04a87cf241177d2a05658fdc30c2b9cf4115b7e81d2764defec984",
+    "packages/cli/README.md": "sha256:79df2a02676c5156660a57b1c0979e6962d00eb1f6d2fade36c80196a92b925e",
+    "packages/vscode-extension/README.md": "sha256:7e1afd2d9a3d2a3c36ed6429ce5132bc6fa3f3e068f10536d81f3ac9462ebea1",
+    "packages/jetbrains-plugin/README.md": "sha256:243a200c1654e03d16926ae9c30c22fe472bde0b01ab97c04f26448e9cefc781"
+  },
+  "artifacts": [
+    {
+      "name": "runtime-final-unit.json",
+      "path": "objects/8b7857a7d7aa993207d12dbecc99fc810038c85e30655241013e47caa873b3f9.gz",
+      "originalDigest": "sha256:8b7857a7d7aa993207d12dbecc99fc810038c85e30655241013e47caa873b3f9",
+      "originalBytes": 148776,
+      "storedDigest": "sha256:3fc271d4efdf565e088b249042e47db17ad17ca1ac0abb88273d647f3893ef21",
+      "storedBytes": 19395
+    },
+    {
+      "name": "runtime-final-e2e.json",
+      "path": "objects/cab8a6ee65419cfce8c4f4bf5f535bae2258eaf0b1aed739cda9ea09c07b6e9c.gz",
+      "originalDigest": "sha256:cab8a6ee65419cfce8c4f4bf5f535bae2258eaf0b1aed739cda9ea09c07b6e9c",
+      "originalBytes": 4756,
+      "storedDigest": "sha256:f465951580682b80a3fa001f12c555cefb1d4fabaa517dd6fe7d0ca1166c60a5",
+      "storedBytes": 900
+    },
+    {
+      "name": "local-static-checks.json",
+      "path": "objects/7013caa76da7722418e9dbab7e4c7580f9066a178607d7186bea5ef115419a2a.gz",
+      "originalDigest": "sha256:7013caa76da7722418e9dbab7e4c7580f9066a178607d7186bea5ef115419a2a",
+      "originalBytes": 1179,
+      "storedDigest": "sha256:356c2f1ce898aa91d1de664a8557a44246b25403266925944ba17ebe5ebb55d2",
+      "storedBytes": 456
+    },
+    {
+      "name": "egress-final.json",
+      "path": "objects/c30e7330889f0ac468f4a5fd635a68d3169e5ac6dd055cdcacaf01bc6576eb29.gz",
+      "originalDigest": "sha256:c30e7330889f0ac468f4a5fd635a68d3169e5ac6dd055cdcacaf01bc6576eb29",
+      "originalBytes": 93638,
+      "storedDigest": "sha256:5f4d70a468640f1034f51a1fb76c258da54c2863596844908154a3be9e3b441a",
+      "storedBytes": 21533
+    },
+    {
+      "name": "egress-review.json",
+      "path": "objects/80b739d8c4d955f3827a1b4e1b930230ad1e8f56316db9af2b9e50be7014d1e0.gz",
+      "originalDigest": "sha256:80b739d8c4d955f3827a1b4e1b930230ad1e8f56316db9af2b9e50be7014d1e0",
+      "originalBytes": 6373,
+      "storedDigest": "sha256:ed118e7d186e0586746e236f015f14333482424d882289e01f53f783d4953114",
+      "storedBytes": 1787
+    },
+    {
+      "name": "cli-pack.json",
+      "path": "objects/5973f2f5efda9e4be75beb24c646c76d8bc86ec7c4b4c449170de104d2bdf10a.gz",
+      "originalDigest": "sha256:5973f2f5efda9e4be75beb24c646c76d8bc86ec7c4b4c449170de104d2bdf10a",
+      "originalBytes": 216195,
+      "storedDigest": "sha256:4c12b9e28eb4164fb07056ba9ddfc57c65bd6226f0c781b692702a8b918ef724",
+      "storedBytes": 25018
+    },
+    {
+      "name": "pack-process.json",
+      "path": "objects/621adc9417c06fc0b17f3803596f2744ab459d6ebccd0e7255ccbed2c199caf3.gz",
+      "originalDigest": "sha256:621adc9417c06fc0b17f3803596f2744ab459d6ebccd0e7255ccbed2c199caf3",
+      "originalBytes": 375,
+      "storedDigest": "sha256:bb9d158aaecd485fa540ede4e295966b1f6b582a2025d956ec41cceba9606391",
+      "storedBytes": 286
+    },
+    {
+      "name": "final-pack-binding.json",
+      "path": "objects/33ba01c640455b5bd7e3e8c06dcfb5f404e82c36785e399d9eebf0fc351ee294.gz",
+      "originalDigest": "sha256:33ba01c640455b5bd7e3e8c06dcfb5f404e82c36785e399d9eebf0fc351ee294",
+      "originalBytes": 690,
+      "storedDigest": "sha256:481a3cdfa404c49fc6c9a12dbcc8348eef089db2d4f2733649b88a089e98af71",
+      "storedBytes": 450
+    },
+    {
+      "name": "superseded7f/release-target.json",
+      "path": "objects/db04aa5e819f607f8c676772e67965db40022e1f78807d95b470c3f0fbd793f1.gz",
+      "originalDigest": "sha256:db04aa5e819f607f8c676772e67965db40022e1f78807d95b470c3f0fbd793f1",
+      "originalBytes": 2386,
+      "storedDigest": "sha256:5c1cdc1ca886193eb6de4518838d7ee83d177aaaa3411070ea9fbe95a8405a0d",
+      "storedBytes": 1198
+    },
+    {
+      "name": "superseded7f/superseded-cancellation.json",
+      "path": "objects/0d963a19fff6a51e3c9d44dc89edd0c0cacfbbc9dcb93c379d1249d245859255.gz",
+      "originalDigest": "sha256:0d963a19fff6a51e3c9d44dc89edd0c0cacfbbc9dcb93c379d1249d245859255",
+      "originalBytes": 2200,
+      "storedDigest": "sha256:846ec058d52cdd2a623d8e594c932d46f626825691eb868cc09d164617e66c99",
+      "storedBytes": 682
+    },
+    {
+      "name": "superseded7f/push-readback.json",
+      "path": "objects/2b255fb8bb99b09ddf7bbf7dc556f644100202055705a0927560a1205e099cb7.gz",
+      "originalDigest": "sha256:2b255fb8bb99b09ddf7bbf7dc556f644100202055705a0927560a1205e099cb7",
+      "originalBytes": 1509,
+      "storedDigest": "sha256:fd29b5b42ce2235192207614409596010d79ddbf30d1049f4ed6fc8f1789df6d",
+      "storedBytes": 516
+    },
+    {
+      "name": "superseded7f/final-gates.json",
+      "path": "objects/39f96f3f1b52f80aa6b7210ccf463fff639cafe4accf05f58028375b91f4f3e8.gz",
+      "originalDigest": "sha256:39f96f3f1b52f80aa6b7210ccf463fff639cafe4accf05f58028375b91f4f3e8",
+      "originalBytes": 412682,
+      "storedDigest": "sha256:ca021513042019542fa82a16a91d3a220e8a048bc445f0fa7745f38d74f57d17",
+      "storedBytes": 19283
+    },
+    {
+      "name": "before-fix-local-e2e.json",
+      "path": "objects/3ffd0cc1659519216f561070b1f178bacb880196fd650813d91b772e21031f65.gz",
+      "originalDigest": "sha256:3ffd0cc1659519216f561070b1f178bacb880196fd650813d91b772e21031f65",
+      "originalBytes": 7538,
+      "storedDigest": "sha256:e3a7c408b5e80b7a3be602a5704ee627ddba74b197add39f74e439fec3b401eb",
+      "storedBytes": 1227
+    },
+    {
+      "name": "superseded7f/job-123683988999.json",
+      "path": "objects/9207d9d07364131891ce5fdd1dc22f0dbf0733d71ce9b1aab7cc62168f007ea7.gz",
+      "originalDigest": "sha256:9207d9d07364131891ce5fdd1dc22f0dbf0733d71ce9b1aab7cc62168f007ea7",
+      "originalBytes": 3290,
+      "storedDigest": "sha256:8c6eca7f30f4eee01bdc0e906e8a150872c8caa76cc2c3a710b4e53171dfc549",
+      "storedBytes": 732
+    },
+    {
+      "name": "superseded7f/job-123683988999.log",
+      "path": "objects/430ef4bac3e22815b8c028587bd10c18b6513aaf43fdcc9cf083ec6c225d2007.gz",
+      "originalDigest": "sha256:430ef4bac3e22815b8c028587bd10c18b6513aaf43fdcc9cf083ec6c225d2007",
+      "originalBytes": 85248,
+      "storedDigest": "sha256:b5c2c15f62012daf34d321e8a2db3391f20ae24754bae632e1cb7395c1002ed1",
+      "storedBytes": 17166
+    },
+    {
+      "name": "superseded7f/job-123683989383.json",
+      "path": "objects/0cce989bcf7578269a477a2c8eb0c3d24253085791a2491696446ca920bcc56e.gz",
+      "originalDigest": "sha256:0cce989bcf7578269a477a2c8eb0c3d24253085791a2491696446ca920bcc56e",
+      "originalBytes": 3293,
+      "storedDigest": "sha256:85d8f03959df149ead425e99d5d0eb6a3b382cc98149dc5ff16ca02e30a79dd6",
+      "storedBytes": 740
+    },
+    {
+      "name": "superseded7f/job-123683989383.log",
+      "path": "objects/dc4ef2f5bcb92b8a674d015d2200b669b5e274e9ffcbd7147912ed2d87e32476.gz",
+      "originalDigest": "sha256:dc4ef2f5bcb92b8a674d015d2200b669b5e274e9ffcbd7147912ed2d87e32476",
+      "originalBytes": 90439,
+      "storedDigest": "sha256:de412df2c0a6e9262ea72c5a6b15cb1acbfc01fa1d3cb730bbcd75ee9e958083",
+      "storedBytes": 17942
+    },
+    {
+      "name": "root-cause.txt",
+      "path": "objects/28b788d94785d6c0c71375aab178abef4e3456ef559be4a10e0f5a6a83346d81.gz",
+      "originalDigest": "sha256:28b788d94785d6c0c71375aab178abef4e3456ef559be4a10e0f5a6a83346d81",
+      "originalBytes": 2570,
+      "storedDigest": "sha256:601c2be4b666d641cd2cfe4d4875c0d43ad75fc3a07e472471f3662183a8309e",
+      "storedBytes": 1282
+    }
+  ],
+  "boundary": "Local related suites and real CLI loopback journeys validate this replacement worktree. The 7f source failed the original four recovery cases on both Ubuntu and Windows, and the operator cancelled its remaining obsolete matrices before publication. Its successful Strict/Kernel checks are not reused for the new source. Full new exact-commit OS gates, OIDC and public readback remain required. No private funding or original native journal is included or modified."
+}
