@@ -1,6 +1,16 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## Current public pairing: CLI 0.166.129 / IDE .167 and .184 (2026-10-29)
+## Current public pairing: CLI 0.166.130 / IDE .168 and .185 (2026-10-29)
+
+Install: `npm i -g chainlesschain@0.166.130 --registry https://registry.npmjs.org`. Public Open VSX **0.37.168** and JetBrains **0.4.185** both recommend CLI **0.166.130**. Restart the chat host, then run `cc --version` and `cc doctor`. Microsoft Marketplace remains unpublished; stock VS Code can install the [versioned Open VSX VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.168/file/chainlesschain.chainlesschain-ide-0.37.168.vsix).
+
+Goal model review now shares the author request budgets, cancellation and output limits, with completion evidence bound to current workspace bytes. Unknown usage, incomplete coverage or external changes block completion claims. This release also repairs the security-map digest and audit checkout performance while preserving assertions and gates. CLI and both IDEs bind to immutable source `f3015e799624b81af564aaaa1b7701c0a5c70e26`. Complete three-OS CLI CI / Strict Sandbox, IDE host gates, OIDC publication and public artifact readback passed; JetBrains is approved, listed and downloadable. [Release evidence](docs/research/cli/evidence/release130-public/publication.json) · [Current upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md).
+
+Public `.130` pins `@chainlesschain/context-memory-kernel@0.1.10`. Later main-branch kernel `0.1.11`, independent `verify:` Goal checks, Memory disk cancellation/cache changes and Terra capability/billing work are unreleased and require a separate release with child publication and fresh exact-source gates.
+
+Historical cumulative accepted deliverables remain **34/45** (ordinary **27/36**, first-run **7/9**), with **11** unfinished. The frozen formal evaluation remains **NOT_RUN (0/36, 0/9)**. Publication and CI add no task acceptance; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain. [36+9 actual completion table](docs/research/cli/verify01-36-plus-9-task-list.md). PC/mobile retain their separate **v5.0.3.143** release; no clients were released here. Versioned sections below are historical.
+
+## Previous public pairing: CLI 0.166.129 / IDE .167 and .184 (2026-10-29)
 
 Install: `npm i -g chainlesschain@0.166.129 --registry https://registry.npmjs.org`. CLI `.129`, Open VSX `0.37.167` and JetBrains `0.4.184` are public with verified archive readback; both IDEs recommend `.129`. Restart the chat host after upgrading, then check `cc --version`, `cc doctor` and the executable path. Microsoft Marketplace is deferred; stock VS Code can install the [versioned Open VSX VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.167/file/chainlesschain.chainlesschain-ide-0.37.167.vsix).
 

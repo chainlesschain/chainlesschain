@@ -1,6 +1,16 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 当前公开版本：CLI 0.166.129 / IDE .167、.184（2026-10-29）
+## 当前公开版本：CLI 0.166.130 / IDE .168、.185（2026-10-29）
+
+安装：`npm i -g chainlesschain@0.166.130 --registry https://registry.npmjs.org`。Open VSX **0.37.168** 与 JetBrains **0.4.185** 已公开并推荐 CLI **0.166.130**；升级后重启聊天宿主，运行 `cc --version` 和 `cc doctor`。Microsoft Marketplace 仍未发布，VS Code 可安装 [Open VSX 的版本化 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.168/file/chainlesschain.chainlesschain-ide-0.37.168.vsix)。
+
+本版将 Goal 模型复查纳入原请求预算、取消和输出限制，并以当前工作区字节绑定完成证据；未知用量、不完整覆盖或外部修改阻止完成声明。修复安全测试映射摘要和审计工作流的 checkout 性能，保留原断言与门禁。CLI 与双 IDE 均来自不可变源码 `f3015e799624b81af564aaaa1b7701c0a5c70e26`；完整三系统 CLI CI / Strict Sandbox、IDE 宿主门禁、OIDC 发布与公开制品回读通过。JetBrains 已批准、列出且可下载。[发行证据](docs/research/cli/evidence/release130-public/publication.json) · [当前升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)。
+
+公开 `.130` 固定使用 `@chainlesschain/context-memory-kernel@0.1.10`；主分支后续的 kernel `0.1.11`、独立 `verify:` Goal checker、Memory 磁盘取消 / 缓存和 Terra 能力 / 计费改动尚未发布，需另行完成子包发布与精确源码门禁。
+
+历史累计合格交付 **34/45**（普通 **27/36**、首次入口 **7/9**），剩余 **11** 项；冻结正式评测仍为 **NOT_RUN（0/36、0/9）**。发布与 CI 不增加任务验收，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。 [36+9 任务实际完成表](docs/research/cli/verify01-36-plus-9-task-list.md)。PC / 移动端保留独立发行 **v5.0.3.143**，本轮未发布客户端。下方带版本章节为历史记录。
+
+## 历史公开版本：CLI 0.166.129 / IDE .167、.184（2026-10-29）
 
 安装：`npm i -g chainlesschain@0.166.129 --registry https://registry.npmjs.org`。CLI `.129`、Open VSX `0.37.167`、JetBrains `0.4.184` 均已公开并完成归档回读；两个 IDE 均推荐 `.129`。升级后重启聊天宿主，运行 `cc --version` 和 `cc doctor`，核对实际 CLI 路径。Microsoft Marketplace 按当前计划暂缓，VS Code 可安装 [Open VSX 的版本化 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.167/file/chainlesschain.chainlesschain-ide-0.37.167.vsix)。
 

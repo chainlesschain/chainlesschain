@@ -3,8 +3,9 @@
 Current public npm package: `@chainlesschain/context-memory-kernel@0.1.10`.
 Source candidate `0.1.11` adds cancellation propagation for Memory recall and
 must pass its exact-source Linux, Windows and macOS gates before OIDC publication.
-CLI `0.166.130` is an unpublished downstream candidate pinned to `0.1.11`; it
-must wait until the child package is published and its public bytes are verified.
+Public CLI `0.166.130` uses kernel `0.1.10` from its separate verified release
+source. Main-branch `0.1.11` remains unpublished; its future downstream CLI must
+wait until this child package is published and its public bytes are verified.
 
 Canonical, host-neutral Context/Memory Kernel for ChainlessChain. The package owns deterministic context planning, compaction invariants/CAS, scoped memory lifecycle, tombstone fencing, deletion reconciliation, and writer cutover authority.
 
@@ -37,8 +38,9 @@ has stopped. Callers that omit the options keep the existing recall API.
 
 ## Main-branch recall consistency (unreleased follow-up)
 
-This section describes main-branch changes excluded from the fixed
-`e7a6f2585d62949794596767869423b0eb670104` release candidate above.
+This section describes main-branch changes excluded from public CLI `.130`
+source `f3015e799624b81af564aaaa1b7701c0a5c70e26` and from the historical,
+unpublished e7 prototype. That prototype cannot reuse the public `.130` version.
 
 Memory ports must expose a nonnegative, monotonically increasing safe-integer
 revision covering their authoritative records. Recall reads that revision before

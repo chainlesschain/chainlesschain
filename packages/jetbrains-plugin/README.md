@@ -1,9 +1,5 @@
 # ChainlessChain IDE Bridge (JetBrains)
 
-## Next release candidate
-
-Plugin **0.4.185** is an unpublished candidate, recommends CLI **`0.166.130`**, and pairs with VS Code **0.37.168**. It incorporates the clean-home onboarding fix: the final Gradle IDE launch uses the isolated user configuration and validates the actual IDE home/root. Publication requires the paired public CLI, the complete host matrix and public ZIP readback. Historical task acceptance remains separate.
-
 ## Self-evolution switch
 
 完整中文配置与排查步骤见[CLI 与 IDE 自进化开关配置](../../docs/cli/SELF_EVOLUTION_CONFIGURATION.md)。
@@ -16,6 +12,14 @@ the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 ## Current release
+
+Plugin **0.4.185** is the current public release. It recommends CLI **`0.166.130`** and pairs with public Open VSX **0.37.168**. It is approved, listed, not hidden and publicly downloadable. Immutable tag `ide-jetbrains-v0.4.185` selects source `f3015e799624b81af564aaaa1b7701c0a5c70e26`; the exact-source [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557) passed, including real host and browser journeys. Clean-home onboarding validates the actual IDE configuration root.
+
+The public [plugin ZIP](https://plugins.jetbrains.com/files/32208/1205656/chainlesschain-ide-bridge-0.4.185.zip) contains plugin **0.4.185** and compiled CLI recommendation **0.166.130**. All **2** original ZIP payload entries match tagged CI, with no added entries. Public SHA-256: `28724dd6d05401acea944a8fc1cfb8c7cc894b3fa8c0c29215db21fafd95f3f6`, **1,561,088 bytes**. [Archive readback](../../docs/research/cli/evidence/release130-public/jetbrains.json) · [Publication evidence](../../docs/research/cli/evidence/release130-public/publication.json).
+
+Install `npm i -g chainlesschain@0.166.130 --registry https://registry.npmjs.org`, restart the chat host and check `cc --version`, `cc doctor` and the actual CLI path. Historical cumulative accepted deliverables remain **34/45** (ordinary **27/36**, first-run **7/9**), with **11** unfinished. The frozen formal evaluation remains **NOT_RUN (0/36, 0/9)**. Publication and CI add no task acceptance; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain. Public `.130` pins `@chainlesschain/context-memory-kernel@0.1.10`. Later main-branch kernel `0.1.11`, independent `verify:` Goal checks, Memory disk cancellation/cache changes and Terra capability/billing work are unreleased and require a separate release with child publication and fresh exact-source gates. [Current upgrade guide](../../docs-site/docs/chainlesschain/agent-platform-release.md).
+
+### Previous verified release (.184 / .129)
 
 JetBrains **0.4.184** is approved, listed, not hidden and publicly downloadable. It recommends CLI **`0.166.129`** and pairs with public Open VSX **0.37.167**. Immutable tag `ide-jetbrains-v0.4.184` selects source `800e9cc99711f9f02eb3bbd78eb14600406bdba5`; the exact-source [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40724923599) passed. This release retains shared model configuration and conversation-local overrides, and includes clean-home onboarding validation of the actual IDE configuration root.
 
@@ -120,7 +124,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.185** is the current release candidate. It recommends `chainlesschain@0.166.130` and pairs with VS Code **0.37.168**. Publication requires the verified public CLI, exact-source host gates and public Marketplace ZIP readback. Native task quality and restart acceptance remain independent.
+Plugin **0.4.185** is the current public release. It recommends `chainlesschain@0.166.130` and pairs with Open VSX **0.37.168**. The paired CLI, exact-source host gates, Marketplace approval and public ZIP payload readback are verified. Native task quality and restart acceptance remain independent.
 
 ## Previous candidates and development notes
 

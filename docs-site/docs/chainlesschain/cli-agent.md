@@ -2,7 +2,9 @@
 
 <!-- docs-code-git-sync-2026-10-29 -->
 
-> 当前核对（2026-10-29）：公开配对为 CLI **0.166.129**、Open VSX **0.37.167**、JetBrains **0.4.184**；两个 IDE 均推荐 `.129`。安装与渠道回执见[升级指南](./cli-ide-update-2026-10-29)。PC / 移动端 **v5.0.3.143** 独立发行，Microsoft Marketplace 暂缓。
+`.130` 将模型 Goal 复查纳入原预算、取消和输出限制，并以当前工作区字节绑定完成证据。公开 `.130` 固定使用 `@chainlesschain/context-memory-kernel@0.1.10`；主分支后续的 kernel `0.1.11`、独立 `verify:` Goal checker、Memory 磁盘取消 / 缓存和 Terra 能力 / 计费改动尚未发布，需另行完成子包发布与精确源码门禁。
+
+> 当前核对（2026-10-29）：公开配对为 CLI **0.166.130**、Open VSX **0.37.168**、JetBrains **0.4.185**；两个 IDE 均推荐 `.130`。安装与渠道回执见[升级指南](./agent-platform-release)。PC / 移动端 **v5.0.3.143** 独立发行，Microsoft Marketplace 暂缓。
 
 `.129` 加强交付复查的上下文隔离，并统一实验性 Codex App Server 兼容清单；复查和实验路由默认关闭。后续主分支的独立 `verify:` Goal checker、Memory 磁盘 / 缓存修复和 Terra 能力 / 计费尚未发布。下方带版本的能力说明保留对应发行范围。
 
@@ -18,7 +20,7 @@
 
 持久化会话保存 Goal 检查点失败会返回 `CC_GOAL_CHECKPOINT_FAILED`。恢复中断的 `running` 检查点前，先核对实际副作用和已发生用量，再按原条件使用 `--resume` / `--continue` 与 `--goal-recovery-reviewed`。该标志不修复损坏状态，也不证明此前操作已回滚。
 
-[输入、图片预算与会话恢复](./agent-input-and-recovery) · [当前升级步骤](./cli-ide-update-2026-10-29)
+[输入、图片预算与会话恢复](./agent-input-and-recovery) · [当前升级步骤](./agent-platform-release)
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 

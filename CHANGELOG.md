@@ -5,6 +5,10 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> Public release scope: CLI **0.166.130** is the immutable package from `f3015e799624b81af564aaaa1b7701c0a5c70e26`, with `@chainlesschain/context-memory-kernel@0.1.10`. Its OIDC publication and independent public readback passed; see [publication evidence](docs/research/cli/evidence/release130-public/publication.json).
+>
+> `Unreleased` is a rolling source-development log that retains historical candidate labels, not a publication ledger. The `.130` candidate subsection below also records later main-branch independent Goal checks, Memory cancellation/cache changes and Terra capability/billing work. Those later changes and main's kernel `0.1.11` are not in the public `.130` archive and require a separate future release with fresh exact-source gates.
+
 ## [Unreleased]
 
 ### Fixed - cc CLI 0.166.130: Goal budget and workspace evidence (candidate, 2026-10-29)

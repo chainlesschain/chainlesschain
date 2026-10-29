@@ -1,0 +1,129 @@
+{
+  "schema": "chainlesschain.release130-publication/v1",
+  "status": "public",
+  "repository": "chainlesschain/chainlesschain",
+  "sourceSha": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+  "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/508",
+  "merge": {
+    "mergedAt": "2026-10-28T21:53:35Z",
+    "commit": "dc0343d412297807aea0254e5e23c9c9f1b1c3f7"
+  },
+  "channels": {
+    "cli": {
+      "version": "0.166.130",
+      "status": "public",
+      "tag": "v-npm-0-166-130",
+      "method": "GitHub Actions OIDC Trusted Publishing",
+      "runId": 40798105505,
+      "independentReadbackRunId": 40799988792,
+      "evidence": "cli.json"
+    },
+    "openVsx": {
+      "version": "0.37.168",
+      "status": "public",
+      "tag": "ide-vscode-v0.37.168",
+      "recommendedCliVersion": "0.166.130",
+      "runId": 40800404921,
+      "evidence": "open-vsx.json"
+    },
+    "jetbrains": {
+      "version": "0.4.185",
+      "status": "public",
+      "tag": "ide-jetbrains-v0.4.185",
+      "recommendedCliVersion": "0.166.130",
+      "runId": 40800404557,
+      "approve": true,
+      "listed": true,
+      "hidden": false,
+      "updateId": 1205656,
+      "evidence": "jetbrains.json"
+    },
+    "microsoftMarketplace": {
+      "status": "unpublished",
+      "reason": "VSCE_PAT is not configured; established release uses Open VSX"
+    }
+  },
+  "prerequisiteRunIds": {
+    "cliCi": 40746844892,
+    "strictSandbox": 40746845171,
+    "ideExtensions": 40746845223,
+    "ideArm64": 40746845038,
+    "ideRoadmapSafety": 40746844865,
+    "contextMemory": 40746844925
+  },
+  "repairs": [
+    {
+      "commit": "1e0f62df05be658aea4e3734e6c2ed1623271098",
+      "originalRunId": 40738016066,
+      "originalJobId": 122994436657,
+      "change": "Refresh digest-bound security test evidence after verifying the four new Goal checkpoint assertions and unchanged managed-policy denial assertions"
+    },
+    {
+      "commit": "2453d49a1ea724abe8fef4cb7dcf52e9abbb751b",
+      "change": "Limit lightweight audit checkout to complete packages, scripts and root inputs; retain original checks and time limits"
+    },
+    {
+      "commit": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+      "change": "Fetch scoped validation history with blob:none while retaining complete history, current files and exact source validation"
+    }
+  ],
+  "transientFailures": [
+    {
+      "runId": 40746845005,
+      "originalJobId": 123023019905,
+      "recoveredJobId": 123031313917,
+      "attempt": 2,
+      "initialFailure": "Checkout timeout before lint-script unit tests",
+      "recovery": "Same source and unchanged checks passed"
+    },
+    {
+      "runId": 40746845038,
+      "originalJobId": 123044428398,
+      "recoveredJobId": 123064938067,
+      "attempt": 2,
+      "initialFailure": "Windows ARM64 checkpoint action popup lost focus; WSL updater watchdog activity coincided with closure",
+      "diagnosis": "Suspected transient host focus interference",
+      "recovery": "Same source and complete unchanged host journey passed; complete 11-cell aggregate passed",
+      "artifactBundleDigest": "sha256:36c375485589a1d74b1e9091a933663b7027201d8a29de3a04342e4edd627f2d"
+    }
+  ],
+  "scope": {
+    "clientsReleased": false
+  },
+  "acceptance": {
+    "cumulativeAccepted": 34,
+    "ordinaryAccepted": 27,
+    "ordinaryTotal": 36,
+    "firstInstallAccepted": 7,
+    "firstInstallTotal": 9,
+    "total": 45,
+    "unfinished": 11,
+    "formalFrozenEvaluation": {
+      "status": "NOT_RUN",
+      "ordinary": "0/36",
+      "firstInstall": "0/9"
+    },
+    "admission": ["NOT_PAID_READY", "NOT_ADMITTED", "HOLD"],
+    "tableCommit": "8ba644c9c5",
+    "table": "docs/research/cli/verify01-36-plus-9-task-list.md",
+    "meaning": "Historical cumulative accepted deliveries; publication and CI checks do not add model-task or native acceptance"
+  },
+  "childPackages": {
+    "directCliCount": 10,
+    "versionsChanged": false,
+    "workflowRequiredCount": 13
+  },
+  "verifiedAt": "2026-10-29T02:35:09.286Z",
+  "gateEvidence": "gates.json",
+  "sourceBoundary": {
+    "publishedSource": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+    "publishedContextMemoryKernel": "0.1.10",
+    "unreleasedMainContextMemoryKernel": "0.1.11",
+    "unreleasedMainChanges": [
+      "independent verify: Goal checks",
+      "Memory disk cancellation and parsed-cache changes",
+      "Terra capability and cache-billing profile"
+    ],
+    "requirement": "Later main changes require a separate release with verified child publication and fresh exact-source gates."
+  }
+}

@@ -1,0 +1,275 @@
+{
+  "schema": "chainlesschain.release130-reconciliation/v1",
+  "observedAt": "2026-10-29T03:38:46.044Z",
+  "sourceHeadBeforeMerge": "73bf0fc4f5de0530b542e398b2b6e5e40b8c097d",
+  "mergedBranchSource": "ef92dad541cf40560e8f31ee73f179de5e92f9fd",
+  "public": {
+    "source": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+    "versions": {
+      "cli": "0.166.130",
+      "vscode": "0.37.168",
+      "jetbrains": "0.4.185"
+    },
+    "kernel": "0.1.10",
+    "bytesMatchExistingReceipts": true,
+    "npmIntegrityMatches": true,
+    "runs": [
+      {
+        "id": 40746844892,
+        "source": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+        "conclusion": "success",
+        "htmlUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40746844892"
+      },
+      {
+        "id": 40746845171,
+        "source": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+        "conclusion": "success",
+        "htmlUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40746845171"
+      },
+      {
+        "id": 40798105505,
+        "source": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+        "conclusion": "success",
+        "htmlUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40798105505"
+      },
+      {
+        "id": 40799988792,
+        "source": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+        "conclusion": "success",
+        "htmlUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40799988792"
+      },
+      {
+        "id": 40800404921,
+        "source": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+        "conclusion": "success",
+        "htmlUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921"
+      },
+      {
+        "id": 40800404557,
+        "source": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+        "conclusion": "success",
+        "htmlUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557"
+      }
+    ],
+    "downloads": [
+      {
+        "url": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.130.tgz",
+        "finalUrl": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.130.tgz",
+        "status": 200,
+        "bytes": 9573550,
+        "sha256": "1078914f6fba61f0ca6644926c9f044be2b808fa084fbe8408c14b21fc1cd4f5",
+        "file": "chainlesschain-0.166.130.tgz"
+      },
+      {
+        "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.168/file/chainlesschain.chainlesschain-ide-0.37.168.vsix",
+        "finalUrl": "https://openvsx.eclipsecontent.org/chainlesschain/chainlesschain-ide/0.37.168/chainlesschain.chainlesschain-ide-0.37.168.vsix",
+        "status": 200,
+        "bytes": 742054,
+        "sha256": "00da15be7656736cf6b9542a73e2b0c6263220aa9319616fc8882a10cc44f8c9",
+        "file": "chainlesschain-0.37.168.vsix"
+      },
+      {
+        "url": "https://plugins.jetbrains.com/files/32208/1205656/chainlesschain-ide-bridge-0.4.185.zip",
+        "finalUrl": "https://downloads.marketplace.jetbrains.com/files/32208/1205656/chainlesschain-ide-bridge-0.4.185.zip",
+        "status": 200,
+        "bytes": 1561088,
+        "sha256": "28724dd6d05401acea944a8fc1cfb8c7cc894b3fa8c0c29215db21fafd95f3f6",
+        "file": "chainlesschain-0.4.185.zip"
+      }
+    ],
+    "goalEntries": [
+      {
+        "path": "src/lib/goal-check-evidence.js",
+        "sourceCommit": "04648988ac24f8d5164c420b04b994be641ab96b",
+        "ancestor": true,
+        "archiveMatchesSource": true,
+        "sha256": "73cb0daec16bfb81b5794e3155b778c0e67cab489a880b4fcd3d860d5e845e0c",
+        "bytes": 8177
+      },
+      {
+        "path": "src/lib/goal-workspace-evidence.js",
+        "sourceCommit": "04648988ac24f8d5164c420b04b994be641ab96b",
+        "ancestor": true,
+        "archiveMatchesSource": true,
+        "sha256": "0848dca7e2528558310728a7ce40d247094d9f6628a0ef42ab9444f0f26a9560",
+        "bytes": 9749
+      },
+      {
+        "path": "src/lib/goal-model-call.js",
+        "sourceCommit": "ca58bfeae0f5be18a245e216a67e0cefd3f73bbf",
+        "ancestor": true,
+        "archiveMatchesSource": true,
+        "sha256": "26196e1344c24bbe5f60d1d5d0c83e4e428385d292ed29a009888213ac9c2c1c",
+        "bytes": 3718
+      }
+    ]
+  },
+  "historicalCandidate": {
+    "source": "e7a6f2585d62949794596767869423b0eb670104",
+    "cliCiRunId": 40784878922,
+    "attempt": 2,
+    "conclusion": "failure",
+    "state": "superseded_version_already_published_from_f301",
+    "releaseAllowed": false,
+    "validationTagUnchanged": true,
+    "retryOrRepublishAllowed": false
+  },
+  "mergeResolution": {
+    "codec": "retain a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309 from local main",
+    "sameNameUnit": "retain main descriptor-specific assertions",
+    "additions": "public receipts and documentation, ten additional Windows identity cases, workflow selector",
+    "laterBranchCommits": "must be reviewed separately before branch deletion"
+  },
+  "tests": [
+    {
+      "node": "v22.12.0",
+      "files": 3,
+      "passed": 51,
+      "failed": 0,
+      "exitCode": 0,
+      "sourcesStable": true,
+      "sourceSha256": {
+        "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+        "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+        "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+        "packages/cli/__tests__/unit/memory-query-bundle.test.js": "49c3a0a68fc171d7906665da6c791625347abce318236fa55e2c96cc895c4d65",
+        "packages/cli/__tests__/unit/memory-query-bundle-windows-identity.test.js": "5478b8458087a30ebdc6244c32d71f5548d8f508ed781c129ebcacc6de98eddf",
+        "packages/cli/__tests__/integration/memory-query-bundle-identity.test.js": "7fa6ebd851220612ae1533680c1f91711e2bb8be2e53705401f6048cdc42e64e"
+      }
+    },
+    {
+      "node": "v22.22.2",
+      "files": 3,
+      "passed": 51,
+      "failed": 0,
+      "exitCode": 0,
+      "sourcesStable": true,
+      "sourceSha256": {
+        "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+        "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "01478a2dd3419b55ef5ac532bcdecd50e5032a1b8802ae7d4378816682b8012f",
+        "packages/context-memory-kernel/lib/canonical.js": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+        "packages/cli/__tests__/unit/memory-query-bundle.test.js": "49c3a0a68fc171d7906665da6c791625347abce318236fa55e2c96cc895c4d65",
+        "packages/cli/__tests__/unit/memory-query-bundle-windows-identity.test.js": "5478b8458087a30ebdc6244c32d71f5548d8f508ed781c129ebcacc6de98eddf",
+        "packages/cli/__tests__/integration/memory-query-bundle-identity.test.js": "7fa6ebd851220612ae1533680c1f91711e2bb8be2e53705401f6048cdc42e64e"
+      }
+    }
+  ],
+  "acceptance": {
+    "accepted": 34,
+    "total": 45,
+    "unfinished": 11,
+    "paidReady": false,
+    "microsoft": "deferred_by_user"
+  },
+  "boundary": "Fresh public metadata, archive integrity and exact-source workflow readback do not accept real model tasks. Main kernel 0.1.11, independent verify:, Memory recall/disk/cache and Terra changes remain unreleased. Two Node runs overlap in coverage and are not added to prior counts. No release or original verify-11 replay performed by this reconciliation.",
+  "artifacts": [
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/cli-metadata.json",
+      "bytes": 7714,
+      "sha256": "2f6e76b983c7578f986740067cc9b9b15a573f2204678aead2cd7440dab96812",
+      "source": ".work\\release130-reconcile\\cli-metadata.json"
+    },
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/goal-source-readback.json",
+      "bytes": 1115,
+      "sha256": "e6229ff772adb6c00ee3f08ba6a55416d46032e211b02d15ec333665166378d9",
+      "source": ".work\\release130-reconcile\\goal-source-readback.json"
+    },
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/jetbrains-updates.json",
+      "bytes": 424578,
+      "sha256": "48e7f5b325e256a0d3087dcca779cf46a8bdeb018caf359cd6f14726cb9d27b3",
+      "source": ".work\\release130-reconcile\\jetbrains-updates.json"
+    },
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/open-vsx-metadata.json",
+      "bytes": 10972,
+      "sha256": "ea9639ab89c54c188284a03d8120b1b834418209a6cce8495cd85151984abf8d",
+      "source": ".work\\release130-reconcile\\open-vsx-metadata.json"
+    },
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/read-public.mjs",
+      "bytes": 4235,
+      "sha256": "3ef3f58c8a5bab9e5e40eebe0d759b069eb7e06b15812fdc392289e0971e2e69",
+      "source": ".work\\release130-reconcile\\read-public.mjs"
+    },
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/readback.json",
+      "bytes": 4081,
+      "sha256": "fccebb6b080e3910f63b181dba1db2b88235256be6df65f7bbdf5af339c5efa7",
+      "source": ".work\\release130-reconcile\\readback.json"
+    },
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/run-40746844892.json",
+      "bytes": 13817,
+      "sha256": "59a3cc7e1078fbeb5c9396d873e00ca85f5839ccf7eacbc61daf9e82ed17617b",
+      "source": ".work\\release130-reconcile\\run-40746844892.json"
+    },
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/run-40746845171.json",
+      "bytes": 13448,
+      "sha256": "924a805190c3edad3694af5eeb1a0b9fa365a9573959e240aacf08b2dd2b4bf3",
+      "source": ".work\\release130-reconcile\\run-40746845171.json"
+    },
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/run-40798105505.json",
+      "bytes": 13413,
+      "sha256": "371a7680c6d32ad7ab7fb42ab0331f0af4ff5a1bd2729038a893622af0fec049",
+      "source": ".work\\release130-reconcile\\run-40798105505.json"
+    },
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/run-40799988792.json",
+      "bytes": 13191,
+      "sha256": "e9597eeb941727e62af5558255a36c8aff2afe4105c15f3a9c365ad06c05abb9",
+      "source": ".work\\release130-reconcile\\run-40799988792.json"
+    },
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/run-40800404557.json",
+      "bytes": 13205,
+      "sha256": "b0478caa8ef64d528144ed8f897a5157091b86438620435e320ea845503ad269",
+      "source": ".work\\release130-reconcile\\run-40800404557.json"
+    },
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/run-40800404921.json",
+      "bytes": 13203,
+      "sha256": "5d89491421e22845f5f33217ce994c4b4b855dfc3e930fc386437e7d008f27af",
+      "source": ".work\\release130-reconcile\\run-40800404921.json"
+    },
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/merged-windows-2212.json",
+      "bytes": 18855,
+      "sha256": "be9cad9be7145216fa75ce5538a9a5219ad60b30abb17fea88eb36407598f439",
+      "source": ".work/memory-query-bundle/merged-windows-2212.json"
+    },
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/merged-windows-2212.log",
+      "bytes": 113,
+      "sha256": "ae981e8e31a8380d308d2fb4b599e7ccdb82770f45fa354f4a1efaab3dea5ad3",
+      "source": ".work/memory-query-bundle/merged-windows-2212.log"
+    },
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/merged-windows-2212-process.json",
+      "bytes": 2335,
+      "sha256": "38190343f26a430bb7a1bd1a240136094ac76f9de62ac4377f977ded6a30db3a",
+      "source": ".work/memory-query-bundle/merged-windows-2212-process.json"
+    },
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/merged-windows-2222.json",
+      "bytes": 18872,
+      "sha256": "c28107a8f425675f1024b996ecb36ac47b0c66914093c90797700c8ea56c2a6d",
+      "source": ".work/memory-query-bundle/merged-windows-2222.json"
+    },
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/merged-windows-2222.log",
+      "bytes": 113,
+      "sha256": "e76736dda3093987a0e650e11fb39a94ab71016ba05bdf6d6e1d0fbcd5003cee",
+      "source": ".work/memory-query-bundle/merged-windows-2222.log"
+    },
+    {
+      "path": "docs/research/cli/evidence/release130-reconcile-2026-10-29/raw/merged-windows-2222-process.json",
+      "bytes": 2304,
+      "sha256": "299a936c0eb4392e242306ad1eecaea6934acce4f3b268a0cc619303eefcbf5d",
+      "source": ".work/memory-query-bundle/merged-windows-2222-process.json"
+    }
+  ]
+}

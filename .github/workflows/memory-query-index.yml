@@ -63,6 +63,7 @@ jobs:
           __tests__/unit/memory-shard-snapshots.test.js
           __tests__/unit/memory-query-cancellation.test.js
           __tests__/unit/memory-query-bundle.test.js
+          __tests__/unit/memory-query-bundle-windows-identity.test.js
           __tests__/unit/secure-file-identity.test.js
           __tests__/integration/memory-query-bundle-port.test.js
           __tests__/integration/memory-query-bundle-legacy.test.js

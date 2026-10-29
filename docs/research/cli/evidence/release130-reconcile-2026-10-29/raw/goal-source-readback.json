@@ -1,0 +1,33 @@
+{
+  "observedAt": "2026-10-29T03:37:25.103Z",
+  "source": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+  "archive": ".work/release130-reconcile/chainlesschain-0.166.130.tgz",
+  "version": "0.166.130",
+  "kernel": "0.1.10",
+  "entries": [
+    {
+      "path": "src/lib/goal-check-evidence.js",
+      "sourceCommit": "04648988ac24f8d5164c420b04b994be641ab96b",
+      "ancestor": true,
+      "archiveMatchesSource": true,
+      "sha256": "73cb0daec16bfb81b5794e3155b778c0e67cab489a880b4fcd3d860d5e845e0c",
+      "bytes": 8177
+    },
+    {
+      "path": "src/lib/goal-workspace-evidence.js",
+      "sourceCommit": "04648988ac24f8d5164c420b04b994be641ab96b",
+      "ancestor": true,
+      "archiveMatchesSource": true,
+      "sha256": "0848dca7e2528558310728a7ce40d247094d9f6628a0ef42ab9444f0f26a9560",
+      "bytes": 9749
+    },
+    {
+      "path": "src/lib/goal-model-call.js",
+      "sourceCommit": "ca58bfeae0f5be18a245e216a67e0cefd3f73bbf",
+      "ancestor": true,
+      "archiveMatchesSource": true,
+      "sha256": "26196e1344c24bbe5f60d1d5d0c83e4e428385d292ed29a009888213ac9c2c1c",
+      "bytes": 3718
+    }
+  ]
+}

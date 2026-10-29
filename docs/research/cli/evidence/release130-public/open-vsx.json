@@ -1,0 +1,236 @@
+{
+  "schema": "chainlesschain.open-vsx-public-readback/v1",
+  "observedAt": "2026-10-29T02:35:09.280Z",
+  "sourceSha": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+  "recommendedCliVersion": "0.166.130",
+  "channel": "open-vsx",
+  "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide",
+  "status": "public",
+  "version": "0.37.168",
+  "latest": "0.37.168",
+  "downloadable": true,
+  "listed": true,
+  "registryArchiveSha256": "00da15be7656736cf6b9542a73e2b0c6263220aa9319616fc8882a10cc44f8c9",
+  "localArchiveSha256": "00da15be7656736cf6b9542a73e2b0c6263220aa9319616fc8882a10cc44f8c9",
+  "contentSha256": "8054d3da0ad0b06f17dc4ea8523365b42bcbbabe90c1c8fc9aca9e23d980bab8",
+  "marketplaceStatus": "ready",
+  "byteIdentical": true,
+  "downloadUrl": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.168/file/chainlesschain.chainlesschain-ide-0.37.168.vsix",
+  "taggedManifest": {
+    "schema": 1,
+    "artifact": "chainlesschain-ide.vsix",
+    "bytes": 742054,
+    "sha256": "00da15be7656736cf6b9542a73e2b0c6263220aa9319616fc8882a10cc44f8c9",
+    "sha512": "d384e260a04856ec8b930ef459f762476ba02d3ee0de6e27fe12529205a5535b5593cbd8f3e94545e46ff64d310a0c5a53dc442ecbf564a0779e90ae61be83b6",
+    "package": "chainlesschain-ide",
+    "publisher": "chainlesschain",
+    "version": "0.37.168",
+    "vsixmanifestIdentity": {
+      "id": "chainlesschain-ide",
+      "publisher": "chainlesschain",
+      "version": "0.37.168"
+    },
+    "commit": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+    "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921",
+    "createdAt": "2026-10-29T01:31:26.523Z"
+  },
+  "releaseGate": {
+    "observedAt": "2026-10-29T02:28:39.953Z",
+    "runId": 40800404921,
+    "sourceSha": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+    "tag": "ide-vscode-v0.37.168",
+    "attempt": 1,
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921",
+    "jobs": [
+      {
+        "id": 123206870809,
+        "name": "Public IDE capability manifest (drift gate)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921/job/123206870809"
+      },
+      {
+        "id": 123207392010,
+        "name": "VS Code extension (immutable candidate)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921/job/123207392010"
+      },
+      {
+        "id": 123207392018,
+        "name": "Browser evidence (linux)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921/job/123207392018"
+      },
+      {
+        "id": 123207392026,
+        "name": "Browser evidence (macos)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921/job/123207392026"
+      },
+      {
+        "id": 123207392071,
+        "name": "Browser evidence (windows)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921/job/123207392071"
+      },
+      {
+        "id": 123207393843,
+        "name": "JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921/job/123207393843"
+      },
+      {
+        "id": 123208610475,
+        "name": "VS Code Remote-SSH container (scoped trusted cell)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921/job/123208610475"
+      },
+      {
+        "id": 123208610502,
+        "name": "VS Code extension (Windows host gate)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921/job/123208610502"
+      },
+      {
+        "id": 123208610954,
+        "name": "VS Code extension (macOS host gate)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921/job/123208610954"
+      },
+      {
+        "id": 123209084246,
+        "name": "IDE roadmap evidence (trusted scoped aggregate)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921/job/123209084246"
+      },
+      {
+        "id": 123217341647,
+        "name": "Browser evidence (three-OS required aggregate)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921/job/123217341647"
+      },
+      {
+        "id": 123218092773,
+        "name": "VS Code extension (Linux host gate + publish)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921/job/123218092773"
+      },
+      {
+        "id": 123218094347,
+        "name": "JetBrains plugin (build + publish)",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921/job/123218094347"
+      },
+      {
+        "id": 123218094624,
+        "name": "JetBrains Marketplace (post-publish verification)",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921/job/123218094624"
+      }
+    ]
+  },
+  "artifacts": [
+    {
+      "id": 12867550466,
+      "name": "evolution-workbench-macos-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 1232781,
+      "digest": "sha256:6a22d5e76bed64f01584aa403442960964bae8004e2994e589698fc9c23676fc"
+    },
+    {
+      "id": 12867367125,
+      "name": "vscode-linux-host-evidence-1",
+      "bytes": 1831239,
+      "digest": "sha256:552e585e6879a6baff49dd0112259f074a693d46450692d57e7aa82113b2479f"
+    },
+    {
+      "id": 12867023370,
+      "name": "browser-evidence-aggregate-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 1046,
+      "digest": "sha256:ca46718d597efdd83c85dc45bf014d960c94097cb5a660c2c16ccb23fc7851d5"
+    },
+    {
+      "id": 12866987118,
+      "name": "vscode-macos-host-evidence-1",
+      "bytes": 1815628,
+      "digest": "sha256:43cad45389ad573b981391e6872a7b1ea1ddbd87b5fac6aba6de93863352c918"
+    },
+    {
+      "id": 12866908617,
+      "name": "image-codec-budget-macos-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 799,
+      "digest": "sha256:09ecd0b00dddfce3f6b8a28c3485504f88789d1e4d8c7c77d2e6749744dfbfa5"
+    },
+    {
+      "id": 12866748795,
+      "name": "browser-evidence-macos-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 59397,
+      "digest": "sha256:3d266a9a98e73a3b853dd5162ea5407291e326386b978358a83823c6361617e7"
+    },
+    {
+      "id": 12866525771,
+      "name": "vscode-remote-ssh-container-aggregate-1",
+      "bytes": 549,
+      "digest": "sha256:40a1550446b7485e898c9cad7595913a1fa45363925eff747e7425105c6a6c21"
+    },
+    {
+      "id": 12866394824,
+      "name": "ide-cli-prerequisite-vscode-1",
+      "bytes": 1424,
+      "digest": "sha256:670f38aa7f9b7fd732328f74fef0d9fc888f191e6db7a408d26af9df5a290ca9"
+    },
+    {
+      "id": 12866285878,
+      "name": "image-codec-budget-linux-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 789,
+      "digest": "sha256:b34498ba4948a046404a610dbf264b65c62b48be2f8e81f336e9f15e5678e247"
+    },
+    {
+      "id": 12866211053,
+      "name": "evolution-workbench-linux-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 1396880,
+      "digest": "sha256:2d35c3f279751f48dba9f09ecb99abab1f2c0dbd46ac5478825101804aede9dc"
+    },
+    {
+      "id": 12866111200,
+      "name": "evolution-workbench-windows-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 711579,
+      "digest": "sha256:b635043cd3fa085c7dff146839b4ff6584e361f52c53838ccb28314241125058"
+    },
+    {
+      "id": 12866091544,
+      "name": "browser-evidence-linux-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 54636,
+      "digest": "sha256:740f9e12034f25f6d2b90018b96aedcccba647b52e638d5ec3fde2148db466f0"
+    },
+    {
+      "id": 12866031733,
+      "name": "image-codec-budget-windows-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 796,
+      "digest": "sha256:210f99a9aa715955b0f27c96b728293aa3b8dc4b77dcd3ec7701dbce752b0db7"
+    },
+    {
+      "id": 12865623827,
+      "name": "browser-evidence-windows-f3015e799624b81af564aaaa1b7701c0a5c70e26-1",
+      "bytes": 38745,
+      "digest": "sha256:862aed0e27825fcb980dfda9fe0556c0cb2543b716fc8046ea43e6d7f1a85e31"
+    },
+    {
+      "id": 12865604755,
+      "name": "vscode-windows-host-evidence-1",
+      "bytes": 1828790,
+      "digest": "sha256:f0d21e19242c427d4f70d15592c5e93f548207ceaa4336b04ca99aa31f27c799"
+    },
+    {
+      "id": 12865553124,
+      "name": "chainlesschain-ide-vscode-candidate",
+      "bytes": 725539,
+      "digest": "sha256:7652abcac40307de78af83e821431d68e13b68c0851516978ff88966f8d86211"
+    },
+    {
+      "id": 12865398815,
+      "name": "vscode-remote-ssh-container-evidence-1",
+      "bytes": 2249283,
+      "digest": "sha256:eac3802a88c23ef5a1ada76acdcbe510a27da0ae50a8b8a8a26241354d5542b4"
+    }
+  ]
+}

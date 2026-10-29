@@ -1,0 +1,102 @@
+{
+  "observedAt": "2026-10-29T03:33:07.601Z",
+  "source": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+  "publicVersions": {
+    "cli": "0.166.130",
+    "vscode": "0.37.168",
+    "jetbrains": "0.4.185"
+  },
+  "metadata": [
+    {
+      "url": "https://registry.npmjs.org/chainlesschain/0.166.130",
+      "finalUrl": "https://registry.npmjs.org/chainlesschain/0.166.130",
+      "status": 200,
+      "bytes": 7714,
+      "sha256": "2f6e76b983c7578f986740067cc9b9b15a573f2204678aead2cd7440dab96812",
+      "file": "cli-metadata.json"
+    },
+    {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.168",
+      "finalUrl": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.168",
+      "status": 200,
+      "bytes": 10972,
+      "sha256": "ea9639ab89c54c188284a03d8120b1b834418209a6cce8495cd85151984abf8d",
+      "file": "open-vsx-metadata.json"
+    },
+    {
+      "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100",
+      "finalUrl": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100",
+      "status": 200,
+      "bytes": 424578,
+      "sha256": "48e7f5b325e256a0d3087dcca779cf46a8bdeb018caf359cd6f14726cb9d27b3",
+      "file": "jetbrains-updates.json"
+    }
+  ],
+  "downloads": [
+    {
+      "url": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.130.tgz",
+      "finalUrl": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.130.tgz",
+      "status": 200,
+      "bytes": 9573550,
+      "sha256": "1078914f6fba61f0ca6644926c9f044be2b808fa084fbe8408c14b21fc1cd4f5",
+      "file": "chainlesschain-0.166.130.tgz"
+    },
+    {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.168/file/chainlesschain.chainlesschain-ide-0.37.168.vsix",
+      "finalUrl": "https://openvsx.eclipsecontent.org/chainlesschain/chainlesschain-ide/0.37.168/chainlesschain.chainlesschain-ide-0.37.168.vsix",
+      "status": 200,
+      "bytes": 742054,
+      "sha256": "00da15be7656736cf6b9542a73e2b0c6263220aa9319616fc8882a10cc44f8c9",
+      "file": "chainlesschain-0.37.168.vsix"
+    },
+    {
+      "url": "https://plugins.jetbrains.com/files/32208/1205656/chainlesschain-ide-bridge-0.4.185.zip",
+      "finalUrl": "https://downloads.marketplace.jetbrains.com/files/32208/1205656/chainlesschain-ide-bridge-0.4.185.zip",
+      "status": 200,
+      "bytes": 1561088,
+      "sha256": "28724dd6d05401acea944a8fc1cfb8c7cc894b3fa8c0c29215db21fafd95f3f6",
+      "file": "chainlesschain-0.4.185.zip"
+    }
+  ],
+  "npmIntegrityMatches": true,
+  "bytesMatchExistingReceipts": true,
+  "runs": [
+    {
+      "id": 40746844892,
+      "source": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40746844892"
+    },
+    {
+      "id": 40746845171,
+      "source": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40746845171"
+    },
+    {
+      "id": 40798105505,
+      "source": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40798105505"
+    },
+    {
+      "id": 40799988792,
+      "source": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40799988792"
+    },
+    {
+      "id": 40800404921,
+      "source": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921"
+    },
+    {
+      "id": 40800404557,
+      "source": "f3015e799624b81af564aaaa1b7701c0a5c70e26",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557"
+    }
+  ],
+  "boundary": "Fresh public bytes and workflow states; original signed provenance and package-entry inspection remain in release130-public evidence."
+}
