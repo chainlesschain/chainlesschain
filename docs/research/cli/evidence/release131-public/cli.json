@@ -1,0 +1,359 @@
+{
+  "schema": "chainlesschain.cli-public-release/v1",
+  "status": "public",
+  "version": "0.166.131",
+  "sourceSha": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+  "tag": "v-npm-0-166-131",
+  "publishRunId": 40862685540,
+  "publishAttempt": 2,
+  "independentReadbackRunId": 40866417524,
+  "manifest": {
+    "schema": 2,
+    "package": "chainlesschain",
+    "version": "0.166.131",
+    "commit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+    "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/40862685540",
+    "artifact": "chainlesschain-0.166.131.tgz",
+    "bytes": 9509449,
+    "sha256": "0766b3df57477df22900ce601f9acaf31771b89ed26d042cec4d043fe4227ce1",
+    "sha512": "0811d978bec825d666f9d74bb8368a5240ada6696bb246911ddfa8013713829a29f1b944158554de87c15337ff9786b6cfa074e773117136fe9dcf76d9e6bf29",
+    "createdAt": "2026-10-29T11:09:05.919Z",
+    "provenance": "npm --provenance",
+    "releaseIdentity": {
+      "packageJson": {
+        "path": "package/package.json",
+        "bytes": 7405,
+        "sha256": "4444d25abdb08eb8e100a0d76423ced5efed4d900ba2a0aa4dd6b68c2f75b20a",
+        "name": "chainlesschain",
+        "version": "0.166.131"
+      },
+      "changelog": {
+        "path": "package/src/data/changelog.json",
+        "bytes": 380662,
+        "sha256": "7d7c73bed4236da496d8ae832f2e0780e325ce0bbd8628211057dd32751acfe2",
+        "cliVersion": "0.166.131"
+      }
+    },
+    "webPanel": {
+      "index": "package/src/assets/web-panel/index.html",
+      "indexBytes": 661,
+      "indexSha256": "78781203b714e874ba4f1ce9bda6743be2cd6f228b6bed132a525a26e1163917",
+      "assets": [
+        {
+          "path": "package/src/assets/web-panel/assets/icons-DlxlFL4g.js",
+          "bytes": 208741
+        },
+        {
+          "path": "package/src/assets/web-panel/assets/index-3RqDry-K.js",
+          "bytes": 418060
+        },
+        {
+          "path": "package/src/assets/web-panel/assets/index-CfX1DEtk.css",
+          "bytes": 7215
+        },
+        {
+          "path": "package/src/assets/web-panel/assets/vendor-BXcBOG8b.js",
+          "bytes": 107773
+        }
+      ]
+    },
+    "linuxSubreapers": [
+      {
+        "schema": "chainlesschain.linux-subreaper-artifact/v1",
+        "platform": "linux",
+        "arch": "x64",
+        "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+        "imageDigest": "sha256:f162e55ad3f3f72f8a52e9d7f12b5b8db44506c2ca66a14d7d62d5cd4f12498e",
+        "bytes": 934160,
+        "linkage": "static",
+        "commit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0"
+      },
+      {
+        "schema": "chainlesschain.linux-subreaper-artifact/v1",
+        "platform": "linux",
+        "arch": "arm64",
+        "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+        "imageDigest": "sha256:6395a47a5bd9b038303e94a5e93754258c8480dab64635460f973eb93dc6f4d8",
+        "bytes": 778808,
+        "linkage": "static",
+        "commit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0"
+      }
+    ]
+  },
+  "registryReadback": {
+    "schema": 1,
+    "verifiedAt": "2026-10-29T11:35:45.008Z",
+    "package": "chainlesschain",
+    "version": "0.166.131",
+    "commit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+    "ref": "refs/tags/v-npm-0-166-131",
+    "publishRunId": 40862685540,
+    "publishAttempt": 2,
+    "artifact": "chainlesschain-0.166.131.tgz",
+    "bytes": 9509449,
+    "sha256": "0766b3df57477df22900ce601f9acaf31771b89ed26d042cec4d043fe4227ce1",
+    "sha512": "0811d978bec825d666f9d74bb8368a5240ada6696bb246911ddfa8013713829a29f1b944158554de87c15337ff9786b6cfa074e773117136fe9dcf76d9e6bf29",
+    "byteIdentical": true
+  },
+  "provenance": {
+    "schema": 1,
+    "verifiedAt": "2026-10-29T11:35:42.973Z",
+    "verifier": "npm audit signatures --include-attestations",
+    "package": "chainlesschain",
+    "version": "0.166.131",
+    "sha512": "0811d978bec825d666f9d74bb8368a5240ada6696bb246911ddfa8013713829a29f1b944158554de87c15337ff9786b6cfa074e773117136fe9dcf76d9e6bf29",
+    "repository": "https://github.com/chainlesschain/chainlesschain",
+    "workflow": ".github/workflows/npm-publish.yml",
+    "ref": "refs/tags/v-npm-0-166-131",
+    "commit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+    "builder": "https://github.com/actions/runner/github-hosted",
+    "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/40862685540/attempts/2",
+    "runId": 40862685540,
+    "attempt": 2,
+    "anchorMode": "exact-release",
+    "audit": {
+      "invalid": 0,
+      "missing": 0
+    }
+  },
+  "sourceProof": {
+    "schema": "chainlesschain.cli131-cold-read-public-source/v2",
+    "source": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+    "version": "0.166.131",
+    "member": "package/src/lib/evolution/evolution-deployment-loader.js",
+    "bytes": 52722,
+    "sha256": "8b2e08c8bec505654578dfc639498d15ac998fe587201db47e68685b0ddac1bd",
+    "byteIdentical": true,
+    "members": [
+      {
+        "member": "package/src/lib/evolution/evolution-deployment-loader.js",
+        "bytes": 52722,
+        "sha256": "8b2e08c8bec505654578dfc639498d15ac998fe587201db47e68685b0ddac1bd",
+        "binding": "frozen-git-blob"
+      },
+      {
+        "member": "package/src/assets/web-panel/index.html",
+        "bytes": 661,
+        "sha256": "78781203b714e874ba4f1ce9bda6743be2cd6f228b6bed132a525a26e1163917",
+        "binding": "frozen-git-blob"
+      },
+      {
+        "member": "package/src/assets/web-panel/assets/Artifacts-BuJgG5jf.js",
+        "bytes": 7580,
+        "sha256": "65ec82da860e6a8f628ebfeecaff75f7eee6e1e4d6ef71509a97482bc446800c",
+        "binding": "frozen-reviewed-source-catalogue"
+      },
+      {
+        "member": "package/src/assets/web-panel/assets/index-3RqDry-K.js",
+        "bytes": 418060,
+        "sha256": "c3663d64f949ad7a6250d13276c99421cecc52d53ad75605cf5eb22113226488",
+        "binding": "frozen-reviewed-source-catalogue"
+      },
+      {
+        "member": "package/src/assets/web-panel/assets/MtcAudit-D3aa8XP4.js",
+        "bytes": 58877,
+        "sha256": "71ec7c966989a451b00b90b19a5a5852f241502aea01e11aca6e424b873e3e8f",
+        "binding": "frozen-reviewed-source-catalogue"
+      },
+      {
+        "member": "package/src/assets/web-panel/assets/RemoteSession-BGGzPdS5.js",
+        "bytes": 70538,
+        "sha256": "628e2e097e37dfaff675d4e3d76b708084594e96cab76289580957856ed62f42",
+        "binding": "frozen-reviewed-source-catalogue"
+      }
+    ],
+    "reviewedProductionAssets": 4,
+    "cliReadbackDigest": "sha256:aee94601b18a19b38aae94482f9813363a14f2099c85030c81d1fe1eb326f59a",
+    "boundary": "Public archive bytes only; no installed CLI or live-model execution."
+  },
+  "publicDownload": {
+    "schema": "chainlesschain.cli-only-public-readback/v1",
+    "status": "VERIFIED_PUBLIC_CLI_ONLY",
+    "verifiedAt": "2026-10-29T11:32:46.203733+00:00",
+    "version": "0.166.131",
+    "releaseSourceCommit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+    "releaseBinding": {
+      "releaseSourceCommit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+      "versions": {
+        "cli": "0.166.131",
+        "vscode": "0.37.169",
+        "jetbrains": "0.4.186",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "newManifest": "docs/research/cli/verify01-package-sets/2026-10-29-review-131.json",
+      "previousManifest": {
+        "path": "docs/research/cli/verify01-package-sets/2026-10-29-review-129.json",
+        "digest": "sha256:f9e533463ec27e3c510e313e6cfa4658d7accc867452409dbcc7c17f7934cb32",
+        "bytes": 2582
+      },
+      "sourceIdentities": [
+        {
+          "path": "packages/cli/package.json",
+          "digest": "sha256:4444d25abdb08eb8e100a0d76423ced5efed4d900ba2a0aa4dd6b68c2f75b20a"
+        },
+        {
+          "path": "packages/vscode-extension/package.json",
+          "digest": "sha256:107735cc2e05e982654c7b083b0ef6a58d1eaa7208e5035e27aa9469c6f13a7a"
+        },
+        {
+          "path": "packages/jetbrains-plugin/build.gradle.kts",
+          "digest": "sha256:42d2a1b5ced1d73247130dde5a82b0207e71b28671ba6d23d7fda18a0a00c6a5"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CliVersionCheck.java",
+          "digest": "sha256:b33bb0768b0ef8060d337e425660c310cf6e1df8cc01e2ad21bb1e66f2367532"
+        }
+      ]
+    },
+    "records": {
+      "npm-metadata.json": {
+        "path": "npm-metadata.json",
+        "digest": "sha256:11718e6fd3d7cf95df87380c37d98cffe36883b1d7f3944e609baf10a8658f26",
+        "bytes": 7714,
+        "url": "https://registry.npmjs.org/chainlesschain/0.166.131",
+        "finalUrlWithoutQuery": "https://registry.npmjs.org/chainlesschain/0.166.131",
+        "httpStatus": 200
+      },
+      "chainlesschain.tgz": {
+        "path": "chainlesschain.tgz",
+        "digest": "sha256:0766b3df57477df22900ce601f9acaf31771b89ed26d042cec4d043fe4227ce1",
+        "bytes": 9509449,
+        "url": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.131.tgz",
+        "finalUrlWithoutQuery": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.131.tgz",
+        "httpStatus": 200
+      }
+    },
+    "checks": {
+      "packageVersion": "0.166.131",
+      "sriVerified": true,
+      "releaseSourceCommit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+      "sourceMatches": [
+        {
+          "path": "src/lib/file-import-diagnostics.js",
+          "digest": "sha256:4b20a10efd8ca15281c0295f1c73cab13dc4d5c54dddfe2a9e7d5325694b098c",
+          "bytes": 8099
+        },
+        {
+          "path": "src/lib/coding-task-guidance.js",
+          "digest": "sha256:b06a60d36f62a199828b7b2fc3a029956f426f6e4537b56014954be206445e11",
+          "bytes": 6184
+        },
+        {
+          "path": "src/lib/transport-error-details.js",
+          "digest": "sha256:d9e3c3f98fb2f466dfce7753a3641d58f93d8a82c3df502c2e403e22ef769751",
+          "bytes": 2312
+        },
+        {
+          "path": "src/runtime/agent-core.js",
+          "digest": "sha256:849eaa9bfaa421afc3532d8d03561559efc272e777f2b43c6392684c0fddb124",
+          "bytes": 675320
+        },
+        {
+          "path": "src/runtime/headless-runner.js",
+          "digest": "sha256:2af85937439cad24ff0448cea019326a766d22b4aa77b27d990e712902873d60",
+          "bytes": 188469
+        },
+        {
+          "path": "src/runtime/headless-stream.js",
+          "digest": "sha256:13813c8e6e6f2e7aeddecc487be3fb6abbdb5a3510d149189615395803dd737a",
+          "bytes": 220791
+        },
+        {
+          "path": "src/lib/provider-http-error.js",
+          "digest": "sha256:f2f5afc28730519a413d4d13c3866a0eb76f32741a4e3b73a416112064aaaad5",
+          "bytes": 4374
+        },
+        {
+          "path": "src/runtime/coding-agent-contract-shared.cjs",
+          "digest": "sha256:486bb1a7e378db1c6417edfcc9a06eb1f9797000facc48d61dbb21fac92ad8cb",
+          "bytes": 55068
+        }
+      ],
+      "helpers": [
+        {
+          "path": "src/lib/file-import-diagnostics.js",
+          "digest": "sha256:4b20a10efd8ca15281c0295f1c73cab13dc4d5c54dddfe2a9e7d5325694b098c",
+          "bytes": 8099
+        },
+        {
+          "path": "src/lib/coding-task-guidance.js",
+          "digest": "sha256:b06a60d36f62a199828b7b2fc3a029956f426f6e4537b56014954be206445e11",
+          "bytes": 6184
+        },
+        {
+          "path": "src/lib/transport-error-details.js",
+          "digest": "sha256:d9e3c3f98fb2f466dfce7753a3641d58f93d8a82c3df502c2e403e22ef769751",
+          "bytes": 2312
+        }
+      ],
+      "metadataGitHead": null,
+      "tarballGitHead": null,
+      "sourcePackageJsonDigest": "sha256:4444d25abdb08eb8e100a0d76423ced5efed4d900ba2a0aa4dd6b68c2f75b20a",
+      "publishedPackageJsonDigest": "sha256:4444d25abdb08eb8e100a0d76423ced5efed4d900ba2a0aa4dd6b68c2f75b20a",
+      "manifestFieldsCompared": [
+        "dependencies",
+        "optionalDependencies",
+        "peerDependencies",
+        "peerDependenciesMeta",
+        "engines",
+        "bin",
+        "chainlesschain"
+      ],
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "recommendedPairing": {},
+      "idePublicationVerified": false
+    },
+    "idePublicationVerified": false,
+    "limitations": [
+      "CLI-only public metadata and artifact byte verification; IDE publication is not verified.",
+      "No installation, package execution, model request, runtime acceptance, or IDE acceptance.",
+      "No three-package manifest is created; this receipt cannot authorize a native package campaign.",
+      "Only the explicitly listed runtime/helper files are compared byte-for-byte with the release commit.",
+      "Saved HTTPS responses and byte digests are evidence, not a separate publisher signature."
+    ]
+  },
+  "limits": {
+    "newLiveTaskAcceptance": false,
+    "cumulativeAccepted": 34,
+    "total": 45,
+    "paidReady": false,
+    "clientsReleased": false,
+    "microsoft": "deferred"
+  }
+}

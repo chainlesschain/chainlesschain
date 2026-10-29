@@ -1,6 +1,14 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## Current public pairing: CLI 0.166.130 / IDE .168 and .185 (2026-10-29)
+## Current public CLI: 0.166.131 (2026-10-29)
+
+Install: `npm i -g chainlesschain@0.166.131 --registry https://registry.npmjs.org`. Kernel **0.1.11** was published first. Restart the chat host, then run `cc --version` and `cc doctor`. Open VSX **0.37.169** / JetBrains **0.4.186** are publishing; the verified older pair **0.37.168 / 0.4.185** still recommends CLI **0.166.130**. Microsoft Marketplace is deferred.
+
+This release includes explicit independent Goal `verify:` checks, Memory directory identity and cancellation fixes, MCP subtask and late-connection isolation, Skills download cancellation, rule refresh around compaction, temporary-worktree lifetime fixes and updated Terra capability/billing contracts. Exact-source three-OS CLI / Strict / Kernel checks passed. [OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/40862685540) and [independent public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/40866417524) verified immutable package bytes and signed provenance. [Publication evidence](docs/research/cli/evidence/release131-public/publication.json).
+
+Cumulative accepted tasks remain **34/45**, with **11** unfinished. Full Memory SLO, semantic quality and both IDE journeys remain separate acceptance work; the current native generation driver does not automatically use `verify:`. **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain. PC/mobile retain their independent **v5.0.3.143** release. Older notes below retain their historical scope.
+
+## Previous public pairing: CLI 0.166.130 / IDE .168 and .185 (2026-10-29)
 
 Install: `npm i -g chainlesschain@0.166.130 --registry https://registry.npmjs.org`. Public Open VSX **0.37.168** and JetBrains **0.4.185** both recommend CLI **0.166.130**. Restart the chat host, then run `cc --version` and `cc doctor`. Microsoft Marketplace remains unpublished; stock VS Code can install the [versioned Open VSX VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.168/file/chainlesschain.chainlesschain-ide-0.37.168.vsix).
 

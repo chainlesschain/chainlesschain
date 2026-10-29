@@ -1,6 +1,14 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 当前公开版本：CLI 0.166.130 / IDE .168、.185（2026-10-29）
+## 当前公开 CLI：0.166.131（2026-10-29）
+
+安装：`npm i -g chainlesschain@0.166.131 --registry https://registry.npmjs.org`。Kernel **0.1.11** 已先行公开。升级后重启聊天宿主，运行 `cc --version` 与 `cc doctor`。Open VSX **0.37.169** / JetBrains **0.4.186** 正在发行；当前已核验的旧配对 **0.37.168 / 0.4.185** 仍标记推荐 CLI **0.166.130**。Microsoft Marketplace 暂缓。
+
+本版包含显式独立 Goal `verify:` 检查、Memory 目录身份与取消修复、MCP 子任务与晚连接隔离、Skills 下载取消、压缩前后规则刷新和临时 worktree 生命周期修复，并更新 Terra 能力与计费合同。完整三系统 CLI / Strict / Kernel 检查已通过；[OIDC 发行](https://github.com/chainlesschain/chainlesschain/actions/runs/40862685540)与[独立公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/40866417524)确认不可变包和签名来源；[发行证据](docs/research/cli/evidence/release131-public/publication.json)。
+
+真实任务累计仍为 **34/45**，剩余 **11** 项；发行和本地测试不增加任务完成数。完整 Memory SLO、真实语义与双 IDE 验收仍待完成，`verify:` 不会自动进入当前 native 生成流程；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。PC / 移动端继续使用独立 **v5.0.3.143**。下方旧版本说明保留历史范围。
+
+## 历史公开配对：CLI 0.166.130 / IDE .168、.185（2026-10-29）
 
 安装：`npm i -g chainlesschain@0.166.130 --registry https://registry.npmjs.org`。Open VSX **0.37.168** 与 JetBrains **0.4.185** 已公开并推荐 CLI **0.166.130**；升级后重启聊天宿主，运行 `cc --version` 和 `cc doctor`。Microsoft Marketplace 仍未发布，VS Code 可安装 [Open VSX 的版本化 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.168/file/chainlesschain.chainlesschain-ide-0.37.168.vsix)。
 

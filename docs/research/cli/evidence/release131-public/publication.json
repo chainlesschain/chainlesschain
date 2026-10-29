@@ -1,0 +1,67 @@
+{
+  "schema": "chainlesschain.release131-publication/v1",
+  "status": "cli-public-ide-publishing",
+  "repository": "chainlesschain/chainlesschain",
+  "sourceSha": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+  "channels": {
+    "cli": {
+      "version": "0.166.131",
+      "status": "public",
+      "tag": "v-npm-0-166-131",
+      "method": "GitHub Actions OIDC Trusted Publishing",
+      "runId": 40862685540,
+      "attempt": 2,
+      "independentReadbackRunId": 40866417524,
+      "evidence": "cli.json"
+    },
+    "kernel": {
+      "version": "0.1.11",
+      "status": "public",
+      "originalPublicationAttempt": 1,
+      "verifiedByCliPublication": true
+    },
+    "openVsx": {
+      "version": "0.37.169",
+      "status": "publishing",
+      "tag": "ide-vscode-v0.37.169",
+      "recommendedCliVersion": "0.166.131",
+      "runId": 40866847689
+    },
+    "jetbrains": {
+      "version": "0.4.186",
+      "status": "publishing",
+      "tag": "ide-jetbrains-v0.4.186",
+      "recommendedCliVersion": "0.166.131",
+      "runId": 40866846685
+    },
+    "microsoftMarketplace": {
+      "status": "deferred",
+      "reason": "User explicitly deferred this channel"
+    }
+  },
+  "acceptance": {
+    "cumulativeAccepted": 34,
+    "ordinaryAccepted": 27,
+    "ordinaryTotal": 36,
+    "firstInstallAccepted": 7,
+    "firstInstallTotal": 9,
+    "total": 45,
+    "unfinished": 11
+  },
+  "limits": {
+    "newLiveModelTasks": false,
+    "formalPaidAdmission": "NOT_PAID_READY",
+    "nativeProductionAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD",
+    "clientsReleased": false
+  },
+  "history": {
+    "kernelPropagationFailure": {
+      "run": 40862685540,
+      "attempt": 1,
+      "job": 123411294071,
+      "reason": "npm install ETARGET after successful publication; same-source failed-job recovery passed after registry synchronization"
+    },
+    "oldCandidate": "98c4 remains superseded before publication; failed CLI CI is preserved"
+  }
+}

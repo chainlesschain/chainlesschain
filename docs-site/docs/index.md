@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "CLI 0.166.130 / Open VSX 0.37.168 / JetBrains 0.4.185 已公开；配套升级与独立客户端 v5.0.3.143"
+  tagline: "CLI 0.166.131 已公开；新 IDE 配对发行中，独立客户端 v5.0.3.143"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -22,11 +22,11 @@ hero:
 features:
   - icon: ⚠️
     title: CLI .130 与 IDE 配套升级
-    details: "CLI 0.166.130 已通过三平台门禁和 OIDC 发布；Open VSX 0.37.168、JetBrains 0.4.185 均已公开并验证下载，推荐同一 CLI。Goal 复查共享原预算、取消和输出限制，完成证据绑定当前工作区；产品 v5.0.3.143 独立发行。Microsoft Marketplace 暂缓。"
+    details: "CLI 0.166.131 / Kernel 0.1.11 已公开并验证包与签名；新 Open VSX 0.37.169、JetBrains 0.4.186 正在发行。原公开 IDE 0.37.168 / 0.4.185 仍推荐 CLI 0.166.130。产品 v5.0.3.143 独立发行，Microsoft Marketplace 暂缓。"
     link: /chainlesschain/agent-platform-release
   - icon: 🔗
     title: CLI / IDE 与桌面目标草稿
-    details: "当前公开 CLI .130 / IDE .168 与 .185 可用于各自工作台。桌面目标草稿互通仍需匹配客户端构建、显式授权及原生确认；CLI 或插件发布不能替代产品验收。"
+    details: "当前公开 CLI .131 可独立使用；原 IDE .168 / .185 仍推荐 .130，新配对 .169 / .186 正在发行。桌面目标草稿互通仍需匹配客户端构建、显式授权及原生确认；CLI 或插件发布不能替代产品验收。"
     link: /chainlesschain/goal-drafts-current
   - icon: 🛡️
     title: 输入、图片预算与恢复边界
@@ -89,7 +89,7 @@ features:
 
 ## 当前公开版本（2026-10-29）
 
-CLI **0.166.130** / Open VSX **0.37.168** / JetBrains **0.4.185** 均已公开并完成下载核验；原生产品 **v5.0.3.143** 具有独立发行源与验收范围。当前安装与渠道说明见[升级指南](/chainlesschain/agent-platform-release)和[自进化开关配置](/chainlesschain/self-evolution-configuration)。跨版本累计 **34/45**、**11** 项未完成，此统计不是 `.130` 单轮成功率；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。公开 `.130` 固定使用 `@chainlesschain/context-memory-kernel@0.1.10`；主分支后续的 kernel `0.1.11`、独立 `verify:` Goal checker、Memory 磁盘取消 / 缓存和 Terra 能力 / 计费改动尚未发布，需另行完成子包发布与精确源码门禁。
+CLI **0.166.131** 已公开并完成包和签名核验；Open VSX **0.37.169** / JetBrains **0.4.186** 发行中，旧公开配对 **0.37.168 / 0.4.185** 仍推荐 CLI **0.166.130**；原生产品 **v5.0.3.143** 具有独立发行源与验收范围。当前安装与渠道说明见[升级指南](/chainlesschain/agent-platform-release)和[自进化开关配置](/chainlesschain/self-evolution-configuration)。跨版本累计 **34/45**、**11** 项未完成，此统计不是 `.131` 单轮成功率；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。公开 `.131` 固定使用 `@chainlesschain/context-memory-kernel@0.1.11`；独立 `verify:` Goal checker、Memory 磁盘取消 / 缓存和 Terra 能力 / 计费改动现已随本版发行。完整性能、语义质量、双 IDE 和真实任务仍按各自证据验收。
 
 ### 按任务查阅当前参考
 
