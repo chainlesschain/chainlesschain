@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import { canonicalJson } from "@chainlesschain/context-memory-kernel";
 
 /**
@@ -119,6 +120,8 @@ export function mergeConsecutiveMessages(messages) {
  * or folding newly added interrupt/feedback turns. Canonical fingerprints also
  * recognize the same retained messages after compaction recreates objects.
  */
+const RESUME_ROLE_PROJECTIONS = new WeakMap();
+
 export function createResumeRoleProjection(messages) {
   const pairs = new Map();
   const pairKey = (left, right) => canonicalJson([left, right]);
@@ -137,20 +140,81 @@ export function createResumeRoleProjection(messages) {
       pairs.set(key, (pairs.get(key) || 0) + 1);
     }
   }
-  return (requestMessages) => {
+  const project = (requestMessages) => {
     const remaining = new Map(pairs);
     const projected = [];
+    const sources = [];
     for (let index = 0; index < requestMessages.length; index++) {
       const message = requestMessages[index];
       const key =
         index > 0 ? pairKey(requestMessages[index - 1], message) : null;
       if (key && remaining.get(key) > 0) {
         const previous = projected.pop();
+        const previousSources = sources.pop();
         projected.push(...mergeConsecutiveMessages([previous, message]));
+        sources.push([...previousSources, index]);
         remaining.set(key, remaining.get(key) - 1);
-      } else projected.push(message);
+      } else {
+        projected.push(message);
+        sources.push([index]);
+      }
     }
-    return projected;
+    return { messages: projected, sources };
+  };
+  const projection = (requestMessages) => project(requestMessages).messages;
+  RESUME_ROLE_PROJECTIONS.set(projection, project);
+  return projection;
+}
+
+/**
+ * Preserve a bound task through this module's exact, captured resume merges.
+ * Arbitrary callbacks, wrappers and forged properties never receive lineage.
+ */
+export function projectMessagesWithTaskBinding(projection, input, taskBinding) {
+  const owned = RESUME_ROLE_PROJECTIONS.get(projection);
+  if (!owned) {
+    return { messages: projection(input), taskBinding };
+  }
+  const projected = owned(input);
+  if (!taskBinding) return { messages: projected.messages, taskBinding };
+  const identities = input.flatMap((message, index) =>
+    message === taskBinding.original ? [index] : [],
+  );
+  const candidates = identities.length
+    ? identities
+    : taskBinding.allowContentRelocation === true
+      ? input.map((_, index) => index)
+      : [];
+  const matches = candidates.filter(
+    (index) =>
+      input[index]?.role === "user" &&
+      isDeepStrictEqual(input[index], taskBinding.message),
+  );
+  // Leave invalid bindings intact so canonical admission rejects them normally.
+  if (matches.length !== 1 || identities.length > 1)
+    return { messages: projected.messages, taskBinding };
+  const sourceIndex = matches[0];
+  const targetIndex = projected.sources.findIndex((group) =>
+    group.includes(sourceIndex),
+  );
+  const target = projected.messages[targetIndex];
+  if (target === input[sourceIndex])
+    return { messages: projected.messages, taskBinding };
+  // A merge may discard right-message metadata. Only bare user content has a
+  // complete preservation proof under the established joinContent contract.
+  if (
+    Object.keys(taskBinding.message).some(
+      (key) => !["role", "content"].includes(key),
+    )
+  )
+    return { messages: projected.messages, taskBinding };
+  return {
+    messages: projected.messages,
+    taskBinding: {
+      message: JSON.parse(canonicalJson(target)),
+      original: target,
+      allowContentRelocation: false,
+    },
   };
 }
 

@@ -16,7 +16,10 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { spawn } from "node:child_process";
 import http from "node:http";
 import { testHome, freePort, CLI_BIN } from "./_helpers/cli-e2e.js";
-import { appendEvent } from "../../src/harness/jsonl-session-store.js";
+import {
+  appendEvent,
+  readVerifiedMessages,
+} from "../../src/harness/jsonl-session-store.js";
 
 const t = testHome("resume-roles");
 let llmServer;
@@ -162,5 +165,17 @@ describe("cc agent --resume after a no-response run (2.1.187 parity)", () => {
     expect(users).toHaveLength(1);
     expect(users[0].content).toContain("original task");
     expect(users[0].content).toContain("continue please");
+    // Provider normalization must not rewrite the authenticated session history.
+    const previousHome = process.env.CHAINLESSCHAIN_HOME;
+    process.env.CHAINLESSCHAIN_HOME = t.home;
+    try {
+      const canonicalUsers = readVerifiedMessages("sid-noresp")
+        .filter((message) => message.role === "user")
+        .map((message) => message.content);
+      expect(canonicalUsers).toEqual(["original task", "continue please"]);
+    } finally {
+      if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+      else process.env.CHAINLESSCHAIN_HOME = previousHome;
+    }
   }, 180_000);
 });

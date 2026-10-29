@@ -209,8 +209,8 @@ export async function prepareCanonicalProviderContext(
   // an ambiguous duplicate from taking the original user's task-state binding.
   const taskBinding = options.contextMemoryRequiredUserBinding;
   const requiredUserMessage = taskBinding?.message;
-  let requiredUserIndex = null;
-  if (requiredUserMessage != null) {
+  function resolveRequiredUserIndex() {
+    if (requiredUserMessage == null) return null;
     const identities = messages.flatMap((message, index) =>
       message === taskBinding.original ? [index] : [],
     );
@@ -234,8 +234,9 @@ export async function prepareCanonicalProviderContext(
       error.code = "CC_AGENT_TASK_CONTEXT_LOST";
       throw error;
     }
-    requiredUserIndex = matches[0];
+    return matches[0];
   }
+  let requiredUserIndex = resolveRequiredUserIndex();
 
   // Review can exclude recalled author/session data while retaining the exact
   // canonical context, tool and output-token planning boundary.
@@ -288,6 +289,9 @@ export async function prepareCanonicalProviderContext(
         }),
       };
   options.signal?.throwIfAborted();
+  // Recall awaits host and storage work. Revalidate the captured task and its
+  // current position before image transformation and immutable item creation.
+  requiredUserIndex = resolveRequiredUserIndex();
   const imageTransport = captureContextImageTransport(messages);
   const messageItems = adjustContextImageTokenEstimates(
     messagesToContextItems(imageTransport.messages, {

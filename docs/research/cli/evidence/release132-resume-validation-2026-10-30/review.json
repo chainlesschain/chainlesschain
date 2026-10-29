@@ -1,0 +1,203 @@
+{
+  "schema": "chainlesschain.release132-resume-validation/v1",
+  "observedAt": "2026-10-29T19:05:25.658Z",
+  "baseSource": "08b3fccb85e3c1fb24431e9b3ef682896c69aad2",
+  "sourceKind": "modified-worktree-before-replacement-commit",
+  "versions": {
+    "cli": "0.166.132",
+    "kernel": "0.1.11",
+    "openVsx": "0.37.170",
+    "jetbrains": "0.4.187"
+  },
+  "status": "LOCAL_VALIDATION_COMPLETE_NEW_EXACT_SOURCE_GATES_REQUIRED",
+  "published": false,
+  "node": "v22.22.2",
+  "platform": "win32",
+  "validation": {
+    "unit": {
+      "files": 18,
+      "total": 452,
+      "passed": 452,
+      "failed": 0,
+      "skipped": 0
+    },
+    "cliProcesses": {
+      "files": 2,
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    },
+    "egress": {
+      "candidates": 82,
+      "issues": 0
+    }
+  },
+  "superseded": {
+    "source": "08b3fccb85e3c1fb24431e9b3ef682896c69aad2",
+    "validationTag": "ci-cli132-08b3fccb85e3",
+    "reason": "Confirmed pre-publication regression: strict task binding rejects the legitimate built-in resume-role merge before any model call. Preserve this candidate and all observations, fix the compatibility path, then run every required gate on a new exact commit.",
+    "releaseTagCreated": false,
+    "published": false,
+    "gates": [
+      {
+        "workflow": "CLI CI",
+        "id": 40929840288,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "workflow": "CLI Strict Sandbox",
+        "id": 40929840199,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "workflow": "Context Memory Kernel CI",
+        "id": 40929840025,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "workflow": "IDE Extensions",
+        "id": 40929839865,
+        "status": "completed",
+        "conclusion": "cancelled"
+      }
+    ]
+  },
+  "acceptance": {
+    "automaticAccepted": 34,
+    "total": 45,
+    "assistedDeliveries": 3,
+    "unchanged": true
+  },
+  "sourceBindings": {
+    "packages/cli/src/runtime/agent-core.js": "sha256:c8ee4867d763588cf35dbc2a2b88198981f43b783704f4f0afbee174ea3cc003",
+    "packages/cli/src/runtime/message-roles.js": "sha256:05631b7268a7476ee088c9156f092a5f29efa267f7311a55a388696060c0b352",
+    "packages/cli/src/runtime/provider-stream-state.js": "sha256:be1c3f7e29e752835a09c70fef427ebe241c91c5c862a8bdf70650c5206e548e",
+    "packages/cli/src/lib/context-memory-kernel/provider-context.js": "sha256:d075c4c4fb91b64fe9d590ff8403600de83648a898137e14399d6af9da45b272",
+    "packages/cli/src/lib/context-memory-kernel/message-adapter.js": "sha256:8dbec7f148760bc4f3169c1cb33c85c01f810ca28d2d8cb9024087673326e93b",
+    "packages/cli/__tests__/unit/resume-task-binding.test.js": "sha256:4b0f68095b442b568e6ef56b3d7c391991aa1a950447aa954fb2f89ef802ffb4",
+    "packages/cli/__tests__/unit/context-task-binding-race.test.js": "sha256:9c362b6efac1d67f18a5c097904f283825c89bccca6ddb0d248856cf5baba90b",
+    "packages/cli/__tests__/unit/output-limit-recovery.test.js": "sha256:91dc84821216674e769466351572c36aec854a161eac3cf0f6599370cfa32d76",
+    "packages/cli/__tests__/unit/content-filter.test.js": "sha256:9a64f207f87fba6e7121ee006c5da8daa7bd83b8c6a7a879593c4599a223dd47",
+    "packages/cli/__tests__/unit/termination-integrity.test.js": "sha256:ab0722b29bc7a717814b8408652a22a600a3d44c1610b2ba7b51777ec428c083",
+    "packages/cli/__tests__/unit/agent-core-host-continuation.test.js": "sha256:2204289d54950946b158c93a022ab9d0ef02142b52f539b20c16f94a2a4a6424",
+    "packages/cli/__tests__/e2e/resume-role-alternation-e2e.test.js": "sha256:38d929c32d9f1479dcf89175a9047ddf1ad7ce78525dfaae7237e96553492621",
+    "packages/cli/__tests__/e2e/output-limit-recovery.test.js": "sha256:1fc98a78e21246b1ba20b4e2ac339bec2eaffc1d1949551a050a7a8319e95668",
+    "packages/cli/package.json": "sha256:1400def71832d1b4668d5b021fc0c5a2b37c973052094a532720bb590f1bdd43",
+    "packages/context-memory-kernel/package.json": "sha256:ed0a010ee0146aebc4aed67cf7f7a79073298c517c6f85c83b21d0afb030e3a7",
+    "packages/cli/scripts/budget-egress-reviewed-sources.json": "sha256:4c28606d336cf9a34f6e4ff0d62b4f36aa1099b286320a9204f93ce694633eca",
+    "packages/cli/src/data/changelog.json": "sha256:7280064418b3832d8c5a342228951a86894c1466154ffe5c34d8e5a722a90832",
+    "packages/vscode-extension/package.json": "sha256:74a42f113f2b37fb9b3a5fbcd27950f87c19513b653f3be1b99134049bda4f1a",
+    "packages/jetbrains-plugin/build.gradle.kts": "sha256:ed9ad77cdfa97b4f002d6a52fb24e166477d439937d0251aea668914e55b5411",
+    "packages/jetbrains-plugin/gradle.properties": "sha256:4e827de53b04a87cf241177d2a05658fdc30c2b9cf4115b7e81d2764defec984"
+  },
+  "artifacts": [
+    {
+      "name": "runtime-final-unit.json",
+      "path": "objects/301f9266131bef0f53b0fae9a8185b682f3665ad01b775ab254c914d622b2cdc.gz",
+      "originalDigest": "sha256:301f9266131bef0f53b0fae9a8185b682f3665ad01b775ab254c914d622b2cdc",
+      "originalBytes": 147193,
+      "storedDigest": "sha256:0415b9b90df9dada29a0aad390bb2d14123e5d61e2cf4001202edfe8f5180151",
+      "storedBytes": 19240
+    },
+    {
+      "name": "runtime-final-e2e.json",
+      "path": "objects/bf36d7173f8d270edaf9bf6deea2e2a8a91cb58e41f8df7301c1e71fca34b870.gz",
+      "originalDigest": "sha256:bf36d7173f8d270edaf9bf6deea2e2a8a91cb58e41f8df7301c1e71fca34b870",
+      "originalBytes": 3069,
+      "storedDigest": "sha256:6cf60f5f7938d551e9606a34f93d0176124d41610c3ca5a659d84db21f535260",
+      "storedBytes": 726
+    },
+    {
+      "name": "local-static-checks.json",
+      "path": "objects/832cb63e52e6781261bfac10c163f9854f081a6b0726ad42947e0527cee0879c.gz",
+      "originalDigest": "sha256:832cb63e52e6781261bfac10c163f9854f081a6b0726ad42947e0527cee0879c",
+      "originalBytes": 1179,
+      "storedDigest": "sha256:7c73cf5d4ad62cf510d4b63dce81bf248cc86fa695a802026ff46f2d38a4ae87",
+      "storedBytes": 456
+    },
+    {
+      "name": "egress-final.json",
+      "path": "objects/dae16cf23ae9e53b3419f3ee3ed8dd790e980605e84b775d5471e6e5b696ea78.gz",
+      "originalDigest": "sha256:dae16cf23ae9e53b3419f3ee3ed8dd790e980605e84b775d5471e6e5b696ea78",
+      "originalBytes": 93129,
+      "storedDigest": "sha256:25aacc51326f4ed2dc6cd250951a96461654a2eaf8408193da6c52872694ce86",
+      "storedBytes": 21358
+    },
+    {
+      "name": "egress-review.json",
+      "path": "objects/422964c7cde856705ac087ea011065d5558558528d735217b010ee5fd4bc7756.gz",
+      "originalDigest": "sha256:422964c7cde856705ac087ea011065d5558558528d735217b010ee5fd4bc7756",
+      "originalBytes": 5263,
+      "storedDigest": "sha256:48facd9f5033e6367f22c8425e80f2bec6ed6bee65ffe50840ac488bacc51332",
+      "storedBytes": 1542
+    },
+    {
+      "name": "cli-pack.json",
+      "path": "objects/97375563c6cccbeebcc6e68bacc1ddcc53a42f981009ae67047d82ffa3f4575d.gz",
+      "originalDigest": "sha256:97375563c6cccbeebcc6e68bacc1ddcc53a42f981009ae67047d82ffa3f4575d",
+      "originalBytes": 216195,
+      "storedDigest": "sha256:d22efeeeae3d7b266e3ec9fc42225b58b210e843b606cb85655946a568c2f82d",
+      "storedBytes": 25009
+    },
+    {
+      "name": "pack-process.json",
+      "path": "objects/ecc8a3f3c6fe34cec0b6bc8865e101d78fa937030815e5189277bb36d491a016.gz",
+      "originalDigest": "sha256:ecc8a3f3c6fe34cec0b6bc8865e101d78fa937030815e5189277bb36d491a016",
+      "originalBytes": 375,
+      "storedDigest": "sha256:3359bf53b1c9993092867829832ec78276ebdb46dab357ce545fbc94c9c752d6",
+      "storedBytes": 287
+    },
+    {
+      "name": "resume-and-race/REVIEW.txt",
+      "path": "objects/eadbf500b3e2dbbedea0260bfda85e65503893b33aa2747211e82f9c0a1849f3.gz",
+      "originalDigest": "sha256:eadbf500b3e2dbbedea0260bfda85e65503893b33aa2747211e82f9c0a1849f3",
+      "originalBytes": 3783,
+      "storedDigest": "sha256:8599887fa73f758707e96b0e819791e4c4ac8055516f4e4ed3d1f6bf2fda4a8e",
+      "storedBytes": 1871
+    },
+    {
+      "name": "resume-and-race/candidate.patch",
+      "path": "objects/763e024f370b0cafcb6d25d2a959970a60363931e6486d429ab22e0dff1a77c3.gz",
+      "originalDigest": "sha256:763e024f370b0cafcb6d25d2a959970a60363931e6486d429ab22e0dff1a77c3",
+      "originalBytes": 18411,
+      "storedDigest": "sha256:359ebdd9705504498fd7cae93cc3e1023633ecb038f37401d614397c24769d0f",
+      "storedBytes": 4941
+    },
+    {
+      "name": "superseded08/release-target.json",
+      "path": "objects/698d57f11b2b2aea560b037cd99471a8eb728efdcf398030139b9ae1b40b7a90.gz",
+      "originalDigest": "sha256:698d57f11b2b2aea560b037cd99471a8eb728efdcf398030139b9ae1b40b7a90",
+      "originalBytes": 2263,
+      "storedDigest": "sha256:eb7e26ed49a47c3cb5f1338fc9ad3b7d62ccf2df8d7a9ccc8a70d960e4a71975",
+      "storedBytes": 1132
+    },
+    {
+      "name": "superseded08/superseded-cancellation.json",
+      "path": "objects/56f5fa556e82dc8af7e482fd8b2daa3eb4ffb5b83324257034bab8a4980363dc.gz",
+      "originalDigest": "sha256:56f5fa556e82dc8af7e482fd8b2daa3eb4ffb5b83324257034bab8a4980363dc",
+      "originalBytes": 7612,
+      "storedDigest": "sha256:9525b4d0b155ff20e87df51929f283721355d0dc21a07e7bcf484d6ea5b9b539",
+      "storedBytes": 1198
+    },
+    {
+      "name": "superseded08/push-readback.json",
+      "path": "objects/64283665efb296788163ee2e3d6ab89ba2a03c2f298484087560b8e5fa390777.gz",
+      "originalDigest": "sha256:64283665efb296788163ee2e3d6ab89ba2a03c2f298484087560b8e5fa390777",
+      "originalBytes": 1509,
+      "storedDigest": "sha256:7d98b21dac7095fa4f924cbcb4d53de26941b820a0af7ba200fb3635fcb457e5",
+      "storedBytes": 517
+    },
+    {
+      "name": "superseded08/final-gates.json",
+      "path": "objects/df16a5e7f95f6fcee91a5eb96f19f5e1f56372272aa3e1f9cb0af1461686c86b.gz",
+      "originalDigest": "sha256:df16a5e7f95f6fcee91a5eb96f19f5e1f56372272aa3e1f9cb0af1461686c86b",
+      "originalBytes": 249935,
+      "storedDigest": "sha256:54a7155fd1ed6f3a235a7190b3420a5dd1a520cb6185afc941984598b9aeecad",
+      "storedBytes": 12673
+    }
+  ],
+  "boundary": "Complete local related suites and scripted real CLI processes validate the replacement implementation. The 08 matrices were cancelled by the operator before publication after a confirmed regression; no partial matrix is reused. Full multi-OS gates and OIDC/public readback for the new exact commit remain required. No private funding or original journal is modified."
+}

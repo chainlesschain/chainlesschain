@@ -1,3 +1,4 @@
+import { projectMessagesWithTaskBinding } from "./message-roles.js";
 import {
   providerFetch,
   requireUnscopedToolExecution,
@@ -16366,8 +16367,15 @@ export async function* agentLoop(messages, options) {
     }
     // Role normalization is request-only: durable history remains unchanged
     // for tool settlement and canonical compaction authority comparisons.
+    let projectedUserTaskBinding = currentUserTaskBinding;
     if (typeof options.projectProviderMessages === "function") {
-      callMessages = options.projectProviderMessages(callMessages);
+      const projected = projectMessagesWithTaskBinding(
+        options.projectProviderMessages,
+        callMessages,
+        currentUserTaskBinding,
+      );
+      callMessages = projected.messages;
+      projectedUserTaskBinding = projected.taskBinding;
     }
     const contextMemoryTrustedSystemIndexes = [];
     if (outputLimitRecoveryPending !== null) {
@@ -16544,7 +16552,7 @@ export async function* agentLoop(messages, options) {
           // validates every original requirement after planning below.
           contextMemoryRequiredUserBinding: independentReviewContext?.active
             ? null
-            : currentUserTaskBinding,
+            : projectedUserTaskBinding,
         },
       );
       if (canonicalProviderContext.plan) {
