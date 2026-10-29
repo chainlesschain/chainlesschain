@@ -11,6 +11,10 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
+## Source candidate (unreleased)
+
+Plugin source **0.4.186** pairs with CLI **0.166.131** and Open VSX **0.37.169** after verified upstream publication. It has not been published or approved; exact-source host gates and public ZIP verification remain required. The existing public pairing is documented below.
+
 ## Current release
 
 Plugin **0.4.185** is the current public release. It recommends CLI **`0.166.130`** and pairs with public Open VSX **0.37.168**. It is approved, listed, not hidden and publicly downloadable. Immutable tag `ide-jetbrains-v0.4.185` selects source `f3015e799624b81af564aaaa1b7701c0a5c70e26`; the exact-source [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40800404557) passed, including real host and browser journeys. Clean-home onboarding validates the actual IDE configuration root.
@@ -124,7 +128,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.185** is the current public release. It recommends `chainlesschain@0.166.130` and pairs with Open VSX **0.37.168**. The paired CLI, exact-source host gates, Marketplace approval and public ZIP payload readback are verified. Native task quality and restart acceptance remain independent.
+Plugin **0.4.186** is the current release candidate. It recommends `chainlesschain@0.166.131` and pairs with Open VSX **0.37.169** after the changed kernel and CLI are public and verified. This candidate is unpublished; exact-source host/release gates, approval and public ZIP readback remain required.
 
 ## Previous candidates and development notes
 

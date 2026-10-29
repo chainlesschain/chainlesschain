@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.186] - CLI .131 runtime pairing (candidate, 2026-10-29)
+
+- Recommend CLI 0.166.131 and pair with Open VSX 0.37.169 only after upstream package verification.
+- Carry the new Goal verification, Memory consistency/cancellation/recovery and temporary-worktree boundaries through the paired CLI; retain conversation-local models and existing native host checks.
+- This source candidate is unpublished; exact-source host/release gates and public ZIP readback remain required.
+
 ## [0.4.185] - Goal evidence and budget CLI pairing (candidate, 2026-10-29)
 
 - Recommend CLI 0.166.130 and pair with VS Code 0.37.168.

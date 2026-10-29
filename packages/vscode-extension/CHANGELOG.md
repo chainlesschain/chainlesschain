@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.169] - CLI .131 runtime pairing (candidate, 2026-10-29)
+
+- Recommend CLI 0.166.131 and pair with JetBrains 0.4.186 after the required CLI and kernel releases are public and verified.
+- Carry the new Goal verification, Memory consistency/cancellation/recovery and temporary-worktree boundaries through the paired CLI. Preserve existing host isolation, configuration and approval behavior.
+- This source candidate is unpublished; exact-source host gates and public artifact readback remain required. Microsoft Marketplace is deferred.
+
 ## [0.37.168] - Goal evidence and budget CLI pairing (candidate, 2026-10-29)
 
 - Recommend CLI 0.166.130 and pair with JetBrains 0.4.185.

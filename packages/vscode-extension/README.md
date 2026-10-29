@@ -10,6 +10,10 @@ MCP bridge.
 
 Open **Skill 自进化配置** from the command palette to enable or disable self-evolution. It defaults to off and shares `evolution.enabled` in the CLI user `config.json` with `cc ui` and JetBrains. Enabling can initialize the local signed runtime; disabling keeps ordinary Agent use available and preserves deployment data. Stop and restart a running Agent session after switching. These controls require CLI 0.166.127 and the paired extension version below.
 
+## Next release candidate
+
+Source candidate **0.37.169** recommends CLI **0.166.131** and pairs with JetBrains **0.4.186** after the new kernel and CLI are public and independently verified. The extension has not been published. Exact-source host/release gates and public VSIX readback are still required. The verified public pairing remains documented below. Microsoft Marketplace is deferred.
+
 ## Current release
 
 <!-- release168-status -->
@@ -179,16 +183,15 @@ Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX 
 
 ## Release compatibility
 
-Public Open VSX **0.37.165** recommends public CLI **`0.166.127`**. Its exact-source release gates and public archive comparison passed. JetBrains **0.4.182** is public and independently verified.
-The table records the current verified Open VSX / CLI pairing. Formal evaluation and full native review retain their separate acceptance status.
+Public Open VSX **0.37.168** recommends public CLI **`0.166.130`** and pairs with verified JetBrains **0.4.185** at f301. The newer source candidate **0.37.169** recommends unreleased CLI **0.166.131** and requires fresh exact-source gates and verified upstream publication.
 
-| Component                 | Current status                                                                    |
-| ------------------------- | --------------------------------------------------------------------------------- |
-| VS Code extension         | **0.37.165**; public version recorded in the saved publication receipt            |
-| Recommended CLI           | **`chainlesschain@0.166.127`**; public recommendation of the existing IDE release |
-| Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI                         |
-| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                               |
-| Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code                              |
+| Component                 | Verified public status                                         |
+| ------------------------- | -------------------------------------------------------------- |
+| VS Code extension         | **0.37.168**, public and listed                                |
+| Recommended CLI           | **`chainlesschain@0.166.130`**, verified public package        |
+| Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors            |
+| Distribution              | Open VSX and versioned VSIX; Microsoft Marketplace deferred    |
 
 ### What's new in 0.37.159
 

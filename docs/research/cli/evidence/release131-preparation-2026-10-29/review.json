@@ -1,0 +1,386 @@
+{
+  "schema": "chainlesschain.release131-preparation/v1",
+  "observedAt": "2026-10-29T04:46:37.430Z",
+  "sourceHeadBeforeCommit": "b6512bfab3",
+  "versions": {
+    "cli": "0.166.131",
+    "kernel": "0.1.11",
+    "vscode": "0.37.169",
+    "jetbrains": "0.4.186"
+  },
+  "publicVersionAvailability": {
+    "observedAt": "2026-10-29T04:34:01.506Z",
+    "candidateVersions": {
+      "cli": "0.166.131",
+      "kernel": "0.1.11",
+      "vscode": "0.37.169",
+      "jetbrains": "0.4.186"
+    },
+    "records": [
+      {
+        "name": "cli131",
+        "url": "https://registry.npmjs.org/chainlesschain/0.166.131",
+        "status": 404,
+        "bytes": 30,
+        "sha256": "77d3684cd74714dcc8439560c3b6a6396f9f01a3e2315a8fa2526b8d6f94da1a"
+      },
+      {
+        "name": "kernel011",
+        "url": "https://registry.npmjs.org/@chainlesschain%2fcontext-memory-kernel/0.1.11",
+        "status": 404,
+        "bytes": 27,
+        "sha256": "99162f8865eeddec69018ed4ac4dc9b2a1a5975d5ca504b148a43cc2167665ed"
+      },
+      {
+        "name": "open-vsx169",
+        "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.169",
+        "status": 404,
+        "bytes": 115,
+        "sha256": "495b9cc8fd24611dfda9807928ff54aee9c2f7498cb65543729b2bf76ecb47c0"
+      },
+      {
+        "name": "jetbrains-updates",
+        "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100",
+        "status": 200,
+        "bytes": 424578,
+        "sha256": "3f25e1482dd4aac1a50e2ded757648d0dae6f3f4140462e44a19b811ff41bc51"
+      }
+    ],
+    "boundary": "Public version availability only, not a reservation or release authorization. Recheck before publication and verify exact-source gates and child packages in dependency order."
+  },
+  "publicReleaseUnchanged": {
+    "cli": "0.166.130",
+    "vscode": "0.37.168",
+    "jetbrains": "0.4.185",
+    "kernel": "0.1.10",
+    "source": "f3015e799624b81af564aaaa1b7701c0a5c70e26"
+  },
+  "finalSourceSha256": {
+    "CHANGELOG.md": "b9f4be09cdc9cbf753f35fee8acf6d2caa3104bf18529443d9723e79ddf2a5ac",
+    "package-lock.json": "d4f206e7982819d21c8f778bce539bb94a52a7dc16882f22c3fc6229140b5e8a",
+    "packages/cli/package.json": "4444d25abdb08eb8e100a0d76423ced5efed4d900ba2a0aa4dd6b68c2f75b20a",
+    "packages/cli/README.md": "4ea75747e50d0d752a519abf0ec542754233cae06a3438e0c3bf5a734eef607b",
+    "packages/cli/src/data/changelog.json": "554daec4c9982619b1dd994563c45e40e0b88d9b8fe1f8dc23e21ac845da391f",
+    "packages/context-memory-kernel/package.json": "ed0a010ee0146aebc4aed67cf7f7a79073298c517c6f85c83b21d0afb030e3a7",
+    "packages/context-memory-kernel/lib/runtime.js": "8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+    "packages/vscode-extension/package.json": "107735cc2e05e982654c7b083b0ef6a58d1eaa7208e5035e27aa9469c6f13a7a",
+    "packages/vscode-extension/README.md": "6347e2950f7d4360c8d9e4b2da1d5b19de62dc18def57c7cb8a6ca5086e44e91",
+    "packages/jetbrains-plugin/README.md": "0e584cb6997746d6d0ebf36097407c1fac1dbd7c53a786d796af5dec98551111",
+    "packages/jetbrains-plugin/build.gradle.kts": "42d2a1b5ced1d73247130dde5a82b0207e71b28671ba6d23d7fda18a0a00c6a5",
+    "packages/jetbrains-plugin/gradle.properties": "cdfd73b838527de3e5290e0d93c429a6147d215d39d8f1965bdbc1caf9386073",
+    "packages/jetbrains-plugin/src/main/resources/META-INF/plugin.xml": "f86f2d2039c2e88dfb15dfa36c9d4af18204cafbf1d1d89dce6d2eefafe49102",
+    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CliVersionCheck.java": "b33bb0768b0ef8060d337e425660c310cf6e1df8cc01e2ad21bb1e66f2367532",
+    "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/CliVersionCheckTest.java": "dd1809e8a88bdcdc4ec8558d4dd4e160bfbf2a194bdbe39b2c280b468ec647b0"
+  },
+  "localTests": {
+    "cli": {
+      "files": 5,
+      "passed": 49
+    },
+    "metadata": {
+      "passed": 15
+    },
+    "java": {
+      "passed": 8,
+      "toolchain": "cached JBR 21.0.3",
+      "generatedDuringRun": true
+    },
+    "sourcesStableDuringTests": true,
+    "finalFormattingFollowup": "Root changelog blank-line normalization and VS Code README table formatting only; generated changelog parity and both final metadata validators rechecked."
+  },
+  "pack": {
+    "observedAt": "2026-10-29T04:43:56.323Z",
+    "results": [
+      {
+        "name": "kernel",
+        "args": [
+          "C:/nvm4w/nodejs/node_modules/npm/bin/npm-cli.js",
+          "pack",
+          "--dry-run",
+          "--ignore-scripts",
+          "--json",
+          "--workspaces=false",
+          "--cache",
+          "C:\\code\\chainlesschain\\.work\\release131-preparation\\npm-cache"
+        ],
+        "version": "0.1.11",
+        "exitCode": 0,
+        "sourcesStable": true,
+        "before": "ed0a010ee0146aebc4aed67cf7f7a79073298c517c6f85c83b21d0afb030e3a7",
+        "after": "ed0a010ee0146aebc4aed67cf7f7a79073298c517c6f85c83b21d0afb030e3a7",
+        "files": 26,
+        "unpackedSize": 233834,
+        "boundary": "Pack inventory only; lifecycle scripts skipped; no publication or public availability claim."
+      },
+      {
+        "name": "cli",
+        "args": [
+          "C:/nvm4w/nodejs/node_modules/npm/bin/npm-cli.js",
+          "pack",
+          "--dry-run",
+          "--ignore-scripts",
+          "--json",
+          "--workspaces=false",
+          "--cache",
+          "C:\\code\\chainlesschain\\.work\\release131-preparation\\npm-cache"
+        ],
+        "version": "0.166.131",
+        "exitCode": 0,
+        "sourcesStable": true,
+        "before": "4444d25abdb08eb8e100a0d76423ced5efed4d900ba2a0aa4dd6b68c2f75b20a",
+        "after": "4444d25abdb08eb8e100a0d76423ced5efed4d900ba2a0aa4dd6b68c2f75b20a",
+        "files": 1843,
+        "unpackedSize": 37650317,
+        "boundary": "Pack inventory only; lifecycle scripts skipped; no publication or public availability claim."
+      }
+    ]
+  },
+  "egress": {
+    "candidates": 82,
+    "issues": 0,
+    "parseErrors": 0,
+    "paidReady": false,
+    "runtimeCoverageVerified": false
+  },
+  "plannedReleaseRef": "v-npm-0-166-131",
+  "releaseTagCreated": false,
+  "published": false,
+  "exactSourceGates": "pending new commit and exact-SHA matrices; old 0d67 checks do not confer release admission",
+  "requiredOrder": "verified child npm packages -> CLI OIDC and public readback -> IDE releases and readback -> clients",
+  "acceptance": {
+    "accepted": 34,
+    "total": 45,
+    "original129Dispatch": "REQUEST_UNRESOLVED",
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD",
+    "microsoft": "deferred"
+  },
+  "artifacts": [
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/cli-pack.json.gz",
+      "source": ".work\\release131-preparation\\cli-pack.json",
+      "bytes": 24974,
+      "sha256": "05f95ae9dee8f46baf78293d6e8c831a9c8f5e5941834c97c381e4e1cb98b58f",
+      "encoding": "gzip",
+      "contentBytes": 215960,
+      "contentSha256": "fdab6cd01b98b7ddd746a40ad872b5f4a83c3a99363ef6eafe8128937e19ae10"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/cli-pack.log.gz",
+      "source": ".work\\release131-preparation\\cli-pack.log",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63",
+      "encoding": "gzip",
+      "contentBytes": 0,
+      "contentSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/cli-process.json.gz",
+      "source": ".work\\release131-preparation\\cli-process.json",
+      "bytes": 1234,
+      "sha256": "68412f98aecd0fefc6d402711e399e1af3ac8179bce906ad228dee3d0d700136",
+      "encoding": "gzip",
+      "contentBytes": 4319,
+      "contentSha256": "c18ad2c52899c441d430072340aa2d19917a3025062f5f2d96b78d0a124957f3"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/cli.json.gz",
+      "source": ".work\\release131-preparation\\cli.json",
+      "bytes": 2778,
+      "sha256": "999e53dada95f018d6f7339a7a5a971fe25350c84bfeabf3855f71f8f33a3da9",
+      "encoding": "gzip",
+      "contentBytes": 15064,
+      "contentSha256": "f837fa2a0ac174571374527ceab27a3dda5b5cdefc275c0ae65051a7254f31c6"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/cli.log.gz",
+      "source": ".work\\release131-preparation\\cli.log",
+      "bytes": 110,
+      "sha256": "e900477219c4b33fda9ba866bb1feb6cb6ab6269754c73895fc25e814fbb9ef7",
+      "encoding": "gzip",
+      "contentBytes": 100,
+      "contentSha256": "199997c5d0c8efbbf3c462b1d6a3e809d8b07ce5d4feb29a42d8d75579bdd8d0"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/cli131.json.gz",
+      "source": ".work\\release131-preparation\\cli131.json",
+      "bytes": 50,
+      "sha256": "8bad47471cf1e54e6ea66142ae63c156720e82341d1d78a5a229a93acc1c1eeb",
+      "encoding": "gzip",
+      "contentBytes": 30,
+      "contentSha256": "77d3684cd74714dcc8439560c3b6a6396f9f01a3e2315a8fa2526b8d6f94da1a"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/CliVersionCheckTest.xml.gz",
+      "source": ".work\\release131-preparation\\CliVersionCheckTest.xml",
+      "bytes": 473,
+      "sha256": "74cca9eed19ad5fb8eabee8ed0e0fd864e6444f4e3badae2ba248f4e8de8a49f",
+      "encoding": "gzip",
+      "contentBytes": 1351,
+      "contentSha256": "59d811628fccae26c312e2fe02f8d2636b1503f20e6fa67e3ba2a97abb8461f5"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/egress-final.log.gz",
+      "source": ".work\\release131-preparation\\egress-final.log",
+      "bytes": 148,
+      "sha256": "3617a4b56a0ec5b4c5698921f23da1166e567b52b58022153122259651c458c4",
+      "encoding": "gzip",
+      "contentBytes": 170,
+      "contentSha256": "efaa4b666879e42135fdf72002ab8a297aadcb585d85344e503814c1adaefdbc"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/egress.json.gz",
+      "source": ".work\\release131-preparation\\egress.json",
+      "bytes": 20698,
+      "sha256": "7aadd506bc679697766d0ec02e9f8ac8428a218ca30f143f2e720873c58ca20b",
+      "encoding": "gzip",
+      "contentBytes": 90828,
+      "contentSha256": "3987d90cf1fe45fda31aca080fe331b57ba3d715afa8cf5b39634ef017d602c2"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/final-checks.json.gz",
+      "source": ".work\\release131-preparation\\final-checks.json",
+      "bytes": 1283,
+      "sha256": "b9fc8a1e0f1486dcb4ff0f66179809cb85ea74e42d5acfd5fb93d61a35b1acd7",
+      "encoding": "gzip",
+      "contentBytes": 2906,
+      "contentSha256": "050fc2bf5d52df25001c11990f792291e01f572cd8dddc4b37a78cbcb50d146f"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/java-process.json.gz",
+      "source": ".work\\release131-preparation\\java-process.json",
+      "bytes": 1252,
+      "sha256": "675d198b7450aec16f2c036a44504462777965cf7691d40fa1db92dfd4cb4989",
+      "encoding": "gzip",
+      "contentBytes": 4298,
+      "contentSha256": "d5e4ee5dd4df8c4d11cd68c204c1155be9ecddd9c32674c05a031c63db2e3219"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/java.log.gz",
+      "source": ".work\\release131-preparation\\java.log",
+      "bytes": 5054,
+      "sha256": "832cfea2ded139367a2e813ab848ded8c8996d634f43cad9c66c4e5448bfc3a5",
+      "encoding": "gzip",
+      "contentBytes": 13486,
+      "contentSha256": "bcd0dbd8d3e42d57c2bf75bc3b3d73dc31d0a84562e1539c5a511196d6273a6f"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/jetbrains-metadata-final.log.gz",
+      "source": ".work\\release131-preparation\\jetbrains-metadata-final.log",
+      "bytes": 112,
+      "sha256": "951f92b2efe2edc3f8b114128068a6863d1c57d9738de729047285239e640623",
+      "encoding": "gzip",
+      "contentBytes": 122,
+      "contentSha256": "46c103c6628b8ef451c0d82e4f37593870bb22d140d45894ddd2ca0d1a2d5d7e"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/jetbrains-updates.json.gz",
+      "source": ".work\\release131-preparation\\jetbrains-updates.json",
+      "bytes": 32625,
+      "sha256": "e81b1e61f80c836eed9634089e76d4e9865ea72dd8b746019969a30934d0a32b",
+      "encoding": "gzip",
+      "contentBytes": 424578,
+      "contentSha256": "3f25e1482dd4aac1a50e2ded757648d0dae6f3f4140462e44a19b811ff41bc51"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/kernel-pack-cache-denied.json.gz",
+      "source": ".work\\release131-preparation\\kernel-pack-cache-denied.json",
+      "bytes": 372,
+      "sha256": "8d78a41014c1c90b6dd02ddfdab4a8f8e3ba93824287abc0c7ad2d5bef30f5eb",
+      "encoding": "gzip",
+      "contentBytes": 561,
+      "contentSha256": "9d1601e4a9db7f17e2093fd47bcc4805df97ded00a0c2d2327323592c14906c9"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/kernel-pack-cache-denied.log.gz",
+      "source": ".work\\release131-preparation\\kernel-pack-cache-denied.log",
+      "bytes": 516,
+      "sha256": "6d2990faec08ad7ea587ba4f37ee99c11979e3934e7141a07cf30ddf9027c833",
+      "encoding": "gzip",
+      "contentBytes": 1111,
+      "contentSha256": "806450c2a7a69bfe9c86160b454bb4a213a0509ea4f07cd5f5b71533ef142536"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/kernel-pack.json.gz",
+      "source": ".work\\release131-preparation\\kernel-pack.json",
+      "bytes": 753,
+      "sha256": "2168fbbab241f7c8736ddbd9b529af3b5281d078593600f0242f27cfef1def94",
+      "encoding": "gzip",
+      "contentBytes": 3071,
+      "contentSha256": "9b8e48d67f8a5002d6596b48587da04a84bfaaf53017e1a92a6ce2d0eddb6ac2"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/kernel-pack.log.gz",
+      "source": ".work\\release131-preparation\\kernel-pack.log",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63",
+      "encoding": "gzip",
+      "contentBytes": 0,
+      "contentSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/kernel011.json.gz",
+      "source": ".work\\release131-preparation\\kernel011.json",
+      "bytes": 47,
+      "sha256": "86719806ce3666195a5608023901f13dc752772e7123c7b4495d4397bd865cd3",
+      "encoding": "gzip",
+      "contentBytes": 27,
+      "contentSha256": "99162f8865eeddec69018ed4ac4dc9b2a1a5975d5ca504b148a43cc2167665ed"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/metadata-process.json.gz",
+      "source": ".work\\release131-preparation\\metadata-process.json",
+      "bytes": 1155,
+      "sha256": "dcdc28e6ca840cc2d779273aecb9558eab4046a83a604616c924b6205c6d5420",
+      "encoding": "gzip",
+      "contentBytes": 4093,
+      "contentSha256": "d3d0154fea70ad9b8aad5dfa5bad8f3d8564c9fa04d90ae4c95f8a30fbd7a8ed"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/metadata.log.gz",
+      "source": ".work\\release131-preparation\\metadata.log",
+      "bytes": 870,
+      "sha256": "1a0651808b0347027f47fc735096dd434ad701727ed6f409cf53a3c9a6275c1b",
+      "encoding": "gzip",
+      "contentBytes": 3197,
+      "contentSha256": "e18e45c758bcc663950b37b04d2ef757dbb8712784b4117b27daec9513951c76"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/open-vsx169.json.gz",
+      "source": ".work\\release131-preparation\\open-vsx169.json",
+      "bytes": 111,
+      "sha256": "47de474f7f493e4aedba096f3f650bc58fc06f902a6bbffb254bc1c7ebec3a25",
+      "encoding": "gzip",
+      "contentBytes": 115,
+      "contentSha256": "495b9cc8fd24611dfda9807928ff54aee9c2f7498cb65543729b2bf76ecb47c0"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/pack-process.json.gz",
+      "source": ".work\\release131-preparation\\pack-process.json",
+      "bytes": 532,
+      "sha256": "5de177393c818af7b002726378e113018859860b9fa5d70faafc5f401da34796",
+      "encoding": "gzip",
+      "contentBytes": 1542,
+      "contentSha256": "74d09fd84b1d3df608a362b58680acbba61e0af93dfb4c4e37303ab8039a69aa"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/version-availability.json.gz",
+      "source": ".work\\release131-preparation\\version-availability.json",
+      "bytes": 672,
+      "sha256": "9319cc4f3b8494fe4f225b206607b81198457b437b9e1d4612ee0c0c447d4abb",
+      "encoding": "gzip",
+      "contentBytes": 1376,
+      "contentSha256": "05c0beaef875c0dc2dd97b46a8a5ceab519fc57fa08ae2b13c5d5cba9b60d15e"
+    },
+    {
+      "path": "docs/research/cli/evidence/release131-preparation-2026-10-29/raw/vscode-overview-final.log.gz",
+      "source": ".work\\release131-preparation\\vscode-overview-final.log",
+      "bytes": 184,
+      "sha256": "05f55aab977f5884c087baa82bc0086c859f0242b45070d45a09fb329cf8389c",
+      "encoding": "gzip",
+      "contentBytes": 320,
+      "contentSha256": "86450a8940f23e11ee5431da55cd23c43f0f906e2af4987903804f7e3ef9ba9b"
+    }
+  ]
+}

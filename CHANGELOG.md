@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.131: memory consistency and temporary worktree ownership (candidate, 2026-10-29)
+
+- Bind Memory recall to the same monotonic revision before and after query/ranking, and interrupt asynchronous semantic candidate waits on Stop. Late results cannot resume a cancelled request.
+- Verify all disk query bundle frames and file identities with exact BigInt metadata; narrowly bridge affected Windows libuv path-device projections through independently opened parent/volume handles. Preserve replacement, link, corruption and cleanup refusals.
+- Refresh project rules and Memory around canonical compaction; validate real killed-writer recovery and independent mutation/readback without duplicating compaction events. Incomplete semantic usage intents require reconciliation. Full IDE recovery, semantic quality and latency SLO remain separate acceptance work.
+- Restrict temporary worktree callbacks from launching unowned background shell/subagents, persistent schedules or isolated skill children; retain awaited foreground execution and ordinary persistent-host background behavior. Arbitrary daemon containment is not claimed.
+- Include independent verify: Goal checks, live MCP catalog inheritance/cancellation, skill download cancellation and Terra capability/cache-billing changes accumulated on main. These are unreleased until the new exact-source gates and publication complete.
+- Require context-memory-kernel 0.1.11 publication and public verification before CLI 0.166.131, then pair IDE candidates 0.37.169 / 0.4.186 after the CLI is verified. Use OIDC only; never reuse the occupied .130 tag. Accepted deliveries remain 34/45; NOT_PAID_READY / NOT_ADMITTED / HOLD and the unresolved original dispatch remain.
+
 ### Fixed - cc CLI 0.166.130: Goal budget and workspace evidence (candidate, 2026-10-29)
 
 - Share model Goal review with the author run iteration/cost budgets, cancellation and output limits; retain known usage and stop on unknown usage or transport failure.
