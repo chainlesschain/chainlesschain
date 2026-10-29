@@ -215,25 +215,26 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     // ancestor, including native Windows resolution. Keep the separate identity
     // comparisons below without traversing the same ancestry twice per read.
     directories(this.shardDirectory);
+    const parentIdentity = identity(dirname(this.filePath));
+    const shardStat = lstatSync(this.shardDirectory);
+    const shardIdentity = `${shardStat.dev}:${shardStat.ino}`;
     if (
-      identity(dirname(this.filePath)) !== this._parentIdentity ||
-      (this._shardIdentity !== null &&
-        identity(this.shardDirectory) !== this._shardIdentity)
+      parentIdentity !== this._parentIdentity ||
+      (this._shardIdentity !== null && shardIdentity !== this._shardIdentity)
     ) {
       throw corruptStore(
         this.filePath,
         "authority directory was replaced during an operation",
       );
     }
-    this._shardIdentity = identity(this.shardDirectory);
-    if (
-      process.platform !== "win32" &&
-      lstatSync(this.shardDirectory).mode & 0o077
-    )
+    if (process.platform !== "win32" && shardStat.mode & 0o077)
       throw corruptStore(
         this.shardDirectory,
         "shard directory must be private",
       );
+    // Publish precisely the identity we compared. A second lstat here could
+    // silently adopt a replacement between comparison and baseline update.
+    this._shardIdentity = shardIdentity;
   }
 
   _shardPath(bucket, descriptor) {

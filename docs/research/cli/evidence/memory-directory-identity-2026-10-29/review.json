@@ -1,0 +1,196 @@
+{
+  "observedAt": "2026-10-29T00:49:46.223Z",
+  "sourceBase": "a27abe83934c44b4ce5d087dda58b7124267180a",
+  "sources": [
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "sha256": "c76669f66601ee7827997c04f2cbd498bc81e9d6462a0193604431151bd26ac9",
+      "gitBlob": "445558529490a9bf0c8504580b1a89b82fa2ede9"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/segmented-memory-directory-identity.test.js",
+      "sha256": "3b7da552646f09b0773561a0f273c34b087438368c5a9cbbdacb2889b64c1df9",
+      "gitBlob": "58fd304ecc54671fa2b030bf6e31708dfea77394"
+    },
+    {
+      "path": "packages/cli/scripts/memory-query-index-benchmark.mjs",
+      "sha256": "af3a4e082026dcb355e12e382b3e7aed47b814172a36b7450316c7e68cc3b212",
+      "gitBlob": "da8481eb8c2716fb25e0abd429ff415be05da3c9"
+    }
+  ],
+  "measurements": [
+    {
+      "count": 1000,
+      "samplesEach": 100,
+      "before": {
+        "samples": 100,
+        "minMs": 321.302,
+        "p50Ms": 343.98,
+        "p95Ms": 416.809,
+        "p99Ms": 453.652,
+        "maxMs": 530.195
+      },
+      "after": {
+        "samples": 100,
+        "minMs": 301.48,
+        "p50Ms": 315.601,
+        "p95Ms": 362.713,
+        "p99Ms": 377.257,
+        "maxMs": 384.453
+      },
+      "beforeEventLoopP95Ms": 20.595,
+      "afterEventLoopP95Ms": 20.218,
+      "beforePeakRssBytes": 115830784,
+      "afterPeakRssBytes": 115900416,
+      "defaultHotSloMet": false
+    },
+    {
+      "count": 10000,
+      "samplesEach": 100,
+      "before": {
+        "samples": 100,
+        "minMs": 323.965,
+        "p50Ms": 346.955,
+        "p95Ms": 441.575,
+        "p99Ms": 498.846,
+        "maxMs": 622.445
+      },
+      "after": {
+        "samples": 100,
+        "minMs": 308.919,
+        "p50Ms": 329.761,
+        "p95Ms": 377.028,
+        "p99Ms": 399.361,
+        "maxMs": 429.931
+      },
+      "beforeEventLoopP95Ms": 20.12,
+      "afterEventLoopP95Ms": 17.94,
+      "beforePeakRssBytes": 232890368,
+      "afterPeakRssBytes": 232714240,
+      "defaultHotSloMet": false
+    },
+    {
+      "count": 100000,
+      "samplesEach": 100,
+      "before": {
+        "samples": 100,
+        "minMs": 428.587,
+        "p50Ms": 465.22,
+        "p95Ms": 521.519,
+        "p99Ms": 532.107,
+        "maxMs": 535.784
+      },
+      "after": {
+        "samples": 100,
+        "minMs": 410.856,
+        "p50Ms": 450.458,
+        "p95Ms": 516.937,
+        "p99Ms": 539.349,
+        "maxMs": 540.548
+      },
+      "beforeEventLoopP95Ms": 23.724,
+      "afterEventLoopP95Ms": 24.92,
+      "beforePeakRssBytes": 1233780736,
+      "afterPeakRssBytes": 1232781312,
+      "defaultHotSloMet": false
+    }
+  ],
+  "validation": {
+    "vitest": {
+      "files": 6,
+      "passed": 65,
+      "failed": 0,
+      "platformSkipped": 2,
+      "exitCode": 0
+    },
+    "negative": {
+      "failed": 1,
+      "skipped": 1,
+      "expectedFailure": "Second directory check did not reject an identity replacement silently adopted by the old baseline publication."
+    },
+    "measuredQueries": 600
+  },
+  "boundaries": [
+    "Each guard still walks every ancestor, resolves the native Windows path afterward and obtains fresh parent/shard stats. No metadata is cached across guards.",
+    "One verified shard stat is used for comparison, private permission check and baseline publication; default validate-disk content/generation checks and selected authority reads remain unchanged.",
+    "Windows local test skips POSIX directory fsync and permission tests; cross-platform results remain pending.",
+    "Before 1K samples briefly overlapped scheduler tests; afterward only light documentation/Git work was performed. These are shared-workstation observations, not isolated causal performance claims.",
+    "Only hot-query samples were repeated; prior cold/rebuild/corruption/Stop/mixed-process measurements remain historical, not current-source reruns.",
+    "All three local default hot-query p95 values still exceed 200ms; do not claim SLO completion or substitute verified-memory mode.",
+    "Current source is excluded from the fixed e7 .130 release candidate; no package publication or native task acceptance added."
+  ],
+  "artifacts": [
+    {
+      "path": "before-hot-100.json.gz",
+      "sha256": "123df03d2daa4783a09220facd4f9e14d8da44f5c3cbb80c9178fdbf9a96a122",
+      "originalSha256": "eca57184bd0bf22d8d823bd5af8d4e526d370f73cc1aa5726085ac25bac4cc9a",
+      "bytes": 10703
+    },
+    {
+      "path": "before-hot-100.log.gz",
+      "sha256": "07c5ad36df7e53f979d3e07d920bdab78624106bea2ce7b9cc04d6bc3aba7957",
+      "originalSha256": "d6d0c11fd2136ef4791a955ef036361670ff38cb1da71119dea638951177243b",
+      "bytes": 554
+    },
+    {
+      "path": "before-hot-100-process.json.gz",
+      "sha256": "44cb8ee452b28cd0852b9eda37e42ef0dbe6b6682604bc7aa0849521cf8a5969",
+      "originalSha256": "7c1c7b7c12605b0ac35d312eb442f010ec6c7368193c5e2daf8fe5e97a93beb1",
+      "bytes": 94
+    },
+    {
+      "path": "after-hot-100.json.gz",
+      "sha256": "eebd3774e17cad67df149cf59973471c52d431a1fbd52f40e9a2c5a7fe8a8bdb",
+      "originalSha256": "4d316da8a0ddfba6805a8f5669149eeb759b541f1c6e50d478750b9c914a9f34",
+      "bytes": 10602
+    },
+    {
+      "path": "after-hot-100.log.gz",
+      "sha256": "5baf160dc5533ecffa68fb0d9654d24cbb3f763973c8d7576fd110e8f753a175",
+      "originalSha256": "3b60710aabcfad56fa099c4aae69b7e8ac929b01b9c4c5f70b22896428144254",
+      "bytes": 556
+    },
+    {
+      "path": "after-hot-100-process.json.gz",
+      "sha256": "22536a53d0b8065878a52037595a3528e69692d7bb09803ed9c52aea1703991b",
+      "originalSha256": "1e530d9862fea335797d380341104cf2c4f455dc9c0654b449180093efba00d3",
+      "bytes": 94
+    },
+    {
+      "path": "identity-before.json.gz",
+      "sha256": "40220671225fa13eb771c7237830dc03dbb08d9a141c12ccf6a871980153ed54",
+      "originalSha256": "e4ab15bbd9d50cb5fae39c57fa1a2ff1c843a992d9c542c91002f4fa57934c37",
+      "bytes": 785
+    },
+    {
+      "path": "identity-before.log.gz",
+      "sha256": "35fc114f954e299316c14883843616738f4908c37eb5b274262627b363eb19ca",
+      "originalSha256": "c245b17c6fe9da7bf9c9977acb85029f5c2db3fd0f93e611962770034a09ab06",
+      "bytes": 117
+    },
+    {
+      "path": "identity-before-process.json.gz",
+      "sha256": "1fb2b4f59b55e708b3b6f342f2b17003bb61b20cc8417e72e2db9d9120c55f73",
+      "originalSha256": "8b625bc0463bccecd1970b7b7f33023745cadb49a00c3083b5d0f6e4d67b8c80",
+      "bytes": 260
+    },
+    {
+      "path": "regression.json.gz",
+      "sha256": "bb134f07e64b749d5ee327858a0c7a8fb1f4c49275c4b7e355de2137a08f51e3",
+      "originalSha256": "28a91ebb350acf92262678ba95e4814dbf1707deef6e8a87262f971712051a37",
+      "bytes": 3849
+    },
+    {
+      "path": "regression.log.gz",
+      "sha256": "d6a34fd91d94591d1f3433dd14c75ff2481b712020c3da18cc6e7377b385f04e",
+      "originalSha256": "1a7297bae24edf17bd3d1a3c4e2a202c66aa18fe8cd218ff4f3464453c293a70",
+      "bytes": 114
+    },
+    {
+      "path": "regression-process.json.gz",
+      "sha256": "774280269036d7c849dccf1280f59a6ab89daac1adbe3c3708d1b1a39a361207",
+      "originalSha256": "e97e76a026be274894a24e94aa93ef9c114a672fe26566bf6c72b3b5e5b36a90",
+      "bytes": 312
+    }
+  ]
+}
