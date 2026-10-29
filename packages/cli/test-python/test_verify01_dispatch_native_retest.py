@@ -190,6 +190,93 @@ class DispatcherTests(unittest.TestCase):
         self.assertEqual(len(self.calls), 1)
         self.assertNotIn(b'sensitive', b''.join(file.read_bytes() for file in self.directory.glob('*.json')))
 
+    def test_failed_receipt_keeps_http_status_without_private_stderr_or_retry(self):
+        def denied(args):
+            self.calls.append(args)
+            return subprocess.CompletedProcess(args, 1, b'',
+                b'gh: private-token-and-account-data (HTTP 401)\n')
+        with self.assertRaisesRegex(RuntimeError, 'intent retained'):
+            m.execute(self.context, self.directory, submit=True, dispatch=denied)
+        receipt = json.loads((self.directory / (self.shards[0]['shardId'] + '.request.json')).read_bytes())
+        self.assertEqual(receipt['outcome'], 'uncertain')
+        self.assertEqual(receipt['processExitCode'], 1)
+        self.assertEqual(receipt['httpStatuses'], [401])
+        self.assertTrue(receipt['observedAt'].endswith('+00:00'))
+        self.assertNotIn(b'private-token', b''.join(file.read_bytes() for file in self.directory.glob('*.json')))
+        with self.assertRaisesRegex(RuntimeError, 'Unresolved intent'):
+            m.execute(self.context, self.directory, submit=True, dispatch=denied)
+        self.assertEqual(len(self.calls), 1)
+        self.assertFalse(list(self.directory.glob('*.resolved.json')))
+
+    def test_receipt_statuses_are_diagnostic_and_never_override_a_unique_run(self):
+        def returned_failure(args):
+            self.calls.append(args)
+            self.runs.append({'id': 91})
+            return subprocess.CompletedProcess(args, 1, b'',
+                b'gh: first operation denied (HTTP 403)\n'
+                b'private payload mentions HTTP 422 and (HTTP 500) followed by text\n'
+                b'gh: later operation failed (HTTP 502)\n')
+        with self.assertRaisesRegex(RuntimeError, 'intent retained'):
+            m.execute(self.context, self.directory, submit=True, dispatch=returned_failure)
+        request = self.directory / (self.shards[0]['shardId'] + '.request.json')
+        original = request.read_bytes()
+        self.assertEqual(json.loads(original)['httpStatuses'], [403, 502])
+        m.execute(self.context, self.directory, resolve=True,
+                  dispatch=lambda args: self.fail('resolve must not dispatch'))
+        resolved = json.loads((self.directory / (self.shards[0]['shardId'] + '.resolved.json')).read_bytes())
+        self.assertEqual(resolved['runId'], '91')
+        self.assertEqual(request.read_bytes(), original)
+        self.assertEqual(len(self.calls), 1)
+
+    def test_timeout_receipt_preserves_only_bounded_failure_metadata(self):
+        def timeout(args):
+            raise subprocess.TimeoutExpired(args, 120,
+                output=b'private stdout', stderr=b'gh: secret token (HTTP 504)\n')
+        with self.assertRaisesRegex(RuntimeError, 'response unavailable'):
+            m.execute(self.context, self.directory, submit=True, dispatch=timeout)
+        request = self.directory / (self.shards[0]['shardId'] + '.request.json')
+        receipt = json.loads(request.read_bytes())
+        self.assertEqual(receipt['outcome'], 'uncertain')
+        self.assertEqual(receipt['failureKind'], 'subprocess-timeout')
+        self.assertEqual(receipt['httpStatuses'], [504])
+        self.assertNotIn(b'private', request.read_bytes())
+        self.assertNotIn(b'secret', request.read_bytes())
+
+    def test_workflow_cli_status_format_and_unknown_exception_are_sanitized(self):
+        receipt = m.dispatch_receipt(response=subprocess.CompletedProcess(
+            [], 1, b'', b'could not create workflow dispatch event: HTTP 422: private payload\n'))
+        self.assertEqual(receipt['httpStatuses'], [422])
+        self.assertNotIn('private', json.dumps(receipt))
+        for error, expected in [(OSError('private path'), 'subprocess-error'),
+                                (ValueError('private token'), 'dispatch-exception')]:
+            with self.subTest(expected=expected):
+                receipt = m.dispatch_receipt(error=error)
+                self.assertEqual(receipt['outcome'], 'uncertain')
+                self.assertEqual(receipt['failureKind'], expected)
+                self.assertNotIn('private', json.dumps(receipt))
+                self.assertNotIn('processExitCode', receipt)
+
+    def test_diagnostic_tail_is_bounded_and_does_not_capture_arbitrary_status_text(self):
+        receipt = m.dispatch_receipt(response=subprocess.CompletedProcess([], 1, b'',
+            b'gh: earlier response (HTTP 401)\n' + b'x' * 65536 +
+            b'\nprivate body HTTP 403 and (HTTP 500)\n'
+            b'gh: final error (HTTP 503)\n'))
+        self.assertEqual(receipt['httpStatuses'], [503])
+        self.assertEqual(set(receipt), {'outcome', 'observedAt', 'processExitCode', 'httpStatuses'})
+
+    def test_legacy_uncertain_receipt_is_not_rewritten_during_failed_resolution(self):
+        def failed(args):
+            return subprocess.CompletedProcess(args, 1, b'', b'')
+        with self.assertRaisesRegex(RuntimeError, 'intent retained'):
+            m.execute(self.context, self.directory, submit=True, dispatch=failed)
+        request = self.directory / (self.shards[0]['shardId'] + '.request.json')
+        request.write_bytes(m.encoded({'outcome': 'uncertain'}))
+        legacy = request.read_bytes()
+        with self.assertRaisesRegex(RuntimeError, 'unresolved/ambiguous'):
+            m.execute(self.context, self.directory, resolve=True,
+                      dispatch=lambda args: self.fail('resolve must not dispatch'))
+        self.assertEqual(request.read_bytes(), legacy)
+
     def test_branch_changes_after_intent_prevent_dispatch_and_leave_intent(self):
         checks = []
         def changing(context):

@@ -1,0 +1,103 @@
+{
+  "observedAt": "2026-10-29T01:01:41.042Z",
+  "sourceBase": "109b99efa9d0a103f5fc28f1ee4bf3a2258111d9",
+  "sources": [
+    {
+      "path": "packages/cli/scripts/verify01-dispatch-native-retest.py",
+      "sha256": "313472d7b53028a3b8a4d00a648e07e88c6d851657db1396286c3023b06007a4",
+      "gitBlob": "d391f4fe953476468116c88bd52d50acf6a93813"
+    },
+    {
+      "path": "packages/cli/test-python/test_verify01_dispatch_native_retest.py",
+      "sha256": "d0ade265935bc962ba71fc62c50016b316b7a9608f141a031ee84fc12d10d32c",
+      "gitBlob": "b121774b84accc9ccb4d7c72708ab286671cc64c"
+    }
+  ],
+  "originalToolReceiptAudit": {
+    "scope": "Original dispatch call and its resumed process output in this same thread",
+    "failureObservedAt": "2026-10-28T18:17:28.325Z",
+    "retainedOutputSha256": "e3f9522c4c55e02756fa754458b56a11bb01e187bf1fe330c1b324b5ba518170",
+    "observedFailure": "Dispatch returned failure; intent retained, use --resolve",
+    "httpStatusRecovered": false,
+    "rawConversationExported": false
+  },
+  "widerRunSearch": {
+    "workflow": "verify01-native-task-campaign.yml",
+    "event": "workflow_dispatch",
+    "created": "2026-10-28T18:16:50Z..2026-10-28T18:30:00Z",
+    "branchFilter": null,
+    "shaFilter": null,
+    "pages": 1,
+    "runs": 0,
+    "provesNonAcceptance": false
+  },
+  "tests": {
+    "passed": 29,
+    "failed": 0,
+    "added": 6,
+    "exitCode": 0,
+    "initialNegative": {
+      "tests": 27,
+      "errors": 3,
+      "reason": "Old request receipts omit exit code, HTTP diagnostic statuses and timeout category."
+    }
+  },
+  "invariant": "Diagnostic metadata never establishes acceptance or rejection. Failed/unknown intents still block submit, --resolve never dispatches and legacy request bytes are not rewritten.",
+  "boundaries": [
+    "Only new receipts retain bounded whitelisted scalars; raw stdout, stderr, authentication and exception messages are not persisted.",
+    "Original verify-11 remains unresolved; its original context/intent/request bytes remain unchanged and no new native request was sent.",
+    "No run in the wider time window is an observation, not proof that a request was rejected.",
+    "Synthetic HTTP statuses in tests do not assert that the historical request returned any particular status.",
+    "Native task products remain 34/45; current source is excluded from the fixed e7 .130 release candidate."
+  ],
+  "artifacts": [
+    {
+      "path": "receipt-before.log.gz",
+      "sha256": "cc5646e23ed7ab846142d393b07b72604d6bea0b6a562adef49f015dd20395be",
+      "originalSha256": "825bfa938b5029612c2c2dacb23659609cb29b4ba7bdfc33a1f36a4a6cfd5d98",
+      "bytes": 819
+    },
+    {
+      "path": "receipt-before-process.json.gz",
+      "sha256": "f57982ea4fc0f915db5f966beb5308b1b902e3024d08cb34edf11b22cc52e5f3",
+      "originalSha256": "e16fd87cc16e90d3cc0298e5f32a4d58e691042791afcc8759b297973ae61700",
+      "bytes": 94
+    },
+    {
+      "path": "receipt-final.log.gz",
+      "sha256": "93d620e24ac8259bab4d995b04db2fa606b7b26e341697331d1f71b55d5c372c",
+      "originalSha256": "c48dc0c7645cb8e353b91c3ffb6d653626363210412f6149cd5515296e144024",
+      "bytes": 60
+    },
+    {
+      "path": "receipt-final-process.json.gz",
+      "sha256": "780326e4553d097ec4f5b7b9f76fe60398b25648c81dcad6a41005669aaf9ac9",
+      "originalSha256": "c1217dd6d9d736856c9f2228752df99dab5ee665f7050ad1b928927508b19241",
+      "bytes": 103
+    },
+    {
+      "path": "journal-unchanged.json.gz",
+      "sha256": "2a988e9174549079e2cf2f532724e1800c4cbe231fe7624785e0b0387043d5d7",
+      "originalSha256": "acbefdd8d21fd7ed9e8550464456b28e6590ce8e2855654be88d3a361e652053",
+      "bytes": 319
+    },
+    {
+      "path": "window-runs.json.gz",
+      "sha256": "384be6105aad60cba97bdc78cf093ffe75f8bc649ea61d3fcafee505336ad0b3",
+      "originalSha256": "b280de41a20adbd4f76edcf20543cf696d8672f30d08a3deb0e9fc5f153e1dc6",
+      "bytes": 63
+    },
+    {
+      "path": "resolve.log.gz",
+      "sha256": "debd1d7f1757230707979221c5b9b9b574eacc9c3be2b3d30507f976d1ca1dbd",
+      "originalSha256": "24fb3e457897355a44a378f8b43913afaa126268947e08f4adacdd8c7acfda06",
+      "bytes": 333
+    },
+    {
+      "path": "resolve-process.json.gz",
+      "sha256": "46037d70911dbedde95b16089b9525adccaac71f385c30e1717f060ab1b3a106",
+      "originalSha256": "6489fd7a4aaaac30431f015cc5b56a5c438c96123c79c230460f5214dc9827e1",
+      "bytes": 94
+    }
+  ]
+}

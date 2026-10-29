@@ -269,6 +269,39 @@ def dispatch_args(context, shard):
             '-f', 'sample_ids=' + ','.join(sorted(shard['sampleIds']))] + (['-f', 'review_changes=true'] if review_changes else [])
 
 
+def dispatch_receipt(response=None, error=None):
+    # Keep only diagnostic scalars, never subprocess text or exception messages.
+    # HTTP observations do not establish acceptance/rejection: a CLI may have
+    # made several requests. Every failed/unknown intent still requires resolve.
+    result = response if response is not None else error
+    exit_code = getattr(response, 'returncode', None)
+    receipt = {
+        'outcome': 'returned-success' if type(exit_code) is int and exit_code == 0 else 'uncertain',
+        'observedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    }
+    if type(exit_code) is int:
+        receipt['processExitCode'] = exit_code
+    if error is not None:
+        receipt['failureKind'] = ('subprocess-timeout' if isinstance(error, subprocess.TimeoutExpired)
+                                  else 'subprocess-error' if isinstance(error, OSError)
+                                  else 'dispatch-exception')
+    statuses = set()
+    for field in ('stdout', 'stderr'):
+        stream = getattr(result, field, None)
+        if isinstance(stream, str):
+            stream = stream[-65536:].encode('utf-8', 'replace')
+        if not isinstance(stream, bytes):
+            continue
+        tail = stream[-65536:]
+        for pattern in (
+            rb'^gh: [^\r\n]{0,4096}\(HTTP ([1-5][0-9]{2})\)\r?$',
+            rb'^could not create workflow dispatch event: HTTP ([1-5][0-9]{2}): [^\r\n]{0,4096}\r?$',
+        ):
+            statuses.update(int(match.group(1)) for match in re.finditer(pattern, tail, re.MULTILINE))
+    receipt['httpStatuses'] = sorted(statuses)
+    return receipt
+
+
 def resolve_intent(directory, context, shard, runs):
     key = shard['shardId']
     intent = json.loads((directory / (key + '.intent.json')).read_bytes())
@@ -325,12 +358,12 @@ def execute(context, directory, submit=False, resolve=False, dispatch=None, max_
             assert_remote_head(context)
             try:
                 response = dispatch(dispatch_args(context, shard))
-            except Exception:
-                atomic_new(directory / (key + '.request.json'), {'outcome': 'uncertain'})
+            except Exception as error:
+                atomic_new(directory / (key + '.request.json'), dispatch_receipt(error=error))
                 raise RuntimeError('Dispatch response unavailable; intent retained, use --resolve') from None
             urls = re.findall(r'https://github\.com/chainlesschain/chainlesschain/actions/runs/[1-9][0-9]*',
                               (response.stdout + response.stderr).decode('utf-8', 'replace'))
-            request = {'outcome': 'returned-success' if response.returncode == 0 else 'uncertain'}
+            request = dispatch_receipt(response=response)
             if len(set(urls)) == 1:
                 request['runUrl'] = urls[0]
             atomic_new(directory / (key + '.request.json'), request)
