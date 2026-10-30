@@ -10,11 +10,11 @@ MCP bridge.
 
 Open **Skill 自进化配置** from the command palette to enable or disable self-evolution. It defaults to off and shares `evolution.enabled` in the CLI user `config.json` with `cc ui` and JetBrains. Enabling can initialize the local signed runtime; disabling keeps ordinary Agent use available and preserves deployment data. Stop and restart a running Agent session after switching. These controls require CLI 0.166.127 and the paired extension version below.
 
-## Next release candidate
+## Current release: 0.37.171
 
-Source candidate **0.37.171** recommends CLI **0.166.133**. The extension has not been published; CLI **0.166.133** and paired JetBrains **0.4.188** are also unpublished candidates. Kernel remains **0.1.11**. The CLI candidate fixes empty Responses reasoning-summary replay, honors disabled self-evolution across `cc ui`, supports custom OpenAI-compatible local/LAN platforms, and exposes canonical allowed mutation paths while retaining execution-time scope checks. Exact-source release gates, upstream CLI publication and public artifact readbacks are still required. No independent IDE UI change or new real-model task acceptance is claimed.
+Public Open VSX **0.37.171** recommends public CLI **0.166.133**. Its [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41075702976) passed, and the downloaded VSIX matches the official candidate byte for byte. Paired JetBrains **0.4.188** is approved, listed and publicly downloadable; its original payload matches the official build and also recommends CLI **0.166.133**. Kernel remains **0.1.11**. The CLI fixes empty Responses reasoning-summary replay, honors disabled self-evolution across `cc ui`, supports custom OpenAI-compatible local/LAN platforms, and exposes canonical allowed mutation paths while retaining execution-time scope checks. [Release evidence](../../docs/research/cli/evidence/release133-public/README.md). No independent IDE UI change or new real-model task acceptance is claimed.
 
-## Current release
+## Previous release: 0.37.170
 
 <!-- release170-status -->
 

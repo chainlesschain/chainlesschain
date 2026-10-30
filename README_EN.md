@@ -1,6 +1,14 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## Current public CLI: 0.166.132 (2026-10-30)
+## Current public CLI: 0.166.133 (2026-10-30)
+
+Install: `npm i -g chainlesschain@0.166.133 --registry https://registry.npmjs.org`. Open VSX **0.37.171** / JetBrains **0.4.188** are public and their original payloads match the official artifacts. Both IDEs recommend CLI **0.166.133**. Kernel remains **0.1.11**. Restart the chat host, then run `cc --version` and `cc doctor`.
+
+This release fixes missing `input[21].summary` during OpenAI Responses tool continuation and Evolution certificate requirements in `cc ui` after Evolution is disabled. It also supports custom OpenAI-compatible local/LAN platforms with optional credentials. Exact source `2eb0c5b1e048509362f9d980f94acee55c2ffa9f` passed three-OS CLI CI / Strict Sandbox; [OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/41073612529) and [independent public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/41075409835) succeeded. See [release evidence](docs/research/cli/evidence/release133-public/README.md) and the [upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-10-30-133.md).
+
+Publication and controlled regressions do not add accepted model tasks. OpenAI 36+9 tests follow verified CLI and IDE publication; historical automatic acceptance remains **34/45**. Microsoft Marketplace remains deferred; PC/mobile remain independent **v5.0.3.143**.
+
+## Previous public CLI: 0.166.132 (2026-10-30)
 
 Install: `npm i -g chainlesschain@0.166.132 --registry https://registry.npmjs.org`. Public Open VSX **0.37.170** / JetBrains **0.4.187** both recommend CLI **0.166.132**. Kernel remains **0.1.11**. Restart the chat host, then check `cc --version` and `cc doctor`. [VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.170/file/chainlesschain.chainlesschain-ide-0.37.170.vsix) · [JetBrains ZIP](https://plugins.jetbrains.com/files/32208/1206433/chainlesschain-ide-bridge-0.4.187.zip). Microsoft Marketplace remains deferred.
 
