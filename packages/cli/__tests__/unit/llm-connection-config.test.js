@@ -38,6 +38,37 @@ describe("LLM custom connection", () => {
     visionModel: "",
     apiKey: "new-key",
   };
+  it("saves a keyless custom local platform without reusing a previous endpoint's secret", () => {
+    state.calls.length = 0;
+    const result = saveLlmConnection({
+      ...draft,
+      provider: "custom",
+      baseUrl: "http://localhost:1234/v1",
+      apiKey: "",
+    });
+    expect(result).toMatchObject({
+      provider: "custom",
+      model: draft.model,
+      baseUrl: "http://localhost:1234/v1",
+    });
+    expect(state.calls).toHaveLength(1);
+    expect(state.calls[0].llm).not.toHaveProperty("apiKey");
+  });
+
+  it("accepts an authenticated custom LAN platform with its explicit HTTP setting", () => {
+    state.calls.length = 0;
+    saveLlmConnection({
+      ...draft,
+      provider: "custom",
+      baseUrl: "http://192.168.31.79:8889/v1",
+      allowHttp: true,
+    });
+    expect(state.calls[0].llm).toMatchObject({
+      provider: "custom",
+      baseUrl: "http://192.168.31.79:8889/v1",
+      apiKey: "new-key",
+    });
+  });
   it("updates endpoint and secret in one transaction while clearing the optional vision model", () => {
     state.calls.length = 0;
     const result = saveLlmConnection(draft);

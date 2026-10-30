@@ -35,7 +35,12 @@
  * so an intentionally-custom endpoint is left untouched.
  */
 export async function reconcileConfigLlmProvider(cfgLlm = {}) {
-  if (!cfgLlm || !cfgLlm.provider || !cfgLlm.baseUrl) {
+  if (
+    !cfgLlm ||
+    !cfgLlm.provider ||
+    !cfgLlm.baseUrl ||
+    cfgLlm.provider === "custom"
+  ) {
     return { llm: cfgLlm, changed: false };
   }
   const { inferProviderFromBaseUrl, modelForeignToProvider } = await import(
@@ -71,22 +76,29 @@ export function applyConfigLlmDefaults(options = {}, cfgLlm = {}, opts = {}) {
   // credentials are exactly right. Mixing config into a DIFFERENT explicit
   // provider is still avoided (handled by the early return below).
   if (options.provider && configMatchesTarget) {
-    if (!options.baseUrl && cfgLlm.baseUrl) options.baseUrl = connection.baseUrl;
+    if (!options.baseUrl && cfgLlm.baseUrl)
+      options.baseUrl = connection.baseUrl;
     if (options.serviceTier == null && cfgLlm.serviceTier != null)
       options.serviceTier = cfgLlm.serviceTier;
-    if (!options.apiKey && connection.apiKey) options.apiKey = connection.apiKey;
+    if (!options.apiKey && connection.apiKey)
+      options.apiKey = connection.apiKey;
     if (!options.model && !opts.explicitModel && cfgLlm.model) {
       options.model = cfgLlm.model;
     }
     return options;
   }
   if (options.provider) {
-    if (!options.apiKey && connection.apiKey) options.apiKey = connection.apiKey;
+    if (!options.apiKey && connection.apiKey)
+      options.apiKey = connection.apiKey;
     return options;
   }
   if (!cfgLlm.provider) return options;
   options.provider = connection.provider;
-  if (configMatchesTarget && options.serviceTier == null && cfgLlm.serviceTier != null)
+  if (
+    configMatchesTarget &&
+    options.serviceTier == null &&
+    cfgLlm.serviceTier != null
+  )
     options.serviceTier = cfgLlm.serviceTier;
   if (opts.explicitModel) {
     options.model = opts.explicitModel;

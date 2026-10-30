@@ -221,7 +221,6 @@ function openAIReasoningItem(value) {
   if (Object.hasOwn(value, "summary")) {
     if (
       !Array.isArray(value.summary) ||
-      value.summary.length < 1 ||
       value.summary.length > 16 ||
       value.summary.some(
         (part) =>

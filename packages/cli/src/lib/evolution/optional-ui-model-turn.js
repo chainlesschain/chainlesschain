@@ -12,9 +12,20 @@ export async function loadConfiguredUiEvolutionFactory(options = {}) {
 }
 
 export async function resolveServerEvolutionFactory(server) {
-  return typeof server.resolveEvolutionCompositionFactory === "function"
+  return typeof server?.resolveEvolutionCompositionFactory === "function"
     ? server.resolveEvolutionCompositionFactory()
-    : (server.evolutionCompositionFactory ?? null);
+    : (server?.evolutionCompositionFactory ?? null);
+}
+
+/** Apply the host's current UI policy for every turn, including old sessions. */
+export async function prepareServerUiModelTurn(server, context) {
+  if (typeof server?.prepareUiModelTurn === "function") {
+    return server.prepareUiModelTurn(context);
+  }
+  return prepareGovernedModelTurn(
+    await resolveServerEvolutionFactory(server),
+    context,
+  );
 }
 
 export async function prepareConfiguredUiModelTurn(context, options = {}) {

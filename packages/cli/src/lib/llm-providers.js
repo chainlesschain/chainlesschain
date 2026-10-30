@@ -127,6 +127,19 @@ export const BUILT_IN_PROVIDERS = {
   },
 };
 
+/** Custom platforms use Chat Completions with an explicit endpoint and model. */
+export function resolveProviderDefinition(provider) {
+  return provider === "custom"
+    ? {
+        name: "custom",
+        baseUrl: null,
+        models: [],
+        apiKeyEnv: "CC_API_KEY",
+        custom: true,
+      }
+    : BUILT_IN_PROVIDERS[provider];
+}
+
 // A connectivity probe (`testProvider`) sends a tiny "Hi" and expects a quick
 // reply, so it must fail fast — a probe that hangs forever defeats its purpose
 // (it backs `cc llm test`, provider selection, doctor). Bound it with a total
@@ -402,17 +415,17 @@ export class LLMProviderRegistry {
       const res = await _fetchWithTimeout(
         `${normalizeProviderBaseUrl(provider.baseUrl)}/messages`,
         {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": key,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: testModel,
-          max_tokens: 10,
-          messages: [{ role: "user", content: "Hi" }],
-        }),
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": key,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: testModel,
+            max_tokens: 10,
+            messages: [{ role: "user", content: "Hi" }],
+          }),
         },
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

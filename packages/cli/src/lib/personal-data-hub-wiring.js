@@ -644,35 +644,44 @@ async function initHub() {
       // collector can pull WebView cookies from the user's Android Bilibili
       // App. The factory is a pure function — no side effects until the
       // handler is invoked, so cost of always-registering is zero.
-      const { createBilibiliCookiesExtension } =
-        await import("@chainlesschain/personal-data-hub/adapters/social-bilibili-adb");
+      const { createBilibiliCookiesExtension } = await import(
+        "@chainlesschain/personal-data-hub/adapters/social-bilibili-adb"
+      );
       // Phase 2a: register `douyin.pull-im-db` extension so the
       // douyinAdbSync hub method can pull <uid>_im.db cohort from the
       // user's Android Douyin App.
       const { createDouyinDbExtension, createDouyinWatchExtension } =
-        await import("@chainlesschain/personal-data-hub/adapters/social-douyin-adb");
+        await import(
+          "@chainlesschain/personal-data-hub/adapters/social-douyin-adb"
+        );
       // Phase 3a: register `weibo.cookies` extension for the Weibo
       // C-path collector (m.weibo.cn cookies + 4 HTTP endpoints).
-      const { createWeiboCookiesExtension } =
-        await import("@chainlesschain/personal-data-hub/adapters/social-weibo-adb");
+      const { createWeiboCookiesExtension } = await import(
+        "@chainlesschain/personal-data-hub/adapters/social-weibo-adb"
+      );
       // Phase 3c: register `xhs.cookies` extension for the Xhs C-path
       // collector (xiaohongshu.com cookies + 4 endpoints with X-S sign).
-      const { createXhsCookiesExtension } =
-        await import("@chainlesschain/personal-data-hub/adapters/social-xiaohongshu-adb");
+      const { createXhsCookiesExtension } = await import(
+        "@chainlesschain/personal-data-hub/adapters/social-xiaohongshu-adb"
+      );
       // Phase 6c: register `toutiao.cookies` extension for the Toutiao
       // C-path collector (www.toutiao.com cookies + 4 endpoints, 3 of
       // which need _signature signing — CLI context falls back to -99
       // short-circuit, desktop wiring upgrades via ToutiaoSignBridge).
       const { createToutiaoCookiesExtension, createToutiaoAccountExtension } =
-        await import("@chainlesschain/personal-data-hub/adapters/social-toutiao-adb");
+        await import(
+          "@chainlesschain/personal-data-hub/adapters/social-toutiao-adb"
+        );
       // Phase 6d: register `kuaishou.cookies` extension. Profile from
       // cookie's api_ph payload (no HTTP); 3 GraphQL POST endpoints need
       // __NS_sig3 + kpf/kpn — CLI short-circuits, desktop upgrades via
       // KuaishouSignBridge.
-      const { createKuaishouCookiesExtension } =
-        await import("@chainlesschain/personal-data-hub/adapters/social-kuaishou-adb");
-      const { createWhatsAppBackupExtension } =
-        await import("@chainlesschain/personal-data-hub/adapters/messaging-whatsapp");
+      const { createKuaishouCookiesExtension } = await import(
+        "@chainlesschain/personal-data-hub/adapters/social-kuaishou-adb"
+      );
+      const { createWhatsAppBackupExtension } = await import(
+        "@chainlesschain/personal-data-hub/adapters/messaging-whatsapp"
+      );
       hostAdbBridge = createHostAdbBridge({
         extensions: {
           "bilibili.cookies": createBilibiliCookiesExtension(),
@@ -1105,16 +1114,20 @@ async function initHub() {
     alipayAccountsPath,
     entityResolver,
     aichatAccountsStore,
-    async drainResolver(options = {}, factory = null) {
-      if (typeof factory !== "function") {
+    async drainResolver(options = {}, factory = null, modelTurnOptions = {}) {
+      if (
+        typeof factory !== "function" &&
+        !(factory === null && modelTurnOptions.evolutionDisabled === true)
+      ) {
         const error = new Error(
           "Personal Data Hub resolver egress requires an authenticated evolution composition factory",
         );
         error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
         throw error;
       }
-      const { createGovernedHubResolver } =
-        await import("./evolution/governed-hub-resolver.js");
+      const { createGovernedHubResolver } = await import(
+        "./evolution/governed-hub-resolver.js"
+      );
       const scoped = createGovernedHubResolver(
         {
           resolver: entityResolver,
@@ -1125,6 +1138,8 @@ async function initHub() {
           LLMStage: EntityResolverLLMStage,
         },
         factory,
+        undefined,
+        modelTurnOptions,
       );
       return scoped.drain(options);
     },
@@ -1656,8 +1671,9 @@ async function initHub() {
       }
       let collector;
       try {
-        const mod =
-          await import("@chainlesschain/personal-data-hub/adapters/social-bilibili-adb");
+        const mod = await import(
+          "@chainlesschain/personal-data-hub/adapters/social-bilibili-adb"
+        );
         collector = mod.default ? mod.default : mod;
       } catch (err) {
         return {
@@ -1708,8 +1724,9 @@ async function initHub() {
       }
       let collector;
       try {
-        const mod =
-          await import("@chainlesschain/personal-data-hub/adapters/social-douyin-adb");
+        const mod = await import(
+          "@chainlesschain/personal-data-hub/adapters/social-douyin-adb"
+        );
         collector = mod.default ? mod.default : mod;
       } catch (err) {
         return {
@@ -1752,8 +1769,9 @@ async function initHub() {
       }
       let collector;
       try {
-        const mod =
-          await import("@chainlesschain/personal-data-hub/adapters/social-douyin-adb");
+        const mod = await import(
+          "@chainlesschain/personal-data-hub/adapters/social-douyin-adb"
+        );
         collector = mod.default ? mod.default : mod;
       } catch (err) {
         return {
@@ -1799,8 +1817,9 @@ async function initHub() {
       }
       let collector;
       try {
-        const mod =
-          await import("@chainlesschain/personal-data-hub/adapters/social-weibo-adb");
+        const mod = await import(
+          "@chainlesschain/personal-data-hub/adapters/social-weibo-adb"
+        );
         collector = mod.default ? mod.default : mod;
       } catch (err) {
         return {
@@ -1852,8 +1871,9 @@ async function initHub() {
       }
       let collector;
       try {
-        const mod =
-          await import("@chainlesschain/personal-data-hub/adapters/social-xiaohongshu-adb");
+        const mod = await import(
+          "@chainlesschain/personal-data-hub/adapters/social-xiaohongshu-adb"
+        );
         collector = mod.default ? mod.default : mod;
       } catch (err) {
         return {
@@ -1905,8 +1925,9 @@ async function initHub() {
       }
       let collector;
       try {
-        const mod =
-          await import("@chainlesschain/personal-data-hub/adapters/social-toutiao-adb");
+        const mod = await import(
+          "@chainlesschain/personal-data-hub/adapters/social-toutiao-adb"
+        );
         collector = mod.default ? mod.default : mod;
       } catch (err) {
         return {
@@ -1960,8 +1981,9 @@ async function initHub() {
       }
       let collector;
       try {
-        const mod =
-          await import("@chainlesschain/personal-data-hub/adapters/social-kuaishou-adb");
+        const mod = await import(
+          "@chainlesschain/personal-data-hub/adapters/social-kuaishou-adb"
+        );
         collector = mod.default ? mod.default : mod;
       } catch (err) {
         return {
@@ -2149,11 +2171,19 @@ export async function getHub() {
   return _initPromise;
 }
 
-export async function getGovernedAnalysisHub(evolutionCompositionFactory) {
+export async function getGovernedAnalysisHub(
+  evolutionCompositionFactory,
+  modelTurnOptions = {},
+) {
   const hub = await getHub();
-  const { createGovernedHubLlm } =
-    await import("./evolution/governed-hub-llm.js");
-  const llm = createGovernedHubLlm(hub.engine.llm, evolutionCompositionFactory);
+  const { createGovernedHubLlm } = await import(
+    "./evolution/governed-hub-llm.js"
+  );
+  const llm = createGovernedHubLlm(
+    hub.engine.llm,
+    evolutionCompositionFactory,
+    modelTurnOptions,
+  );
   const engine = new AnalysisEngine({
     vault: hub.engine.vault,
     llm,
@@ -2162,8 +2192,9 @@ export async function getGovernedAnalysisHub(evolutionCompositionFactory) {
     maxQueryLimit: hub.engine.maxQueryLimit,
     systemPrompt: hub.engine.systemPrompt,
   });
-  const { runGovernedHubSkill } =
-    await import("./evolution/governed-hub-skill.js");
+  const { runGovernedHubSkill } = await import(
+    "./evolution/governed-hub-skill.js"
+  );
   return Object.freeze({
     ...hub,
     llm,
@@ -2175,6 +2206,8 @@ export async function getGovernedAnalysisHub(evolutionCompositionFactory) {
         runAnalysisSkill,
         name,
         options,
+        undefined,
+        modelTurnOptions,
       ),
   });
 }

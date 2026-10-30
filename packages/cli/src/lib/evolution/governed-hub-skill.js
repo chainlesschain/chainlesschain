@@ -9,6 +9,7 @@ export async function runGovernedHubSkill(
   name,
   options,
   sdkPorts,
+  modelTurnOptions = {},
 ) {
   let failure;
   let failed = false;
@@ -16,6 +17,7 @@ export async function runGovernedHubSkill(
     hub.llm,
     factory,
     {
+      evolutionDisabled: modelTurnOptions.evolutionDisabled === true,
       onFailure(error) {
         failure = error;
         failed = true;

@@ -2426,19 +2426,23 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 
 ### Supported LLM Providers
 
-| Provider                   | Default Model          | API Key Required |
-| -------------------------- | ---------------------- | ---------------- |
-| Ollama (Local)             | qwen2.5:7b             | No               |
-| OpenAI                     | gpt-4o                 | Yes              |
-| Anthropic                  | claude-opus-4-6        | Yes              |
-| DeepSeek                   | deepseek-chat          | Yes              |
-| DashScope (Alibaba)        | qwen-turbo             | Yes              |
-| Google Gemini              | gemini-2.0-flash       | Yes              |
-| Mistral AI                 | mistral-large-latest   | Yes              |
-| Volcengine (火山引擎/豆包) | doubao-seed-1-6-251015 | Yes              |
-| Kimi (月之暗面)            | moonshot-v1-auto       | Yes              |
-| MiniMax (海螺AI)           | MiniMax-Text-01        | Yes              |
-| Custom                     | —                      | Yes              |
+| Provider                   | Default Model          | API Key Required   |
+| -------------------------- | ---------------------- | ------------------ |
+| Ollama (Local)             | qwen2.5:7b             | No                 |
+| OpenAI                     | gpt-4o                 | Yes                |
+| Anthropic                  | claude-opus-4-6        | Yes                |
+| DeepSeek                   | deepseek-chat          | Yes                |
+| DashScope (Alibaba)        | qwen-turbo             | Yes                |
+| Google Gemini              | gemini-2.0-flash       | Yes                |
+| Mistral AI                 | mistral-large-latest   | Yes                |
+| Volcengine (火山引擎/豆包) | doubao-seed-1-6-251015 | Yes                |
+| Kimi (月之暗面)            | moonshot-v1-auto       | Yes                |
+| MiniMax (海螺AI)           | MiniMax-Text-01        | Yes                |
+| Custom (OpenAI-compatible) | Set explicitly         | Platform-dependent |
+
+Use `provider: "custom"` for local or LAN model platforms exposing OpenAI-compatible Chat Completions, including LM Studio, vLLM, Xinference, LocalAI, and model-routing gateways. Set the platform's API base URL (for example `http://localhost:1234/v1` or a LAN gateway's documented base path) and exact model name. Supply its API key when required; keyless endpoints are also supported. Chat, Agent, streaming, and connection tests keep that endpoint and model instead of selecting Ollama or a cloud provider.
+
+Self-evolution is optional. With `evolution.enabled: false`, `cc ui` Chat, Agent, Quick Ask, streaming, and Personal Data Hub analysis do not require an Evolution deployment certificate. Existing sessions read the setting again on subsequent requests. Enabled deployments still require valid authentication.
 
 ## File Structure
 

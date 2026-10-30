@@ -8,10 +8,11 @@ import {
  * of token deltas suitable for piping through session-core StreamRouter.
  */
 
-import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
+import { resolveProviderDefinition } from "./llm-providers.js";
 import { normalizeOllamaBaseUrl } from "./ollama-base-url.js";
 import { ollamaProviderFetch } from "./ollama-provider-fetch.js";
 import {
+  assertCustomProviderConnection,
   geminiGenerateContentUrl,
   geminiRequestBody,
   normalizeProviderBaseUrl,
@@ -111,7 +112,7 @@ export async function* openAIStream({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
       },
       body: JSON.stringify({
         model,
@@ -276,6 +277,7 @@ export async function* anthropicTokenStream({
  * Throws on unsupported provider / missing API key.
  */
 export function buildProviderSource(provider, opts = {}) {
+  assertCustomProviderConnection(provider, opts);
   const {
     model,
     baseUrl,
@@ -295,11 +297,11 @@ export function buildProviderSource(provider, opts = {}) {
       requireCompletion,
     });
   }
-  const def = BUILT_IN_PROVIDERS[provider];
+  const def = resolveProviderDefinition(provider);
   if (!def) throw new Error(`Unsupported provider: ${provider}`);
   const finalKey =
     apiKey || (def.apiKeyEnv ? process.env[def.apiKeyEnv] : null);
-  if (!finalKey) {
+  if (!finalKey && provider !== "custom") {
     throw new Error(
       `API key required for ${provider} (--api-key or ${def.apiKeyEnv})`,
     );

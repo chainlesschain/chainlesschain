@@ -3,6 +3,7 @@ import { estimateCost } from "./llm-pricing.js";
 import { providerFetch } from "./formal-budget-provider-scope.js";
 import { isFormalBudgetError } from "./formal-budget-errors.js";
 import { normalizeOllamaBaseUrl } from "./ollama-base-url.js";
+import { assertCustomProviderConnection } from "./provider-protocol.js";
 import { resolveModelCapabilityProfile } from "./model-capabilities.js";
 import {
   projectEnvelopePricingContext,
@@ -159,6 +160,7 @@ export async function probeLlmConnection(
   target,
   { fetchImpl = fetch, timeoutMs = 20_000, includeUsage = false } = {},
 ) {
+  assertCustomProviderConnection(target.provider, target);
   const base =
     target.provider === "ollama"
       ? normalizeOllamaBaseUrl(target.baseUrl)
@@ -183,7 +185,8 @@ export async function probeLlmConnection(
       options: { num_predict: PROBE_OUTPUT_TOKENS },
     };
   } else {
-    if (!target.apiKey) throw new Error("API key required");
+    if (!target.apiKey && target.provider !== "custom")
+      throw new Error("API key required");
     if (target.provider === "anthropic") {
       url = `${base}/messages`;
       headers["x-api-key"] = target.apiKey;
@@ -211,7 +214,7 @@ export async function probeLlmConnection(
       });
     } else {
       url = `${base}/chat/completions`;
-      headers.Authorization = `Bearer ${target.apiKey}`;
+      if (target.apiKey) headers.Authorization = `Bearer ${target.apiKey}`;
       body = {
         model: target.model,
         messages: [{ role: "user", content: "Say hi in one word." }],

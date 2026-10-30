@@ -264,7 +264,10 @@ export function createGovernedHubLlm(llm, factory, options = {}, sdkPorts) {
       "A Hub model client with declared locality is required",
     );
   }
-  if (typeof factory !== "function")
+  if (
+    typeof factory !== "function" &&
+    !(factory === null && options.evolutionDisabled === true)
+  )
     throw new TypeError("A Hub evolution factory is required");
   if (options.onFailure != null && typeof options.onFailure !== "function")
     throw new TypeError("onFailure must be a function");
@@ -298,6 +301,7 @@ export function createGovernedHubLlm(llm, factory, options = {}, sdkPorts) {
         mode: "hub-analysis",
         messages,
         signal: chatOptions.signal,
+        evolutionDisabled: options.evolutionDisabled === true,
       });
     },
     async transport(messages, chatOptions = {}) {

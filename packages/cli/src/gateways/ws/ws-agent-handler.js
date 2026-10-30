@@ -183,6 +183,7 @@ export class WSAgentHandler {
     sessionBudgetRoot = null,
     hostResourceBudget = null,
     evolutionCompositionFactory = null,
+    resolveEvolutionCompositionFactory = null,
     skillOutcomeIndex = null,
     skillVectorAuthority = null,
     skillRuntimeAdmission = null,
@@ -265,6 +266,15 @@ export class WSAgentHandler {
       throw new TypeError("evolutionCompositionFactory must be a function");
     }
     this._evolutionCompositionFactory = evolutionCompositionFactory;
+    if (
+      resolveEvolutionCompositionFactory !== null &&
+      typeof resolveEvolutionCompositionFactory !== "function"
+    )
+      throw new TypeError(
+        "resolveEvolutionCompositionFactory must be a function",
+      );
+    this._resolveEvolutionCompositionFactory =
+      resolveEvolutionCompositionFactory;
     this._skillOutcomeIndex =
       skillOutcomeIndex === null
         ? null
@@ -335,6 +345,14 @@ export class WSAgentHandler {
     this._canonicalHostSystemPrefix = explicitHostPrefix
       ? explicitHostPrefix
       : Object.freeze(hostSystemPrefix);
+  }
+
+  async _refreshEvolutionFactory() {
+    if (this._resolveEvolutionCompositionFactory === null) return;
+    const current = await this._resolveEvolutionCompositionFactory();
+    if (current !== null && typeof current !== "function")
+      throw new TypeError("Invalid evolution composition factory");
+    this._evolutionCompositionFactory = current;
   }
 
   async _prepareEvolutionTurn(requestId) {
@@ -876,6 +894,7 @@ export class WSAgentHandler {
     let result;
     try {
       this._sessionHostLease?.assert?.();
+
       result = await this._compactContextMemory(
         session.messages,
         {
@@ -1402,6 +1421,8 @@ export class WSAgentHandler {
       const { session } = this;
       this.assertSessionBudgetAdmission("WebSocket turn");
       this._sessionHostLease?.assert?.();
+      // A resident UI must observe a changed setting before each new turn.
+      await this._refreshEvolutionFactory();
 
       if (session.canonicalJsonlSession === true) {
         const inputDigest =
@@ -2282,6 +2303,7 @@ export class WSAgentHandler {
         try {
           this.assertSessionBudgetAdmission("WebSocket compaction");
           this._sessionHostLease?.assert?.();
+          await this._refreshEvolutionFactory();
           compactionEvolution = await this._prepareEvolutionTurn(
             `compact:${requestId || randomUUID()}`,
           );

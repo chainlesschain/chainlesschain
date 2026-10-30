@@ -25,6 +25,7 @@ import {
 import { importPdh } from "../../lib/pdh-load-error.js";
 import { getAIChatWizard } from "../../lib/personal-data-hub-aichat-wizard.js";
 import { runDedicatedBatchCollectors } from "../../lib/pdh-dedicated-batch-collectors.js";
+import { resolveServerEvolutionFactory } from "../../lib/evolution/optional-ui-model-turn.js";
 import {
   existsSync,
   unlinkSync,
@@ -150,8 +151,9 @@ export async function _tryAdbAutoPullInputPath(hub, name, options) {
     return options || {};
   }
   try {
-    const { createHostAdbBridge } =
-      await import("../../lib/host-adb-bridge.js");
+    const { createHostAdbBridge } = await import(
+      "../../lib/host-adb-bridge.js"
+    );
     const bridge = createHostAdbBridge();
     const content = await bridge.invoke("snapshot.read", {
       fileName: `${name}.json`,
@@ -192,9 +194,15 @@ async function withHub(fn, loadHub = getHub) {
   }
 }
 
-function governedHubLoader(factory) {
+async function governedHubLoader(server) {
+  const factory = await resolveServerEvolutionFactory(server);
   if (typeof factory === "function")
     return () => getGovernedAnalysisHub(factory);
+  if (
+    factory === null &&
+    typeof server?.resolveEvolutionCompositionFactory === "function"
+  )
+    return () => getGovernedAnalysisHub(null, { evolutionDisabled: true });
   const error = new Error(
     "Personal Data Hub model egress requires an authenticated evolution composition factory",
   );
@@ -215,11 +223,13 @@ function validateEntityReference(entityType, entityId) {
 
 export const PERSONAL_DATA_HUB_HANDLERS = {
   "personal-data-hub.ask": async (msg, context = {}) => {
-    const factory = context.server?.evolutionCompositionFactory;
-    return withHub(async (hub) => {
-      if (!hub.engine) throw new Error("Analysis engine unavailable");
-      return await hub.engine.ask(msg.question, msg.options || {});
-    }, governedHubLoader(factory));
+    return withHub(
+      async (hub) => {
+        if (!hub.engine) throw new Error("Analysis engine unavailable");
+        return await hub.engine.ask(msg.question, msg.options || {});
+      },
+      await governedHubLoader(context.server),
+    );
   },
 
   // Path Y: prompt context only, no LLM call. Lets web-shell / mobile host
@@ -668,7 +678,14 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
   "personal-data-hub.resolver-drain": async (msg, context = {}) =>
     withHub(async (hub) => {
       if (!hub.entityResolver) throw new Error("EntityResolver not wired");
-      const factory = context.server?.evolutionCompositionFactory;
+      const factory = await resolveServerEvolutionFactory(context.server);
+      if (
+        factory === null &&
+        typeof context.server?.resolveEvolutionCompositionFactory === "function"
+      )
+        return await hub.drainResolver({ limit: msg.limit || 50 }, null, {
+          evolutionDisabled: true,
+        });
       return await hub.drainResolver({ limit: msg.limit || 50 }, factory);
     }),
 
@@ -691,10 +708,9 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
     withHub((hub) => hub.analysisSkillNames || []),
 
   "personal-data-hub.run-skill": async (msg, context = {}) => {
-    const factory = context.server?.evolutionCompositionFactory;
     return withHub(
       async (hub) => await hub.runSkill(msg.name, msg.options || {}),
-      governedHubLoader(factory),
+      await governedHubLoader(context.server),
     );
   },
 

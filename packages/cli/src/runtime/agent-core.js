@@ -10,7 +10,10 @@ import {
   normalizeProviderBaseUrl,
   openAICompatibleBaseUrl,
 } from "../lib/provider-protocol.js";
-import { BUILT_IN_PROVIDERS } from "../lib/llm-providers.js";
+import {
+  BUILT_IN_PROVIDERS,
+  resolveProviderDefinition,
+} from "../lib/llm-providers.js";
 import { resolveLlmConnection } from "../lib/llm-connection-resolution.js";
 /**
  * Agent Core — transport-independent agentic logic
@@ -12594,7 +12597,7 @@ export async function chatWithTools(rawMessages, options) {
   }
 
   // OpenAI-compatible providers
-  const providerDefinition = BUILT_IN_PROVIDERS[provider];
+  const providerDefinition = resolveProviderDefinition(provider);
   const url = openAICompatibleBaseUrl(provider, baseUrl);
 
   if (!providerDefinition || !url) {
@@ -12609,7 +12612,8 @@ export async function chatWithTools(rawMessages, options) {
 
   const envKey = providerDefinition.apiKeyEnv;
   const key = apiKey;
-  if (!key) throw new Error(`${envKey} required for provider ${provider}`);
+  if (!key && provider !== "custom")
+    throw new Error(`${envKey} required for provider ${provider}`);
   const effectiveModel = model || providerDefinition.models?.[0];
   const modelProfile = resolveModelCapabilityProfile({
     provider,
@@ -12749,7 +12753,7 @@ export async function chatWithTools(rawMessages, options) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
+      ...(key ? { Authorization: `Bearer ${key}` } : {}),
       ...(supportsOpenAIRequestIdentity && providerRequestId
         ? { "X-Client-Request-Id": providerRequestId }
         : {}),
@@ -13369,7 +13373,7 @@ async function _chatOpenAIStreaming(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
       ...(providerRequestId
         ? { "X-Client-Request-Id": providerRequestId }
         : {}),

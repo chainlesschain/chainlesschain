@@ -19,12 +19,14 @@ function fail(code, message) {
 }
 
 async function canonicalMemoryService(scopeKey) {
-  const { resolveCliContextMemoryCutover } =
-    await import("../../lib/context-memory-kernel/authority.js");
+  const { resolveCliContextMemoryCutover } = await import(
+    "../../lib/context-memory-kernel/authority.js"
+  );
   const decision = resolveCliContextMemoryCutover({ scopeKey });
   if (!decision.canonical) return null;
-  const { createCliCanonicalMemoryService } =
-    await import("../../lib/context-memory-kernel/memory-service.js");
+  const { createCliCanonicalMemoryService } = await import(
+    "../../lib/context-memory-kernel/memory-service.js"
+  );
   return createCliCanonicalMemoryService();
 }
 
@@ -104,8 +106,9 @@ async function sessionsEnd(message) {
   let consolidated = null;
   if (message.consolidate) {
     try {
-      const { consolidateJsonlSession } =
-        await import("../../lib/session-consolidator.js");
+      const { consolidateJsonlSession } = await import(
+        "../../lib/session-consolidator.js"
+      );
       consolidated = await consolidateJsonlSession(message.sessionId, {
         scope: message.scope || "session",
         scopeId: message.scopeId || null,
@@ -249,8 +252,9 @@ async function memoryDelete(message) {
 async function memoryConsolidate(message) {
   if (!message.sessionId) return fail("BAD_REQUEST", "sessionId required");
   try {
-    const { consolidateJsonlSession } =
-      await import("../../lib/session-consolidator.js");
+    const { consolidateJsonlSession } = await import(
+      "../../lib/session-consolidator.js"
+    );
     const result = await consolidateJsonlSession(message.sessionId, {
       scope: message.scope || "session",
       scopeId: message.scopeId || null,
@@ -321,16 +325,17 @@ async function streamRun(message, sender, signal, context) {
   const { buildProviderSource } = await import("../../lib/provider-stream.js");
   const { createStreamRouter } = await loadSingletons();
   const router = createStreamRouter();
-  const { prepareGovernedModelTurn, governModelTokenSource } =
-    await import("../../lib/evolution/governed-model-turn.js");
-  const turn = await prepareGovernedModelTurn(
-    context?.server?.evolutionCompositionFactory ?? null,
-    {
-      mode: "ws-stream",
-      messages: [{ role: "user", content: message.prompt }],
-      signal,
-    },
+  const { governModelTokenSource } = await import(
+    "../../lib/evolution/governed-model-turn.js"
   );
+  const { prepareServerUiModelTurn } = await import(
+    "../../lib/evolution/optional-ui-model-turn.js"
+  );
+  const turn = await prepareServerUiModelTurn(context?.server, {
+    mode: "ws-stream",
+    messages: [{ role: "user", content: message.prompt }],
+    signal,
+  });
   const source = governModelTokenSource(
     buildProviderSource(provider, {
       model: message.model,

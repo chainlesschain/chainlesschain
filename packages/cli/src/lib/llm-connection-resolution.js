@@ -1,6 +1,9 @@
 import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
 import { normalizeOllamaBaseUrl } from "./ollama-base-url.js";
-import { normalizeProviderBaseUrl } from "./provider-protocol.js";
+import {
+  assertCustomProviderConnection,
+  normalizeProviderBaseUrl,
+} from "./provider-protocol.js";
 import { resolveApiKeyFromHelper } from "./api-key-helper.js";
 
 const DEFAULT_PROVIDER = "ollama";
@@ -33,9 +36,8 @@ export function resolveLlmConnection(
     defaultBaseUrl = null,
   } = {},
 ) {
-  const sources = (Array.isArray(configuredSources)
-    ? configuredSources
-    : [configuredSources]
+  const sources = (
+    Array.isArray(configuredSources) ? configuredSources : [configuredSources]
   ).filter((source) => source && typeof source === "object");
   const provider =
     (nonEmpty(options.provider) && options.provider) ||
@@ -67,6 +69,7 @@ export function resolveLlmConnection(
     defaultModel ||
     definition?.models?.[0] ||
     null;
+  assertCustomProviderConnection(provider, { baseUrl, model });
   let apiKey =
     (nonEmpty(options.apiKey) && options.apiKey) ||
     (nonEmpty(env?.CC_API_KEY) && env.CC_API_KEY) ||

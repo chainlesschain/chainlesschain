@@ -31,6 +31,7 @@ import {
 } from "../../lib/session-budget-production-root.js";
 import { mergePricing } from "../../lib/llm-pricing.js";
 import { ensureCanonicalSessionTranscript } from "../../lib/session-transcript-migration.js";
+import { prepareServerUiModelTurn } from "../../lib/evolution/optional-ui-model-turn.js";
 
 const PAYLOAD_DIGEST = /^sha256:[0-9a-f]{64}$/;
 const RAW_AUTHORITY_HASH = /^[0-9a-f]{64}$/;
@@ -505,8 +506,9 @@ function sameSessionBudgetConfig(left, right) {
 
 async function _isPhase5EnvelopesEnabled() {
   try {
-    const { getBetaFlags } =
-      await import("../../lib/session-core-singletons.js");
+    const { getBetaFlags } = await import(
+      "../../lib/session-core-singletons.js"
+    );
     const flags = await getBetaFlags();
     return flags.isEnabled(PHASE5_ENVELOPE_FLAG);
   } catch (_e) {
@@ -532,8 +534,9 @@ async function ensureSessionHandler(
     throw error;
   }
 
-  const { WebSocketInteractionAdapter } =
-    await import("../../lib/interaction-adapter.js");
+  const { WebSocketInteractionAdapter } = await import(
+    "../../lib/interaction-adapter.js"
+  );
   const enablePhase5Envelopes = await _isPhase5EnvelopesEnabled();
   const stateSnapshot =
     typeof server.sessionManager.getSessionStateSnapshot === "function"
@@ -605,6 +608,8 @@ async function ensureSessionHandler(
       session,
       interaction: session.interaction,
       evolutionCompositionFactory: server.evolutionCompositionFactory ?? null,
+      prepareUiModelTurn: (context) =>
+        prepareServerUiModelTurn(server, context),
     });
   } else {
     const { WSAgentHandler } = await import("./ws-agent-handler.js");
@@ -661,6 +666,10 @@ async function ensureSessionHandler(
         sessionHostLease,
         sessionBudgetRoot,
         evolutionCompositionFactory: server.evolutionCompositionFactory,
+        resolveEvolutionCompositionFactory:
+          typeof server.resolveEvolutionCompositionFactory === "function"
+            ? () => server.resolveEvolutionCompositionFactory()
+            : null,
         skillOutcomeIndex: server.skillOutcomeIndex,
         skillVectorAuthority: server.skillVectorAuthority,
         ...server.runtimeAdmissionDependencies,
@@ -1733,8 +1742,9 @@ export async function handleSubAgentList(server, id, ws, message) {
   const sessionId = message?.sessionId || null;
 
   try {
-    const { SubAgentRegistry } =
-      await import("../../lib/sub-agent-registry.js");
+    const { SubAgentRegistry } = await import(
+      "../../lib/sub-agent-registry.js"
+    );
     const registry = SubAgentRegistry.getInstance();
 
     let payload;
@@ -1796,8 +1806,9 @@ export async function handleSubAgentGet(server, id, ws, message) {
   }
 
   try {
-    const { SubAgentRegistry } =
-      await import("../../lib/sub-agent-registry.js");
+    const { SubAgentRegistry } = await import(
+      "../../lib/sub-agent-registry.js"
+    );
     const snapshot = SubAgentRegistry.getInstance().getById(subAgentId);
 
     if (!snapshot) {

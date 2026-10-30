@@ -131,6 +131,42 @@ describe("WSAgentHandler", () => {
   });
 
   describe("constructor", () => {
+    it("rechecks host Evolution settings on each turn of an existing Agent session", async () => {
+      const staleFactory = vi
+        .fn()
+        .mockRejectedValue(new Error("stale certificate"));
+      const resolveEvolutionCompositionFactory = vi
+        .fn()
+        .mockResolvedValueOnce(null)
+        .mockRejectedValueOnce(new Error("invalid enabled certificate"));
+      const loop = vi.fn(() =>
+        fakeAgentLoop([{ type: "response-complete", content: "done" }]),
+      );
+      const resident = new WSAgentHandler({
+        session,
+        interaction,
+        agentLoop: loop,
+        evolutionCompositionFactory: staleFactory,
+        resolveEvolutionCompositionFactory,
+      });
+      await resident.handleMessage("ordinary request", "off");
+      expect(
+        loop,
+        JSON.stringify(interaction.emit.mock.calls),
+      ).toHaveBeenCalledOnce();
+      expect(loop.mock.calls[0][1].evolutionIngress).toBeUndefined();
+      expect(staleFactory).not.toHaveBeenCalled();
+      await resident.handleMessage("blocked request", "on");
+      expect(loop).toHaveBeenCalledOnce();
+      expect(resolveEvolutionCompositionFactory).toHaveBeenCalledTimes(2);
+      expect(interaction.emit).toHaveBeenCalledWith(
+        "error",
+        expect.objectContaining({
+          requestId: "on",
+          message: "invalid enabled certificate",
+        }),
+      );
+    });
     it("sets session and interaction", () => {
       expect(handler.session).toBe(session);
       expect(handler.interaction).toBe(interaction);
