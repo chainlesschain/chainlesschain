@@ -12,11 +12,11 @@ CLI **0.166.133**、Open VSX **0.37.171**、JetBrains **0.4.188** 均已公开�
 - 本地 OpenAI 真实调用共三次，均为 HTTP 200，实际模型为 `gpt-6.1-sol`。首次探针未生成 reasoning 项，原失败保留；随后两请求工具续接通过。本地探针没有覆盖实际空 summary 路径，也不计入 45 个任务。
 - 准确公开包清单：[2026-10-30-openai-133.json](../verify01-package-sets/2026-10-30-openai-133.json)，SHA-256 `2ec5541398b4149d092b9ae31199174be8adeca5d59937a767a917ef3d2f4317`。
 
-## 待授权的云端步骤
+## 已授权的云端步骤
 
-自动审批拒绝将用户本地 OpenAI key 导出到 GitHub，要求用户明确授权。尚未写入 GitHub Secret，也未启动三系统付费任务。计划仅向 `chainlesschain/chainlesschain` 的加密 `OPENAI_API_KEY` 槽位配置凭据，供该手动工作流的可信 broker 使用；CLI/IDE 子进程仅接收局部 broker 令牌。GitHub 工作流会取得调用 OpenAI 的能力，并可能产生 API 费用。
+自动审批最初拒绝将用户本地 OpenAI key 导出到 GitHub；用户随后在会话中明确授权本次导出与完整 45 项执行。授权仅涉及 `chainlesschain/chainlesschain` 的加密 `OPENAI_API_KEY` 槽位，供该手动工作流的可信 broker 使用；CLI/IDE 子进程仅接收局部 broker 令牌。GitHub 工作流会取得调用 OpenAI 的能力，并可能产生 API 费用。代码与回执不保存凭据。
 
-授权后手动执行以下已提交的分支与包清单；实际源码 SHA 和包清单摘要由工作流记录。真实费用仍需账单核对，不把请求或 token 上限称为账户硬额度。
+手动执行以下已提交的分支与包清单；实际源码 SHA 和包清单摘要由工作流记录。真实费用仍需账单核对，不把请求或 token 上限称为账户硬额度。
 
 ```powershell
 gh workflow run verify01-native-task-campaign.yml --ref feature/verify01-openai-133 -f confirm_live=true -f provider=openai -f hosts=all -f entries=all -f package_set=latest -f package_set_file=docs/research/cli/verify01-package-sets/2026-10-30-openai-133.json
