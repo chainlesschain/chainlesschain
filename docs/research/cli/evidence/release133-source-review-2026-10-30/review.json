@@ -1,0 +1,65 @@
+{
+  "schema": "chainlesschain.release133-source-review/v1",
+  "recordedAt": "2026-10-30T05:41:15.614422+00:00",
+  "failedCandidateSource": "354976499e7bd65cef50e96c775a591d23dd2850",
+  "failedRun": 41006307767,
+  "failedJob": 123905857395,
+  "failure": "Only agent-core.js source registration was STALE after the provider-schema change; Web Panel build succeeded.",
+  "runtimeChangedByRegistrationFix": false,
+  "runtimeDigest": "sha256:479a153a691f97215532e276aa86113fa46285090301a7aed56675489c7a7f59",
+  "registeredCategory": "MODEL_REQUEST",
+  "rootReview": "Only provider definitions for the three trusted built-in mutation tools gain a complete normalized host-authorized path enum and guidance. Model input changes and normal context accounting sees that schema. Runtime scope, external tool executors, provider dispatch sites, usage settlement and financial/native admission remain bounded by the original guards.",
+  "independentReview": "Astra independently compared the production delta against the public .132 source and confirmed no new dispatch, execution or usage path; model-visible paths are a real input change.",
+  "localSourceAudit": {
+    "command": "node packages/cli/scripts/implementation-plan-budget-egress.mjs --check --include-scripts",
+    "beforeExitCode": 1,
+    "afterExitCode": 0,
+    "candidateFiles": 82,
+    "reviewIssues": 0,
+    "parseErrors": 0,
+    "paidReady": false,
+    "runtimeCoverageVerified": false
+  },
+  "scannerRegression": {
+    "command": "node --test packages/cli/test-node/budget-egress-inventory.node-test.mjs",
+    "exitCode": 0,
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0
+  },
+  "publication": false,
+  "nextRequirement": "Fresh exact-commit complete configured CLI CI, CLI Strict Sandbox, Context Memory Kernel CI and IDE matrices; old successful jobs do not transfer.",
+  "records": {
+    "before-source-audit.json": {
+      "path": "before-source-audit.json.gz",
+      "bytes": 90742,
+      "digest": "sha256:9c88f273fa3b41c0ee8d606e7090e9722a097567ba3ab49a211097022d2cc968"
+    },
+    "reviewed-source-audit.json": {
+      "path": "reviewed-source-audit.json.gz",
+      "bytes": 94375,
+      "digest": "sha256:e9b799ffd3ad1e18c67a440dbf3aef06c1775bc62163cefbd13ec37a8d34fc6c"
+    },
+    "cloud-build-job.json": {
+      "path": "cloud-build-job.json.gz",
+      "bytes": 4882,
+      "digest": "sha256:20d15d4274ffcf4b54309b27c3bff41b827e0c825da45cdd04f93af6a888c32f"
+    },
+    "cloud-build-job.log": {
+      "path": "cloud-build-job.log.gz",
+      "bytes": 84054,
+      "digest": "sha256:eeff60d584620aba2c26b00feb9fb6f0211abe06a1e64f46b849a3875138ced2"
+    },
+    "independent-source-review.json": {
+      "path": "independent-source-review.json.gz",
+      "bytes": 3939,
+      "digest": "sha256:2f0762b75a804c8ec253a0157f4da9e6a5559cf4a86bbbc5514b4774e421704c"
+    }
+  },
+  "independentStaticComparison": {
+    "existingTopLevelFunctionsUnchanged": 189,
+    "providerFetchSites": 6,
+    "ollamaProviderFetchSites": 2,
+    "networkCandidateSignaturesUnchanged": true
+  }
+}
