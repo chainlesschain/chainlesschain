@@ -1,0 +1,403 @@
+{
+  "runId": 41097104348,
+  "source": "a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+  "conclusion": "failure",
+  "cohortResult": "infrastructure-failure-before-provider-dispatch",
+  "capturedSamples": 44,
+  "physicalProviderRequestsStarted": 0,
+  "unstartedSample": {
+    "sampleId": "verify-27",
+    "group": "darwin-jetbrains",
+    "jobId": 124213414672,
+    "conclusion": "cancelled",
+    "steps": []
+  },
+  "modelTaskAcceptances": 0,
+  "cause": "Loopback compatibility endpoint selects Chat Completions; broker requires native Responses",
+  "deliveries": [
+    {
+      "artifact": "verify01-native-delivery-darwin-cli-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "darwin-cli",
+      "samples": [
+        {
+          "id": "first-run-darwin-cli",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": null
+        },
+        {
+          "id": "verify-07",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": null
+        },
+        {
+          "id": "verify-16",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": null
+        },
+        {
+          "id": "verify-25",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": null
+        },
+        {
+          "id": "verify-34",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-darwin-jetbrains-first-run-darwin-jetbrains-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "darwin-jetbrains",
+      "samples": [
+        {
+          "id": "first-run-darwin-jetbrains",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "model task failed before a restartable result; see real protocol"
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-darwin-jetbrains-verify-09-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "darwin-jetbrains",
+      "samples": [
+        {
+          "id": "verify-09",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "model task failed before a restartable result; see real protocol"
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-darwin-jetbrains-verify-18-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "darwin-jetbrains",
+      "samples": [
+        {
+          "id": "verify-18",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "model task failed before a restartable result; see real protocol"
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-darwin-jetbrains-verify-36-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "darwin-jetbrains",
+      "samples": [
+        {
+          "id": "verify-36",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "model task failed before a restartable result; see real protocol"
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-darwin-vscode-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "darwin-vscode",
+      "samples": [
+        {
+          "id": "first-run-darwin-vscode",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "VSCode initial/UI/restart validation failed"
+        },
+        {
+          "id": "verify-08",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "VSCode initial/UI/restart validation failed"
+        },
+        {
+          "id": "verify-17",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "VSCode initial/UI/restart validation failed"
+        },
+        {
+          "id": "verify-26",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "VSCode initial/UI/restart validation failed"
+        },
+        {
+          "id": "verify-35",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "VSCode initial/UI/restart validation failed"
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-linux-cli-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "linux-cli",
+      "samples": [
+        {
+          "id": "first-run-linux-cli",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": null
+        },
+        {
+          "id": "verify-04",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": null
+        },
+        {
+          "id": "verify-13",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": null
+        },
+        {
+          "id": "verify-22",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": null
+        },
+        {
+          "id": "verify-31",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-linux-jetbrains-first-run-linux-jetbrains-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "linux-jetbrains",
+      "samples": [
+        {
+          "id": "first-run-linux-jetbrains",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "model task failed before a restartable result; see real protocol"
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-linux-jetbrains-verify-06-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "linux-jetbrains",
+      "samples": [
+        {
+          "id": "verify-06",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "model task failed before a restartable result; see real protocol"
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-linux-jetbrains-verify-15-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "linux-jetbrains",
+      "samples": [
+        {
+          "id": "verify-15",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "model task failed before a restartable result; see real protocol"
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-linux-jetbrains-verify-24-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "linux-jetbrains",
+      "samples": [
+        {
+          "id": "verify-24",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "model task failed before a restartable result; see real protocol"
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-linux-jetbrains-verify-33-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "linux-jetbrains",
+      "samples": [
+        {
+          "id": "verify-33",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "model task failed before a restartable result; see real protocol"
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-linux-vscode-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "linux-vscode",
+      "samples": [
+        {
+          "id": "first-run-linux-vscode",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "VSCode initial/UI/restart validation failed"
+        },
+        {
+          "id": "verify-05",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "VSCode initial/UI/restart validation failed"
+        },
+        {
+          "id": "verify-14",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "VSCode initial/UI/restart validation failed"
+        },
+        {
+          "id": "verify-23",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "VSCode initial/UI/restart validation failed"
+        },
+        {
+          "id": "verify-32",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "VSCode initial/UI/restart validation failed"
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-win32-cli-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "win32-cli",
+      "samples": [
+        {
+          "id": "first-run-win32-cli",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": null
+        },
+        {
+          "id": "verify-01",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": null
+        },
+        {
+          "id": "verify-10",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": null
+        },
+        {
+          "id": "verify-19",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": null
+        },
+        {
+          "id": "verify-28",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-win32-jetbrains-first-run-win32-jetbrains-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "win32-jetbrains",
+      "samples": [
+        {
+          "id": "first-run-win32-jetbrains",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "model task failed before a restartable result; see real protocol"
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-win32-jetbrains-verify-03-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "win32-jetbrains",
+      "samples": [
+        {
+          "id": "verify-03",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "model task failed before a restartable result; see real protocol"
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-win32-jetbrains-verify-12-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "win32-jetbrains",
+      "samples": [
+        {
+          "id": "verify-12",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "model task failed before a restartable result; see real protocol"
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-win32-jetbrains-verify-21-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "win32-jetbrains",
+      "samples": [
+        {
+          "id": "verify-21",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "model task failed before a restartable result; see real protocol"
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-win32-jetbrains-verify-30-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "win32-jetbrains",
+      "samples": [
+        {
+          "id": "verify-30",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "model task failed before a restartable result; see real protocol"
+        }
+      ]
+    },
+    {
+      "artifact": "verify01-native-delivery-win32-vscode-a6e7cf99d5b70c2fe16a424d6f9b83cabf64ab81",
+      "group": "win32-vscode",
+      "samples": [
+        {
+          "id": "first-run-win32-vscode",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "VSCode initial/UI/restart validation failed"
+        },
+        {
+          "id": "verify-02",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "VSCode initial/UI/restart validation failed"
+        },
+        {
+          "id": "verify-11",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "VSCode initial/UI/restart validation failed"
+        },
+        {
+          "id": "verify-20",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "VSCode initial/UI/restart validation failed"
+        },
+        {
+          "id": "verify-29",
+          "requests": 0,
+          "usageComplete": 0,
+          "error": "VSCode initial/UI/restart validation failed"
+        }
+      ]
+    }
+  ]
+}

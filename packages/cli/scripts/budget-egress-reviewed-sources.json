@@ -78,9 +78,9 @@
     },
     {
       "path": "packages/cli/scripts/verify01-native-task-campaign.mjs",
-      "digest": "sha256:3a2f7ef0242630adf25c40bdbf32bacc8046edf1644135ce37970055eaa9b454",
+      "digest": "sha256:34e2e76a63876021673037dfe4610612303eebcadce77890a2ac185bc1406769",
       "category": "MODEL_REQUEST",
-      "rationale": "Downloads exact public packages and launches native CLI/IDE task generation. The operator selects only Volcengine or OpenAI through a fixed provider profile; actual provider/model, key slot, endpoint and policy digest are recorded without relabeling the frozen task catalogue. Both modes require live confirmation and a key, and reject formal scope before options, credentials, paths, downloads, processes or model transport. Original six-file tool scope, twenty turns, twenty-four physical requests, timeout and output limits remain; default Volcengine policy is retained. This source review grants no formal financial or native admission. The separate OpenAI diagnostic cohort now binds its source, task catalogue, exact package set, provider policy and model into an execution identity digest before any model work. New provider identity is checked before independent acceptance; historical Volcengine acceptance is not transferred. Trace inspection now receives the operator-selected provider/model instead of the legacy fixed identity; init and every usage event must match, while terminal, file scope, delivery and settlement checks remain unchanged. No new model dispatch or authority is introduced by this correction."
+      "rationale": "Downloads exact public packages and launches the native CLI/IDE task cohort with explicit provider/source/package identity. OpenAI keeps the installed CLI official base URL and native Responses serializer, using a source-bound per-run launcher and fetch forwarder to the authenticated loopback broker. The installed CLI is unchanged and receives only a 64-hex capability; the account key remains in the operator broker. All original file scopes, host cleanup, terminal evidence, request/output/timeout limits, receipt settlement and formal-scope refusal remain. Historical Volcengine policy and outcomes are separate. This review is not formal financial or native admission."
     },
     {
       "path": "packages/cli/scripts/verify01-native-toolchain-prepare.mjs",
@@ -495,6 +495,12 @@
       "digest": "sha256:31a7409e1b5a386bde23aa0040dfd26b01cc5aebb999d0c376580db4bdfc4dba",
       "category": "LOCAL_DIAGNOSTIC",
       "rationale": "TCP reachability diagnostics; a connection probe is not an inference request."
+    },
+    {
+      "path": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:c4b11e676cd8865c0d42af3c7c74d2c232ea80625944ee5dc86bf48f2624a833",
+      "category": "MODEL_REQUEST",
+      "rationale": "Explicit operator-only native OpenAI fetch forwarder and launcher, activated only for the expected installed CLI agent entry in the hermetic OpenAI diagnostic environment. Loads the exact installed CLI budget-scope module and refuses active formal scope before credential/URL inspection and before each fetch. Only the fixed official Responses POST with a 64-hex broker capability is forwarded to the fixed IPv4 loopback path; account keys are rejected, bodies and cancellation are preserved, and TLS/certificate or product endpoint checks are unchanged. The host broker owns actual OpenAI credentials, limits, receipts and unknown-usage handling. No financial or OS admission is established."
     }
   ]
 }

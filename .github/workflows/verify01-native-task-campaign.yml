@@ -111,6 +111,7 @@ jobs:
           packages/cli/test-node/verify01-ide-terminal.node-test.mjs
           packages/cli/test-node/verify01-volcengine-diagnostic-broker.node-test.mjs
           packages/cli/test-node/verify01-openai-diagnostic-broker.node-test.mjs
+          packages/cli/test-node/verify01-openai-transport-preload.node-test.mjs
           packages/cli/test-node/verify01-native-provider-profile.node-test.mjs
           packages/cli/test-node/verify01-native-round-matrix.node-test.mjs
           packages/jetbrains-plugin/scripts/verify01-native-task-adapter.test.mjs

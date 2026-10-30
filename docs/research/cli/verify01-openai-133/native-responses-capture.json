@@ -1,0 +1,13 @@
+{
+  "accountKeyUsed": false,
+  "native": true,
+  "childBaseUrl": "https://api.openai.com/v1",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "authorizationPresent": true,
+      "authorizationMatches": true
+    }
+  ]
+}

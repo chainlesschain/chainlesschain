@@ -10,6 +10,8 @@ export const OPENAI_BROKER = Object.freeze({
   provider: "openai",
   model: "gpt-6.1-sol",
   protocol: "responses",
+  childBaseUrl: "https://api.openai.com/v1",
+  childTransport: "source-bound-operator-fetch-forwarder-v1",
   maximumRequestsPerTask: 24,
   maximumRequestBytes: 256 * 1024,
   maximumResponseBytes: 16 * 1024 * 1024,

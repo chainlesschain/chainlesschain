@@ -18,6 +18,7 @@ import {
   changedFiles,
 } from "./verify01-volcengine-task-diagnostic.mjs";
 import { nativeProviderProfile } from "./verify01-native-provider-profile.mjs";
+import { openAiNativeCliLauncher } from "./verify01-openai-transport-preload.mjs";
 import { VERIFY01_REVIEW_SPECS } from "./verify01-review-specs.mjs";
 import { requireUnscopedModelTransport } from "../src/lib/formal-budget-provider-scope.js";
 
@@ -591,6 +592,7 @@ export async function runNativeCampaign(options) {
     "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
     "packages/cli/scripts/verify01-native-provider-profile.mjs",
     "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+    "packages/cli/scripts/verify01-openai-transport-preload.mjs",
     "packages/cli/scripts/verify01-review-specs.mjs",
     "packages/cli/src/lib/eval/stream-terminal.js",
     "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
@@ -744,7 +746,19 @@ export async function runNativeCampaign(options) {
       (text, secret) => text.replaceAll(secret, "[REDACTED]"),
       String(value),
     );
-  let cliPath, pluginArchive, pluginDigest;
+  let cliPath, publicCliPath, pluginArchive, pluginDigest;
+  let openAiPreloadPath;
+  if (providerProfile.provider === "openai") {
+    openAiPreloadPath = path.join(output, "operator-openai-transport.mjs");
+    fs.copyFileSync(
+      path.join(
+        repository,
+        "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      ),
+      openAiPreloadPath,
+      fs.constants.COPYFILE_EXCL,
+    );
+  }
   const save = (file, value) => {
     mkdir(path.dirname(path.join(output, file)));
     fs.writeFileSync(
@@ -963,6 +977,7 @@ export async function runNativeCampaign(options) {
           });
         }
         cliPath = installedCli;
+        publicCliPath = installedCli;
         summary.install = {
           passed: true,
           startedAt: start,
@@ -990,11 +1005,32 @@ export async function runNativeCampaign(options) {
       capability = broker.childKey;
       secrets.push(capability);
       environment[providerProfile.keyEnvironment] = capability;
+      const childBaseUrl =
+        providerProfile.policy.childBaseUrl || broker.baseUrl;
+      if (providerProfile.provider === "openai") {
+        assert.ok(publicCliPath && openAiPreloadPath);
+        cliPath = path.join(sampleOutput, "operator-openai-cli.cjs");
+        fs.writeFileSync(
+          cliPath,
+          openAiNativeCliLauncher(publicCliPath, openAiPreloadPath),
+          { flag: "wx" },
+        );
+        environment.CC_VERIFY01_OPENAI_CLI_ENTRY = publicCliPath;
+        environment.CC_VERIFY01_OPENAI_BROKER_BASE_URL = broker.baseUrl;
+        row.operatorTransport = {
+          kind: providerProfile.policy.childTransport,
+          publicCliEntry: publicCliPath,
+          childBaseUrl,
+          brokerBaseUrl: broker.baseUrl,
+          preloadDigest: hash(fs.readFileSync(openAiPreloadPath)),
+          installedCliModified: false,
+        };
+      }
       broker.beginTask(sample.id);
       for (const [field, value] of Object.entries({
         provider: providerProfile.provider,
         model: providerProfile.model,
-        baseUrl: broker.baseUrl,
+        baseUrl: childBaseUrl,
       }))
         assert.ok(
           (
@@ -1019,7 +1055,7 @@ export async function runNativeCampaign(options) {
       const configured = JSON.parse(readback.stdout).value;
       assert.equal(configured.provider, providerProfile.provider);
       assert.equal(configured.model, providerProfile.model);
-      assert.equal(configured.baseUrl, broker.baseUrl);
+      assert.equal(configured.baseUrl, childBaseUrl);
       row.configure = {
         passed: true,
         accountKeyInHost: false,
@@ -1063,7 +1099,7 @@ export async function runNativeCampaign(options) {
           "--model",
           providerProfile.model,
           "--base-url",
-          broker.baseUrl,
+          childBaseUrl,
           "--permission-mode",
           "acceptEdits",
           "--output-format",
