@@ -989,7 +989,49 @@ describe("WSAgentHandler", () => {
       budgeted.destroy();
     });
 
+    it("does not start the model or Evolution when interrupted during configuration refresh", async () => {
+      const { promise: configuration, resolve: finishConfiguration } =
+        Promise.withResolvers();
+      const { promise: started, resolve: markStarted } =
+        Promise.withResolvers();
+      const resolveEvolutionCompositionFactory = vi.fn(() => {
+        markStarted();
+        return configuration;
+      });
+      const factory = vi.fn();
+      const loop = vi.fn();
+      const resident = new WSAgentHandler({
+        session,
+        interaction,
+        agentLoop: loop,
+        resolveEvolutionCompositionFactory,
+      });
+      const originalMessages = [...session.messages];
+      const pending = resident.handleMessage("cancel before model", "refresh");
+      await started;
+      const result = await resident.interrupt();
+      finishConfiguration(factory);
+      await pending;
+
+      expect(result).toMatchObject({
+        wasProcessing: true,
+        interruptedRequestId: "refresh",
+      });
+      expect(resolveEvolutionCompositionFactory).toHaveBeenCalledOnce();
+      expect(factory).not.toHaveBeenCalled();
+      expect(loop).not.toHaveBeenCalled();
+      expect(session.messages).toEqual(originalMessages);
+      expect(interaction.emit).not.toHaveBeenCalledWith(
+        "error",
+        expect.objectContaining({ code: "AGENT_ERROR" }),
+      );
+      expect(resident._processing).toBe(false);
+      resident.destroy();
+    });
+
     it("interrupts an active turn without emitting an AGENT_ERROR", async () => {
+      const { promise: started, resolve: markStarted } =
+        Promise.withResolvers();
       /* eslint-disable require-yield */
       agentLoop.mockImplementation((_messages, options) =>
         (async function* () {
@@ -999,13 +1041,15 @@ describe("WSAgentHandler", () => {
               () => reject(options.signal.reason),
               { once: true },
             );
+            markStarted();
           });
         })(),
       );
       /* eslint-enable require-yield */
 
       const pending = handler.handleMessage("long running", "req-1");
-      await Promise.resolve();
+      await started;
+      expect(agentLoop).toHaveBeenCalledOnce();
 
       const result = await handler.interrupt();
       await pending;

@@ -1422,7 +1422,10 @@ export class WSAgentHandler {
       this.assertSessionBudgetAdmission("WebSocket turn");
       this._sessionHostLease?.assert?.();
       // A resident UI must observe a changed setting before each new turn.
-      await this._refreshEvolutionFactory();
+      if (this._resolveEvolutionCompositionFactory !== null) {
+        await this._refreshEvolutionFactory();
+      }
+      turnSignal.throwIfAborted();
 
       if (session.canonicalJsonlSession === true) {
         const inputDigest =
@@ -1697,6 +1700,7 @@ export class WSAgentHandler {
       }
 
       const executeAgentTurn = async () => {
+        turnSignal.throwIfAborted();
         for await (const event of this._agentLoop(
           session.messages,
           loopOptions,
@@ -2303,7 +2307,11 @@ export class WSAgentHandler {
         try {
           this.assertSessionBudgetAdmission("WebSocket compaction");
           this._sessionHostLease?.assert?.();
-          await this._refreshEvolutionFactory();
+          if (this._resolveEvolutionCompositionFactory !== null) {
+            await this._refreshEvolutionFactory();
+          }
+          this._sessionBudgetSignal?.throwIfAborted();
+          this._sessionHostLease?.assert?.();
           compactionEvolution = await this._prepareEvolutionTurn(
             `compact:${requestId || randomUUID()}`,
           );
