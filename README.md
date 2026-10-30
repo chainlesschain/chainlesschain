@@ -1,6 +1,16 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 当前公开 CLI：0.166.131（2026-10-29）
+## 当前公开 CLI：0.166.132（2026-10-30）
+
+安装：`npm i -g chainlesschain@0.166.132 --registry https://registry.npmjs.org`。Open VSX **0.37.170** / JetBrains **0.4.187** 均已公开并推荐 CLI **0.166.132**，Kernel 保持 **0.1.11**。升级后重启聊天宿主，运行 `cc --version` 与 `cc doctor`。[VSIX 下载](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.170/file/chainlesschain.chainlesschain-ide-0.37.170.vsix) · [JetBrains ZIP](https://plugins.jetbrains.com/files/32208/1206433/chainlesschain-ide-bridge-0.4.187.zip)。Microsoft Marketplace 继续暂缓。
+
+输出达到上限或被服务商过滤时，保留当前任务且不误报完成，不执行这些响应中的工具。截断后仅在用量完整入账且仍有预算时，允许至多一次重新规划；过滤不会触发重试。本轮 IDE 仅推荐配套新 CLI，没有独立界面改动。准确源码 `772fcdbda85bcf91df95bfced5b476dcf4c74614` 已通过必要发行检查；[OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/40985169005)和[独立公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/40986625203)见[发行证据](docs/research/cli/evidence/release132-public/publication.json)。
+
+自动任务验收仍为 **34/45**（普通 **27/36**、首次入口 **7/9**），剩余 **11** 项。另有 **3 项人工辅助回归交付**，不计为自动成功；本机测试和发行也不增加自动成功数。本次产品修复不改变原评测 broker，不把历史失败改为成功。完整 Memory SLO、真实语义与双 IDE 验收仍待完成，付费与原生生产就绪尚未确认。PC / 移动端继续使用独立 **v5.0.3.143**。
+
+[升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-30-132.html) · [运行时设计](https://design.chainlesschain.com/release-runtime-update-2026-10-30-132.html)。下方旧版本说明保留历史范围。
+
+## 历史公开 CLI：0.166.131（2026-10-29）
 
 安装：`npm i -g chainlesschain@0.166.131 --registry https://registry.npmjs.org`。Kernel **0.1.11** 已先行公开。升级后重启聊天宿主，运行 `cc --version` 与 `cc doctor`。Open VSX **0.37.169** / JetBrains **0.4.186** 均已公开并通过官方制品比对，均推荐 CLI **0.166.131**。Microsoft Marketplace 暂缓。
 

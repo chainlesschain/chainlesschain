@@ -2,11 +2,19 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## Source candidate 0.166.132 (unreleased, 2026-10-30)
+## CLI 0.166.132 — current public release
 
-CLI **0.166.132** keeps Kernel **0.1.11** and pairs with Open VSX **0.37.170** / JetBrains **0.4.187** source candidates. The candidate CLI stops tools from running on a truncated response and can replan once when complete usage has been recorded and budget remains. Recovery keeps the original task available even in a small context window. Filtered responses, explicitly incomplete terminal responses, and missing task context now stop with a clear failure. Resuming a session preserves task identity when the built-in adapter combines message roles; custom callbacks and unverified metadata cannot claim that identity. After asynchronous recall, the CLI rechecks the task and its position before continuing. The readContext continuation now moves the same complete user message by its exact index, preserving metadata and avoiding duplicate task identity. The original four independent-process restart cases passed locally, and 16 host-continuation tests passed; the latest full combined validation passed 456 tests across 18 files and 10 real CLI tests across 3 files, with no skips (5 output-limit, 1 resume and 4 compaction-memory-restart). Source 7f8ef64b4bd8b429f97d2e121c440143ed7ddf3b was superseded before publication after CLI CI found four failures in each Ubuntu and Windows E2E shard 4 job (147 passed each). Its 452+6 local preparation and successful Strict Sandbox (6/6) and Kernel (3/3) checks remain historical; remaining CLI and IDE jobs were canceled, and no release tag was created. The earlier 417+5 result also remains historical. A new exact-source release matrix is required. This candidate is not published, and the original broker evaluation remains unresolved. Require complete exact-source Linux/Windows/macOS CLI CI and Strict Sandbox, OIDC publication and public readback before releasing the paired IDEs. The verified public versions and installation below remain **0.166.131 / 0.37.169 / 0.4.186**; PC/mobile remain independent **v5.0.3.143**.
+Install: `npm i -g chainlesschain@0.166.132 --registry https://registry.npmjs.org`. Public Open VSX **0.37.170** and approved JetBrains **0.4.187** recommend this CLI; Kernel **0.1.11** is verified upstream. Restart the chat host, then run `cc --version` and `cc doctor`.
 
-## CLI 0.166.131 — current public release (2026-10-29)
+This release stops tool execution on truncated responses and permits one replan when complete usage is recorded and budget remains. Recovery preserves the original task, including through role combination, asynchronous recall and readContext continuation. Filtered or incomplete terminal responses and missing task context stop with a clear failure. No independent IDE UI change is included.
+
+Release source: [772fcdbda85bcf91df95bfced5b476dcf4c74614](https://github.com/chainlesschain/chainlesschain/commit/772fcdbda85bcf91df95bfced5b476dcf4c74614). Exact-source [validation gates](https://github.com/chainlesschain/chainlesschain/blob/0d57ebfea919ae941a36a1f11a9ee10964722120/docs/research/cli/evidence/release132-public/gates.json), [OIDC publication run](https://github.com/chainlesschain/chainlesschain/actions/runs/40985169005), [official artifact](https://github.com/chainlesschain/chainlesschain/actions/runs/40985169005/artifacts/12946249806), [independent readback run](https://github.com/chainlesschain/chainlesschain/actions/runs/40986625203), and [public CLI readback](https://github.com/chainlesschain/chainlesschain/blob/0d57ebfea919ae941a36a1f11a9ee10964722120/docs/research/cli/evidence/release132-public/cli.json) identify this public package. [Three-package publication evidence](https://github.com/chainlesschain/chainlesschain/blob/0d57ebfea919ae941a36a1f11a9ee10964722120/docs/research/cli/evidence/release132-public/publication.json).
+
+At historical source `abbe13ad3658ff9e2e100989a4cfefc409d9261c`, the combined local suite actually ran **456 tests across 18 files + 10 real CLI tests across 3 files**, with no skips. Subsequent fixture and native-preflight repairs compared the selected runtime components byte for byte; release source `772fcdbda85bcf91df95bfced5b476dcf4c74614` did **not** repeat that combined local suite. [Component scope evidence](https://github.com/chainlesschain/chainlesschain/blob/0d57ebfea919ae941a36a1f11a9ee10964722120/docs/research/cli/evidence/release132-native-preflight-2026-10-30/review.json) and the release source's [cloud gates](https://github.com/chainlesschain/chainlesschain/blob/0d57ebfea919ae941a36a1f11a9ee10964722120/docs/research/cli/evidence/release132-public/gates.json) retain this distinction. Failed source `40753f179a3dc18760bd64a754b28a46ba718f57` and the earlier superseded `7f8ef64b4bd8b429f97d2e121c440143ed7ddf3b` remain historical; their successful checks do not transfer to this release.
+
+Automatic acceptance remains **34/45**, with **11** unfinished; **3 assisted deliveries** are recorded separately and are not added to that total. The original broker **403** and Memory cold SLO remain unresolved. Publication adds no task acceptance or paid/native admission: **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain. Microsoft Marketplace remains deferred. PC/mobile **v5.0.3.143** remain independent.
+
+## CLI 0.166.131 — previous public release (2026-10-29)
 
 Install: `npm i -g chainlesschain@0.166.131 --registry https://registry.npmjs.org`. Kernel **0.1.11** was published first. Restart the chat host, then run `cc --version` and `cc doctor`. Public Open VSX **0.37.169** / JetBrains **0.4.186** both recommend CLI **0.166.131**; their downloaded packages match the official CI payloads. Microsoft Marketplace is deferred.
 
@@ -239,7 +247,7 @@ Explicit Linux durable permissions require administrator provisioning. Cross-pro
 Install the CLI version published by this release:
 
 ```bash
-npm install -g chainlesschain@0.166.121 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.132 --registry https://registry.npmjs.org
 chainlesschain setup
 ```
 

@@ -1,10 +1,10 @@
 # 代理模式 (agent)
 
-<!-- docs-code-git-sync-2026-10-29 -->
+<!-- docs-code-git-sync-2026-10-30 -->
 
-当前公开 CLI **0.166.131** 使用 `@chainlesschain/context-memory-kernel@0.1.11`，包含显式独立 `verify:` Goal 检查、Memory 身份与取消修复、MCP 子任务目录隔离、压缩后的项目规则刷新及 Terra 模型合同。发行源码为 `c9d0bab231850697df38f2d476c2dd974cbcb6c0`，公开配对已完成制品回读。
+当前公开 CLI **0.166.132** 使用 `@chainlesschain/context-memory-kernel@0.1.11`，包含显式独立 `verify:` Goal 检查、Memory 身份与取消修复、MCP 子任务目录隔离、压缩后的项目规则刷新及 Terra 模型合同。发行源码为 `772fcdbda85bcf91df95bfced5b476dcf4c74614`，公开配对已完成制品回读。本版新增响应终态与当前任务保护：截断、过滤或显式不完整响应不执行工具、不误报完成；仅在完整用量入账且预算允许时，截断后最多重新规划一次。
 
-> 当前核对（2026-10-29）：CLI **0.166.131**、Open VSX **0.37.169**、JetBrains **0.4.186** 均已公开，两个 IDE 均推荐 `.131`。安装与回执见[升级指南](./cli-ide-update-2026-10-29-131)。PC / 移动端 **v5.0.3.143** 独立发行，Microsoft Marketplace 暂缓。
+> 当前核对（2026-10-30）：CLI **0.166.132**、Open VSX **0.37.170**、JetBrains **0.4.187** 均已公开，两个 IDE 均推荐 `.132`。安装与回执见[升级指南](./cli-ide-update-2026-10-30-132)。PC / 移动端 **v5.0.3.143** 独立发行，Microsoft Marketplace 暂缓。
 
 交付复查和实验性 Codex App Server 路由仍默认关闭。下方带版本的能力说明保留首次发布范围；当前累计任务验收仍为 **34/45**，公开发行不等于完整性能、语义质量、真实原生任务或付费准入完成。
 

@@ -1,43 +1,43 @@
 {
-  "checkedAt": "2026-10-29",
-  "recommendedCliVersion": "0.166.131",
-  "npmLatestCliVersion": "0.166.131",
-  "sourceMainCliVersion": "0.166.131",
-  "cliReleaseTag": "v-npm-0-166-131",
-  "cliReleaseCommit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
-  "npmLatestReleaseTag": "v-npm-0-166-131",
-  "npmLatestReleaseCommit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+  "checkedAt": "2026-10-30",
+  "recommendedCliVersion": "0.166.132",
+  "npmLatestCliVersion": "0.166.132",
+  "sourceMainCliVersion": "0.166.132",
+  "cliReleaseTag": "v-npm-0-166-132",
+  "cliReleaseCommit": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
+  "npmLatestReleaseTag": "v-npm-0-166-132",
+  "npmLatestReleaseCommit": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
   "npmLatestGateStatus": "Exact-source three-OS CLI CI and Strict Sandbox, OIDC publication, public dependency installation and provenance verified. IDE gates and public archive readback verified separately. This is not task or native admission.",
   "cliReleaseGateConclusion": "success",
-  "sourceCandidateCommit": "83c281f4e81aed6943ec8aef37ca9c240b970275",
-  "sourceHeadCommit": "83c281f4e81aed6943ec8aef37ca9c240b970275",
+  "sourceCandidateCommit": "0d57ebfea919ae941a36a1f11a9ee10964722120",
+  "sourceHeadCommit": "0d57ebfea919ae941a36a1f11a9ee10964722120",
   "documentedDesktopCommit": "036d2b8be2048c98e56e917c93380f169e6a9d7b",
   "postReleaseDesktopGovernanceCommit": "f733f92cb953fffaafea9f91024bbf1c8846406d",
-  "sourceMainStatus": "CLI .131, Kernel .11, Open VSX .169 and JetBrains .186 are public from c9d0bab231. Includes explicit Goal verify:, Memory identity and cancellation fixes, MCP/Skills discovery and cancellation, compaction rules and temporary-worktree ownership fixes. Product .143 is independent.",
+  "sourceMainStatus": "Public .132/.170/.187 pair verified. Truncated/filtered responses preserve the current task and cannot run tools or falsely complete it. At most one budgeted fresh plan follows truncation with complete settled usage. Kernel .11 and independent client .143 remain unchanged.",
   "agentSdkVersion": "0.2.16",
   "pythonAgentSdkVersion": "0.2.9",
   "agentProtocolVersion": "0.1.12",
-  "openVsxVersion": "0.37.169",
-  "sourceVsCodeVersion": "0.37.169",
-  "vsCodeCandidateVersion": "0.37.169",
-  "vsCodeCandidateCommit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+  "openVsxVersion": "0.37.170",
+  "sourceVsCodeVersion": "0.37.170",
+  "vsCodeCandidateVersion": "0.37.170",
+  "vsCodeCandidateCommit": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
   "vsCodeCandidateStatus": "Public artifact verified against the exact release source; required release gates passed.",
-  "developmentCheckedAt": "2026-10-29",
-  "openVsxRecommendedCliVersion": "0.166.131",
+  "developmentCheckedAt": "2026-10-30",
+  "openVsxRecommendedCliVersion": "0.166.132",
   "openVsxDownloadsMilestone": "60,000+",
   "openVsxDownloadsDisplayZh": "6 万+",
   "openVsxDownloadsDisplayEn": "60K+",
-  "jetBrainsMarketplaceVersion": "0.4.186",
-  "sourceJetBrainsVersion": "0.4.186",
-  "vsCodeReleaseCommit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
-  "lastFullyGatedVsCodeVersion": "0.37.169",
-  "lastFullyGatedJetBrainsVersion": "0.4.186",
+  "jetBrainsMarketplaceVersion": "0.4.187",
+  "sourceJetBrainsVersion": "0.4.187",
+  "vsCodeReleaseCommit": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
+  "lastFullyGatedVsCodeVersion": "0.37.170",
+  "lastFullyGatedJetBrainsVersion": "0.4.187",
   "sessionCoreVersion": "0.3.24",
   "contextMemoryKernelVersion": "0.1.11",
   "personalDataHubVersion": "0.4.66",
   "coreDbVersion": "0.1.5",
-  "jetBrainsRecommendedCliVersion": "0.166.131",
-  "jetBrainsReleaseCommit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+  "jetBrainsRecommendedCliVersion": "0.166.132",
+  "jetBrainsReleaseCommit": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
   "unpublishedCliVersions": [
     "0.166.23",
     "0.166.27",
@@ -59,9 +59,9 @@
   "productVersion": "v5.0.3.143",
   "sourceContextMemoryKernelVersion": "0.1.11",
   "productReleaseWorkflowStatus": "Public v5.0.3.143, Release run 40565272034, source 036d2b8be2048c98e56e917c93380f169e6a9d7b. All five platform builds passed, 22 public assets match the CI manifest, and three desktop updater metadata sets are verified. No new model-task or native admission claim.",
-  "jetBrainsCandidateVersion": "0.4.186",
-  "jetBrainsCandidateRecommendedCliVersion": "0.166.131",
-  "jetBrainsCandidateCommit": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+  "jetBrainsCandidateVersion": "0.4.187",
+  "jetBrainsCandidateRecommendedCliVersion": "0.166.132",
+  "jetBrainsCandidateCommit": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
   "jetBrainsPublicationStatus": "verified",
   "taskRetestStatus": "PARTIAL_ACCEPTANCE_NEXT_DISPATCH_UNRESOLVED",
   "taskRetestRecords": 20,
@@ -69,9 +69,9 @@
   "cumulativeAcceptedDeliveries": 34,
   "totalTaskSamples": 45,
   "remainingUnaccepted": 11,
-  "releaseEvidence": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release131-public/publication.json",
+  "releaseEvidence": "https://github.com/chainlesschain/chainlesschain/blob/0d57ebfea919ae941a36a1f11a9ee10964722120/docs/research/cli/evidence/release132-public/publication.json",
   "taskEvidence": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028.json",
-  "sourceSnapshotStatus": "Documentation review baseline 83c281f4e81aed6943ec8aef37ca9c240b970275. Public CLI, Kernel and IDE packages are bound to c9d0bab231850697df38f2d476c2dd974cbcb6c0. Documentation deployments are tracked separately.",
+  "sourceSnapshotStatus": "Documentation baseline 0d57ebfea919ae941a36a1f11a9ee10964722120; public release source 772fcdbda85bcf91df95bfced5b476dcf4c74614. Independent documentation deployments are tracked separately.",
   "currentReleaseModelTaskRetest": "NOT_RUN",
   "currentReleaseLimits": {
     "paidReadiness": "NOT_PAID_READY",
@@ -84,7 +84,7 @@
     "historicalIndependentAcceptanceRecords": "20/20",
     "historicalNewAccepted": 6,
     "microsoftMarketplace": "deferred-unpublished",
-    "historicalAcceptanceInventory": "34/45 across releases; ordinary 27/36 and first-run 7/9. Not a .131 single-round success rate. No new .131 live-model task dispatch. Original .129 verify-11 dispatch remains unresolved and must not be replayed."
+    "historicalAcceptanceInventory": "34/45 automatic acceptance, ordinary 27/36 and first-run 7/9. Three separately assisted regression deliveries are not automatic successes. Local tests and publication add no accepted automatic tasks. Original unresolved dispatch remains unresolved and must not be replayed."
   },
   "release108Channels": {
     "cli": {
@@ -121,11 +121,11 @@
       "receiptUrl": "https://github.com/chainlesschain/chainlesschain/blob/08ffc589ec0f0c7ad5af87eb54c5efcce739a2f9/docs/research/cli/evidence/release108-public/publication.json"
     }
   },
-  "jetBrainsUpdateId": 1206001,
+  "jetBrainsUpdateId": 1206433,
   "historicalTaskRetestRelease": "0.166.105",
-  "upgradeGuide": "https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-29-131.html",
+  "upgradeGuide": "https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-30-132.html",
   "recoveryGuide": "https://docs.chainlesschain.com/chainlesschain/agent-input-and-recovery.html",
-  "runtimeDesign": "https://design.chainlesschain.com/release-runtime-update-2026-10-29-131.html",
+  "runtimeDesign": "https://design.chainlesschain.com/release-runtime-update-2026-10-30-132.html",
   "release117Channels": {
     "cli": {
       "version": "0.166.117",
@@ -284,9 +284,9 @@
     }
   },
   "documentationReview": {
-    "reviewedSourceCommit": "83c281f4e81aed6943ec8aef37ca9c240b970275",
-    "checkedAt": "2026-10-29",
-    "evidenceUrl": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release131-public/publication.json",
+    "reviewedSourceCommit": "0d57ebfea919ae941a36a1f11a9ee10964722120",
+    "checkedAt": "2026-10-30",
+    "evidenceUrl": "https://github.com/chainlesschain/chainlesschain/blob/0d57ebfea919ae941a36a1f11a9ee10964722120/docs/research/cli/evidence/release132-public/publication.json",
     "uncommittedRetestsIncluded": false,
     "postReleaseRetestCommit": "f154c77641a761d4dc11a6b48a9503a3d6bc0c40",
     "postReleaseRetestStatus": "REQUEST_UNRESOLVED"
@@ -413,6 +413,46 @@
       "sourceSha": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
       "publicReadbackVerified": true,
       "receiptUrl": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release131-public/publication.json"
+    }
+  },
+  "assistedRegressionDeliveries": {
+    "count": 3,
+    "automaticAcceptanceAdded": 0,
+    "evidence": "https://github.com/chainlesschain/chainlesschain/tree/main/docs/research/cli/evidence/native131-assisted-install-2026-10-30"
+  },
+  "release132Channels": {
+    "cli": {
+      "version": "0.166.132",
+      "status": "public",
+      "sourceSha": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
+      "gatesPassed": true,
+      "publicReadbackVerified": true,
+      "workflowUrls": [
+        "https://github.com/chainlesschain/chainlesschain/actions/runs/40985169005"
+      ],
+      "receiptUrl": "https://github.com/chainlesschain/chainlesschain/blob/0d57ebfea919ae941a36a1f11a9ee10964722120/docs/research/cli/evidence/release132-public/publication.json"
+    },
+    "openVsx": {
+      "version": "0.37.170",
+      "status": "public",
+      "sourceSha": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
+      "gatesPassed": true,
+      "publicReadbackVerified": true,
+      "workflowUrls": [
+        "https://github.com/chainlesschain/chainlesschain/actions/runs/40987417858"
+      ],
+      "receiptUrl": "https://github.com/chainlesschain/chainlesschain/blob/0d57ebfea919ae941a36a1f11a9ee10964722120/docs/research/cli/evidence/release132-public/publication.json"
+    },
+    "jetbrains": {
+      "version": "0.4.187",
+      "status": "public",
+      "sourceSha": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
+      "gatesPassed": true,
+      "publicReadbackVerified": true,
+      "workflowUrls": [
+        "https://github.com/chainlesschain/chainlesschain/actions/runs/40987418150"
+      ],
+      "receiptUrl": "https://github.com/chainlesschain/chainlesschain/blob/0d57ebfea919ae941a36a1f11a9ee10964722120/docs/research/cli/evidence/release132-public/publication.json"
     }
   }
 }

@@ -2,7 +2,7 @@
   "tag": "v5.0.3.143",
   "productVersion": "v5.0.3.143",
   "fetchedAt": "2026-10-27T20:08:14.985Z",
-  "cliVersion": "0.166.131",
+  "cliVersion": "0.166.132",
   "sizes": {
     "android-arm64-v8a": {
       "name": "app-arm64-v8a-release.apk",
@@ -65,6 +65,6 @@
       "label": "10 MB"
     }
   },
-  "cliVersionCheckedAt": "2026-10-29T04:11:07.416Z",
-  "cliVersionEvidence": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release129-public/publication.json"
+  "cliVersionCheckedAt": "2026-10-30T01:32:36.120649+00:00",
+  "cliVersionEvidence": "https://github.com/chainlesschain/chainlesschain/blob/0d57ebfea919ae941a36a1f11a9ee10964722120/docs/research/cli/evidence/release132-public/publication.json"
 }

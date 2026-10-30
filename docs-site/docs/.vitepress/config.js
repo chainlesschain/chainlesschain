@@ -197,6 +197,10 @@ export default defineConfig({
               link: "/chainlesschain/rrsi-current",
             },
             {
+              text: "CLI .132 / IDE .170 与 .187 升级",
+              link: "/chainlesschain/cli-ide-update-2026-10-30-132",
+            },
+            {
               text: "CLI .131 / IDE .169 与 .186 升级",
               link: "/chainlesschain/cli-ide-update-2026-10-29-131",
             },
@@ -227,6 +231,10 @@ export default defineConfig({
             {
               text: "Agent 输入、图片预算与会话恢复",
               link: "/chainlesschain/agent-input-and-recovery",
+            },
+            {
+              text: "CLI .132 响应终态与当前任务保护",
+              link: "/design/release-runtime-update-2026-10-30-132",
             },
             {
               text: "2026-10-29 CLI .131 独立验收与运行时设计",

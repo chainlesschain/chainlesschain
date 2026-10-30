@@ -10,32 +10,14 @@ const jetBrainsPending = [
 ].includes(releaseStatus.jetBrainsPublicationStatus);
 const items = english
   ? [
-      [
-        "Explicit Goal verification",
-        "CLI .131 adds explicit verify: acceptance checks against frozen inputs and current workspace evidence. Model review shares run budgets and cancellation; delivery quality still needs independent acceptance.",
-      ],
-      [
-        "Memory, tool discovery and recovery",
-        "Kernel .11 strengthens Memory file identity checks and cancellation. MCP discovery is isolated between agents, Skills downloads honor cancellation, and compaction preserves host rules. Temporary worktrees reject unrelated consumers.",
-      ],
-      [
-        "Independent mobile and PC release",
-        `${releaseStatus.productVersion} remains a separate product release. Desktop and mobile users upgrade their product package; IDE users install the paired CLI.`,
-      ],
+      ["Keep the current task when output stops", "An output limit or provider filter no longer counts as completion. The current task stays available so you can see why it stopped and decide what to do next."],
+      ["Do not run incomplete tool requests", "Tools from a truncated or filtered response are not executed. After truncation, at most one fresh plan is allowed only when complete usage is recorded and budget remains; filtering does not trigger a retry."],
+      ["Separate product downloads", `Kernel ${releaseStatus.contextMemoryKernelVersion} stays unchanged. PC/mobile ${releaseStatus.productVersion} remain independent releases; the IDE updates recommend the paired CLI without a separate UI change.`],
     ]
   : [
-      [
-        "显式 Goal 验收",
-        "CLI .131 新增显式 verify: 验收条件，冻结验收输入并核对当前工作区证据。模型评审共用运行预算与取消信号，交付质量仍需独立验收。",
-      ],
-      [
-        "Memory、工具发现与恢复",
-        "Kernel .11 加强 Memory 文件身份校验与取消传播；MCP 隔离子代理发现状态，Skills 下载响应取消，上下文压缩保留宿主规则，临时 worktree 拒绝无关消费者使用。",
-      ],
-      [
-        "移动与 PC 独立发行",
-        `${releaseStatus.productVersion} 继续作为独立产品发行。桌面与移动端通过产品包升级，IDE 用户安装配套 CLI。`,
-      ],
+      ["输出中断后保留当前任务", "达到输出上限或被服务商过滤时，不再误报任务完成。当前任务会保留，方便查看停止原因并决定下一步。"],
+      ["不执行不完整的工具请求", "截断或过滤响应中的工具不会执行。输出截断后，只有用量完整入账且预算仍足够时，才允许至多一次重新规划；过滤不会触发重试。"],
+      ["客户端继续独立升级", `Kernel ${releaseStatus.contextMemoryKernelVersion} 不变，PC / 移动端 ${releaseStatus.productVersion} 继续独立发行；本轮 IDE 更新推荐配套 CLI，没有单独的界面改动。`],
     ];
 ---
 
@@ -69,13 +51,13 @@ const items = english
     </div>
     <p class="mt-6 text-sm text-muted">
       {english
-        ? `No new .131 live-model task round has been dispatched. Historical cross-version acceptance remains ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}, with ${releaseStatus.remainingUnaccepted} unaccepted. Full Memory performance targets, semantic quality and dual-IDE acceptance remain incomplete; paid and native production readiness are not established.`
-        : `本版尚未派发新一轮真实模型任务。跨版本历史合格交付仍为 ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}，剩余 ${releaseStatus.remainingUnaccepted} 项；完整 Memory 性能目标、真实语义和双 IDE 验收尚未全部完成，付费与原生生产就绪仍未确认。`}
+        ? `Automatic task acceptance remains ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}, with ${releaseStatus.remainingUnaccepted} unaccepted. Three separately assisted regression deliveries are not automatic task successes. Local tests and publication add no accepted automatic tasks. Full Memory performance targets, semantic quality and dual-IDE acceptance remain incomplete.`
+        : `自动任务验收仍为 ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}，剩余 ${releaseStatus.remainingUnaccepted} 项；另有 3 项人工辅助回归交付，不能计为自动任务成功；本地测试和发行也不增加自动成功数。完整 Memory 性能目标、真实语义和双 IDE 验收尚未全部完成。`}
     </p>
     <p class="mt-3 text-sm text-muted">
       {english
-        ? `These runtime fixes are included in the public .131 package set. Compact MCP catalogs remain opt-in. Microsoft Marketplace is deferred; stock VS Code can install the versioned Open VSX VSIX.`
-        : `这些运行时修复已进入 .131 公开配套包；紧凑 MCP 目录仍默认关闭。Microsoft Marketplace 暂缓，官方 VS Code 可安装 Open VSX 的版本化 VSIX。`}
+        ? `This product fix does not change the original evaluation broker or repair its historical failures. Compact MCP catalogs remain opt-in. Microsoft Marketplace is deferred; stock VS Code can install the versioned Open VSX VSIX.`
+        : `本次产品修复不改变原评测 broker，也不把历史失败变成成功；紧凑 MCP 目录仍默认关闭。Microsoft Marketplace 暂缓，官方 VS Code 可安装 Open VSX 的版本化 VSIX。`}
     </p>
     <div class="mt-6 flex flex-wrap gap-4">
       <a class="btn-ghost" href={`https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${releaseStatus.openVsxVersion}/file/chainlesschain.chainlesschain-ide-${releaseStatus.openVsxVersion}.vsix`}>{english ? "Download VSIX" : "下载 VSIX"} {releaseStatus.openVsxVersion} ↗</a>

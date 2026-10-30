@@ -152,6 +152,10 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
+            text: "CLI .132 响应终态与当前任务保护",
+            link: "/release-runtime-update-2026-10-30-132",
+          },
+          {
             text: "2026-10-29 CLI .131 独立验收与运行时设计",
             link: "/release-runtime-update-2026-10-29-131",
           },

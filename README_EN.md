@@ -1,6 +1,16 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## Current public CLI: 0.166.131 (2026-10-29)
+## Current public CLI: 0.166.132 (2026-10-30)
+
+Install: `npm i -g chainlesschain@0.166.132 --registry https://registry.npmjs.org`. Public Open VSX **0.37.170** / JetBrains **0.4.187** both recommend CLI **0.166.132**. Kernel remains **0.1.11**. Restart the chat host, then check `cc --version` and `cc doctor`. [VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.170/file/chainlesschain.chainlesschain-ide-0.37.170.vsix) · [JetBrains ZIP](https://plugins.jetbrains.com/files/32208/1206433/chainlesschain-ide-bridge-0.4.187.zip). Microsoft Marketplace remains deferred.
+
+Output truncation or filtering does not mark the current task complete; tools from either response are blocked. After truncation, at most one fresh plan is allowed only when complete usage is settled and budget remains; filtering does not trigger a retry. The IDE updates pair the new CLI without a separate UI change. Exact source `772fcdbda85bcf91df95bfced5b476dcf4c74614` passed the required release checks; [OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/40985169005) and [public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/40986625203) are recorded in [publication evidence](docs/research/cli/evidence/release132-public/publication.json).
+
+Automatic accepted tasks remain **34/45** (ordinary **27/36**, first-run **7/9**), with **11** unfinished. Three separately assisted regression deliveries are not automatic successes; neither local tests nor publication add accepted tasks. This product fix does not change the original evaluation broker or turn its old failures into successes. Full Memory SLO, semantic quality and dual-IDE journeys remain incomplete; paid/native readiness is not established. PC/mobile remain independent **v5.0.3.143**.
+
+[Upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-30-132.html) · [Runtime design](https://design.chainlesschain.com/release-runtime-update-2026-10-30-132.html). The versioned notes below retain their historical scope.
+
+## Previous public CLI: 0.166.131 (2026-10-29)
 
 Install: `npm i -g chainlesschain@0.166.131 --registry https://registry.npmjs.org`. Kernel **0.1.11** was published first. Restart the chat host, then run `cc --version` and `cc doctor`. Public Open VSX **0.37.169** / JetBrains **0.4.186** both recommend CLI **0.166.131**; their downloaded packages match the official CI payloads. Microsoft Marketplace is deferred.
 
