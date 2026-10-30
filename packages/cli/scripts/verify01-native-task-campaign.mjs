@@ -17,7 +17,7 @@ import {
   inspectModelTrace,
   changedFiles,
 } from "./verify01-volcengine-task-diagnostic.mjs";
-import { createVolcengineDiagnosticBroker } from "./verify01-volcengine-diagnostic-broker.mjs";
+import { nativeProviderProfile } from "./verify01-native-provider-profile.mjs";
 import { VERIFY01_REVIEW_SPECS } from "./verify01-review-specs.mjs";
 import { requireUnscopedModelTransport } from "../src/lib/formal-budget-provider-scope.js";
 
@@ -251,7 +251,9 @@ export function nativeEnvironment(
   profile,
   expectedFiles,
   capability = "",
+  provider = DIAGNOSTIC.provider,
 ) {
+  const providerProfile = nativeProviderProfile(provider);
   const env = {
     PATH: process.env.PATH || "",
     HOME: profileHome,
@@ -277,10 +279,10 @@ export function nativeEnvironment(
     NO_COLOR: "1",
     LANG: "C.UTF-8",
     CC_FORMAL_QUALITY_EVAL_HERMETIC: "1",
-    CC_FORMAL_QUALITY_EVAL_PROVIDER: DIAGNOSTIC.provider,
+    CC_FORMAL_QUALITY_EVAL_PROVIDER: providerProfile.provider,
     CC_FORMAL_QUALITY_EVAL_ISOLATION_ROOT: root,
     CC_FORMAL_QUALITY_EVAL_ALLOWED_FILES: JSON.stringify(expectedFiles),
-    VOLCENGINE_API_KEY: capability,
+    [providerProfile.keyEnvironment]: capability,
   };
   for (const name of [
     "SystemRoot",
@@ -366,6 +368,8 @@ export async function runVSCodeNativeTask({
   pluginDigest,
   versions,
   reviewChanges = false,
+  provider = DIAGNOSTIC.provider,
+  model = DIAGNOSTIC.model,
 }) {
   const root = path.dirname(profileHome),
     captureDir = path.join(root, "capture"),
@@ -408,8 +412,8 @@ export async function runVSCodeNativeTask({
     profileHome,
     userDataDir,
     extensionsDir,
-    provider: DIAGNOSTIC.provider,
-    model: DIAGNOSTIC.model,
+    provider,
+    model,
     permissionMode: "acceptEdits",
     hostVersion: versions.vscodeHost,
     extensionVersion: versions.vscode,
@@ -550,8 +554,10 @@ export async function runNativeCampaign(options) {
     versionsFile,
     fetchDiagnostics = false,
     reviewChanges = false,
-    key = process.env.VOLCENGINE_API_KEY,
+    provider = DIAGNOSTIC.provider,
   } = options;
+  const providerProfile = nativeProviderProfile(provider);
+  const key = options.key ?? process.env[providerProfile.keyEnvironment];
   assert.equal(typeof fetchDiagnostics, "boolean");
   nativeReviewFlags(reviewChanges);
   assert.ok(
@@ -583,6 +589,8 @@ export async function runNativeCampaign(options) {
     "packages/cli/scripts/verify01-native-task-campaign.mjs",
     "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
     "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+    "packages/cli/scripts/verify01-native-provider-profile.mjs",
+    "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
     "packages/cli/scripts/verify01-review-specs.mjs",
     "packages/cli/src/lib/eval/stream-terminal.js",
     "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
@@ -680,6 +688,14 @@ export async function runNativeCampaign(options) {
     planDigest: DIAGNOSTIC.planDigest,
     frozenArchiveDigest: hash(fs.readFileSync(archive)),
     versions,
+    modelTransport: {
+      provider: providerProfile.provider,
+      model: providerProfile.model,
+      endpoint: providerProfile.policy.endpoint,
+      policyDigest: hash(JSON.stringify(providerProfile.policy)),
+      defaultThinkingPreserved: providerProfile.defaultThinkingPreserved,
+      formalSample: false,
+    },
     ...packageBinding,
     ...(fetchDiagnostics
       ? { fetchDiagnostics: { enabled: true, preload: fetchPreload } }
@@ -698,7 +714,7 @@ export async function runNativeCampaign(options) {
     formalSample: false,
     limitations: [
       "Native generation; independent Linux acceptance pending",
-      "Broker thinking disabled, six file tools only, 20 model turns, 24 requests, 180 second request timeout, 8192 output tokens, 16 MiB response transport limit",
+      `${providerProfile.defaultThinkingPreserved ? "Default model thinking preserved" : "Broker thinking disabled"}, six file tools only, 20 model turns, 24 requests, 180 second request timeout, 8192 output tokens, 16 MiB response transport limit`,
       "IDE context bridges and optional task worklog disabled; real UI and restart retained",
       "No prior candidates or repair seeds supplied",
     ],
@@ -804,6 +820,8 @@ export async function runNativeCampaign(options) {
       profileHome,
       profile,
       task.expectedFiles,
+      "",
+      providerProfile.provider,
     );
     const run = (name, args, cwd = workspace, env = environment) => {
       const launch = nativeFetchDiagnosticLaunch(
@@ -947,7 +965,7 @@ export async function runNativeCampaign(options) {
           independentProfile: true,
           evidence: "package-lock.json",
         };
-      broker = await createVolcengineDiagnosticBroker({
+      broker = await providerProfile.createBroker({
         outputDir: path.join(sampleOutput, "broker"),
         key,
         allowedTaskIds: [sample.id],
@@ -958,11 +976,11 @@ export async function runNativeCampaign(options) {
       });
       capability = broker.childKey;
       secrets.push(capability);
-      environment.VOLCENGINE_API_KEY = capability;
+      environment[providerProfile.keyEnvironment] = capability;
       broker.beginTask(sample.id);
       for (const [field, value] of Object.entries({
-        provider: DIAGNOSTIC.provider,
-        model: DIAGNOSTIC.model,
+        provider: providerProfile.provider,
+        model: providerProfile.model,
         baseUrl: broker.baseUrl,
       }))
         assert.ok(
@@ -986,8 +1004,8 @@ export async function runNativeCampaign(options) {
       ]);
       assert.ok(readback.ok);
       const configured = JSON.parse(readback.stdout).value;
-      assert.equal(configured.provider, DIAGNOSTIC.provider);
-      assert.equal(configured.model, DIAGNOSTIC.model);
+      assert.equal(configured.provider, providerProfile.provider);
+      assert.equal(configured.model, providerProfile.model);
       assert.equal(configured.baseUrl, broker.baseUrl);
       row.configure = {
         passed: true,
@@ -1015,6 +1033,8 @@ export async function runNativeCampaign(options) {
         pluginDigest,
         versions,
         reviewChanges,
+        provider: providerProfile.provider,
+        model: providerProfile.model,
         ...packageBinding,
       };
       let result;
@@ -1026,9 +1046,9 @@ export async function runNativeCampaign(options) {
           "-p",
           prompt,
           "--provider",
-          DIAGNOSTIC.provider,
+          providerProfile.provider,
           "--model",
-          DIAGNOSTIC.model,
+          providerProfile.model,
           "--base-url",
           broker.baseUrl,
           "--permission-mode",
@@ -1207,6 +1227,7 @@ if (
       "versions-file": { type: "string" },
       "fetch-diagnostics": { type: "boolean", default: false },
       "review-changes": { type: "boolean", default: false },
+      provider: { type: "string", default: DIAGNOSTIC.provider },
     },
   });
   const summary = await runNativeCampaign({
@@ -1218,6 +1239,7 @@ if (
     versionsFile: values["versions-file"],
     fetchDiagnostics: values["fetch-diagnostics"],
     reviewChanges: values["review-changes"],
+    provider: values.provider,
   });
   console.log(
     JSON.stringify({

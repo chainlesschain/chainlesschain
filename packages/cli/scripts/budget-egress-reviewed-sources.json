@@ -78,9 +78,9 @@
     },
     {
       "path": "packages/cli/scripts/verify01-native-task-campaign.mjs",
-      "digest": "sha256:dfe7352e09d061c4a6e06e988d3d0279121658dccef494fc78c3efc13e85d724",
+      "digest": "sha256:147fe77cb5870f2479b591fecc5ea000f48a05fad6446607c61ab151fc949df2",
       "category": "MODEL_REQUEST",
-      "rationale": "Downloads public package and artifact data, installs the exact npm CLI, launches native CLI/IDE hosts, and sends paid model requests through the Volcengine diagnostic broker. Live confirmation and a key are required. The entry point rejects formal scope before reading options, credentials, paths, downloads, host processes, or model transport; this campaign remains paid model egress, not a local-only test. Windows UTF-8 archive extraction now invokes a local Python reader; the reviewed network and model dispatch paths are unchanged. Reviewed explicit reviewChanges boolean forwarding for the public CLI, VS Code and JetBrains adapters. Default behavior and the frozen task prompt remain unchanged. The opt-in review shares the existing twenty model turns, twenty-four physical requests, 8192 output allowance and six file tools. Requested and observed runtime review reminders are telemetry, not acceptance. No additional transport, endpoint or automatic resend is introduced."
+      "rationale": "Downloads exact public packages and launches native CLI/IDE task generation. The operator selects only Volcengine or OpenAI through a fixed provider profile; actual provider/model, key slot, endpoint and policy digest are recorded without relabeling the frozen task catalogue. Both modes require live confirmation and a key, and reject formal scope before options, credentials, paths, downloads, processes or model transport. Original six-file tool scope, twenty turns, twenty-four physical requests, timeout and output limits remain; default Volcengine policy is retained. This source review grants no formal financial or native admission."
     },
     {
       "path": "packages/cli/scripts/verify01-native-toolchain-prepare.mjs",
@@ -96,9 +96,9 @@
     },
     {
       "path": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
-      "digest": "sha256:276b97788a56b2f2958f8e9ad223888764d04c501c5796999737cfe80ff1f6df",
+      "digest": "sha256:b524cd15758946fcefe14e932b0461d4d568e1ed4a459cfaa066324f31e5ca43",
       "category": "MODEL_REQUEST",
-      "rationale": "The HTTPS Volcengine model broker caps request bytes, response bytes, time, answer tokens and per-task requests; disables thinking; sends only after TLS; records connection attempts and dispatch certainty; and treats incomplete usage or truncated output as unusable. Formal scope rejects creation, task start and direct dispatch. A separately running IPC/network broker is not contained by AsyncLocalStorage, and the diagnostic does not grant formal paid admission."
+      "rationale": "Shared bounded diagnostic capture and HTTPS dispatch support fixed operator-owned Volcengine and OpenAI Responses policies. Physical dispatch is TLS-gated and journaled before HTTP bytes; raw responses and validated receipts persist before forwarding success. Per-task request, size, time, tool and output limits remain; unknown usage poisons further dispatch and truncated output fails its task. OpenAI preserves reasoning and native Responses items, validates model/tier/usage identity, and uses scoped child capabilities rather than the account key. The constructor, task start and direct dispatch reject formal scope. Token estimates exclude unreported charges and are not provider quotas, reconciled liabilities or formal admission."
     },
     {
       "path": "packages/cli/src/assets/web-panel/assets/Artifacts-BuJgG5jf.js",

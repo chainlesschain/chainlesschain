@@ -306,6 +306,7 @@ export async function runJetBrainsNativeTask({
     if (!env[name] && process.env[name]) env[name] = process.env[name];
   const buildEnv = { ...env };
   delete buildEnv.VOLCENGINE_API_KEY;
+  delete buildEnv.OPENAI_API_KEY;
   const gradle = path.join(
     pkg,
     process.platform === "win32" ? "gradlew.bat" : "gradlew",

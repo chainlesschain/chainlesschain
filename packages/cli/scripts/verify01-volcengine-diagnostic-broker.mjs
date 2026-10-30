@@ -323,10 +323,23 @@ function responseByteLimit(options) {
 }
 
 export function requestArk(body, key, options = {}) {
+  return requestFixedDiagnosticEndpoint(body, key, options, BROKER);
+}
+
+/** Fixed operator-owned transport policy; never derived from a child URL. */
+export function requestFixedDiagnosticEndpoint(body, key, options, policy) {
   requireUnscopedModelTransport();
+  check(
+    new URL(policy.endpoint).protocol === "https:",
+    "DIAGNOSTIC_HTTPS_REQUIRED",
+  );
   const requestFactory = options.requestFactory || https.request;
-  const timeoutMs = options.timeoutMs ?? BROKER.timeoutMs;
-  const maximumResponseBytes = responseByteLimit(options);
+  const timeoutMs = options.timeoutMs ?? policy.timeoutMs;
+  const maximumResponseBytes = responseByteLimit({
+    ...options,
+    maximumResponseBytes:
+      options.maximumResponseBytes ?? policy.maximumResponseBytes,
+  });
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify(body),
       chunks = [];
@@ -383,11 +396,11 @@ export function requestArk(body, key, options = {}) {
       else resolve(result);
     }
     try {
-      req = requestFactory(BROKER.endpoint, {
+      req = requestFactory(policy.endpoint, {
         method: "POST",
         agent: false,
         autoSelectFamily: true,
-        autoSelectFamilyAttemptTimeout: BROKER.connectionAttemptTimeoutMs,
+        autoSelectFamilyAttemptTimeout: policy.connectionAttemptTimeoutMs,
         headers: {
           Authorization: `Bearer ${key}`,
           "Content-Type": "application/json",
@@ -468,13 +481,34 @@ export function requestArk(body, key, options = {}) {
 }
 
 export async function createVolcengineDiagnosticBroker(options) {
+  return createBoundedDiagnosticBroker(options, {
+    policy: BROKER,
+    route: "/api/v3/chat/completions",
+    basePath: "/api/v3",
+    request: requestArk,
+    body: diagnosticBody,
+    sseUsage: diagnosticUsage,
+    jsonUsage: diagnosticJsonUsage,
+    estimateField: "tokenOnlyEstimateCny",
+    billedField: "actualBilledCostCny",
+    defaultThinkingPreserved: false,
+  });
+}
+
+/** Shared durable capture and request limits for diagnostic-only transports. */
+export async function createBoundedDiagnosticBroker(options, profile) {
   requireUnscopedModelTransport();
-  const { outputDir, key, requestImpl = requestArk } = options;
+  const { outputDir, key, requestImpl = profile.request } = options;
+  const { policy } = profile;
   const allowedTaskIds = options.allowedTaskIds || ["verify-04", "verify-22"];
   const maximumRequestsPerTask =
-    options.maximumRequestsPerTask ?? BROKER.maximumRequestsPerTask;
-  const requestTimeoutMs = options.requestTimeoutMs ?? BROKER.timeoutMs;
-  const maximumResponseBytes = responseByteLimit(options);
+    options.maximumRequestsPerTask ?? policy.maximumRequestsPerTask;
+  const requestTimeoutMs = options.requestTimeoutMs ?? policy.timeoutMs;
+  const maximumResponseBytes = responseByteLimit({
+    ...options,
+    maximumResponseBytes:
+      options.maximumResponseBytes ?? policy.maximumResponseBytes,
+  });
   const allowTextOnlyRequests = options.allowTextOnlyRequests === true;
   check(
     Array.isArray(allowedTaskIds) &&
@@ -543,7 +577,7 @@ export async function createVolcengineDiagnosticBroker(options) {
     };
     if (
       req.method !== "POST" ||
-      req.url !== "/api/v3/chat/completions" ||
+      req.url !== profile.route ||
       req.headers.authorization !== `Bearer ${token}`
     ) {
       rejectLocal("DIAGNOSTIC_BROKER_ACCESS_DENIED");
@@ -572,7 +606,7 @@ export async function createVolcengineDiagnosticBroker(options) {
       for await (const chunk of req) {
         bytes += chunk.length;
         check(
-          bytes <= BROKER.maximumRequestBytes,
+          bytes <= policy.maximumRequestBytes,
           "DIAGNOSTIC_REQUEST_BYTES_LIMIT",
         );
         chunks.push(chunk);
@@ -580,7 +614,7 @@ export async function createVolcengineDiagnosticBroker(options) {
       const original = parseDiagnosticJson(
         new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks)),
       );
-      const effective = diagnosticBody(original, { allowTextOnlyRequests });
+      const effective = profile.body(original, { allowTextOnlyRequests });
       const id = receipts.length + 1;
       save(`request-${id}.original.json`, original);
       save(`request-${id}.effective.json`, effective);
@@ -590,8 +624,8 @@ export async function createVolcengineDiagnosticBroker(options) {
         taskId: active.taskId,
         startedAt: new Date().toISOString(),
         usage: null,
-        tokenOnlyEstimateCny: null,
-        actualBilledCostCny: null,
+        [profile.estimateField]: null,
+        [profile.billedField]: null,
         errorCode: null,
         responseMode: effective.stream ? "sse" : "json",
       };
@@ -605,7 +639,7 @@ export async function createVolcengineDiagnosticBroker(options) {
       check(captured.status === 200, "DIAGNOSTIC_NON_200_NO_RETRY");
       Object.assign(
         row,
-        (effective.stream ? diagnosticUsage : diagnosticJsonUsage)(
+        (effective.stream ? profile.sseUsage : profile.jsonUsage)(
           new TextDecoder("utf-8", { fatal: true }).decode(captured.raw),
         ),
       );
@@ -688,7 +722,7 @@ export async function createVolcengineDiagnosticBroker(options) {
     server.listen(0, "127.0.0.1", resolve);
   });
   save("policy.json", {
-    ...BROKER,
+    ...policy,
     allowedTaskIds,
     maximumRequestsPerTask,
     timeoutMs: requestTimeoutMs,
@@ -698,13 +732,13 @@ export async function createVolcengineDiagnosticBroker(options) {
     redirects: false,
     fallback: false,
     credentialsInModelChild: false,
-    actualBilledCostCny: null,
+    [profile.billedField]: null,
     fxRate: null,
-    defaultThinkingPreserved: false,
+    defaultThinkingPreserved: profile.defaultThinkingPreserved,
     providerHardQuotaVerified: false,
   });
   return {
-    baseUrl: `http://127.0.0.1:${server.address().port}/api/v3`,
+    baseUrl: `http://127.0.0.1:${server.address().port}${profile.basePath}`,
     childKey: token,
     beginTask(taskId) {
       requireUnscopedModelTransport();
@@ -743,13 +777,15 @@ export async function createVolcengineDiagnosticBroker(options) {
         usageCompleteRequests: known.length,
         tasks,
         poisoned,
-        actualBilledCostCny: null,
-        tokenOnlyEstimateCny:
+        [profile.billedField]: null,
+        [profile.estimateField]:
           known.length === receipts.length && receipts.length > 0
-            ? known.reduce((s, r) => s + r.tokenOnlyEstimateCny, 0)
+            ? known.reduce((s, r) => s + r[profile.estimateField], 0)
             : null,
-        knownTokenOnlyEstimateCny: known.reduce(
-          (s, r) => s + r.tokenOnlyEstimateCny,
+        [profile.estimateField === "tokenOnlyEstimateCny"
+          ? "knownTokenOnlyEstimateCny"
+          : "knownTokenOnlyEstimateUsd"]: known.reduce(
+          (s, r) => s + r[profile.estimateField],
           0,
         ),
         fxRate: null,
