@@ -1,0 +1,99 @@
+{
+  "schema": "chainlesschain.release133-changelog-parity/v1",
+  "recordedAt": "2026-10-30T06:28:38.630720+00:00",
+  "failedCandidateSource": "de2d590eee23eaddd084e68edc15d7d7cc34d00d",
+  "runId": 41009876557,
+  "attempt": 1,
+  "jobs": {
+    "ubuntu": 123915037412,
+    "macos": 123915037357
+  },
+  "failure": {
+    "testsPerPlatform": 10524,
+    "failuresPerPlatform": 1,
+    "suite": "__tests__/unit/changelog-artifact-parity.test.js",
+    "cause": "Canonical source had94 releases including0.166.133; committed bundled artifact had93 and omitted0.166.133."
+  },
+  "artifactVerification": {
+    "status": "VERIFIED_OFFICIAL_FAILURE_ARTIFACT",
+    "source": "de2d590eee23eaddd084e68edc15d7d7cc34d00d",
+    "runId": 41009876557,
+    "attempt": 1,
+    "artifactId": 12957972867,
+    "archiveDigest": "sha256:1cd555e266ba3a140c215ea60308a0bf911ee860c4bd617f72d292b688fc0f1a",
+    "xmlDigest": "sha256:ec621c40d93870cb08ccfa2e3f228bbabfc00b150995703ebc308d9f4b151007",
+    "xmlBytes": 2356278,
+    "downloadedXmlMatchesOfficialArchive": true,
+    "publication": false
+  },
+  "macosArtifactId": 12958343902,
+  "macosVerificationScope": "Original JUnit downloaded with gh run download; no independent ZIP-wrapper comparison is claimed.",
+  "fix": {
+    "generator": "node packages/cli/scripts/build-changelog.mjs",
+    "releases": 94,
+    "latestCliVersion": "0.166.133",
+    "generatedDigest": "sha256:be8df7ff24912a4b26a07ec584d47a78010f6f0573cc2b7cd410f1fff4201517",
+    "committedArtifactParityCheckedBeforeFanOut": true,
+    "check": "npm test -- __tests__/unit/changelog-artifact-parity.test.js",
+    "checkDoesNotRegenerateBeforeAssertion": true,
+    "fullMatrixStillRequired": true,
+    "runtimeCodeChanged": false,
+    "runtimeDigest": "sha256:479a153a691f97215532e276aa86113fa46285090301a7aed56675489c7a7f59"
+  },
+  "localRegression": {
+    "files": 5,
+    "passed": 48,
+    "failed": 0,
+    "skipped": 0
+  },
+  "supplementaryPrepublishOnly": {
+    "command": "npm.cmd run prepublishOnly --workspace packages/cli",
+    "exitCode": 0,
+    "stages": [
+      "commands:manifest:check",
+      "commands:help-index:check",
+      "commands:completions:check",
+      "build:web-panel",
+      "build:changelog"
+    ],
+    "webPanelInputHashUnchanged": true,
+    "publicationPerformed": false
+  },
+  "independentReview": "Astra confirmed the unique failures, original deterministic generator and existing source-review preflight dependencies; do not regenerate before the parity check.",
+  "publication": false,
+  "automaticAcceptance": 34,
+  "assistedDeliveriesSeparate": 5,
+  "newExactCommitCompleteMatricesRequired": true,
+  "records": {
+    "official-ubuntu-report.zip": {
+      "path": "official-ubuntu-report.zip",
+      "bytes": 302196,
+      "digest": "sha256:1cd555e266ba3a140c215ea60308a0bf911ee860c4bd617f72d292b688fc0f1a"
+    },
+    "ubuntu-artifact-metadata.json": {
+      "path": "ubuntu-artifact-metadata.json",
+      "bytes": 801,
+      "digest": "sha256:7e21e4684eb4419a627b92899f2d06f6fadc1d77934feaeb5e51c3a886d8c01a"
+    },
+    "ubuntu-artifact-verification.json": {
+      "path": "ubuntu-artifact-verification.json",
+      "bytes": 456,
+      "digest": "sha256:10d3070e168445cbb4e4ef5827d784620e280dd7d4352650c6cd6f710484fe24"
+    },
+    "macos-artifact-metadata.json": {
+      "path": "macos-artifact-metadata.json",
+      "bytes": 800,
+      "digest": "sha256:e376f08b8661cfd8506c6d49b2b1efc0ee0bf0dd1902fcf27c0cd7e501a4ec6f"
+    },
+    "macos-unit-3.xml": {
+      "path": "macos-unit-3.xml.gz",
+      "bytes": 2379757,
+      "digest": "sha256:f85872b12f0628f4d8f0f084ce38f9153c70d91ff62d842bac32246658eba7ba"
+    },
+    "local-regression.json": {
+      "path": "local-regression.json.gz",
+      "bytes": 16550,
+      "digest": "sha256:a27398fbb009e8334d6167d0361dfb8588df4e731f215206e0cfa3cabaa61299"
+    }
+  }
+}

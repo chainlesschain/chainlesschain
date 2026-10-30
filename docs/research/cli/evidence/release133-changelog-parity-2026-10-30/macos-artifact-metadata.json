@@ -1,0 +1,20 @@
+{
+  "id": 12958343902,
+  "node_id": "MDg6QXJ0aWZhY3QxMjk1ODM0MzkwMg==",
+  "name": "cli-macos-latest-unit-3-results",
+  "size_in_bytes": 292983,
+  "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12958343902",
+  "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12958343902/zip",
+  "expired": false,
+  "digest": "sha256:43586480b8c547e776c886b759634135c8c904d94532a5499cbdd048e67889ba",
+  "created_at": "2026-10-30T06:21:28Z",
+  "updated_at": "2026-10-30T06:21:28Z",
+  "expires_at": "2026-11-06T06:21:27Z",
+  "workflow_run": {
+    "id": 41009876557,
+    "repository_id": 1107348698,
+    "head_repository_id": 1107348698,
+    "head_branch": "main",
+    "head_sha": "de2d590eee23eaddd084e68edc15d7d7cc34d00d"
+  }
+}

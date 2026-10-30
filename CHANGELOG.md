@@ -5,9 +5,9 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Public release scope: CLI **0.166.131** is the immutable package from `c9d0bab231850697df38f2d476c2dd974cbcb6c0`, with `@chainlesschain/context-memory-kernel@0.1.11`. Its OIDC publication and independent public readback passed; see [publication evidence](docs/research/cli/evidence/release131-public/publication.json).
+> Public release scope: CLI **0.166.132** is the immutable package from `772fcdbda85bcf91df95bfced5b476dcf4c74614`, with `@chainlesschain/context-memory-kernel@0.1.11`. Its OIDC publication, independent public readback and companion Open VSX **0.37.170** / JetBrains **0.4.187** verification passed; see [publication evidence](docs/research/cli/evidence/release132-public/publication.json).
 >
-> `Unreleased` is a rolling source-development log that retains historical candidate labels, not a publication ledger. Public `.131` includes the later Goal, Memory, MCP/Skills, worktree and Terra changes verified in its release evidence. The `.132` changes below remain unpublished until their own exact-source gates and publication complete.
+> `Unreleased` is a rolling source-development log that retains historical candidate labels, not a publication ledger. Public `.132` includes the output-limit and task-context protections verified in its release evidence. The `.133` source candidate still requires its own complete exact-source gates and verified publication.
 
 ## [Unreleased]
 
@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expose canonical allowed mutation paths in provider tool schemas for scoped write/edit calls. Explain that absolute paths returned by read tools are not valid mutation arguments in that run; execution-time permission, scope and file-identity checks remain authoritative.
 - Validate the generic schema contract: the new provider-wire suite passed **10/10 tests**; the combined related suites passed **34 tests**, with **1 existing Windows skip**. Local test results do not establish new real-model task success or change the historical **34/45** automatic acceptance total.
 - Prepare candidate pairing Open VSX **0.37.171** / JetBrains **0.4.188** for CLI **0.166.133**. Kernel **0.1.11** and unchanged child packages retain their versions; no independent IDE UI or client release is included.
-- These versions are unpublished. Require verified public child packages, exact-source multi-OS release gates, CLI OIDC publication and public readback before IDE publication and readback. Microsoft Marketplace remains deferred; existing public **0.166.132 / 0.37.170 / 0.4.187** remains the installation pairing.
+- Release requirements: verified public child packages, exact-source multi-OS release gates, CLI OIDC publication and public readback before IDE publication and readback. Consult versioned publication evidence for actual availability. Microsoft Marketplace remains deferred; **0.166.132 / 0.37.170 / 0.4.187** is the preceding verified public pairing.
 
 ### Fixed - cc CLI 0.166.132: output-limit integrity and bounded recovery (candidate, 2026-10-30)
 

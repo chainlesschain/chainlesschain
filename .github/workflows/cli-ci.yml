@@ -141,6 +141,9 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - uses: ./.github/actions/setup-node-deps
+      - name: Verify committed changelog before test fan-out
+        working-directory: packages/cli
+        run: npm test -- __tests__/unit/changelog-artifact-parity.test.js
       # These distribution assets are ignored by Git. A clean checkout must
       # construct their actual locked-source bytes before the unchanged audit;
       # a developer's cached bundle cannot stand in for release evidence.

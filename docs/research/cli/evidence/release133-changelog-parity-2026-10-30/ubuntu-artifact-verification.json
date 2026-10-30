@@ -1,0 +1,12 @@
+{
+  "status": "VERIFIED_OFFICIAL_FAILURE_ARTIFACT",
+  "source": "de2d590eee23eaddd084e68edc15d7d7cc34d00d",
+  "runId": 41009876557,
+  "attempt": 1,
+  "artifactId": 12957972867,
+  "archiveDigest": "sha256:1cd555e266ba3a140c215ea60308a0bf911ee860c4bd617f72d292b688fc0f1a",
+  "xmlDigest": "sha256:ec621c40d93870cb08ccfa2e3f228bbabfc00b150995703ebc308d9f4b151007",
+  "xmlBytes": 2356278,
+  "downloadedXmlMatchesOfficialArchive": true,
+  "publication": false
+}
