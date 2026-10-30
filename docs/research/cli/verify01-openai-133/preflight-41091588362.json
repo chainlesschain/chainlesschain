@@ -1,0 +1,31 @@
+{
+  "runId": 41091588362,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41091588362",
+  "source": "d414548e62903568d27fe14f25e018aa34ecfc12",
+  "stage": "validate",
+  "conclusion": "failure",
+  "testCounts": {
+    "total": 122,
+    "passed": 120,
+    "failed": 1,
+    "skipped": 1
+  },
+  "generate": "skipped",
+  "accept": "skipped",
+  "physicalTaskModelRequestsStarted": 0,
+  "cause": "Legacy subset fixture inherited NATIVE_PROVIDER=openai",
+  "correction": "Fix the fixture provider; retain all selection and package checks",
+  "capturedLog": {
+    "file": "preflight-41091588362.log.gz",
+    "uncompressedBytes": 196364,
+    "uncompressedSha256": "3a9762ebff8d6d1c933b5a909f0ff6779dc74e0da54d7c7ebac04131552851e1",
+    "encoding": "PowerShell UTF-16LE stdout capture"
+  },
+  "localCorrectionValidation": {
+    "tests": 122,
+    "passed": 122,
+    "failed": 0,
+    "skipped": 0,
+    "campaignProviderEnvironment": "openai"
+  }
+}

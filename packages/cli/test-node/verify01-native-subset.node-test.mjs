@@ -147,6 +147,7 @@ test("workflow validates a single matching host and entry before subset dispatch
   const output = path.join(root, "output.txt");
   const env = {
     ...process.env,
+    NATIVE_PROVIDER: "volcengine",
     GITHUB_OUTPUT: output,
     HOST_SELECTION: "windows",
     ENTRY_SELECTION: "jetbrains",
@@ -174,6 +175,11 @@ test("workflow validates a single matching host and entry before subset dispatch
   assert.notEqual(run({ ENTRY_SELECTION: "all" }).status, 0);
   assert.notEqual(run({ SAMPLE_SELECTION: "verify-20" }).status, 0);
   assert.equal(run({ PACKAGE_SET_SELECTION: "frozen" }).status, 0);
+  assert.notEqual(run({ NATIVE_PROVIDER: "unknown" }).status, 0);
+  assert.notEqual(
+    run({ NATIVE_PROVIDER: "openai", PACKAGE_SET_SELECTION: "frozen" }).status,
+    0,
+  );
   assert.notEqual(run({ PACKAGE_SET_SELECTION: "unknown" }).status, 0);
   assert.notEqual(
     run({
