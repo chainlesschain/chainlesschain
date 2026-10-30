@@ -78,9 +78,9 @@
     },
     {
       "path": "packages/cli/scripts/verify01-native-task-campaign.mjs",
-      "digest": "sha256:dfe7352e09d061c4a6e06e988d3d0279121658dccef494fc78c3efc13e85d724",
+      "digest": "sha256:34e2e76a63876021673037dfe4610612303eebcadce77890a2ac185bc1406769",
       "category": "MODEL_REQUEST",
-      "rationale": "Downloads public package and artifact data, installs the exact npm CLI, launches native CLI/IDE hosts, and sends paid model requests through the Volcengine diagnostic broker. Live confirmation and a key are required. The entry point rejects formal scope before reading options, credentials, paths, downloads, host processes, or model transport; this campaign remains paid model egress, not a local-only test. Windows UTF-8 archive extraction now invokes a local Python reader; the reviewed network and model dispatch paths are unchanged. Reviewed explicit reviewChanges boolean forwarding for the public CLI, VS Code and JetBrains adapters. Default behavior and the frozen task prompt remain unchanged. The opt-in review shares the existing twenty model turns, twenty-four physical requests, 8192 output allowance and six file tools. Requested and observed runtime review reminders are telemetry, not acceptance. No additional transport, endpoint or automatic resend is introduced."
+      "rationale": "Downloads exact public packages and launches the native CLI/IDE task cohort with explicit provider/source/package identity. OpenAI keeps the installed CLI official base URL and native Responses serializer, using a source-bound per-run launcher and fetch forwarder to the authenticated loopback broker. The installed CLI is unchanged and receives only a 64-hex capability; the account key remains in the operator broker. All original file scopes, host cleanup, terminal evidence, request/output/timeout limits, receipt settlement and formal-scope refusal remain. Historical Volcengine policy and outcomes are separate. This review is not formal financial or native admission."
     },
     {
       "path": "packages/cli/scripts/verify01-native-toolchain-prepare.mjs",
@@ -96,9 +96,9 @@
     },
     {
       "path": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
-      "digest": "sha256:276b97788a56b2f2958f8e9ad223888764d04c501c5796999737cfe80ff1f6df",
+      "digest": "sha256:b524cd15758946fcefe14e932b0461d4d568e1ed4a459cfaa066324f31e5ca43",
       "category": "MODEL_REQUEST",
-      "rationale": "The HTTPS Volcengine model broker caps request bytes, response bytes, time, answer tokens and per-task requests; disables thinking; sends only after TLS; records connection attempts and dispatch certainty; and treats incomplete usage or truncated output as unusable. Formal scope rejects creation, task start and direct dispatch. A separately running IPC/network broker is not contained by AsyncLocalStorage, and the diagnostic does not grant formal paid admission."
+      "rationale": "Shared bounded diagnostic capture and HTTPS dispatch support fixed operator-owned Volcengine and OpenAI Responses policies. Physical dispatch is TLS-gated and journaled before HTTP bytes; raw responses and validated receipts persist before forwarding success. Per-task request, size, time, tool and output limits remain; unknown usage poisons further dispatch and truncated output fails its task. OpenAI preserves reasoning and native Responses items, validates model/tier/usage identity, and uses scoped child capabilities rather than the account key. The constructor, task start and direct dispatch reject formal scope. Token estimates exclude unreported charges and are not provider quotas, reconciled liabilities or formal admission."
     },
     {
       "path": "packages/cli/src/assets/web-panel/assets/Artifacts-BuJgG5jf.js",
@@ -495,6 +495,12 @@
       "digest": "sha256:31a7409e1b5a386bde23aa0040dfd26b01cc5aebb999d0c376580db4bdfc4dba",
       "category": "LOCAL_DIAGNOSTIC",
       "rationale": "TCP reachability diagnostics; a connection probe is not an inference request."
+    },
+    {
+      "path": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:c4b11e676cd8865c0d42af3c7c74d2c232ea80625944ee5dc86bf48f2624a833",
+      "category": "MODEL_REQUEST",
+      "rationale": "Explicit operator-only native OpenAI fetch forwarder and launcher, activated only for the expected installed CLI agent entry in the hermetic OpenAI diagnostic environment. Loads the exact installed CLI budget-scope module and refuses active formal scope before credential/URL inspection and before each fetch. Only the fixed official Responses POST with a 64-hex broker capability is forwarded to the fixed IPv4 loopback path; account keys are rejected, bodies and cancellation are preserved, and TLS/certificate or product endpoint checks are unchanged. The host broker owns actual OpenAI credentials, limits, receipts and unknown-usage handling. No financial or OS admission is established."
     }
   ]
 }

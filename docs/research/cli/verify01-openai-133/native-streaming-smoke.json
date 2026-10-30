@@ -1,0 +1,46 @@
+{
+  "kind": "published-cli-native-openai-broker-smoke",
+  "formalSample": false,
+  "countsAsNativeTask": false,
+  "cliVersion": "0.166.133",
+  "model": "gpt-6.1-sol",
+  "startedAt": "2026-10-30T19:33:23.606Z",
+  "passed": true,
+  "terminal": {
+    "terminalVerified": true,
+    "observedFallback": false,
+    "usage": {
+      "inputTokens": 1075,
+      "outputTokens": 6,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0
+    },
+    "totalCostUsd": 0.00221
+  },
+  "brokerStatus": {
+    "physicalRequestsStarted": 1,
+    "usageCompleteRequests": 1,
+    "passed": true,
+    "poisoned": null,
+    "errorCode": null
+  },
+  "errors": [],
+  "broker": {
+    "formalSample": false,
+    "physicalRequestsStarted": 1,
+    "usageCompleteRequests": 1,
+    "tasks": [
+      {
+        "taskId": "verify-01",
+        "requests": 1,
+        "errorCode": null
+      }
+    ],
+    "poisoned": null,
+    "actualBilledCostUsd": null,
+    "tokenOnlyEstimateUsd": 0.00221,
+    "knownTokenOnlyEstimateUsd": 0.00221,
+    "fxRate": null
+  },
+  "finishedAt": "2026-10-30T19:33:35.829Z"
+}

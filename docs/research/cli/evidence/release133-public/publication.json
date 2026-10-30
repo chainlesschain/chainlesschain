@@ -40,9 +40,11 @@
     "evidence": "jetbrains.json"
   },
   "pullRequest": 511,
-  "mergeStatus": "ready-after-three-public-readbacks",
+  "mergeStatus": "merged-after-three-public-readbacks",
   "microsoftMarketplace": "deferred",
   "pcMobile": "unchanged-v5.0.3.143",
   "newModelTaskAcceptance": 0,
-  "status": "verified-public"
+  "status": "verified-public",
+  "mergeCommit": "5aca37b77d50d7e0bc12bb878582a2fdcd92e664",
+  "mergedAt": "2026-10-30T15:54:03Z"
 }
