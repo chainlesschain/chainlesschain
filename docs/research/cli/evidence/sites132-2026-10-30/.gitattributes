@@ -1,0 +1,3 @@
+# Preserve archive and manifest bytes; raw receipts are gzip objects.
+* -text !eol -whitespace
+objects/** binary -text !eol -whitespace
