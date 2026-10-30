@@ -1,0 +1,2 @@
+* -text !eol -whitespace
+objects/** binary -text !eol -whitespace
