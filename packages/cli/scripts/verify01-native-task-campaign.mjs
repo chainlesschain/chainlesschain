@@ -1113,7 +1113,11 @@ export async function runNativeCampaign(options) {
         inspected.stream,
         task.expectedFiles,
         inspected.workspace,
-        { allowSessionEnd: entry !== "cli" },
+        {
+          allowSessionEnd: entry !== "cli",
+          expectedProvider: providerProfile.provider,
+          expectedModel: providerProfile.model,
+        },
       );
       row.model.scopePathComparison =
         process.platform === "win32"

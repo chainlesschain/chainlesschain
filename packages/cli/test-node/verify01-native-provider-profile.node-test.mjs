@@ -9,6 +9,55 @@ import {
   assertNativeProviderIdentity,
 } from "../scripts/verify01-native-provider-profile.mjs";
 import { nativeEnvironment } from "../scripts/verify01-native-task-campaign.mjs";
+import { inspectModelTrace } from "../scripts/verify01-volcengine-task-diagnostic.mjs";
+
+test("trace identity follows the selected provider and rejects mismatched usage", () => {
+  const original = nativeProviderProfile();
+  const selected = nativeProviderProfile("openai");
+  const events = (profile) => [
+    {
+      type: "system",
+      subtype: "init",
+      provider: profile.provider,
+      model: profile.model,
+      permission_mode: "acceptEdits",
+      tools: [],
+    },
+    {
+      type: "token_usage",
+      provider: profile.provider,
+      model: profile.model,
+      usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 },
+    },
+  ];
+  const inspect = (rows, options) =>
+    inspectModelTrace(
+      rows.map((row) => JSON.stringify(row)).join("\n"),
+      [],
+      os.tmpdir(),
+      options,
+    );
+  assert.equal(inspect(events(original)).identity, true);
+  assert.equal(inspect(events(selected)).identity, false);
+  const options = {
+    expectedProvider: selected.provider,
+    expectedModel: selected.model,
+  };
+  const matched = inspect(events(selected), options);
+  assert.equal(matched.identity, true);
+  assert.equal(
+    matched.pass,
+    false,
+    "identity alone cannot replace terminal evidence",
+  );
+  for (const index of [0, 1]) {
+    for (const field of ["provider", "model"]) {
+      const mismatch = events(selected);
+      mismatch[index][field] = original[field];
+      assert.equal(inspect(mismatch, options).identity, false);
+    }
+  }
+});
 
 test("OpenAI selection binds the model, endpoint and key slot without changing the original provider", () => {
   const original = nativeProviderProfile();
