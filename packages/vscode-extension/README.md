@@ -12,7 +12,7 @@ Open **Skill 自进化配置** from the command palette to enable or disable sel
 
 ## Next release candidate
 
-Source candidate **0.37.171** recommends CLI **0.166.133**. The extension has not been published; CLI **0.166.133** and paired JetBrains **0.4.188** are also unpublished candidates. Kernel remains **0.1.11**. The CLI candidate exposes canonical allowed mutation paths in provider tool schemas while retaining execution-time scope checks. Exact-source release gates, upstream CLI publication and public artifact readbacks are still required. No independent IDE UI change or new real-model task acceptance is claimed.
+Source candidate **0.37.171** recommends CLI **0.166.133**. The extension has not been published; CLI **0.166.133** and paired JetBrains **0.4.188** are also unpublished candidates. Kernel remains **0.1.11**. The CLI candidate fixes empty Responses reasoning-summary replay, honors disabled self-evolution across `cc ui`, supports custom OpenAI-compatible local/LAN platforms, and exposes canonical allowed mutation paths while retaining execution-time scope checks. Exact-source release gates, upstream CLI publication and public artifact readbacks are still required. No independent IDE UI change or new real-model task acceptance is claimed.
 
 ## Current release
 

@@ -11,9 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed - cc CLI 0.166.133: scoped mutation tool schemas (candidate, 2026-10-30)
+### Fixed - cc CLI 0.166.133: scoped mutation schemas and model platform compatibility (candidate, 2026-10-30)
 
 - Expose canonical allowed mutation paths in provider tool schemas for scoped write/edit calls. Explain that absolute paths returned by read tools are not valid mutation arguments in that run; execution-time permission, scope and file-identity checks remain authoritative.
+- Preserve the required `summary` array on Responses reasoning items, including empty summaries and replayed older sessions, so tool continuations do not fail with `Missing required parameter: input[n].summary`.
+- Apply the current self-evolution setting to ordinary `cc ui` Chat, Agent, streaming and Personal Data Hub analysis, skills and resolver requests. Disabled requests do not require a deployment certificate; enabled deployments retain authentication checks. Existing UI sessions re-read the setting for subsequent requests.
+- Support explicitly configured `custom` OpenAI-compatible local and LAN platforms across Chat, Agent, streaming and connection probes. Keep the platform's API base path and model alias, allow platform-specific or absent credentials, and do not relabel localhost endpoints as Ollama or fall back to an unrelated cloud account.
+- Validate the model-platform and self-evolution fixes with over 400 focused regression tests, including the actual Chat-session creation path and disabled resolver model/embedding transports. Platform compatibility uses controlled test endpoints; the reported user's live platform was not contacted.
 - Validate the generic schema contract: the new provider-wire suite passed **10/10 tests**; the combined related suites passed **34 tests**, with **1 existing Windows skip**. Local test results do not establish new real-model task success or change the historical **34/45** automatic acceptance total.
 - Prepare candidate pairing Open VSX **0.37.171** / JetBrains **0.4.188** for CLI **0.166.133**. Kernel **0.1.11** and unchanged child packages retain their versions; no independent IDE UI or client release is included.
 - Release requirements: verified public child packages, exact-source multi-OS release gates, CLI OIDC publication and public readback before IDE publication and readback. Consult versioned publication evidence for actual availability. Microsoft Marketplace remains deferred; **0.166.132 / 0.37.170 / 0.4.187** is the preceding verified public pairing.
