@@ -2,12 +2,12 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.171] - CLI .133 model compatibility and scoped mutation pairing (unreleased candidate, 2026-10-30)
+## [0.37.171] - CLI .133 model compatibility and scoped mutation pairing (published, 2026-10-30)
 
-- Recommend candidate CLI 0.166.133; pair with candidate JetBrains 0.4.188. Kernel remains 0.1.11.
+- Recommend public CLI 0.166.133; pair with JetBrains 0.4.188, whose upload awaits Marketplace approval or indexing. Kernel remains 0.1.11.
 - Carry the CLI fixes for required empty Responses reasoning summaries, optional self-evolution across cc ui, and custom OpenAI-compatible local/LAN model platforms with optional API keys. Preserve configured endpoints and model aliases, including localhost gateways.
 - Carry the CLI's generic scoped mutation path schema fix, preserving execution-time scope and file-identity checks. The new provider-wire suite passed 10/10 tests; the combined related suites passed 34 tests, with 1 existing Windows skip. No independent IDE UI change or new real-model task acceptance is claimed.
-- This pairing is unpublished. Require verified upstream CLI publication, exact-source IDE checks and public artifact readback. The verified public pairing remains Open VSX 0.37.170 / CLI 0.166.132 / JetBrains 0.4.187.
+- CLI and Open VSX publication and public artifact readbacks passed for source 2eb0c5b1e048509362f9d980f94acee55c2ffa9f. JetBrains public availability and payload readback remain pending. Microsoft Marketplace remains deferred.
 
 ## [0.37.170] - CLI .132 pairing (unreleased candidate, 2026-10-30)
 

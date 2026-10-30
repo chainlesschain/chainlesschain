@@ -1,0 +1,16 @@
+{
+  "channel": "jetbrains",
+  "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+  "status": "pending",
+  "version": "0.4.188",
+  "approve": null,
+  "listed": null,
+  "hidden": null,
+  "reason": "version-not-visible",
+  "attempts": 1,
+  "uploadCompleted": true,
+  "payloadVerified": false,
+  "publishRun": 41075702892,
+  "releaseSourceCommit": "2eb0c5b1e048509362f9d980f94acee55c2ffa9f",
+  "checkedAt": "2026-10-30T15:33:20.802Z"
+}

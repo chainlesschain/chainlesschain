@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "sourceCommit": "2eb0c5b1e048509362f9d980f94acee55c2ffa9f",
+  "checkedAt": "2026-10-30T15:33:20.802Z",
+  "cli": {
+    "version": "0.166.133",
+    "status": "verified-public",
+    "publishRun": 41073612529,
+    "readbackRun": 41075409835,
+    "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.133.tgz",
+    "sha256": "a66e653d88e90715eeef03a984d926c1a55964567c61ea6f82e917592bb4d63e",
+    "bytes": 9519151,
+    "byteIdentical": true,
+    "provenanceVerified": true
+  },
+  "openVsx": {
+    "version": "0.37.171",
+    "status": "verified-public",
+    "run": 41075702976,
+    "recommendedCliVersion": "0.166.133",
+    "sha256": "c7e62bcfb7795dc296e7fbad3eb491cce6dca827189511386f71f2710d9e9d46",
+    "bytes": 744557,
+    "byteIdentical": true,
+    "download": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.171/file/chainlesschain.chainlesschain-ide-0.37.171.vsix"
+  },
+  "jetbrains": {
+    "version": "0.4.188",
+    "status": "uploaded-pending-marketplace",
+    "run": 41075702892,
+    "uploadCompleted": true,
+    "publicPayloadVerified": false,
+    "evidence": "jetbrains.json"
+  },
+  "pullRequest": 511,
+  "mergeStatus": "deferred-until-public-readbacks",
+  "microsoftMarketplace": "deferred",
+  "pcMobile": "unchanged-v5.0.3.143",
+  "newModelTaskAcceptance": 0
+}

@@ -138,7 +138,7 @@ See the [verified publication evidence](https://github.com/chainlesschain/chainl
 
 ## Release compatibility
 
-Plugin **0.4.188** is the current release candidate. It recommends `chainlesschain@0.166.133` and pairs with candidate Open VSX **0.37.171**; Kernel remains **0.1.11**. This pairing is unpublished. The CLI candidate fixes empty Responses reasoning-summary replay, honors disabled self-evolution across `cc ui`, supports custom OpenAI-compatible local/LAN platforms, and exposes canonical allowed mutation paths while retaining execution-time scope checks. Exact-source release gates, upstream CLI publication and public artifact readbacks are still required. No independent IDE UI change is included. Microsoft Marketplace remains deferred.
+Plugin **0.4.188** is the current release candidate, uploaded successfully and awaiting Marketplace approval or indexing. It recommends `chainlesschain@0.166.133` and pairs with public Open VSX **0.37.171**; both upstream packages are public, and Kernel remains **0.1.11**. All six real-host release checks passed. Public JetBrains download and payload verification remain pending. The CLI fixes empty Responses reasoning-summary replay, honors disabled self-evolution across `cc ui`, supports custom OpenAI-compatible local/LAN platforms, and exposes canonical allowed mutation paths while retaining execution-time scope checks. [Release evidence](../../docs/research/cli/evidence/release133-public/README.md). No independent IDE UI change is included. Microsoft Marketplace remains deferred.
 
 ## Previous candidates and development notes
 
