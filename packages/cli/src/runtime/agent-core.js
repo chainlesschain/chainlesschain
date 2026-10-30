@@ -12122,9 +12122,63 @@ function getEffectiveToolDefinitions(options = {}) {
   });
 }
 
+function projectExactFileMutationToolSchemas(
+  definitions,
+  scope,
+  externalToolExecutors,
+) {
+  if (scope == null) return definitions;
+  return definitions.map((tool) => {
+    const name = tool?.function?.name;
+    if (
+      !["write_file", "edit_file", "edit_file_hashed"].includes(name) ||
+      !AGENT_TOOLS.includes(tool) ||
+      externalToolExecutors?.[name]
+    ) {
+      return tool;
+    }
+    const parameters = tool.function.parameters;
+    return {
+      ...tool,
+      function: {
+        ...tool.function,
+        parameters: {
+          ...parameters,
+          properties: {
+            ...parameters.properties,
+            path: {
+              ...parameters.properties.path,
+              // Complete host-authorized set: never truncate this enum or
+              // derive it from a read result. Normal tool context budgeting
+              // sees the same schema that is sent to the provider.
+              enum: [...scope.allowedPaths],
+              description:
+                "Use exactly one listed canonical repo-relative path. Read tools may return absolute paths; those are not valid mutation arguments in this run. Do not use an absolute path, ./ prefix, .. segment or backslash. This schema is guidance; all execution-time permission and file-identity checks still apply.",
+            },
+          },
+        },
+      },
+    };
+  });
+}
+
 function getProviderToolDefinitions(options = {}) {
-  return projectMcpToolDefinitions(
+  const definitions = projectMcpToolDefinitions(
     getEffectiveToolDefinitions(options),
+    options.externalToolExecutors,
+  );
+  if (options.fileMutationScope == null) return definitions;
+  if (options.exactToolNames !== true || options.hermeticExecution !== true) {
+    throw new Error(
+      "exact file mutation scope requires exactToolNames=true and hermeticExecution=true",
+    );
+  }
+  const scope = normalizeExactFileMutationScope(options.fileMutationScope, {
+    cwd: options.cwd || process.cwd(),
+  });
+  return projectExactFileMutationToolSchemas(
+    definitions,
+    scope,
     options.externalToolExecutors,
   );
 }
@@ -15018,6 +15072,7 @@ export async function* agentLoop(messages, options) {
   let effectiveToolOptions = hermeticExecution
     ? {
         ...options,
+        fileMutationScope,
         hostManagedToolPolicy: null,
         hostManagedToolPolicyAuthority: null,
         extraToolDefinitions: [],

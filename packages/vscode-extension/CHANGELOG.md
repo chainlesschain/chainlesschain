@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.171] - CLI .133 scoped mutation schema pairing (unreleased candidate, 2026-10-30)
+
+- Recommend candidate CLI 0.166.133; pair with candidate JetBrains 0.4.188. Kernel remains 0.1.11.
+- Carry the CLI's generic scoped mutation path schema fix, preserving execution-time scope and file-identity checks. The new provider-wire suite passed 10/10 tests; the combined related suites passed 34 tests, with 1 existing Windows skip. No independent IDE UI change or new real-model task acceptance is claimed.
+- This pairing is unpublished. Require verified upstream CLI publication, exact-source IDE checks and public artifact readback. The verified public pairing remains Open VSX 0.37.170 / CLI 0.166.132 / JetBrains 0.4.187.
+
 ## [0.37.170] - CLI .132 pairing (unreleased candidate, 2026-10-30)
 
 - Recommend CLI 0.166.132; pair with JetBrains 0.4.187. Kernel remains 0.1.11.

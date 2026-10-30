@@ -2,7 +2,13 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.132 — current public release
+## CLI 0.166.133
+
+This source tree targets package version **0.166.133**. It exposes canonical allowed mutation paths in provider tool schemas, instructing scoped write/edit calls to use repository-relative paths even when read tools return absolute paths. Execution-time scope and file-identity checks remain in force. The new provider-wire suite passed **10/10 tests**; the combined related suites passed **34 tests**, with **1 existing Windows skip**. These local results do not establish new real-model task acceptance or public availability.
+
+When this version is available from npm, install it with `npm i -g chainlesschain@0.166.133 --registry https://registry.npmjs.org`. The companion version pair is Open VSX **0.37.171** / JetBrains **0.4.188**; the CLI is published before its companion extensions. Kernel stays **0.1.11**. Consult the [current release guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html) for verified channel availability. Source preparation alone does not establish publication or release-gate success.
+
+## CLI 0.166.132 — verified public baseline before this source revision
 
 Install: `npm i -g chainlesschain@0.166.132 --registry https://registry.npmjs.org`. Public Open VSX **0.37.170** and approved JetBrains **0.4.187** recommend this CLI; Kernel **0.1.11** is verified upstream. Restart the chat host, then run `cc --version` and `cc doctor`.
 

@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.133: scoped mutation tool schemas (candidate, 2026-10-30)
+
+- Expose canonical allowed mutation paths in provider tool schemas for scoped write/edit calls. Explain that absolute paths returned by read tools are not valid mutation arguments in that run; execution-time permission, scope and file-identity checks remain authoritative.
+- Validate the generic schema contract: the new provider-wire suite passed **10/10 tests**; the combined related suites passed **34 tests**, with **1 existing Windows skip**. Local test results do not establish new real-model task success or change the historical **34/45** automatic acceptance total.
+- Prepare candidate pairing Open VSX **0.37.171** / JetBrains **0.4.188** for CLI **0.166.133**. Kernel **0.1.11** and unchanged child packages retain their versions; no independent IDE UI or client release is included.
+- These versions are unpublished. Require verified public child packages, exact-source multi-OS release gates, CLI OIDC publication and public readback before IDE publication and readback. Microsoft Marketplace remains deferred; existing public **0.166.132 / 0.37.170 / 0.4.187** remains the installation pairing.
+
 ### Fixed - cc CLI 0.166.132: output-limit integrity and bounded recovery (candidate, 2026-10-30)
 
 - Preserve OpenAI-compatible chat-completions termination evidence in JSON and streaming responses. A response ending with `length` cannot execute any of its tool calls or become a successful final answer, even when its arguments happen to be valid JSON.

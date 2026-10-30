@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.188] - CLI .133 scoped mutation schema pairing (unreleased candidate, 2026-10-30)
+
+- Recommend candidate CLI 0.166.133; pair with candidate Open VSX 0.37.171. Kernel remains 0.1.11.
+- Carry the CLI's generic scoped mutation path schema fix, preserving execution-time scope and file-identity checks. The new provider-wire suite passed 10/10 tests; the combined related suites passed 34 tests, with 1 existing Windows skip. No independent IDE UI change or new real-model task acceptance is claimed.
+- This pairing is unpublished. Require verified upstream CLI publication, exact-source IDE checks and public artifact readback. The verified public pairing remains JetBrains 0.4.187 / CLI 0.166.132 / Open VSX 0.37.170.
+
 ## [0.4.187] - CLI .132 pairing (unreleased candidate, 2026-10-30)
 
 - Recommend CLI 0.166.132; pair with Open VSX 0.37.170. Kernel remains 0.1.11.
