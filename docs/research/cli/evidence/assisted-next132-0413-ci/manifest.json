@@ -1,0 +1,303 @@
+{
+  "kind": "assisted-non-native",
+  "executionStatus": "NOT_RUN",
+  "sourceCommit": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
+  "frozenProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "driverCommit": "d9f2511b953ca08a7b5013c177250474b3d6fb4e",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "automaticAccepted": "34/45 unchanged",
+  "assistedAccepted": "3 unchanged",
+  "newModelRequests": 0,
+  "providerSecrets": 0,
+  "tasks": [
+    {
+      "taskId": "verify-04",
+      "runId": "40596685261",
+      "baselineTotal": 22,
+      "spec": {
+        "taskId": "verify-04",
+        "sourcePath": "packages/cli/src/lib/usage-pricing-context.js",
+        "baselineTests": [
+          "packages/cli/__tests__/unit/model-release-contract.test.js",
+          "packages/cli/__tests__/unit/session-usage.test.js"
+        ],
+        "mutants": [
+          {
+            "name": "merge-short-and-long-request-price-buckets",
+            "find": "item.requestInputTokens > GPT6_PRICING_TERMS.longContext.threshold ===\n        long",
+            "alternatives": [
+              {
+                "find": "item.requestInputTokens > terms.longContext.threshold === long",
+                "replace": "true"
+              }
+            ],
+            "replace": "true"
+          },
+          {
+            "name": "drop-cache-tokens-from-request-threshold",
+            "find": "usage.inputTokens +\n      (usage.cacheReadTokens || 0) +\n      (usage.cacheCreationTokens || 0)",
+            "replace": "usage.inputTokens"
+          }
+        ],
+        "expectedFiles": [
+          "packages/cli/__tests__/verify-04.test.js"
+        ],
+        "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+        "testSupport": [
+          {
+            "kind": "globalSetup",
+            "path": "packages/cli/test/global-setup/windows-sandbox-adapter-temp-root.js",
+            "digest": "sha256:6038c0e7b3d40886fee5f16c7803e62488f945554e6ef234b60947fc93341637"
+          },
+          {
+            "kind": "setup",
+            "path": "packages/cli/test/setup/windows-sandbox-adapter-cleanup.js",
+            "digest": "sha256:c81f9ac1ae76d541b60ed2befa5eac8e553470856409d6c11c46d5ac640d15ad"
+          },
+          {
+            "kind": "setup",
+            "path": "packages/cli/test/setup/agent-evolution-test-boundary.js",
+            "digest": "sha256:c55bfb7e020ebfaa61c5d4187a14f6e0b4a541eb0b559b9bdba48592990f4516"
+          }
+        ]
+      },
+      "frozenFiles": {
+        "package.json": "617ba43fee422fb4e888c276bfe93452384a044c372b1e027fca07985651f3a5",
+        "packages/cli/package.json": "3c9f04f532c15f3925610eb8086e9843a2e3d67e2036eb589902ec80b3d28e51",
+        "packages/cli/src/lib/usage-pricing-context.js": "285e3b9d1bf740c2200aac9c2cac95c5a8dd432627281e15cb7ad606757b59e8",
+        "packages/cli/src/lib/model-context-catalog.js": "45e5e18e15b7558c272992614e2186ebdeb25df25f9f5f34bf6212b0dc0d6fc6",
+        "packages/cli/__tests__/unit/model-release-contract.test.js": "537a04f7145ce745fbc7eb0398f7700dd391a66e37eb2f036cdc5d0a09ea1f8a",
+        "packages/cli/src/lib/model-capabilities.js": "8a9d4ff2dd122e787cebdd066ee3b963eedd2b43b597d07187127d70133747f1",
+        "packages/cli/src/lib/provider-options.js": "cde18a09a65f27527933f235bfa886de5d5c94b721924fff86050c1b75cfead4",
+        "packages/cli/src/lib/llm-pricing.js": "f2e3f0edcddcbab418e39b041ee0a0c1bc011d20d2b445b2d0e3efcb9d843525",
+        "packages/cli/src/lib/token-tracker.js": "66750c37573ee6ceb9ab6d75c2224be32d634008db3460a7538dc56d20a30bbb",
+        "packages/cli/src/lib/session-usage.js": "7fde4f44c64fcb8bcedc298d595fc5a57f003e1f436ffd35315e15218e304b3a",
+        "packages/cli/src/harness/jsonl-session-store.js": "7dfd1779c70663da745fbe98112fc7b1199d177ec9a185d7641959048c378491",
+        "packages/cli/src/lib/paths.js": "e7346b0f1ffe08c8285e5f18911ba50c4c9401dc07b813c8a97cf18ad2cc5646",
+        "packages/cli/src/constants.js": "27eee86f85999035fffc48a5db9843d1de3c9b73bc3a3c85689781ac60a2c9bc",
+        "packages/cli/src/lib/platform.js": "9eb843d83b10e5958853ae765f310e4fff00631fb9c44f37725215556d01c860",
+        "packages/cli/src/lib/claude-project-storage-layout.js": "3553f64546d55a5020a1b8fb59693f7a9ff715f34108801e7ba6a37b8ccd8ed9",
+        "packages/cli/src/lib/secure-fs.js": "8c210640d282816214f06a38eee0db5d221ea2afbf961f74d68b1373c11328d6",
+        "packages/cli/src/lib/formal-quality-eval-runtime.js": "ba7825406443c9eeef7a758c2059973bc5fe498eac608dda5655fe8f85241a6a",
+        "packages/cli/src/lib/secure-file-identity.js": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+        "packages/cli/src/harness/transcript-integrity.js": "39509e062193bcc666a42c553bc59a682834d51bc71051c2efc7edc0ab6c4a7d",
+        "packages/cli/src/lib/with-file-lock.js": "8872413faf4d555a40bdd2eef086e9de80e3df4cd767a8908e3a3ef14941dc88",
+        "packages/cli/src/lib/session-message-provenance.js": "0fda8d036c2d29b41b6afcca1c97a2907ec137465d1d77457de6a0def8705523",
+        "packages/cli/src/lib/file-lines.js": "cac27a7a07892db633c776586b17cba0958a79f90a6ed50e9eb8c5e47511d0ca",
+        "packages/cli/src/harness/session-list-index.js": "11502b561fbe9314a7b17591a42469a023d732258bd9a696f18f7f6eda1ca587",
+        "packages/cli/src/lib/session-persistence-failure.js": "4df926268e8458177344b4483ba8daa9276f58d593995a0e7f06bf4562c34991",
+        "packages/cli/src/lib/session-host-lease.js": "3418fb3735545531a2ddafe9b32ddcb0626a36440d49ec8e84e5fba2a06d7bfa",
+        "packages/cli/src/lib/durable-security-store.js": "f6be9c208312f07ecdc99eea98eb43e63288e7cf5268fc1261e3caec69df5c54",
+        "packages/cli/src/lib/session-transcript-structure.js": "a8bee4c096be0f3af83bf25e98db1e721c3a6db0463c2009c681b9442867556c",
+        "packages/cli/src/lib/execution-location-contract.js": "29fe955164f24d0d07cbe2b62283a26b7b9578d66337268737c827b278e591fb",
+        "packages/cli/src/lib/execution-location.js": "f34b60d70fad6f2c1ae6496d6e081dc7120bc431521c1810b7ed83b2e55ebe66",
+        "packages/cli/src/lib/scheduler-kernel/contract.js": "bb6cdf972a50ff365cad1bd4b12b61f66ab87d0b288facb61e84bac6e60e4a53",
+        "packages/cli/src/lib/session-anti-rollback-anchor.js": "fa942b7b558daf05e3644a268d8af207bcb8d0a7423f49c70654a480cef5a7f7",
+        "packages/cli/src/lib/session-budget-production-root.js": "aeaf4b147c17aecce21b9668d372edf1eadb4fd183209aa19ea519ec8e384dcd",
+        "packages/cli/src/lib/session-budget-runtime.js": "614e2561ce33c335b8406012cc9b58be2bbb4846eba20b32196b30c99612b5ec",
+        "packages/cli/src/lib/session-resource-budget.js": "52f35997ac98e5d1d05241f865b85627899e76082cc0aae611ff7ef9e565fc60",
+        "packages/cli/src/lib/cost-budget.js": "9a7b4813a982bcae2b4650e12e85eff7483e50d3e00c6b8c7227f11c8374eb7a",
+        "packages/cli/src/lib/execution-location-result.js": "5e2a5d8499987558a532f098d1c6191c3ba46de49eefb62d10bf9827250b571f",
+        "packages/cli/src/lib/execution-location-result-store.js": "38473734b95d303eb31b3a3645748c399ed00ef763a4cb6e794ef89a5c0aaa10",
+        "packages/cli/src/lib/session-branch-history.js": "5ddd05dec04ecf8378904417f8c29b6b81475acdd24bfceb723aaa4a368e8857",
+        "packages/cli/src/lib/plugin-usage-attribution.js": "d03c5cce4ce38961b1a7661cf582bd07285f9aa4a591689d00d71899c6cc4de2",
+        "packages/cli/src/lib/openai-responses.js": "6867019874de87cdc79f284669ffdda4722708d1c381c68d41441e54b2f598ae",
+        "packages/cli/src/lib/runtime-usage-ledger.js": "b35d3ab341ba23ed993b8b9f187a485f0cbd5cf5a8dae082d8c17a1dea8432aa",
+        "packages/cli/src/lib/causal-observability.js": "2aed1503e46d3acd9ced851416ec00a3f3329f43cdcb8c041906fb175599ae66",
+        "packages/cli/src/lib/delivery-evidence.js": "c6516d855d72ade8ea286ded77a03cc23bb4a832e3ce4e9f02c8c37224ee459d",
+        "packages/cli/src/lib/pr-automation-policy.js": "4c808654a74bc91cd16705968bf79b034d0e854a029d65ef469fdafeb93a9753",
+        "packages/cli/src/lib/impacted-gate-selector.js": "23fbdc855ad4affa0e680d4dcfb797997e9b9822f976128b6892b28aa8186131",
+        "packages/cli/__tests__/unit/session-usage.test.js": "c7859c1e87bc90800f7df51c3ab9d7506c2f99e4ec6122da5621ec5a28f1b769",
+        "packages/cli/src/lib/image-file-boundary.js": "4aa8ca526e5fb4b7b9b7563cca14cebd082292f3a01285b544228d851d69d709",
+        "packages/cli/__tests__/unit/image-file-boundary.test.js": "964388f244960aebd07705edf4206acdcdc6923737ccc1b6ccd2736ee6650dbe",
+        "packages/cli/src/lib/image-input.js": "4283855c793164314a1c99587a41459d4aa82d54e93b2498f76c163e984aac9c",
+        "packages/cli/__tests__/helpers/image-file-fixtures.js": "fdc99f77551574b6cbe3c4bb358ae12478f95813da3a0234b5f8e564cf661195",
+        "packages/cli/test/global-setup/windows-sandbox-adapter-temp-root.js": "6038c0e7b3d40886fee5f16c7803e62488f945554e6ef234b60947fc93341637",
+        "packages/cli/test/setup/windows-sandbox-adapter-cleanup.js": "c81f9ac1ae76d541b60ed2befa5eac8e553470856409d6c11c46d5ac640d15ad",
+        "packages/cli/test/setup/agent-evolution-test-boundary.js": "c55bfb7e020ebfaa61c5d4187a14f6e0b4a541eb0b559b9bdba48592990f4516"
+      },
+      "mutants": [
+        {
+          "name": "merge-short-and-long-request-price-buckets",
+          "sourceSha256": "7b8898a171561e61a4803ef8aa05ffc947aea3cd85e194c2b8ca6898a535b86c"
+        },
+        {
+          "name": "drop-cache-tokens-from-request-threshold",
+          "sourceSha256": "63b0dbf58bfccf374c4b480da32f78b06c96ff461905e294005ac9047e7a5abd"
+        }
+      ]
+    },
+    {
+      "taskId": "verify-13",
+      "runId": "40598143646",
+      "baselineTotal": 13,
+      "spec": {
+        "taskId": "verify-13",
+        "sourcePath": "packages/cli/src/lib/image-file-boundary.js",
+        "baselineTests": [
+          "packages/cli/__tests__/unit/image-file-boundary.test.js"
+        ],
+        "mutants": [
+          {
+            "name": "ignore-image-change-on-pinned-handle",
+            "find": "after.mtimeMs !== before.mtimeMs ||\n      after.ctimeMs !== before.ctimeMs ||",
+            "replace": "false ||"
+          },
+          {
+            "name": "allow-over-pixel-budget",
+            "find": "info.width * info.height > MAX_INPUT_IMAGE_PIXELS",
+            "replace": "false"
+          }
+        ],
+        "expectedFiles": [
+          "packages/cli/__tests__/verify-13.test.js"
+        ],
+        "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+        "testSupport": [
+          {
+            "kind": "globalSetup",
+            "path": "packages/cli/test/global-setup/windows-sandbox-adapter-temp-root.js",
+            "digest": "sha256:6038c0e7b3d40886fee5f16c7803e62488f945554e6ef234b60947fc93341637"
+          },
+          {
+            "kind": "setup",
+            "path": "packages/cli/test/setup/windows-sandbox-adapter-cleanup.js",
+            "digest": "sha256:c81f9ac1ae76d541b60ed2befa5eac8e553470856409d6c11c46d5ac640d15ad"
+          },
+          {
+            "kind": "setup",
+            "path": "packages/cli/test/setup/agent-evolution-test-boundary.js",
+            "digest": "sha256:c55bfb7e020ebfaa61c5d4187a14f6e0b4a541eb0b559b9bdba48592990f4516"
+          }
+        ]
+      },
+      "frozenFiles": {
+        "package.json": "617ba43fee422fb4e888c276bfe93452384a044c372b1e027fca07985651f3a5",
+        "packages/cli/package.json": "3c9f04f532c15f3925610eb8086e9843a2e3d67e2036eb589902ec80b3d28e51",
+        "packages/cli/src/lib/usage-pricing-context.js": "285e3b9d1bf740c2200aac9c2cac95c5a8dd432627281e15cb7ad606757b59e8",
+        "packages/cli/src/lib/model-context-catalog.js": "45e5e18e15b7558c272992614e2186ebdeb25df25f9f5f34bf6212b0dc0d6fc6",
+        "packages/cli/__tests__/unit/model-release-contract.test.js": "537a04f7145ce745fbc7eb0398f7700dd391a66e37eb2f036cdc5d0a09ea1f8a",
+        "packages/cli/src/lib/model-capabilities.js": "8a9d4ff2dd122e787cebdd066ee3b963eedd2b43b597d07187127d70133747f1",
+        "packages/cli/src/lib/provider-options.js": "cde18a09a65f27527933f235bfa886de5d5c94b721924fff86050c1b75cfead4",
+        "packages/cli/src/lib/llm-pricing.js": "f2e3f0edcddcbab418e39b041ee0a0c1bc011d20d2b445b2d0e3efcb9d843525",
+        "packages/cli/src/lib/token-tracker.js": "66750c37573ee6ceb9ab6d75c2224be32d634008db3460a7538dc56d20a30bbb",
+        "packages/cli/src/lib/session-usage.js": "7fde4f44c64fcb8bcedc298d595fc5a57f003e1f436ffd35315e15218e304b3a",
+        "packages/cli/src/harness/jsonl-session-store.js": "7dfd1779c70663da745fbe98112fc7b1199d177ec9a185d7641959048c378491",
+        "packages/cli/src/lib/paths.js": "e7346b0f1ffe08c8285e5f18911ba50c4c9401dc07b813c8a97cf18ad2cc5646",
+        "packages/cli/src/constants.js": "27eee86f85999035fffc48a5db9843d1de3c9b73bc3a3c85689781ac60a2c9bc",
+        "packages/cli/src/lib/platform.js": "9eb843d83b10e5958853ae765f310e4fff00631fb9c44f37725215556d01c860",
+        "packages/cli/src/lib/claude-project-storage-layout.js": "3553f64546d55a5020a1b8fb59693f7a9ff715f34108801e7ba6a37b8ccd8ed9",
+        "packages/cli/src/lib/secure-fs.js": "8c210640d282816214f06a38eee0db5d221ea2afbf961f74d68b1373c11328d6",
+        "packages/cli/src/lib/formal-quality-eval-runtime.js": "ba7825406443c9eeef7a758c2059973bc5fe498eac608dda5655fe8f85241a6a",
+        "packages/cli/src/lib/secure-file-identity.js": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+        "packages/cli/src/harness/transcript-integrity.js": "39509e062193bcc666a42c553bc59a682834d51bc71051c2efc7edc0ab6c4a7d",
+        "packages/cli/src/lib/with-file-lock.js": "8872413faf4d555a40bdd2eef086e9de80e3df4cd767a8908e3a3ef14941dc88",
+        "packages/cli/src/lib/session-message-provenance.js": "0fda8d036c2d29b41b6afcca1c97a2907ec137465d1d77457de6a0def8705523",
+        "packages/cli/src/lib/file-lines.js": "cac27a7a07892db633c776586b17cba0958a79f90a6ed50e9eb8c5e47511d0ca",
+        "packages/cli/src/harness/session-list-index.js": "11502b561fbe9314a7b17591a42469a023d732258bd9a696f18f7f6eda1ca587",
+        "packages/cli/src/lib/session-persistence-failure.js": "4df926268e8458177344b4483ba8daa9276f58d593995a0e7f06bf4562c34991",
+        "packages/cli/src/lib/session-host-lease.js": "3418fb3735545531a2ddafe9b32ddcb0626a36440d49ec8e84e5fba2a06d7bfa",
+        "packages/cli/src/lib/durable-security-store.js": "f6be9c208312f07ecdc99eea98eb43e63288e7cf5268fc1261e3caec69df5c54",
+        "packages/cli/src/lib/session-transcript-structure.js": "a8bee4c096be0f3af83bf25e98db1e721c3a6db0463c2009c681b9442867556c",
+        "packages/cli/src/lib/execution-location-contract.js": "29fe955164f24d0d07cbe2b62283a26b7b9578d66337268737c827b278e591fb",
+        "packages/cli/src/lib/execution-location.js": "f34b60d70fad6f2c1ae6496d6e081dc7120bc431521c1810b7ed83b2e55ebe66",
+        "packages/cli/src/lib/scheduler-kernel/contract.js": "bb6cdf972a50ff365cad1bd4b12b61f66ab87d0b288facb61e84bac6e60e4a53",
+        "packages/cli/src/lib/session-anti-rollback-anchor.js": "fa942b7b558daf05e3644a268d8af207bcb8d0a7423f49c70654a480cef5a7f7",
+        "packages/cli/src/lib/session-budget-production-root.js": "aeaf4b147c17aecce21b9668d372edf1eadb4fd183209aa19ea519ec8e384dcd",
+        "packages/cli/src/lib/session-budget-runtime.js": "614e2561ce33c335b8406012cc9b58be2bbb4846eba20b32196b30c99612b5ec",
+        "packages/cli/src/lib/session-resource-budget.js": "52f35997ac98e5d1d05241f865b85627899e76082cc0aae611ff7ef9e565fc60",
+        "packages/cli/src/lib/cost-budget.js": "9a7b4813a982bcae2b4650e12e85eff7483e50d3e00c6b8c7227f11c8374eb7a",
+        "packages/cli/src/lib/execution-location-result.js": "5e2a5d8499987558a532f098d1c6191c3ba46de49eefb62d10bf9827250b571f",
+        "packages/cli/src/lib/execution-location-result-store.js": "38473734b95d303eb31b3a3645748c399ed00ef763a4cb6e794ef89a5c0aaa10",
+        "packages/cli/src/lib/session-branch-history.js": "5ddd05dec04ecf8378904417f8c29b6b81475acdd24bfceb723aaa4a368e8857",
+        "packages/cli/src/lib/plugin-usage-attribution.js": "d03c5cce4ce38961b1a7661cf582bd07285f9aa4a591689d00d71899c6cc4de2",
+        "packages/cli/src/lib/openai-responses.js": "6867019874de87cdc79f284669ffdda4722708d1c381c68d41441e54b2f598ae",
+        "packages/cli/src/lib/runtime-usage-ledger.js": "b35d3ab341ba23ed993b8b9f187a485f0cbd5cf5a8dae082d8c17a1dea8432aa",
+        "packages/cli/src/lib/causal-observability.js": "2aed1503e46d3acd9ced851416ec00a3f3329f43cdcb8c041906fb175599ae66",
+        "packages/cli/src/lib/delivery-evidence.js": "c6516d855d72ade8ea286ded77a03cc23bb4a832e3ce4e9f02c8c37224ee459d",
+        "packages/cli/src/lib/pr-automation-policy.js": "4c808654a74bc91cd16705968bf79b034d0e854a029d65ef469fdafeb93a9753",
+        "packages/cli/src/lib/impacted-gate-selector.js": "23fbdc855ad4affa0e680d4dcfb797997e9b9822f976128b6892b28aa8186131",
+        "packages/cli/__tests__/unit/session-usage.test.js": "c7859c1e87bc90800f7df51c3ab9d7506c2f99e4ec6122da5621ec5a28f1b769",
+        "packages/cli/src/lib/image-file-boundary.js": "4aa8ca526e5fb4b7b9b7563cca14cebd082292f3a01285b544228d851d69d709",
+        "packages/cli/__tests__/unit/image-file-boundary.test.js": "964388f244960aebd07705edf4206acdcdc6923737ccc1b6ccd2736ee6650dbe",
+        "packages/cli/src/lib/image-input.js": "4283855c793164314a1c99587a41459d4aa82d54e93b2498f76c163e984aac9c",
+        "packages/cli/__tests__/helpers/image-file-fixtures.js": "fdc99f77551574b6cbe3c4bb358ae12478f95813da3a0234b5f8e564cf661195",
+        "packages/cli/test/global-setup/windows-sandbox-adapter-temp-root.js": "6038c0e7b3d40886fee5f16c7803e62488f945554e6ef234b60947fc93341637",
+        "packages/cli/test/setup/windows-sandbox-adapter-cleanup.js": "c81f9ac1ae76d541b60ed2befa5eac8e553470856409d6c11c46d5ac640d15ad",
+        "packages/cli/test/setup/agent-evolution-test-boundary.js": "c55bfb7e020ebfaa61c5d4187a14f6e0b4a541eb0b559b9bdba48592990f4516"
+      },
+      "mutants": [
+        {
+          "name": "ignore-image-change-on-pinned-handle",
+          "sourceSha256": "e0cd0906e581ae0516fbb93f51b6cb9b157cf0c7175abb9d8e702733ce8c432b"
+        },
+        {
+          "name": "allow-over-pixel-budget",
+          "sourceSha256": "cf9ee6fedbba1f82dc1bcec09406855c30f3ce2dcba62937838c9d2eb9a84d3b"
+        }
+      ]
+    }
+  ],
+  "files": {
+    "verify-04-setup.mjs": {
+      "sha256": "eed6c6b11b7e9345d7b158d4e33ba925eccbf9b2533d569e5383dc381dbcb269",
+      "bytes": 22438
+    },
+    "verify-04-check.mjs": {
+      "sha256": "2c6f2cdbc568babf93c4b99ac47aa055ce9230c4a16aa0da741e861ba1491765",
+      "bytes": 22400
+    },
+    "verify-04/corrected.test.js": {
+      "sha256": "ad322b839bc39d4cd69637f2ce369bc3cf6e14b24e372cee68a77cf0269476d9",
+      "bytes": 6566
+    },
+    "verify-04/repair.patch": {
+      "sha256": "ac750c0f846736eeb9bfd9d87e170c23e82145656991ed3d9be43e56a9c95f88",
+      "bytes": 974
+    },
+    "verify-04/original.test.js": {
+      "sha256": "498079ad64ef5e99595157e7bb40c72d5b9a44bbb635f95eba8f29cca229827f",
+      "bytes": 6135
+    },
+    "verify-04/original-review.json": {
+      "sha256": "cfd97769ec02939dd585ef631541adc13c506eadbe17399f3dc516caab4b013f",
+      "bytes": 18679
+    },
+    "verify-04/original-pack.json": {
+      "sha256": "41b5bbe8965e3f405f9128b940715449b27288f2bc607bd566842d069be3e70b",
+      "bytes": 856
+    },
+    "verify-13-setup.mjs": {
+      "sha256": "db9af39071ef4048af094120805491b38b845ba39875587ce7011dbcbb327e84",
+      "bytes": 22188
+    },
+    "verify-13-check.mjs": {
+      "sha256": "7ae6f5fb31441a71257273148c74003bb6493619b0d93f12b79f8c4db012af29",
+      "bytes": 22150
+    },
+    "verify-13/corrected.test.js": {
+      "sha256": "2e8b8f38555e83c2dfa7f0b0b1bc7abec400bd2a27de704d0a4eee1bf7f3d5ab",
+      "bytes": 5587
+    },
+    "verify-13/repair.patch": {
+      "sha256": "70c0ce78278e31724b31a7850dd675f9a40de11c5ce45f1140824c076ab8374f",
+      "bytes": 2706
+    },
+    "verify-13/original.test.js": {
+      "sha256": "cf76f3b33c83ecb6c8990ab0a1de518d9c77f7af95e3c9fb1f8e04941838962a",
+      "bytes": 4177
+    },
+    "verify-13/original-review.json": {
+      "sha256": "cfd97769ec02939dd585ef631541adc13c506eadbe17399f3dc516caab4b013f",
+      "bytes": 18679
+    },
+    "verify-13/original-pack.json": {
+      "sha256": "41b5bbe8965e3f405f9128b940715449b27288f2bc607bd566842d069be3e70b",
+      "bytes": 856
+    },
+    "run-assisted.mjs": {
+      "sha256": "a0fd2850f079953a0077d38ec4b00b1ab052cccae06e0bc783bd1bcf35cb6250",
+      "bytes": 6777
+    }
+  }
+}

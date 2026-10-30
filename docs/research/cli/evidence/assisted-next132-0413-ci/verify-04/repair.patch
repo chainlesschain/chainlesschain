@@ -1,0 +1,26 @@
+diff --git a/packages/cli/__tests__/verify-04.test.js b/packages/cli/__tests__/verify-04.test.js
+index ea6450410e..c3eb35d9ba 100644
+--- a/packages/cli/__tests__/verify-04.test.js
++++ b/packages/cli/__tests__/verify-04.test.js
+@@ -166,6 +166,20 @@ describe("request-level pricing context (verify-04)", () => {
+     expect(() =>
+       mergeUsagePricingBucket(entry, { inputTokens: -1 }),
+     ).toThrow(TypeError);
+-    expect(entry.pricingBuckets).toHaveLength(0);
++    // The first invalid request creates a zero-valued bucket before validation.
++    // The second rejection must not charge tokens or increment its call count.
++    expect(entry.pricingBuckets).toEqual([
++      {
++        inputTokens: 0,
++        outputTokens: 0,
++        cacheReadTokens: 0,
++        cacheCreationTokens: 0,
++        totalTokens: 0,
++        calls: 0,
++        serviceTier: "standard",
++        regionalProcessing: false,
++        requestInputTokens: 1.5,
++      },
++    ]);
+   });
+ });

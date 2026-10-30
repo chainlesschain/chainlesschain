@@ -1,0 +1,17 @@
+{
+  "scope": "verify01-operator-review-pack",
+  "tasks": 36,
+  "generatedArtifacts": 72,
+  "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+  "runtimeDigest": "sha256:dc34539305ce48372d9848c5fcc61f1336d116623e5a4b997f9cd13069baf267",
+  "specsDigest": "sha256:f212d182d130b6a6f868b7ea5b43f91bcf497d9e60a7d68bfaa3e08db224b926",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "executionStatus": "NOT_RUN",
+  "independentHumanReview": false,
+  "productionAttested": false,
+  "supportedAcceptancePlatform": "linux",
+  "acceptanceBackend": "docker",
+  "providerAssessed": false,
+  "acceptanceImageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "trust": "AI-reviewed operator configuration; pin the digest independently before execution"
+}
