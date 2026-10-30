@@ -79,7 +79,9 @@ const RAW_TRANSPORT_IMPORTERS = new Map([
     "lib/provider-stream.js",
     new Map([
       ["commands/stream.js", "prepareGovernedModelTurn"],
-      ["gateways/ws/session-core-protocol.js", "prepareGovernedModelTurn"],
+      // The resident UI resolves current host policy through this wrapper,
+      // which delegates to prepareGovernedModelTurn before transport dispatch.
+      ["gateways/ws/session-core-protocol.js", "prepareServerUiModelTurn"],
     ]),
   ],
 ]);
@@ -136,7 +138,7 @@ describe("CLI model egress inventory", () => {
     }
   });
 
-  it("keeps raw transports private to audited governed callers", () => {
+  it("keeps raw transports private to audited host-policy callers", () => {
     for (const [transport, expectedImporters] of RAW_TRANSPORT_IMPORTERS) {
       const basename = transport.slice(transport.lastIndexOf("/") + 1);
       const importers = sourceFiles
