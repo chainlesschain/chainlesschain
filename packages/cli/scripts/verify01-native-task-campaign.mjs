@@ -720,6 +720,19 @@ export async function runNativeCampaign(options) {
     ],
   };
   Object.assign(summary, {
+    cohortKind:
+      providerProfile.provider === "openai"
+        ? "new-openai-provider-diagnostic"
+        : "volcengine-native-diagnostic",
+    executionIdentityDigest: hash(
+      JSON.stringify({
+        sourceSha,
+        taskPlanDigest: DIAGNOSTIC.planDigest,
+        versions,
+        packageSetDigest: packageSetDigest || null,
+        modelTransport: summary.modelTransport,
+      }),
+    ),
     group: `${process.platform}-${entry}`,
     entry,
     platform: process.platform,

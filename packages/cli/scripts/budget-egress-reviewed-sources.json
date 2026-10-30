@@ -78,9 +78,9 @@
     },
     {
       "path": "packages/cli/scripts/verify01-native-task-campaign.mjs",
-      "digest": "sha256:147fe77cb5870f2479b591fecc5ea000f48a05fad6446607c61ab151fc949df2",
+      "digest": "sha256:8deb4003c3d2fa085b58457b84a79600b80b08712a0186f3f441f44dde7ccf1a",
       "category": "MODEL_REQUEST",
-      "rationale": "Downloads exact public packages and launches native CLI/IDE task generation. The operator selects only Volcengine or OpenAI through a fixed provider profile; actual provider/model, key slot, endpoint and policy digest are recorded without relabeling the frozen task catalogue. Both modes require live confirmation and a key, and reject formal scope before options, credentials, paths, downloads, processes or model transport. Original six-file tool scope, twenty turns, twenty-four physical requests, timeout and output limits remain; default Volcengine policy is retained. This source review grants no formal financial or native admission."
+      "rationale": "Downloads exact public packages and launches native CLI/IDE task generation. The operator selects only Volcengine or OpenAI through a fixed provider profile; actual provider/model, key slot, endpoint and policy digest are recorded without relabeling the frozen task catalogue. Both modes require live confirmation and a key, and reject formal scope before options, credentials, paths, downloads, processes or model transport. Original six-file tool scope, twenty turns, twenty-four physical requests, timeout and output limits remain; default Volcengine policy is retained. This source review grants no formal financial or native admission. The separate OpenAI diagnostic cohort now binds its source, task catalogue, exact package set, provider policy and model into an execution identity digest before any model work. New provider identity is checked before independent acceptance; historical Volcengine acceptance is not transferred."
     },
     {
       "path": "packages/cli/scripts/verify01-native-toolchain-prepare.mjs",

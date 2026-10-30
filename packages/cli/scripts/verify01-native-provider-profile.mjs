@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { DIAGNOSTIC } from "./verify01-volcengine-task-diagnostic.mjs";
 import {
   BROKER,
@@ -32,4 +33,49 @@ export function nativeProviderProfile(provider = DIAGNOSTIC.provider) {
         createBroker: createVolcengineDiagnosticBroker,
         defaultThinkingPreserved: false,
       });
+}
+
+/** Validate a new provider cohort before its deliveries reach acceptance. */
+export function assertNativeProviderIdentity(
+  summary,
+  provider,
+  sourceSha,
+  packageBinding,
+) {
+  const profile = nativeProviderProfile(provider);
+  const hash = (value) =>
+    `sha256:${createHash("sha256").update(value).digest("hex")}`;
+  assert.match(sourceSha, /^[a-f0-9]{40}$/u);
+  assert.equal(summary.executionSourceCommit, sourceSha);
+  assert.equal(
+    summary.cohortKind,
+    provider === "openai"
+      ? "new-openai-provider-diagnostic"
+      : "volcengine-native-diagnostic",
+  );
+  assert.deepEqual(summary.modelTransport, {
+    provider: profile.provider,
+    model: profile.model,
+    endpoint: profile.policy.endpoint,
+    policyDigest: hash(JSON.stringify(profile.policy)),
+    defaultThinkingPreserved: profile.defaultThinkingPreserved,
+    formalSample: false,
+  });
+  if (packageBinding) {
+    assert.deepEqual(summary.versions, packageBinding.versions);
+    assert.equal(summary.packageSetDigest, packageBinding.packageSetDigest);
+  }
+  assert.equal(
+    summary.executionIdentityDigest,
+    hash(
+      JSON.stringify({
+        sourceSha,
+        taskPlanDigest: summary.planDigest,
+        versions: summary.versions,
+        packageSetDigest: summary.packageSetDigest || null,
+        modelTransport: summary.modelTransport,
+      }),
+    ),
+  );
+  return summary.executionIdentityDigest;
 }

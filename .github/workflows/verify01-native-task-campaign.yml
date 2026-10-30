@@ -14,6 +14,12 @@ on:
         type: boolean
         required: true
         default: false
+      provider:
+        description: "Diagnostic provider; OpenAI starts a separate cohort and requires the dedicated OPENAI_API_KEY secret"
+        type: choice
+        required: true
+        default: volcengine
+        options: [volcengine, openai]
       hosts:
         description: "Run all hosts or repeat a host after an infrastructure correction"
         type: choice
@@ -64,6 +70,7 @@ permissions:
   actions: read
 
 env:
+  NATIVE_PROVIDER: ${{ inputs.provider || 'volcengine' }}
   NATIVE_PACKAGE_SET: ${{ inputs.package_set || 'latest' }}
   NATIVE_PACKAGE_SET_FILE: ${{ inputs.package_set_file || 'docs/research/cli/verify01-package-sets/2026-10-18-latest.json' }}
 
@@ -75,6 +82,7 @@ jobs:
       matrix: ${{ steps.select.outputs.matrix }}
       groups: ${{ steps.select.outputs.groups }}
       sample_key: ${{ steps.select.outputs.sample_key }}
+      acceptance_matrix: ${{ steps.select.outputs.acceptance_matrix }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -102,6 +110,9 @@ jobs:
           packages/cli/test-node/verify01-vscode-composer.node-test.mjs
           packages/cli/test-node/verify01-ide-terminal.node-test.mjs
           packages/cli/test-node/verify01-volcengine-diagnostic-broker.node-test.mjs
+          packages/cli/test-node/verify01-openai-diagnostic-broker.node-test.mjs
+          packages/cli/test-node/verify01-native-provider-profile.node-test.mjs
+          packages/cli/test-node/verify01-native-round-matrix.node-test.mjs
           packages/jetbrains-plugin/scripts/verify01-native-task-adapter.test.mjs
       - name: Select requested native hosts
         id: select
@@ -114,27 +125,40 @@ jobs:
           SAMPLE_SELECTION: ${{ inputs.sample_ids }}
           PACKAGE_SET_SELECTION: ${{ inputs.package_set || 'latest' }}
           FETCH_DIAGNOSTICS: ${{ inputs.fetch_diagnostics && 'true' || 'false' }}
+          OPENAI_API_KEY: ${{ inputs.provider == 'openai' && secrets.OPENAI_API_KEY || '' }}
         run: |
           node --input-type=module <<'NODE'
             import fs from "node:fs";
             import {parseNativeSampleIds, selectNativeSamples} from "./packages/cli/scripts/verify01-native-task-campaign.mjs";
             import {validateNativePackageSetFile, assertUnfinishedNativeSamples} from "./packages/cli/scripts/verify01-native-retest-plan.mjs";
+            import {nativeProviderCells} from "./packages/cli/scripts/verify01-native-round-matrix.mjs";
+            import {nativeProviderProfile} from "./packages/cli/scripts/verify01-native-provider-profile.mjs";
+            const provider = nativeProviderProfile(process.env.NATIVE_PROVIDER || "volcengine").provider;
             const run = process.env.DELIVERY_RUN, commit = process.env.DELIVERY_COMMIT;
             if (!!run !== !!commit || (run && (!/^[1-9][0-9]+$/.test(run) || !/^[a-f0-9]{40}$/.test(commit)))) throw new Error("paired exact delivery run and commit required");
             const packageSet = process.env.PACKAGE_SET_SELECTION || "latest";
             if (!["latest", "frozen"].includes(packageSet)) throw new Error("unknown package set");
             if (!run && packageSet !== "latest") throw new Error("Further model execution must use latest public packages");
-            if (packageSet === "latest") validateNativePackageSetFile(process.env.NATIVE_PACKAGE_SET_FILE || undefined);
+            const packageBinding = packageSet === "latest" ? validateNativePackageSetFile(process.env.NATIVE_PACKAGE_SET_FILE || undefined) : null;
+            if (provider === "openai") {
+              if (packageSet !== "latest") throw new Error("OpenAI cohort requires the current public package set");
+              const cli = JSON.parse(fs.readFileSync("packages/cli/package.json", "utf8")).version;
+              const vscode = JSON.parse(fs.readFileSync("packages/vscode-extension/package.json", "utf8")).version;
+              const jetbrains = fs.readFileSync("packages/jetbrains-plugin/src/main/resources/META-INF/plugin.xml", "utf8").match(/^\s*<version>([^<]+)<\/version>\s*$/m)?.[1];
+              for (const [name, version] of Object.entries({cli, vscode, jetbrains})) if (!version || packageBinding.versions[name] !== version) throw new Error("OpenAI cohort requires the exact current CLI and both IDE versions");
+              if (!run && !process.env.OPENAI_API_KEY?.trim()) throw new Error("Dedicated repository OPENAI_API_KEY is required; the Volcengine credential must not be reused");
+              if (!run && Number(process.env.GITHUB_RUN_ATTEMPT || "1") !== 1) throw new Error("Reconcile the previous live attempt before a new OpenAI dispatch");
+            }
             const hosts = {windows: ["win32", "windows-latest"], linux: ["linux", "ubuntu-24.04"], macos: ["darwin", "macos-15"]};
             const selected = process.env.HOST_SELECTION;
             if (selected !== "all" && !Object.hasOwn(hosts, selected)) throw new Error("unknown host");
             const entries = ["cli", "vscode", "jetbrains"].filter(entry => process.env.ENTRY_SELECTION === "all" || process.env.ENTRY_SELECTION === entry);
             if (!entries.length) throw new Error("unknown entry");
-            const rows = Object.entries(hosts).filter(([name]) => selected === "all" || name === selected).flatMap(([, [platform, os]]) => entries.map(entry => ({group: `${platform}-${entry}`, os, entry})));
+            let rows = Object.entries(hosts).filter(([name]) => selected === "all" || name === selected).flatMap(([, [platform, os]]) => entries.map(entry => ({group: `${platform}-${entry}`, os, entry})));
             const ids = parseNativeSampleIds(process.env.SAMPLE_SELECTION);
             const sampleKey = ids ? [...ids].sort().join("-") : "all";
             if (sampleKey.length > 160 || !/^[a-z0-9-]+$/.test(sampleKey)) throw new Error("sample concurrency key exceeds canonical bounds");
-            if (!run && entries.includes("jetbrains") && (!ids || ids.length !== 1)) throw new Error("JetBrains generation requires exactly one explicit sample per dispatch");
+            if (provider === "volcengine" && !run && entries.includes("jetbrains") && (!ids || ids.length !== 1)) throw new Error("JetBrains generation requires exactly one explicit sample per dispatch");
             const fetchDiagnostics = process.env.FETCH_DIAGNOSTICS || "false";
             if (!["true", "false"].includes(fetchDiagnostics)) throw new Error("invalid fetch diagnostics flag");
             if (fetchDiagnostics === "true" && (run || rows.length !== 1 || rows[0].entry !== "cli" || !ids)) throw new Error("fetch diagnostics require new CLI generation, exactly one host and explicit sample IDs");
@@ -143,23 +167,26 @@ jobs:
               const plan = JSON.parse(fs.readFileSync("docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json", "utf8"));
               selectNativeSamples(plan, rows[0].group.split("-")[0], rows[0].entry, ids);
             }
-            if (!run) {
+            if (!run && provider === "volcengine") {
               assertUnfinishedNativeSamples(ids, {versionsFile: process.env.NATIVE_PACKAGE_SET_FILE || undefined});
             }
-            fs.appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify({include: rows})}\ngroups=${JSON.stringify(rows.map(row => row.group))}\n`);
+            const taskPlan = JSON.parse(fs.readFileSync("docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json", "utf8"));
+            rows = nativeProviderCells(rows, taskPlan, ids, provider);
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify({include: rows})}\ngroups=${JSON.stringify([...new Set(rows.map(row => row.group))])}\n`);
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `acceptance_matrix=${JSON.stringify({include: rows.map(({group, cell_id, sample_ids}) => ({group, cell_id, sample_ids}))})}\n`);
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `sample_key=${sampleKey}\n`);
           NODE
 
   generate:
     needs: validate
     if: inputs.accept_existing_run == ''
-    name: Native ${{ matrix.group }} (${{ inputs.sample_ids != '' && 'selected samples' || 'five independent samples' }})
+    name: Native ${{ matrix.cell_id || matrix.group }} (${{ (matrix.sample_ids != '' || inputs.sample_ids != '') && 'selected samples' || 'five independent samples' }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 145
     # Run identity prevents GitHub replacing a pending dispatch, even when an
     # operator accidentally repeats the same canonical sample selection.
     concurrency:
-      group: native-${{ matrix.group }}-${{ needs.validate.outputs.sample_key }}-${{ github.run_id }}
+      group: native-${{ matrix.cell_id || matrix.group }}-${{ needs.validate.outputs.sample_key }}-${{ github.run_id }}
       cancel-in-progress: false
     strategy:
       fail-fast: false
@@ -221,10 +248,11 @@ jobs:
         timeout-minutes: 115
         shell: bash
         env:
-          VOLCENGINE_API_KEY: ${{ secrets.CC_LLM_API_KEY }}
+          VOLCENGINE_API_KEY: ${{ inputs.provider != 'openai' && secrets.CC_LLM_API_KEY || '' }}
+          OPENAI_API_KEY: ${{ inputs.provider == 'openai' && secrets.OPENAI_API_KEY || '' }}
           NATIVE_ENTRY: ${{ matrix.entry }}
           EXECUTION_SOURCE_SHA: ${{ github.sha }}
-          NATIVE_SAMPLES: ${{ inputs.sample_ids }}
+          NATIVE_SAMPLES: ${{ matrix.sample_ids || inputs.sample_ids }}
           FETCH_DIAGNOSTICS: ${{ inputs.fetch_diagnostics && 'true' || 'false' }}
           REVIEW_CHANGES: ${{ inputs.review_changes && 'true' || 'false' }}
         run: |
@@ -250,13 +278,14 @@ jobs:
           fi
           "${display[@]}" node packages/cli/scripts/verify01-native-task-campaign.mjs \
             --entry "$NATIVE_ENTRY" --source-sha "$EXECUTION_SOURCE_SHA" \
+            --provider "$NATIVE_PROVIDER" \
             --confirm-live --output-dir "$RUNNER_TEMP/verify01-native-tasks" "${selection[@]}" "${package[@]}" "${diagnostics[@]}" "${review[@]}"
       - name: Preserve all candidates, native traces, UI and broker failures
         timeout-minutes: 15
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: verify01-native-${{ inputs.sample_ids != '' && 'subset-delivery' || 'delivery' }}-${{ matrix.group }}-${{ github.sha }}
+          name: verify01-native-${{ inputs.sample_ids != '' && 'subset-delivery' || 'delivery' }}-${{ matrix.cell_id || matrix.group }}-${{ github.sha }}
           path: ${{ runner.temp }}/verify01-native-tasks/
           include-hidden-files: true
           if-no-files-found: warn
@@ -265,14 +294,13 @@ jobs:
   accept:
     needs: [validate, generate]
     if: always() && needs.validate.result == 'success'
-    name: Linux acceptance of ${{ matrix.group }} deliveries
+    name: Linux acceptance of ${{ matrix.cell_id || matrix.group }} deliveries
     runs-on: ubuntu-24.04
     timeout-minutes: 115
     strategy:
       fail-fast: false
       max-parallel: 9
-      matrix:
-        group: ${{ fromJSON(needs.validate.outputs.groups) }}
+      matrix: ${{ fromJSON(needs.validate.outputs.acceptance_matrix) }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -289,10 +317,25 @@ jobs:
           --legacy-peer-deps --no-audit --no-fund
       - uses: actions/download-artifact@v7
         with:
-          name: verify01-native-${{ inputs.sample_ids != '' && 'subset-delivery' || 'delivery' }}-${{ matrix.group }}-${{ inputs.accept_existing_commit || github.sha }}
+          name: verify01-native-${{ inputs.sample_ids != '' && 'subset-delivery' || 'delivery' }}-${{ matrix.cell_id || matrix.group }}-${{ inputs.accept_existing_commit || github.sha }}
           path: ${{ runner.temp }}/native-delivery
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ inputs.accept_existing_run || github.run_id }}
+      - name: Bind OpenAI delivery identity before acceptance
+        if: inputs.provider == 'openai'
+        env:
+          EXPECTED_DELIVERY_SHA: ${{ inputs.accept_existing_commit || github.sha }}
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+            import fs from "node:fs";
+            import path from "node:path";
+            import {assertNativeProviderIdentity} from "./packages/cli/scripts/verify01-native-provider-profile.mjs";
+            import {validateNativePackageSetFile} from "./packages/cli/scripts/verify01-native-retest-plan.mjs";
+            const summary = JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP, "native-delivery", "summary.json"), "utf8"));
+            const packageBinding = validateNativePackageSetFile(process.env.NATIVE_PACKAGE_SET_FILE);
+            assertNativeProviderIdentity(summary, "openai", process.env.EXPECTED_DELIVERY_SHA, packageBinding);
+          NODE
       - name: Pin independent Linux checker image
         run: |
           docker pull node:22.12.0-bookworm
@@ -301,7 +344,7 @@ jobs:
         env:
           EXECUTION_SOURCE_SHA: ${{ inputs.accept_existing_commit || github.sha }}
           CHECKER_SOURCE_SHA: ${{ github.sha }}
-          NATIVE_SAMPLES: ${{ inputs.sample_ids }}
+          NATIVE_SAMPLES: ${{ matrix.sample_ids || inputs.sample_ids }}
         shell: bash
         run: |
           selection=()
@@ -321,7 +364,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: verify01-native-${{ inputs.sample_ids != '' && 'subset-acceptance' || 'acceptance' }}-${{ matrix.group }}-${{ github.sha }}
+          name: verify01-native-${{ inputs.sample_ids != '' && 'subset-acceptance' || 'acceptance' }}-${{ matrix.cell_id || matrix.group }}-${{ github.sha }}
           path: ${{ runner.temp }}/native-acceptance/
           include-hidden-files: true
           if-no-files-found: warn
