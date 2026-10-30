@@ -1,0 +1,24 @@
+{
+  "schema": "chainlesschain.validation-dispatch-intent/v1",
+  "requestedAt": "2026-10-29T23:45:48.017Z",
+  "source": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
+  "ref": "ci-cli132-772fcdbda85b",
+  "workflow": "ide-extensions.yml",
+  "event": "workflow_dispatch",
+  "inputs": {
+    "publish_vscode_marketplace": false
+  },
+  "beforeRunIds": [
+    40974832463,
+    40974832475,
+    40974832506,
+    40974832538,
+    40974832539,
+    40974832554,
+    40974832577,
+    40974832583,
+    40975283113
+  ],
+  "publication": false,
+  "automaticRetryAllowed": false
+}

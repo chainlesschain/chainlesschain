@@ -1,0 +1,103 @@
+{
+  "schema": "chainlesschain.cli132-public-children/v1",
+  "observedAt": "2026-10-29T23:43:34.480239+00:00",
+  "source": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
+  "previousVerifiedReleaseSource": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+  "childSourceUnchanged": true,
+  "dependencyVersionsAligned": true,
+  "allPublicTarballsFetchedAndIntegrityVerified": true,
+  "limitations": "Supplementary registry read. Exact archive comparison and registry-only install remain required in OIDC workflow before CLI publish.",
+  "packages": [
+    {
+      "name": "@chainlesschain/agent-protocol",
+      "version": "0.1.12",
+      "bytes": 43144,
+      "sha512": "d6526062d2fe9b03ec5a53f34518bacdb05d4ea16fd60e9c0f6a14ceb396a1475792f77af7a4ae081afabb3917db8358de8118c0593e42a2ac2ab912bef48b99",
+      "metadataSha256": "23a0edd0e8ed005ea1fd81c6370fa305bafacb6cb684bcca2b03ddd012ee6663"
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "version": "0.1.2",
+      "bytes": 2600,
+      "sha512": "1f9070a6daa8695a809e518ab9bc9830773958d952adcb596a0ff4554df41701e991e36a4b8dc24ebf6db0e0923bcf8a09d59ed9e928d59afc045785dacbe3d1",
+      "metadataSha256": "aacf0377a6ea0d3a6d05b6f1a745488d3f09cc2ee9b758f5dfde472aa8f9e5fa"
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "version": "0.2.3",
+      "bytes": 38297,
+      "sha512": "c66ea066827c1ea3858a1d5be5194d3f2416346471a245aafe1b15d68553b829cdb314668a14ebc71e34875d003e238ab4a60f004143bcc1dc05f4c4b01e6d94",
+      "metadataSha256": "03a810e219c23885bbd0b0c42ec9e4dc2c3011192dd5c3aa728c23a1c8b03f61"
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "version": "0.1.4",
+      "bytes": 13952,
+      "sha512": "e584a62106b50d16589c239e0726f467cfaf72b2fc420eb600c7222ba609418c2b8c4885c2d763850dc66d009ca5ea56d42bed1838b0addc86e6e7c1603c0bc6",
+      "metadataSha256": "f0f7de21640db8b934facf7ab9a9dd7214e383fb6d73063359e6078d5bc05cae"
+    },
+    {
+      "name": "@chainlesschain/core-settlement",
+      "version": "0.1.2",
+      "bytes": 9031,
+      "sha512": "f1301de8e2a46be520ace1f05fac0748853a6f1715b468678f7dc6e57da7a8f2de7c84df7f5af89177819dea119a6ca4e44c98963fb84302f88c312111b94956",
+      "metadataSha256": "169b36c4d5b5ddbb3fd9de85479b1e781ec5cdf10cfc3ed8f8f99544e93dd39e"
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "version": "0.1.1",
+      "bytes": 4058,
+      "sha512": "a301d26d94fbf6d62491912068ca0fe62b92ea2b8dab39b2c9afd3229e82845950ed6b3cee804dd31941955d66a3a731a607bfe630cc0cb807d530b3cb46611e",
+      "metadataSha256": "289504258ea0cefed545808ef4e831a182f30f5196f8d8854730c6c6f9bc64ea"
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "version": "0.1.2",
+      "bytes": 3991,
+      "sha512": "e90738a31a238781b93a29dd8a186ea500e512f1e28fd90e124c4ba2a644b7f5781d308ea5a0c5254908ab5cf34eb826fea74406982ad4be099709bab3be07a6",
+      "metadataSha256": "5ff195df40061e5b02a1198492e2ff88315150e36a8d91b403e1e9b9faeb91a6"
+    },
+    {
+      "name": "@chainlesschain/core-db",
+      "version": "0.1.5",
+      "bytes": 10302,
+      "sha512": "def8c3fa594885a3407b878f60ff9fc9238f0a01c1c09ccc228e6d755909eee2369e04eb2b6564383bef3d756c92350de7edae4d01ff44c586adef8e68daae88",
+      "metadataSha256": "4d92c5647be7c38a0a46f08e560a0d37aa92d49b09283dad9aa689c4bb018f34"
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "version": "0.1.1",
+      "bytes": 3482,
+      "sha512": "0f086a1bdccb6cf3dc295a3af1004454b6e84635d403bd6efab5fce8c1c804c98eafff0d69bae2b04b27af7009eb51641637550d2554c4493a5c3a00c0e30ba4",
+      "metadataSha256": "a89a99a98979c0ac38803c8e0ca458826a61d017924c13df7cb68b00a3e9c964"
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "version": "0.3.24",
+      "bytes": 317808,
+      "sha512": "f622aa75f97916a955fcf9e98b1c32800218455421266b7154718435283d3bd7a89d123f809d384954b9bc2d0a57b9d541c03570ccc66972d8af2ddc8185f92d",
+      "metadataSha256": "5ab80eaf1963294c186c964e79c1c47d1b92105e817fc81a1534a154b7f2b93f"
+    },
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.11",
+      "bytes": 51997,
+      "sha512": "81d32849b4d4b2de7fd03ee341d26eceb78e3d9428214a31b7a4ca2e3e715fe5c6134cc4df56ef90b3b2c9015cc9328bf8f8b74bd2460c4c6ec6be351d745798",
+      "metadataSha256": "6469683b28c26975b78b7e75e5ad019ac3ab7d1d7a57c20d7338222f371bef67"
+    },
+    {
+      "name": "@chainlesschain/agent-sdk",
+      "version": "0.2.16",
+      "bytes": 89887,
+      "sha512": "62e6f26a603dc4a68c230738ae444fe6ef342044b1abdd469942ff46148cf8d5ffad1dad7d09d86de04b3b96783e7b729655d09b5882218a80204ac2012fe02c",
+      "metadataSha256": "90a67af3d5d2d5f8b17d94ec247fc12c3d930865cae818f3d086b3e2c664937f"
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "version": "0.4.66",
+      "bytes": 891631,
+      "sha512": "44f7021d5216732d32b48f97b5bac8c4554227c2090af7caa05d2e908dbb893ca92efde4706517ecfb95187d4a020f85d42f6b6d11e8cf31863c8c3e144b75dd",
+      "metadataSha256": "1ff70f0d579f36805836de8317b4f37fc471f6c69e2e0ba0423a48a476045397"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "id": 12946249806,
+  "node_id": "MDg6QXJ0aWZhY3QxMjk0NjI0OTgwNg==",
+  "name": "chainlesschain-npm-772fcdbda85bcf91df95bfced5b476dcf4c74614",
+  "size_in_bytes": 9597521,
+  "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12946249806",
+  "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12946249806/zip",
+  "expired": false,
+  "digest": "sha256:64332651ab5d69e94cd86a7707d33a35cdff721033f51bd9de6c132aca564b16",
+  "created_at": "2026-10-30T01:23:40Z",
+  "updated_at": "2026-10-30T01:23:40Z",
+  "expires_at": "2027-01-28T01:19:38Z",
+  "workflow_run": {
+    "id": 40985169005,
+    "repository_id": 1107348698,
+    "head_repository_id": 1107348698,
+    "head_branch": "v-npm-0-166-132",
+    "head_sha": "772fcdbda85bcf91df95bfced5b476dcf4c74614"
+  }
+}

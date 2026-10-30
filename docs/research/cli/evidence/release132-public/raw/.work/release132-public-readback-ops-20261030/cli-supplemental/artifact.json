@@ -1,0 +1,20 @@
+{
+  "id": 12947246819,
+  "node_id": "MDg6QXJ0aWZhY3QxMjk0NzI0NjgxOQ==",
+  "name": "chainlesschain-npm-readback-772fcdbda85bcf91df95bfced5b476dcf4c74614",
+  "size_in_bytes": 334615,
+  "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12947246819",
+  "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12947246819/zip",
+  "expired": false,
+  "digest": "sha256:10deafc0455fdf63eba309953d05edcc8074d752207e818737692053b3105cc0",
+  "created_at": "2026-10-30T01:29:58Z",
+  "updated_at": "2026-10-30T01:29:58Z",
+  "expires_at": "2027-01-28T01:19:38Z",
+  "workflow_run": {
+    "id": 40985169005,
+    "repository_id": 1107348698,
+    "head_repository_id": 1107348698,
+    "head_branch": "v-npm-0-166-132",
+    "head_sha": "772fcdbda85bcf91df95bfced5b476dcf4c74614"
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "status": "OBSERVED_RELEASE_RUN_METADATA_ONLY",
+  "sourceCommit": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
+  "versions": {
+    "cli": "0.166.132",
+    "vscode": "0.37.170",
+    "jetbrains": "0.4.187"
+  },
+  "records": {
+    "cli-publish-run.json": {
+      "bytes": 14773,
+      "digest": "sha256:c5460562090bc2e9b649aa230442fb688b21cfea36d0b957f5772d7b5f155ed5"
+    },
+    "cli-publish-jobs.json": {
+      "bytes": 20672,
+      "digest": "sha256:e13c85c511957079a92cb51e32134babe81693da6f36438938f70f96b496207c"
+    },
+    "cli-publish-artifacts.json": {
+      "bytes": 5359,
+      "digest": "sha256:dc35b943b9e76d8bb0c16e441e1286bae3ceded4a64761fc37fd7a6f0cfd22a3"
+    },
+    "cli-publish-artifact.json": {
+      "bytes": 840,
+      "digest": "sha256:876207b7ff305c2a0f049919a540a9c3ea00e889c3c6abf86d7c147d233a10d6"
+    },
+    "cli-publish-run-after.json": {
+      "bytes": 14773,
+      "digest": "sha256:c5460562090bc2e9b649aa230442fb688b21cfea36d0b957f5772d7b5f155ed5"
+    },
+    "cli-readback-run.json": {
+      "bytes": 14523,
+      "digest": "sha256:813c12f09f77ea42d987e9a06b1a37444ee10a690abf2527f22e738fb29bf56f"
+    },
+    "cli-readback-jobs.json": {
+      "bytes": 3197,
+      "digest": "sha256:23b9d635809c7170ec026ec64d51d0741ece486d29832bc068fc25e31fba366e"
+    },
+    "cli-readback-artifacts.json": {
+      "bytes": 793,
+      "digest": "sha256:6242cc22495e99ef1609a420faad6695ca0ee1e71c0cffd7f4ab05d1f1f77242"
+    },
+    "cli-readback-artifact.json": {
+      "bytes": 842,
+      "digest": "sha256:ab37939af19e7a37bd1f3c0e2ecdbf53725b3b23cc1a60af338212ac0a740adf"
+    },
+    "cli-readback-run-after.json": {
+      "bytes": 14523,
+      "digest": "sha256:813c12f09f77ea42d987e9a06b1a37444ee10a690abf2527f22e738fb29bf56f"
+    },
+    "vscode-run.json": {
+      "bytes": 14530,
+      "digest": "sha256:d0feaad037b757a2fa0b18d23262d6c8505f7faa5311a9b8e8e0489f0a7fe4c3"
+    },
+    "vscode-jobs.json": {
+      "bytes": 41739,
+      "digest": "sha256:8af7cbe4409db850bf8ece7344a5ed297a26df91a9b9130605e0f77db45c910b"
+    },
+    "vscode-artifacts.json": {
+      "bytes": 12874,
+      "digest": "sha256:42283027a66e9b66636db3fe5300ef7b17d1276db56b647b8a6f6ce01f2a21d4"
+    },
+    "vscode-artifact.json": {
+      "bytes": 820,
+      "digest": "sha256:f6f034a4c3365611945e49d9deb2e00abc099715e4a4678208df3217e98a4449"
+    },
+    "vscode-run-after.json": {
+      "bytes": 14530,
+      "digest": "sha256:d0feaad037b757a2fa0b18d23262d6c8505f7faa5311a9b8e8e0489f0a7fe4c3"
+    },
+    "jetbrains-run.json": {
+      "bytes": 14532,
+      "digest": "sha256:cffa5d552cdee723cd44b58a59bff7823bd3cd29c45bc1e61460ad4b0d3c2715"
+    },
+    "jetbrains-jobs.json": {
+      "bytes": 53951,
+      "digest": "sha256:9e4274d32aa1fb9c566dc4995f71424cfa053a63d80b2dcb6de7b28b3d21cb95"
+    },
+    "jetbrains-artifacts.json": {
+      "bytes": 13686,
+      "digest": "sha256:7dc6fbfa829a28672cda87dd5bd46e8d47329f75ae2a6791fb0213792d259d61"
+    },
+    "jetbrains-artifact.json": {
+      "bytes": 818,
+      "digest": "sha256:9645b65558fc02cf8db04ebb8aaadbf3cd81d16f0f80272efc380d3487233677"
+    },
+    "jetbrains-run-after.json": {
+      "bytes": 14532,
+      "digest": "sha256:cffa5d552cdee723cd44b58a59bff7823bd3cd29c45bc1e61460ad4b0d3c2715"
+    }
+  },
+  "registryBytesVerified": false,
+  "provenanceReverifiedLocally": false,
+  "publicationVerified": false,
+  "packageExecuted": false
+}

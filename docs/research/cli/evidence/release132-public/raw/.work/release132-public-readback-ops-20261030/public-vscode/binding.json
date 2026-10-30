@@ -1,0 +1,39 @@
+{
+  "releaseBinding": {
+    "releaseSourceCommit": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
+    "versions": {
+      "cli": "0.166.132",
+      "vscode": "0.37.170",
+      "jetbrains": "0.4.187",
+      "vscodeHost": "1.132.0",
+      "jetbrainsHost": "2025.2"
+    },
+    "newManifest": "docs/research/cli/verify01-package-sets/2026-10-30-review-132.json",
+    "previousManifest": {
+      "path": "docs/research/cli/verify01-package-sets/2026-10-29-review-131.json",
+      "digest": "sha256:120f53d500bfc9b923cc713bea8f6040c28ad92df8ba3490ce914197aa0ccd81",
+      "bytes": 1606
+    },
+    "sourceIdentities": [
+      {
+        "path": "packages/cli/package.json",
+        "digest": "sha256:1400def71832d1b4668d5b021fc0c5a2b37c973052094a532720bb590f1bdd43"
+      },
+      {
+        "path": "packages/vscode-extension/package.json",
+        "digest": "sha256:74a42f113f2b37fb9b3a5fbcd27950f87c19513b653f3be1b99134049bda4f1a"
+      },
+      {
+        "path": "packages/jetbrains-plugin/build.gradle.kts",
+        "digest": "sha256:ed9ad77cdfa97b4f002d6a52fb24e166477d439937d0251aea668914e55b5411"
+      },
+      {
+        "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CliVersionCheck.java",
+        "digest": "sha256:cd538a1c3a88521beb48f0400c430c567a46e4e390f593106ba3c4e6562c57c7"
+      }
+    ]
+  },
+  "workflowRunId": 40987417858,
+  "artifactId": 12947916372,
+  "cliReadbackDigest": "sha256:9160e9ef4070ace6c3dc53f79e7987ca6902d578a31fe4a9331feca3a71ed87a"
+}

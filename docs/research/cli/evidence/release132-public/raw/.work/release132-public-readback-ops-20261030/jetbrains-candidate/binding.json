@@ -1,0 +1,61 @@
+{
+  "schema": "chainlesschain.jetbrains-official-candidate/v1",
+  "status": "VERIFIED_OFFICIAL_CANDIDATE_ONLY",
+  "sourceCommit": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
+  "workflow": ".github/workflows/ide-extensions.yml",
+  "tag": "ide-jetbrains-v0.4.187",
+  "runId": 40987418150,
+  "runAttempt": 1,
+  "artifactId": 12948179434,
+  "artifactMetadata": {
+    "id": 12948179434,
+    "node_id": "MDg6QXJ0aWZhY3QxMjk0ODE3OTQzNA==",
+    "name": "chainlesschain-ide-jetbrains-1",
+    "size_in_bytes": 1555739,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12948179434",
+    "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12948179434/zip",
+    "expired": false,
+    "digest": "sha256:68e3be7c792bb1d4abf5c4da8268b44679671cd861f339cce9bbe4b0983bdb14",
+    "created_at": "2026-10-30T02:09:05Z",
+    "updated_at": "2026-10-30T02:09:05Z",
+    "expires_at": "2027-01-28T01:42:21Z",
+    "workflow_run": {
+      "id": 40987418150,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "ide-jetbrains-v0.4.187",
+      "head_sha": "772fcdbda85bcf91df95bfced5b476dcf4c74614"
+    }
+  },
+  "wrapper": {
+    "path": "official-artifact.zip",
+    "bytes": 1555739,
+    "digest": "sha256:68e3be7c792bb1d4abf5c4da8268b44679671cd861f339cce9bbe4b0983bdb14"
+  },
+  "candidate": {
+    "path": "chainlesschain-ide-bridge-0.4.187.zip",
+    "bytes": 1555520,
+    "digest": "sha256:5cbdeef7c665141088e9e3f88d5888c08b3ffd7e542f72cc6152cedbf39610d7"
+  },
+  "records": {
+    "run.json": {
+      "bytes": 14532,
+      "digest": "sha256:cffa5d552cdee723cd44b58a59bff7823bd3cd29c45bc1e61460ad4b0d3c2715"
+    },
+    "run-after.json": {
+      "bytes": 14532,
+      "digest": "sha256:cffa5d552cdee723cd44b58a59bff7823bd3cd29c45bc1e61460ad4b0d3c2715"
+    },
+    "artifacts.json": {
+      "bytes": 13686,
+      "digest": "sha256:7dc6fbfa829a28672cda87dd5bd46e8d47329f75ae2a6791fb0213792d259d61"
+    },
+    "artifact.json": {
+      "bytes": 818,
+      "digest": "sha256:9645b65558fc02cf8db04ebb8aaadbf3cd81d16f0f80272efc380d3487233677"
+    }
+  },
+  "marketplacePublicationVerified": false,
+  "publicPayloadComparisonVerified": false,
+  "packageExecuted": false
+}

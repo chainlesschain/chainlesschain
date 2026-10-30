@@ -1,0 +1,99 @@
+{
+  "schema": "chainlesschain.release132-publication/v1",
+  "status": "public",
+  "repository": "chainlesschain/chainlesschain",
+  "sourceSha": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
+  "channels": {
+    "cli": {
+      "version": "0.166.132",
+      "status": "public",
+      "tag": "v-npm-0-166-132",
+      "method": "GitHub Actions OIDC Trusted Publishing",
+      "runId": 40985169005,
+      "attempt": 1,
+      "independentReadbackRunId": 40986625203,
+      "evidence": "cli.json"
+    },
+    "kernel": {
+      "version": "0.1.11",
+      "status": "public",
+      "verifiedByCliPublication": true,
+      "evidence": "cli.json",
+      "scope": "Existing unchanged upstream version, freshly fetched and verified; no new publication attempt claimed."
+    },
+    "openVsx": {
+      "version": "0.37.170",
+      "status": "public",
+      "tag": "ide-vscode-v0.37.170",
+      "recommendedCliVersion": "0.166.132",
+      "runId": 40987417858,
+      "artifactId": 12947916372,
+      "publicVsixDigest": "sha256:15b6a7de1bbe8954e08885e26d4e68d4600dc8077c2683371aa8058c87326093",
+      "officialCandidateBytesMatch": true,
+      "evidence": "open-vsx.json"
+    },
+    "jetbrains": {
+      "version": "0.4.187",
+      "status": "public",
+      "tag": "ide-jetbrains-v0.4.187",
+      "recommendedCliVersion": "0.166.132",
+      "runId": 40987418150,
+      "artifactId": 12948179434,
+      "updateId": 1206433,
+      "approve": true,
+      "listed": true,
+      "hidden": false,
+      "taggedPayloadVerified": true,
+      "evidence": "jetbrains.json"
+    },
+    "microsoftMarketplace": {
+      "status": "deferred",
+      "reason": "User explicitly deferred this channel"
+    }
+  },
+  "acceptance": {
+    "cumulativeAccepted": 34,
+    "ordinaryAccepted": 27,
+    "ordinaryTotal": 36,
+    "firstInstallAccepted": 7,
+    "firstInstallTotal": 9,
+    "total": 45,
+    "unfinished": 11
+  },
+  "automaticAcceptanceEvidence": {
+    "path": "docs/research/cli/evidence/release131-public/publication.json",
+    "digest": "sha256:851f93eb48629f71d960df3d1ea19ccce581464e4c19d068a52061ba7b698b0b"
+  },
+  "assistedDeliveries": {
+    "count": 3,
+    "evidence": [
+      {
+        "path": "docs/research/cli/evidence/native131-assisted-install-2026-10-30/verify07/review.json",
+        "digest": "sha256:1b724693141f986234064a90cb165658ae8b7de2fa9c5966fdfb691b32008ccc"
+      },
+      {
+        "path": "docs/research/cli/evidence/native131-assisted-install-2026-10-30/verify09/review.json",
+        "digest": "sha256:911ecf7e7733a7558d46b5112379f6c2e84b641644955b0f4257d55405fd56ed"
+      },
+      {
+        "path": "docs/research/cli/evidence/native131-assisted-verify10-2026-10-30/review.json",
+        "digest": "sha256:72b3984142f4381d1fffe4f76a5140785dcc299dfabaa4ba2ec1af770ad5e70d"
+      }
+    ],
+    "countedInAutomaticAcceptance": false
+  },
+  "limits": {
+    "newLiveModelTasks": false,
+    "formalPaidAdmission": "NOT_PAID_READY",
+    "nativeProductionAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD",
+    "clientsReleased": false
+  },
+  "packageSetVerification": {
+    "status": "VERIFIED_PUBLIC_ARTIFACTS",
+    "manifestPath": "docs/research/cli/verify01-package-sets/2026-10-30-review-132.json",
+    "manifestDigest": "sha256:0a99e24344b13e428ca245155f03b65c5bdf8ce48fc8dcf8af3c5f9055f52bbb",
+    "readbackDigest": "sha256:d5ae94085305943e9d7f683e00f7f797c6ad13d3ed039b66a66b7c76d4dac35a",
+    "jetbrainsPublicBytesMatchIndependentReadback": true
+  }
+}

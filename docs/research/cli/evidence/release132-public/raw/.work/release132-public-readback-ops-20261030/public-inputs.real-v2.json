@@ -1,0 +1,30 @@
+{
+    "sourceSha":  "772fcdbda85bcf91df95bfced5b476dcf4c74614",
+    "rootReviewReceiptPath":  null,
+    "rootReviewReceiptDigest":  null,
+    "verifiedGatesPath":  ".work/release132-native-preflight-validation-20261030/verified-gates.json",
+    "verifiedGatesDigest":  "sha256:fe6f5d86a98e56d7032fb6a1bf0f75a351a1f09916bf669d250a0a91ae1ab3b2",
+    "cliRunObservationPath":  ".work/release132-public-readback-ops-20261030/cli-run-observation",
+    "cliArtifactArchivePath":  ".work/release132-public-readback-ops-20261030/cli-official-artifacts",
+    "cliLocalPublicReadbackPath":  ".work/release132-public-readback-ops-20261030/public-cli",
+    "cliRegistryArtifactComparisonPath":  ".work/release132-public-readback-ops-20261030/local-cli-artifact-comparison.json",
+    "cliSupplementalArtifactMetadataPath":  ".work/release132-public-readback-ops-20261030/cli-supplemental/artifact.json",
+    "cliSupplementalArtifactArchivePath":  ".work/release132-public-readback-ops-20261030/cli-supplemental/official-artifact.zip",
+    "previousManifestPath":  "docs/research/cli/verify01-package-sets/2026-10-29-review-131.json",
+    "newManifestPath":  "docs/research/cli/verify01-package-sets/2026-10-30-review-132.json",
+    "requiredThirteenChildReadbackPath":  ".work/release132-native-preflight-validation-20261030/public-children-readback",
+    "directCliChildInstallPath":  null,
+    "ideRunObservationPath":  ".work/release132-public-readback-ops-20261030/ide-run-observation",
+    "vscodePublicReadbackPath":  ".work/release132-public-readback-ops-20261030/public-vscode",
+    "jetbrainsCandidateBindingPath":  ".work/release132-public-readback-ops-20261030/jetbrains-candidate",
+    "jetbrainsPublicReadbackPath":  ".work/release132-public-readback-ops-20261030/public-jetbrains-approved",
+    "packageSetManifestPath":  "docs/research/cli/verify01-package-sets/2026-10-30-review-132.json",
+    "packageSetPublicReadbackPath":  ".work/release132-public-readback-ops-20261030/public-package-set",
+    "automaticAcceptanceEvidencePath":  "docs/research/cli/evidence/release131-public/publication.json",
+    "assistedDeliveriesEvidencePaths":  [
+                                            "docs/research/cli/evidence/native131-assisted-install-2026-10-30/verify07/review.json",
+                                            "docs/research/cli/evidence/native131-assisted-install-2026-10-30/verify09/review.json",
+                                            "docs/research/cli/evidence/native131-assisted-verify10-2026-10-30/review.json"
+                                        ],
+    "privateProposalDirectory":  ".work/release132-public-readback-ops-20261030/full-evidence-proposal"
+}

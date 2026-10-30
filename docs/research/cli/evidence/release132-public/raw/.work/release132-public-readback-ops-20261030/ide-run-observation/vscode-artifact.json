@@ -1,0 +1,20 @@
+{
+  "id": 12947916372,
+  "node_id": "MDg6QXJ0aWZhY3QxMjk0NzkxNjM3Mg==",
+  "name": "chainlesschain-ide-vscode-candidate",
+  "size_in_bytes": 727666,
+  "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12947916372",
+  "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12947916372/zip",
+  "expired": false,
+  "digest": "sha256:905e7f1e9d7889e5f4f941ede8d24136014c36dd1340c0460ad925d53451571a",
+  "created_at": "2026-10-30T01:43:41Z",
+  "updated_at": "2026-10-30T01:43:41Z",
+  "expires_at": "2027-01-28T01:42:21Z",
+  "workflow_run": {
+    "id": 40987417858,
+    "repository_id": 1107348698,
+    "head_repository_id": 1107348698,
+    "head_branch": "ide-vscode-v0.37.170",
+    "head_sha": "772fcdbda85bcf91df95bfced5b476dcf4c74614"
+  }
+}

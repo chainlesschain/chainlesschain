@@ -1,0 +1,120 @@
+{
+  "schema": "chainlesschain.jetbrains-public-payload-readback/v1",
+  "status": "VERIFIED_JETBRAINS_PUBLIC_PAYLOAD",
+  "releaseSourceCommit": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
+  "releaseBinding": {
+    "releaseSourceCommit": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
+    "versions": {
+      "cli": "0.166.132",
+      "vscode": "0.37.170",
+      "jetbrains": "0.4.187",
+      "vscodeHost": "1.132.0",
+      "jetbrainsHost": "2025.2"
+    },
+    "newManifest": "docs/research/cli/verify01-package-sets/2026-10-30-review-132.json",
+    "previousManifest": {
+      "path": "docs/research/cli/verify01-package-sets/2026-10-29-review-131.json",
+      "digest": "sha256:120f53d500bfc9b923cc713bea8f6040c28ad92df8ba3490ce914197aa0ccd81",
+      "bytes": 1606
+    },
+    "sourceIdentities": [
+      {
+        "path": "packages/cli/package.json",
+        "digest": "sha256:1400def71832d1b4668d5b021fc0c5a2b37c973052094a532720bb590f1bdd43"
+      },
+      {
+        "path": "packages/vscode-extension/package.json",
+        "digest": "sha256:74a42f113f2b37fb9b3a5fbcd27950f87c19513b653f3be1b99134049bda4f1a"
+      },
+      {
+        "path": "packages/jetbrains-plugin/build.gradle.kts",
+        "digest": "sha256:ed9ad77cdfa97b4f002d6a52fb24e166477d439937d0251aea668914e55b5411"
+      },
+      {
+        "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CliVersionCheck.java",
+        "digest": "sha256:cd538a1c3a88521beb48f0400c430c567a46e4e390f593106ba3c4e6562c57c7"
+      }
+    ]
+  },
+  "runId": 40987418150,
+  "runAttempt": 1,
+  "artifactId": 12948179434,
+  "version": "0.4.187",
+  "recommendedCliVersion": "0.166.132",
+  "cliReadbackDigest": "sha256:9160e9ef4070ace6c3dc53f79e7987ca6902d578a31fe4a9331feca3a71ed87a",
+  "candidateBindingDigest": "sha256:dd5e86de127fb06a89a0e939e1936ac03c53e60d820cc8117ddd018a550071c8",
+  "updateId": 1206433,
+  "downloadUrl": "https://plugins.jetbrains.com/files/32208/1206433/chainlesschain-ide-bridge-0.4.187.zip",
+  "approve": true,
+  "listed": true,
+  "hidden": false,
+  "taggedPayloadVerified": true,
+  "verifiedOriginalEntryCount": 2,
+  "identity": {
+    "pluginVersion": "0.4.187",
+    "jarPath": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.187.jar",
+    "jarDigest": "sha256:cafdc72bc5733000b039b3cb7b82426ecad8ed28364b4743ad42271e8fd8cda0",
+    "pluginXmlDigest": "sha256:9c71fe575ab095f6984582c5b8a2ae2a31e670cbf357e7b566af9a269868d6c4",
+    "recommendedCliConstant": {
+      "field": "RECOMMENDED_CLI_VERSION",
+      "value": "0.166.132",
+      "accessFlags": 25
+    },
+    "classes": [
+      {
+        "path": "com/chainlesschain/ide/CliVersionCheck.class",
+        "digest": "sha256:3b01da058afc5c9baeecf1d6238b4ff73cb45505f0e27e087d2678da7e923147",
+        "bytes": 3569,
+        "className": "com/chainlesschain/ide/CliVersionCheck",
+        "majorVersion": 65
+      },
+      {
+        "path": "com/chainlesschain/ide/MarkdownLite.class",
+        "digest": "sha256:4e2a034f92f350fd4f010cc4a3f4656e2caf9a6dad98169093b393795a0a1433",
+        "bytes": 2724,
+        "className": "com/chainlesschain/ide/MarkdownLite",
+        "majorVersion": 65
+      },
+      {
+        "path": "com/chainlesschain/ide/intellij/ChatTranscriptRendering.class",
+        "digest": "sha256:720f9d80a79e91cf91034dfe3701a08f39424169558d66b762f7e31e3ae43b0b",
+        "bytes": 3463,
+        "className": "com/chainlesschain/ide/intellij/ChatTranscriptRendering",
+        "majorVersion": 65
+      },
+      {
+        "path": "com/chainlesschain/ide/intellij/ConversationView.class",
+        "digest": "sha256:c701a7e08fee04a762e3d7edd9a3f5102097f7ff58231e787a38c8c70daaef14",
+        "bytes": 160448,
+        "className": "com/chainlesschain/ide/intellij/ConversationView",
+        "majorVersion": 65
+      }
+    ]
+  },
+  "records": {
+    "run-before.json": {
+      "bytes": 14532,
+      "digest": "sha256:cffa5d552cdee723cd44b58a59bff7823bd3cd29c45bc1e61460ad4b0d3c2715"
+    },
+    "run-after.json": {
+      "bytes": 14532,
+      "digest": "sha256:cffa5d552cdee723cd44b58a59bff7823bd3cd29c45bc1e61460ad4b0d3c2715"
+    },
+    "artifact-current.json": {
+      "bytes": 818,
+      "digest": "sha256:9645b65558fc02cf8db04ebb8aaadbf3cd81d16f0f80272efc380d3487233677"
+    },
+    "marketplace.json": {
+      "bytes": 426432,
+      "digest": "sha256:de29cc29689f10498c478e37a9ae57c616d0c06458a0cf089c9bfd554bd75c73"
+    },
+    "public.zip": {
+      "bytes": 1561180,
+      "digest": "sha256:07cf88bf543b4110c31145ebc928f78f87e6ccf6a4594ad1705c2f55159b33a4"
+    }
+  },
+  "packageExecuted": false,
+  "fullPackageSetCreated": false,
+  "microsoftMarketplaceVerified": false,
+  "verifiedAt": "2026-10-30T02:19:23.952491+00:00"
+}

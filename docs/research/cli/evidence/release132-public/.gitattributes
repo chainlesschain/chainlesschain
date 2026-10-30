@@ -1,0 +1,4 @@
+# These are digest-bound evidence bytes, including original HTTP/process JSON.
+# Preserve both repository blobs and future checkouts exactly as archived.
+** -text -filter -ident
+objects/** binary

@@ -1,0 +1,85 @@
+{
+  "schema": "chainlesschain.release131-publication/v1",
+  "status": "public",
+  "repository": "chainlesschain/chainlesschain",
+  "sourceSha": "c9d0bab231850697df38f2d476c2dd974cbcb6c0",
+  "channels": {
+    "cli": {
+      "version": "0.166.131",
+      "status": "public",
+      "tag": "v-npm-0-166-131",
+      "method": "GitHub Actions OIDC Trusted Publishing",
+      "runId": 40862685540,
+      "attempt": 2,
+      "independentReadbackRunId": 40866417524,
+      "evidence": "cli.json"
+    },
+    "kernel": {
+      "version": "0.1.11",
+      "status": "public",
+      "originalPublicationAttempt": 1,
+      "verifiedByCliPublication": true
+    },
+    "openVsx": {
+      "version": "0.37.169",
+      "status": "public",
+      "tag": "ide-vscode-v0.37.169",
+      "recommendedCliVersion": "0.166.131",
+      "runId": 40866847689,
+      "evidence": "open-vsx.json",
+      "artifactId": 12893588967,
+      "publicVsixDigest": "sha256:a41b5806e67e6fd509bae6463cffbf8bd5e7ea105466ab603684e31a90a90d7d",
+      "officialCandidateBytesMatch": true
+    },
+    "jetbrains": {
+      "version": "0.4.186",
+      "status": "public",
+      "tag": "ide-jetbrains-v0.4.186",
+      "recommendedCliVersion": "0.166.131",
+      "runId": 40866846685,
+      "evidence": "jetbrains.json",
+      "updateId": 1206001,
+      "approve": true,
+      "listed": true,
+      "hidden": false,
+      "artifactId": 12896140907,
+      "taggedPayloadVerified": true
+    },
+    "microsoftMarketplace": {
+      "status": "deferred",
+      "reason": "User explicitly deferred this channel"
+    }
+  },
+  "acceptance": {
+    "cumulativeAccepted": 34,
+    "ordinaryAccepted": 27,
+    "ordinaryTotal": 36,
+    "firstInstallAccepted": 7,
+    "firstInstallTotal": 9,
+    "total": 45,
+    "unfinished": 11
+  },
+  "limits": {
+    "newLiveModelTasks": false,
+    "formalPaidAdmission": "NOT_PAID_READY",
+    "nativeProductionAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD",
+    "clientsReleased": false
+  },
+  "history": {
+    "kernelPropagationFailure": {
+      "run": 40862685540,
+      "attempt": 1,
+      "job": 123411294071,
+      "reason": "npm install ETARGET after successful publication; same-source failed-job recovery passed after registry synchronization"
+    },
+    "oldCandidate": "98c4 remains superseded before publication; failed CLI CI is preserved"
+  },
+  "packageSetVerification": {
+    "status": "VERIFIED_PUBLIC_ARTIFACTS",
+    "manifestPath": "docs/research/cli/verify01-package-sets/2026-10-29-review-131.json",
+    "manifestDigest": "sha256:120f53d500bfc9b923cc713bea8f6040c28ad92df8ba3490ce914197aa0ccd81",
+    "readbackDigest": "sha256:54fd8f0d99ddb3a928d6834e78da792ac59006b6a66ae3493bdf5a12d8cccc22",
+    "jetbrainsPublicBytesMatchIndependentReadback": true
+  }
+}

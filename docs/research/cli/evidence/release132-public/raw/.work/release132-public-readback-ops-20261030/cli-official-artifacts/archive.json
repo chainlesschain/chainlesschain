@@ -1,0 +1,31 @@
+{
+  "status": "ARCHIVED_CLI_ARTIFACTS_ONLY",
+  "sourceCommit": "772fcdbda85bcf91df95bfced5b476dcf4c74614",
+  "publishRunId": 40985169005,
+  "readbackRunId": 40986625203,
+  "records": {
+    "cli-publish/chainlesschain-release.json": {
+      "bytes": 2610,
+      "digest": "sha256:ab0d904b35bd7e26ab7eba2af5814707abb25900b44a7e56ca28ac4dc631d064"
+    },
+    "cli-publish/chainlesschain-0.166.132.tgz": {
+      "bytes": 9515144,
+      "digest": "sha256:44f0d917b0a0daf92fbf5cea787ba7b6a498063c9f6372d355903e8f04cc9d54"
+    },
+    "cli-readback/chainlesschain-release.json": {
+      "bytes": 2610,
+      "digest": "sha256:ab0d904b35bd7e26ab7eba2af5814707abb25900b44a7e56ca28ac4dc631d064"
+    },
+    "cli-readback/chainlesschain-npm-readback.json": {
+      "bytes": 582,
+      "digest": "sha256:3d9fba93eb734170f67ed5d60d6af3e685b1f190ebc3c809af8e8fea76651682"
+    },
+    "cli-readback/chainlesschain-npm-provenance.json": {
+      "bytes": 833,
+      "digest": "sha256:8eff3ebf00c3a266f418fe00ac5997db84669116ecaf88c4459a0e26dae6b3d0"
+    }
+  },
+  "packageExecuted": false,
+  "localPublicByteComparisonVerified": false,
+  "provenanceReverifiedLocally": false
+}
