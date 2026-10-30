@@ -2,7 +2,7 @@
 
 ## Current public CLI: 0.166.133 (2026-10-30)
 
-Install: `npm i -g chainlesschain@0.166.133 --registry https://registry.npmjs.org`. Open VSX **0.37.171** is public. Companion JetBrains **0.4.188** was uploaded successfully and awaits Marketplace approval or indexing. Kernel remains **0.1.11**. Restart the chat host, then run `cc --version` and `cc doctor`.
+Install: `npm i -g chainlesschain@0.166.133 --registry https://registry.npmjs.org`. Open VSX **0.37.171** / JetBrains **0.4.188** are public and their original payloads match the official artifacts. Both IDEs recommend CLI **0.166.133**. Kernel remains **0.1.11**. Restart the chat host, then run `cc --version` and `cc doctor`.
 
 This release fixes missing `input[21].summary` during OpenAI Responses tool continuation and Evolution certificate requirements in `cc ui` after Evolution is disabled. It also supports custom OpenAI-compatible local/LAN platforms with optional credentials. Exact source `2eb0c5b1e048509362f9d980f94acee55c2ffa9f` passed three-OS CLI CI / Strict Sandbox; [OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/41073612529) and [independent public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/41075409835) succeeded. See [release evidence](docs/research/cli/evidence/release133-public/README.md) and the [upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-10-30-133.md).
 

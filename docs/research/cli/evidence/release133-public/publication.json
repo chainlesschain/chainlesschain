@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "sourceCommit": "2eb0c5b1e048509362f9d980f94acee55c2ffa9f",
-  "checkedAt": "2026-10-30T15:33:20.802Z",
+  "checkedAt": "2026-10-30T15:41:57.364Z",
   "cli": {
     "version": "0.166.133",
     "status": "verified-public",
@@ -25,15 +25,24 @@
   },
   "jetbrains": {
     "version": "0.4.188",
-    "status": "uploaded-pending-marketplace",
+    "status": "verified-public",
     "run": 41075702892,
-    "uploadCompleted": true,
-    "publicPayloadVerified": false,
+    "recommendedCliVersion": "0.166.133",
+    "updateId": 1208135,
+    "download": "https://plugins.jetbrains.com/files/32208/1208135/chainlesschain-ide-bridge-0.4.188.zip",
+    "sha256": "aee0b5da3ff2fe95d5d36cc9aacffc46bef558fb8b6377ea2848741088a09464",
+    "bytes": 1561314,
+    "approve": true,
+    "listed": true,
+    "hidden": false,
+    "originalPayloadVerified": true,
+    "archiveByteIdentical": false,
     "evidence": "jetbrains.json"
   },
   "pullRequest": 511,
-  "mergeStatus": "deferred-until-public-readbacks",
+  "mergeStatus": "ready-after-three-public-readbacks",
   "microsoftMarketplace": "deferred",
   "pcMobile": "unchanged-v5.0.3.143",
-  "newModelTaskAcceptance": 0
+  "newModelTaskAcceptance": 0,
+  "status": "verified-public"
 }

@@ -5,7 +5,7 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Public release scope: CLI **0.166.133** is the immutable package from `2eb0c5b1e048509362f9d980f94acee55c2ffa9f`, with `@chainlesschain/context-memory-kernel@0.1.11`. Its OIDC publication, independent public readback and companion Open VSX **0.37.171** verification passed. JetBrains **0.4.188** was uploaded successfully and awaits Marketplace approval or indexing; see [publication evidence](docs/research/cli/evidence/release133-public/publication.json).
+> Public release scope: CLI **0.166.133** is the immutable package from `2eb0c5b1e048509362f9d980f94acee55c2ffa9f`, with `@chainlesschain/context-memory-kernel@0.1.11`. Its OIDC publication, independent public readback and companion Open VSX **0.37.171** verification passed. JetBrains **0.4.188** is approved, listed and publicly downloadable, with its original payload verified against the official build; see [publication evidence](docs/research/cli/evidence/release133-public/publication.json).
 >
 > `Unreleased` is a rolling source-development log that retains historical candidate labels, not a publication ledger. Public `.133` includes the model-platform and optional self-evolution fixes after its exact-source gates and verified CLI publication. Historical candidate wording below does not supersede the channel status above.
 

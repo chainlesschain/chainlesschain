@@ -4,7 +4,7 @@
 
 ## 当前公开 CLI：0.166.133（2026-10-30）
 
-安装：`npm i -g chainlesschain@0.166.133 --registry https://registry.npmjs.org`。Open VSX **0.37.171** 已公开，配套 JetBrains **0.4.188** 已上传成功、等待商店审核或索引，Kernel 保持 **0.1.11**。升级后重启聊天宿主，运行 `cc --version` 与 `cc doctor`。
+安装：`npm i -g chainlesschain@0.166.133 --registry https://registry.npmjs.org`。Open VSX **0.37.171** / JetBrains **0.4.188** 均已公开并完成制品核验，两个 IDE 均推荐 CLI **0.166.133**，Kernel 保持 **0.1.11**。升级后重启聊天宿主，运行 `cc --version` 与 `cc doctor`。
 
 本版修复 OpenAI Responses 工具续接丢失空 `reasoning.summary` 导致的 HTTP 400，统一 `cc ui` 各模型入口的自进化开关读取，并支持不限于 Ollama 的自定义 OpenAI 兼容本机 / 局域网模型平台。准确发行源码 `2eb0c5b1e048509362f9d980f94acee55c2ffa9f` 通过三系统 CLI CI / Strict Sandbox；[OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/41073612529)与[独立公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/41075409835)均通过。
 

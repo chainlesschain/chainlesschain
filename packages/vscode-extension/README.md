@@ -12,7 +12,7 @@ Open **Skill 自进化配置** from the command palette to enable or disable sel
 
 ## Current release: 0.37.171
 
-Public Open VSX **0.37.171** recommends public CLI **0.166.133**. Its [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41075702976) passed, and the downloaded VSIX matches the official candidate byte for byte. Paired JetBrains **0.4.188** was uploaded successfully and awaits Marketplace approval or indexing. Kernel remains **0.1.11**. The CLI fixes empty Responses reasoning-summary replay, honors disabled self-evolution across `cc ui`, supports custom OpenAI-compatible local/LAN platforms, and exposes canonical allowed mutation paths while retaining execution-time scope checks. [Release evidence](../../docs/research/cli/evidence/release133-public/README.md). No independent IDE UI change or new real-model task acceptance is claimed.
+Public Open VSX **0.37.171** recommends public CLI **0.166.133**. Its [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41075702976) passed, and the downloaded VSIX matches the official candidate byte for byte. Paired JetBrains **0.4.188** is approved, listed and publicly downloadable; its original payload matches the official build and also recommends CLI **0.166.133**. Kernel remains **0.1.11**. The CLI fixes empty Responses reasoning-summary replay, honors disabled self-evolution across `cc ui`, supports custom OpenAI-compatible local/LAN platforms, and exposes canonical allowed mutation paths while retaining execution-time scope checks. [Release evidence](../../docs/research/cli/evidence/release133-public/README.md). No independent IDE UI change or new real-model task acceptance is claimed.
 
 ## Previous release: 0.37.170
 

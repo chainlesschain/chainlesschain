@@ -2,9 +2,9 @@
 
 ## 最新公开状态
 
-CLI **0.166.133** 与 Open VSX **0.37.171** 已公开并完成独立下载核验。JetBrains **0.4.188** 已通过六组真实宿主检查与 Marketplace 上传，发布工作流成功；商店尚未公开该版本，审核或索引、公开 ZIP 与原始 payload 比对仍待完成。三个发布标签均绑定准确源码 `2eb0c5b1e048509362f9d980f94acee55c2ffa9f`，CLI 的 Linux / Windows / macOS CI 与 Strict Sandbox 全部通过。
+CLI **0.166.133**、Open VSX **0.37.171** 与 JetBrains **0.4.188** 均已公开并完成独立制品核验。JetBrains 已批准、列出，公开 ZIP 的两份原始文件与 CI 制品逐字节一致；两个 IDE 均推荐 CLI `.133`。三个发布标签均绑定准确源码 `2eb0c5b1e048509362f9d980f94acee55c2ffa9f`，CLI 的 Linux / Windows / macOS CI 与 Strict Sandbox 全部通过。
 
-按用户指定的先发布后合并顺序，PR #511 仍未合并；OpenAI 36+9 实测尚未开始。独立 OpenAI 测试分支已提交 Responses 接入和轮次隔离实现，相关回归 **55/55**、格式与源码登记审计通过，未增加模型任务通过数。[本轮发行证据](./cli/evidence/release133-public/README.md)。
+本轮按用户指定的先发布后合并顺序推进 PR #511；OpenAI 36+9 是发行完成后的独立验证任务，不属于发行成功证据。独立 OpenAI 测试分支已提交 Responses 接入和轮次隔离实现，相关回归 **55/55**、格式与源码登记审计通过，未增加模型任务通过数。[本轮发行证据](./cli/evidence/release133-public/README.md)。
 
 ## 发行准备时点（历史记录）
 

@@ -1,6 +1,8 @@
 # CLI 0.166.133 与配套 IDE 升级
 
-CLI **0.166.133** 已由 GitHub Actions OIDC 发布，公开 npm 下载包与工作流不可变制品逐字节一致，签名来源已核验。Open VSX **0.37.171** 已公开，下载的 VSIX 与官方制品逐字节一致；JetBrains **0.4.188** 已上传成功，等待商店审核或索引。Kernel 保持 **0.1.11**。
+CLI **0.166.133** 已由 GitHub Actions OIDC 发布，公开 npm 下载包与工作流不可变制品逐字节一致，签名来源已核验。Open VSX **0.37.171** 已公开，下载的 VSIX 与官方制品逐字节一致；JetBrains **0.4.188** 已批准、列出并可公开下载，ZIP 中的两份原始文件均与 CI 制品逐字节一致。两个 IDE 均推荐 CLI **0.166.133**，Kernel 保持 **0.1.11**。
+
+[Open VSX VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.171/file/chainlesschain.chainlesschain-ide-0.37.171.vsix) · [JetBrains ZIP](https://plugins.jetbrains.com/files/32208/1208135/chainlesschain-ide-bridge-0.4.188.zip)。
 
 ```bash
 npm i -g chainlesschain@0.166.133 --registry https://registry.npmjs.org
