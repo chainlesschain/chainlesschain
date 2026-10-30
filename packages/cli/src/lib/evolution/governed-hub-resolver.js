@@ -77,8 +77,16 @@ function captureEmbeddingTransport(stage, sdk) {
   };
 }
 
-export function createGovernedHubResolver(ports, factory, sdkPorts) {
-  if (typeof factory !== "function")
+export function createGovernedHubResolver(
+  ports,
+  factory,
+  sdkPorts,
+  options = {},
+) {
+  if (
+    typeof factory !== "function" &&
+    !(factory === null && options.evolutionDisabled === true)
+  )
     throw new TypeError("A resolver evolution factory is required");
   const {
     resolver,
@@ -102,13 +110,14 @@ export function createGovernedHubResolver(ports, factory, sdkPorts) {
         const turn = await prepareGovernedModelTurn(factory, {
           mode: "hub-embedding",
           messages: [{ role: "user", content: profile }],
+          evolutionDisabled: options.evolutionDisabled === true,
         });
         // Chat projection prepends host provenance. Embed only the projected
         // profile: per-Run evidence IDs must not change semantic similarity.
-        const profileMessage = turn.messages[1];
+        const profileMessage = turn.messages[turn.governed ? 1 : 0];
         if (
-          turn.messages.length !== 2 ||
-          turn.messages[0].role !== "system" ||
+          turn.messages.length !== (turn.governed ? 2 : 1) ||
+          (turn.governed && turn.messages[0].role !== "system") ||
           profileMessage?.role !== "user" ||
           typeof profileMessage.content !== "string"
         )
@@ -133,7 +142,7 @@ export function createGovernedHubResolver(ports, factory, sdkPorts) {
   const model =
     resolver._llmStage &&
     new LLMStage({
-      llm: createGovernedHubLlm(llm, factory, {}, sdk),
+      llm: createGovernedHubLlm(llm, factory, options, sdk),
       acceptNonLocal: false,
     });
   return new EntityResolver({

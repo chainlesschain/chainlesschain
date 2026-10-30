@@ -22,7 +22,8 @@ beforeEach(() => {
     }),
     getClaudeProjectStorageDir: () => null,
   }));
-  vi.doMock("../../src/lib/llm-providers.js", () => ({
+  vi.doMock("../../src/lib/llm-providers.js", async (importOriginal) => ({
+    ...(await importOriginal()),
     BUILT_IN_PROVIDERS: {
       ollama: {
         name: "ollama",
@@ -156,8 +157,9 @@ describe("chat-core — onUsage callback", () => {
 
   it("chatStream auto-records token_usage to JSONL when sessionId given", async () => {
     const { chatStream } = await import("../../src/lib/chat-core.js");
-    const { sessionPath, startSession } =
-      await import("../../src/harness/jsonl-session-store.js");
+    const { sessionPath, startSession } = await import(
+      "../../src/harness/jsonl-session-store.js"
+    );
     const sid = startSession(null, { title: "chat-usage" });
 
     const chunks = [
@@ -262,8 +264,9 @@ describe("chat-core — onUsage callback", () => {
 
   it("chatStream routes anthropic provider + auto-records usage", async () => {
     const { chatStream } = await import("../../src/lib/chat-core.js");
-    const { sessionPath, startSession } =
-      await import("../../src/harness/jsonl-session-store.js");
+    const { sessionPath, startSession } = await import(
+      "../../src/harness/jsonl-session-store.js"
+    );
     const sid = startSession(null, {});
     const chunks = [
       'data: {"type":"message_start","message":{"usage":{"input_tokens":11,"output_tokens":0}}}\n',

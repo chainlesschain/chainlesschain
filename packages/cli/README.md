@@ -4,9 +4,9 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## CLI 0.166.133
 
-This source tree targets package version **0.166.133**. It exposes canonical allowed mutation paths in provider tool schemas, instructing scoped write/edit calls to use repository-relative paths even when read tools return absolute paths. Execution-time scope and file-identity checks remain in force. The new provider-wire suite passed **10/10 tests**; the combined related suites passed **34 tests**, with **1 existing Windows skip**. These local results do not establish new real-model task acceptance or public availability.
+CLI **0.166.133** is published on npm. It preserves required empty OpenAI Responses reasoning summaries, applies the self-evolution switch to all model-owning `cc ui` entry points, and supports explicitly configured OpenAI-compatible local/LAN platforms through `custom`, with optional credentials and unchanged endpoint/model aliases. It also exposes canonical allowed mutation paths in provider tool schemas while retaining execution-time scope and file-identity checks. Controlled regressions and release gates do not establish live-platform task acceptance.
 
-When this version is available from npm, install it with `npm i -g chainlesschain@0.166.133 --registry https://registry.npmjs.org`. The companion version pair is Open VSX **0.37.171** / JetBrains **0.4.188**; the CLI is published before its companion extensions. Kernel stays **0.1.11**. Consult the [current release guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html) for verified channel availability. Source preparation alone does not establish publication or release-gate success.
+Install with `npm i -g chainlesschain@0.166.133 --registry https://registry.npmjs.org`, restart the chat host, then run `cc --version` and `cc doctor`. Companion Open VSX **0.37.171** / JetBrains **0.4.188** are public and recommend this CLI; their original payloads match the official artifacts. Kernel stays **0.1.11**. Exact source `2eb0c5b1e048509362f9d980f94acee55c2ffa9f` passed Linux, Windows and macOS CLI CI / CLI Strict Sandbox. [OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/41073612529) and [independent readback](https://github.com/chainlesschain/chainlesschain/actions/runs/41075409835) verified immutable package bytes and signed provenance. Consult the [current release guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html) for IDE channel availability. Microsoft Marketplace and PC/mobile releases are outside this release scope.
 
 ## CLI 0.166.132 — verified public baseline before this source revision
 
@@ -78,7 +78,7 @@ Ordinary Agent, `ask`, `chat` and `cc ui` use self-evolution only when enabled. 
 
 Run `cc config set evolution.enabled true` to opt in, or `cc config set evolution.enabled false` to switch off. `cc evolution deployment enable` initializes the local signed runtime when needed; `cc evolution deployment disable` turns it off and retains deployment data. `cc evolution deployment status --json` reports the effective state. An explicit `false` also overrides inherited deployment environment variables; explicitly supplied external/managed deployments remain opt-ins when this setting is absent.
 
-The **Skill 自进化配置** page in `cc ui`, VS Code and JetBrains shares this setting. Quick Ask reads it for each new request; stop and restart an already running Agent session to apply changes. Switching off leaves ordinary chat, tool permissions and sandbox policy available. Enabled deployments still enforce their signatures and evidence validation; automatic candidate promotion remains `HOLD`. RRSI evaluation modules are part of the CLI evolution code, but this switch does not itself start a full RRSI campaign or publish learned candidates.
+The **Skill 自进化配置** page in `cc ui`, VS Code and JetBrains shares this setting. Since CLI **0.166.133**, `cc ui` Chat, Agent, Quick Ask, streaming and Personal Data Hub model requests re-read it for each new request, including existing UI sessions. Stop and restart already running terminal or IDE Agent sessions to apply changes there. Switching off leaves ordinary chat, tool permissions and sandbox policy available. Enabled deployments still enforce their signatures and evidence validation; automatic candidate promotion remains `HOLD`. RRSI evaluation modules are part of the CLI evolution code, but this switch does not itself start a full RRSI campaign or publish learned candidates.
 
 Install this release with `npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`. Paired public IDE versions are Open VSX / VS Code **0.37.165** and JetBrains **0.4.182**. Their exact-source release gates and public archive readback passed; Microsoft Marketplace remains unpublished. Child package pins are unchanged. The preceding **0.166.126** JSON recovery-summary repair addresses host-truncated retained context; the same error code can also report other invalid original evidence. Exact-source Linux, Windows and macOS CLI CI and Strict Sandbox passed; GitHub Actions OIDC publication and public package readback are complete. Mobile and PC release [`v5.0.3.142`](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.142) is public from frozen source `c9881a2b710cf49f0ad3d63673e0998ecc608514`; automatic promotion remains `HOLD`.
 
@@ -2426,19 +2426,23 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 
 ### Supported LLM Providers
 
-| Provider                   | Default Model          | API Key Required |
-| -------------------------- | ---------------------- | ---------------- |
-| Ollama (Local)             | qwen2.5:7b             | No               |
-| OpenAI                     | gpt-4o                 | Yes              |
-| Anthropic                  | claude-opus-4-6        | Yes              |
-| DeepSeek                   | deepseek-chat          | Yes              |
-| DashScope (Alibaba)        | qwen-turbo             | Yes              |
-| Google Gemini              | gemini-2.0-flash       | Yes              |
-| Mistral AI                 | mistral-large-latest   | Yes              |
-| Volcengine (火山引擎/豆包) | doubao-seed-1-6-251015 | Yes              |
-| Kimi (月之暗面)            | moonshot-v1-auto       | Yes              |
-| MiniMax (海螺AI)           | MiniMax-Text-01        | Yes              |
-| Custom                     | —                      | Yes              |
+| Provider                   | Default Model          | API Key Required   |
+| -------------------------- | ---------------------- | ------------------ |
+| Ollama (Local)             | qwen2.5:7b             | No                 |
+| OpenAI                     | gpt-4o                 | Yes                |
+| Anthropic                  | claude-opus-4-6        | Yes                |
+| DeepSeek                   | deepseek-chat          | Yes                |
+| DashScope (Alibaba)        | qwen-turbo             | Yes                |
+| Google Gemini              | gemini-2.0-flash       | Yes                |
+| Mistral AI                 | mistral-large-latest   | Yes                |
+| Volcengine (火山引擎/豆包) | doubao-seed-1-6-251015 | Yes                |
+| Kimi (月之暗面)            | moonshot-v1-auto       | Yes                |
+| MiniMax (海螺AI)           | MiniMax-Text-01        | Yes                |
+| Custom (OpenAI-compatible) | Set explicitly         | Platform-dependent |
+
+Use `provider: "custom"` for local or LAN model platforms exposing OpenAI-compatible Chat Completions, including LM Studio, vLLM, Xinference, LocalAI, and model-routing gateways. Set the platform's API base URL (for example `http://localhost:1234/v1` or a LAN gateway's documented base path) and exact model name. Supply its API key when required; keyless endpoints are also supported. Chat, Agent, streaming, and connection tests keep that endpoint and model instead of selecting Ollama or a cloud provider.
+
+Self-evolution is optional. With `evolution.enabled: false`, `cc ui` Chat, Agent, Quick Ask, streaming, and Personal Data Hub analysis do not require an Evolution deployment certificate. Existing sessions read the setting again on subsequent requests. Enabled deployments still require valid authentication.
 
 ## File Structure
 

@@ -103,7 +103,8 @@ function sanitizeReasoningItems(items) {
       type: "reasoning",
       ...(id ? { id } : {}),
       ...(encryptedContent ? { encrypted_content: encryptedContent } : {}),
-      ...(summary.length ? { summary } : {}),
+      // Responses requires this field even when no summary was requested.
+      summary,
       ...(status ? { status } : {}),
     });
   }

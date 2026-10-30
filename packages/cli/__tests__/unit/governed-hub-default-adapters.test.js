@@ -430,6 +430,7 @@ describe("governed Hub default SDK adapters", () => {
   it.each([
     "success",
     "embedding-source-denied",
+    "evolution-disabled",
     "embedding-response-denied",
     "model-source-denied",
     "model-response-denied",
@@ -513,13 +514,17 @@ describe("governed Hub default SDK adapters", () => {
           EmbeddingStage: sdk.EntityResolverEmbeddingStage,
           LLMStage: sdk.EntityResolverLLMStage,
         },
-        f.factory,
+        mode === "evolution-disabled" ? null : f.factory,
+        undefined,
+        { evolutionDisabled: mode === "evolution-disabled" },
       );
       const result = await scoped.drain();
-      if (mode === "success") {
+      if (["success", "evolution-disabled"].includes(mode)) {
         expect(result).toMatchObject({ processed: 1, same: 1, error: 0 });
         expect(vault.mergePair).toHaveBeenCalledOnce();
-        expect(f.runs).toHaveLength(3);
+        expect(f.runs).toHaveLength(mode === "evolution-disabled" ? 0 : 3);
+        if (mode === "evolution-disabled")
+          expect(f.factory).not.toHaveBeenCalled();
         for (const run of f.runs)
           expect(run.loadRun().projection.status).toBe("completed");
       } else {
@@ -544,7 +549,8 @@ describe("governed Hub default SDK adapters", () => {
             : 3;
       expect(fetchSpy).toHaveBeenCalledTimes(expectedCalls);
       expect(wire.requests).toHaveLength(expectedCalls);
-      expect(JSON.stringify(wire.requests)).not.toContain("@example.com");
+      if (mode !== "evolution-disabled")
+        expect(JSON.stringify(wire.requests)).not.toContain("@example.com");
       expect(embeddingStage._cache.size).toBe(0);
       await expect(
         embeddingStage._embed("private profile"),

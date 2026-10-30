@@ -1,0 +1,20 @@
+{
+  "schema": "chainlesschain.jetbrains-public-payload-readback/v1",
+  "status": "VERIFIED_JETBRAINS_PUBLIC_PAYLOAD",
+  "releaseSourceCommit": "2eb0c5b1e048509362f9d980f94acee55c2ffa9f",
+  "runId": 41075702892,
+  "version": "0.4.188",
+  "recommendedCliVersion": "0.166.133",
+  "updateId": 1208135,
+  "downloadUrl": "https://plugins.jetbrains.com/files/32208/1208135/chainlesschain-ide-bridge-0.4.188.zip",
+  "approve": true,
+  "listed": true,
+  "hidden": false,
+  "taggedPayloadVerified": true,
+  "verifiedOriginalEntryCount": 2,
+  "publicArchiveSha256": "aee0b5da3ff2fe95d5d36cc9aacffc46bef558fb8b6377ea2848741088a09464",
+  "officialArchiveSha256": "f49da2aa408dee997c4ad8c0d3f4f9b5d6c104bba758e988b6108692eef3670b",
+  "archiveByteIdentical": false,
+  "publicBytes": 1561314,
+  "verifiedAt": "2026-10-30T15:41:57.364Z"
+}

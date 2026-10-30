@@ -4,6 +4,29 @@ export function normalizeProviderBaseUrl(baseUrl) {
   return String(baseUrl || "").replace(/\/+$/u, "");
 }
 
+/** Validate custom targets without assuming a vendor, path, model, or key. */
+export function assertCustomProviderConnection(provider, { baseUrl, model }) {
+  if (provider !== "custom") return;
+  let url;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    throw new Error("Custom provider requires an HTTP(S) API base URL");
+  }
+  if (
+    !["http:", "https:"].includes(url.protocol) ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash
+  )
+    throw new Error(
+      "Custom provider requires an HTTP(S) API base URL without credentials, query or fragment",
+    );
+  if (typeof model !== "string" || !model.trim())
+    throw new Error("Custom provider requires an explicit model name");
+}
+
 /**
  * Google's OpenAI-compatible API lives below `/v1beta/openai`. The provider
  * registry stores the native API root (`/v1beta`), so adapt only that exact
@@ -28,7 +51,11 @@ export function openAICompatibleBaseUrl(provider, baseUrl) {
   return base;
 }
 
-export function geminiGenerateContentUrl(baseUrl, model, { stream = false } = {}) {
+export function geminiGenerateContentUrl(
+  baseUrl,
+  model,
+  { stream = false } = {},
+) {
   const action = stream ? "streamGenerateContent" : "generateContent";
   const endpoint = `${normalizeProviderBaseUrl(baseUrl)}/models/${encodeURIComponent(model)}:${action}`;
   return stream ? `${endpoint}?alt=sse` : endpoint;
@@ -58,7 +85,10 @@ export function geminiRequestBody(
       continue;
     }
     contents.push({
-      role: message.role === "assistant" || message.role === "model" ? "model" : "user",
+      role:
+        message.role === "assistant" || message.role === "model"
+          ? "model"
+          : "user",
       parts,
     });
   }
@@ -66,7 +96,9 @@ export function geminiRequestBody(
   if (Number.isFinite(temperature)) generationConfig.temperature = temperature;
   return {
     contents,
-    ...(systemParts.length ? { systemInstruction: { parts: systemParts } } : {}),
+    ...(systemParts.length
+      ? { systemInstruction: { parts: systemParts } }
+      : {}),
     generationConfig,
   };
 }

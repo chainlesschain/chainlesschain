@@ -121,7 +121,7 @@ export async function handleLlmChat(server, id, ws, message) {
     return;
   }
 
-  if (creds.provider !== "ollama" && !creds.apiKey) {
+  if (!["ollama", "custom"].includes(creds.provider) && !creds.apiKey) {
     const envHint = BUILT_IN_PROVIDERS[creds.provider]?.apiKeyEnv;
     send({
       type: `${topic}.result`,

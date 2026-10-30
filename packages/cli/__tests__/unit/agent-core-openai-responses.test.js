@@ -149,6 +149,89 @@ describe("OpenAI Responses adapter", () => {
     });
   });
 
+  it.each([
+    { summary: [] },
+    {},
+    { summary: null },
+    { summary: [{ type: "text", text: "unsupported summary part" }] },
+  ])("includes the required empty summary when replaying %j", (fields) => {
+    const item = {
+      type: "reasoning",
+      id: "rs_empty",
+      encrypted_content: "opaque-continuity",
+      status: "completed",
+      ...fields,
+    };
+    const original = structuredClone(item);
+    const expected = { ...item, summary: [] };
+    const normalized = normalizeOpenAIResponsesResponse({
+      id: "resp_empty_summary",
+      status: "completed",
+      output: [item, responseOutput[1]],
+    });
+
+    expect(normalized.message._openaiReasoningItems).toEqual([expected]);
+    expect(normalized.message._openaiReasoningSummary).toBeUndefined();
+    expect(toOpenAIResponsesInput([normalized.message])).toEqual([
+      expected,
+      {
+        type: "function_call",
+        call_id: "call_read",
+        name: "read_file",
+        arguments: '{"path":"README.md"}',
+      },
+    ]);
+    // Saved sessions can predate normalization; repair them on replay too.
+    expect(
+      toOpenAIResponsesInput([
+        { role: "assistant", content: "", _openaiReasoningItems: [item] },
+      ]),
+    ).toEqual([expected]);
+    expect(item).toEqual(original);
+  });
+
+  it.each([true, false])(
+    "preserves empty reasoning summaries in streams (completed event: %s)",
+    (withCompletedEvent) => {
+      const item = {
+        type: "reasoning",
+        id: "rs_stream_empty",
+        encrypted_content: "opaque-stream-continuity",
+        status: "completed",
+        summary: [],
+      };
+      const events = [
+        {
+          type: "response.output_item.added",
+          output_index: 0,
+          item: { type: "reasoning", id: item.id, summary: [] },
+        },
+        { type: "response.output_item.done", output_index: 0, item },
+        {
+          type: "response.output_item.done",
+          output_index: 1,
+          item: responseOutput[1],
+        },
+      ];
+      if (withCompletedEvent) {
+        events.push({
+          type: "response.completed",
+          response: {
+            id: "resp_stream_empty",
+            status: "completed",
+            output: [item, responseOutput[1]],
+          },
+        });
+      }
+      const normalized = accumulateOpenAIResponsesStream(
+        events.map((event) => `data: ${JSON.stringify(event)}`),
+      );
+
+      expect(normalized.message._openaiReasoningItems).toEqual([item]);
+      expect(toOpenAIResponsesInput([normalized.message])[0]).toEqual(item);
+    },
+  );
+
   it("fails closed on malformed or impossible reasoning token usage", () => {
     const response = (reasoningTokens) =>
       normalizeOpenAIResponsesResponse({
@@ -491,9 +574,15 @@ describe("OpenAI Responses adapter", () => {
     expect(JSON.parse(fetch.mock.calls[0][1].body)).toHaveProperty("messages");
   });
 
-  it.each(["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"])(
-    "completes a stateless %s Responses reasoning and tool round-trip",
-    async (model) => {
+  it.each(
+    ["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"].flatMap((model) =>
+      [[], [{ type: "summary_text", text: "Need the file." }]].map(
+        (summary) => ({ model, summary }),
+      ),
+    ),
+  )(
+    "completes a stateless $model Responses reasoning and tool round-trip with summary $summary",
+    async ({ model, summary }) => {
       const directory = mkdtempSync(join(os.tmpdir(), "cc-openai-responses-"));
       writeFileSync(join(directory, "fixture.txt"), "trusted fixture", "utf8");
       const requests = [];
@@ -506,7 +595,7 @@ describe("OpenAI Responses adapter", () => {
               type: "reasoning",
               id: "rs_tool",
               encrypted_content: "opaque-continuity",
-              summary: [{ type: "summary_text", text: "Need the file." }],
+              summary,
             },
             {
               type: "function_call",
@@ -572,6 +661,7 @@ describe("OpenAI Responses adapter", () => {
               type: "reasoning",
               id: "rs_tool",
               encrypted_content: "opaque-continuity",
+              summary,
             }),
             expect.objectContaining({
               type: "function_call",

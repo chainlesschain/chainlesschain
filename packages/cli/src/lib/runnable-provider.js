@@ -146,6 +146,8 @@ export function makeRunnableProviderFallback(
   // react to an auth failure AND pre-empt the known-bad attempt on later turns.
   const computeFallback = (options) => {
     const failed = options.provider;
+    // A custom protocol selection is intentional, including on localhost.
+    if (failed === "custom") return null;
     const inferred = inferProviderFromBaseUrl(options.baseUrl);
     if (inferred && inferred !== failed) {
       return {
@@ -269,6 +271,8 @@ export function hasUsableKey(
   provider,
   { apiKey, isActive = true, env = process.env } = {},
 ) {
+  // Custom platforms may be keyless; connection validation checks their target.
+  if (provider === "custom") return true;
   const def = BUILT_IN_PROVIDERS[provider];
   if (!def) return false;
   if (!def.apiKeyEnv) return true; // keyless local provider (e.g. ollama)

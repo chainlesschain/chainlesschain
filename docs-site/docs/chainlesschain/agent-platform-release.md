@@ -2,7 +2,15 @@
 
 <!-- docs-code-git-sync-2026-10-30 -->
 
-## 当前公开 CLI：0.166.132（2026-10-30）
+## 当前公开 CLI：0.166.133（2026-10-30）
+
+安装：`npm i -g chainlesschain@0.166.133 --registry https://registry.npmjs.org`。Open VSX **0.37.171** / JetBrains **0.4.188** 均已公开并完成制品核验，两个 IDE 均推荐 CLI **0.166.133**，Kernel 保持 **0.1.11**。升级后重启聊天宿主，运行 `cc --version` 与 `cc doctor`。
+
+本版修复 OpenAI Responses 工具续接丢失空 `reasoning.summary` 导致的 HTTP 400，统一 `cc ui` 各模型入口的自进化开关读取，并支持不限于 Ollama 的自定义 OpenAI 兼容本机 / 局域网模型平台。准确发行源码 `2eb0c5b1e048509362f9d980f94acee55c2ffa9f` 通过三系统 CLI CI / Strict Sandbox；[OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/41073612529)与[独立公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/41075409835)均通过。
+
+[本版升级指南](./cli-ide-update-2026-10-30-133)说明修复、安装与限制。真实任务历史自动累计 **34/45**；发行与回归不增加任务通过数，OpenAI 36+9 在配套包公开核验后另行执行。Microsoft Marketplace 暂缓，PC/mobile **v5.0.3.143** 独立发行；正式付费 / 原生生产准入保持原有边界。
+
+## 历史公开 CLI：0.166.132（2026-10-30）
 
 安装：`npm i -g chainlesschain@0.166.132 --registry https://registry.npmjs.org`。Open VSX **0.37.170** / JetBrains **0.4.187** 均已公开并推荐 CLI **0.166.132**，Kernel 保持 **0.1.11**。升级后重启聊天宿主，运行 `cc --version` 与 `cc doctor`。准确发行源码为 `772fcdbda85bcf91df95bfced5b476dcf4c74614`；[实际发行回执](https://github.com/chainlesschain/chainlesschain/blob/0d57ebfea919ae941a36a1f11a9ee10964722120/docs/research/cli/evidence/release132-public/publication.json)与[本版升级指南](./cli-ide-update-2026-10-30-132)记录三系统门禁、OIDC 与三包公开字节核验。
 

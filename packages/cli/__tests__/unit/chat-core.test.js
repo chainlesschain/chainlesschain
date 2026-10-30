@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 
-vi.mock("../../src/lib/llm-providers.js", () => ({
+vi.mock("../../src/lib/llm-providers.js", async (importOriginal) => ({
+  ...(await importOriginal()),
   BUILT_IN_PROVIDERS: {
     ollama: {
       name: "ollama",

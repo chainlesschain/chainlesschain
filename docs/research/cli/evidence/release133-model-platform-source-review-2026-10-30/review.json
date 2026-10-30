@@ -1,0 +1,76 @@
+{
+  "schema": "chainlesschain.release133-model-platform-source-review/v1",
+  "status": "source-reviewed-local-checks-passed-cloud-revalidation-required",
+  "parentCommit": "2e948c200bd7a0b94752ef3508abd98527256f96",
+  "failedRunId": 41042716057,
+  "failedJobId": 124019557003,
+  "reviewScope": "Seven changed model-egress source deltas; no independent financial or OS admission claimed.",
+  "entries": [
+    {
+      "path": "packages/cli/src/lib/chat-core.js",
+      "previousDigest": "sha256:c12c9c158c23a704494a12cdf982a97c6cd50cbe415fa92fe21efe2f82787f33",
+      "digest": "sha256:e641c0f960cf84c90d7625ee571401f92c264ff623a9ed7fd9e0e28205d12c30",
+      "category": "MODEL_REQUEST",
+      "rationale": "Model-platform .133 review: validate the explicit custom HTTP(S) endpoint and model before streaming; use the existing OpenAI-compatible transport with optional platform credentials and omit Authorization when absent. Existing providerFetch dispatch sites, cancellation, completion/usage handling and formal-scope mediation remain in place."
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-hub-llm.js",
+      "previousDigest": "sha256:8c91426671efc5a234df860be02ddc21cb9fcdcc89a8fef4dd0b1b89c63ad981",
+      "digest": "sha256:b2b9e24d9d72de875ea79c491c651a5834db0578c9bc02c3392ef32fce1a5e7a",
+      "category": "MODEL_REQUEST",
+      "rationale": "Optional-Evolution .133 review: accept a missing Evolution factory only with the host-owned explicit evolutionDisabled option. The scoped typed SDK client still owns prepare/transport/complete and preserves model identity, locality and independent cloud consent. Existing private providerFetch and unscoped-transport guards are unchanged; disabling Evolution does not grant formal financial authority."
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-hub-resolver.js",
+      "previousDigest": "sha256:8b85c11c272c97a1db80d46c732a72a48dc6f2cbb20bafd123f9d8cda06bfd16",
+      "digest": "sha256:1b51720693e20ecfdf6200831afd73ab7bcddf9a653f63d5b8b9beba63a15c3c",
+      "category": "MODEL_REQUEST",
+      "rationale": "Optional-Evolution .133 review: a host-selected disabled mode may prepare the one original user profile instead of the enabled system-plus-projected-user pair. Preserve exact message-shape checks, finite-vector checks, default loopback embedding restriction, scoped SDK wrappers and requireUnscopedModelTransport. No new embedding endpoint or dispatch site is introduced; formal scope still rejects unsupported embedding transports."
+    },
+    {
+      "path": "packages/cli/src/lib/llm-connection-probe.js",
+      "previousDigest": "sha256:a520b283af44852c27a48ce5a5aa95af309e46d2224f7ca337d020c9a3a0206c",
+      "digest": "sha256:13217687625f6060190ef2558faec035c4a7dc40fffe0f953486c30fed4a0895",
+      "category": "MODEL_REQUEST",
+      "rationale": "Model-platform .133 review: validate explicit custom targets, permit a platform to omit its API key, and omit the empty Authorization header. The same single providerFetch request retains its 1024-token allowance, timeout, redirect refusal, response validation and unconfirmed pricing semantics."
+    },
+    {
+      "path": "packages/cli/src/lib/llm-providers.js",
+      "previousDigest": "sha256:25add06053a9b4cbd050f664db6d8ce9e646d028861222d3ea52bba56c79ca1a",
+      "digest": "sha256:bec74a6a037265295bdf61e55f10127774d4b785485381601f55d8ddc4713703",
+      "category": "MODEL_REQUEST",
+      "rationale": "Model-platform .133 review: add only a pure custom protocol descriptor with no default endpoint/model and the existing CC_API_KEY environment name. Built-in model registries and all existing providerFetch probe sites remain unchanged; a descriptor does not authorize inference or establish locality or financial admission."
+    },
+    {
+      "path": "packages/cli/src/lib/provider-stream.js",
+      "previousDigest": "sha256:c3825a5ecf82bd4c27c485568b878c5f82b0c6cdee2441eb7308a3c25a9216c1",
+      "digest": "sha256:61dab2adfe95db159346d6eb4ce85292da90a8a73354c40a9b5cd828721a9223",
+      "category": "MODEL_REQUEST",
+      "rationale": "Model-platform .133 review: require the configured custom endpoint/model and route its optional credentials through the existing OpenAI-compatible providerFetch stream. Retain EOF/completion, cancellation and formal-scope behavior; do not add a raw network call or implicitly select Ollama for localhost."
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "previousDigest": "sha256:479a153a691f97215532e276aa86113fa46285090301a7aed56675489c7a7f59",
+      "digest": "sha256:64fa7f474666c4d9f473d080b51f0aebf00ea465ab2b7c9a4cdfc505bdbdf9f1",
+      "category": "MODEL_REQUEST",
+      "rationale": "Model-platform .133 review: select the explicit custom protocol descriptor through the existing connection resolver and use the existing Chat Completions providerFetch sites with optional Authorization. Physical request routing, usage settlement, retry policy, budget scope and tool execution guards remain unchanged. Required empty Responses summaries are normalized in the shared adapter, without another physical dispatch."
+    }
+  ],
+  "validation": {
+    "sourceAudit": {
+      "candidateFiles": 82,
+      "unclassifiedFiles": 0,
+      "sourceReviewPassed": true,
+      "parseErrors": 0,
+      "paidReady": false,
+      "runtimeCoverageVerified": false
+    },
+    "regression": {
+      "command": "node --test packages/cli/test-node/budget-egress-inventory.node-test.mjs packages/cli/test-node/formal-budget-provider-scope.node-test.mjs",
+      "tests": 62,
+      "passed": 62,
+      "failed": 0,
+      "skipped": 0
+    }
+  }
+}

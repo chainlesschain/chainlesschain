@@ -14,7 +14,12 @@ export class WSChatHandler {
    * @param {import("./ws-session-manager.js").Session} options.session
    * @param {import("./interaction-adapter.js").WebSocketInteractionAdapter} options.interaction
    */
-  constructor({ session, interaction, evolutionCompositionFactory = null }) {
+  constructor({
+    session,
+    interaction,
+    evolutionCompositionFactory = null,
+    prepareUiModelTurn = null,
+  }) {
     if (
       evolutionCompositionFactory !== null &&
       typeof evolutionCompositionFactory !== "function"
@@ -22,6 +27,9 @@ export class WSChatHandler {
       throw new TypeError("evolutionCompositionFactory must be a function");
     }
     this._evolutionCompositionFactory = evolutionCompositionFactory;
+    if (prepareUiModelTurn !== null && typeof prepareUiModelTurn !== "function")
+      throw new TypeError("prepareUiModelTurn must be a function");
+    this._prepareUiModelTurn = prepareUiModelTurn;
     this.session = session;
     this.interaction = interaction;
     this._processing = false;
@@ -64,17 +72,22 @@ export class WSChatHandler {
       });
       runRecorded = true;
 
-      const turn = await prepareGovernedModelTurn(
-        this._evolutionCompositionFactory,
-        {
-          mode: "ws-chat-session",
-          messages: session.messages,
-        },
-      );
+      const turn = await (
+        this._prepareUiModelTurn ||
+        ((context) =>
+          prepareGovernedModelTurn(this._evolutionCompositionFactory, context))
+      )({
+        mode: "ws-chat-session",
+        messages: session.messages,
+      });
       const options = {
         provider: session.provider,
         model: session.model,
-        baseUrl: session.baseUrl || "http://localhost:11434",
+        baseUrl:
+          session.baseUrl ||
+          (session.provider === "ollama"
+            ? "http://localhost:11434"
+            : undefined),
         apiKey: session.apiKey,
         // Phase J — pipe WS session id so chat-core records token_usage
         // into the JSONL session store; visible via `cc session usage`.

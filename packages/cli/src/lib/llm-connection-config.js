@@ -31,7 +31,10 @@ export function normalizeLlmConnection(input) {
     if (value[key].length > (key === "apiKey" ? 8192 : 2048))
       throw new Error(`${key} is too long`);
   }
-  if (!Object.hasOwn(BUILT_IN_PROVIDERS, value.provider))
+  if (
+    value.provider !== "custom" &&
+    !Object.hasOwn(BUILT_IN_PROVIDERS, value.provider)
+  )
     throw new Error("Choose a supported provider/protocol");
   if (!value.model || /[\r\n\0]/.test(value.model + value.visionModel))
     throw new Error("A valid model name is required");
@@ -84,7 +87,7 @@ export function saveLlmConnection(input, { storage = "auto" } = {}) {
         current.baseUrl || BUILT_IN_PROVIDERS[current.provider]?.baseUrl || "",
       ).replace(/\/+$/, "") === value.baseUrl;
     if (
-      value.provider !== "ollama" &&
+      !["ollama", "custom"].includes(value.provider) &&
       !value.apiKey &&
       (!sameEndpoint || !current.apiKey)
     )
@@ -98,6 +101,11 @@ export function saveLlmConnection(input, { storage = "auto" } = {}) {
       baseUrl: value.baseUrl,
       visionModel: value.visionModel || null,
     };
+    // A keyless custom endpoint must never receive the previous target's key.
+    if (!sameEndpoint && !value.apiKey && value.provider === "custom") {
+      delete config.llm.apiKey;
+      delete config.llm.apiKeyHelper;
+    }
   };
   // A single lock and atomic rename bind endpoint and credential together.
   // An interrupted save cannot route the old credential to the new endpoint.

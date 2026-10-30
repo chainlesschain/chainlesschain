@@ -1,6 +1,14 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 当前公开 CLI：0.166.132（2026-10-30）
+## 当前公开 CLI：0.166.133（2026-10-30）
+
+安装：`npm i -g chainlesschain@0.166.133 --registry https://registry.npmjs.org`。Open VSX **0.37.171** / JetBrains **0.4.188** 均已公开并完成制品核验，两个 IDE 均推荐 CLI **0.166.133**，Kernel 保持 **0.1.11**。升级后重启聊天宿主，再运行 `cc --version` 和 `cc doctor`。
+
+本版修复 OpenAI Responses 工具续接缺失 `input[21].summary`、关闭自进化后 `cc ui` 仍要求证书的问题，并支持不限于 Ollama 的自定义 OpenAI 兼容本机 / 局域网平台。准确发行源码 `2eb0c5b1e048509362f9d980f94acee55c2ffa9f` 的三系统 CLI CI / Strict Sandbox 全部通过；[OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/41073612529)和[独立公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/41075409835)已成功，详见[发行证据](docs/research/cli/evidence/release133-public/README.md)与[升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-10-30-133.md)。
+
+发布和工程回归不增加真实模型任务通过数；OpenAI 36+9 在配套 CLI 与 IDE 公开核验后另测。历史自动累计 **34/45**，Microsoft Marketplace 继续暂缓，PC/mobile 保持独立 **v5.0.3.143**。
+
+## 历史公开 CLI：0.166.132（2026-10-30）
 
 安装：`npm i -g chainlesschain@0.166.132 --registry https://registry.npmjs.org`。Open VSX **0.37.170** / JetBrains **0.4.187** 均已公开并推荐 CLI **0.166.132**，Kernel 保持 **0.1.11**。升级后重启聊天宿主，运行 `cc --version` 与 `cc doctor`。[VSIX 下载](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.170/file/chainlesschain.chainlesschain-ide-0.37.170.vsix) · [JetBrains ZIP](https://plugins.jetbrains.com/files/32208/1206433/chainlesschain-ide-bridge-0.4.187.zip)。Microsoft Marketplace 继续暂缓。
 

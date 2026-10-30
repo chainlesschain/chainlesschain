@@ -10,9 +10,13 @@ import { providerFetch } from "./formal-budget-provider-scope.js";
  *  - streamOllama / streamOpenAI — low-level streaming helpers
  */
 
-import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
+import {
+  BUILT_IN_PROVIDERS,
+  resolveProviderDefinition,
+} from "./llm-providers.js";
 import { normalizeOllamaBaseUrl } from "./ollama-base-url.js";
 import {
+  assertCustomProviderConnection,
   geminiGenerateContentUrl,
   geminiRequestBody,
   geminiUsage,
@@ -262,22 +266,22 @@ export async function streamOpenAI(
     response = await providerFetch(
       `${normalizeProviderBaseUrl(baseUrl)}/chat/completions`,
       {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        stream: true,
-        // Opt-in token usage in the terminal chunk (OpenAI-compatible).
-        // Servers that don't understand it simply ignore it.
-        stream_options: { include_usage: true },
-      }),
-      signal: options.signal
-        ? AbortSignal.any([guard.signal, options.signal])
-        : guard.signal,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          stream: true,
+          // Opt-in token usage in the terminal chunk (OpenAI-compatible).
+          // Servers that don't understand it simply ignore it.
+          stream_options: { include_usage: true },
+        }),
+        signal: options.signal
+          ? AbortSignal.any([guard.signal, options.signal])
+          : guard.signal,
       },
     );
   } catch (e) {
@@ -410,22 +414,22 @@ export async function streamAnthropic(
     response = await providerFetch(
       `${normalizeProviderBaseUrl(baseUrl)}/messages`,
       {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 4096,
-        stream: true,
-        ...(system ? { system } : {}),
-        messages: convo,
-      }),
-      signal: options.signal
-        ? AbortSignal.any([guard.signal, options.signal])
-        : guard.signal,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 4096,
+          stream: true,
+          ...(system ? { system } : {}),
+          messages: convo,
+        }),
+        signal: options.signal
+          ? AbortSignal.any([guard.signal, options.signal])
+          : guard.signal,
       },
     );
   } catch (e) {
@@ -666,6 +670,7 @@ export async function streamGemini(
  * @param {object} options - provider, model, baseUrl, apiKey
  */
 export async function* chatStream(messages, options) {
+  assertCustomProviderConnection(options.provider, options);
   const { provider, model, baseUrl, apiKey, sessionId } = options;
 
   // Token queue + waiter promise. onToken (called synchronously by each
@@ -765,14 +770,14 @@ export async function* chatStream(messages, options) {
         options,
       );
   } else {
-    const providerDef = BUILT_IN_PROVIDERS[provider];
+    const providerDef = resolveProviderDefinition(provider);
     const url = normalizeProviderBaseUrl(
       baseUrl || providerDef?.baseUrl || "https://api.openai.com/v1",
     );
     const key =
       apiKey ||
       (providerDef?.apiKeyEnv ? process.env[providerDef.apiKeyEnv] : null);
-    if (!key) {
+    if (!key && provider !== "custom") {
       throw new Error(
         `API key required for ${provider} (set ${providerDef?.apiKeyEnv || "API key"})`,
       );

@@ -10,11 +10,12 @@ import { createWsMessageDispatcher } from "../../src/gateways/ws/message-dispatc
 
 beforeEach(() => vi.resetAllMocks());
 
-async function dispatch(factory, extra = {}) {
+async function dispatch(factory, extra = {}, host = {}) {
   const server = {
     clients: new Map(),
     _send: vi.fn(),
     ...(factory === undefined ? {} : { evolutionCompositionFactory: factory }),
+    ...host,
   };
   await createWsMessageDispatcher(server).dispatch(
     "client",
@@ -30,6 +31,61 @@ async function dispatch(factory, extra = {}) {
 }
 
 describe("Hub WebSocket governed analysis", () => {
+  it.each([
+    "personal-data-hub.ask",
+    "personal-data-hub.run-skill",
+    "personal-data-hub.resolver-drain",
+  ])(
+    "uses the host's disabled setting for %s even with a stale factory",
+    async (type) => {
+      const factory = vi.fn();
+      const resolveEvolutionCompositionFactory = vi
+        .fn()
+        .mockResolvedValue(null);
+      const ask = vi.fn().mockResolvedValue({ answer: "ordinary" });
+      const runSkill = vi.fn().mockResolvedValue({ report: "ordinary" });
+      const drainResolver = vi.fn().mockResolvedValue({ processed: 1 });
+      ports.getGovernedAnalysisHub.mockResolvedValue({
+        engine: { ask },
+        runSkill,
+      });
+      ports.getHub.mockResolvedValue({ entityResolver: {}, drainResolver });
+      const frames = await dispatch(
+        factory,
+        { type, name: "analysis.overview" },
+        { resolveEvolutionCompositionFactory },
+      );
+      expect(resolveEvolutionCompositionFactory).toHaveBeenCalledOnce();
+      expect(factory).not.toHaveBeenCalled();
+      expect(frames[0].type).not.toBe("error");
+      if (type === "personal-data-hub.resolver-drain")
+        expect(drainResolver).toHaveBeenCalledWith({ limit: 50 }, null, {
+          evolutionDisabled: true,
+        });
+      else
+        expect(ports.getGovernedAnalysisHub).toHaveBeenCalledWith(null, {
+          evolutionDisabled: true,
+        });
+    },
+  );
+
+  it("does not fall back when the current host configuration fails", async () => {
+    const frames = await dispatch(
+      vi.fn(),
+      {},
+      {
+        resolveEvolutionCompositionFactory: vi
+          .fn()
+          .mockRejectedValue(new Error("invalid certificate")),
+      },
+    );
+    expect(frames[0]).toMatchObject({
+      type: "error",
+      message: "invalid certificate",
+    });
+    expect(ports.getHub).not.toHaveBeenCalled();
+    expect(ports.getGovernedAnalysisHub).not.toHaveBeenCalled();
+  });
   it("passes host authority to scoped resolver draining", async () => {
     const factory = vi.fn();
     const drain = vi.fn();
