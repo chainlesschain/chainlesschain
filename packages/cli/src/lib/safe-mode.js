@@ -83,3 +83,13 @@ export function bareModeRequested(opts = {}, env = process.env) {
   const raw = env.CC_BARE;
   return raw != null && /^(1|true|yes|on)$/i.test(String(raw).trim());
 }
+
+/** Apply independent saved restrictions without enabling the rest of bare mode. */
+export function applyCustomizationOptions(options, env = process.env) {
+  if (options.plugins === false) env.CC_PLUGINS = "0";
+  if (options.mcpAutoConnect === false) {
+    options.mcp = false;
+    for (const field of ["ide", "pdh", "jetbrains"])
+      if (options[field] === undefined) options[field] = false;
+  }
+}

@@ -108,6 +108,42 @@ export function createSessionHistoryOrigins() {
     },
     branchPrefix(messages, head, count) {
       if (!context) return null;
+      // A branch may retain the complete verified context. A rewind must remove
+      // something, so its strict-prefix admission cannot decide this case.
+      if (messages.length === context.length) {
+        if (
+          !/^[a-f0-9]{64}$/u.test(head) ||
+          !Number.isSafeInteger(count) ||
+          count < 0 ||
+          context.some(
+            (entry) =>
+              historyBearing(entry) &&
+              (!entry.origin ||
+                !Number.isSafeInteger(entry.origin.first) ||
+                !Number.isSafeInteger(entry.origin.last) ||
+                entry.origin.first < 0 ||
+                entry.origin.last < entry.origin.first ||
+                entry.origin.last >= count),
+          )
+        )
+          return null;
+        try {
+          if (
+            fingerprint(context.map((entry) => entry.message)) !==
+            fingerprint(messages)
+          )
+            return null;
+        } catch {
+          return null;
+        }
+        return {
+          cutoff: count,
+          entries: context.map((entry) => ({
+            message: entry.message,
+            origin: entry.origin ? { ...entry.origin } : null,
+          })),
+        };
+      }
       const cutoff = api.rewind(
         {
           prevHash: head,
