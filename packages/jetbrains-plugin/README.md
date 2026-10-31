@@ -140,7 +140,7 @@ See the [verified publication evidence](https://github.com/chainlesschain/chainl
 
 ## Release compatibility
 
-Plugin **0.4.188** is the current public release, approved, listed and publicly downloadable. It recommends `chainlesschain@0.166.133` and pairs with public Open VSX **0.37.171**; Kernel remains **0.1.11**. All six real-host release checks passed, and the two original ZIP entries match the official build byte for byte. [Download ZIP](https://plugins.jetbrains.com/files/32208/1208135/chainlesschain-ide-bridge-0.4.188.zip). The CLI fixes empty Responses reasoning-summary replay, honors disabled self-evolution across `cc ui`, supports custom OpenAI-compatible local/LAN platforms, and exposes canonical allowed mutation paths while retaining execution-time scope checks. [Release evidence](../../docs/research/cli/evidence/release133-public/README.md). No independent IDE UI change is included. Microsoft Marketplace remains deferred.
+Plugin **0.4.189** is the current release candidate. It recommends `chainlesschain@0.166.134` and pairs with Open VSX **0.37.172**; Kernel remains **0.1.11**. Publish this pairing only after CLI publication and public readback. The CLI carries Responses disconnect recovery and launch-policy preservation. No independent JetBrains UI change is included. Microsoft Marketplace remains deferred.
 
 ## Previous candidates and development notes
 

@@ -225,7 +225,7 @@ Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX 
 
 ## Release compatibility
 
-Public Open VSX **0.37.170** recommends public CLI **`0.166.132`** and pairs with approved JetBrains **0.4.187**; Kernel remains **0.1.11**. No independent IDE UI change is included. Microsoft Marketplace remains deferred.
+Candidate Open VSX **0.37.172** recommends CLI **`0.166.134`** and pairs with JetBrains **0.4.189** after verified CLI publication; Kernel remains **0.1.11**. The CLI carries Responses disconnect recovery and launch-policy preservation. Microsoft Marketplace remains deferred.
 
 ### What's new in 0.37.159
 
