@@ -1,8 +1,8 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## CLI 0.166.134 发布准备（2026-10-31）
+## CLI 0.166.135 发布准备（2026-10-31）
 
-候选 CLI **0.166.134** 修复 Responses JSON 断连直接 `terminated`、完成事件后继续等待 EOF、取消读取拖住超时的问题，并保留恢复时的空工具白名单，拒绝非法持久化策略。配套 Open VSX **0.37.172** / JetBrains **0.4.189** 将在 CLI 发布回读通过后发布；Kernel 保持 **0.1.11**。候选说明见[升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-10-31-134.md)。
+候选 CLI **0.166.135** 修复 Responses JSON 断连直接 `terminated`、完成事件后继续等待 EOF、取消读取拖住超时的问题，并保留恢复时的空工具白名单，拒绝非法持久化策略。配套 Open VSX **0.37.172** / JetBrains **0.4.189** 将在 CLI 发布回读通过后发布；Kernel 保持 **0.1.11**。候选说明见[升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-10-31-135.md)。
 
 上一轮 OpenAI 实测已完整结束：普通 **31/36**、独立首次运行 **8/9**，共 **39/45**。本次修复和回归不会改记历史失败；[原始报告](docs/research/cli/verify01-openai-133/run-41117741513/REPORT.md)与[后续根因分析](docs/research/cli/openai-turn-recovery-134.md)分别保留。
 

@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed - cc CLI 0.166.134: Responses disconnect recovery and launch policy preservation (candidate, 2026-10-31)
+### Fixed - cc CLI 0.166.135: Responses disconnect recovery and launch policy preservation (candidate, 2026-10-31)
 
 - Recover genuine pre-output OpenAI Responses JSON disconnects with the existing bounded retry policy, distinct physical request IDs and synchronous usage settlement. Bound stalled headers and JSON reads, preserve HTTP/provider verdicts and caller cancellation, and keep workflow effects and incomplete tool streams non-replayable.
 - Settle completed Responses events without waiting for socket EOF. A hung reader cancellation no longer blocks timeout settlement; already queued transport aborts and user cancellation remain authoritative.
@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Preserve an explicit empty tool allowlist through saved launch argv and the CLI parser. Reject malformed persisted permission modes, sandbox modes and budgets instead of silently restoring weaker defaults.
 - Strengthen generic regression guidance for delegated lifecycle ownership, race controls, persisted history projections and a final response within the iteration budget. Add same-handle metadata-race and approval-cancellation controls without changing historical model candidates.
 - Give independent IDE cleanup a separate bounded deadline after the model task ends. The previous `verify-26` trace actually contains `error_max_turns` at 20/20; cleanup had obscured that result with an expired-deadline error. Historical OpenAI acceptance remains 39/45 and is not reclassified by these fixes.
-- Prepare companion Open VSX 0.37.172 and JetBrains 0.4.189 for CLI 0.166.134. Required child npm packages retain their published versions; publication must follow the exact-source multi-platform gates and upstream readback.
+- Prepare companion Open VSX 0.37.172 and JetBrains 0.4.189 for CLI 0.166.135. Required child npm packages retain their published versions; publication must follow the exact-source multi-platform gates and upstream readback.
 
 ### Fixed - cc CLI 0.166.133: scoped mutation schemas and model platform compatibility (candidate, 2026-10-30)
 

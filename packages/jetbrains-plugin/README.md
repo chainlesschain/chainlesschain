@@ -1,6 +1,6 @@
 # ChainlessChain IDE Bridge (JetBrains)
 
-Next paired release: JetBrains **0.4.189** recommends CLI **0.166.134**, with Open VSX **0.37.172**. Publication follows verified CLI availability. Upgrade the CLI and restart existing chat hosts to load its Responses recovery and launch-policy fixes.
+Next paired release: JetBrains **0.4.189** recommends CLI **0.166.135**, with Open VSX **0.37.172**. Publication follows verified CLI availability. Upgrade the CLI and restart existing chat hosts to load its Responses recovery and launch-policy fixes.
 
 ## Self-evolution switch
 
@@ -140,7 +140,7 @@ See the [verified publication evidence](https://github.com/chainlesschain/chainl
 
 ## Release compatibility
 
-Plugin **0.4.189** is the current release candidate. It recommends `chainlesschain@0.166.134` and pairs with Open VSX **0.37.172**; Kernel remains **0.1.11**. Publish this pairing only after CLI publication and public readback. The CLI carries Responses disconnect recovery and launch-policy preservation. No independent JetBrains UI change is included. Microsoft Marketplace remains deferred.
+Plugin **0.4.189** is the current release candidate. It recommends `chainlesschain@0.166.135` and pairs with Open VSX **0.37.172**; Kernel remains **0.1.11**. Publish this pairing only after CLI publication and public readback. The CLI carries Responses disconnect recovery and launch-policy preservation. No independent JetBrains UI change is included. Microsoft Marketplace remains deferred.
 
 ## Previous candidates and development notes
 

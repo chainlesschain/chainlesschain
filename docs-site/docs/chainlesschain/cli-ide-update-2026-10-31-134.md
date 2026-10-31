@@ -1,5 +1,7 @@
 # CLI 0.166.134 / IDE 升级说明
 
+此候选版本未发布到 npm。后续发行改用 [CLI 0.166.135](./cli-ide-update-2026-10-31-135)，本页保留候选时的修复范围。
+
 CLI **0.166.134**、Open VSX **0.37.172**、JetBrains **0.4.189** 为本轮配对版本，Kernel 保持 **0.1.11**。当前为发布准备：先完成精确源码的三系统 CLI CI 与 Strict Sandbox，再经 Actions OIDC 发布 CLI、公开回读，最后发布 IDE 插件。
 
 本版修复非流式 OpenAI Responses 读取 JSON 时断连直接显示 `terminated` 的路径；无已接受输出时使用既有有限重试，每个物理请求单独记录，HTTP/provider 拒绝、取消、用量持久化失败与工作流禁止重放策略仍有效。请求头与 JSON 正文读取都有期限，用户取消优先。
