@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.172] - CLI .134 Responses recovery pairing (candidate, 2026-10-31)
+
+- Recommend CLI 0.166.134 and pair with JetBrains 0.4.189 after upstream publication is verified. Kernel remains 0.1.11.
+- Carry CLI disconnect recovery, bounded request/reader settlement and preserved launch policy. The native host diagnostic now gives cleanup its own bounded deadline without adding model calls or changing task acceptance.
+- Historical OpenAI task acceptance remains 39/45. Publication and controlled regressions do not add accepted model tasks.
+
 ## [0.37.171] - CLI .133 model compatibility and scoped mutation pairing (published, 2026-10-30)
 
 - Recommend public CLI 0.166.133; pair with public JetBrains 0.4.188. Kernel remains 0.1.11.

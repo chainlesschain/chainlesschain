@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { createHash } from "node:crypto";
 import vm from "node:vm";
+import fs from "node:fs";
 const require = createRequire(import.meta.url);
 const {
   fillAndSubmit,
@@ -10,6 +11,47 @@ const {
 const {
   validateHostDomRequest,
 } = require("../../vscode-extension/src/chat/host-dom-relay.js");
+
+test("native cleanup can observe a real exit after the model task deadline", async () => {
+  const driver = fs.readFileSync(
+    new URL(
+      "../../vscode-extension/test/extension-host/driver/verify01.cjs",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const start = driver.indexOf("  async function wait(");
+  const end = driver.indexOf("  const snapshot =", start);
+  assert.ok(start >= 0 && end > start);
+  let now = 200;
+  const wait = vm.runInNewContext(`${driver.slice(start, end)}\nwait`, {
+    deadline: 100,
+    Date: { now: () => now },
+    delay: async (ms) => {
+      now += ms;
+    },
+  });
+  let reads = 0;
+  await assert.rejects(
+    wait(
+      "task",
+      async () => {
+        reads++;
+      },
+      Boolean,
+    ),
+    /deadline/,
+  );
+  assert.equal(reads, 0);
+  const result = await wait(
+    "cleanup",
+    async () => ({ exited: ++reads === 2 }),
+    (value) => value.exited,
+    now + 15000,
+  );
+  assert.equal(result.exited, true);
+  assert.equal(reads, 2);
+});
 function composer() {
   const seen = { clicked: 0, focused: 0, events: [] };
   const input = {

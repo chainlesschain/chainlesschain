@@ -1,5 +1,7 @@
 # ChainlessChain IDE Bridge for VS Code
 
+Next paired release: Open VSX **0.37.172** recommends CLI **0.166.134**, with JetBrains **0.4.189**. Publication follows verified CLI availability. Upgrade the CLI and restart existing chat hosts to load its Responses recovery and launch-policy fixes.
+
 ChainlessChain agent workspace for VS Code-compatible editors with streaming
 chat, inline assistance, governed review, sessions, automation, and a localhost
 MCP bridge.

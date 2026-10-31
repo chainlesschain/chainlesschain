@@ -1,5 +1,11 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## CLI 0.166.134 release preparation (2026-10-31)
+
+Candidate CLI **0.166.134** recovers genuine Responses JSON disconnects, settles completed events without waiting for EOF, bounds request/cancellation waits, and preserves saved tool/permission policy. Open VSX **0.37.172** / JetBrains **0.4.189** follow verified CLI publication; Kernel remains **0.1.11**. See the [upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-10-31-134.md).
+
+The preceding OpenAI cohort is complete at **39/45**: **31/36** ordinary tasks and **8/9** independent first runs. These fixes and engineering regressions do not change historical failures. See the [original report](docs/research/cli/verify01-openai-133/run-41117741513/REPORT.md) and [follow-up analysis](docs/research/cli/openai-turn-recovery-134.md).
+
 ## Current public CLI: 0.166.133 (2026-10-30)
 
 Install: `npm i -g chainlesschain@0.166.133 --registry https://registry.npmjs.org`. Open VSX **0.37.171** / JetBrains **0.4.188** are public and their original payloads match the official artifacts. Both IDEs recommend CLI **0.166.133**. Kernel remains **0.1.11**. Restart the chat host, then run `cc --version` and `cc doctor`.

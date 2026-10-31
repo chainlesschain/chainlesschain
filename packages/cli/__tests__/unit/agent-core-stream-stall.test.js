@@ -213,6 +213,28 @@ describe("chatWithTools streaming → onStall wiring", () => {
 });
 
 describe("_iterateStreamWithStall (hard inactivity timeout)", () => {
+  it("settles the timeout even when cancelling the dead reader never settles", async () => {
+    const reader = {
+      read: () => new Promise(() => {}),
+      cancel: vi.fn(() => new Promise(() => {})),
+    };
+    let timer;
+    try {
+      const outcome = await Promise.race([
+        drain(_iterateStreamWithStall(reader, { stallTimeoutMs: 10 })).then(
+          () => "resolved",
+          (error) => error,
+        ),
+        new Promise((resolve) => {
+          timer = setTimeout(() => resolve("cancel hung"), 500);
+        }),
+      ]);
+      expect(outcome).toMatchObject({ code: "ETIMEDOUT" });
+      expect(reader.cancel).toHaveBeenCalledTimes(1);
+    } finally {
+      clearTimeout(timer);
+    }
+  });
   // A reader that never resolves read() — a dead-but-open connection.
   const makeSilentReader = () => {
     let cancelled = false;

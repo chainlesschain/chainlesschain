@@ -1,5 +1,7 @@
 # ChainlessChain IDE Bridge (JetBrains)
 
+Next paired release: JetBrains **0.4.189** recommends CLI **0.166.134**, with Open VSX **0.37.172**. Publication follows verified CLI availability. Upgrade the CLI and restart existing chat hosts to load its Responses recovery and launch-policy fixes.
+
 ## Self-evolution switch
 
 完整中文配置与排查步骤见[CLI 与 IDE 自进化开关配置](../../docs/cli/SELF_EVOLUTION_CONFIGURATION.md)。

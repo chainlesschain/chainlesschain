@@ -2,7 +2,15 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.133
+## CLI 0.166.134
+
+This release recovers genuine OpenAI Responses JSON disconnects before accepted output, bounds stalled requests, and settles completed streaming responses without waiting for socket EOF. It preserves empty tool allowlists across resume and rejects malformed saved permission, sandbox and budget settings. HTTP/provider failures, cancellation, usage persistence and incomplete tool-call replay protections remain authoritative.
+
+Install with `npm i -g chainlesschain@0.166.134 --registry https://registry.npmjs.org`, restart the chat host, then run `cc --version` and `cc doctor`. Paired IDE versions are Open VSX **0.37.172** and JetBrains **0.4.189**, recommending CLI **0.166.134**; Kernel stays **0.1.11**. Check the [release guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html) for channel publication status. Microsoft Marketplace and PC/mobile releases are outside this release scope.
+
+The preceding OpenAI native cohort accepted **39/45** tasks. Runtime regression tests and this release do not change that historical result or establish formal paid/native production admission.
+
+## CLI 0.166.133 — verified preceding release
 
 CLI **0.166.133** is published on npm. It preserves required empty OpenAI Responses reasoning summaries, applies the self-evolution switch to all model-owning `cc ui` entry points, and supports explicitly configured OpenAI-compatible local/LAN platforms through `custom`, with optional credentials and unchanged endpoint/model aliases. It also exposes canonical allowed mutation paths in provider tool schemas while retaining execution-time scope and file-identity checks. Controlled regressions and release gates do not establish live-platform task acceptance.
 

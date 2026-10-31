@@ -666,6 +666,41 @@ export function normalizeBackgroundLaunchProfile(input) {
       `Unsupported background launch profile version: ${input?.version ?? "missing"}`,
     );
   }
+  const rejectField = (field) => {
+    const error = new Error(
+      `Invalid background launch profile field: ${field}`,
+    );
+    error.code = "BACKGROUND_LAUNCH_PROFILE_INVALID";
+    throw error;
+  };
+  // A persisted policy must not silently fall back to a weaker default.
+  if (
+    input.permission?.mode != null &&
+    !PERMISSION_MODES.has(input.permission.mode)
+  )
+    rejectField("permission.mode");
+  if (input.sandbox?.mode != null && !SANDBOX_MODES.has(input.sandbox.mode))
+    rejectField("sandbox.mode");
+  for (const field of [
+    "maxTurns",
+    "maxCostUsd",
+    "thinkingTokens",
+    "maxRewakes",
+    "maxOuterTurns",
+    "goalMaxTokens",
+    "goalMaxCostUsd",
+    "goalMaxTimeMs",
+  ]) {
+    const value = input.budget?.[field];
+    if (value == null || value === "") continue;
+    const number = Number(value);
+    if (
+      !Number.isFinite(number) ||
+      number <= 0 ||
+      (!field.toLowerCase().includes("cost") && !Number.isSafeInteger(number))
+    )
+      rejectField(`budget.${field}`);
+  }
   const cwd = canonicalPath(input.workspace?.cwd || process.cwd());
   const safeBase = sanitizeBackgroundBaseUrl(input.llm?.baseUrl);
   const permissionMode = PERMISSION_MODES.has(input.permission?.mode)
@@ -966,7 +1001,8 @@ export function buildArgvFromBackgroundLaunchProfile(profile) {
     pushValue(argv, "--fallback-model", model);
   }
   if (p.tools.allowed !== null) {
-    pushValue(argv, "--allowed-tools", p.tools.allowed.join(","));
+    // Empty means no tools; omitting this option would allow every tool.
+    argv.push("--allowed-tools", p.tools.allowed.join(","));
   }
   pushValue(argv, "--disallowed-tools", p.tools.disallowed.join(","));
   pushValue(argv, "--permission-mode", p.permission.mode);

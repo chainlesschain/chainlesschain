@@ -127,9 +127,9 @@ async function run(context) {
       token,
       request,
     );
-  async function wait(label, read, predicate) {
+  async function wait(label, read, predicate, until = deadline) {
     let last;
-    while (Date.now() < deadline) {
+    while (Date.now() < until) {
       try {
         last = await read();
       } catch (error) {
@@ -358,6 +358,9 @@ async function run(context) {
         assert.deepEqual(value.errors, []);
         return value.files.length === 1 && value.files[0].exited;
       },
+      // Cleanup must still run when the model used its entire task deadline.
+      // This grants no extra model calls or candidate-editing time.
+      Date.now() + 15_000,
     );
     const records = readProtocol(protocolFile);
     const inputs = records.filter(
