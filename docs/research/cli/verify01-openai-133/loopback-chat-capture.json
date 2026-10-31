@@ -1,0 +1,12 @@
+{
+  "accountKeyUsed": false,
+  "basePath": "/v1",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "authorizationPresent": true,
+      "authorizationMatches": true
+    }
+  ]
+}

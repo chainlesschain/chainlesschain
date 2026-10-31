@@ -2,7 +2,19 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.133
+## CLI 0.166.135 — verified public release
+
+This release recovers genuine OpenAI Responses JSON disconnects before accepted output, bounds stalled requests, and settles completed streaming responses without waiting for socket EOF. It preserves empty tool allowlists across resume and rejects malformed saved permission, sandbox and budget settings. HTTP/provider failures, cancellation, usage persistence and incomplete tool-call replay protections remain authoritative.
+
+Install with `npm i -g chainlesschain@0.166.135 --registry https://registry.npmjs.org`, restart the chat host, then run `cc --version` and `cc doctor`. Public Open VSX **0.37.173** recommends CLI **0.166.135**. JetBrains **0.4.189** recommends the same CLI and has been uploaded after passing all release gates, but awaits Marketplace approval/listing. Current public JetBrains **0.4.188** retains its CLI **0.166.133** recommendation; Kernel stays **0.1.11**. Check the [release guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html) for channel publication status. Microsoft Marketplace and PC/mobile releases are outside this release scope.
+
+Exact CLI source `82aa6d703a8695721a7ccf0793a435853bc2bbf2` passed all 76 CLI CI jobs and all 6 Strict Sandbox jobs. [OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/41168880872) and [independent public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/41169921448) verified registry bytes, provenance and direct child dependencies. [Component-specific publication evidence](../../docs/research/cli/evidence/release135-public/publication.json).
+
+The preceding OpenAI native cohort accepted **39/45** tasks. Runtime regression tests and this release do not change that historical result or establish formal paid/native production admission.
+
+A subsequent user-authorized retest used this public CLI, Open VSX 0.37.173 and the verified JetBrains 0.4.189 Actions build without waiting for Marketplace review. Only the six previously failed samples were rerun: **1/6** passed (`verify-26`), with **5** still failing independent acceptance. The cross-version cumulative result is **40/45**, not a new full 45-task success rate. All 100 upstream calls have complete usage; token-only estimate **$5.880530**, invoice unknown. The temporary task secret was deleted. [Targeted report](../../docs/research/cli/verify01-openai-135/retest-six-99b93fc209/REPORT.md).
+
+## CLI 0.166.133 — verified preceding release
 
 CLI **0.166.133** is published on npm. It preserves required empty OpenAI Responses reasoning summaries, applies the self-evolution switch to all model-owning `cc ui` entry points, and supports explicitly configured OpenAI-compatible local/LAN platforms through `custom`, with optional credentials and unchanged endpoint/model aliases. It also exposes canonical allowed mutation paths in provider tool schemas while retaining execution-time scope and file-identity checks. Controlled regressions and release gates do not establish live-platform task acceptance.
 

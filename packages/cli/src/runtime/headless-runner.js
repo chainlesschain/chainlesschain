@@ -467,15 +467,15 @@ export function resolveEnabledTools({ allowedTools, readOnly } = {}) {
   return names;
 }
 
-/** Normalize a comma/space separated CLI list into a string[] (or null). */
+/** An absent CLI list is unrestricted; an explicit empty list permits none. */
 export function parseToolList(value) {
-  if (!value) return null;
+  if (value === null || value === undefined) return null;
   if (Array.isArray(value)) return value.flatMap((v) => parseToolList(v) || []);
   const out = String(value)
     .split(/[,\s]+/)
     .map((s) => s.trim())
     .filter(Boolean);
-  return out.length > 0 ? out : null;
+  return out;
 }
 
 /**

@@ -1,0 +1,117 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-13",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 13,
+      "passed": 13,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 105,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 477,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":13,\"numPassedTests\":13,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793426962639,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary recognizes bounded png headers\",\"status\":\"passed\",\"title\":\"recognizes bounded png headers\",\"duration\":1.890203999999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary recognizes bounded jpeg headers\",\"status\":\"passed\",\"title\":\"recognizes bounded jpeg headers\",\"duration\":0.34900000000000375,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary recognizes bounded gif headers\",\"status\":\"passed\",\"title\":\"recognizes bounded gif headers\",\"duration\":0.306516000000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary recognizes bounded webp headers\",\"status\":\"passed\",\"title\":\"recognizes bounded webp headers\",\"duration\":0.28588600000000497,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects a forged extension and malformed header before returning content\",\"status\":\"passed\",\"title\":\"rejects a forged extension and malformed header before returning content\",\"duration\":0.941361999999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects zero and oversized pixel declarations\",\"status\":\"passed\",\"title\":\"rejects zero and oversized pixel declarations\",\"duration\":0.47445599999998933,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary bounds file size before any read or full-buffer allocation\",\"status\":\"passed\",\"title\":\"bounds file size before any read or full-buffer allocation\",\"duration\":0.9077619999999911,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary bounds the combined attachment bytes and identifies the failing entry\",\"status\":\"passed\",\"title\":\"bounds the combined attachment bytes and identifies the failing entry\",\"duration\":10.271664000000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects excess image count before opening files\",\"status\":\"passed\",\"title\":\"rejects excess image count before opening files\",\"duration\":0.5292779999999908,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects non-regular handles and closes them\",\"status\":\"passed\",\"title\":\"rejects non-regular handles and closes them\",\"duration\":0.5750660000000067,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary uses bounded descriptor reads when the file grows after its size check\",\"status\":\"passed\",\"title\":\"uses bounded descriptor reads when the file grows after its size check\",\"duration\":0.590910000000008,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary supports short reads and rejects a truncated file\",\"status\":\"passed\",\"title\":\"supports short reads and rejects a truncated file\",\"duration\":0.4892279999999971,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary caps JPEG header scanning at 1 MiB\",\"status\":\"passed\",\"title\":\"caps JPEG header scanning at 1 MiB\",\"duration\":1.539512000000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793426962785,\"endTime\":1793426962804.5396,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/image-file-boundary.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 482,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793426963124,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"attachment same-handle read boundary (independent regression)\"],\"fullName\":\"attachment same-handle read boundary (independent regression) reads a small PNG through short reads, pins the opened inode and closes it\",\"status\":\"passed\",\"title\":\"reads a small PNG through short reads, pins the opened inode and closes it\",\"duration\":4.462281000000004,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary (independent regression)\"],\"fullName\":\"attachment same-handle read boundary (independent regression) rejects a valid but wrong-format inode substituted immediately before open\",\"status\":\"passed\",\"title\":\"rejects a valid but wrong-format inode substituted immediately before open\",\"duration\":1.676269000000005,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary (independent regression)\"],\"fullName\":\"attachment same-handle read boundary (independent regression) rejects both a substituted oversized inode and an exhausted remaining budget before reading\",\"status\":\"passed\",\"title\":\"rejects both a substituted oversized inode and an exhausted remaining budget before reading\",\"duration\":1.3674079999999975,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary (independent regression)\"],\"fullName\":\"attachment same-handle read boundary (independent regression) caps reads at the admitted size plus one when the opened file grows\",\"status\":\"passed\",\"title\":\"caps reads at the admitted size plus one when the opened file grows\",\"duration\":0.9918890000000005,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary (independent regression)\"],\"fullName\":\"attachment same-handle read boundary (independent regression) rejects equal-length content changes even when descriptor timestamps are unchanged\",\"status\":\"passed\",\"title\":\"rejects equal-length content changes even when descriptor timestamps are unchanged\",\"duration\":1.7791009999999972,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary (independent regression)\"],\"fullName\":\"attachment same-handle read boundary (independent regression) rejects an opened directory as non-regular without attempting a read\",\"status\":\"passed\",\"title\":\"rejects an opened directory as non-regular without attempting a read\",\"duration\":0.5967190000000073,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793426963267,\"endTime\":1793426963278.5967,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-13.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/image-file-boundary.js"
+      ],
+      "setup": false,
+      "ms": 131,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 484,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793426963738,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"attachment same-handle read boundary (independent regression)\"],\"fullName\":\"attachment same-handle read boundary (independent regression) reads a small PNG through short reads, pins the opened inode and closes it\",\"status\":\"passed\",\"title\":\"reads a small PNG through short reads, pins the opened inode and closes it\",\"duration\":4.29962900000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary (independent regression)\"],\"fullName\":\"attachment same-handle read boundary (independent regression) rejects a valid but wrong-format inode substituted immediately before open\",\"status\":\"passed\",\"title\":\"rejects a valid but wrong-format inode substituted immediately before open\",\"duration\":1.6114109999999897,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary (independent regression)\"],\"fullName\":\"attachment same-handle read boundary (independent regression) rejects both a substituted oversized inode and an exhausted remaining budget before reading\",\"status\":\"passed\",\"title\":\"rejects both a substituted oversized inode and an exhausted remaining budget before reading\",\"duration\":1.2415609999999901,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary (independent regression)\"],\"fullName\":\"attachment same-handle read boundary (independent regression) caps reads at the admitted size plus one when the opened file grows\",\"status\":\"passed\",\"title\":\"caps reads at the admitted size plus one when the opened file grows\",\"duration\":0.9549530000000033,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary (independent regression)\"],\"fullName\":\"attachment same-handle read boundary (independent regression) rejects equal-length content changes even when descriptor timestamps are unchanged\",\"status\":\"passed\",\"title\":\"rejects equal-length content changes even when descriptor timestamps are unchanged\",\"duration\":1.6944760000000088,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary (independent regression)\"],\"fullName\":\"attachment same-handle read boundary (independent regression) rejects an opened directory as non-regular without attempting a read\",\"status\":\"passed\",\"title\":\"rejects an opened directory as non-regular without attempting a read\",\"duration\":0.605322000000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793426963885,\"endTime\":1793426963895.6052,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-13.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate tests did not reject the behavioral mutant"
+}

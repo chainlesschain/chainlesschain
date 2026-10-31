@@ -1,0 +1,56 @@
+{
+  "schema": "chainlesschain.native-package-set/v1",
+  "resolvedAt": "2026-10-31T05:53:56.914Z",
+  "versions": {
+    "cli": "0.166.135",
+    "vscode": "0.37.173",
+    "jetbrains": "0.4.189",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "releaseSourceCommit": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
+  "releaseSourceCommits": {
+    "cli": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
+    "openVsx": "98db89940de30106f57ee73c063acf249d23bec0",
+    "jetbrains": "82aa6d703a8695721a7ccf0793a435853bc2bbf2"
+  },
+  "origin": {
+    "cli": {
+      "url": "https://registry.npmjs.org/chainlesschain/0.166.135",
+      "integrity": "a6035e8b455f4f0dd4a8e5fc6e4876df4e66dc265e0780d54829b39aa75fabe36b8b609f29fb631cb9e881c200c707fcce48f74e9cca99c113b475e91be810d0",
+      "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.135.tgz"
+    },
+    "vscode": {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.173",
+      "download": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.173/file/chainlesschain.chainlesschain-ide-0.37.173.vsix"
+    },
+    "jetbrains": {
+      "distribution": "github-actions-artifact",
+      "repository": "chainlesschain/chainlesschain",
+      "sourceCommit": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
+      "runId": 41170221376,
+      "artifactId": 13031069152,
+      "artifactName": "chainlesschain-ide-jetbrains-1",
+      "artifactDigest": "sha256:0c1f36b4082d79d67dccbcaa1870256947f9323578b6953ea7d936f75add9cfe",
+      "tag": "ide-jetbrains-v0.4.189",
+      "file": "chainlesschain-ide-bridge-0.4.189.zip",
+      "workflow": ".github/workflows/ide-extensions.yml",
+      "marketplaceStatus": "uploaded-awaiting-approval"
+    }
+  },
+  "publicArtifacts": {
+    "cli": {
+      "digest": "sha256:e52985eaf12a9097bd66b19fe9848bf2ddbb1db76b3f40174190600e3b6249cd",
+      "bytes": 9521173
+    },
+    "vscode": {
+      "digest": "sha256:51901f565d78d20346538769ba42c1cfb646c5abc66f6189811df64111efb227",
+      "bytes": 745029
+    },
+    "jetbrains": {
+      "digest": "sha256:63289b08abb58fb59970f23051ce8110da0e60e3773a3fbe7e2568596690dd82",
+      "bytes": 1555528
+    }
+  },
+  "authorization": "User explicitly permits testing available packages without waiting for JetBrains Marketplace approval; independent rerun of all 36+9 with historical results preserved."
+}

@@ -162,6 +162,9 @@ export function inspectModelTrace(
   terminalOptions,
 ) {
   const terminal = verifyAgentTerminal(stdout, terminalOptions);
+  const expectedProvider =
+    terminalOptions?.expectedProvider ?? DIAGNOSTIC.provider;
+  const expectedModel = terminalOptions?.expectedModel ?? DIAGNOSTIC.model;
   let events;
   try {
     events = stdout
@@ -287,14 +290,13 @@ export function inspectModelTrace(
     ),
   );
   const identity =
-    init?.provider === DIAGNOSTIC.provider &&
-    init?.model === DIAGNOSTIC.model &&
+    init?.provider === expectedProvider &&
+    init?.model === expectedModel &&
     init?.permission_mode === "acceptEdits" &&
     usageEvents.length > 0 &&
     usageEvents.every(
       (event) =>
-        event.provider === DIAGNOSTIC.provider &&
-        event.model === DIAGNOSTIC.model,
+        event.provider === expectedProvider && event.model === expectedModel,
     );
   const observedUsage = usageEvents.reduce((sum, event) => {
     for (const [name, value] of Object.entries(event.usage || {})) {

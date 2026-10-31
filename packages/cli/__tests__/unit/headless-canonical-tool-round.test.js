@@ -139,6 +139,31 @@ it.each([true, false])(
     const events = lines.join("").trim().split("\n").map(JSON.parse);
     expect(result.exitCode, JSON.stringify(events)).toBe(0);
     expect(chatFn).toHaveBeenCalledTimes(4);
+    const persistedRounds = readVerifiedEvents("offline-rounds").filter(
+      (event) => event.type === "tool_round",
+    );
+    const roundReceipts = events.filter(
+      (event) =>
+        event.type === "system" && event.subtype === "tool_round_persisted",
+    );
+    expect(roundReceipts).toHaveLength(persistedRounds.length);
+    for (const [index, receipt] of roundReceipts.entries()) {
+      const persisted = persistedRounds[index];
+      expect(receipt.session_id).toBe("offline-rounds");
+      expect(receipt.transcript_refs).toEqual({
+        schema: "chainlesschain.session-tool-round-references/v1",
+        sessionId: "offline-rounds",
+        eventId: persisted.hash,
+        items: persisted.data.messages.map((message, itemIndex) => ({
+          itemIndex,
+          role: message.role,
+          toolCallId:
+            message.role === "assistant"
+              ? message.tool_calls[0].id
+              : message.tool_call_id,
+        })),
+      });
+    }
     expect(
       events.filter((event) =>
         JSON.stringify(event).includes("live messages do not match"),
@@ -1061,6 +1086,9 @@ it.each([
     expect(result.exitCode).toBe(1);
     expect(turns).toBe(1);
     expect(append).toHaveBeenCalledOnce();
+    expect(
+      events.some((event) => event.subtype === "tool_round_persisted"),
+    ).toBe(false);
     expect(
       events.filter((event) => event.type === "result").at(-1),
     ).toMatchObject({

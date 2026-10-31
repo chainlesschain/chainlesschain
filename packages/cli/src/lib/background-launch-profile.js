@@ -48,6 +48,29 @@ function positive(value, integer = false) {
   return integer ? Math.floor(number) : number;
 }
 
+function invalidProfileField(field) {
+  const error = new Error(`Invalid background launch profile field: ${field}`);
+  error.code = "BACKGROUND_LAUNCH_PROFILE_INVALID";
+  return error;
+}
+
+function policyBudget(value, field) {
+  const text = String(value).trim();
+  const cost = field.toLowerCase().includes("cost");
+  const number = Number(value);
+  if (
+    value == null ||
+    !(cost ? /^\+?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i : /^\+?\d+$/).test(
+      text,
+    ) ||
+    !Number.isFinite(number) ||
+    number <= 0 ||
+    (!cost && !Number.isSafeInteger(number))
+  )
+    throw invalidProfileField(`budget.${field}`);
+  return number;
+}
+
 function sortedStrings(values, { split = false, pathsFrom = null } = {}) {
   const raw = Array.isArray(values) ? values : values ? [values] : [];
   const expanded = split
@@ -356,6 +379,17 @@ export function captureBackgroundLaunchProfile({
       index++;
       return next;
     };
+    const takePolicy = (allowEmpty = false) => {
+      const next = inline !== null ? inline : args[index + 1];
+      if (
+        next == null ||
+        (inline === null && next.startsWith("--")) ||
+        (!allowEmpty && next.trim() === "")
+      )
+        throw invalidProfileField(`argv.${name}`);
+      if (inline === null) index++;
+      return next;
+    };
     switch (name) {
       case "--provider":
         profile.llm.provider = scalar(take());
@@ -376,14 +410,17 @@ export function captureBackgroundLaunchProfile({
         fallbackModels.push(...orderedStrings(take(), { split: true }));
         break;
       case "--allowed-tools":
-        profile.tools.allowed = sortedStrings(take(), { split: true });
+        profile.tools.allowed = sortedStrings(takePolicy(true), {
+          split: true,
+        });
         break;
       case "--disallowed-tools":
-        profile.tools.disallowed = sortedStrings(take(), { split: true });
+        profile.tools.disallowed = sortedStrings(takePolicy(true), {
+          split: true,
+        });
         break;
       case "--permission-mode": {
-        const mode = scalar(take());
-        profile.permission.mode = PERMISSION_MODES.has(mode) ? mode : "default";
+        profile.permission.mode = scalar(takePolicy());
         break;
       }
       case "--allow-dangerous-bypass":
@@ -395,7 +432,7 @@ export function captureBackgroundLaunchProfile({
         profile.permission.unattended = true;
         break;
       case "--unattended-allow":
-        profile.permission.unattendedAllow = sortedStrings(take(), {
+        profile.permission.unattendedAllow = sortedStrings(takePolicy(true), {
           split: true,
         });
         break;
@@ -413,8 +450,7 @@ export function captureBackgroundLaunchProfile({
         profile.sandbox.image = scalar(take(true));
         break;
       case "--sandbox-mode": {
-        const mode = scalar(take());
-        profile.sandbox.mode = SANDBOX_MODES.has(mode) ? mode : null;
+        profile.sandbox.mode = scalar(takePolicy());
         break;
       }
       case "--sandbox-network":
@@ -426,6 +462,12 @@ export function captureBackgroundLaunchProfile({
       case "--no-mcp":
         profile.mcp.disabled = true;
         profile.runtime.noMcpAutoConnect = true;
+        break;
+      case "--no-mcp-auto-connect":
+        profile.runtime.noMcpAutoConnect = true;
+        break;
+      case "--no-plugins":
+        profile.plugins.disabled = true;
         break;
       case "--strict-mcp-config":
         profile.mcp.strict = true;
@@ -461,28 +503,43 @@ export function captureBackgroundLaunchProfile({
         addDirs.push(take());
         break;
       case "--max-turns":
-        profile.budget.maxTurns = positive(take(), true);
+        profile.budget.maxTurns = policyBudget(takePolicy(), "maxTurns");
         break;
       case "--max-budget-usd":
-        profile.budget.maxCostUsd = positive(take());
+        profile.budget.maxCostUsd = policyBudget(takePolicy(), "maxCostUsd");
         break;
       case "--thinking-budget":
-        profile.budget.thinkingTokens = positive(take(), true);
+        profile.budget.thinkingTokens = policyBudget(
+          takePolicy(),
+          "thinkingTokens",
+        );
         break;
       case "--max-rewakes":
-        profile.budget.maxRewakes = positive(take(), true);
+        profile.budget.maxRewakes = policyBudget(takePolicy(), "maxRewakes");
         break;
       case "--max-outer-turns":
-        profile.budget.maxOuterTurns = positive(take(), true);
+        profile.budget.maxOuterTurns = policyBudget(
+          takePolicy(),
+          "maxOuterTurns",
+        );
         break;
       case "--goal-max-tokens":
-        profile.budget.goalMaxTokens = positive(take(), true);
+        profile.budget.goalMaxTokens = policyBudget(
+          takePolicy(),
+          "goalMaxTokens",
+        );
         break;
       case "--goal-max-cost":
-        profile.budget.goalMaxCostUsd = positive(take());
+        profile.budget.goalMaxCostUsd = policyBudget(
+          takePolicy(),
+          "goalMaxCostUsd",
+        );
         break;
       case "--goal-max-time":
-        profile.budget.goalMaxTimeMs = positive(take(), true);
+        profile.budget.goalMaxTimeMs = policyBudget(
+          takePolicy(),
+          "goalMaxTimeMs",
+        );
         break;
       case "--safe-mode":
         profile.runtime.safeMode = true;
@@ -665,6 +722,93 @@ export function normalizeBackgroundLaunchProfile(input) {
     throw new Error(
       `Unsupported background launch profile version: ${input?.version ?? "missing"}`,
     );
+  }
+  const rejectField = (field) => {
+    throw invalidProfileField(field);
+  };
+  for (const group of [
+    "llm",
+    "tools",
+    "permission",
+    "sandbox",
+    "mcp",
+    "plugins",
+    "runtime",
+    "budget",
+  ])
+    if (
+      input[group] != null &&
+      (typeof input[group] !== "object" || Array.isArray(input[group]))
+    )
+      rejectField(group);
+  for (const [group, fields] of Object.entries({
+    permission: [
+      "dangerousBypass",
+      "unattended",
+      "interactiveApprovals",
+      "remoteControl",
+    ],
+    sandbox: ["enabled", "network"],
+    mcp: ["disabled", "strict", "project"],
+    plugins: ["disabled"],
+    runtime: [
+      "safeMode",
+      "bare",
+      "managedCheckpoint",
+      "noProjectMemory",
+      "noFileRefs",
+      "noSlashMacros",
+      "noRecallMemory",
+      "noMcpAutoConnect",
+      "autoRewake",
+      "autoPin",
+      "noStream",
+      "noParkOnExit",
+    ],
+  }))
+    for (const field of fields)
+      if (
+        input[group]?.[field] !== undefined &&
+        typeof input[group][field] !== "boolean"
+      )
+        rejectField(`${group}.${field}`);
+  for (const field of ["ide", "pdh", "jetbrains"])
+    if (input.mcp?.[field] != null && !TRI_STATES.has(input.mcp[field]))
+      rejectField(`mcp.${field}`);
+  for (const [group, fields] of Object.entries({
+    tools: ["allowed", "disallowed"],
+    permission: ["unattendedAllow"],
+  }))
+    for (const field of fields) {
+      const value = input[group]?.[field];
+      if (
+        value != null &&
+        (!Array.isArray(value) ||
+          value.some((item) => typeof item !== "string" || !item.trim()))
+      )
+        rejectField(`${group}.${field}`);
+    }
+  // A persisted policy must not silently fall back to a weaker default.
+  if (
+    input.permission?.mode != null &&
+    !PERMISSION_MODES.has(input.permission.mode)
+  )
+    rejectField("permission.mode");
+  if (input.sandbox?.mode != null && !SANDBOX_MODES.has(input.sandbox.mode))
+    rejectField("sandbox.mode");
+  for (const field of [
+    "maxTurns",
+    "maxCostUsd",
+    "thinkingTokens",
+    "maxRewakes",
+    "maxOuterTurns",
+    "goalMaxTokens",
+    "goalMaxCostUsd",
+    "goalMaxTimeMs",
+  ]) {
+    const value = input.budget?.[field];
+    if (value == null) continue;
+    policyBudget(value, field);
   }
   const cwd = canonicalPath(input.workspace?.cwd || process.cwd());
   const safeBase = sanitizeBackgroundBaseUrl(input.llm?.baseUrl);
@@ -966,7 +1110,8 @@ export function buildArgvFromBackgroundLaunchProfile(profile) {
     pushValue(argv, "--fallback-model", model);
   }
   if (p.tools.allowed !== null) {
-    pushValue(argv, "--allowed-tools", p.tools.allowed.join(","));
+    // Empty means no tools; omitting this option would allow every tool.
+    argv.push("--allowed-tools", p.tools.allowed.join(","));
   }
   pushValue(argv, "--disallowed-tools", p.tools.disallowed.join(","));
   pushValue(argv, "--permission-mode", p.permission.mode);
@@ -984,6 +1129,11 @@ export function buildArgvFromBackgroundLaunchProfile(profile) {
   pushFlag(argv, "--sandbox-network", p.sandbox.network);
   pushValue(argv, "--mcp-config", p.mcp.configFile);
   pushFlag(argv, "--no-mcp", p.mcp.disabled);
+  pushFlag(
+    argv,
+    "--no-mcp-auto-connect",
+    p.runtime.noMcpAutoConnect && !p.mcp.disabled,
+  );
   pushFlag(argv, "--strict-mcp-config", p.mcp.strict);
   pushFlag(argv, "--project-mcp", p.mcp.project);
   for (const [key, value] of [
@@ -996,6 +1146,7 @@ export function buildArgvFromBackgroundLaunchProfile(profile) {
   }
   pushValue(argv, "--settings", p.settings.file);
   pushValue(argv, "--bundle", p.plugins.bundle);
+  pushFlag(argv, "--no-plugins", p.plugins.disabled && !p.runtime.bare);
   for (const dir of p.workspace.addDirs) pushValue(argv, "--add-dir", dir);
   pushValue(argv, "--max-turns", p.budget.maxTurns);
   pushValue(argv, "--max-budget-usd", p.budget.maxCostUsd);

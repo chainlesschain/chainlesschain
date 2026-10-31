@@ -1,0 +1,440 @@
+{
+  "runId": "41117741513",
+  "source": "0d063552701fc1609aaf5674dfacf42efb1e2154",
+  "status": "completed",
+  "conclusion": "failure",
+  "startedAt": "2026-10-30T19:44:46Z",
+  "updatedAt": "2026-10-30T20:45:40Z",
+  "jobs": [
+    {
+      "id": 124276250645,
+      "name": "validate",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124276250645",
+      "startedAt": "2026-10-30T19:44:50Z",
+      "completedAt": "2026-10-30T19:45:35Z",
+      "failedStep": null
+    },
+    {
+      "id": 124276631359,
+      "name": "Native win32-jetbrains-verify-12 (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124276631359",
+      "startedAt": "2026-10-30T19:45:38Z",
+      "completedAt": "2026-10-30T19:58:09Z",
+      "failedStep": null
+    },
+    {
+      "id": 124276631398,
+      "name": "Native linux-cli (five independent samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124276631398",
+      "startedAt": "2026-10-30T19:45:38Z",
+      "completedAt": "2026-10-30T19:53:03Z",
+      "failedStep": null
+    },
+    {
+      "id": 124276631454,
+      "name": "Native win32-jetbrains-verify-21 (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124276631454",
+      "startedAt": "2026-10-30T19:45:39Z",
+      "completedAt": "2026-10-30T20:01:56Z",
+      "failedStep": null
+    },
+    {
+      "id": 124276631479,
+      "name": "Native win32-vscode (five independent samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124276631479",
+      "startedAt": "2026-10-30T19:45:39Z",
+      "completedAt": "2026-10-30T20:07:04Z",
+      "failedStep": null
+    },
+    {
+      "id": 124276631518,
+      "name": "Native win32-jetbrains-verify-30 (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124276631518",
+      "startedAt": "2026-10-30T19:45:39Z",
+      "completedAt": "2026-10-30T20:04:50Z",
+      "failedStep": null
+    },
+    {
+      "id": 124276631527,
+      "name": "Native win32-jetbrains-first-run-win32-jetbrains (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124276631527",
+      "startedAt": "2026-10-30T19:45:39Z",
+      "completedAt": "2026-10-30T20:02:18Z",
+      "failedStep": null
+    },
+    {
+      "id": 124276631595,
+      "name": "Native win32-jetbrains-verify-03 (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124276631595",
+      "startedAt": "2026-10-30T19:45:39Z",
+      "completedAt": "2026-10-30T20:04:20Z",
+      "failedStep": null
+    },
+    {
+      "id": 124276631604,
+      "name": "Native linux-vscode (five independent samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124276631604",
+      "startedAt": "2026-10-30T19:45:38Z",
+      "completedAt": "2026-10-30T19:55:19Z",
+      "failedStep": null
+    },
+    {
+      "id": 124276631939,
+      "name": "Native win32-cli (five independent samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124276631939",
+      "startedAt": "2026-10-30T19:45:39Z",
+      "completedAt": "2026-10-30T20:00:37Z",
+      "failedStep": null
+    },
+    {
+      "id": 124280056813,
+      "name": "Native linux-jetbrains-first-run-linux-jetbrains (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124280056813",
+      "startedAt": "2026-10-30T19:53:06Z",
+      "completedAt": "2026-10-30T20:01:49Z",
+      "failedStep": null
+    },
+    {
+      "id": 124281083922,
+      "name": "Native linux-jetbrains-verify-06 (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124281083922",
+      "startedAt": "2026-10-30T19:55:21Z",
+      "completedAt": "2026-10-30T20:04:14Z",
+      "failedStep": null
+    },
+    {
+      "id": 124282376963,
+      "name": "Native linux-jetbrains-verify-15 (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124282376963",
+      "startedAt": "2026-10-30T19:58:12Z",
+      "completedAt": "2026-10-30T20:06:36Z",
+      "failedStep": null
+    },
+    {
+      "id": 124283498188,
+      "name": "Native linux-jetbrains-verify-24 (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124283498188",
+      "startedAt": "2026-10-30T20:00:40Z",
+      "completedAt": "2026-10-30T20:08:43Z",
+      "failedStep": null
+    },
+    {
+      "id": 124284066084,
+      "name": "Native linux-jetbrains-verify-33 (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124284066084",
+      "startedAt": "2026-10-30T20:01:52Z",
+      "completedAt": "2026-10-30T20:11:17Z",
+      "failedStep": null
+    },
+    {
+      "id": 124284115287,
+      "name": "Native darwin-cli (five independent samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124284115287",
+      "startedAt": "2026-10-30T20:01:59Z",
+      "completedAt": "2026-10-30T20:13:24Z",
+      "failedStep": null
+    },
+    {
+      "id": 124284290619,
+      "name": "Native darwin-vscode (five independent samples)",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124284290619",
+      "startedAt": "2026-10-30T20:02:25Z",
+      "completedAt": "2026-10-30T20:33:45Z",
+      "failedStep": "Run original project tasks through public native entry"
+    },
+    {
+      "id": 124285173946,
+      "name": "Native darwin-jetbrains-first-run-darwin-jetbrains (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124285173946",
+      "startedAt": "2026-10-30T20:04:18Z",
+      "completedAt": "2026-10-30T20:16:46Z",
+      "failedStep": null
+    },
+    {
+      "id": 124285224038,
+      "name": "Native darwin-jetbrains-verify-09 (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124285224038",
+      "startedAt": "2026-10-30T20:04:24Z",
+      "completedAt": "2026-10-30T20:18:08Z",
+      "failedStep": null
+    },
+    {
+      "id": 124285455545,
+      "name": "Native darwin-jetbrains-verify-18 (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124285455545",
+      "startedAt": "2026-10-30T20:04:53Z",
+      "completedAt": "2026-10-30T20:16:54Z",
+      "failedStep": null
+    },
+    {
+      "id": 124286115786,
+      "name": "Native darwin-jetbrains-verify-27 (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124286115786",
+      "startedAt": "2026-10-30T20:13:27Z",
+      "completedAt": "2026-10-30T20:25:18Z",
+      "failedStep": null
+    },
+    {
+      "id": 124286373083,
+      "name": "Native darwin-jetbrains-verify-36 (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124286373083",
+      "startedAt": "2026-10-30T20:16:48Z",
+      "completedAt": "2026-10-30T20:29:27Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298371195,
+      "name": "Linux acceptance of win32-jetbrains-verify-21 deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371195",
+      "startedAt": "2026-10-30T20:33:48Z",
+      "completedAt": "2026-10-30T20:35:47Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298371203,
+      "name": "Linux acceptance of linux-cli deliveries",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371203",
+      "startedAt": "2026-10-30T20:33:48Z",
+      "completedAt": "2026-10-30T20:40:11Z",
+      "failedStep": "Check source and candidate binding then execute baseline and behavioral controls"
+    },
+    {
+      "id": 124298371225,
+      "name": "Linux acceptance of linux-jetbrains-verify-24 deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371225",
+      "startedAt": "2026-10-30T20:36:37Z",
+      "completedAt": "2026-10-30T20:38:53Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298371233,
+      "name": "Linux acceptance of win32-jetbrains-verify-30 deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371233",
+      "startedAt": "2026-10-30T20:33:48Z",
+      "completedAt": "2026-10-30T20:36:35Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298371242,
+      "name": "Linux acceptance of win32-vscode deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371242",
+      "startedAt": "2026-10-30T20:33:48Z",
+      "completedAt": "2026-10-30T20:38:26Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298371260,
+      "name": "Linux acceptance of win32-jetbrains-first-run-win32-jetbrains deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371260",
+      "startedAt": "2026-10-30T20:33:48Z",
+      "completedAt": "2026-10-30T20:36:51Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298371287,
+      "name": "Linux acceptance of win32-jetbrains-verify-12 deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371287",
+      "startedAt": "2026-10-30T20:33:48Z",
+      "completedAt": "2026-10-30T20:36:03Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298371323,
+      "name": "Linux acceptance of darwin-vscode deliveries",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371323",
+      "startedAt": "2026-10-30T20:38:28Z",
+      "completedAt": "2026-10-30T20:45:39Z",
+      "failedStep": "Check source and candidate binding then execute baseline and behavioral controls"
+    },
+    {
+      "id": 124298371326,
+      "name": "Linux acceptance of linux-vscode deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371326",
+      "startedAt": "2026-10-30T20:33:48Z",
+      "completedAt": "2026-10-30T20:40:14Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298371353,
+      "name": "Linux acceptance of darwin-jetbrains-first-run-darwin-jetbrains deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371353",
+      "startedAt": "2026-10-30T20:38:28Z",
+      "completedAt": "2026-10-30T20:40:46Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298371368,
+      "name": "Linux acceptance of linux-jetbrains-first-run-linux-jetbrains deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371368",
+      "startedAt": "2026-10-30T20:35:50Z",
+      "completedAt": "2026-10-30T20:38:26Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298371397,
+      "name": "Linux acceptance of win32-jetbrains-verify-03 deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371397",
+      "startedAt": "2026-10-30T20:33:48Z",
+      "completedAt": "2026-10-30T20:36:07Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298371418,
+      "name": "Linux acceptance of darwin-cli deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371418",
+      "startedAt": "2026-10-30T20:38:11Z",
+      "completedAt": "2026-10-30T20:45:05Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298371425,
+      "name": "Linux acceptance of linux-jetbrains-verify-33 deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371425",
+      "startedAt": "2026-10-30T20:36:53Z",
+      "completedAt": "2026-10-30T20:39:25Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298371437,
+      "name": "Linux acceptance of linux-jetbrains-verify-06 deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371437",
+      "startedAt": "2026-10-30T20:36:07Z",
+      "completedAt": "2026-10-30T20:39:19Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298371458,
+      "name": "Linux acceptance of linux-jetbrains-verify-15 deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371458",
+      "startedAt": "2026-10-30T20:36:09Z",
+      "completedAt": "2026-10-30T20:38:08Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298371530,
+      "name": "Linux acceptance of darwin-jetbrains-verify-09 deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371530",
+      "startedAt": "2026-10-30T20:38:56Z",
+      "completedAt": "2026-10-30T20:41:03Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298371545,
+      "name": "Linux acceptance of darwin-jetbrains-verify-18 deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371545",
+      "startedAt": "2026-10-30T20:39:21Z",
+      "completedAt": "2026-10-30T20:41:34Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298371602,
+      "name": "Linux acceptance of win32-cli deliveries",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298371602",
+      "startedAt": "2026-10-30T20:33:48Z",
+      "completedAt": "2026-10-30T20:40:30Z",
+      "failedStep": "Check source and candidate binding then execute baseline and behavioral controls"
+    },
+    {
+      "id": 124298373515,
+      "name": "Linux acceptance of darwin-jetbrains-verify-27 deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298373515",
+      "startedAt": "2026-10-30T20:39:27Z",
+      "completedAt": "2026-10-30T20:41:43Z",
+      "failedStep": null
+    },
+    {
+      "id": 124298373851,
+      "name": "Linux acceptance of darwin-jetbrains-verify-36 deliveries",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/job/124298373851",
+      "startedAt": "2026-10-30T20:40:13Z",
+      "completedAt": "2026-10-30T20:42:37Z",
+      "failedStep": "Check source and candidate binding then execute baseline and behavioral controls"
+    }
+  ]
+}

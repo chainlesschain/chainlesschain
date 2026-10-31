@@ -4,7 +4,7 @@
 
 > 正式执行状态：**NOT_RUN，任务 0/36，首次安装 0/9**。本文是任务清单；整理、审阅、工程回归和诊断均不增加正式完成数。
 
-后续实际交付与补测情况见文末[实际完成情况](#actual-completion)，与上述冻结计划的正式验收状态分别统计。
+**实际交付更新（2026-11-01）：OpenAI 队列跨版本累计通过 40/45（普通任务 32/36、独立首次安装 8/9），剩余 5 项已工程修复但尚未通过新一轮模型验收。** 完整逐项表格及代码证据见文末[实际完成情况](#actual-completion)，与上述冻结火山计划的正式验收状态分别统计。
 
 ## 36 项任务速查表
 
@@ -1098,83 +1098,132 @@
 
 <a id="actual-completion"></a>
 
-## 8. 实际完成情况（2026-10-29 核对）
+## 8. 实际完成情况（2026-11-01 核对）
 
-截至本次仓库证据核对，跨版本累计 **34/45 项产物独立验收合格**：普通任务 **27/36**、独立首次安装 **7/9**；仍有 **11 项产物未合格**。这里的“已合格”指候选产物通过独立验收，不表示全部原生旅程完成，也不表示这些任务在同一最新版本上全部通过。
+**当前 OpenAI 队列跨版本累计通过 40/45（88.9%）：普通任务 32/36、独立首次安装 8/9，剩余 5 项未通过模型独立验收。** 最近完整一轮为 `.133` 的 39/45；`.135` 只复测此前失败的六项，新增 `verify-26` 通过，其他五项仍未通过。五项后续工程修复已提交并有回归证据，尚未形成新的模型验收结果。
 
-本表依据[历史 32 项交付索引][accepted32]、[公开 .128 补测账本][round128]及其压缩原始验收回执整理。该补测使用 CLI `0.166.128`、VS Code `0.37.166`、JetBrains `0.4.183`，项目仍冻结在 `b2aa3aba082873570e85dce39b00754e5504ff37`。账本当前为 `IN_PROGRESS`：计划补测 13 项，已收齐生成及验收记录各 11 项，新增产物合格 2 项、端到端通过 1 项；`verify-11`、`verify-30` 在本轮为 `PENDING_DISPATCH`，其历史失败仍保留。后续 `.129` 发布和本地工程回归不增加本表合格数。
+本次代码核对截至提交 `239f953d90ccd31f61246052ca1156126190bd8e`，当前 [CLI package.json](../../../packages/cli/package.json) 为 `0.166.136`。下表使用已归档的 `.133` 完整轮与 `.135` 六项复测收据，不将累计成绩称为 `.136` 或任一单版完整重跑的通过率。
 
-### 8.1 完成情况汇总
+### 8.1 完成情况汇总与统计口径
 
-| 统计范围         | 计划数 | 累计产物合格    | 未合格 | 实际情况                                                                   |
-| ---------------- | ------ | --------------- | ------ | -------------------------------------------------------------------------- |
-| 普通任务         | 36     | 27              | 9      | 历史合格 26 项复用；`.128` 新增 `verify-06` 产物合格，但该项原生全流程失败 |
-| 独立首次安装     | 9      | 7               | 2      | 历史合格 6 项复用；`.128` 新增 `first-run-linux-cli` 产物及原生全流程通过  |
-| 合计             | 45     | **34（75.6%）** | **11** | 跨版本累计交付覆盖率；完整原生全流程须按各自运行回执判定                   |
-| 冻结计划正式验收 | 36 + 9 | **0/36、0/9**   | 36 + 9 | 正式状态仍为 `NOT_RUN`；`paidReady:false`、`NOT_ADMITTED`、`HOLD` 保留     |
+| 统计口径                             | 普通任务  | 独立首次安装 | 合计               | 实际结论与证据                                                                                |
+| ------------------------------------ | --------- | ------------ | ------------------ | --------------------------------------------------------------------------------------------- |
+| OpenAI `.133` 完整轮                 | 31/36     | 8/9          | **39/45（86.7%）** | 生成摘要、独立验收各收齐 45 份；生成通过 44/45；[完整报告][openai133]                         |
+| OpenAI `.135` 六项复测               | 1/5       | 0/1          | **1/6**            | 生成及验收各收齐 6 份，仅 `verify-26` 通过；没有重跑此前已通过的 39 项；[复测报告][openai135] |
+| **OpenAI 跨版本累计**                | **32/36** | **8/9**      | **40/45（88.9%）** | 按独立样本 ID 合并通过项，剩余 4 项普通任务和 1 项首次安装；不混入火山或人工辅助成绩          |
+| 火山历史自动交付（截至 `.132` 账本） | 27/36     | 7/9          | **34/45（75.6%）** | 保留原统计；`.131` / `.132` 未新增自动合格项；[历史后续账本][volc132]                         |
+| 冻结火山 v3 正式验收                 | 0/36      | 0/9          | **0/45，NOT_RUN**  | 原任务 JSON 未改写，`readyForPaidExecution:false`；[冻结就绪记录][readiness]                  |
 
-下表“已合格（复用）”均对应历史交付索引中的独立样本，复用原文件及收据，本轮未重新生成。所有诊断候选的执行验收使用 Linux 无网络 Docker；原生生成、宿主恢复及正式准入另行判定。普通任务与首次安装使用不同样本 ID，互不替代。
+OpenAI 队列为独立的 `openai / gpt-6.1-sol / Responses` 诊断身份，固定项目仍为 `b2aa3aba082873570e85dce39b00754e5504ff37`。`.133` 使用 CLI `0.166.133` / Open VSX `0.37.171` / JetBrains `0.4.188`；`.135` 使用公开 CLI `0.166.135` / Open VSX `0.37.173`，JetBrains `0.4.189` 使用来源及 ZIP 摘要已核验的官方 Actions 构建包。该复测没有将构建包称为商店已批准版本。
 
-### 8.2 普通任务逐项完成情况（27/36）
+表中“已通过”要求该样本的生成身份、终态、交付来源及 Linux 无模型凭据 Docker 独立检查均通过；首次安装保持独立样本，普通任务通过不能替代首次安装。候选在冻结项目上验收通过，不代表全部候选已集成到当前仓库，也不授予正式付费或原生生产准入。
 
-| 编号                    | 任务                               | 分配入口            | 产物验收       | 实际进展或未完成原因                                                                      | 证据                                                                                                                     |
-| ----------------------- | ---------------------------------- | ------------------- | -------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| [verify-01](#verify-01) | 官方 endpoint 与同名自定义网关隔离 | Windows / CLI       | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-02](#verify-02) | 精确模型能力查找                   | Windows / VS Code   | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-03](#verify-03) | 新家族未知计价                     | Windows / JetBrains | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-04](#verify-04) | 请求级缓存与阶梯费用               | Linux / CLI         | 未合格         | `.128` 生成成功；基线 22/22、候选 5/6，错误断言非法输入后不留下费用桶，未进入行为变异检查 | [运行 40596685261](https://github.com/chainlesschain/chainlesschain/actions/runs/40596685261)、[复核][review128]         |
-| [verify-05](#verify-05) | 安装与准入分离                     | Linux / VS Code     | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-06](#verify-06) | 付费分解前预检                     | Linux / JetBrains   | 已合格（新增） | `.128` 基线 31/31、候选 6/6，检出行为变异；连接失败导致原生生成及全流程失败，仍需跟踪旅程 | [运行 40634447041](https://github.com/chainlesschain/chainlesschain/actions/runs/40634447041)、[续测记录][completion128] |
-| [verify-07](#verify-07) | 持久正文分页边界                   | macOS / CLI         | 未合格         | `.128` 输出截断，生成失败；基线 39/39，候选未执行有效测试                                 | [运行 40669282131](https://github.com/chainlesschain/chainlesschain/actions/runs/40669282131)、[账本][round128]          |
-| [verify-08](#verify-08) | fork 历史归属                      | macOS / VS Code     | 未合格         | `.128` 输出截断，生成及宿主验证失败；基线 58/58，候选未执行有效测试                       | [运行 40679324170](https://github.com/chainlesschain/chainlesschain/actions/runs/40679324170)、[账本][round128]          |
-| [verify-09](#verify-09) | 历史来源篡改拒绝                   | macOS / JetBrains   | 未合格         | `.128` 生成成功，基线 11/11、候选 6/6；受控错误副本仍 6/6，未覆盖全部身份拒绝要求         | [运行 40591672216](https://github.com/chainlesschain/chainlesschain/actions/runs/40591672216)、[复核][review128]         |
-| [verify-10](#verify-10) | 分页索引失效回归                   | Windows / CLI       | 未合格         | `.128` 生成成功；基线 2/2，验收未取得有效执行的候选测试用例                               | [运行 40698529675](https://github.com/chainlesschain/chainlesschain/actions/runs/40698529675)、[账本][round128]          |
-| [verify-11](#verify-11) | 问题持久记录归属                   | Windows / VS Code   | 未合格         | `.127` 候选 0/6，会话夹具不满足唯一 `session_start` 要求；`.128` 尚未派发                 | [历史复核][followup127]、[账本][round128]                                                                                |
-| [verify-12](#verify-12) | 含空格参数完整性                   | Windows / JetBrains | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-13](#verify-13) | 附件同句柄读取边界                 | Linux / CLI         | 未合格         | `.128` 基线 13/13、候选 6/6；移除同句柄时间变化检查后仍 6/6，首个行为变异未被检出         | [运行 40598143646](https://github.com/chainlesschain/chainlesschain/actions/runs/40598143646)、[复核][review128]         |
-| [verify-14](#verify-14) | 图片逐项错误                       | Linux / VS Code     | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-15](#verify-15) | 权限修订溢出拒绝                   | Linux / JetBrains   | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-16](#verify-16) | 无效设置来源保守失败               | macOS / CLI         | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-17](#verify-17) | 持久进程所有权记录                 | macOS / VS Code     | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-18](#verify-18) | 所有权未知保持阻断                 | macOS / JetBrains   | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-19](#verify-19) | 取消审批迟到回调                   | Windows / CLI       | 未合格         | `.128` 输出截断，生成失败；基线 17/17，候选未执行有效测试                                 | [运行 40703801996](https://github.com/chainlesschain/chainlesschain/actions/runs/40703801996)、[账本][round128]          |
-| [verify-20](#verify-20) | deny 决策不降级                    | Windows / VS Code   | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-21](#verify-21) | Memory 影子读取无写入              | Windows / JetBrains | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-22](#verify-22) | Memory 发布后故障语义              | Linux / CLI         | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-23](#verify-23) | 缺失样本固定分母                   | Linux / VS Code     | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-24](#verify-24) | 比较身份严格隔离                   | Linux / JetBrains   | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-25](#verify-25) | 草稿写失败保留旧记录               | macOS / CLI         | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-26](#verify-26) | 敏感问题字段排除                   | macOS / VS Code     | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-27](#verify-27) | 重载问题精确绑定                   | macOS / JetBrains   | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-28](#verify-28) | 迟到加载不覆盖编辑                 | Windows / CLI       | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-29](#verify-29) | 模式 ACK 关联                      | Windows / VS Code   | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-30](#verify-30) | 累计动画帧预算                     | Windows / JetBrains | 未合格         | `.127` 候选 6/6，检出帧计数变异但未检出额外画布预算变异；`.128` 尚未派发                  | [历史复核][followup127]、[账本][round128]                                                                                |
-| [verify-31](#verify-31) | 快照失败资源清理                   | Linux / CLI         | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-32](#verify-32) | 预览取消失效                       | Linux / VS Code     | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-33](#verify-33) | 快速多图添加预算                   | Linux / JetBrains   | 已合格（复用） | 合格产物复用；10 月 26 日归档回复恢复专项通过，历史原生任务失败仍保留                     | [历史交付][accepted32]、[恢复回执][recovery33]                                                                           |
-| [verify-34](#verify-34) | 冻结计划操作说明                   | macOS / CLI         | 已合格（复用） | 历史文档及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-35](#verify-35) | 模型失败分类回归                   | macOS / VS Code     | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
-| [verify-36](#verify-36) | 启动配置身份保真                   | macOS / JetBrains   | 已合格（复用） | 历史产物及独立验收收据已归档                                                              | [历史交付][accepted32]                                                                                                   |
+### 8.2 普通任务逐项完成情况（OpenAI 累计 32/36）
 
-### 8.3 独立首次安装逐项完成情况（7/9）
+验收数字来自两轮机器可读结果：[`.133` JSON][openai133-json]、[`.135` JSON][openai135-json]。“变异检出”表示候选能使注入错误行为后的断言失败；普通测试自身通过但漏过变异仍算未通过。计划交付路径仅核对原 `expectedFiles` 的同名文件是否存在，不用于替代行为验收。
 
-| 样本                                                      | 重新执行任务 | 产物验收       | 实际进展或未完成原因                                                          | 证据                                                                                                            |
-| --------------------------------------------------------- | ------------ | -------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| [first-run-win32-cli](#first-run-win32-cli)               | verify-01    | 已合格（复用） | 独立首次安装样本的历史产物及收据已归档                                        | [历史交付][accepted32]                                                                                          |
-| [first-run-win32-vscode](#first-run-win32-vscode)         | verify-02    | 已合格（复用） | 独立首次安装样本的历史产物及收据已归档                                        | [历史交付][accepted32]                                                                                          |
-| [first-run-win32-jetbrains](#first-run-win32-jetbrains)   | verify-03    | 已合格（复用） | 独立首次安装样本的历史产物及收据已归档                                        | [历史交付][accepted32]                                                                                          |
-| [first-run-linux-cli](#first-run-linux-cli)               | verify-04    | 已合格（新增） | `.128` 首次安装、原生生成及全流程通过；基线 22/22、候选 4/4，检出两项行为变异 | [运行 40632820075](https://github.com/chainlesschain/chainlesschain/actions/runs/40632820075)、[账本][round128] |
-| [first-run-linux-vscode](#first-run-linux-vscode)         | verify-05    | 已合格（复用） | 独立首次安装样本的历史产物及收据已归档                                        | [历史交付][accepted32]                                                                                          |
-| [first-run-linux-jetbrains](#first-run-linux-jetbrains)   | verify-06    | 已合格（复用） | 独立首次安装样本的历史产物及收据已归档                                        | [历史交付][accepted32]                                                                                          |
-| [first-run-darwin-cli](#first-run-darwin-cli)             | verify-07    | 未合格         | `.128` 回合预算耗尽，生成失败；基线 39/39，候选/回归验收失败                  | [运行 40671134872](https://github.com/chainlesschain/chainlesschain/actions/runs/40671134872)、[账本][round128] |
-| [first-run-darwin-vscode](#first-run-darwin-vscode)       | verify-08    | 已合格（复用） | 独立首次安装样本的历史产物及收据已归档                                        | [历史交付][accepted32]                                                                                          |
-| [first-run-darwin-jetbrains](#first-run-darwin-jetbrains) | verify-09    | 未合格         | `.128` 原生生成成功；基线 11/11，候选/回归验收失败，全流程未通过              | [运行 40683786074](https://github.com/chainlesschain/chainlesschain/actions/runs/40683786074)、[账本][round128] |
+| 编号                    | 任务                               | 分配入口            | OpenAI 累计验收 | 最新独立验收事实                                             | 当前计划交付路径 | 证据                                            |
+| ----------------------- | ---------------------------------- | ------------------- | --------------- | ------------------------------------------------------------ | ---------------- | ----------------------------------------------- |
+| [verify-01](#verify-01) | 官方 endpoint 与同名自定义网关隔离 | Windows / CLI       | 已通过          | `.133` 基线 75/75，候选 6/6；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-02](#verify-02) | 精确模型能力查找                   | Windows / VS Code   | 已通过          | `.133` 基线 75/75，候选 6/6；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-03](#verify-03) | 新家族未知计价                     | Windows / JetBrains | 已通过          | `.133` 基线 31/31，候选 6/6；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-04](#verify-04) | 请求级缓存与阶梯费用               | Linux / CLI         | 已通过          | `.133` 基线 22/22，候选 5/5；2/2 项变异检出                  | 存在（辅助交付） | [完整轮][openai133]                             |
+| [verify-05](#verify-05) | 安装与准入分离                     | Linux / VS Code     | 已通过          | `.133` 基线 42/42，候选 6/6；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-06](#verify-06) | 付费分解前预检                     | Linux / JetBrains   | 已通过          | `.133` 基线 31/31，候选 6/6；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-07](#verify-07) | 持久正文分页边界                   | macOS / CLI         | 已通过          | `.133` 基线 39/39，候选 5/5；2/2 项变异检出                  | 存在（辅助交付） | [完整轮][openai133]                             |
+| [verify-08](#verify-08) | fork 历史归属                      | macOS / VS Code     | 未通过，待复测  | `.135` 基线 58/58，候选 0/3；fork 归属与 capability 断言失败 | 未见同名文件     | [复测回执][check-verify-08]、[工程修复][repair] |
+| [verify-09](#verify-09) | 历史来源篡改拒绝                   | macOS / JetBrains   | 已通过          | `.133` 基线 11/11，候选 6/6；1/1 项变异检出                  | 存在（辅助交付） | [完整轮][openai133]                             |
+| [verify-10](#verify-10) | 分页索引失效回归                   | Windows / CLI       | 已通过          | `.133` 基线 2/2，候选 6/6；1/1 项变异检出                    | 存在（辅助交付） | [完整轮][openai133]                             |
+| [verify-11](#verify-11) | 问题持久记录归属                   | Windows / VS Code   | 已通过          | `.133` 基线 16/16，候选 6/6；2/2 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-12](#verify-12) | 含空格参数完整性                   | Windows / JetBrains | 已通过          | `.133` 基线 11/11，候选 6/6；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-13](#verify-13) | 附件同句柄读取边界                 | Linux / CLI         | 未通过，待复测  | `.135` 基线 13/13、候选 6/6，但未检出行为变异                | 存在（辅助交付） | [复测回执][check-verify-13]、[工程修复][repair] |
+| [verify-14](#verify-14) | 图片逐项错误                       | Linux / VS Code     | 已通过          | `.133` 基线 41/41，候选 6/6；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-15](#verify-15) | 权限修订溢出拒绝                   | Linux / JetBrains   | 已通过          | `.133` 基线 12/12，候选 6/6；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-16](#verify-16) | 无效设置来源保守失败               | macOS / CLI         | 已通过          | `.133` 基线 25/25，候选 6/6；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-17](#verify-17) | 持久进程所有权记录                 | macOS / VS Code     | 已通过          | `.133` 基线 11/11，候选 6/6；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-18](#verify-18) | 所有权未知保持阻断                 | macOS / JetBrains   | 已通过          | `.133` 基线 2/2，候选 6/6；1/1 项变异检出                    | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-19](#verify-19) | 取消审批迟到回调                   | Windows / CLI       | 未通过，待复测  | `.135` 基线 17/17、候选 3/3，但未检出行为变异                | 未见同名文件     | [复测回执][check-verify-19]、[工程修复][repair] |
+| [verify-20](#verify-20) | deny 决策不降级                    | Windows / VS Code   | 已通过          | `.133` 基线 4/4，候选 6/6；1/1 项变异检出                    | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-21](#verify-21) | Memory 影子读取无写入              | Windows / JetBrains | 已通过          | `.133` 基线 19/19，候选 4/4；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-22](#verify-22) | Memory 发布后故障语义              | Linux / CLI         | 已通过          | `.133` 基线 19/19，候选 4/4；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-23](#verify-23) | 缺失样本固定分母                   | Linux / VS Code     | 已通过          | `.133` 基线 30/30，候选 5/5；2/2 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-24](#verify-24) | 比较身份严格隔离                   | Linux / JetBrains   | 已通过          | `.133` 基线 22/22，候选 6/6；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-25](#verify-25) | 草稿写失败保留旧记录               | macOS / CLI         | 已通过          | `.133` 基线 25/25，候选 5/5；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-26](#verify-26) | 敏感问题字段排除                   | macOS / VS Code     | 已通过          | `.135` 基线 14/14，候选 6/6；2/2 项变异检出                  | 未见同名文件     | [六项复测][openai135]                           |
+| [verify-27](#verify-27) | 重载问题精确绑定                   | macOS / JetBrains   | 已通过          | `.133` 基线 14/14，候选 6/6；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-28](#verify-28) | 迟到加载不覆盖编辑                 | Windows / CLI       | 已通过          | `.133` 基线 14/14，候选 4/4；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-29](#verify-29) | 模式 ACK 关联                      | Windows / VS Code   | 已通过          | `.133` 基线 19/19，候选 6/6；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-30](#verify-30) | 累计动画帧预算                     | Windows / JetBrains | 已通过          | `.133` 基线 13/13，候选 6/6；2/2 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-31](#verify-31) | 快照失败资源清理                   | Linux / CLI         | 已通过          | `.133` 基线 31/31，候选 3/3；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-32](#verify-32) | 预览取消失效                       | Linux / VS Code     | 已通过          | `.133` 基线 13/13，候选 5/5；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-33](#verify-33) | 快速多图添加预算                   | Linux / JetBrains   | 已通过          | `.133` 基线 18/18，候选 5/5；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-34](#verify-34) | 冻结计划操作说明                   | macOS / CLI         | 已通过          | `.133` 基线 30/30；文档与脚本检查通过                        | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-35](#verify-35) | 模型失败分类回归                   | macOS / VS Code     | 已通过          | `.133` 基线 77/77，候选 6/6；1/1 项变异检出                  | 未见同名文件     | [完整轮][openai133]                             |
+| [verify-36](#verify-36) | 启动配置身份保真                   | macOS / JetBrains   | 未通过，待复测  | `.135` 基线 7/7，候选 2/6；策略持久化与非法值拒绝失败        | 未见同名文件     | [复测回执][check-verify-36]、[工程修复][repair] |
 
-剩余未合格产物为普通任务 `verify-04`、`07`、`08`、`09`、`10`、`11`、`13`、`19`、`30`，以及首次安装 `first-run-darwin-cli`、`first-run-darwin-jetbrains`。已合格产物关联的生成、宿主或恢复失败仍按原回执跟踪，不能仅以产物合格将原生旅程结案。本次仅补充文档表格，没有运行模型、补测任务或修改冻结计划与验收记录。
+当前 36 项涉及的源码路径均存在；计划同名交付文件实际存在 **5/36**：`verify-04`、`07`、`09`、`10`、`13`，来自已安装的人工辅助交付。其余计划同名路径未见文件，候选交付及摘要绑定见上述验收归档；其他名称的既有回归不据此判为缺失。剩余五项涉及的新增工程回归使用 `__tests__/unit/` 下的名称，见 8.4 工程表。
 
+### 8.3 独立首次安装逐项完成情况（OpenAI 累计 8/9）
+
+| 独立样本                                                  | 重新执行任务 | OpenAI 累计验收 | 最新独立验收事实                                               | 证据                                                          |
+| --------------------------------------------------------- | ------------ | --------------- | -------------------------------------------------------------- | ------------------------------------------------------------- |
+| [first-run-win32-cli](#first-run-win32-cli)               | verify-01    | 已通过          | `.133` 基线 75/75，候选 6/6；1/1 项变异检出                    | [完整轮][openai133]                                           |
+| [first-run-win32-vscode](#first-run-win32-vscode)         | verify-02    | 已通过          | `.133` 基线 75/75，候选 6/6；1/1 项变异检出                    | [完整轮][openai133]                                           |
+| [first-run-win32-jetbrains](#first-run-win32-jetbrains)   | verify-03    | 已通过          | `.133` 基线 31/31，候选 6/6；1/1 项变异检出                    | [完整轮][openai133]                                           |
+| [first-run-linux-cli](#first-run-linux-cli)               | verify-04    | 已通过          | `.133` 基线 22/22，候选 5/5；2/2 项变异检出                    | [完整轮][openai133]                                           |
+| [first-run-linux-vscode](#first-run-linux-vscode)         | verify-05    | 已通过          | `.133` 基线 42/42，候选 6/6；1/1 项变异检出                    | [完整轮][openai133]                                           |
+| [first-run-linux-jetbrains](#first-run-linux-jetbrains)   | verify-06    | 已通过          | `.133` 基线 31/31，候选 6/6；1/1 项变异检出                    | [完整轮][openai133]                                           |
+| [first-run-darwin-cli](#first-run-darwin-cli)             | verify-07    | 已通过          | `.133` 基线 39/39，候选 6/6；2/2 项变异检出                    | [完整轮][openai133]                                           |
+| [first-run-darwin-vscode](#first-run-darwin-vscode)       | verify-08    | 未通过，待复测  | `.135` 基线 58/58，独立候选 2/4；capability 绑定与历史导入失败 | [复测回执][check-first-run-darwin-vscode]、[工程修复][repair] |
+| [first-run-darwin-jetbrains](#first-run-darwin-jetbrains) | verify-09    | 已通过          | `.133` 基线 11/11，候选 6/6；1/1 项变异检出                    | [完整轮][openai133]                                           |
+
+### 8.4 剩余五项：最新代码修复与待办
+
+剩余样本为 **`verify-08`、`verify-13`、`verify-19`、`verify-36`、`first-run-darwin-vscode`**。最新模型复测全部已生成交付，但独立验收未通过；下面的工程修复没有重写原候选或成绩。相关产品修复提交为 `714053760794301496080a48b24faeac01c40429`，`.136` 准备提交另修正了 Windows 图片夹具的 BigInt 文件身份比较。
+
+| 样本                      | 当前代码 / 工程交付                                                                                                                                                                                       | 工程证据                                                                                                                                                                                                     | 尚待完成                                                                         |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| `verify-08`               | [完整历史分叉](../../../packages/cli/src/lib/session-history-origins.js)独立验证 capability、指纹、head、消息数及 ordinal；纠正内部 lineage notice 与展示消息的断言位置                                   | [分叉归属回归](../../../packages/cli/__tests__/unit/session-branch-ownership-regression.test.js) 3/3                                                                                                         | 在新执行身份下重新生成候选并通过独立验收                                         |
+| `verify-13`               | 生产图片 guard 原本正确；补同句柄、同内容、同大小而仅 mtime/ctime 改变的控制及像素上限边界，Windows 夹具使用 BigInt 比较文件身份                                                                          | [同句柄回归](../../../packages/cli/__tests__/unit/image-pinned-handle-regression.test.js) 6/6                                                                                                                | 新候选须检出原验收器的元数据变化及像素预算变异                                   |
+| `verify-19`               | 生产审批逻辑原本正确；补真实 pending approval 的拥有者 turn abort，随后发送关联正确的迟到 accept，验证拒绝及工具执行数为 0                                                                                | [审批所有权回归](../../../packages/cli/__tests__/unit/headless-approval-ownership-regression.test.js) 4/4                                                                                                    | 新候选须检出取消时错误放行的行为变异                                             |
+| `verify-36`               | [启动策略](../../../packages/cli/src/lib/background-launch-profile.js)与 [agent 入口](../../../packages/cli/src/commands/agent.js)保留空白名单、独立插件/MCP 限制和显式配置，拒绝非法策略、缺值及预算格式 | [策略往返回归](../../../packages/cli/__tests__/unit/background-launch-policy-roundtrip-regression.test.js) 6/6；[入口定制回归](../../../packages/cli/__tests__/unit/agent-customization-options.test.js) 5/5 | 明确冻结项目与修复后产品的不同身份，重新生成并验收，不能靠宿主升级补写旧项目通过 |
+| `first-run-darwin-vscode` | 复用完整历史分叉产品修复；独立覆盖真实历史导入及错误来源、摘要、截断的拒绝                                                                                                                                | [历史导入回归](../../../packages/cli/__tests__/unit/session-history-import-regression.test.js) 4/4                                                                                                           | 在独立干净 macOS / VS Code 环境重新完成首次安装及对应任务验收                    |
+
+工程归档记录定向回归 **28/28**、相关回归 **155 通过 / 1 个既有平台 skip**、原验收器 **5/5** 个行为变异被拒绝，并拒绝撤销完整历史分叉修复的模拟；不同套件可能重叠，不相加。详见[工程报告][repair]及[机器可读证据][repair-json]。这些工程检查没有新增模型请求。
+
+本次在标准 Windows 权限环境重新运行上述六文件，实际 **28/28、零失败、零跳过，exit 0**。此前受限环境运行为 21 通过、7 失败；7 项均停在 `owner-only native ACL verification failed`，未进入业务断言。保留该环境差异，不以禁用 ACL 或改动测试取得通过。修复所涉 4 个生产文件与工程归档 SHA-256 一致；图片测试文件因 `.136` BigInt 夹具修正而不同。
+
+```powershell
+# 工作目录：packages/cli
+npx.cmd --no-install vitest run __tests__/unit/session-branch-ownership-regression.test.js __tests__/unit/session-history-import-regression.test.js __tests__/unit/image-pinned-handle-regression.test.js __tests__/unit/headless-approval-ownership-regression.test.js __tests__/unit/background-launch-policy-roundtrip-regression.test.js __tests__/unit/agent-customization-options.test.js --maxWorkers=3
+```
+
+### 8.5 历史证据与完成边界
+
+| 范围                       | 已核实情况                                                                                                                                   | 对当前完成数的影响                                                           |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 火山自动候选               | [历史 32 项交付索引][accepted32]加[`.128` 账本][round128]新增 2 项，累计 34/45；[`.131` 续测][volc131]及[`.132` 续测][volc132]未新增自动合格 | 单列保留，不与 OpenAI 相加，不将历史失败覆盖为通过                           |
+| 原冻结项目上的人工辅助交付 | `verify-04`、`07`、`09`、`10`、`13` 已安装；[五项安装与独立复核][assisted5]保留原 Docker 检查及适配限制                                      | 属于辅助工程交付，不计为原自动模型候选成功，也不替代完整首次安装旅程         |
+| 最新五项工程修复           | 当前代码六文件 28/28；历史工程变异控制通过；未开展新的五项模型复测                                                                           | OpenAI 累计仍为 40/45，剩余 5 项                                             |
+| 费用                       | `.133` 598/598 请求用量完整，token 估算 $30.660472；`.135` 100/100，估算 $5.880530；实际账单均为 `null`                                      | 两轮费用各按原记录，不把估算、未知账单或不同 provider 结果合并为正式比较结论 |
+| 冻结正式计划               | 原 `tasks.json`、`plan.json`、摘要、预算及正式就绪状态保持原记录                                                                             | 正式 `NOT_RUN`，0/36、0/9；本文文档更新与本机回归不增加正式完成数            |
+
+本次更新仅核对仓库代码、现有验收归档和定向本机回归，没有调用模型、重新派发付费任务或修改冻结计划与历史验收记录。
+
+[openai133]: ./verify01-openai-133/run-41117741513/REPORT.md
+[openai133-json]: ./verify01-openai-133/run-41117741513/results.json
+[openai135]: ./verify01-openai-135/retest-six-99b93fc209/REPORT.md
+[openai135-json]: ./verify01-openai-135/retest-six-99b93fc209/results.json
+[repair]: ./verify01-openai-135/five-failure-repair/REPORT.md
+[repair-json]: ./verify01-openai-135/five-failure-repair/engineering-evidence.json
+[check-verify-08]: ./verify01-openai-135/retest-six-99b93fc209/receipts/verify-08-check.json
+[check-verify-13]: ./verify01-openai-135/retest-six-99b93fc209/receipts/verify-13-check.json
+[check-verify-19]: ./verify01-openai-135/retest-six-99b93fc209/receipts/verify-19-check.json
+[check-verify-36]: ./verify01-openai-135/retest-six-99b93fc209/receipts/verify-36-check.json
+[check-first-run-darwin-vscode]: ./verify01-openai-135/retest-six-99b93fc209/receipts/first-run-darwin-vscode-check.json
 [accepted32]: ./evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json
 [round128]: ./evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028.json
-[followup127]: ./evidence/recovery-2026-10-27/remaining-127-followup-results.json
-[review128]: ../cli-ide-review128-task-progress-2026-10-28.md
-[completion128]: ../cli-ide-task-completion-progress-2026-10-28.md
-[recovery33]: ./evidence/recovery-2026-10-26/archived-reply-success/result.json
+[volc131]: ../cli-ide-native-retest131-progress-2026-10-29.md
+[volc132]: ../cli-ide-native132-first-run-progress-2026-10-30.md
+[assisted5]: ../cli-ide-assisted-0413-install-progress-2026-10-30.md
+[readiness]: ./verify01-plan-2026-10-13-volcengine/execution-readiness.json

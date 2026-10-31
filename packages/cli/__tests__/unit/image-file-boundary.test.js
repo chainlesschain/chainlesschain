@@ -118,6 +118,31 @@ describe("CLI final image input boundary", () => {
     expect(closeSync).toHaveBeenCalledOnce();
   });
 
+  it.each(["mtimeMs", "ctimeMs"])(
+    "rejects a same-size image whose pinned handle %s changes",
+    (field) => {
+      const io = imageFsFixture();
+      let stats = 0;
+      const baseStat = io.fstatSync;
+      io.fstatSync = vi.fn((fd) => ({
+        ...baseStat(fd),
+        [field]: ++stats === 1 ? 1 : 2,
+      }));
+      io.closeSync = vi.fn();
+      // The bytes, header, size and handle remain identical. Only the metadata
+      // transition distinguishes this raced input from the valid control.
+      expect(() => resolveImages(["stable.png"], { fs: io })).toThrow(
+        /changed while being read/,
+      );
+      expect(io.fstatSync).toHaveBeenCalledTimes(2);
+      expect(io.closeSync).toHaveBeenCalledOnce();
+      const valid = imageFsFixture();
+      expect(resolveImages(["stable.png"], { fs: valid })[0].data).toBe(
+        PNG_BYTES.toString("base64"),
+      );
+    },
+  );
+
   it("supports short reads and rejects a truncated file", () => {
     const target = file("short-read.png");
     const readSync = (fd, data, offset, length, position) =>

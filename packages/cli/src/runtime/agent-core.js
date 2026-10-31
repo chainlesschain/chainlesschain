@@ -12375,7 +12375,10 @@ export async function chatWithTools(rawMessages, options) {
           ),
         {
           signal,
-          retries: options.workflowEffectId ? 0 : undefined,
+          retries:
+            options.workflowEffectId || options.disableTransportRetry === true
+              ? 0
+              : undefined,
           strictRetryObserver: options.strictUsageTelemetry === true,
           ...(typeof options.onStreamRetry === "function"
             ? {
@@ -12527,7 +12530,10 @@ export async function chatWithTools(rawMessages, options) {
           ),
         {
           signal,
-          retries: options.workflowEffectId ? 0 : undefined,
+          retries:
+            options.workflowEffectId || options.disableTransportRetry === true
+              ? 0
+              : undefined,
           strictRetryObserver: options.strictUsageTelemetry === true,
           ...(typeof options.onStreamRetry === "function"
             ? {
@@ -12655,7 +12661,10 @@ export async function chatWithTools(rawMessages, options) {
           ),
         {
           signal,
-          retries: options.workflowEffectId ? 0 : undefined,
+          retries:
+            options.workflowEffectId || options.disableTransportRetry === true
+              ? 0
+              : undefined,
           strictRetryObserver: options.strictUsageTelemetry === true,
           ...(typeof options.onStreamRetry === "function"
             ? {
@@ -12671,34 +12680,72 @@ export async function chatWithTools(rawMessages, options) {
       );
     }
 
-    const response = await providerFetch(`${url}/responses`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-        ...(supportsOpenAIRequestIdentity && providerRequestId
-          ? { "X-Client-Request-Id": providerRequestId }
+    // A JSON-body disconnect has produced no accepted output or executable
+    // tools. Apply the same bounded transport retry and usage settlement used
+    // by streaming; HTTP/provider verdicts and governed workflow calls retain
+    // their existing no-replay rules.
+    return await _retryStreamingChat(
+      (attempt = 0) =>
+        _withResponsesRequestDeadline(
+          async (requestSignal) => {
+            const requestId = supportsOpenAIRequestIdentity
+              ? _physicalProviderRequestId(providerRequestId, attempt)
+              : null;
+            const response = await providerFetch(`${url}/responses`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${key}`,
+                ...(requestId ? { "X-Client-Request-Id": requestId } : {}),
+              },
+              signal: requestSignal,
+              body: JSON.stringify(responseBody),
+            });
+            if (!response.ok) {
+              throw await createProviderResponseError(provider, response);
+            }
+            const retryMetadata = captureStreamRetryMetadata(response);
+            try {
+              const data = await response.json();
+              const out = normalizeOpenAIResponsesResponse(data);
+              if (out.usage)
+                out.usage = preserveRequestedServiceTierEvidence(
+                  out.usage,
+                  options.serviceTier,
+                );
+              delete out.responseId;
+              const providerReceipt = supportsOpenAIRequestIdentity
+                ? _openAIProviderRequestReceipt(response, data, requestId)
+                : null;
+              if (providerReceipt) out.providerReceipt = providerReceipt;
+              return out;
+            } catch (error) {
+              attachStreamRetryMetadata(error, retryMetadata);
+              throw error;
+            }
+          },
+          signal,
+          options.streamStallTimeoutMs,
+        ),
+      {
+        signal,
+        retries:
+          options.workflowEffectId || options.disableTransportRetry === true
+            ? 0
+            : undefined,
+        strictRetryObserver: options.strictUsageTelemetry === true,
+        ...(typeof options.onStreamRetry === "function"
+          ? {
+              onRetry: (attempt, error, telemetry) =>
+                options.onStreamRetry(attempt, error, {
+                  ...telemetry,
+                  provider,
+                  model: effectiveModel,
+                }),
+            }
           : {}),
       },
-      signal,
-      body: JSON.stringify(responseBody),
-    });
-    if (!response.ok) {
-      throw await createProviderResponseError(provider, response);
-    }
-    const data = await response.json();
-    const out = normalizeOpenAIResponsesResponse(data);
-    if (out.usage)
-      out.usage = preserveRequestedServiceTierEvidence(
-        out.usage,
-        options.serviceTier,
-      );
-    delete out.responseId;
-    const providerReceipt = supportsOpenAIRequestIdentity
-      ? _openAIProviderRequestReceipt(response, data, providerRequestId)
-      : null;
-    if (providerReceipt) out.providerReceipt = providerReceipt;
-    return out;
+    );
   }
 
   // Real token streaming (--include-partial-messages) for every OpenAI-compatible
@@ -12733,7 +12780,10 @@ export async function chatWithTools(rawMessages, options) {
         ),
       {
         signal,
-        retries: options.workflowEffectId ? 0 : undefined,
+        retries:
+          options.workflowEffectId || options.disableTransportRetry === true
+            ? 0
+            : undefined,
         strictRetryObserver: options.strictUsageTelemetry === true,
         ...(typeof options.onStreamRetry === "function"
           ? {
@@ -13047,6 +13097,36 @@ const STREAM_STALL_MS = 20000;
 const STREAM_STALL_TIMEOUT_MS = 180000;
 const _STREAM_STALL = Symbol("stream-stall");
 
+/** Bound the whole JSON attempt, including headers and a stalled body read. */
+async function _withResponsesRequestDeadline(
+  operation,
+  signal,
+  configuredTimeout,
+) {
+  const timeoutMs = configuredTimeout ?? STREAM_STALL_TIMEOUT_MS;
+  if (timeoutMs === 0) return operation(signal);
+  if (!Number.isFinite(timeoutMs) || timeoutMs < 0 || timeoutMs > 2_147_483_647)
+    throw new RangeError("Invalid Responses request timeout");
+  const controller = new AbortController();
+  const requestSignal = signal
+    ? AbortSignal.any([signal, controller.signal])
+    : controller.signal;
+  const timer = setTimeout(() => {
+    const error = new Error(
+      "OpenAI Responses request timed out before its complete response was received",
+    );
+    error.code = "ETIMEDOUT";
+    controller.abort(error);
+  }, timeoutMs);
+  timer.unref?.();
+  try {
+    throwIfAborted(requestSignal);
+    return await raceWithAbort(operation(requestSignal), requestSignal);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Run a streaming chat attempt with bounded auto-retry on transient API
  * connection drops (Claude-Code 2.1.181: "auto-retry for API connection drops
@@ -13176,7 +13256,9 @@ export async function* _iterateStreamWithStall(reader, opts = {}) {
       // socket) and throw a retryable error the dispatch seam re-issues.
       if (timeoutMs && elapsed >= timeoutMs) {
         try {
-          await reader.cancel();
+          // Cancellation itself can hang on a broken transport. Observe its
+          // rejection, but never let it postpone the authoritative timeout.
+          void Promise.resolve(reader.cancel()).catch(() => {});
         } catch {
           /* best-effort release — the throw below is what matters */
         }
@@ -13474,7 +13556,7 @@ async function _chatOpenAIResponsesStreaming(
   const decoder = new TextDecoder();
   let buf = "";
   try {
-    for await (const value of _iterateStreamWithStall(reader, {
+    responses: for await (const value of _iterateStreamWithStall(reader, {
       onStall,
       stallMs,
       stallTimeoutMs,
@@ -13485,6 +13567,22 @@ async function _chatOpenAIResponsesStreaming(
       for (const line of lines) {
         reduceOpenAIResponsesStreamLine(state, line, ui.onToken, ui.onThinking);
         await ui.settle();
+        if (state.terminalError) throw state.terminalError;
+        if (state.normalized) {
+          // response.completed/incomplete is authoritative. Some gateways
+          // leave the HTTP stream alive after it; socket EOF is not required.
+          // Observe an already-queued transport error (especially cancellation)
+          // without waiting for a pending trailing read to finish.
+          await Promise.race([reader.read(), Promise.resolve()]);
+          throwIfAborted(signal);
+          try {
+            void Promise.resolve(reader.cancel()).catch(() => {});
+          } catch {
+            // The terminal response is already complete; cleanup is best effort.
+          }
+          buf = "";
+          break responses;
+        }
       }
     }
     if (buf.trim()) {
@@ -13526,6 +13624,12 @@ async function _chatOpenAIResponsesStreaming(
     );
     if (providerReceipt) out.providerReceipt = providerReceipt;
     return out;
+  } finally {
+    try {
+      reader.releaseLock?.();
+    } catch {
+      // A cancelled or still-settling reader can reject lock release.
+    }
   }
   const out = finalizeOpenAIResponsesStream(state);
   if (out.usage)
@@ -14518,6 +14622,9 @@ async function _getAutoCompactor(options) {
                     onToken: undefined,
                     onStall: undefined,
                     onStreamRetry: undefined,
+                    // Summary spend is settled once at the compactor boundary.
+                    // A second transport attempt would bypass that accounting.
+                    disableTransportRetry: true,
                     providerRequestId:
                       requestBinding?.providerRequestId || undefined,
                     maxOutputTokens,
@@ -15847,6 +15954,9 @@ export async function* agentLoop(messages, options) {
                   reason:
                     stats.summaryUsageUnknownReason ||
                     "provider_transport_outcome_unknown",
+                  ...(stats.summaryProviderError
+                    ? { providerError: stats.summaryProviderError }
+                    : {}),
                 };
               }
             }
@@ -15953,6 +16063,9 @@ export async function* agentLoop(messages, options) {
                   ? compactionUsageCall.model
                   : stats.summaryModel || options.model || null,
               reason: unknownReason,
+              ...(stats.summaryProviderError
+                ? { providerError: stats.summaryProviderError }
+                : {}),
               code:
                 unknownReason === "provider_usage_not_reported"
                   ? "provider_usage_missing"

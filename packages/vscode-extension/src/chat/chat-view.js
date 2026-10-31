@@ -18,6 +18,7 @@ const {
 } = require("./permission-mode-state");
 const {
   acceptTranscriptInputReceipt,
+  acceptTranscriptToolRoundReceipt,
   appendTranscript,
   loadTranscriptPage,
 } = require("./transcript-cache");
@@ -29,7 +30,7 @@ const {
 const { AgentChatSession } = require("./agent-session");
 const {
   boundedErrorCode,
-  isPersistenceResult,
+  isSessionReviewResult,
   errorDiagnostic,
 } = require("./agent-diagnostics");
 const {
@@ -1178,6 +1179,37 @@ class ChatViewProvider {
           });
           return;
         }
+        if (
+          baseline &&
+          page.coverage?.kind === "snapshot-boundary" &&
+          conv.transcript?.some(
+            (row) =>
+              !row.id &&
+              !row.eventRef &&
+              ["assistant", "tool"].includes(row.role),
+          )
+        ) {
+          // Older hosts cannot associate snapshot items with live output.
+          // Keep that output and its diagnostics; never guess by matching text
+          // or append an entire replacement snapshot after a process exit.
+          if (syncOnly) {
+            if (conv.transcriptSnapshotGeneration !== page.generation) {
+              conv.transcriptSnapshotGeneration = page.generation;
+              this._postFrom(conv.id, {
+                kind: "info",
+                text: "Saved conversation context changed. Select Latest messages to view the saved snapshot.",
+              });
+            }
+          } else {
+            conv.transcriptBrowsingOlder = true;
+            this._postFromTranscript(conv, {
+              ...page,
+              savedSnapshot: true,
+              replaceView: true,
+            });
+          }
+          return;
+        }
         mergeTranscript(conv, page, { baseline: !!baseline });
         revision = conv.transcriptRevision;
         if (!conv.transcriptBrowsingOlder)
@@ -1339,6 +1371,7 @@ class ChatViewProvider {
     conv.transcriptRevision = (conv.transcriptRevision || 0) + 1;
     conv.transcriptRequest = null;
     conv.transcriptAwaiting = false;
+    conv.transcriptSnapshotGeneration = null;
     this._stopLoop(conv.id);
     this._lastCallUsage.delete(conv.id);
     this._convs.resetTurnState(conv.id);
@@ -1381,9 +1414,10 @@ class ChatViewProvider {
       )
         return;
       acceptTranscriptInputReceipt(conv, evt, sessionToken);
+      acceptTranscriptToolRoundReceipt(conv, evt, sessionToken);
       if (
         evt?.type === "session_error" ||
-        isPersistenceResult(evt) ||
+        isSessionReviewResult(evt) ||
         (evt?.type === "result" && evt.acceptance === "unknown")
       ) {
         this._pauseLoopForSessionReview(convId);
@@ -1511,7 +1545,7 @@ class ChatViewProvider {
       ) {
         conv.modeStatus = "failed";
         conv.modeError = String(
-          isPersistenceResult(evt)
+          isSessionReviewResult(evt)
             ? errorDiagnostic(evt).text
             : evt.error || evt.result || "Agent startup failed",
         ).slice(0, 500);
@@ -1522,7 +1556,11 @@ class ChatViewProvider {
       // means setup is needed — surface the guided-setup card instead of a bare
       // error. The auth half mirrors the JetBrains panel's hint so a bare
       // "Anthropic error: 401" (no "api key" text) still triggers the card.
-      if (evt?.type === "result" && evt.is_error && !isPersistenceResult(evt)) {
+      if (
+        evt?.type === "result" &&
+        evt.is_error &&
+        !isSessionReviewResult(evt)
+      ) {
         const reason = String(evt.error || evt.result || "");
         if (
           /fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT/i.test(reason) ||
@@ -2348,6 +2386,8 @@ class ChatViewProvider {
     conv.unconfirmedSessionSlashCommands = [];
     let session;
     let exited = false;
+    let reportedSessionStop = false;
+    const onEvent = this._makeOnEvent(conv.id, sessionToken);
     try {
       session = this._createSession({
         command: this._cliCommand(),
@@ -2402,7 +2442,26 @@ class ChatViewProvider {
             ? { CC_PROJECT_MEMORY: "lean" }
             : {}),
         },
-        onEvent: this._makeOnEvent(conv.id, sessionToken),
+        onEvent: (event) => {
+          if (
+            event?.type === "result" &&
+            event.session_id &&
+            event.session_id !== conv.sessionId
+          )
+            return;
+          // Only a terminal result from this child can explain its exit. Any
+          // subsequent activity invalidates that explanation.
+          if (event?.type === "result") {
+            reportedSessionStop = isSessionReviewResult(event);
+          } else if (
+            ["user", "assistant", "stream_event", "tool_use"].includes(
+              event?.type,
+            )
+          ) {
+            reportedSessionStop = false;
+          }
+          onEvent(event);
+        },
         onStderr: (line) => {
           if (conv._sessionToken === sessionToken) {
             this._postFrom(conv.id, { kind: "stderr", text: line });
@@ -2416,14 +2475,23 @@ class ChatViewProvider {
           }
           if (code !== 0 || signal || current.turnActive) {
             this._pauseLoopForSessionReview(conv.id);
-            const safeSignal = boundedErrorCode(signal);
-            const exitCode = Number.isSafeInteger(code) ? code : "unknown";
-            this._postFrom(conv.id, {
-              kind: "error",
-              code: "CC_AGENT_PROCESS_EXITED",
-              ...(safeSignal ? { signal: safeSignal } : {}),
-              text: `Agent exited [CC_AGENT_PROCESS_EXITED] (exit: ${exitCode}${safeSignal ? `, signal: ${safeSignal}` : ""}). Inspect the saved session before continuing.`,
-            });
+            if (
+              !(
+                reportedSessionStop &&
+                code === 1 &&
+                !signal &&
+                !current.turnActive
+              )
+            ) {
+              const safeSignal = boundedErrorCode(signal);
+              const exitCode = Number.isSafeInteger(code) ? code : "unknown";
+              this._postFrom(conv.id, {
+                kind: "error",
+                code: "CC_AGENT_PROCESS_EXITED",
+                ...(safeSignal ? { signal: safeSignal } : {}),
+                text: `Agent exited [CC_AGENT_PROCESS_EXITED] (exit: ${exitCode}${safeSignal ? `, signal: ${safeSignal}` : ""}). Inspect the saved session before continuing.`,
+              });
+            }
           }
           this._questions.archiveConversation(current, {
             reason: "Agent exited; saved answer text remains editable",
@@ -4986,6 +5054,16 @@ class ChatViewProvider {
         }
       }
     } else if (m.type === "transcriptPage") {
+      if (m.live === true) {
+        const conv = this._activeConv();
+        conv.transcriptBrowsingOlder = false;
+        this._postFromTranscript(conv, {
+          ...conv.transcriptPageMetadata,
+          messages: conv.transcript || [],
+          replaceView: true,
+        });
+        return;
+      }
       this._restoreTranscript(
         this._activeConv(),
         typeof m.cursor === "string" ? m.cursor : null,

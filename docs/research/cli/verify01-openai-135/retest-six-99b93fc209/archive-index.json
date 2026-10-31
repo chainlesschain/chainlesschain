@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "source": "99b93fc209678e5e372ec8673e2b9ec31c0bd762",
+  "archivedAt": "2026-10-31T06:24:56.207Z",
+  "unmodifiedEvidence": true,
+  "installedOrPatchedCandidates": false,
+  "credentialScanPassed": true,
+  "files": [
+    {
+      "sampleId": "verify-08",
+      "kind": "unmodified-candidate-source",
+      "originalFile": "packages/cli/__tests__/verify-08.test.js",
+      "path": "candidates/verify-08/verify-08.test.js.txt",
+      "digest": "sha256:65c05a42a0cbd09290f0e447ae9d6367b5b6310717463781a7a37946f26980ba",
+      "bytes": 10570
+    },
+    {
+      "sampleId": "verify-08",
+      "kind": "independent-setup",
+      "path": "receipts/verify-08-setup.json",
+      "digest": "sha256:79c7192504728840854dd69dfc43983598f3855b0c38868b54ab4641ae461dff",
+      "bytes": 31654
+    },
+    {
+      "sampleId": "verify-08",
+      "kind": "independent-check",
+      "path": "receipts/verify-08-check.json",
+      "digest": "sha256:3bc953d4d183062d0ff938b73636521b9bd4fac27a3f833729a6106574a217ef",
+      "bytes": 26627
+    },
+    {
+      "sampleId": "verify-13",
+      "kind": "unmodified-candidate-source",
+      "originalFile": "packages/cli/__tests__/verify-13.test.js",
+      "path": "candidates/verify-13/verify-13.test.js.txt",
+      "digest": "sha256:375c7aae7c919c7fd1aded4e945b91c6323ad3267c94bcb9d5ca67910ce281f3",
+      "bytes": 8255
+    },
+    {
+      "sampleId": "verify-13",
+      "kind": "independent-setup",
+      "path": "receipts/verify-13-setup.json",
+      "digest": "sha256:671fb01f157c87251889288b327638823d4a891d0081b3732922248799982697",
+      "bytes": 15543
+    },
+    {
+      "sampleId": "verify-13",
+      "kind": "independent-check",
+      "path": "receipts/verify-13-check.json",
+      "digest": "sha256:7861e0e4831c66550e42dc9c471c0368226fb9d330b652cf9ba32f74c2ae34c1",
+      "bytes": 13937
+    },
+    {
+      "sampleId": "verify-19",
+      "kind": "unmodified-candidate-source",
+      "originalFile": "packages/cli/__tests__/verify-19.test.js",
+      "path": "candidates/verify-19/verify-19.test.js.txt",
+      "digest": "sha256:c83a06ca228722d544aef47a15de0fc4afb4b9cf9c645eccbd91d4ca457612b1",
+      "bytes": 6735
+    },
+    {
+      "sampleId": "verify-19",
+      "kind": "independent-setup",
+      "path": "receipts/verify-19-setup.json",
+      "digest": "sha256:303e8f2d29a743303d0541b64fd548cd2a4154c183a9e8c682d8acbb3aabd79d",
+      "bytes": 17203
+    },
+    {
+      "sampleId": "verify-19",
+      "kind": "independent-check",
+      "path": "receipts/verify-19-check.json",
+      "digest": "sha256:810d4341c486af8b15bd215f857a3158b7ba3006e09fd303725a9310861ab193",
+      "bytes": 12176
+    },
+    {
+      "sampleId": "verify-26",
+      "kind": "unmodified-candidate-source",
+      "originalFile": "packages/vscode-extension/__tests__/verify-26.test.js",
+      "path": "candidates/verify-26/verify-26.test.js.txt",
+      "digest": "sha256:28bee98e599c982b4a4cbe7e9b62f41c4f30ddc463f6b4044239913fee3b66e3",
+      "bytes": 5228
+    },
+    {
+      "sampleId": "verify-26",
+      "kind": "independent-setup",
+      "path": "receipts/verify-26-setup.json",
+      "digest": "sha256:432477931d8254a7bf9bf4f231fd2d60dfe4118cf124ea6c4ec8811b7498196e",
+      "bytes": 16785
+    },
+    {
+      "sampleId": "verify-26",
+      "kind": "independent-check",
+      "path": "receipts/verify-26-check.json",
+      "digest": "sha256:fa8a45450b13e91aac0aa019c6f06fbbd6b0c13583e1f79f1bc52fdce4d7d35d",
+      "bytes": 24905
+    },
+    {
+      "sampleId": "verify-36",
+      "kind": "unmodified-candidate-source",
+      "originalFile": "packages/cli/__tests__/verify-36.test.js",
+      "path": "candidates/verify-36/verify-36.test.js.txt",
+      "digest": "sha256:0df1f16c245a038a2dea4650835986459fda6377ff1824d74132e3d3fc44e59b",
+      "bytes": 10288
+    },
+    {
+      "sampleId": "verify-36",
+      "kind": "independent-setup",
+      "path": "receipts/verify-36-setup.json",
+      "digest": "sha256:6993203beb0f7f3e45b7ed8703c81632574dee20df8ba298685e98457e97f7ae",
+      "bytes": 13795
+    },
+    {
+      "sampleId": "verify-36",
+      "kind": "independent-check",
+      "path": "receipts/verify-36-check.json",
+      "digest": "sha256:1f7f4f262662b056ab939d858ea412ea826014a8d0511bf1c85140f9bc88ff1a",
+      "bytes": 41310
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "kind": "unmodified-candidate-source",
+      "originalFile": "packages/cli/__tests__/verify-08.test.js",
+      "path": "candidates/first-run-darwin-vscode/verify-08.test.js.txt",
+      "digest": "sha256:b6d36e48457ba48258132a54e21b342bbf8ed0985623f3b084be40d722b381c1",
+      "bytes": 9205
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "kind": "independent-setup",
+      "path": "receipts/first-run-darwin-vscode-setup.json",
+      "digest": "sha256:f0438ec7184f404526aba11c6958988f712533ac25b748df1127536feffd5d40",
+      "bytes": 31667
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "kind": "independent-check",
+      "path": "receipts/first-run-darwin-vscode-check.json",
+      "digest": "sha256:49f2a1fb0f619392c9a85bdb9f1f3cda5fb24e6ca17ff76c65641e1133c5a28e",
+      "bytes": 26742
+    }
+  ]
+}
