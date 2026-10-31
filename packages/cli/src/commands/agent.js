@@ -390,6 +390,7 @@ export function registerAgentCommand(program, dependencies = {}) {
       "--bare",
       "Everything --safe-mode disables PLUS skills, plugins and MCP/IDE auto-connect — minimal fast surface for scripted calls (explicit --mcp-config still loads; permission rules STAY active)",
     )
+    .option("--no-plugins", "Disable plugin customizations for this run")
     .option(
       "--ephemeral",
       "No session persistence: nothing is written to the session store (headless; a --resume id still replays history read-only)",
@@ -618,6 +619,10 @@ export function registerAgentCommand(program, dependencies = {}) {
     .option(
       "--no-mcp",
       "Don't auto-connect MCP servers registered with `cc mcp add --auto-connect` (--mcp-config still loads)",
+    )
+    .option(
+      "--no-mcp-auto-connect",
+      "Disable implicit MCP and editor discovery (explicit --mcp-config or bridge flags still apply)",
     )
     .option(
       "--ide",
@@ -864,6 +869,8 @@ export function registerAgentCommand(program, dependencies = {}) {
       // 2.1.169 parity): flip every customization kill-switch BEFORE anything
       // loads. Permission rules stay active. --bare (CC_BARE) is safe mode
       // PLUS skills, plugins and MCP/IDE/PDH/JetBrains auto-connect off.
+      const { applyCustomizationOptions } = await import("../lib/safe-mode.js");
+      applyCustomizationOptions(options);
       let safeIsolationRequested = options.permissionMode === "auto";
       {
         const {

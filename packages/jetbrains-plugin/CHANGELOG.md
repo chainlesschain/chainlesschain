@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.189] - CLI .134 Responses recovery pairing (candidate, 2026-10-31)
+
+- Recommend CLI 0.166.134 and pair with Open VSX 0.37.172 after upstream publication is verified. Kernel remains 0.1.11.
+- Carry the CLI fixes for Responses disconnect recovery, bounded request/reader settlement and saved launch policy preservation. No independent JetBrains UI change is included.
+- Historical OpenAI task acceptance remains 39/45; publication and controlled regressions do not add accepted model tasks.
+
 ## [0.4.188] - CLI .133 model compatibility and scoped mutation pairing (published, 2026-10-30)
 
 - Recommend public CLI 0.166.133; pair with public Open VSX 0.37.171. Kernel remains 0.1.11.

@@ -15,6 +15,7 @@ import {
   captureBackgroundLaunchProfile,
   fingerprintBackgroundLaunchProfile,
   refreshBackgroundLaunchProfileSources,
+  normalizeBackgroundLaunchProfile,
   sanitizeBackgroundBaseUrl,
   stripBackgroundLaunchSecrets,
   verifyBackgroundLaunchProfileSources,
@@ -308,6 +309,34 @@ describe("background launch profile", () => {
       fingerprintBackgroundLaunchProfile(profile),
     );
   });
+
+  it("preserves an explicit empty tool allowlist in resumed argv", () => {
+    const profile = capture(["agent", "--allowed-tools", ""]);
+    expect(profile.tools.allowed).toEqual([]);
+    const argv = buildArgvFromBackgroundLaunchProfile(profile);
+    expect(
+      argv.slice(
+        argv.indexOf("--allowed-tools"),
+        argv.indexOf("--allowed-tools") + 2,
+      ),
+    ).toEqual(["--allowed-tools", ""]);
+    expect(capture(argv).tools.allowed).toEqual([]);
+  });
+
+  it.each([
+    ["permission", "mode", "corrupted-mode"],
+    ["sandbox", "mode", "corrupted-sandbox"],
+    ["budget", "maxCostUsd", -1],
+    ["budget", "maxTurns", -1],
+  ])(
+    "rejects a malformed persisted %s.%s instead of relaxing it",
+    (section, key, value) => {
+      const profile = capture(["agent"]);
+      profile[section][key] = value;
+      expect(() => normalizeBackgroundLaunchProfile(profile)).toThrow();
+      expect(() => buildArgvFromBackgroundLaunchProfile(profile)).toThrow();
+    },
+  );
 
   it("sanitizes base URLs and strips both API key argv forms", () => {
     expect(

@@ -278,6 +278,62 @@ describe("interactive approvals round-trip", () => {
     });
   }, 15_000);
 
+  it("does not execute the pending tool when cancellation races with a late positive verdict", async () => {
+    const input = new PassThrough();
+    const controller = new AbortController();
+    const decisions = [];
+    const events = [];
+    input.write(JSON.stringify({ type: "user", text: "RISKY" }) + "\n");
+    await runAgentHeadlessStream(
+      {
+        expandFileRefs: false,
+        interactiveApprovals: true,
+        settingsHooks: {},
+        signal: controller.signal,
+      },
+      {
+        bootstrap: async () => ({ db: null }),
+        getApprovalGate: async () => null,
+        input,
+        writeErr: () => {},
+        writeOut(line) {
+          const event = JSON.parse(line);
+          events.push(event);
+          if (event.type === "approval_request") {
+            // Both actions happen at the real pending-approval boundary.
+            controller.abort();
+            if (!input.destroyed)
+              input.write(
+                JSON.stringify({
+                  type: "approval",
+                  id: event.id,
+                  approve: true,
+                  binding: event.binding,
+                }) + "\n",
+              );
+          }
+        },
+        agentLoop: async function* (_messages, options) {
+          const accepted = await options.permissionConfirm({
+            toolCallId: "cancel-race",
+            tool: "run_shell",
+            args: { command: "echo fixed" },
+            riskLevel: "medium",
+          });
+          decisions.push(accepted);
+          yield {
+            type: "response-complete",
+            content: accepted ? "executed" : "denied",
+          };
+        },
+      },
+    );
+    expect(decisions).toEqual([false]);
+    expect(events.filter((e) => e.type === "approval_resolved")).toEqual([
+      expect.objectContaining({ approved: false }),
+    ]);
+  });
+
   it("deny: the tool gets false", async () => {
     const h = harness({
       inputGen: async function* () {

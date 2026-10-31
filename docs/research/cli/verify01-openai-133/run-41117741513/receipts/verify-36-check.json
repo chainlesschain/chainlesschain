@@ -1,0 +1,78 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-36",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 7,
+      "passed": 7,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 145,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 798,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":7,\"numPassedTests\":7,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793392951723,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile refuses to capture an ephemeral profile that resume cannot preserve\",\"status\":\"passed\",\"title\":\"refuses to capture an ephemeral profile that resume cannot preserve\",\"duration\":3.1481600000000185,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile captures a versioned effective envelope without prompt or credentials\",\"status\":\"passed\",\"title\":\"captures a versioned effective envelope without prompt or credentials\",\"duration\":13.898928000000012,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile does not persist parent-only background worktree switches\",\"status\":\"passed\",\"title\":\"does not persist parent-only background worktree switches\",\"duration\":3.9572599999999625,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile uses canonical JSON for stable fingerprints and changes on policy drift\",\"status\":\"passed\",\"title\":\"uses canonical JSON for stable fingerprints and changes on policy drift\",\"duration\":11.493370000000027,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile rebuilds resumable argv while keeping redacted values out\",\"status\":\"passed\",\"title\":\"rebuilds resumable argv while keeping redacted values out\",\"duration\":1.4307319999999777,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile detects configuration content changes and can refresh explicitly\",\"status\":\"passed\",\"title\":\"detects configuration content changes and can refresh explicitly\",\"duration\":4.46823999999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile sanitizes base URLs and strips both API key argv forms\",\"status\":\"passed\",\"title\":\"sanitizes base URLs and strips both API key argv forms\",\"duration\":1.0943579999999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793392952036,\"endTime\":1793392952076.0942,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/background-launch-profile.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 881,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":2,\"numFailedTests\":4,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793392952617,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-36: persisted launch policy identity\"],\"fullName\":\"verify-36: persisted launch policy identity retains explicit policy, ordered fallbacks and configuration identity through disk and argv\",\"status\":\"passed\",\"title\":\"retains explicit policy, ordered fallbacks and configuration identity through disk and argv\",\"duration\":21.137238000000025,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-36: persisted launch policy identity\"],\"fullName\":\"verify-36: persisted launch policy identity keeps an explicitly empty allowlist distinct from unrestricted tools\",\"status\":\"failed\",\"title\":\"keeps an explicitly empty allowlist distinct from unrestricted tools\",\"duration\":13.000713000000019,\"failureMessages\":[\"AssertionError: expected null to deeply equal []\\n    at /workspace/packages/cli/__tests__/verify-36.test.js:115:36\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-36: persisted launch policy identity\"],\"fullName\":\"verify-36: persisted launch policy identity rejects a corrupted persisted permission mode rather than selecting default\",\"status\":\"failed\",\"title\":\"rejects a corrupted persisted permission mode rather than selecting default\",\"duration\":4.718678000000011,\"failureMessages\":[\"AssertionError: expected [Function] to throw an error\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1552:16)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/cli/__tests__/verify-36.test.js:125:64\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-36: persisted launch policy identity\"],\"fullName\":\"verify-36: persisted launch policy identity rejects a corrupted persisted sandbox mode rather than dropping strictness\",\"status\":\"failed\",\"title\":\"rejects a corrupted persisted sandbox mode rather than dropping strictness\",\"duration\":4.125106999999957,\"failureMessages\":[\"AssertionError: expected [Function] to throw an error\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1552:16)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/cli/__tests__/verify-36.test.js:135:64\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-36: persisted launch policy identity\"],\"fullName\":\"verify-36: persisted launch policy identity rejects a negative persisted budget rather than removing the resource limit\",\"status\":\"failed\",\"title\":\"rejects a negative persisted budget rather than removing the resource limit\",\"duration\":5.418473000000006,\"failureMessages\":[\"AssertionError: expected [Function] to throw an error\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1552:16)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/cli/__tests__/verify-36.test.js:145:64\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-36: persisted launch policy identity\"],\"fullName\":\"verify-36: persisted launch policy identity accepts the current persisted version but rejects an unsupported version\",\"status\":\"passed\",\"title\":\"accepts the current persisted version but rejects an unsupported version\",\"duration\":3.450147999999956,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793392952907,\"endTime\":1793392952959.4502,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-36.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate or baseline regression failed"
+}

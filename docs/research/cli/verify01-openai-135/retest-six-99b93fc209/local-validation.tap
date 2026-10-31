@@ -1,0 +1,800 @@
+TAP version 13
+# Subtest: fetch diagnostics are default off and affect only actual model child launch
+ok 1 - fetch diagnostics are default off and affect only actual model child launch
+  ---
+  duration_ms: 10.1946
+  type: 'test'
+  ...
+# Subtest: startup marker proves enabled observation without modifying stdout or exit
+ok 2 - startup marker proves enabled observation without modifying stdout or exit
+  ---
+  duration_ms: 667.4048
+  type: 'test'
+  ...
+# Subtest: only allowlisted fields persist, hostile errors cannot leak data, and records are bounded
+ok 3 - only allowlisted fields persist, hostile errors cannot leak data, and records are bounded
+  ---
+  duration_ms: 401.6445
+  type: 'test'
+  ...
+# Subtest: sink open and write failure cannot replace application errors
+ok 4 - sink open and write failure cannot replace application errors
+  ---
+  duration_ms: 1048.8801
+  type: 'test'
+  ...
+# Subtest: actual local fetch rejection remains one request with unchanged original cause
+ok 5 - actual local fetch rejection remains one request with unchanged original cause
+  ---
+  duration_ms: 1913.5486
+  type: 'test'
+  ...
+# Subtest: IDE accepts the exact persistent session shutdown; default one-shot remains strict
+ok 6 - IDE accepts the exact persistent session shutdown; default one-shot remains strict
+  ---
+  duration_ms: 3.2172
+  type: 'test'
+  ...
+# Subtest: IDE rejects foreign shutdown identity, sequence, extra records and error terminals
+ok 7 - IDE rejects foreign shutdown identity, sequence, extra records and error terminals
+  ---
+  duration_ms: 1.6131
+  type: 'test'
+  ...
+# Subtest: independent dialect reassessment retains original failure and requires host, broker and scope
+ok 8 - independent dialect reassessment retains original failure and requires host, broker and scope
+  ---
+  duration_ms: 0.9396
+  type: 'test'
+  ...
+# Subtest: legacy Windows CP437 headers and UTF-8 PAX reconstruct exact bytes with distinct parents
+ok 9 - legacy Windows CP437 headers and UTF-8 PAX reconstruct exact bytes with distinct parents
+  ---
+  duration_ms: 1554.6516
+  type: 'test'
+  ...
+# Subtest: exact tested build is accepted without claiming Marketplace approval
+ok 10 - exact tested build is accepted without claiming Marketplace approval
+  ---
+  duration_ms: 3.7408
+  type: 'test'
+  ...
+# Subtest: build selection rejects unknown channels, sources, paths and versions
+ok 11 - build selection rejects unknown channels, sources, paths and versions
+  ---
+  duration_ms: 33.5746
+  type: 'test'
+  ...
+# Subtest: metadata rejects failed, unrelated, expired or substituted official artifacts
+ok 12 - metadata rejects failed, unrelated, expired or substituted official artifacts
+  ---
+  duration_ms: 6.1897
+  type: 'test'
+  ...
+# Subtest: installed archive requires explicit binding and exact original payload bytes
+ok 13 - installed archive requires explicit binding and exact original payload bytes
+  ---
+  duration_ms: 15.3362
+  type: 'test'
+  ...
+# Subtest: trace identity follows the selected provider and rejects mismatched usage
+ok 14 - trace identity follows the selected provider and rejects mismatched usage
+  ---
+  duration_ms: 4.8578
+  type: 'test'
+  ...
+# Subtest: OpenAI selection binds the model, endpoint and key slot without changing the original provider
+ok 15 - OpenAI selection binds the model, endpoint and key slot without changing the original provider
+  ---
+  duration_ms: 16.0768
+  type: 'test'
+  ...
+# Subtest: isolated OpenAI children receive only their broker capability in the correct provider slot
+ok 16 - isolated OpenAI children receive only their broker capability in the correct provider slot
+  ---
+  duration_ms: 19.443
+  type: 'test'
+  ...
+# Subtest: acceptance rejects a different provider, source, policy or package identity
+ok 17 - acceptance rejects a different provider, source, policy or package identity
+  ---
+  duration_ms: 20.4106
+  type: 'test'
+  ...
+# Subtest: explicit chain rejects duplicates, traversal and omitted current rounds
+ok 18 - explicit chain rejects duplicates, traversal and omitted current rounds
+  ---
+  duration_ms: 10.808
+  type: 'test'
+  ...
+# Subtest: paid retests reject the original release even if its manifest bytes change
+ok 19 - paid retests reject the original release even if its manifest bytes change
+  ---
+  duration_ms: 3.4107
+  type: 'test'
+  ...
+# Subtest: a separate pinned manifest selects new versions without changing the original
+ok 20 - a separate pinned manifest selects new versions without changing the original
+  ---
+  duration_ms: 24.4153
+  type: 'test'
+  ...
+# Subtest: manifest selection rejects arbitrary paths, traversal, and linked directories
+ok 21 - manifest selection rejects arbitrary paths, traversal, and linked directories
+  ---
+  duration_ms: 14.6017
+  type: 'test'
+  ...
+# Subtest: strict existing validators bind accepted files before selecting unfinished groups
+ok 22 - strict existing validators bind accepted files before selecting unfinished groups
+  ---
+  duration_ms: 3588.9945
+  type: 'test'
+  ...
+# Subtest: JetBrains execution shards isolate each unfinished sample without losing other groups
+ok 23 - JetBrains execution shards isolate each unfinished sample without losing other groups
+  ---
+  duration_ms: 1.6934
+  type: 'test'
+  ...
+# Subtest: an acceptance boolean without its bound checker evidence cannot suppress a task
+ok 24 - an acceptance boolean without its bound checker evidence cannot suppress a task
+  ---
+  duration_ms: 691.1575
+  type: 'test'
+  ...
+# Subtest: changed historical source binding cannot be reused as an accepted delivery
+ok 25 - changed historical source binding cannot be reused as an accepted delivery
+  ---
+  duration_ms: 219.1099
+  type: 'test'
+  ...
+# Subtest: generation rejects omitted IDs and every previously accepted candidate
+ok 26 - generation rejects omitted IDs and every previously accepted candidate
+  ---
+  duration_ms: 2763.7239
+  type: 'test'
+  ...
+# Subtest: next-round preparation cannot overwrite an old round name or reuse the original packages
+ok 27 - next-round preparation cannot overwrite an old round name or reuse the original packages
+  ---
+  duration_ms: 2605.1091
+  type: 'test'
+  ...
+# Subtest: new per-run verifier accepts real baseline, candidate, mutant and document receipts
+ok 28 - new per-run verifier accepts real baseline, candidate, mutant and document receipts
+  ---
+  duration_ms: 125.569
+  type: 'test'
+  ...
+# Subtest: archive bytes, raw digests, lengths and same-run path constraints are enforced
+ok 29 - archive bytes, raw digests, lengths and same-run path constraints are enforced
+  ---
+  duration_ms: 154.6993
+  type: 'test'
+  ...
+# Subtest: remote run ID/SHA, artifact metadata and exact manifest binding reject substitution
+ok 30 - remote run ID/SHA, artifact metadata and exact manifest binding reject substitution
+  ---
+  duration_ms: 365.2983
+  type: 'test'
+  ...
+# Subtest: modified candidate bytes and mismatched acceptance projections cannot become passes
+ok 31 - modified candidate bytes and mismatched acceptance projections cannot become passes
+  ---
+  duration_ms: 121.2662
+  type: 'test'
+  ...
+# Subtest: a rewritten passing receipt still must reject its behavioral mutants
+ok 32 - a rewritten passing receipt still must reject its behavioral mutants
+  ---
+  duration_ms: 96.5255
+  type: 'test'
+  ...
+# Subtest: missing acceptance cannot be relabeled as a completed or accepted run
+ok 33 - missing acceptance cannot be relabeled as a completed or accepted run
+  ---
+  duration_ms: 62.5305
+  type: 'test'
+  ...
+# Subtest: explicit partial collection retains unrequested samples and cannot become a completed round
+ok 34 - explicit partial collection retains unrequested samples and cannot become a completed round
+  ---
+  duration_ms: 184.2182
+  type: 'test'
+  ...
+# Subtest: complete archive-backed prior round adds accepted deliveries and advances the version floor
+ok 35 - complete archive-backed prior round adds accepted deliveries and advances the version floor
+  ---
+  duration_ms: 145.1256
+  type: 'test'
+  ...
+# Subtest: prior ledger chain rejects incomplete evidence, changed digests, cycles and forged acceptance
+ok 36 - prior ledger chain rejects incomplete evidence, changed digests, cycles and forged acceptance
+  ---
+  duration_ms: 546.8834
+  type: 'test'
+  ...
+# Subtest: new plan binds the verified accepted set and cannot overlap old ledger/archive paths
+ok 37 - new plan binds the verified accepted set and cannot overlap old ledger/archive paths
+  ---
+  duration_ms: 4.8198
+  type: 'test'
+  ...
+# Subtest: single-sample shards permit multiple runs per group with exact disjoint coverage
+ok 38 - single-sample shards permit multiple runs per group with exact disjoint coverage
+  ---
+  duration_ms: 3.2122
+  type: 'test'
+  ...
+# Subtest: local collector does not clobber existing ledger/archive bytes or checkpoint failed evidence
+ok 39 - local collector does not clobber existing ledger/archive bytes or checkpoint failed evidence
+  ---
+  duration_ms: 573.5923
+  type: 'test'
+  ...
+# Subtest: collector keeps sample-bound broker receipts and excludes raw requests and responses
+ok 40 - collector keeps sample-bound broker receipts and excludes raw requests and responses
+  ---
+  duration_ms: 955.6309
+  type: 'test'
+  ...
+# Subtest: archived partial round inherits only its two verified deliveries and stays incomplete
+ok 41 - archived partial round inherits only its two verified deliveries and stays incomplete
+  ---
+  duration_ms: 8357.3802
+  type: 'test'
+  ...
+# Subtest: supersession still verifies acceptance flags and archived bytes through the original strict validator
+ok 42 - supersession still verifies acceptance flags and archived bytes through the original strict validator
+  ---
+  duration_ms: 2713.5246
+  type: 'test'
+  ...
+# Subtest: obsolete partial-round disposition preserves failures, missing work and financial uncertainty
+ok 43 - obsolete partial-round disposition preserves failures, missing work and financial uncertainty
+  ---
+  duration_ms: 2.4863
+  type: 'test'
+  ...
+# Subtest: supersession rejects live remote work
+ok 44 - supersession rejects live remote work
+  ---
+  duration_ms: 1.3497
+  type: 'test'
+  ...
+# Subtest: supersession rejects unreconciled rerun
+ok 45 - supersession rejects unreconciled rerun
+  ---
+  duration_ms: 1.0747
+  type: 'test'
+  ...
+# Subtest: supersession rejects truncated inventory
+ok 46 - supersession rejects truncated inventory
+  ---
+  duration_ms: 1.2244
+  type: 'test'
+  ...
+# Subtest: supersession rejects uncollected remote run
+ok 47 - supersession rejects uncollected remote run
+  ---
+  duration_ms: 6.241
+  type: 'test'
+  ...
+# Subtest: supersession rejects missing source inventory
+ok 48 - supersession rejects missing source inventory
+  ---
+  duration_ms: 2.1962
+  type: 'test'
+  ...
+# Subtest: supersession rejects unknown local request
+ok 49 - supersession rejects unknown local request
+  ---
+  duration_ms: 3.8971
+  type: 'test'
+  ...
+# Subtest: supersession rejects omitted pending sample
+ok 50 - supersession rejects omitted pending sample
+  ---
+  duration_ms: 1.8307
+  type: 'test'
+  ...
+# Subtest: supersession rejects uncollected acceptance
+ok 51 - supersession rejects uncollected acceptance
+  ---
+  duration_ms: 1.1438
+  type: 'test'
+  ...
+# Subtest: supersession rejects claimed completion
+ok 52 - supersession rejects claimed completion
+  ---
+  duration_ms: 1.1934
+  type: 'test'
+  ...
+# Subtest: supersession rejects reset financial liability
+ok 53 - supersession rejects reset financial liability
+  ---
+  duration_ms: 0.9475
+  type: 'test'
+  ...
+# Subtest: supersession rejects fabricated billing reconciliation
+ok 54 - supersession rejects fabricated billing reconciliation
+  ---
+  duration_ms: 0.8246
+  type: 'test'
+  ...
+# Subtest: supersession rejects unpublished successor
+ok 55 - supersession rejects unpublished successor
+  ---
+  duration_ms: 1.5752
+  type: 'test'
+  ...
+# Subtest: supersession rejects unapproved JetBrains release
+ok 56 - supersession rejects unapproved JetBrains release
+  ---
+  duration_ms: 1.5631
+  type: 'test'
+  ...
+# Subtest: supersession rejects changed release archive
+ok 57 - supersession rejects changed release archive
+  ---
+  duration_ms: 1.085
+  type: 'test'
+  ...
+# Subtest: supersession rejects changed receipt bytes
+ok 58 - supersession rejects changed receipt bytes
+  ---
+  duration_ms: 1.222
+  type: 'test'
+  ...
+# Subtest: supersession rejects path traversal
+ok 59 - supersession rejects path traversal
+  ---
+  duration_ms: 12.6239
+  type: 'test'
+  ...
+# Subtest: supersession rejects post-closure observation
+ok 60 - supersession rejects post-closure observation
+  ---
+  duration_ms: 1.6404
+  type: 'test'
+  ...
+# Subtest: chain disposition requires both exact path and digest
+ok 61 - chain disposition requires both exact path and digest
+  ---
+  duration_ms: 2.5923
+  type: 'test'
+  ...
+# Subtest: OpenAI round covers exactly 36 ordinary and nine first-run samples without sharing JetBrains hosts
+ok 62 - OpenAI round covers exactly 36 ordinary and nine first-run samples without sharing JetBrains hosts
+  ---
+  duration_ms: 7.4197
+  type: 'test'
+  ...
+# Subtest: existing provider selections retain their exact matrix and explicit sample scope
+ok 63 - existing provider selections retain their exact matrix and explicit sample scope
+  ---
+  duration_ms: 4.5928
+  type: 'test'
+  ...
+# Subtest: manual OpenAI selector binds all cells to current packages, a dedicated key and one live attempt
+ok 64 - manual OpenAI selector binds all cells to current packages, a dedicated key and one live attempt
+  ---
+  duration_ms: 3778.1995
+  type: 'test'
+  ...
+# Subtest: explicit unfinished sample selection does not add first-run or completed peers
+ok 65 - explicit unfinished sample selection does not add first-run or completed peers
+  ---
+  duration_ms: 9.6295
+  type: 'test'
+  ...
+# Subtest: operator sample parser rejects empty and duplicate IDs before paid work
+ok 66 - operator sample parser rejects empty and duplicate IDs before paid work
+  ---
+  duration_ms: 3.5942
+  type: 'test'
+  ...
+# Subtest: subset acceptance requires the exact independent operator selection
+ok 67 - subset acceptance requires the exact independent operator selection
+  ---
+  duration_ms: 10.1499
+  type: 'test'
+  ...
+# Subtest: legacy full-group deliveries remain strict and cannot silently omit samples
+ok 68 - legacy full-group deliveries remain strict and cannot silently omit samples
+  ---
+  duration_ms: 2.494
+  type: 'test'
+  ...
+# Subtest: workflow validates a single matching host and entry before subset dispatch
+ok 69 - workflow validates a single matching host and entry before subset dispatch
+  ---
+  duration_ms: 10902.5536
+  type: 'test'
+  ...
+# knownfolders:engine-ready
+# knownfolders:before-security-command
+# knownfolders:after-security-command
+# Subtest: an unconfirmed host cleanup prevents subsequent sample work without retry
+ok 70 - an unconfirmed host cleanup prevents subsequent sample work without retry
+  ---
+  duration_ms: 4.8367
+  type: 'test'
+  ...
+# Subtest: package set selects exact complete versions and binds original manifest bytes
+ok 71 - package set selects exact complete versions and binds original manifest bytes
+  ---
+  duration_ms: 25.4672
+  type: 'test'
+  ...
+# Subtest: native archive extraction accepts absolute drive paths even under Git Bash PATH
+ok 72 - native archive extraction accepts absolute drive paths even under Git Bash PATH
+  ---
+  duration_ms: 169.697
+  type: 'test'
+  ...
+# Subtest: native extraction preserves git archive UTF-8 paths and frozen bytes
+ok 73 - native extraction preserves git archive UTF-8 paths and frozen bytes
+  ---
+  duration_ms: 1877.8382
+  type: 'test'
+  ...
+# Subtest: nine native strata select exactly 36 ordinary and nine independent first samples
+ok 74 - nine native strata select exactly 36 ordinary and nine independent first samples
+  ---
+  duration_ms: 14.4871
+  type: 'test'
+  ...
+# Subtest: full tree diff isolates IDE metadata but rejects unrelated source and linked candidates
+ok 75 - full tree diff isolates IDE metadata but rejects unrelated source and linked candidates
+  ---
+  duration_ms: 45.6827
+  type: 'test'
+  ...
+# Subtest: adapter preserves protocol identity and forces six-file tools/worklog off
+ok 76 - adapter preserves protocol identity and forces six-file tools/worklog off
+  ---
+  duration_ms: 1704.7292
+  type: 'test'
+  ...
+# Subtest: native review opt-in is strict and observation requires a runtime event
+ok 77 - native review opt-in is strict and observation requires a runtime event
+  ---
+  duration_ms: 1.1073
+  type: 'test'
+  ...
+# Subtest: dispatcher review opt-in preserves legacy argv and is journal-bound
+ok 78 - dispatcher review opt-in preserves legacy argv and is journal-bound
+  ---
+  duration_ms: 912.4432
+  type: 'test'
+  ...
+# Subtest: VSCode prompt preserves full UTF8 content up to 1 MiB and first-run deadline up to 30 minutes
+ok 79 - VSCode prompt preserves full UTF8 content up to 1 MiB and first-run deadline up to 30 minutes
+  ---
+  duration_ms: 13.0454
+  type: 'test'
+  ...
+# Subtest: failed JetBrains capture reads one raw JSONL stream and rejects ambiguous generations
+ok 80 - failed JetBrains capture reads one raw JSONL stream and rejects ambiguous generations
+  ---
+  duration_ms: 24.7127
+  type: 'test'
+  ...
+# Subtest: protocol conversion uses output only and Windows comparison leaves raw evidence unchanged
+ok 81 - protocol conversion uses output only and Windows comparison leaves raw evidence unchanged
+  ---
+  duration_ms: 5.9418
+  type: 'test'
+  ...
+# Subtest: native child storage recognizes its isolated profile and keeps ACL verification enabled
+ok 82 - native child storage recognizes its isolated profile and keeps ACL verification enabled
+  ---
+  duration_ms: 1185.1507
+  type: 'test'
+  ...
+# Subtest: Windows PowerShell KnownFolders and module cache remain outside the task workspace
+ok 83 - Windows PowerShell KnownFolders and module cache remain outside the task workspace
+  ---
+  duration_ms: 5397.828
+  type: 'test'
+  ...
+# Subtest: package set checker independently rejects missing, changed or mismatched version bindings
+ok 84 - package set checker independently rejects missing, changed or mismatched version bindings
+  ---
+  duration_ms: 35.8054
+  type: 'test'
+  ...
+# Subtest: accepts only exact bounded candidate bytes at the catalog path
+ok 85 - accepts only exact bounded candidate bytes at the catalog path
+  ---
+  duration_ms: 22.4296
+  type: 'test'
+  ...
+# Subtest: canonical source stays exact and Windows mismatches require archive-derived evidence
+ok 86 - canonical source stays exact and Windows mismatches require archive-derived evidence
+  ---
+  duration_ms: 1.3535
+  type: 'test'
+  ...
+# Subtest: artifact paths reject traversal and alternate stream syntax
+ok 87 - artifact paths reject traversal and alternate stream syntax
+  ---
+  duration_ms: 1.2675
+  type: 'test'
+  ...
+# Subtest: native initial tree must match all frozen content, permitting platform mode differences
+ok 88 - native initial tree must match all frozen content, permitting platform mode differences
+  ---
+  duration_ms: 1.2573
+  type: 'test'
+  ...
+# Subtest: native Responses replay retains empty reasoning summaries, tools and reasoning policy
+ok 89 - native Responses replay retains empty reasoning summaries, tools and reasoning policy
+  ---
+  duration_ms: 6.2059
+  type: 'test'
+  ...
+# Subtest: model, remote state and tool authority cannot be changed by child requests
+ok 90 - model, remote state and tool authority cannot be changed by child requests
+  ---
+  duration_ms: 4.0768
+  type: 'test'
+  ...
+# Subtest: native usage accounts for reasoning within output tokens and keeps billed cost unknown
+ok 91 - native usage accounts for reasoning within output tokens and keeps billed cost unknown
+  ---
+  duration_ms: 3.4598
+  type: 'test'
+  ...
+# Subtest: missing, conflicting or nonfinite response identity and usage never settle
+ok 92 - missing, conflicting or nonfinite response identity and usage never settle
+  ---
+  duration_ms: 3.4334
+  type: 'test'
+  ...
+# Subtest: loopback child receives only a scoped capability and durable Responses receipts
+ok 93 - loopback child receives only a scoped capability and durable Responses receipts
+  ---
+  duration_ms: 193.333
+  type: 'test'
+  ...
+# Subtest: native Responses forwarding preserves bytes, empty summaries and cancellation
+ok 94 - native Responses forwarding preserves bytes, empty summaries and cancellation
+  ---
+  duration_ms: 111.6814
+  type: 'test'
+  ...
+# Subtest: only the fixed official Responses request can reach the local broker
+ok 95 - only the fixed official Responses request can reach the local broker
+  ---
+  duration_ms: 10.4604
+  type: 'test'
+  ...
+# Subtest: active formal scope refuses setup and forwarding before credential or request inspection
+ok 96 - active formal scope refuses setup and forwarding before credential or request inspection
+  ---
+  duration_ms: 1.8712
+  type: 'test'
+  ...
+# Subtest: native CLI launcher preloads only agent commands and preserves exit status
+ok 97 - native CLI launcher preloads only agent commands and preserves exit status
+  ---
+  duration_ms: 2319.6072
+  type: 'test'
+  ...
+# Subtest: explicit text-only policy allows internal summarization without adding tool authority
+ok 98 - explicit text-only policy allows internal summarization without adding tool authority
+  ---
+  duration_ms: 4.3394
+  type: 'test'
+  ...
+# Subtest: effective diagnostic request fixes model, thinking, service tier and token ceiling
+ok 99 - effective diagnostic request fixes model, thinking, service tier and token ceiling
+  ---
+  duration_ms: 6.3776
+  type: 'test'
+  ...
+# Subtest: pre-dispatch request size rejection fails only its own task
+ok 100 - pre-dispatch request size rejection fails only its own task
+  ---
+  duration_ms: 222.8667
+  type: 'test'
+  ...
+# Subtest: Ark transport gates HTTP dispatch on TLS and records the failure phase
+ok 101 - Ark transport gates HTTP dispatch on TLS and records the failure phase
+  ---
+  duration_ms: 13.6392
+  type: 'test'
+  ...
+# Subtest: proven pre-HTTP network failure fails one task without retrying it
+ok 102 - proven pre-HTTP network failure fails one task without retrying it
+  ---
+  duration_ms: 79.2469
+  type: 'test'
+  ...
+# Subtest: claimed pre-dispatch failure after HTTP submission still poisons the broker
+ok 103 - claimed pre-dispatch failure after HTTP submission still poisons the broker
+  ---
+  duration_ms: 31.4699
+  type: 'test'
+  ...
+# Subtest: unknown usage, model, tier, incomplete protocol and reasoning cannot settle
+ok 104 - unknown usage, model, tier, incomplete protocol and reasoning cannot settle
+  ---
+  duration_ms: 4.6893
+  type: 'test'
+  ...
+# Subtest: duplicate decoded members, overflow and incomplete JSON never become usage
+ok 105 - duplicate decoded members, overflow and incomplete JSON never become usage
+  ---
+  duration_ms: 0.9317
+  type: 'test'
+  ...
+# Subtest: public CLI nonstreaming JSON request preserves all diagnostic bounds
+ok 106 - public CLI nonstreaming JSON request preserves all diagnostic bounds
+  ---
+  duration_ms: 5.5467
+  type: 'test'
+  ...
+# Subtest: JSON response is persisted before forwarding and unknown JSON usage poisons the next call
+ok 107 - JSON response is persisted before forwarding and unknown JSON usage poisons the next call
+  ---
+  duration_ms: 73.3621
+  type: 'test'
+  ...
+# Subtest: campaign policy binds selected task IDs, request allowance and transport timeout
+ok 108 - campaign policy binds selected task IDs, request allowance and transport timeout
+  ---
+  duration_ms: 479.4999
+  type: 'test'
+  ...
+# Subtest: physical slots persist before dispatch; secret is absent; restart and 15th request reject
+ok 109 - physical slots persist before dispatch; secret is absent; restart and 15th request reject
+  ---
+  duration_ms: 325.7142
+  type: 'test'
+  ...
+# Subtest: validated truncated output settles usage, fails its task and never forwards tool arguments
+    # Subtest: sse
+    ok 1 - sse
+      ---
+      duration_ms: 57.6859
+      type: 'test'
+      ...
+    # Subtest: json
+    ok 2 - json
+      ---
+      duration_ms: 54.0234
+      type: 'test'
+      ...
+    1..2
+ok 110 - validated truncated output settles usage, fails its task and never forwards tool arguments
+  ---
+  duration_ms: 112.9211
+  type: 'test'
+  ...
+# Subtest: usage unknown poisons allowance, stays null, and never silently retries
+ok 111 - usage unknown poisons allowance, stays null, and never silently retries
+  ---
+  duration_ms: 34.0917
+  type: 'test'
+  ...
+# Subtest: last-call receipt failure prevents HTTP 200 and poisons task status
+ok 112 - last-call receipt failure prevents HTTP 200 and poisons task status
+  ---
+  duration_ms: 27.8892
+  type: 'test'
+  ...
+# Subtest: literal and JSON-escaped credentials are redacted from saved requests and responses
+ok 113 - literal and JSON-escaped credentials are redacted from saved requests and responses
+  ---
+  duration_ms: 31.0978
+  type: 'test'
+  ...
+# Subtest: real IncomingMessage abort on limit teardown preserves the limit failure
+ok 114 - real IncomingMessage abort on limit teardown preserves the limit failure
+  ---
+  duration_ms: 2.571
+  type: 'test'
+  ...
+# Subtest: explicit bounded transport capacity accepts over 1 MiB without changing token limits
+ok 115 - explicit bounded transport capacity accepts over 1 MiB without changing token limits
+  ---
+  duration_ms: 35.9664
+  type: 'test'
+  ...
+# Subtest: response limit remains unknown usage and poisons further dispatch
+ok 116 - response limit remains unknown usage and poisons further dispatch
+  ---
+  duration_ms: 48.3042
+  type: 'test'
+  ...
+# Subtest: native cleanup can observe a real exit after the model task deadline
+ok 117 - native cleanup can observe a real exit after the model task deadline
+  ---
+  duration_ms: 7.241
+  type: 'test'
+  ...
+# Subtest: public relay rejects task prompts; CDP composer preserves full UTF8 and clicks once
+ok 118 - public relay rejects task prompts; CDP composer preserves full UTF8 and clicks once
+  ---
+  duration_ms: 6.631
+  type: 'test'
+  ...
+# Subtest: composer refuses disabled UI, mismatched snapshot, or altered text before send
+ok 119 - composer refuses disabled UI, mismatched snapshot, or altered text before send
+  ---
+  duration_ms: 11.1085
+  type: 'test'
+  ...
+# Subtest: composer enforces byte limit without trimming or submitting
+ok 120 - composer enforces byte limit without trimming or submitting
+  ---
+  duration_ms: 13.1574
+  type: 'test'
+  ...
+# Subtest: review opt-in survives both plain and stderr capture wrappers without changing limits
+ok 121 - review opt-in survives both plain and stderr capture wrappers without changing limits
+  ---
+  duration_ms: 2485.3763
+  type: 'test'
+  ...
+# Subtest: optional capture preserves stdout, stdin, tool arguments and nonzero exit
+ok 122 - optional capture preserves stdout, stdin, tool arguments and nonzero exit
+  ---
+  duration_ms: 1424.0466
+  type: 'test'
+  ...
+# Subtest: stderr forwarding stays byte exact while split secrets and UTF-8 are captured safely
+ok 123 - stderr forwarding stays byte exact while split secrets and UTF-8 are captured safely
+  ---
+  duration_ms: 1308.2578
+  type: 'test'
+  ...
+# Subtest: byte cap keeps whole UTF-8 lines and continues forwarding all stderr
+ok 124 - byte cap keeps whole UTF-8 lines and continues forwarding all stderr
+  ---
+  duration_ms: 301.6373
+  type: 'test'
+  ...
+# Subtest: overlong unfinished line is omitted entirely, including partial secrets
+ok 125 - overlong unfinished line is omitted entirely, including partial secrets
+  ---
+  duration_ms: 373.1801
+  type: 'test'
+  ...
+# Subtest: diagnostic write failure is recorded without changing CLI stderr/stdout/exit
+ok 126 - diagnostic write failure is recorded without changing CLI stderr/stdout/exit
+  ---
+  duration_ms: 251.9796
+  type: 'test'
+  ...
+# Subtest: unwritable diagnostic location cannot turn CLI failure into success
+ok 127 - unwritable diagnostic location cannot turn CLI failure into success
+  ---
+  duration_ms: 204.9203
+  type: 'test'
+  ...
+# Subtest: overlong lines do not suppress subsequent bounded diagnostics
+ok 128 - overlong lines do not suppress subsequent bounded diagnostics
+  ---
+  duration_ms: 229.1487
+  type: 'test'
+  ...
+# Subtest: partial UTF-8 diagnostic write is discarded on failure
+ok 129 - partial UTF-8 diagnostic write is discarded on failure
+  ---
+  duration_ms: 220.8594
+  type: 'test'
+  ...
+1..129
+# tests 131
+# suites 0
+# pass 131
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 14458.5277

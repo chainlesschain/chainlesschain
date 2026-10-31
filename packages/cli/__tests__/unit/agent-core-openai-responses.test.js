@@ -33,6 +33,7 @@ const responseOutput = [
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe("OpenAI Responses adapter", () => {
@@ -504,6 +505,225 @@ describe("OpenAI Responses adapter", () => {
       _truncated: true,
     });
     expect(output.message.tool_calls).toBeUndefined();
+  });
+
+  it("retries a dropped JSON response before any tools or output are accepted", async () => {
+    const dropped = Object.assign(new TypeError("terminated"), {
+      cause: { code: "UND_ERR_SOCKET" },
+    });
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => {
+          throw dropped;
+        },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: "resp_recovered_json",
+          status: "completed",
+          output: [
+            {
+              type: "message",
+              role: "assistant",
+              content: [{ type: "output_text", text: "recovered" }],
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 2 },
+        }),
+      });
+    vi.stubGlobal("fetch", fetch);
+    const onStreamRetry = vi.fn();
+    const output = await chatWithTools(
+      [{ role: "user", content: "continue" }],
+      {
+        provider: "openai",
+        model: "gpt-6.1-sol",
+        apiKey: "test-key",
+        baseUrl: "https://api.openai.com/v1",
+        cwd: os.tmpdir(),
+        contextMemorySkipPlanning: true,
+        enabledToolNames: [],
+        exactToolNames: true,
+        onStreamRetry,
+      },
+    );
+    expect(output.message.content).toBe("recovered");
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(onStreamRetry).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual(
+      JSON.parse(fetch.mock.calls[1][1].body),
+    );
+  });
+
+  it("settles a completed Responses event without waiting for socket EOF", async () => {
+    const completed = {
+      id: "resp_complete_open_socket",
+      status: "completed",
+      output: [
+        {
+          type: "message",
+          role: "assistant",
+          content: [{ type: "output_text", text: "done" }],
+        },
+      ],
+      usage: { input_tokens: 8, output_tokens: 1 },
+    };
+    const reader = {
+      read: vi
+        .fn()
+        .mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode(
+            `data: ${JSON.stringify({ type: "response.completed", response: completed })}\n\n`,
+          ),
+        })
+        .mockImplementation(() => new Promise(() => {})),
+      cancel: vi.fn(() => new Promise(() => {})),
+      releaseLock: vi.fn(),
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true, body: { getReader: () => reader } })),
+    );
+    const operation = chatWithTools([{ role: "user", content: "finish" }], {
+      provider: "openai",
+      model: "gpt-6.1-sol",
+      apiKey: "test-key",
+      baseUrl: "https://api.openai.com/v1",
+      cwd: os.tmpdir(),
+      contextMemorySkipPlanning: true,
+      enabledToolNames: [],
+      exactToolNames: true,
+      onToken: () => {},
+      streamStallTimeoutMs: 10,
+    });
+    let timer;
+    const output = await Promise.race([
+      operation,
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve(null), 500);
+      }),
+    ]).finally(() => clearTimeout(timer));
+    expect(output).not.toBeNull();
+    expect(output.message.content).toBe("done");
+    expect(reader.read).toHaveBeenCalledTimes(2);
+    expect(reader.cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["headers", "body"])(
+    "bounds an unresponsive JSON %s read and aborts its physical request",
+    async (phase) => {
+      vi.stubEnv("CC_MAX_RETRIES", "0");
+      let requestSignal;
+      const fetch = vi.fn(async (_url, init) => {
+        requestSignal = init.signal;
+        if (phase === "headers") return new Promise(() => {});
+        return { ok: true, json: () => new Promise(() => {}) };
+      });
+      vi.stubGlobal("fetch", fetch);
+      await expect(
+        chatWithTools([{ role: "user", content: "finish" }], {
+          provider: "openai",
+          model: "gpt-6.1-sol",
+          apiKey: "test-key",
+          baseUrl: "https://api.openai.com/v1",
+          cwd: os.tmpdir(),
+          contextMemorySkipPlanning: true,
+          enabledToolNames: [],
+          exactToolNames: true,
+          streamStallTimeoutMs: 10,
+        }),
+      ).rejects.toMatchObject({ code: "ETIMEDOUT" });
+      expect(requestSignal.aborted).toBe(true);
+      expect(fetch).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each([400, 401, 429, 500])(
+    "does not replay a JSON HTTP %s verdict even if its message mentions terminated",
+    async (status) => {
+      const fetch = vi.fn(async () => ({
+        ok: false,
+        status,
+        headers: { get: () => null },
+        text: async () =>
+          JSON.stringify({
+            error: { message: "terminated", code: "provider_rejected" },
+          }),
+      }));
+      vi.stubGlobal("fetch", fetch);
+      await expect(
+        chatWithTools([{ role: "user", content: "finish" }], {
+          provider: "openai",
+          model: "gpt-6.1-sol",
+          apiKey: "test-key",
+          baseUrl: "https://api.openai.com/v1",
+          cwd: os.tmpdir(),
+          contextMemorySkipPlanning: true,
+          enabledToolNames: [],
+          exactToolNames: true,
+        }),
+      ).rejects.toThrow();
+      expect(fetch).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("does not repeat a JSON attempt if its required usage observer fails", async () => {
+    const fetch = vi.fn(async () => {
+      throw new TypeError("terminated");
+    });
+    vi.stubGlobal("fetch", fetch);
+    await expect(
+      chatWithTools([{ role: "user", content: "finish" }], {
+        provider: "openai",
+        model: "gpt-6.1-sol",
+        apiKey: "test-key",
+        baseUrl: "https://api.openai.com/v1",
+        cwd: os.tmpdir(),
+        contextMemorySkipPlanning: true,
+        enabledToolNames: [],
+        exactToolNames: true,
+        strictUsageTelemetry: true,
+        onStreamRetry: () => {
+          throw Object.assign(new Error("usage write failed"), {
+            code: "CC_SESSION_PERSISTENCE_FAILED",
+          });
+        },
+      }),
+    ).rejects.toMatchObject({ code: "CC_SESSION_PERSISTENCE_FAILED" });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("honors caller cancellation while the JSON body is pending", async () => {
+    const controller = new AbortController();
+    const reason = Object.assign(new Error("cancelled by host"), {
+      name: "AbortError",
+    });
+    const fetch = vi.fn(async () => ({
+      ok: true,
+      json: () => {
+        controller.abort(reason);
+        return new Promise(() => {});
+      },
+    }));
+    vi.stubGlobal("fetch", fetch);
+    await expect(
+      chatWithTools([{ role: "user", content: "finish" }], {
+        provider: "openai",
+        model: "gpt-6.1-sol",
+        apiKey: "test-key",
+        baseUrl: "https://api.openai.com/v1",
+        cwd: os.tmpdir(),
+        contextMemorySkipPlanning: true,
+        enabledToolNames: [],
+        exactToolNames: true,
+        signal: controller.signal,
+      }),
+    ).rejects.toBe(reason);
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
   it("propagates a user abort instead of converting it to partial success", async () => {

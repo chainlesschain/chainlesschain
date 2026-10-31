@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "path": "packages/cli/scripts/verify01-native-plugin-artifact.mjs",
+  "digest": "sha256:ce04147c3e2f97c7d44d37052f5e8329595efe9bbcb852b51952535ba96357bc",
+  "review": "Operator-only gh API GET and artifact download; fixed repository, successful tagged push workflow/source, exact artifact identity, original ZIP hash and size. GitHub token is confined to download step; model child receives no GitHub token. No model calls or Marketplace approval claim.",
+  "scannerLimit": "The general network candidate scanner does not classify delegated gh downloads; this is an additional explicit source review, not a claim of exhaustive scanner coverage.",
+  "artifact": {
+    "runId": 41170221376,
+    "id": 13031069152,
+    "source": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
+    "payload": {
+      "digest": "sha256:63289b08abb58fb59970f23051ce8110da0e60e3773a3fbe7e2568596690dd82",
+      "bytes": 1555528
+    }
+  },
+  "liveDownloadVerified": true
+}

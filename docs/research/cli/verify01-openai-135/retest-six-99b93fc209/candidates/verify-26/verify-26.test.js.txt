@@ -1,0 +1,116 @@
+import { describe, expect, it } from "vitest";
+import {
+  questionFields,
+  normalizeQuestionFields,
+  questionDraftText,
+} from "../src/chat/question-draft-contract.js";
+
+// From this __tests__ directory, ../src resolves to vscode-extension/src.
+// Exercise the two projections used by QuestionDrafts.save: fields and text.
+// Text is also checked against unfiltered input so normalization cannot hide
+// a regression in the text projection's own sensitive-field guard.
+const key = (...parts) => JSON.stringify(parts);
+const requestFor = (properties) => ({
+  kind: "question",
+  id: "sensitive-regression",
+  question: "Complete the form",
+  elicitation: true,
+  requestedSchema: { type: "object", properties },
+});
+
+function assertProjections(descriptors, input, expectedFields, expectedText) {
+  const fields = normalizeQuestionFields(descriptors, input);
+  expect(fields).toEqual(expectedFields);
+  expect(questionDraftText(descriptors, fields)).toBe(expectedText);
+  expect(questionDraftText(descriptors, input)).toBe(expectedText);
+}
+
+describe("sensitive question fields stay out of persistence projections", () => {
+  it("excludes a writeOnly scalar without losing public fields", () => {
+    const descriptors = questionFields(requestFor({
+      public: { type: "string", title: "Public" },
+      consent: { type: "boolean", title: "Consent" },
+      credential: { type: "string", title: "Credential", writeOnly: true },
+    }));
+    // The negative control is a declared field, not merely an unknown key.
+    expect(descriptors).toEqual([
+      { key: key("public"), label: "Public", kind: "text" },
+      { key: key("consent"), label: "Consent", kind: "checkbox" },
+      { key: key("credential"), label: "Credential", kind: "password" },
+    ]);
+    const publicFields = [
+      { key: key("public"), value: "unfinished public text" },
+      { key: key("consent"), value: false },
+    ];
+    const input = [
+      ...publicFields,
+      { key: key("credential"), value: "scalar-secret-must-not-persist" },
+    ];
+    assertProjections(descriptors, input, publicFields,
+      "Public: unfinished public text\nConsent: false");
+  });
+
+  it("excludes writeOnly booleans, selects and every expanded multi-select option", () => {
+    const properties = {
+      visible: { type: "array", title: "Visible", items: { type: "string", enum: ["a", "b"] } },
+      hidden: { type: "array", title: "Hidden", writeOnly: true, items: { type: "string", enum: ["a", "b"] } },
+      flag: { type: "boolean", writeOnly: true },
+      choice: { type: "string", enum: ["a", "b"], writeOnly: true },
+    };
+    const descriptors = questionFields(requestFor(properties));
+    expect(descriptors).toEqual([
+      { key: key("visible", "a"), label: "Visible: a", kind: "checkbox", option: true },
+      { key: key("visible", "b"), label: "Visible: b", kind: "checkbox", option: true },
+      { key: key("hidden", "a"), label: "Hidden: a", kind: "password", option: true },
+      { key: key("hidden", "b"), label: "Hidden: b", kind: "password", option: true },
+      { key: key("flag"), label: "flag", kind: "password" },
+      { key: key("choice"), label: "choice", kind: "password" },
+    ]);
+    const publicFields = [
+      { key: key("visible", "a"), value: true },
+      { key: key("visible", "b"), value: false },
+    ];
+    assertProjections(descriptors, [
+      ...publicFields,
+      { key: key("hidden", "a"), value: true },
+      { key: key("hidden", "b"), value: true },
+      { key: key("flag"), value: true },
+      { key: key("choice"), value: "a" },
+    ], publicFields, "Visible: a: true");
+  });
+
+  it.each([
+    ["password format", "top-level"],
+    ["password format", "metadata"],
+    ["unknown nested schema", "top-level"],
+    ["unknown nested schema", "metadata"],
+  ])("excludes the actual %s JSON fallback from %s schema", (kind, location) => {
+    // The restricted compiler rejects password format and nested objects.
+    // Both paths must classify the editable answer-json descriptor as secret.
+    const schema = {
+      type: "object",
+      properties: kind === "password format"
+        ? { credential: { type: "string", format: "password" } }
+        : { nested: { type: "object", properties: { token: { type: "string" } } } },
+    };
+    const request = location === "metadata"
+      ? { metadata: { kind: "mcp_elicitation", requestedSchema: schema } }
+      : { elicitation: true, requestedSchema: schema };
+    const descriptors = questionFields(request);
+    expect(descriptors).toEqual([
+      { key: "answer-json", label: "Answer", kind: "password" },
+    ]);
+    const json = '{"credential":"fallback-secret","nested":{"token":"nested-secret"}}';
+    assertProjections(descriptors, [
+      { key: "answer-json", value: json },
+      { key: key("credential"), value: "forged-field-secret" },
+      { key: "answer", value: "forged-plain-answer" },
+    ], [], "");
+
+    // Same projection boundary, same JSON string, but an ordinary question
+    // must remain persistable: filtering everything is not an acceptable fix.
+    assertProjections(questionFields({ question: "Ordinary answer" }), [
+      { key: "answer", value: json },
+    ], [{ key: "answer", value: json }], `Answer: ${json}`);
+  });
+});

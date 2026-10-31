@@ -1,0 +1,186 @@
+import { describe, expect, it } from "vitest";
+// From __tests__, ../src resolves to packages/cli/src (not ../../src).
+import { runAgentHeadlessStream } from "../src/runtime/headless-stream.js";
+import { normalizePermissionRequest } from "../src/lib/permission-request.js";
+
+// Exercise the real stdin pump and pending-approval registry. Only the model
+// loop is replaced: it asks twice for exactly the same normalized tool call.
+async function approvalRoundTrip(firstVerdict) {
+  const events = [];
+  const outcomes = [];
+  const waiters = new Set();
+  const requests = [];
+  let pendingText = "";
+  let checkpoint;
+  let scriptError;
+  const wire = (value) => `${JSON.stringify(value)}\n`;
+  const waitFor = (predicate) => {
+    const existing = events.find(predicate);
+    if (existing) return Promise.resolve(existing);
+    return new Promise((resolve, reject) => {
+      const waiter = { predicate, resolve, timer: null };
+      waiter.timer = setTimeout(() => {
+        waiters.delete(waiter);
+        reject(new Error("Expected approval protocol event was not emitted"));
+      }, 2000);
+      waiters.add(waiter);
+    });
+  };
+  const writeOut = (chunk) => {
+    pendingText += chunk;
+    let newline;
+    while ((newline = pendingText.indexOf("\n")) !== -1) {
+      const line = pendingText.slice(0, newline);
+      pendingText = pendingText.slice(newline + 1);
+      if (!line.trim()) continue;
+      const event = JSON.parse(line);
+      events.push(event);
+      for (const waiter of waiters) {
+        if (!waiter.predicate(event)) continue;
+        clearTimeout(waiter.timer);
+        waiters.delete(waiter);
+        waiter.resolve(event);
+      }
+    }
+  };
+  const request = normalizePermissionRequest({
+    tool: "run_shell",
+    args: { command: "npm run test:unit" },
+  });
+  const context = {
+    tool: request.tool,
+    args: request.args,
+    command: request.command,
+    riskLevel: "medium",
+    reason: "settings rule asks",
+  };
+  const input = (async function* () {
+    try {
+      yield wire({ type: "user", text: "request the same tool twice" });
+      const first = await waitFor((e) => e.type === "approval_request");
+      requests.push(first);
+      yield wire({ type: "approval", id: first.id, ...firstVerdict(first) });
+      const second = await waitFor(
+        (e) => e.type === "approval_request" && e.id !== first.id,
+      );
+      requests.push(second);
+      // A valid accept for the retired request, NOT a missing/malformed binding.
+      yield wire({
+        type: "approval",
+        id: first.id,
+        decision: { kind: "acceptOnce" },
+        binding: first.binding,
+      });
+      // Resumption proves the pump has consumed the replay. No sleeps and no
+      // EOF: the second request must still await its own user's verdict.
+      checkpoint = {
+        outcomes: [...outcomes],
+        resolutions: events.filter((e) => e.type === "approval_resolved"),
+      };
+      yield wire({
+        type: "approval",
+        id: second.id,
+        decision: { kind: "acceptOnce" },
+        binding: second.binding,
+      });
+    } catch (error) {
+      // The production pump can handle input errors; preserve test failures.
+      scriptError = error;
+    }
+  })();
+  try {
+    await runAgentHeadlessStream(
+      { expandFileRefs: false, interactiveApprovals: true },
+      {
+        bootstrap: async () => ({ db: null }),
+        getApprovalGate: async () => null,
+        writeOut,
+        writeErr: () => {},
+        input,
+        agentLoop: async function* (_messages, options) {
+          for (let index = 0; index < 2; index += 1) {
+            const approved = await options.permissionConfirm(context);
+            outcomes.push(approved);
+          }
+          yield { type: "response-complete", content: "both requests settled" };
+          yield { type: "run-ended", reason: "complete" };
+        },
+      },
+    );
+    if (scriptError) throw scriptError;
+    return { events, outcomes, requests, checkpoint };
+  } finally {
+    for (const waiter of waiters) clearTimeout(waiter.timer);
+  }
+}
+
+describe("approval callback ownership", () => {
+  it.each([
+    {
+      name: "cancelled structured approval ignores a late accept",
+      firstVerdict: () => ({ decision: { kind: "cancel" } }),
+      firstApproved: false,
+      firstKind: "cancel",
+    },
+    {
+      name: "cancelled legacy approval ignores a late accept",
+      firstVerdict: () => ({ approve: false }),
+      firstApproved: false,
+      firstKind: "decline",
+    },
+    {
+      name: "normal acceptOnce authorizes only its original request",
+      firstVerdict: (request) => ({
+        decision: { kind: "acceptOnce" },
+        binding: request.binding,
+      }),
+      firstApproved: true,
+      firstKind: "acceptOnce",
+    },
+  ])("$name", async ({ firstVerdict, firstApproved, firstKind }) => {
+    const { events, outcomes, requests, checkpoint } =
+      await approvalRoundTrip(firstVerdict);
+    expect(requests).toHaveLength(2);
+    const [first, second] = requests;
+    expect(first.id).not.toBe(second.id);
+    expect(first.binding).toMatch(/^ab_[0-9a-f]{32}$/);
+    expect(second.binding).toMatch(/^ab_[0-9a-f]{32}$/);
+    expect(first.binding).not.toBe(second.binding);
+    for (const request of requests) {
+      expect(request).toMatchObject({
+        tool: "run_shell",
+        command: "npm run test:unit",
+        session_id: first.session_id,
+      });
+    }
+
+    // This is the critical negative control: the old request was settled,
+    // the identical new request was registered, and replaying the OLD valid
+    // acceptance produced neither authorization nor an extra resolution.
+    expect(checkpoint.outcomes).toEqual([firstApproved]);
+    expect(checkpoint.resolutions).toHaveLength(1);
+    expect(checkpoint.resolutions[0]).toMatchObject({
+      id: first.id,
+      approved: firstApproved,
+      decision: { kind: firstKind },
+      via: firstApproved ? "user-approve" : "user-deny",
+    });
+
+    // Positive control at the same boundary: the second request's own valid
+    // binding succeeds, and both worker requests actually finish.
+    expect(outcomes).toEqual([firstApproved, true]);
+    const resolutions = events.filter((e) => e.type === "approval_resolved");
+    expect(resolutions).toHaveLength(2);
+    expect(resolutions[0]).toEqual(checkpoint.resolutions[0]);
+    expect(resolutions[1]).toMatchObject({
+      id: second.id,
+      approved: true,
+      decision: { kind: "acceptOnce" },
+      via: "user-approve",
+    });
+    expect(events.filter((e) => e.type === "approval_request")).toHaveLength(2);
+    expect(events.filter((e) => e.type === "result")).toEqual([
+      expect.objectContaining({ result: "both requests settled", is_error: false }),
+    ]);
+  });
+});

@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "cliReleaseSource": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
+  "vscodeReleaseSource": "98db89940de30106f57ee73c063acf249d23bec0",
+  "jetbrainsReleaseSource": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
+  "changes": [
+    "packages/vscode-extension/README.md",
+    "packages/vscode-extension/package.json"
+  ],
+  "equality": [
+    {
+      "path": "packages/cli",
+      "cliGitObject": "73b1cf18fa07eb24030f734a468d4a7c25d22e24",
+      "vscodeGitObject": "73b1cf18fa07eb24030f734a468d4a7c25d22e24",
+      "equal": true
+    },
+    {
+      "path": "packages/web-panel",
+      "cliGitObject": "2ad2e60c9493290400357de58787c505542bd807",
+      "vscodeGitObject": "2ad2e60c9493290400357de58787c505542bd807",
+      "equal": true
+    },
+    {
+      "path": "package-lock.json",
+      "cliGitObject": "23a95428a5c7c5b241c6ea220817bdd3f57c8850",
+      "vscodeGitObject": "23a95428a5c7c5b241c6ea220817bdd3f57c8850",
+      "equal": true
+    },
+    {
+      "path": "CHANGELOG.md",
+      "cliGitObject": "867a555ad3f0ce0fa8f99b4766fd9094a8febbeb",
+      "vscodeGitObject": "867a555ad3f0ce0fa8f99b4766fd9094a8febbeb",
+      "equal": true
+    },
+    {
+      "path": "packages/agent-sdk",
+      "cliGitObject": "cbd62655758b4626ce69ee5b7f883500dedba97e",
+      "vscodeGitObject": "cbd62655758b4626ce69ee5b7f883500dedba97e",
+      "equal": true
+    },
+    {
+      "path": "packages/context-memory-kernel",
+      "cliGitObject": "c566283d2ab7b501ab91674cd55e74d75cf81553",
+      "vscodeGitObject": "c566283d2ab7b501ab91674cd55e74d75cf81553",
+      "equal": true
+    }
+  ],
+  "verifiedAt": "2026-10-31T05:08:12.814Z"
+}

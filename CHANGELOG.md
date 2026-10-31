@@ -5,11 +5,28 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Public release scope: CLI **0.166.133** is the immutable package from `2eb0c5b1e048509362f9d980f94acee55c2ffa9f`, with `@chainlesschain/context-memory-kernel@0.1.11`. Its OIDC publication, independent public readback and companion Open VSX **0.37.171** verification passed. JetBrains **0.4.188** is approved, listed and publicly downloadable, with its original payload verified against the official build; see [publication evidence](docs/research/cli/evidence/release133-public/publication.json).
+> Public release scope: CLI **0.166.135** from `82aa6d703a8695721a7ccf0793a435853bc2bbf2` passed full exact-source CLI CI / Strict Sandbox, OIDC publication and independent public readback, with Context/Memory Kernel **0.1.11**. Open VSX **0.37.173** is public and byte-identical to its official VSIX at `98db89940de30106f57ee73c063acf249d23bec0`; only two VS Code README/version files differ from CLI source. JetBrains **0.4.189** passed its complete release gates and was uploaded, but awaits Marketplace approval/listing. Current public JetBrains remains **0.4.188** with CLI **0.166.133** recommendation. See [actual publication progress](docs/research/cli/evidence/release135-public/publication.json).
 >
-> `Unreleased` is a rolling source-development log that retains historical candidate labels, not a publication ledger. Public `.133` includes the model-platform and optional self-evolution fixes after its exact-source gates and verified CLI publication. Historical candidate wording below does not supersede the channel status above.
+> `Unreleased` is a rolling source-development log retaining historical candidate labels, not a publication ledger. Historical OpenAI acceptance remains **39/45**; release checks add no task acceptance. PR #513 remains unmerged pending JetBrains public readback. Microsoft Marketplace is deferred; PC/mobile remain **v5.0.3.143**.
 
 ## [Unreleased]
+
+### Fixed - cc CLI 0.166.136: verified history forks and background policy restrictions (candidate, 2026-10-31)
+
+- Admit complete, verified session-history forks without weakening strict rewind-prefix checks; retain source provenance and capability rejection controls.
+- Preserve plugin/MCP auto-connect restrictions through persisted background launch profiles and real CLI flags. Reject malformed policy values before customization loading or fallback normalization.
+- Cover pinned-image metadata/pixel limits and owner-aborted pending approvals with positive and negative controls. Compare fixture inode identities as BigInt to avoid Windows Number precision loss.
+- This is an engineering repair of the five remaining failed tasks, not a new model acceptance run. Historical six-task acceptance stays 1/6 (cumulative 40/45); publication is blocked until the new exact commit passes complete CLI CI and Strict Sandbox.
+
+### Fixed - cc CLI 0.166.135: Responses disconnect recovery and launch policy preservation (candidate, 2026-10-31)
+
+- Recover genuine pre-output OpenAI Responses JSON disconnects with the existing bounded retry policy, distinct physical request IDs and synchronous usage settlement. Bound stalled headers and JSON reads, preserve HTTP/provider verdicts and caller cancellation, and keep workflow effects and incomplete tool streams non-replayable.
+- Settle completed Responses events without waiting for socket EOF. A hung reader cancellation no longer blocks timeout settlement; already queued transport aborts and user cancellation remain authoritative.
+- Select newly generated context handoffs before ordinary conversation so a full conversation partition cannot evict its summary. Retain the same input budget, data-only trust and oversized-summary rejection.
+- Preserve an explicit empty tool allowlist through saved launch argv and the CLI parser. Reject malformed persisted permission modes, sandbox modes and budgets instead of silently restoring weaker defaults.
+- Strengthen generic regression guidance for delegated lifecycle ownership, race controls, persisted history projections and a final response within the iteration budget. Add same-handle metadata-race and approval-cancellation controls without changing historical model candidates.
+- Give independent IDE cleanup a separate bounded deadline after the model task ends. The previous `verify-26` trace actually contains `error_max_turns` at 20/20; cleanup had obscured that result with an expired-deadline error. Historical OpenAI acceptance remains 39/45 and is not reclassified by these fixes.
+- Prepare companion Open VSX 0.37.172 and JetBrains 0.4.189 for CLI 0.166.135. Required child npm packages retain their published versions; publication must follow the exact-source multi-platform gates and upstream readback.
 
 ### Fixed - cc CLI 0.166.133: scoped mutation schemas and model platform compatibility (candidate, 2026-10-30)
 

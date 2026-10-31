@@ -1,0 +1,1125 @@
+{
+  "schema": "chainlesschain.five-failure-engineering-repair/v1",
+  "capturedAt": "2026-10-31T07:09:03.478Z",
+  "sourceParent": "8d4b58061da10b4e07de066b4331fa8fd5831296",
+  "formalSample": false,
+  "countsAsNewModelAcceptance": false,
+  "realModelRequests": 0,
+  "originalModelResult": {
+    "sixRetested": 6,
+    "passed": 1,
+    "failed": 5,
+    "cumulativeAccepted": 40,
+    "total": 45,
+    "changed": false
+  },
+  "bindings": [
+    {
+      "file": "packages/cli/src/commands/agent.js",
+      "digest": "sha256:e6ea6f774fe32c45f6c0d171faec1a6b8c7d78f3e2cda901ea8f9ac108e41ffa"
+    },
+    {
+      "file": "packages/cli/src/lib/background-launch-profile.js",
+      "digest": "sha256:2dbfe63270bbe46ba0016eea483d4c0c7f065301aaa9adf728797b61fe466e9e"
+    },
+    {
+      "file": "packages/cli/src/lib/safe-mode.js",
+      "digest": "sha256:87773c8f473a643b051bef965a914056fa166b9e3c5b4d371e0640b570b246cb"
+    },
+    {
+      "file": "packages/cli/src/lib/session-history-origins.js",
+      "digest": "sha256:795b79e64a596b4fbb2bad2d3678dbcb6fd41826fa5f90c8fc1c3767ee799cab"
+    },
+    {
+      "file": "packages/cli/src/command-help-index.json",
+      "digest": "sha256:44a748dfc0ced2d549f1902507de36eb12b288e1b405985703fd6fe798af72ff"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/agent-customization-options.test.js",
+      "digest": "sha256:878bcc55df2084b70927ed9d5eb32e1ffd6630be956b3f1643afc7e6bfd1aa8e"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/background-launch-policy-roundtrip-regression.test.js",
+      "digest": "sha256:ae5ee6b43bf7e10a139ae630c88e65ada20f91b806b55962e2b60b4c2181b4bf"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/headless-approval-ownership-regression.test.js",
+      "digest": "sha256:6d521e0544c4c0ac433df615461e426e23173398b96ad82a41ecddce71126e59"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/image-pinned-handle-regression.test.js",
+      "digest": "sha256:1d665c8f47eb8ce102762beeda6da6be1d5f83b0cc49747674122ad72f45f8b0"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/session-branch-ownership-regression.test.js",
+      "digest": "sha256:52c45ae0121b9c97257fac5adaeb303e0a9415d8b26bd76160cde2b71600cf97"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/session-history-import-regression.test.js",
+      "digest": "sha256:f88973d354a5a38d21e37032f0e1f2d1045dc95b80e3eba69ef129b80bd3d803"
+    }
+  ],
+  "currentProfileBeforeFix": {
+    "receiptDigest": "sha256:acbcfa24f249f60aea9d0a246f78d60f2990c24e6896f80f67f78c7e20108e98",
+    "total": 6,
+    "passed": 3,
+    "failed": 3,
+    "pending": 0,
+    "success": false,
+    "files": [
+      {
+        "file": "__tests__/unit/background-launch-policy-roundtrip-regression.test.js",
+        "status": "failed",
+        "tests": [
+          {
+            "name": "verify-36: persisted launch policy identity preserves a restrictive nonempty policy through disk, argv and recapture",
+            "status": "passed"
+          },
+          {
+            "name": "verify-36: persisted launch policy identity keeps an explicit empty allowlist distinct from an absent allowlist",
+            "status": "passed"
+          },
+          {
+            "name": "verify-36: persisted launch policy identity does not lose persisted plugin and MCP auto-connect restrictions",
+            "status": "failed",
+            "failures": [
+              "AssertionError: expected false to be true // Object.is equality",
+              "AssertionError: expected false to be true // Object.is equality",
+              "AssertionError: expected { version: 1, command: 'agent', …(13) } to deeply equal { version: 1, command: 'agent', …(13) }"
+            ]
+          },
+          {
+            "name": "verify-36: persisted launch policy identity canonicalizes sets but retains fallback order and rejects policy drift",
+            "status": "passed"
+          },
+          {
+            "name": "verify-36: persisted launch policy identity rejects corrupt persisted policies instead of normalizing them to broader defaults",
+            "status": "failed",
+            "failures": [
+              "AssertionError: normalize: MCP tri-state: expected [Function] to throw an error",
+              "AssertionError: build argv: MCP tri-state: expected [Function] to throw an error",
+              "AssertionError: canonical JSON: MCP tri-state: expected [Function] to throw an error",
+              "AssertionError: fingerprint: MCP tri-state: expected [Function] to throw an error",
+              "AssertionError: normalize: allowlist type: expected [Function] to throw an error",
+              "AssertionError: build argv: allowlist type: expected [Function] to throw an error",
+              "AssertionError: canonical JSON: allowlist type: expected [Function] to throw an error",
+              "AssertionError: fingerprint: allowlist type: expected [Function] to throw an error",
+              "AssertionError: normalize: boolean type: expected [Function] to throw an error",
+              "AssertionError: build argv: boolean type: expected [Function] to throw an error",
+              "AssertionError: canonical JSON: boolean type: expected [Function] to throw an error",
+              "AssertionError: fingerprint: boolean type: expected [Function] to throw an error"
+            ]
+          },
+          {
+            "name": "verify-36: persisted launch policy identity rejects invalid CLI policy values at capture with otherwise valid prerequisites",
+            "status": "failed",
+            "failures": [
+              "AssertionError: --permission-mode=plna: expected [Function] to throw an error",
+              "AssertionError: --sandbox-mode=strcit: expected [Function] to throw an error",
+              "AssertionError: --max-turns=-1: expected [Function] to throw an error",
+              "AssertionError: --max-turns=not-a-number: expected [Function] to throw an error",
+              "AssertionError: expected [Function] to throw an error"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "finalTargeted": {
+    "receiptDigest": "sha256:338c1827bc3ac117815e17e0bc6f1f06a7d5d937fc9730b5d820b6dba5672222",
+    "total": 28,
+    "passed": 28,
+    "failed": 0,
+    "pending": 0,
+    "success": true,
+    "files": [
+      {
+        "file": "__tests__/unit/agent-customization-options.test.js",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "independent agent customization restrictions parses actual reconstructed CLI flags before applying runtime restrictions",
+            "status": "passed"
+          },
+          {
+            "name": "independent agent customization restrictions disables plugins without changing skills, permission rules or project memory",
+            "status": "passed"
+          },
+          {
+            "name": "independent agent customization restrictions disables registered and implicit bridges while retaining explicit config",
+            "status": "passed"
+          },
+          {
+            "name": "independent agent customization restrictions preserves explicit bridge choices and never re-enables an environment restriction",
+            "status": "passed"
+          },
+          {
+            "name": "independent agent customization restrictions leaves ordinary launch defaults and user configuration unchanged",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "__tests__/unit/background-launch-policy-roundtrip-regression.test.js",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "verify-36: persisted launch policy identity preserves a restrictive nonempty policy through disk, argv and recapture",
+            "status": "passed"
+          },
+          {
+            "name": "verify-36: persisted launch policy identity keeps an explicit empty allowlist distinct from an absent allowlist",
+            "status": "passed"
+          },
+          {
+            "name": "verify-36: persisted launch policy identity does not lose persisted plugin and MCP auto-connect restrictions",
+            "status": "passed"
+          },
+          {
+            "name": "verify-36: persisted launch policy identity canonicalizes sets but retains fallback order and rejects policy drift",
+            "status": "passed"
+          },
+          {
+            "name": "verify-36: persisted launch policy identity rejects corrupt persisted policies instead of normalizing them to broader defaults",
+            "status": "passed"
+          },
+          {
+            "name": "verify-36: persisted launch policy identity rejects invalid CLI policy values at capture with otherwise valid prerequisites",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "__tests__/unit/headless-approval-ownership-regression.test.js",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "approval callback ownership denies the real pending approval when the owning turn aborts before a late valid accept",
+            "status": "passed"
+          },
+          {
+            "name": "approval callback ownership 'cancelled structured approval ignores…'",
+            "status": "passed"
+          },
+          {
+            "name": "approval callback ownership 'cancelled legacy approval ignores a l…'",
+            "status": "passed"
+          },
+          {
+            "name": "approval callback ownership 'normal acceptOnce authorizes only its…'",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "__tests__/unit/image-pinned-handle-regression.test.js",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "attachment same-handle read boundary (independent regression) reads a small PNG through short reads, pins the opened inode and closes it",
+            "status": "passed"
+          },
+          {
+            "name": "attachment same-handle read boundary (independent regression) rejects a valid but wrong-format inode substituted immediately before open",
+            "status": "passed"
+          },
+          {
+            "name": "attachment same-handle read boundary (independent regression) rejects independent byte and pixel limits with valid image prerequisites",
+            "status": "passed"
+          },
+          {
+            "name": "attachment same-handle read boundary (independent regression) caps reads at the admitted size plus one when the opened file grows",
+            "status": "passed"
+          },
+          {
+            "name": "attachment same-handle read boundary (independent regression) rejects equal-length content changes even when descriptor timestamps are unchanged",
+            "status": "passed"
+          },
+          {
+            "name": "attachment same-handle read boundary (independent regression) rejects an opened directory as non-regular without attempting a read",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "__tests__/unit/session-branch-ownership-regression.test.js",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "verify-08: fork history ownership restores imported ancestors in two forks and never reads later parent or sibling bodies",
+            "status": "passed"
+          },
+          {
+            "name": "verify-08: fork history ownership branches each fork at its own cutoff, preserving its body but excluding its later turns",
+            "status": "passed"
+          },
+          {
+            "name": "verify-08: fork history ownership rejects wrong-parent, changed-body, forged and expired capabilities at the real branch boundary",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "__tests__/unit/session-history-import-regression.test.js",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "fork history ownership (independent regression) restores two different retained prefixes and keeps all later bodies isolated",
+            "status": "passed"
+          },
+          {
+            "name": "fork history ownership (independent regression) forks the same verified history twice without sharing later messages",
+            "status": "passed"
+          },
+          {
+            "name": "fork history ownership (independent regression) binds a live history capability to its parent and exact retained body",
+            "status": "passed"
+          },
+          {
+            "name": "fork history ownership (independent regression) accepts a complete real import but rejects wrong origins, digest and truncation",
+            "status": "passed"
+          }
+        ]
+      }
+    ]
+  },
+  "related": {
+    "receiptDigest": "sha256:c5f919f968eb0c9764014a1cb333a6f028136f03e0b5f743449dbddcf44506d3",
+    "total": 156,
+    "passed": 155,
+    "failed": 0,
+    "pending": 1,
+    "success": true,
+    "files": [
+      {
+        "file": "__tests__/unit/background-command-argv.test.js",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "background command argv preserves quoted space argument boundaries keeps required option values when removing the first prompt",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv preserves quoted space argument boundaries keeps inline values and literal operands when replacing the session",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv preserves quoted space argument boundaries keeps option values and operands when removing background options",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv preserves empty string argument boundaries keeps required option values when removing the first prompt",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv preserves empty string argument boundaries keeps inline values and literal operands when replacing the session",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv preserves empty string argument boundaries keeps option values and operands when removing background options",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv preserves Unicode and literal quotes argument boundaries keeps required option values when removing the first prompt",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv preserves Unicode and literal quotes argument boundaries keeps inline values and literal operands when replacing the session",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv preserves Unicode and literal quotes argument boundaries keeps option values and operands when removing background options",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv rejects ephemeral background authority but preserves literal prompt data",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv keeps option-shaped prompt data inside one print token: --help",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv keeps option-shaped prompt data inside one print token: --no-worktree",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv keeps option-shaped prompt data inside one print token: --dangerously-skip-permissions",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv captures Commander option aliases and arity",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv captures root options and command aliases as one argv grammar",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv canonicalizes resume/fork options to one resolved session",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv preserves other option values and the literal tail",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv removes true operands without deleting equal option values",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv preserves global options before the real command token",
+            "status": "passed"
+          },
+          {
+            "name": "background command argv drops print payloads and every post-terminator first-turn token",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "__tests__/unit/background-launch-profile.test.js",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "background launch profile refuses to capture an ephemeral profile that resume cannot preserve",
+            "status": "passed"
+          },
+          {
+            "name": "background launch profile captures a versioned effective envelope without prompt or credentials",
+            "status": "passed"
+          },
+          {
+            "name": "background launch profile does not persist parent-only background worktree switches",
+            "status": "passed"
+          },
+          {
+            "name": "background launch profile uses canonical JSON for stable fingerprints and changes on policy drift",
+            "status": "passed"
+          },
+          {
+            "name": "background launch profile rebuilds resumable argv while keeping redacted values out",
+            "status": "passed"
+          },
+          {
+            "name": "background launch profile detects configuration content changes and can refresh explicitly",
+            "status": "passed"
+          },
+          {
+            "name": "background launch profile preserves an explicit empty tool allowlist in resumed argv",
+            "status": "passed"
+          },
+          {
+            "name": "background launch profile rejects a malformed persisted permission.mode instead of relaxing it",
+            "status": "passed"
+          },
+          {
+            "name": "background launch profile rejects a malformed persisted sandbox.mode instead of relaxing it",
+            "status": "passed"
+          },
+          {
+            "name": "background launch profile rejects a malformed persisted budget.maxCostUsd instead of relaxing it",
+            "status": "passed"
+          },
+          {
+            "name": "background launch profile rejects a malformed persisted budget.maxTurns instead of relaxing it",
+            "status": "passed"
+          },
+          {
+            "name": "background launch profile sanitizes base URLs and strips both API key argv forms",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "__tests__/unit/background-turn-bootstrap.test.js",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "background turn pre-main bootstrap contains only a released POSIX disconnect in the current process group",
+            "status": "passed"
+          },
+          {
+            "name": "background turn pre-main bootstrap returns to the historical fail-closed path when containment signalling fails",
+            "status": "passed"
+          },
+          {
+            "name": "background turn pre-main bootstrap falls back only to SIGKILL on the same group when SIGSTOP fails",
+            "status": "passed"
+          },
+          {
+            "name": "background turn pre-main bootstrap fails closed if a resumed released group cannot be killed",
+            "status": "passed"
+          },
+          {
+            "name": "background turn pre-main bootstrap does not execute Agent main before a matching durable release",
+            "status": "passed"
+          },
+          {
+            "name": "background turn pre-main bootstrap accepts matching duplicate releases while Agent main is still running",
+            "status": "passed"
+          },
+          {
+            "name": "background turn pre-main bootstrap exits without Agent work when the worker dies before pid commit",
+            "status": "passed"
+          },
+          {
+            "name": "background turn pre-main bootstrap freezes a released detached Agent group until an external SIGKILL retires it",
+            "status": "skipped"
+          }
+        ]
+      },
+      {
+        "file": "__tests__/unit/headless-stream-approvals.test.js",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "parseInputEvent — approval verdicts parses approve/deny and rejects malformed ones",
+            "status": "passed"
+          },
+          {
+            "name": "parseInputEvent — approval verdicts carries an optional approval binding when present",
+            "status": "passed"
+          },
+          {
+            "name": "parseInputEvent — approval verdicts validates structured decisions and fails closed on drift",
+            "status": "passed"
+          },
+          {
+            "name": "interactive approvals round-trip approve: the blocked tool gets true; request + resolution are emitted",
+            "status": "passed"
+          },
+          {
+            "name": "interactive approvals round-trip caller abort settles a pending approval and retires live stdin",
+            "status": "passed"
+          },
+          {
+            "name": "interactive approvals round-trip does not execute the pending tool when cancellation races with a late positive verdict",
+            "status": "passed"
+          },
+          {
+            "name": "interactive approvals round-trip deny: the tool gets false",
+            "status": "passed"
+          },
+          {
+            "name": "interactive approvals round-trip a structured decision must echo the advertised binding",
+            "status": "passed"
+          },
+          {
+            "name": "interactive approvals round-trip rejects a structured approval that omits the binding",
+            "status": "passed"
+          },
+          {
+            "name": "interactive approvals round-trip reuses an exact acceptForTurn grant without opening a second card",
+            "status": "passed"
+          },
+          {
+            "name": "interactive approvals round-trip downgrades a session grant to acceptOnce when authority persistence fails",
+            "status": "passed"
+          },
+          {
+            "name": "interactive approvals round-trip restores a persisted exact session grant before the resumed turn",
+            "status": "passed"
+          },
+          {
+            "name": "interactive approvals round-trip discards a corrupt persisted grant ledger and asks again",
+            "status": "passed"
+          },
+          {
+            "name": "interactive approvals round-trip a mismatched binding is rejected (deny, fail closed) — replay/param-substitution",
+            "status": "passed"
+          },
+          {
+            "name": "interactive approvals round-trip timeout fails closed",
+            "status": "passed"
+          },
+          {
+            "name": "interactive approvals round-trip stdin close while pending fails closed (no hang)",
+            "status": "passed"
+          },
+          {
+            "name": "interactive approvals round-trip flag off → no permissionConfirm is injected (fail-closed stays)",
+            "status": "passed"
+          },
+          {
+            "name": "interactive approvals round-trip the ApprovalGate confirmer is swapped only when the flag is on",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "__tests__/unit/safe-mode.test.js",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "applySafeMode flips every customization kill-switch on the given env",
+            "status": "passed"
+          },
+          {
+            "name": "safeModeRequested (flag OR env, Claude-Code 2.1.169) true for the explicit --safe-mode flag",
+            "status": "passed"
+          },
+          {
+            "name": "safeModeRequested (flag OR env, Claude-Code 2.1.169) true for CC_SAFE_MODE or CLAUDE_CODE_SAFE_MODE env (1/true/yes/on)",
+            "status": "passed"
+          },
+          {
+            "name": "safeModeRequested (flag OR env, Claude-Code 2.1.169) false with no flag and no/false env",
+            "status": "passed"
+          },
+          {
+            "name": "CC_SETTINGS_HOOKS gate loadHooks returns no hooks when the switch is set",
+            "status": "passed"
+          },
+          {
+            "name": "applyBareMode / bareModeRequested (--bare = safe mode + skills/plugins off) applies every safe-mode switch PLUS the bare extras",
+            "status": "passed"
+          },
+          {
+            "name": "applyBareMode / bareModeRequested (--bare = safe mode + skills/plugins off) bareModeRequested: --bare flag or CC_BARE env",
+            "status": "passed"
+          },
+          {
+            "name": "CC_SKILLS gate (bare: every skill layer off) allSkillsDisabled recognizes the switch",
+            "status": "passed"
+          },
+          {
+            "name": "CC_SKILLS gate (bare: every skill layer off) CLISkillLoader.loadAll returns [] when the switch is set",
+            "status": "passed"
+          },
+          {
+            "name": "CC_PLUGINS gate (bare: plugin runtime off at the discovery chokepoint) discoverPlugins returns [] when the switch is set",
+            "status": "passed"
+          },
+          {
+            "name": "CC_MEMORY_INJECT gate recallStartupMemories returns [] when the switch is set",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "__tests__/unit/session-branch.test.js",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "deriveBranchId is deterministic — same inputs hash to the same id",
+            "status": "passed"
+          },
+          {
+            "name": "deriveBranchId disambiguates two branches off the SAME turn via seq",
+            "status": "passed"
+          },
+          {
+            "name": "deriveBranchId differs by parent session and by turn",
+            "status": "passed"
+          },
+          {
+            "name": "deriveBranchSessionId derives a traversal-safe id (no path separators survive)",
+            "status": "passed"
+          },
+          {
+            "name": "deriveBranchSessionId embeds the parent and branch id",
+            "status": "passed"
+          },
+          {
+            "name": "planSessionBranch targets a NEW session, preserves the parent, never inherits grants",
+            "status": "passed"
+          },
+          {
+            "name": "planSessionBranch keeps history up to the branch-point turn (truncate offset)",
+            "status": "passed"
+          },
+          {
+            "name": "planSessionBranch emits no warnings for a clean, read-only FULL branch point",
+            "status": "passed"
+          },
+          {
+            "name": "planSessionBranch requires a worktree when the branch intends to write",
+            "status": "passed"
+          },
+          {
+            "name": "planSessionBranch requires a worktree when the branch point already mutated files",
+            "status": "passed"
+          },
+          {
+            "name": "planSessionBranch warns honestly on PARTIAL coverage (irreversible side-effects)",
+            "status": "passed"
+          },
+          {
+            "name": "planSessionBranch warns when there is no file checkpoint (NONE coverage)",
+            "status": "passed"
+          },
+          {
+            "name": "planSessionBranch warns and still preserves the parent on a missing conversation offset",
+            "status": "passed"
+          },
+          {
+            "name": "planSessionBranch handles an unknown/absent turn without throwing",
+            "status": "passed"
+          },
+          {
+            "name": "planSessionBranch honors an explicit branch session id",
+            "status": "passed"
+          },
+          {
+            "name": "validateBranchLineage accepts a clean tree (root + children)",
+            "status": "passed"
+          },
+          {
+            "name": "validateBranchLineage flags an orphan (parent not present)",
+            "status": "passed"
+          },
+          {
+            "name": "validateBranchLineage detects a cycle — a branch cannot be its own ancestor",
+            "status": "passed"
+          },
+          {
+            "name": "validateBranchLineage ignores malformed records",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "__tests__/unit/session-history-origins.test.js",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "display history origins carries summary-from system-summary ancestry into a subsequent rewind",
+            "status": "passed"
+          },
+          {
+            "name": "display history origins carries summary-to system-summary ancestry into a subsequent rewind",
+            "status": "passed"
+          },
+          {
+            "name": "display history origins rejects invalid summary certificates and output without changing the source mapping",
+            "status": "passed"
+          },
+          {
+            "name": "display history origins rejects a derived system spanning the rewind point at position 0",
+            "status": "passed"
+          },
+          {
+            "name": "display history origins rejects a derived system spanning the rewind point at position 2",
+            "status": "passed"
+          },
+          {
+            "name": "display history origins does not lose a system summary dependency during another Kernel summary",
+            "status": "passed"
+          },
+          {
+            "name": "display history origins leaves ancestry unknown when a summary includes an unmapped derived system",
+            "status": "passed"
+          },
+          {
+            "name": "display history origins drops optional origin tracking at the byte limit, and recovers only from a later explicit snapshot",
+            "status": "passed"
+          },
+          {
+            "name": "display history origins does not infer an origin from equal text at a different indexed source",
+            "status": "passed"
+          },
+          {
+            "name": "display history origins does not infer an origin from a different out-of-line message bundle",
+            "status": "passed"
+          },
+          {
+            "name": "display history origins requires every summary parent and refuses a prefix that crosses the selected origin",
+            "status": "passed"
+          },
+          {
+            "name": "display history origins does not treat changed replacement content or a summary action as a retained prefix",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "__tests__/unit/session-history-receipt-compatibility.test.js",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "receipt metadata history compatibility retains origins across legacy and conversation compactions in sequence",
+            "status": "passed"
+          },
+          {
+            "name": "receipt metadata history compatibility legacy compaction retains rewind origins",
+            "status": "passed"
+          },
+          {
+            "name": "receipt metadata history compatibility legacy compaction retains branch origins",
+            "status": "passed"
+          },
+          {
+            "name": "receipt metadata history compatibility legacy summary retains parent origins",
+            "status": "passed"
+          },
+          {
+            "name": "receipt metadata history compatibility legacy rejects altered digest ancestry",
+            "status": "passed"
+          },
+          {
+            "name": "receipt metadata history compatibility legacy rejects altered content ancestry",
+            "status": "passed"
+          },
+          {
+            "name": "receipt metadata history compatibility legacy rejects altered sequence ancestry",
+            "status": "passed"
+          },
+          {
+            "name": "receipt metadata history compatibility legacy rejects altered metadata ancestry",
+            "status": "passed"
+          },
+          {
+            "name": "receipt metadata history compatibility conversation compaction retains rewind origins",
+            "status": "passed"
+          },
+          {
+            "name": "receipt metadata history compatibility conversation compaction retains branch origins",
+            "status": "passed"
+          },
+          {
+            "name": "receipt metadata history compatibility conversation summary retains parent origins",
+            "status": "passed"
+          },
+          {
+            "name": "receipt metadata history compatibility conversation rejects altered digest ancestry",
+            "status": "passed"
+          },
+          {
+            "name": "receipt metadata history compatibility conversation rejects altered content ancestry",
+            "status": "passed"
+          },
+          {
+            "name": "receipt metadata history compatibility conversation rejects altered sequence ancestry",
+            "status": "passed"
+          },
+          {
+            "name": "receipt metadata history compatibility conversation rejects altered metadata ancestry",
+            "status": "passed"
+          },
+          {
+            "name": "receipt metadata history compatibility rejects a summary combining raw and conversation parent digests",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "__tests__/unit/session-transcript-history.test.js",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "canonical display history keeps original row identities and old cursors after summary-from, then rewinds the correct path",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history keeps original row identities and old cursors after summary-to, then rewinds the correct path",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history retains repeated summary dependencies through an independent branch, compaction and rewind",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history preserves pre-compaction display history when a later active suffix is summarized",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history preserves ancestry when summary-to moves durable systems ahead of its new summary",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history retains snapshot coverage after a verified summary and later rewind",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history retains an explicit boundary for a legacy timeline summary",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history retains an explicit boundary for a wrong-head timeline summary",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history retains an explicit boundary for a changed-output timeline summary",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history keeps interrupted archive copies unpublished, recovers the exact prefix and refuses rollback",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history does not publish a branch when its source changes during the copy",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history preserves legacy branch idempotency and inherited snapshot coverage",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history carries truncation through inheritance and keeps escaped text within a page",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history validates imported completion digests and context origins before returning a page",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history preserves emoji at archive chunk boundaries",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history makes a compacted branch independent of its parent, without inheriting execution authority",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history retains summary ancestry across nested branches and a later rewind",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history expires source capabilities and prevents source writes inside a read projection",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history accepts the shared real CLI history fixture used by the JetBrains reader",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history shows original messages once when the Kernel replaces them with a derived summary",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history rejects an empty compaction candidate without changing context or history",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history keeps real Kernel compaction history, identities and old cursors through later appends",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history invalidates cursors on rewind and never revives discarded text after another compaction",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history reconstructs a prefix older than the page buffer and keeps exact original identities",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history retains pre-summary ancestry, then cuts a second path without resurrecting the first",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history uses indexed provenance to distinguish identical messages across compaction",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history uses only the replacement snapshot for an invalid prefix {\"sourceHead\":\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"}",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history uses only the replacement snapshot for an invalid prefix {\"sourceMessageCount\":999}",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history uses only the replacement snapshot for an invalid prefix {\"retainedMessageCount\":-1}",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history uses only the replacement snapshot for an invalid prefix {\"retainedMessageCount\":999}",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history uses only the replacement snapshot for an invalid prefix {\"schema\":\"unknown\"}",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history keeps snapshot coverage across a later verified rewind",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history revokes the rescan lease and rejects file changes during replay",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history isolates full-copy forks and reports snapshot branches without borrowing parent content",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history treats physical-store-import snapshots as replacement boundaries",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history treats session-end snapshots as replacement boundaries",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history treats unknown snapshots as replacement boundaries",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history falls back to the explicit snapshot when a canonical payload is inconsistent",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history reads through the command without modifying authority and rejects a forged tail",
+            "status": "passed"
+          },
+          {
+            "name": "canonical display history bounds retained bytes and traverses oversized rows without dropping page identities",
+            "status": "passed"
+          }
+        ]
+      }
+    ]
+  },
+  "mutationChecks": {
+    "receiptDigest": "sha256:7ef77e617f9e15ec3cf5b0e8c57e39c7be6b6489ce82538723ae19ed3f336637",
+    "baselinePassed": true,
+    "allOriginalMutantsRejected": true,
+    "originalMutantCount": 5,
+    "additionalRegressionSimulations": 1,
+    "results": [
+      {
+        "name": "baseline",
+        "exitCode": 0,
+        "total": 23,
+        "passed": 23,
+        "failed": 0,
+        "failures": [],
+        "rawReportDigest": "sha256:93406aeefe5e3c1ffeabe65981d61d662e1671a10bf14c627919a9ed422eaa2a"
+      },
+      {
+        "name": "verify-08-accept-history-capability-from-wrong-parent",
+        "exitCode": 1,
+        "total": 7,
+        "passed": 5,
+        "failed": 2,
+        "failures": [
+          {
+            "name": "verify-08: fork history ownership rejects wrong-parent, changed-body, forged and expired capabilities at the real branch boundary",
+            "reason": ["AssertionError: expected [Function] to throw an error"]
+          },
+          {
+            "name": "fork history ownership (independent regression) binds a live history capability to its parent and exact retained body",
+            "reason": ["AssertionError: expected [Function] to throw an error"]
+          }
+        ],
+        "rawReportDigest": "sha256:ec7029c478dca9d3525eee073a173c57ab5ace8288f51882fe06fbb7a19ddec7"
+      },
+      {
+        "name": "verify-13-ignore-image-change-on-pinned-handle",
+        "exitCode": 1,
+        "total": 6,
+        "passed": 5,
+        "failed": 1,
+        "failures": [
+          {
+            "name": "attachment same-handle read boundary (independent regression) rejects equal-length content changes even when descriptor timestamps are unchanged",
+            "reason": ["AssertionError: expected [Function] to throw an error"]
+          }
+        ],
+        "rawReportDigest": "sha256:02c5d7bc6dbc8eb3add6ebe60ef96973fac356964d7f34fd9257b1cb903ef2cb"
+      },
+      {
+        "name": "verify-13-allow-over-pixel-budget",
+        "exitCode": 1,
+        "total": 6,
+        "passed": 5,
+        "failed": 1,
+        "failures": [
+          {
+            "name": "attachment same-handle read boundary (independent regression) rejects independent byte and pixel limits with valid image prerequisites",
+            "reason": ["AssertionError: expected [Function] to throw an error"]
+          }
+        ],
+        "rawReportDigest": "sha256:b4ab63803a474639fc8b5573f12ff717e6c78086e3db33d76901211d1328a05e"
+      },
+      {
+        "name": "verify-19-cancellation-grants-pending-approval",
+        "exitCode": 1,
+        "total": 4,
+        "passed": 3,
+        "failed": 1,
+        "failures": [
+          {
+            "name": "approval callback ownership denies the real pending approval when the owning turn aborts before a late valid accept",
+            "reason": [
+              "AssertionError: expected [ true ] to deeply equal [ false ]"
+            ]
+          }
+        ],
+        "rawReportDigest": "sha256:077d1253aee6bfeebf610297ea52eab7c83f14f1aa7eaf53eba67561340498aa"
+      },
+      {
+        "name": "verify-36-restore-more-permissive-mode",
+        "exitCode": 1,
+        "total": 6,
+        "passed": 3,
+        "failed": 3,
+        "failures": [
+          {
+            "name": "verify-36: persisted launch policy identity preserves a restrictive nonempty policy through disk, argv and recapture",
+            "reason": [
+              "AssertionError: expected { version: 1, command: 'agent', …(13) } to deeply equal { version: 1, command: 'agent', …(13) }"
+            ]
+          },
+          {
+            "name": "verify-36: persisted launch policy identity keeps an explicit empty allowlist distinct from an absent allowlist",
+            "reason": [
+              "AssertionError: expected { version: 1, command: 'agent', …(13) } to deeply equal { version: 1, command: 'agent', …(13) }"
+            ]
+          },
+          {
+            "name": "verify-36: persisted launch policy identity does not lose persisted plugin and MCP auto-connect restrictions",
+            "reason": [
+              "AssertionError: expected { version: 1, command: 'agent', …(13) } to deeply equal { version: 1, command: 'agent', …(13) }"
+            ]
+          }
+        ],
+        "rawReportDigest": "sha256:0b4115193abd54ad700865cc50a410a0906dae84552926e4a1b8cc65faf37957"
+      },
+      {
+        "name": "regression-full-history-prefix-loses-authority",
+        "exitCode": 1,
+        "total": 7,
+        "passed": 4,
+        "failed": 3,
+        "failures": [
+          {
+            "name": "verify-08: fork history ownership rejects wrong-parent, changed-body, forged and expired capabilities at the real branch boundary",
+            "reason": ["AssertionError: expected null to be truthy"]
+          },
+          {
+            "name": "fork history ownership (independent regression) binds a live history capability to its parent and exact retained body",
+            "reason": ["AssertionError: expected null to be truthy"]
+          },
+          {
+            "name": "fork history ownership (independent regression) accepts a complete real import but rejects wrong origins, digest and truncation",
+            "reason": [
+              "AssertionError: expected [] to deeply equal [ 'ancestor: question', …(1) ]"
+            ]
+          }
+        ],
+        "rawReportDigest": "sha256:204fe1fe32a2d66679826dd1ccd2a8fa42ba34916405bb0a7f7ce48f0d1b988c"
+      }
+    ]
+  },
+  "lint": {
+    "version": "9.39.5",
+    "isolatedToolDirectory": true,
+    "configEquivalentToRepository": true,
+    "errors": 0,
+    "warnings": 0
+  },
+  "sourceReview": {
+    "passed": true,
+    "candidates": 83,
+    "unclassified": 0,
+    "parseErrors": 0,
+    "reviewIssues": []
+  },
+  "commands": {
+    "manifest": true,
+    "helpIndex": true,
+    "shellCompletions": true
+  }
+}

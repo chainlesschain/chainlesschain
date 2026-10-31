@@ -3,6 +3,32 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.136",
+      "cliVersions": ["0.166.136"],
+      "date": "2026-10-31",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.136: verified history forks and background policy restrictions (candidate, 2026-10-31)",
+          "body": "- Admit complete, verified session-history forks without weakening strict rewind-prefix checks; retain source provenance and capability rejection controls.\n- Preserve plugin/MCP auto-connect restrictions through persisted background launch profiles and real CLI flags. Reject malformed policy values before customization loading or fallback normalization.\n- Cover pinned-image metadata/pixel limits and owner-aborted pending approvals with positive and negative controls. Compare fixture inode identities as BigInt to avoid Windows Number precision loss.\n- This is an engineering repair of the five remaining failed tasks, not a new model acceptance run. Historical six-task acceptance stays 1/6 (cumulative 40/45); publication is blocked until the new exact commit passes complete CLI CI and Strict Sandbox."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.166.135",
+      "cliVersions": ["0.166.135"],
+      "date": "2026-10-31",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.135: Responses disconnect recovery and launch policy preservation (candidate, 2026-10-31)",
+          "body": "- Recover genuine pre-output OpenAI Responses JSON disconnects with the existing bounded retry policy, distinct physical request IDs and synchronous usage settlement. Bound stalled headers and JSON reads, preserve HTTP/provider verdicts and caller cancellation, and keep workflow effects and incomplete tool streams non-replayable.\n- Settle completed Responses events without waiting for socket EOF. A hung reader cancellation no longer blocks timeout settlement; already queued transport aborts and user cancellation remain authoritative.\n- Select newly generated context handoffs before ordinary conversation so a full conversation partition cannot evict its summary. Retain the same input budget, data-only trust and oversized-summary rejection.\n- Preserve an explicit empty tool allowlist through saved launch argv and the CLI parser. Reject malformed persisted permission modes, sandbox modes and budgets instead of silently restoring weaker defaults.\n- Strengthen generic regression guidance for delegated lifecycle ownership, race controls, persisted history projections and a final response within the iteration budget. Add same-handle metadata-race and approval-cancellation controls without changing historical model candidates.\n- Give independent IDE cleanup a separate bounded deadline after the model task ends. The previous `verify-26` trace actually contains `error_max_turns` at 20/20; cleanup had obscured that result with an expired-deadline error. Historical OpenAI acceptance remains 39/45 and is not reclassified by these fixes.\n- Prepare companion Open VSX 0.37.172 and JetBrains 0.4.189 for CLI 0.166.135. Required child npm packages retain their published versions; publication must follow the exact-source multi-platform gates and upstream readback."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.133",
       "cliVersions": ["0.166.133"],
       "date": "2026-10-30",

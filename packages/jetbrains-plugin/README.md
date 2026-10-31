@@ -1,5 +1,7 @@
 # ChainlessChain IDE Bridge (JetBrains)
 
+Pending paired release: JetBrains **0.4.189** recommends public CLI **0.166.135**, with public Open VSX **0.37.173**. Its complete release gates and Marketplace upload succeeded; public approval/listing is still pending. Upgrade the CLI and restart existing chat hosts to load its Responses recovery and launch-policy fixes.
+
 ## Self-evolution switch
 
 完整中文配置与排查步骤见[CLI 与 IDE 自进化开关配置](../../docs/cli/SELF_EVOLUTION_CONFIGURATION.md)。
@@ -11,7 +13,15 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
-## Current public release: 0.4.187
+## Pending Marketplace approval: 0.4.189
+
+Immutable tag `ide-jetbrains-v0.4.189` selects source `82aa6d703a8695721a7ccf0793a435853bc2bbf2`. The complete [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41170221376) passed and Marketplace upload succeeded. The official post-publish result is pending review/listing; this version is not yet verified public. PR #513 remains unmerged, and the recovery probe waits for public readback. [Publication progress](../../docs/research/cli/evidence/release135-public/README.md).
+
+## Current public release: 0.4.188
+
+JetBrains **0.4.188** is approved, listed, visible and publicly downloadable. It recommends CLI **0.166.133** and pairs with Open VSX **0.37.171**. Public [update 1208135](https://plugins.jetbrains.com/files/32208/1208135/chainlesschain-ide-bridge-0.4.188.zip) preserves all original official payloads. [Verified readback](../../docs/research/cli/evidence/release133-public/jetbrains.json). The newer CLI **0.166.135** and Open VSX **0.37.173** are already verified public; their availability does not imply approval of JetBrains 0.4.189.
+
+## Previous public release: 0.4.187
 
 JetBrains **0.4.187** is approved and listed, recommends public CLI **0.166.132**, and pairs with Open VSX **0.37.170**. Install the CLI with `npm i -g chainlesschain@0.166.132 --registry https://registry.npmjs.org`, restart the chat host, then run `cc --version` and `cc doctor`.
 
@@ -138,7 +148,7 @@ See the [verified publication evidence](https://github.com/chainlesschain/chainl
 
 ## Release compatibility
 
-Plugin **0.4.188** is the current public release, approved, listed and publicly downloadable. It recommends `chainlesschain@0.166.133` and pairs with public Open VSX **0.37.171**; Kernel remains **0.1.11**. All six real-host release checks passed, and the two original ZIP entries match the official build byte for byte. [Download ZIP](https://plugins.jetbrains.com/files/32208/1208135/chainlesschain-ide-bridge-0.4.188.zip). The CLI fixes empty Responses reasoning-summary replay, honors disabled self-evolution across `cc ui`, supports custom OpenAI-compatible local/LAN platforms, and exposes canonical allowed mutation paths while retaining execution-time scope checks. [Release evidence](../../docs/research/cli/evidence/release133-public/README.md). No independent IDE UI change is included. Microsoft Marketplace remains deferred.
+Plugin **0.4.189** is the current release candidate. It recommends `chainlesschain@0.166.135` and pairs with public Open VSX **0.37.173**; Kernel remains **0.1.11**. CLI publication and readback passed; the JetBrains upload succeeded and now awaits Marketplace approval/listing. The CLI carries Responses disconnect recovery and launch-policy preservation. No independent JetBrains UI change is included. Microsoft Marketplace remains deferred.
 
 ## Previous candidates and development notes
 

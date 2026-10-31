@@ -359,7 +359,7 @@ describe("headless-runner — pure helpers", () => {
       "run_shell",
       "list_dir",
     ]);
-    expect(parseToolList("")).toBeNull();
+    expect(parseToolList("")).toEqual([]);
     expect(parseToolList(null)).toBeNull();
     expect(parseToolList(["a,b", "c"])).toEqual(["a", "b", "c"]);
   });

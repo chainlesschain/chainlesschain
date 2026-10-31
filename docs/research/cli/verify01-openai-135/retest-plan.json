@@ -1,0 +1,59 @@
+{
+  "schema": "chainlesschain.openai-failed-sample-retest/v1",
+  "createdAt": "2026-10-31T06:00:59.674Z",
+  "status": "prepared-not-dispatched",
+  "scope": "only-six-previously-failed",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "baseline": {
+    "runId": 41117741513,
+    "path": "docs/research/cli/verify01-openai-133/run-41117741513/results.json",
+    "digest": "sha256:865cbc17804d0fc97868cd9a52ae9ddd82c70c053e3680da81d7e88d15328e4d",
+    "accepted": 39,
+    "expected": 45
+  },
+  "selectedSampleIds": [
+    "verify-08",
+    "verify-13",
+    "verify-19",
+    "verify-26",
+    "verify-36",
+    "first-run-darwin-vscode"
+  ],
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-31-openai-135.json",
+  "packageSetDigest": "sha256:c0d5db91c1b141258edf768126929049252d2d40b7d4ff59348c385de5bf4599",
+  "versions": {
+    "cli": "0.166.135",
+    "vscode": "0.37.173",
+    "jetbrains": "0.4.189",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "dispatches": [
+    {
+      "group": "darwin-vscode",
+      "hosts": "macos",
+      "entries": "vscode",
+      "sampleIds": ["verify-08", "verify-26", "first-run-darwin-vscode"]
+    },
+    {
+      "group": "linux-cli",
+      "hosts": "linux",
+      "entries": "cli",
+      "sampleIds": ["verify-13"]
+    },
+    {
+      "group": "win32-cli",
+      "hosts": "windows",
+      "entries": "cli",
+      "sampleIds": ["verify-19"]
+    },
+    {
+      "group": "darwin-jetbrains",
+      "hosts": "macos",
+      "entries": "jetbrains",
+      "sampleIds": ["verify-36"]
+    }
+  ],
+  "priorAcceptedSamplesRepeated": 0
+}

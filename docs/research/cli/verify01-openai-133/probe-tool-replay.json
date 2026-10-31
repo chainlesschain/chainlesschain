@@ -1,0 +1,51 @@
+{
+  "kind": "published-cli-openai-responses-replay-smoke",
+  "cliVersion": "0.166.133",
+  "formalSample": false,
+  "startedAt": "2026-10-30T15:57:05.620Z",
+  "requests": [
+    {
+      "httpStatus": 200,
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "input_tokens": 144,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 19,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 163
+      },
+      "responseIdRedacted": true
+    },
+    {
+      "httpStatus": 200,
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "input_tokens": 98,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 5,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 103
+      },
+      "responseIdRedacted": true
+    }
+  ],
+  "passed": true,
+  "replayedReasoningItems": 0,
+  "replayedEmptySummaries": 0,
+  "emptySummaryCoverage": false,
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "answer": "7",
+  "actualBilledCostUsd": null,
+  "finishedAt": "2026-10-30T15:57:33.498Z"
+}

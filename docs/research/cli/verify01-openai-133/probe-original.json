@@ -1,0 +1,27 @@
+{
+  "kind": "published-cli-openai-responses-replay-smoke",
+  "cliVersion": "0.166.133",
+  "formalSample": false,
+  "startedAt": "2026-10-30T15:50:16.653Z",
+  "requests": [
+    {
+      "httpStatus": 200,
+      "usage": {
+        "input_tokens": 144,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 19,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 163
+      },
+      "responseIdRedacted": true
+    }
+  ],
+  "passed": false,
+  "failure": "A real reasoning item is required to exercise replay",
+  "finishedAt": "2026-10-30T15:50:29.008Z"
+}

@@ -549,7 +549,11 @@ export function createSummaryContextItem({
       Math.ceil((Buffer.byteLength(content, "utf8") - image.bytes) / 4) +
         image.tokens,
     ),
-    priority: Math.max(...parents.map((item) => item.priority)),
+    // Keep the new handoff ahead of ordinary conversation in the final plan.
+    // Otherwise newer messages can fill the partition and evict the summary
+    // of the already-dropped history. This is selection priority only: the
+    // summary stays unpinned, data-only and subject to the same token ceilings.
+    priority: Math.max(600_000, ...parents.map((item) => item.priority)),
     pinned: false,
     createdAt: new Date(now).toISOString(),
     ...contentFields,

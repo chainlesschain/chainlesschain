@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "scope": "only-six-previously-failed",
+  "source": "99b93fc209678e5e372ec8673e2b9ec31c0bd762",
+  "ref": "feature/fix-openai-turn-termination",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-31-openai-135.json",
+  "packageSetDigest": "sha256:c0d5db91c1b141258edf768126929049252d2d40b7d4ff59348c385de5bf4599",
+  "selectedSampleIds": [
+    "verify-08",
+    "verify-13",
+    "verify-19",
+    "verify-26",
+    "verify-36",
+    "first-run-darwin-vscode"
+  ],
+  "baseline": {
+    "runId": 41117741513,
+    "path": "docs/research/cli/verify01-openai-133/run-41117741513/results.json",
+    "digest": "sha256:865cbc17804d0fc97868cd9a52ae9ddd82c70c053e3680da81d7e88d15328e4d",
+    "accepted": 39,
+    "expected": 45
+  },
+  "createdAt": "2026-10-31T06:03:35.341Z",
+  "taskSecretCreatedByThisSession": true,
+  "secretName": "OPENAI_API_KEY",
+  "secretConfiguredAt": "2026-10-31T05:58:32Z",
+  "dispatches": [
+    {
+      "group": "darwin-vscode",
+      "hosts": "macos",
+      "entries": "vscode",
+      "sampleIds": [
+        "verify-08",
+        "verify-26",
+        "first-run-darwin-vscode"
+      ],
+      "submitted": true,
+      "runId": 41175026100,
+      "submissionStartedAt": "2026-10-31T06:03:35.343Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41175026100",
+      "status": "in_progress"
+    },
+    {
+      "group": "linux-cli",
+      "hosts": "linux",
+      "entries": "cli",
+      "sampleIds": [
+        "verify-13"
+      ],
+      "submitted": true,
+      "runId": 41175056046,
+      "submissionStartedAt": "2026-10-31T06:04:01.656Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41175056046",
+      "status": "queued"
+    },
+    {
+      "group": "win32-cli",
+      "hosts": "windows",
+      "entries": "cli",
+      "sampleIds": [
+        "verify-19"
+      ],
+      "submitted": true,
+      "runId": 41175285091,
+      "submissionStartedAt": "2026-10-31T06:07:25.062Z",
+      "previousAttempts": [
+        {
+          "startedAt": "2026-10-31T06:04:06.220Z",
+          "outcome": "transport-failed-no-run-after-independent-fresh-readbacks",
+          "reconciledAt": "2026-10-31T06:07:25.056Z"
+        }
+      ],
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41175285091",
+      "status": "queued"
+    },
+    {
+      "group": "darwin-jetbrains",
+      "hosts": "macos",
+      "entries": "jetbrains",
+      "sampleIds": [
+        "verify-36"
+      ],
+      "submitted": true,
+      "runId": 41175292378,
+      "submissionStartedAt": "2026-10-31T06:07:30.683Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41175292378",
+      "status": "queued"
+    }
+  ],
+  "allFourSubmitted": true,
+  "finishedDispatchAt": "2026-10-31T06:07:36.770Z",
+  "taskSecretCleaned": true,
+  "taskSecretCleanupVerifiedAt": "2026-10-31T06:20:55.397Z"
+}
