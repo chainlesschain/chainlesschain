@@ -13,3 +13,5 @@ CLI / JetBrains 来源为 `82aa6d703a8695721a7ccf0793a435853bc2bbf2`，Open VSX 
 PR #513 仍为草稿且未启用自动合并，等待 JetBrains 公开核验后再合并。发布后的单次真实恢复探针尚未执行，遵守双 IDE 公开后才测试的顺序。历史 OpenAI 36+9 仍为 **39/45**；工程测试和发行不增加任务验收数。Microsoft Marketplace 暂缓；PC/mobile 保持独立 **v5.0.3.143**。
 
 [CLI 发行](https://github.com/chainlesschain/chainlesschain/actions/runs/41168880872) · [CLI 独立回读](https://github.com/chainlesschain/chainlesschain/actions/runs/41169921448) · [Open VSX 发行](https://github.com/chainlesschain/chainlesschain/actions/runs/41171249316) · [JetBrains 上传与等待回执](https://github.com/chainlesschain/chainlesschain/actions/runs/41170221376)。
+
+后续用户调整了测试前置条件：可以用已通过门禁的构建包，不等待 JetBrains 审核。仅复测上次失败 6 项已结束，结果 **1/6**，跨版本累计 **40/45**；[独立重测报告](../../verify01-openai-135/retest-six-99b93fc209/REPORT.md)。上面的发行回执保持其原始检查时间与待审事实，不将测试包可用记为商店批准。

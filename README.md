@@ -6,7 +6,7 @@ CLI **0.166.135** 已通过 Actions OIDC 发布，Open VSX **0.37.173** 已公�
 
 本版修复 Responses JSON 断连直接 `terminated`、完成后等待 EOF、取消读取拖住超时、上下文摘要预算边界，以及恢复启动时空工具白名单丢失和非法策略静默回退的问题。安装：`npm i -g chainlesschain@0.166.135 --registry https://registry.npmjs.org`，重启已有 `cc ui` 与 IDE 聊天宿主，再运行 `cc --version` 和 `cc doctor`。
 
-上一轮 OpenAI 实测为普通 **31/36**、独立首次运行 **8/9**，共 **39/45**；本次修复与发行不改写[原始结果](docs/research/cli/verify01-openai-133/run-41117741513/REPORT.md)。双 IDE 公开核验后的恢复探针尚未执行，PR #513 继续保持未合并。Microsoft Marketplace 暂缓，PC/mobile 保持 **v5.0.3.143**。
+上一轮 OpenAI 实测为普通 **31/36**、独立首次运行 **8/9**，共 **39/45**；本次修复与发行不改写[原始结果](docs/research/cli/verify01-openai-133/run-41117741513/REPORT.md)。用户已允许使用待审构建包测试：仅重测上轮失败的 **6 项**，**1/6** 通过（`verify-26`），其余 **5** 项未通过；跨版本累计 **40/45**，不是新版完整 45 项重跑的成功率。[本轮结果](docs/research/cli/verify01-openai-135/retest-six-99b93fc209/REPORT.md)。PR #513 继续保持未合并。Microsoft Marketplace 暂缓，PC/mobile 保持 **v5.0.3.143**。
 
 ## 历史公开 CLI：0.166.133（2026-10-30）
 

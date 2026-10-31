@@ -6,7 +6,7 @@ CLI **0.166.135** is public through Actions OIDC. Public Open VSX **0.37.173** r
 
 This release recovers Responses JSON disconnects, settles completed events without waiting for EOF, bounds request/cancellation waits, retains compaction summaries within the existing budget, and preserves saved tool/permission policy. Install `npm i -g chainlesschain@0.166.135 --registry https://registry.npmjs.org`, restart existing `cc ui` and IDE chat hosts, then run `cc --version` and `cc doctor`.
 
-The preceding OpenAI cohort remains **39/45**: **31/36** ordinary and **8/9** independent first runs. These fixes and release checks do not change the [original report](docs/research/cli/verify01-openai-133/run-41117741513/REPORT.md). The post-publication recovery probe has not run, and PR #513 remains unmerged pending JetBrains public readback. Microsoft Marketplace remains deferred; PC/mobile retain **v5.0.3.143**.
+The preceding OpenAI cohort remains **39/45**: **31/36** ordinary and **8/9** independent first runs. These fixes and release checks do not change the [original report](docs/research/cli/verify01-openai-133/run-41117741513/REPORT.md). The user authorized available build artifacts for testing without waiting for Marketplace review. Only the six previously failed samples were rerun: **1/6** passed (`verify-26`), with **5** still failing. The cross-version cumulative result is **40/45**, not a complete new 45-task cohort. [Targeted results](docs/research/cli/verify01-openai-135/retest-six-99b93fc209/REPORT.md). PR #513 remains unmerged pending JetBrains public readback. Microsoft Marketplace remains deferred; PC/mobile retain **v5.0.3.143**.
 
 ## Previous public CLI: 0.166.133 (2026-10-30)
 

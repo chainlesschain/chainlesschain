@@ -12,6 +12,8 @@ Exact CLI source `82aa6d703a8695721a7ccf0793a435853bc2bbf2` passed all 76 CLI CI
 
 The preceding OpenAI native cohort accepted **39/45** tasks. Runtime regression tests and this release do not change that historical result or establish formal paid/native production admission.
 
+A subsequent user-authorized retest used this public CLI, Open VSX 0.37.173 and the verified JetBrains 0.4.189 Actions build without waiting for Marketplace review. Only the six previously failed samples were rerun: **1/6** passed (`verify-26`), with **5** still failing independent acceptance. The cross-version cumulative result is **40/45**, not a new full 45-task success rate. All 100 upstream calls have complete usage; token-only estimate **$5.880530**, invoice unknown. The temporary task secret was deleted. [Targeted report](../../docs/research/cli/verify01-openai-135/retest-six-99b93fc209/REPORT.md).
+
 ## CLI 0.166.133 — verified preceding release
 
 CLI **0.166.133** is published on npm. It preserves required empty OpenAI Responses reasoning summaries, applies the self-evolution switch to all model-owning `cc ui` entry points, and supports explicitly configured OpenAI-compatible local/LAN platforms through `custom`, with optional credentials and unchanged endpoint/model aliases. It also exposes canonical allowed mutation paths in provider tool schemas while retaining execution-time scope and file-identity checks. Controlled regressions and release gates do not establish live-platform task acceptance.

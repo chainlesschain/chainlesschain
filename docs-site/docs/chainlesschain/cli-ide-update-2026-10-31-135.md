@@ -16,4 +16,4 @@ CLI / JetBrains 来源为 `82aa6d703a8695721a7ccf0793a435853bc2bbf2`，Open VSX 
 
 CLI 0.166.134 的候选标签指向已通过完整测试的源码，但其提交包含 `[skip ci]`，没有触发正式发布。该版本未发布到 npm。0.166.135 使用新的、无跳过标记的发布提交并重新运行完整精确提交门禁；已推送标签的源码身份保持不变。
 
-VS Code 0.37.172 被现有 Marketplace overview 单测拦截，因为 README 首段混入发行说明，不再等于包描述。保留原测试和不可变标签，仅修复 README 结构与版本，顺延到 0.37.173；没有重复发布 CLI。双 IDE 公开核验后的单次恢复探针尚未运行，历史 39/45 不改写。
+VS Code 0.37.172 被现有 Marketplace overview 单测拦截，因为 README 首段混入发行说明，不再等于包描述。保留原测试和不可变标签，仅修复 README 结构与版本，顺延到 0.37.173；没有重复发布 CLI。用户随后允许使用可测试包，不等待 JetBrains 审核，并限定先重测上次失败的 6 项。本轮 **1/6** 通过（`verify-26`），其余 **5** 项仍未通过；跨版本累计 **40/45** 不是新版完整 45 项重跑。历史 **39/45** 不改写。[完整重测报告](https://github.com/chainlesschain/chainlesschain/blob/feature/fix-openai-turn-termination/docs/research/cli/verify01-openai-135/retest-six-99b93fc209/REPORT.md)保留全部独立验收和失败候选。

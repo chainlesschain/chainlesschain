@@ -1,0 +1,165 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-26",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 14,
+      "passed": 14,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "persist-write-only-property",
+      "sourceSha256": "31c508872908f1b049756a8f3638e199f86a5a7470d62c1391c4bfb95533b758",
+      "total": 6,
+      "passed": 4,
+      "failed": 2
+    },
+    {
+      "name": "persist-unknown-schema-fallback",
+      "sourceSha256": "fb50ce78659ac9ba5f5463d08e5e7659e2b44a4472a707c5745e339eb4094470",
+      "total": 6,
+      "passed": 2,
+      "failed": 4
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 162,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1472,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":4,\"numPassedTestSuites\":4,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":14,\"numPassedTests\":14,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793427555863,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence recovers an unfinished bound question in a fresh host without sending an answer\",\"status\":\"passed\",\"title\":\"recovers an unfinished bound question in a fresh host without sending an answer\",\"duration\":12.516087000000084,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence archives cancellations, schema changes and late edits without reviving the request\",\"status\":\"passed\",\"title\":\"archives cancellations, schema changes and late edits without reviving the request\",\"duration\":6.211375999999973,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence does not restore unbound or already submitted answers as a new live form\",\"status\":\"passed\",\"title\":\"does not restore unbound or already submitted answers as a new live form\",\"duration\":6.04081599999995,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence reserves one response, persists before writing, and leaves failed delivery unknown\",\"status\":\"passed\",\"title\":\"reserves one response, persists before writing, and leaves failed delivery unknown\",\"duration\":2.7050520000000233,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence does not dispatch on storage failure or a reset during the save\",\"status\":\"passed\",\"title\":\"does not dispatch on storage failure or a reset during the save\",\"duration\":53.03234299999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence keeps deferred questions across turn end and bounds stored questions\",\"status\":\"passed\",\"title\":\"keeps deferred questions across turn end and bounds stored questions\",\"duration\":24.126142999999956,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms retains multiselect edits when switching between conversation tabs\",\"status\":\"passed\",\"title\":\"retains multiselect edits when switching between conversation tabs\",\"duration\":38.97582699999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms preserves partial form values through Webview reconstruction, omitting write-only secrets\",\"status\":\"passed\",\"title\":\"preserves partial form values through Webview reconstruction, omitting write-only secrets\",\"duration\":40.28820699999994,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms restores the last keystroke backup and never overwrites a newer edit\",\"status\":\"passed\",\"title\":\"restores the last keystroke backup and never overwrites a newer edit\",\"duration\":13.890567000000033,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms disables duplicate clicks and marks completion only on the host resolution\",\"status\":\"passed\",\"title\":\"disables duplicate clicks and marks completion only on the host resolution\",\"duration\":9.933309000000008,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms excludes unsupported JSON fallback values and rejects oversized draft structures\",\"status\":\"passed\",\"title\":\"excludes unsupported JSON fallback values and rejects oversized draft structures\",\"duration\":1.1203699999999799,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatView question owner routing\"],\"fullName\":\"ChatView question owner routing keeps a rejected response unresolved and exposes archived text without sending it\",\"status\":\"passed\",\"title\":\"keeps a rejected response unresolved and exposes archived text without sending it\",\"duration\":10.006355999999982,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatView question owner routing\"],\"fullName\":\"ChatView question owner routing routes an asynchronous URL answer to its original session after tab switching\",\"status\":\"passed\",\"title\":\"routes an asynchronous URL answer to its original session after tab switching\",\"duration\":54.93603400000006,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatView question owner routing\"],\"fullName\":\"ChatView question owner routing ignores callbacks after the owning session is stopped and replacement requests appear\",\"status\":\"passed\",\"title\":\"ignores callbacks after the owning session is stopped and replacement requests appear\",\"duration\":53.27360800000008,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793427556567,\"endTime\":1793427556894.2737,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/vscode-ext-question-drafts.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 709,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793427557354,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes a writeOnly scalar without losing public fields\",\"status\":\"passed\",\"title\":\"excludes a writeOnly scalar without losing public fields\",\"duration\":3.5078949999999907,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes writeOnly booleans, selects and every expanded multi-select option\",\"status\":\"passed\",\"title\":\"excludes writeOnly booleans, selects and every expanded multi-select option\",\"duration\":0.919524000000024,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes the actual password format JSON fallback from top-level schema\",\"status\":\"passed\",\"title\":\"excludes the actual password format JSON fallback from top-level schema\",\"duration\":0.7457479999999919,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes the actual password format JSON fallback from metadata schema\",\"status\":\"passed\",\"title\":\"excludes the actual password format JSON fallback from metadata schema\",\"duration\":0.5730140000000006,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes the actual unknown nested schema JSON fallback from top-level schema\",\"status\":\"passed\",\"title\":\"excludes the actual unknown nested schema JSON fallback from top-level schema\",\"duration\":0.5038339999999835,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes the actual unknown nested schema JSON fallback from metadata schema\",\"status\":\"passed\",\"title\":\"excludes the actual unknown nested schema JSON fallback from metadata schema\",\"duration\":0.6607180000000028,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793427557587,\"endTime\":1793427557594.6606,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-26.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/vscode-extension/src/chat/question-draft-contract.js"
+      ],
+      "setup": false,
+      "ms": 165,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 709,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":4,\"numFailedTests\":2,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793427558233,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes a writeOnly scalar without losing public fields\",\"status\":\"failed\",\"title\":\"excludes a writeOnly scalar without losing public fields\",\"duration\":12.071938999999986,\"failureMessages\":[\"AssertionError: expected [ { key: '[\\\"public\\\"]', …(2) }, …(2) ] to deeply equal [ { key: '[\\\"public\\\"]', …(2) }, …(2) ]\\n    at /workspace/packages/vscode-extension/__tests__/verify-26.test.js:36:25\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes writeOnly booleans, selects and every expanded multi-select option\",\"status\":\"failed\",\"title\":\"excludes writeOnly booleans, selects and every expanded multi-select option\",\"duration\":2.8224910000000136,\"failureMessages\":[\"AssertionError: expected [ …(6) ] to deeply equal [ …(6) ]\\n    at /workspace/packages/vscode-extension/__tests__/verify-26.test.js:61:25\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes the actual password format JSON fallback from top-level schema\",\"status\":\"passed\",\"title\":\"excludes the actual password format JSON fallback from top-level schema\",\"duration\":1.3811389999999903,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes the actual password format JSON fallback from metadata schema\",\"status\":\"passed\",\"title\":\"excludes the actual password format JSON fallback from metadata schema\",\"duration\":0.7970439999999996,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes the actual unknown nested schema JSON fallback from top-level schema\",\"status\":\"passed\",\"title\":\"excludes the actual unknown nested schema JSON fallback from top-level schema\",\"duration\":0.6039620000000241,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes the actual unknown nested schema JSON fallback from metadata schema\",\"status\":\"passed\",\"title\":\"excludes the actual unknown nested schema JSON fallback from metadata schema\",\"duration\":0.5701980000000049,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793427558463,\"endTime\":1793427558481.5703,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-26.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/vscode-extension/src/chat/question-draft-contract.js"
+      ],
+      "setup": false,
+      "ms": 160,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 707,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":2,\"numFailedTests\":4,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793427559104,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes a writeOnly scalar without losing public fields\",\"status\":\"passed\",\"title\":\"excludes a writeOnly scalar without losing public fields\",\"duration\":3.438695999999993,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes writeOnly booleans, selects and every expanded multi-select option\",\"status\":\"passed\",\"title\":\"excludes writeOnly booleans, selects and every expanded multi-select option\",\"duration\":0.8356560000000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes the actual password format JSON fallback from top-level schema\",\"status\":\"failed\",\"title\":\"excludes the actual password format JSON fallback from top-level schema\",\"duration\":9.312335000000019,\"failureMessages\":[\"AssertionError: expected [ { key: 'answer-json', …(2) } ] to deeply equal [ { key: 'answer-json', …(2) } ]\\n    at /workspace/packages/vscode-extension/__tests__/verify-26.test.js:100:25\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes the actual password format JSON fallback from metadata schema\",\"status\":\"failed\",\"title\":\"excludes the actual password format JSON fallback from metadata schema\",\"duration\":1.6258070000000089,\"failureMessages\":[\"AssertionError: expected [ { key: 'answer-json', …(2) } ] to deeply equal [ { key: 'answer-json', …(2) } ]\\n    at /workspace/packages/vscode-extension/__tests__/verify-26.test.js:100:25\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes the actual unknown nested schema JSON fallback from top-level schema\",\"status\":\"failed\",\"title\":\"excludes the actual unknown nested schema JSON fallback from top-level schema\",\"duration\":1.2192450000000008,\"failureMessages\":[\"AssertionError: expected [ { key: 'answer-json', …(2) } ] to deeply equal [ { key: 'answer-json', …(2) } ]\\n    at /workspace/packages/vscode-extension/__tests__/verify-26.test.js:100:25\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields stay out of persistence projections\"],\"fullName\":\"sensitive question fields stay out of persistence projections excludes the actual unknown nested schema JSON fallback from metadata schema\",\"status\":\"failed\",\"title\":\"excludes the actual unknown nested schema JSON fallback from metadata schema\",\"duration\":0.9374779999999987,\"failureMessages\":[\"AssertionError: expected [ { key: 'answer-json', …(2) } ] to deeply equal [ { key: 'answer-json', …(2) } ]\\n    at /workspace/packages/vscode-extension/__tests__/verify-26.test.js:100:25\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\"],\"meta\":{},\"tags\":[]}],\"startTime\":1793427559326,\"endTime\":1793427559343.9375,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-26.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}
