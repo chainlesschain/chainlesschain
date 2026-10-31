@@ -126,49 +126,72 @@ describe("runAgentHeadlessStream --max-budget-usd", () => {
     ).toMatchObject({ subtype: "error_max_budget" });
   });
 
-  it("fails a hard budget closed when automatic compaction usage is unknown", async () => {
-    let calls = 0;
-    const usageUnknownLoop = async function* () {
-      calls += 1;
-      yield {
-        type: "compaction-usage-unknown",
-        provider: "anthropic",
-        model: "claude-sonnet-4-6",
-        reason: "provider_transport_outcome_unknown",
-        source: "semantic-compaction",
+  it.each([
+    "provider_transport_outcome_unknown",
+    "provider_usage_not_reported",
+  ])(
+    "fails a hard budget closed with a specific compaction reason (%s)",
+    async (reason) => {
+      let calls = 0;
+      const usageUnknownLoop = async function* () {
+        calls += 1;
+        yield {
+          type: "compaction-usage-unknown",
+          provider: "anthropic",
+          model: "claude-sonnet-4-6",
+          reason,
+          providerError: {
+            category: "network",
+            httpStatus: "secret-status",
+            message: "secret-provider-error",
+          },
+          source: "semantic-compaction",
+        };
+        yield { type: "response-complete", content: "must not finish" };
       };
-      yield { type: "response-complete", content: "must not finish" };
-    };
-    const deps = baseDeps({
-      agentLoop: usageUnknownLoop,
-      input: input({ text: "one" }, { text: "two" }),
-    });
+      const deps = baseDeps({
+        agentLoop: usageUnknownLoop,
+        input: input({ text: "one" }, { text: "two" }),
+      });
 
-    const outcome = await runAgentHeadlessStream(
-      { expandFileRefs: false, maxCostUsd: 10 },
-      deps,
-    );
-    const events = parse(deps._lines);
+      const outcome = await runAgentHeadlessStream(
+        { expandFileRefs: false, maxCostUsd: 10 },
+        deps,
+      );
+      const events = parse(deps._lines);
 
-    expect(calls).toBe(1);
-    expect(outcome).toMatchObject({ exitCode: 1, turns: 1 });
-    expect(events).toContainEqual(
-      expect.objectContaining({
-        type: "compaction_usage_unknown",
-        usage_outcome: "unknown",
-      }),
-    );
-    expect(events).toContainEqual(
-      expect.objectContaining({
-        type: "result",
-        subtype: "error_compaction_usage_unknown",
-        budget_state: "unverifiable",
-      }),
-    );
-    expect(events.some((event) => event.result === "must not finish")).toBe(
-      false,
-    );
-  });
+      expect(calls).toBe(1);
+      expect(outcome).toMatchObject({ exitCode: 1, turns: 1 });
+      expect(events).toContainEqual(
+        expect.objectContaining({
+          type: "compaction_usage_unknown",
+          usage_outcome: "unknown",
+        }),
+      );
+      expect(events).toContainEqual(
+        expect.objectContaining({
+          type: "result",
+          subtype: "error_compaction_usage_unknown",
+          budget_state: "unverifiable",
+          usage_unknown_reason: reason,
+          provider_error: { category: "network" },
+        }),
+      );
+      expect(events.some((event) => event.result === "must not finish")).toBe(
+        false,
+      );
+      expect(
+        events.filter((event) => event.type === "result").at(-1).error,
+      ).toContain(
+        reason === "provider_usage_not_reported"
+          ? "did not report valid token usage"
+          : "request failed before provider usage could be confirmed",
+      );
+      expect(
+        JSON.stringify(events.filter((event) => event.type === "result")),
+      ).not.toContain("secret");
+    },
+  );
 
   it("no cap → both turns complete", async () => {
     const deps = baseDeps({
@@ -928,7 +951,9 @@ describe("runAgentHeadlessStream /compact (manual compaction, IDE parity)", () =
     const state = { messages: durableHistory(), compactEvents: [] };
     const store = durableStoreDeps(state);
     const compactionLlmQuery = vi.fn(async () => {
-      throw new Error("provider unavailable");
+      throw Object.assign(new Error("private provider response"), {
+        status: 429,
+      });
     });
     const deps = baseDeps({
       ...store,
@@ -966,6 +991,8 @@ describe("runAgentHeadlessStream /compact (manual compaction, IDE parity)", () =
         type: "result",
         subtype: "error_compaction_usage_unknown",
         code: "CC_COMPACTION_USAGE_UNKNOWN",
+        usage_unknown_reason: "provider_transport_outcome_unknown",
+        provider_error: { category: "rate_limit", httpStatus: 429 },
       }),
     );
     expect(outcome.exitCode).toBe(1);

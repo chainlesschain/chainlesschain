@@ -19,6 +19,7 @@ import {
 import { feature, featureVariant } from "../lib/feature-flags.js";
 import { isAbortError } from "../lib/abort-utils.js";
 import { isFormalBudgetError } from "../lib/formal-budget-errors.js";
+import { isRetryableStreamError } from "../lib/stream-retry.js";
 import {
   CONTEXT_WINDOWS,
   getContextWindow,
@@ -169,6 +170,59 @@ function summaryUsageCount(usage, canonical, alias, { required = false } = {}) {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
     ? value
     : null;
+}
+
+// Diagnostic metadata only: neither an HTTP verdict nor a network category
+// establishes billable usage or authorizes retrying a summary request. Never
+// project provider messages, response bodies, or arbitrary error codes.
+function summaryProviderFailure(error) {
+  const httpStatus = [
+    error?.status,
+    error?.statusCode,
+    error?.cause?.status,
+    error?.cause?.statusCode,
+  ].find(
+    (status) => Number.isInteger(status) && status >= 400 && status <= 599,
+  );
+  if (httpStatus !== undefined) {
+    const category =
+      httpStatus === 401
+        ? "authentication"
+        : httpStatus === 403
+          ? "access_denied"
+          : httpStatus === 429
+            ? "rate_limit"
+            : httpStatus >= 500
+              ? "server_error"
+              : "http_error";
+    return { category, httpStatus };
+  }
+  if (isRetryableStreamError(error)) {
+    const networkCodes = new Set([
+      "ECONNRESET",
+      "ECONNREFUSED",
+      "ETIMEDOUT",
+      "ENOTFOUND",
+      "EAI_AGAIN",
+      "EPIPE",
+      "UND_ERR_CONNECT_TIMEOUT",
+      "UND_ERR_HEADERS_TIMEOUT",
+      "UND_ERR_BODY_TIMEOUT",
+      "UND_ERR_SOCKET",
+    ]);
+    const code = [error?.code, error?.cause?.code].find((value) =>
+      networkCodes.has(value),
+    );
+    return { category: "network", ...(code ? { code } : {}) };
+  }
+  if (
+    error instanceof SyntaxError ||
+    (typeof error?.message === "string" &&
+      error.message.startsWith("Invalid API response:"))
+  ) {
+    return { category: "invalid_response" };
+  }
+  return { category: "unknown" };
 }
 
 export function estimateTokens(text) {
@@ -661,6 +715,7 @@ export class PromptCompressor {
     let summaryUsage = null;
     let summaryUsageUnknown = false;
     let summaryUsageUnknownReason = null;
+    let summaryProviderError = null;
     let summaryProvider = null;
     let summaryModel = null;
     let summaryCallId = null;
@@ -761,6 +816,7 @@ export class PromptCompressor {
       // budget can latch instead of silently accounting the call as $0.
       summaryUsageUnknown = true;
       summaryUsageUnknownReason = "provider_transport_outcome_unknown";
+      summaryProviderError = summaryProviderFailure(error);
     }
     if (!degraded) {
       try {
@@ -810,6 +866,7 @@ export class PromptCompressor {
             }
           : {}),
         ...(summaryProvider ? { summaryProvider } : {}),
+        ...(summaryProviderError ? { summaryProviderError } : {}),
         ...(summaryModel ? { summaryModel } : {}),
         ...(summaryCallId ? { summaryCallId } : {}),
         ...(summaryUsageLedgerSettled

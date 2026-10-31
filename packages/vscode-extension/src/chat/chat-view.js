@@ -30,7 +30,7 @@ const {
 const { AgentChatSession } = require("./agent-session");
 const {
   boundedErrorCode,
-  isPersistenceResult,
+  isSessionReviewResult,
   errorDiagnostic,
 } = require("./agent-diagnostics");
 const {
@@ -1417,7 +1417,7 @@ class ChatViewProvider {
       acceptTranscriptToolRoundReceipt(conv, evt, sessionToken);
       if (
         evt?.type === "session_error" ||
-        isPersistenceResult(evt) ||
+        isSessionReviewResult(evt) ||
         (evt?.type === "result" && evt.acceptance === "unknown")
       ) {
         this._pauseLoopForSessionReview(convId);
@@ -1545,7 +1545,7 @@ class ChatViewProvider {
       ) {
         conv.modeStatus = "failed";
         conv.modeError = String(
-          isPersistenceResult(evt)
+          isSessionReviewResult(evt)
             ? errorDiagnostic(evt).text
             : evt.error || evt.result || "Agent startup failed",
         ).slice(0, 500);
@@ -1556,7 +1556,11 @@ class ChatViewProvider {
       // means setup is needed — surface the guided-setup card instead of a bare
       // error. The auth half mirrors the JetBrains panel's hint so a bare
       // "Anthropic error: 401" (no "api key" text) still triggers the card.
-      if (evt?.type === "result" && evt.is_error && !isPersistenceResult(evt)) {
+      if (
+        evt?.type === "result" &&
+        evt.is_error &&
+        !isSessionReviewResult(evt)
+      ) {
         const reason = String(evt.error || evt.result || "");
         if (
           /fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT/i.test(reason) ||
@@ -2382,6 +2386,8 @@ class ChatViewProvider {
     conv.unconfirmedSessionSlashCommands = [];
     let session;
     let exited = false;
+    let reportedSessionStop = false;
+    const onEvent = this._makeOnEvent(conv.id, sessionToken);
     try {
       session = this._createSession({
         command: this._cliCommand(),
@@ -2436,7 +2442,26 @@ class ChatViewProvider {
             ? { CC_PROJECT_MEMORY: "lean" }
             : {}),
         },
-        onEvent: this._makeOnEvent(conv.id, sessionToken),
+        onEvent: (event) => {
+          if (
+            event?.type === "result" &&
+            event.session_id &&
+            event.session_id !== conv.sessionId
+          )
+            return;
+          // Only a terminal result from this child can explain its exit. Any
+          // subsequent activity invalidates that explanation.
+          if (event?.type === "result") {
+            reportedSessionStop = isSessionReviewResult(event);
+          } else if (
+            ["user", "assistant", "stream_event", "tool_use"].includes(
+              event?.type,
+            )
+          ) {
+            reportedSessionStop = false;
+          }
+          onEvent(event);
+        },
         onStderr: (line) => {
           if (conv._sessionToken === sessionToken) {
             this._postFrom(conv.id, { kind: "stderr", text: line });
@@ -2450,14 +2475,23 @@ class ChatViewProvider {
           }
           if (code !== 0 || signal || current.turnActive) {
             this._pauseLoopForSessionReview(conv.id);
-            const safeSignal = boundedErrorCode(signal);
-            const exitCode = Number.isSafeInteger(code) ? code : "unknown";
-            this._postFrom(conv.id, {
-              kind: "error",
-              code: "CC_AGENT_PROCESS_EXITED",
-              ...(safeSignal ? { signal: safeSignal } : {}),
-              text: `Agent exited [CC_AGENT_PROCESS_EXITED] (exit: ${exitCode}${safeSignal ? `, signal: ${safeSignal}` : ""}). Inspect the saved session before continuing.`,
-            });
+            if (
+              !(
+                reportedSessionStop &&
+                code === 1 &&
+                !signal &&
+                !current.turnActive
+              )
+            ) {
+              const safeSignal = boundedErrorCode(signal);
+              const exitCode = Number.isSafeInteger(code) ? code : "unknown";
+              this._postFrom(conv.id, {
+                kind: "error",
+                code: "CC_AGENT_PROCESS_EXITED",
+                ...(safeSignal ? { signal: safeSignal } : {}),
+                text: `Agent exited [CC_AGENT_PROCESS_EXITED] (exit: ${exitCode}${safeSignal ? `, signal: ${safeSignal}` : ""}). Inspect the saved session before continuing.`,
+              });
+            }
           }
           this._questions.archiveConversation(current, {
             reason: "Agent exited; saved answer text remains editable",
