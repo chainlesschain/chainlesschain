@@ -76,6 +76,37 @@ describe("non-persistent canonical compaction host context", () => {
     expect(isCompactionHostBase({ ...base })).toBe(false);
   });
 
+  it("retains the generated handoff when newer conversation fills its partition", async () => {
+    const messages = history().slice(1);
+    const result = await compact(messages, { maxTokens: 512 });
+    expect(result.receipt.status).toBe("committed");
+    expect(
+      result.messages.some((message) => message.content === "summary"),
+    ).toBe(true);
+    expect(result.messages).toContainEqual(messages.at(-1));
+    expect(result.messages.every((message) => message.role !== "system")).toBe(
+      true,
+    );
+  });
+
+  it("rejects a handoff that exceeds the budget without committing it", async () => {
+    const messages = history().slice(1);
+    const commit = vi.fn();
+    await expect(
+      compact(messages, {
+        compressor: {
+          maxTokens: 512,
+          compress: async () => ({
+            messages: [{ role: "assistant", content: "summary ".repeat(300) }],
+            stats: { saved: 100 },
+          }),
+        },
+        commit,
+      }),
+    ).rejects.toMatchObject({ code: "context_over_budget" });
+    expect(commit).not.toHaveBeenCalled();
+  });
+
   it("retains the live base and refreshes changed rules across repeated compactions", async () => {
     const messages = history();
     let rules = messages[0].content;
