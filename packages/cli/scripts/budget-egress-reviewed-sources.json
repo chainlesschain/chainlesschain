@@ -77,12 +77,6 @@
       "rationale": "GitHub checks/status readback. API responses are evidence inputs, not publication or financial admission."
     },
     {
-      "path": "packages/cli/scripts/verify01-native-plugin-artifact.mjs",
-      "category": "DISTRIBUTION",
-      "rationale": "Operator-only authenticated GitHub API GET and gh artifact download from the fixed chainlesschain repository. Validates successful push workflow/tag/source, exact artifact identity and original plugin ZIP size/hash before exporting only its local path. Authentication exists only in the download step, never in task/model child environments. Does not publish a package, call a model or claim Marketplace approval.",
-      "digest": "sha256:1207d8c47439619983fcb319c4bdce5bbbaa9115da5834dfbcd42caf07923a40"
-    },
-    {
       "path": "packages/cli/scripts/verify01-native-task-campaign.mjs",
       "digest": "sha256:52e7f01d6317fafc9beb277793f8224b3af202583df4185f1bc22abb22d2b186",
       "category": "MODEL_REQUEST",

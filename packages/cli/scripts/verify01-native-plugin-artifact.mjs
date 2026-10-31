@@ -5,7 +5,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 
 const repository = "chainlesschain/chainlesschain";
@@ -93,7 +92,13 @@ async function download(manifestFile, outputDirectory) {
   const manifest = JSON.parse(fs.readFileSync(manifestFile, "utf8"));
   const binding = nativePluginArtifactBinding(manifest);
   if (!binding) return;
-  const execute = promisify(execFile);
+  const execute = (args, options) =>
+    new Promise((resolve, reject) => {
+      execFile("gh", args, options, (error, stdout) => {
+        if (error) reject(new Error("GitHub artifact read/download failed"));
+        else resolve({ stdout });
+      });
+    });
   const options = {
     windowsHide: true,
     timeout: 120000,
@@ -102,7 +107,6 @@ async function download(manifestFile, outputDirectory) {
   };
   const api = async (route) => {
     const { stdout } = await execute(
-      "gh",
       ["api", `repos/${repository}/${route}`],
       options,
     );
@@ -115,7 +119,6 @@ async function download(manifestFile, outputDirectory) {
   verifyNativePluginArtifactMetadata(binding, run, artifact);
   fs.mkdirSync(outputDirectory, { recursive: true });
   await execute(
-    "gh",
     [
       "run",
       "download",
