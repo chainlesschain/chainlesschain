@@ -33,9 +33,51 @@ function isPersistenceResult(event) {
   );
 }
 
+function isCompactionUsageUnknownResult(event) {
+  return (
+    event?.type === "result" &&
+    event.is_error === true &&
+    (event.subtype === "error_compaction_usage_unknown" ||
+      event.code === "CC_COMPACTION_USAGE_UNKNOWN")
+  );
+}
+
+function isSessionReviewResult(event) {
+  return isPersistenceResult(event) || isCompactionUsageUnknownResult(event);
+}
+
 function errorDiagnostic(event) {
   const code = boundedErrorCode(event.code);
   const identifier = code ? { code } : {};
+  if (isCompactionUsageUnknownResult(event)) {
+    const hints = {
+      authentication:
+        "Provider authentication failed; check the API credentials.",
+      access_denied: "Provider access was denied; check model permissions.",
+      rate_limit: "The provider rate limit was reached; wait before resuming.",
+      server_error:
+        "The provider returned a server error; check service availability.",
+      http_error:
+        "The provider rejected the request; check the model endpoint.",
+      network: "The model connection failed; check network and proxy settings.",
+      invalid_response:
+        "The provider returned an invalid response; check API compatibility.",
+    };
+    const category = event.provider_error?.category;
+    const hint = Object.hasOwn(hints, category || "")
+      ? ` ${hints[category]}`
+      : "";
+    const reason =
+      event.usage_unknown_reason === "provider_usage_not_reported"
+        ? "The compaction provider did not report valid token usage."
+        : event.usage_unknown_reason === "provider_transport_outcome_unknown"
+          ? "The compaction request failed before its usage could be confirmed."
+          : "The compaction provider's token usage could not be confirmed.";
+    return {
+      ...identifier,
+      text: `${reason}${code ? ` [${code}]` : ""} The session stopped without retrying the request.${hint} Review the saved session and provider usage, check the model connection, then resume explicitly.`,
+    };
+  }
   if (!isPersistenceResult(event)) {
     // Ordinary provider/configuration errors still need their actionable reason.
     const reason = event.error || event.result || "turn failed";
@@ -53,4 +95,10 @@ function errorDiagnostic(event) {
   };
 }
 
-module.exports = { boundedErrorCode, isPersistenceResult, errorDiagnostic };
+module.exports = {
+  boundedErrorCode,
+  isPersistenceResult,
+  isCompactionUsageUnknownResult,
+  isSessionReviewResult,
+  errorDiagnostic,
+};

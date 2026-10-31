@@ -139,7 +139,7 @@ function mergeTranscript(conv, page, { baseline = false } = {}) {
   const candidates = new Map();
   for (const row of previous) {
     if (!row.id && row.eventRef && row.referenceSession === page.sessionId) {
-      const key = `${row.role}:${row.eventRef}`;
+      const key = `${row.role}:${row.eventRef}:${row.referenceItemIndex ?? 0}`;
       const list = candidates.get(key) || [];
       list.push(row);
       candidates.set(key, list);
@@ -157,18 +157,15 @@ function mergeTranscript(conv, page, { baseline = false } = {}) {
   for (const saved of page.messages) verified.set(saved.id, saved);
   for (const saved of verified.values()) {
     const existing = previous.find((row) => row.id === saved.id);
-    const matches = candidates.get(`${saved.role}:${saved.eventId}`) || [];
-    const live =
-      !existing && saved.itemIndex === 0 && matches.length > 0
-        ? matches[0]
-        : null;
+    const matches =
+      candidates.get(`${saved.role}:${saved.eventId}:${saved.itemIndex}`) || [];
+    const live = !existing && matches.length > 0 ? matches[0] : null;
     const old = existing || live;
     if (old) {
       replacements.set(old, { ...saved, viewId: old.viewId || saved.id });
       seen.add(saved.id);
     }
-    if (saved.itemIndex === 0)
-      for (const match of matches) if (match !== old) removed.add(match);
+    for (const match of matches) if (match !== old) removed.add(match);
   }
   let rows = previous.flatMap((row) => {
     if (removed.has(row)) return [];

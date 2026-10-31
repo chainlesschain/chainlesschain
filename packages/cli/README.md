@@ -1,12 +1,14 @@
 # chainlesschain CLI
 
+Publication prerequisite: regenerate the five previously failed samples on an explicitly bound repaired project source, then independently accept **5/5**. The old frozen project and cumulative 41/45 remain unchanged. This requirement precedes CLI OIDC publication and the paired IDE releases.
+
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
 ## CLI 0.166.137 — confirm source delivery before recording read coverage
 
 Install this release with `npm i -g chainlesschain@0.166.137 --registry https://registry.npmjs.org`, restart the chat host, and verify `cc --version` / `cc doctor`. This repair preserves focused recovery when source content is omitted from a model request. Same-batch reservations remain synchronous; only exact source spans actually selected for the provider become historical coverage. Repeated delivery failures stop with an explicit limitation, and confirmed navigation does not advance or move backward on an unsuccessful read.
 
-Local validation: 109 related regressions pass; restoring the released .136 guard makes seven new controls fail. Existing Open VSX **0.37.173** / JetBrains **0.4.189** remain the pairing, with recommendation metadata still at CLI **0.166.135**. No IDE code changes or child-package updates are required. Full exact-source CLI CI and CLI Strict Sandbox must pass before Actions OIDC publication. Historical model acceptance remains **41/45**; the focused image follow-up remains **0/1** and is not rescored by engineering checks. [Evidence](../../docs/research/cli/verify01-openai-136/read-delivery-repair/README.md).
+Local validation: 109 related regressions pass; restoring the released .136 guard makes seven new controls fail. The prepared pairing is Open VSX **0.37.174** / JetBrains **0.4.190**, both recommending CLI **0.166.137**, released only after the CLI is verified public. Until then the older public IDEs remain compatible. VS Code also preserves provider diagnostics and saved tool identity across reload; no child-package update is required. Full exact-source CLI CI and CLI Strict Sandbox must pass before Actions OIDC publication. Historical model acceptance remains **41/45**; the focused image follow-up remains **0/1** and is not rescored by engineering checks. [Evidence](../../docs/research/cli/verify01-openai-136/read-delivery-repair/README.md).
 
 ## CLI 0.166.136 — verified public repair
 

@@ -67,3 +67,7 @@ docs/research/cli/evidence/recovery-2026-10-27/verify09-artifact.json
 # Preserve exact source-delivery regression and rollback evidence.
 docs/research/cli/verify01-openai-136/read-delivery-repair/**
 !docs/research/cli/verify01-openai-136/read-delivery-repair/README.md
+
+# Preserve repaired-source follow-up raw preflight evidence.
+docs/research/cli/verify01-openai-137/*.raw.json
+docs/research/cli/verify01-openai-137/preflight-index.json

@@ -561,6 +561,78 @@ test("ChatView a clean close after a result permits the next scheduled turn", (t
   assert.equal(provider._loopTimers.has(conv.id), true);
 });
 
+test("ChatView compaction failure pauses input and preserves its cause through expected exit", (t) => {
+  t.mock.timers.enable({ apis: ["setInterval"] });
+  for (const reason of [
+    "provider_transport_outcome_unknown",
+    "provider_usage_not_reported",
+    undefined,
+  ]) {
+    const { conv, provider, onEvent, posts, writes, sessions } =
+      makeLoopConversation();
+    t.after(() => provider._stopLoop(conv.id));
+    provider._setLoop("1s inspect progress");
+    conv.modeStatus = "pending";
+    onEvent({
+      type: "result",
+      subtype: "error_compaction_usage_unknown",
+      is_error: true,
+      code: "CC_COMPACTION_USAGE_UNKNOWN",
+      usage_unknown_reason: reason,
+      error: "fetch failed secret-provider-request",
+    });
+    assert.equal(provider._loopTimers.has(conv.id), false);
+    const result = posts.find((message) => message.kind === "turn_end");
+    assert.match(result.text, /CC_COMPACTION_USAGE_UNKNOWN/);
+    assert.match(result.text, /saved session.*provider usage/);
+    if (reason === "provider_usage_not_reported")
+      assert.match(result.text, /did not report/);
+    if (reason === "provider_transport_outcome_unknown")
+      assert.match(result.text, /request failed/);
+    assert.ok(!JSON.stringify(posts).includes("secret-provider-request"));
+    assert.ok(!conv.modeError.includes("secret-provider-request"));
+    assert.ok(!posts.some((message) => message.kind === "setup"));
+    // Cleanup telemetry after a terminal result does not change its meaning.
+    onEvent({ type: "usage_summary", usage: {} });
+    sessions[0].callbacks.onExit({ code: 1, signal: null });
+    t.mock.timers.tick(5000);
+    assert.equal(writes.length, 1);
+    assert.ok(
+      !posts.some((message) => message?.code === "CC_AGENT_PROCESS_EXITED"),
+    );
+  }
+});
+
+test("ChatView still reports crashes after an earlier session failure", (t) => {
+  for (const { code, signal, next } of [
+    { code: null, signal: "SIGTERM" },
+    { code: 2, signal: null },
+    {
+      code: 1,
+      signal: null,
+      next: { type: "result", is_error: false, result: "Recovered" },
+    },
+    {
+      code: 1,
+      signal: null,
+      next: { type: "tool_use", tool: "read_file", args: {} },
+    },
+  ]) {
+    const { conv, provider, onEvent, posts, sessions } = makeLoopConversation();
+    t.after(() => provider._stopLoop(conv.id));
+    onEvent({
+      type: "result",
+      is_error: true,
+      code: "CC_COMPACTION_USAGE_UNKNOWN",
+    });
+    if (next) onEvent(next);
+    sessions[0].callbacks.onExit({ code, signal });
+    assert.ok(
+      posts.some((message) => message?.code === "CC_AGENT_PROCESS_EXITED"),
+    );
+  }
+});
+
 test("ChatView a paused loop cannot dispatch an already-preparing durable input", async (t) => {
   t.mock.timers.enable({ apis: ["setInterval", "setTimeout"] });
   const { conv, provider, onEvent, writes } = makeSubmission();

@@ -6,7 +6,9 @@ MCP bridge.
 
 ## Release pairing
 
-Version **0.37.173** recommends CLI **`0.166.135`** and pairs with JetBrains **0.4.189**. CLI 0.166.135 is public and independently verified. The extension is public on Open VSX, with a successful complete tagged matrix and a byte-identical public VSIX. JetBrains 0.4.189 is uploaded but still awaits Marketplace approval/listing. Restart existing chat hosts after upgrading to load the CLI Responses recovery and launch-policy fixes.
+Version **0.37.174** recommends CLI **`0.166.137`** and pairs with JetBrains **0.4.190**. This source prepares the next paired release: publish and verify the CLI first, then publish the IDEs after complete exact-source host gates. Restart the chat host after upgrading and verify the actual CLI with Doctor. The VS Code change preserves provider/compaction diagnostics and saved tool-result identity across reload.
+
+Current verified public packages before this release are CLI **0.166.136**, Open VSX **0.37.173** and approved JetBrains **0.4.189**; the older IDEs still recommend CLI **0.166.135**. [Public evidence](../../docs/research/cli/evidence/release136-public/README.md).
 
 ## Self-evolution switch
 
@@ -14,7 +16,7 @@ Version **0.37.173** recommends CLI **`0.166.135`** and pairs with JetBrains **0
 
 Open **Skill 自进化配置** from the command palette to enable or disable self-evolution. It defaults to off and shares `evolution.enabled` in the CLI user `config.json` with `cc ui` and JetBrains. Enabling can initialize the local signed runtime; disabling keeps ordinary Agent use available and preserves deployment data. Stop and restart a running Agent session after switching. These controls require CLI 0.166.127 and the paired extension version below.
 
-## Current release
+## Previous public release: 0.37.173
 
 <!-- release173-status -->
 

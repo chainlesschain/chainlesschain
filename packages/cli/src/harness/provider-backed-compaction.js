@@ -190,6 +190,9 @@ export async function compactConversationWithProvider(messages, options = {}) {
               onToken: undefined,
               onStall: undefined,
               onStreamRetry: undefined,
+              // A failed summary request may already have been billed. Keep
+              // its original failure rather than entering the chat retry loop.
+              disableTransportRetry: true,
               onProviderCallStart:
                 evolutionIngress === null ? undefined : start,
               maxOutputTokens,
@@ -278,6 +281,9 @@ export async function compactConversationWithProvider(messages, options = {}) {
             stats.summaryUsageUnknownReason ||
             "provider_transport_outcome_unknown",
           usageOutcome: "unknown",
+          ...(stats.summaryProviderError
+            ? { providerError: stats.summaryProviderError }
+            : {}),
           ...(stats.summaryCallId ? { callId: stats.summaryCallId } : {}),
           ...(stats.summaryUsageLedgerSettled === true
             ? { usageLedgerSettled: true }

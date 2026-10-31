@@ -3,6 +3,49 @@ const { randomUUID } = require("crypto");
 const owners = new WeakMap();
 
 const MAX_CHARS = 200000;
+function acceptTranscriptToolRoundReceipt(conv, event, source) {
+  const refs = event?.transcript_refs;
+  if (
+    !source ||
+    event?.type !== "system" ||
+    event.subtype !== "tool_round_persisted" ||
+    event.session_id !== conv.sessionId ||
+    refs?.schema !== "chainlesschain.session-tool-round-references/v1" ||
+    refs.sessionId !== conv.sessionId ||
+    typeof refs.eventId !== "string" ||
+    !/^[a-f0-9]{64}$/u.test(refs.eventId) ||
+    refs.eventId.length !== 64 ||
+    !Array.isArray(refs.items) ||
+    refs.items.length > 100 ||
+    refs.items.some(
+      (item) =>
+        !["assistant", "tool"].includes(item?.role) ||
+        !Number.isSafeInteger(item.itemIndex) ||
+        item.itemIndex < 0 ||
+        typeof item.toolCallId !== "string" ||
+        !item.toolCallId ||
+        item.toolCallId.length > 512,
+    ) ||
+    new Set(refs.items.map((item) => item.itemIndex)).size !== refs.items.length
+  )
+    return;
+  for (const item of refs.items) {
+    const matches = (conv.transcript || []).filter(
+      (row) =>
+        !row.id &&
+        !row.eventRef &&
+        owners.get(row) === source &&
+        row.role === item.role &&
+        row.toolCallId === item.toolCallId,
+    );
+    if (matches.length !== 1) continue;
+    const row = matches[0];
+    row.eventRef = refs.eventId;
+    row.referenceItemIndex = item.itemIndex;
+    row.referenceSession = conv.sessionId;
+    conv.transcriptRevision = (conv.transcriptRevision || 0) + 1;
+  }
+}
 function acceptTranscriptInputReceipt(conv, event, source) {
   const receipt = event?.receipt;
   const hash = (value) =>
@@ -79,6 +122,14 @@ function appendTranscript(conv, message, source = null) {
         streaming: true,
       });
   } else if (["user", "tool", "error"].includes(message.kind)) {
+    if (
+      message.kind === "tool" &&
+      message.toolCallId &&
+      last?.role === "assistant" &&
+      last.streaming &&
+      owners.get(last) === source
+    )
+      last.toolCallId = message.toolCallId;
     if (last) last.streaming = false;
     append({
       role: message.kind,
@@ -90,6 +141,7 @@ function appendTranscript(conv, message, source = null) {
       ...(message.clientMessageId
         ? { clientMessageId: message.clientMessageId }
         : {}),
+      ...(message.toolCallId ? { toolCallId: message.toolCallId } : {}),
     });
   } else if (message.kind === "turn_end") {
     if (last?.streaming && owners.get(last) === source) {
@@ -270,6 +322,7 @@ function validateOlderCursor(page, sessionId) {
 }
 
 module.exports = {
+  acceptTranscriptToolRoundReceipt,
   acceptTranscriptInputReceipt,
   appendTranscript,
   loadTranscriptPage,

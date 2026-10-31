@@ -12375,7 +12375,10 @@ export async function chatWithTools(rawMessages, options) {
           ),
         {
           signal,
-          retries: options.workflowEffectId ? 0 : undefined,
+          retries:
+            options.workflowEffectId || options.disableTransportRetry === true
+              ? 0
+              : undefined,
           strictRetryObserver: options.strictUsageTelemetry === true,
           ...(typeof options.onStreamRetry === "function"
             ? {
@@ -12527,7 +12530,10 @@ export async function chatWithTools(rawMessages, options) {
           ),
         {
           signal,
-          retries: options.workflowEffectId ? 0 : undefined,
+          retries:
+            options.workflowEffectId || options.disableTransportRetry === true
+              ? 0
+              : undefined,
           strictRetryObserver: options.strictUsageTelemetry === true,
           ...(typeof options.onStreamRetry === "function"
             ? {
@@ -12655,7 +12661,10 @@ export async function chatWithTools(rawMessages, options) {
           ),
         {
           signal,
-          retries: options.workflowEffectId ? 0 : undefined,
+          retries:
+            options.workflowEffectId || options.disableTransportRetry === true
+              ? 0
+              : undefined,
           strictRetryObserver: options.strictUsageTelemetry === true,
           ...(typeof options.onStreamRetry === "function"
             ? {
@@ -12720,7 +12729,10 @@ export async function chatWithTools(rawMessages, options) {
         ),
       {
         signal,
-        retries: options.workflowEffectId ? 0 : undefined,
+        retries:
+          options.workflowEffectId || options.disableTransportRetry === true
+            ? 0
+            : undefined,
         strictRetryObserver: options.strictUsageTelemetry === true,
         ...(typeof options.onStreamRetry === "function"
           ? {
@@ -12768,7 +12780,10 @@ export async function chatWithTools(rawMessages, options) {
         ),
       {
         signal,
-        retries: options.workflowEffectId ? 0 : undefined,
+        retries:
+          options.workflowEffectId || options.disableTransportRetry === true
+            ? 0
+            : undefined,
         strictRetryObserver: options.strictUsageTelemetry === true,
         ...(typeof options.onStreamRetry === "function"
           ? {
@@ -14607,6 +14622,9 @@ async function _getAutoCompactor(options) {
                     onToken: undefined,
                     onStall: undefined,
                     onStreamRetry: undefined,
+                    // Summary spend is settled once at the compactor boundary.
+                    // A second transport attempt would bypass that accounting.
+                    disableTransportRetry: true,
                     providerRequestId:
                       requestBinding?.providerRequestId || undefined,
                     maxOutputTokens,
@@ -15936,6 +15954,9 @@ export async function* agentLoop(messages, options) {
                   reason:
                     stats.summaryUsageUnknownReason ||
                     "provider_transport_outcome_unknown",
+                  ...(stats.summaryProviderError
+                    ? { providerError: stats.summaryProviderError }
+                    : {}),
                 };
               }
             }
@@ -16042,6 +16063,9 @@ export async function* agentLoop(messages, options) {
                   ? compactionUsageCall.model
                   : stats.summaryModel || options.model || null,
               reason: unknownReason,
+              ...(stats.summaryProviderError
+                ? { providerError: stats.summaryProviderError }
+                : {}),
               code:
                 unknownReason === "provider_usage_not_reported"
                   ? "provider_usage_missing"

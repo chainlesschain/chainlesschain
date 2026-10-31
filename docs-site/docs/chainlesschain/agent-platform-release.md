@@ -1,5 +1,7 @@
 # Agent Platform 发布与升级指南
 
+下一版 CLI **0.166.137** / Open VSX **0.37.174** / JetBrains **0.4.190** 尚未发布。发布前须在明确绑定的修复后项目源码上重新生成原五个失败样本，并独立验收 **5/5 全过**；旧冻结分数保持。[执行记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/verify01-openai-137/README.md)。
+
 ## CLI 0.166.136 已公开（2026-11-01）
 
 安装 `npm i -g chainlesschain@0.166.136 --registry https://registry.npmjs.org` 后重启 `cc ui` 与 IDE 聊天宿主。完整历史分叉和后台策略恢复已修复。来源 `539e4da6ef89e5142a3f3bb90e2d6123c6afb15e` 通过 CLI CI 76 项、Strict Sandbox 6 项、OIDC 发布与独立公开字节/签名回读。IDE 沿用 Open VSX 0.37.173 与 JetBrains 0.4.189 官方构建，推荐标记仍为 CLI 0.166.135；JetBrains 已审核公开，其全部 JAR 与正式构建逐字节一致，ZIP 容器哈希不同并单独记录。Kernel 0.1.11，PC/mobile 不属于此次发布。五项复测 1/5 通过，跨版本累计 41/45。三项冻结实现缺口在已发布 .136 上已复验；图像单项复测 0/1，仍漏仅元数据变化的对照。另修复源码省略后误记已读的问题，109 项工程回归通过；该读取修复尚未发布。工程结果不改写原冻结验收。

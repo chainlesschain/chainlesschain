@@ -1,5 +1,7 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+Prepared CLI **0.166.137** / Open VSX **0.37.174** / JetBrains **0.4.190** remain unpublished. The user requires fresh generation on the repaired project source and independent acceptance of **all five previously failed samples** before publication; old frozen scores remain unchanged.
+
 ## Current public CLI: 0.166.136 (2026-11-01)
 
 CLI **0.166.136** passed complete exact-source gates, Actions OIDC publication and independent public byte/provenance readback. It repairs full-history forks and background policy restoration. Install: `npm i -g chainlesschain@0.166.136 --registry https://registry.npmjs.org`, then restart the chat host. The test pairing remains Open VSX **0.37.173** / the verified JetBrains **0.4.189** Actions build; both retain CLI **0.166.135** recommendation metadata. JetBrains is now approved and public; both JAR payloads match the official build, with different ZIP container hashes. Kernel stays **0.1.11**; PC/mobile are separate. The five-failure retest accepted **1/5** (verify-19), cumulative **41/45**. Three frozen implementation defects are repaired in .136 and verified separately; the focused image follow-up accepted 0/1 and cumulative remains 41/45. A separate source-delivery tracking defect is repaired with 109 passing engineering regressions, pending publication. [Publication evidence](docs/research/cli/evidence/release136-public/README.md).

@@ -32,8 +32,9 @@ vi.mock("../../src/lib/paths.js", () => ({
   getMachineSecurityAnchorDir: () => join(root, "security"),
 }));
 const store = await import("../../src/harness/jsonl-session-store.js");
-const { readSessionTranscriptHistory } =
-  await import("../../src/lib/session-transcript-history.js");
+const { readSessionTranscriptHistory } = await import(
+  "../../src/lib/session-transcript-history.js"
+);
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 let sequence = 0;
 const start = () => {
@@ -136,6 +137,197 @@ function liveTurn(h, id, { tool = false, error = false } = {}) {
 }
 
 describe("verified IDE transcript synchronization", () => {
+  it("reconciles persisted tool rounds by call, event and item identity without replaying live text", async () => {
+    const h = harness();
+    await h.provider._restoreTranscript(h.conv);
+    const callback = h.provider._makeOnEvent(h.conv.id, h.conv._sessionToken);
+    const expected = store.readVerifiedMessages(h.conv.sessionId);
+    const call = (id) => ({
+      id,
+      type: "function",
+      function: {
+        name: "read_file",
+        arguments: '{"path":"a"}',
+      },
+    });
+    const messages = [
+      {
+        role: "assistant",
+        content: "checking",
+        tool_calls: [call("one"), call("two")],
+      },
+      { role: "tool", tool_call_id: "one", content: '{"content":"first"}' },
+      { role: "tool", tool_call_id: "two", content: '{"content":"second"}' },
+      { role: "assistant", content: "checking", tool_calls: [call("three")] },
+      { role: "tool", tool_call_id: "three", content: '{"content":"third"}' },
+    ];
+    for (const ids of [["one", "two"], ["three"]]) {
+      callback({
+        type: "stream_event",
+        event: { delta: { type: "text_delta", text: "checking" } },
+      });
+      for (const id of ids)
+        callback({
+          type: "tool_use",
+          id,
+          tool: "read_file",
+          args: { path: "a" },
+        });
+    }
+    const liveIds = h.conv.transcript.map((row) => row.viewId);
+    const appended = store.appendToolRoundsIfMessagesMatch(
+      h.conv.sessionId,
+      messages,
+      expected,
+    );
+    const receipt = {
+      type: "system",
+      subtype: "tool_round_persisted",
+      session_id: h.conv.sessionId,
+      transcript_refs: {
+        schema: "chainlesschain.session-tool-round-references/v1",
+        sessionId: h.conv.sessionId,
+        eventId: appended.hash,
+        items: messages.map((message, itemIndex) => ({
+          itemIndex,
+          role: message.role,
+          toolCallId:
+            message.role === "assistant"
+              ? message.tool_calls[0].id
+              : message.tool_call_id,
+        })),
+      },
+    };
+    callback({ ...receipt, session_id: "other-session" });
+    expect(h.conv.transcript.every((row) => !row.eventRef)).toBe(true);
+    callback(receipt);
+    callback(receipt);
+    expect(
+      h.conv.transcript.every(
+        (row) => !row.id && row.eventRef === appended.hash,
+      ),
+    ).toBe(true);
+    // Receipts are association candidates; only a verified history read makes
+    // them saved rows. Same assistant text in different rounds remains twice.
+    const page = parseTranscriptPage(
+      JSON.stringify(readSessionTranscriptHistory(h.conv.sessionId)),
+      h.conv.sessionId,
+    );
+    mergeTranscript(h.conv, page, { baseline: true });
+    expect(h.conv.transcript).toHaveLength(5);
+    expect(h.conv.transcript.map((row) => row.viewId)).toEqual(liveIds);
+    expect(h.conv.transcript.map((row) => row.text)).toEqual(
+      messages.map((message) => message.content),
+    );
+    expect(h.conv.transcript.map((row) => row.itemIndex)).toEqual([
+      0, 1, 2, 3, 4,
+    ]);
+    expect(h.conv.transcript.every((row) => row.id)).toBe(true);
+    mergeTranscript(h.conv, page, { baseline: true });
+    expect(h.conv.transcript).toHaveLength(5);
+  });
+
+  it("keeps recovered tool JSON collapsed and available verbatim on demand", async () => {
+    const window = new Window({
+      settings: { enableJavaScriptEvaluation: true },
+    });
+    window.acquireVsCodeApi = () => ({
+      postMessage: vi.fn(),
+      getState: () => ({}),
+      setState: vi.fn(),
+    });
+    try {
+      window.document.write(
+        buildChatHtml({ nonce: "n", cspSource: "vscode-resource:" }),
+      );
+      const receive = (data) =>
+        window.dispatchEvent(new window.MessageEvent("message", { data }));
+      receive({ kind: "tabs", tabs: [{ id: "a", title: "A" }], activeId: "a" });
+      const text = JSON.stringify({
+        stdout: "saved output\n".repeat(100),
+        toolTelemetryRecord: { toolName: "run_shell" },
+      });
+      const rows = Array.from({ length: 40 }, (_, index) => ({
+        id: `s:${index}:0`,
+        role: "tool",
+        text,
+      }));
+      const assistantJson = '{"answer":"this JSON was requested"}';
+      rows.push({ id: "s:answer:0", role: "assistant", text: assistantJson });
+      receive({ kind: "transcript", convId: "a", messages: rows });
+      const log = window.document.getElementById("log");
+      const details = [...log.querySelectorAll("details.saved-tool-result")];
+      expect(details).toHaveLength(40);
+      expect(details.every((element) => !element.open)).toBe(true);
+      expect(log.textContent).not.toContain("toolTelemetryRecord");
+      expect(log.querySelector(".assistant").textContent).toBe(assistantJson);
+      expect(details[0].querySelector("summary").textContent).toContain(
+        "run_shell",
+      );
+      details[0].open = true;
+      details[0].dispatchEvent(new window.Event("toggle"));
+      expect(details[0].querySelector("pre").textContent).toBe(text);
+      receive({ kind: "transcript", convId: "a", messages: rows });
+      expect(log.querySelector("details")).toBe(details[0]);
+      expect(details[0].open).toBe(true);
+      expect(details[0].querySelectorAll("pre")).toHaveLength(1);
+      details[0].open = false;
+      details[0].dispatchEvent(new window.Event("toggle"));
+      expect(details[0].querySelector("pre")).toBeNull();
+      expect(log.textContent).not.toContain("toolTelemetryRecord");
+    } finally {
+      await window.happyDOM.abort();
+    }
+  });
+
+  it("keeps legacy snapshots separate from unmatched live output after an exit", async () => {
+    const h = harness();
+    final(h.conv, "old-turn");
+    await h.provider._restoreTranscript(h.conv);
+    appendTranscript(
+      h.conv,
+      { kind: "delta", text: "uncommitted partial" },
+      h.conv._sessionToken,
+    );
+    appendTranscript(
+      h.conv,
+      { kind: "error", text: "agent exited" },
+      h.conv._sessionToken,
+    );
+    const before = structuredClone(h.conv.transcript);
+    const expected = store.readVerifiedMessages(h.conv.sessionId);
+    store.appendCompactEventIfMessagesMatch(
+      h.conv.sessionId,
+      { messages: expected },
+      expected,
+    );
+    await h.provider._restoreTranscript(h.conv, null, { syncOnly: true });
+    expect(h.conv.transcript).toEqual(before);
+    expect(h.posted.at(-1).text).toContain("Select Latest messages");
+    const posts = h.posted.length;
+    await h.provider._restoreTranscript(h.conv, null, { syncOnly: true });
+    expect(h.posted).toHaveLength(posts);
+    await h.provider._restoreTranscript(h.conv);
+    expect(h.posted.at(-1)).toMatchObject({
+      kind: "transcript",
+      savedSnapshot: true,
+      replaceView: true,
+    });
+    expect(h.posted.at(-1).messages.map((row) => row.text)).toEqual([
+      "same",
+      "same",
+    ]);
+    expect(h.conv.transcript).toEqual(before);
+    expect(h.conv.transcriptBrowsingOlder).toBe(true);
+    h.provider._handleMessage({ type: "transcriptPage", live: true });
+    expect(h.conv.transcriptBrowsingOlder).toBe(false);
+    expect(h.posted.at(-1)).toMatchObject({
+      kind: "transcript",
+      replaceView: true,
+      messages: before,
+    });
+  });
+
   it("accepts the real CLI sync fixture shared with JetBrains, including metadata and rewind", () => {
     const fixture = JSON.parse(
       readFileSync(

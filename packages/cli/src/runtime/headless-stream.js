@@ -964,6 +964,7 @@ async function runTurn(
   let endReason = "complete";
   let stopForCost = false;
   let stopForCompactionUsageUnknown = false;
+  let compactionUsageUnknown = null;
   let responseCompleted = false;
   // P0-2: the side-effect op currently in flight (at most one — the loop runs
   // tools serially). Non-null only between a dangerous tool's tool-executing
@@ -1223,6 +1224,7 @@ async function runTurn(
         }
         break;
       case "compaction-usage-unknown":
+        compactionUsageUnknown = compactionUsageUnknownDiagnostic(event);
         if (event.ledgerPersisted !== true) {
           persistUsageEvent?.({
             ...event,
@@ -1282,7 +1284,52 @@ async function runTurn(
   ) {
     sideEffects.persist();
   }
-  return { finalText, endReason, usage, toolCalls };
+  return { finalText, endReason, usage, toolCalls, compactionUsageUnknown };
+}
+
+function compactionUsageUnknownDiagnostic(event) {
+  const reason =
+    event?.reason === "provider_usage_not_reported"
+      ? "provider_usage_not_reported"
+      : "provider_transport_outcome_unknown";
+  const providerError = event?.providerError;
+  const providerHints = {
+    authentication:
+      "Provider authentication failed; check the API credentials.",
+    access_denied: "Provider access was denied; check model permissions.",
+    rate_limit: "The provider rate limit was reached; wait before resuming.",
+    server_error:
+      "The provider returned a server error; check service availability.",
+    http_error:
+      "The provider rejected the compaction request; check the model endpoint.",
+    network: "The model connection failed; check network and proxy settings.",
+    invalid_response:
+      "The provider returned an invalid response; check API compatibility.",
+    unknown: "The provider request failed.",
+  };
+  const category = providerError?.category;
+  const projected = Object.hasOwn(providerHints, category || "")
+    ? {
+        category,
+        ...(Number.isInteger(providerError.httpStatus) &&
+        providerError.httpStatus >= 400 &&
+        providerError.httpStatus <= 599
+          ? { httpStatus: providerError.httpStatus }
+          : {}),
+      }
+    : null;
+  return {
+    code: "CC_COMPACTION_USAGE_UNKNOWN",
+    usage_unknown_reason: reason,
+    ...(projected ? { provider_error: projected } : {}),
+    error:
+      (reason === "provider_usage_not_reported"
+        ? "Compaction provider did not report valid token usage"
+        : "Compaction request failed before provider usage could be confirmed") +
+      "; the session stopped without retrying the request. " +
+      (projected ? providerHints[category] + " " : "") +
+      "Review the saved session and provider usage, check the model connection, then resume explicitly.",
+  };
 }
 
 /**
@@ -3821,6 +3868,31 @@ async function runAgentHeadlessStreamInWorkspace(
         { code: "CC_SESSION_TOOL_ROUND_SETTLEMENT_HEAD_UNKNOWN" },
       );
     }
+    // Only a new, acknowledged tool_round has item positions to associate
+    // with live IDE output. A no-op settlement returns an existing head only.
+    if (appended.event?.type === "tool_round") {
+      const items = appended.event.data.messages.map((message, itemIndex) => ({
+        itemIndex,
+        role: message.role,
+        toolCallId:
+          message.role === "assistant"
+            ? message.tool_calls[0].id
+            : message.tool_call_id,
+      }));
+      for (let offset = 0; offset < items.length; offset += 100) {
+        emit({
+          type: "system",
+          subtype: "tool_round_persisted",
+          session_id: sessionId,
+          transcript_refs: {
+            schema: "chainlesschain.session-tool-round-references/v1",
+            sessionId,
+            eventId: appended.hash,
+            items: items.slice(offset, offset + 100),
+          },
+        });
+      }
+    }
     return appended;
   };
   const settleToolRoundsForHost = (phase, clientMessageId = null) => {
@@ -4851,9 +4923,11 @@ async function runAgentHeadlessStreamInWorkspace(
             type: "result",
             subtype: "error_compaction_usage_unknown",
             is_error: true,
-            code: "CC_COMPACTION_USAGE_UNKNOWN",
-            error:
-              "Compaction provider usage is unknown; the paid compaction is not retried",
+            ...compactionUsageUnknownDiagnostic(
+              compatibilityResult?.usageUnknownEvent || {
+                reason: "provider_transport_outcome_unknown",
+              },
+            ),
             session_id: sessionId,
           });
           sawError = true;
@@ -4905,9 +4979,7 @@ async function runAgentHeadlessStreamInWorkspace(
           type: "result",
           subtype: "error_compaction_usage_unknown",
           is_error: true,
-          code: "CC_COMPACTION_USAGE_UNKNOWN",
-          error:
-            "Compaction provider usage is unknown; the paid compaction is not retried",
+          ...compactionUsageUnknownDiagnostic(usageUnknownEvent),
           session_id: sessionId,
           ...(costBudget ? { budget_state: "unverifiable" } : {}),
         });
@@ -5908,9 +5980,8 @@ async function runAgentHeadlessStreamInWorkspace(
         type: "result",
         subtype: "error_compaction_usage_unknown",
         is_error: true,
-        code: "CC_COMPACTION_USAGE_UNKNOWN",
-        error:
-          "Compaction provider usage is unknown; the paid compaction is not retried",
+        ...(outcome.compactionUsageUnknown ||
+          compactionUsageUnknownDiagnostic(null)),
         session_id: sessionId,
         turn: turns,
         usage: outcome.usage,

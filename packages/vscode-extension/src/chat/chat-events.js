@@ -191,6 +191,7 @@ function mapAgentEvent(evt, state) {
         kind: "tool",
         tool: evt.tool || "?",
         summary: summarizeToolArgs(evt.args, evt.tool),
+        ...(typeof evt.id === "string" ? { toolCallId: evt.id } : {}),
       };
     case "tool_result": {
       // `ask_user_question` normally round-trips through the in-panel question
