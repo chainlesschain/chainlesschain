@@ -186,7 +186,7 @@ describe("protocol fixture contract (VS Code chat-events twin)", () => {
     ).toBe(null);
   });
 
-  it("tolerates the additive seq / trace_id / tool-call id fields without changing mapping", () => {
+  it("preserves tool-call identity while ignoring additive seq / trace_id metadata", () => {
     const state = chatEvents.createTurnState();
     const withMeta = chatEvents.mapAgentEvent(
       {
@@ -203,7 +203,8 @@ describe("protocol fixture contract (VS Code chat-events twin)", () => {
       { type: "tool_use", tool: "read_file", args: { path: "x" } },
       state,
     );
-    expect(withMeta).toEqual(withoutMeta);
+    expect(withMeta).toEqual({ ...withoutMeta, toolCallId: "tu-9" });
+    expect(project(withMeta)).toEqual(project(withoutMeta));
   });
 
   it("preserves causal-equivalent IDE projections across legal interleavings", () => {

@@ -4,8 +4,34 @@ import "../helpers/test-model-egress.js";
  * (session-wide spend cap) in the streaming-input headless runner.
  * agentLoop / bootstrap / stdin are injected.
  */
-import { describe, it, expect, vi } from "vitest";
-import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
+import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { runAgentHeadlessStream as runStream } from "../../src/runtime/headless-stream.js";
+
+let testRoot;
+let workspace;
+beforeEach(() => {
+  testRoot = mkdtempSync(join(tmpdir(), "headless-cost-replay-"));
+  workspace = join(testRoot, "workspace");
+  mkdirSync(workspace);
+  vi.stubEnv("CHAINLESSCHAIN_HOME", join(testRoot, "home"));
+  vi.stubEnv("CHAINLESSCHAIN_SECURITY_ANCHOR_HOME", join(testRoot, "anchors"));
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+  if (!testRoot.startsWith(join(tmpdir(), "headless-cost-replay-"))) {
+    throw new Error("Refusing to remove an unexpected test root");
+  }
+  rmSync(testRoot, { recursive: true, force: true });
+});
+
+// Exercise the real runner without inheriting the developer's repository
+// instructions, hooks or persisted session state during every stream startup.
+const runAgentHeadlessStream = (options, deps) =>
+  runStream({ cwd: workspace, ...options }, deps);
 
 const baseDeps = (over = {}) => {
   const lines = [];
@@ -48,7 +74,7 @@ describe("runAgentHeadlessStream --replay-user-messages", () => {
     expect(echoes).toHaveLength(2);
     expect(echoes[0].message).toEqual({ role: "user", content: "hello" });
     expect(echoes[1].message).toEqual({ role: "user", content: "world" });
-  }, 30000);
+  });
 
   it("does not echo without the flag", async () => {
     const agentLoop = async function* () {
