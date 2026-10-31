@@ -1,0 +1,4 @@
+*.json -text
+reports/** -text
+fixtures/** -text
+*.txt -text

@@ -1,0 +1,120 @@
+{
+  "schema": 1,
+  "source": "23e26368c81f129d848831bfaed92200cfa9f653",
+  "archivedAt": "2026-10-31T21:57:24.407Z",
+  "unmodifiedEvidence": true,
+  "installedOrPatchedCandidates": false,
+  "credentialScanPassed": true,
+  "files": [
+    {
+      "sampleId": "verify-08",
+      "kind": "unmodified-candidate-source",
+      "originalFile": "packages/cli/__tests__/verify-08.test.js",
+      "path": "candidates/verify-08/verify-08.test.js.txt",
+      "digest": "sha256:c714f5d791cc96f66e6d05c23c457ec9927d54e52c6a6e6a00deb39a93b13e49",
+      "bytes": 10466
+    },
+    {
+      "sampleId": "verify-08",
+      "kind": "independent-setup",
+      "path": "receipts/verify-08-setup.json",
+      "digest": "sha256:b3287566956a1d40c770ccf117a62347d7c7b11ee9441a195e084786ff853d74",
+      "bytes": 31626
+    },
+    {
+      "sampleId": "verify-08",
+      "kind": "independent-check",
+      "path": "receipts/verify-08-check.json",
+      "digest": "sha256:cccd6d7db36995efe40db9b219351f3bd00d58e5c1701818a3a1a197a183290c",
+      "bytes": 25829
+    },
+    {
+      "sampleId": "verify-13",
+      "kind": "unmodified-candidate-source",
+      "originalFile": "packages/cli/__tests__/verify-13.test.js",
+      "path": "candidates/verify-13/verify-13.test.js.txt",
+      "digest": "sha256:924339bd6784029644f4d00a01edfe142d19154dd6cce460705bb6d439d2fc2a",
+      "bytes": 6181
+    },
+    {
+      "sampleId": "verify-13",
+      "kind": "independent-setup",
+      "path": "receipts/verify-13-setup.json",
+      "digest": "sha256:921984888bd78f0a11fb9c920d5ccb89f69fea7a4a6af907bcec56857759fc6b",
+      "bytes": 15532
+    },
+    {
+      "sampleId": "verify-13",
+      "kind": "independent-check",
+      "path": "receipts/verify-13-check.json",
+      "digest": "sha256:5263667aea8cb61ebbb580610d3f51a664c59fdc603b5535bfe4250acc124d8a",
+      "bytes": 13870
+    },
+    {
+      "sampleId": "verify-19",
+      "kind": "unmodified-candidate-source",
+      "originalFile": "packages/cli/__tests__/verify-19.test.js",
+      "path": "candidates/verify-19/verify-19.test.js.txt",
+      "digest": "sha256:067a69e0f515c144b9e577bd2465e05fdb74a5ab37f932278a32f85499f58d7e",
+      "bytes": 7589
+    },
+    {
+      "sampleId": "verify-19",
+      "kind": "independent-setup",
+      "path": "receipts/verify-19-setup.json",
+      "digest": "sha256:06ecf3ec7b45b5fe903a4165ea9537bda612c1233419a4badc8ac667ffa221c2",
+      "bytes": 17209
+    },
+    {
+      "sampleId": "verify-19",
+      "kind": "independent-check",
+      "path": "receipts/verify-19-check.json",
+      "digest": "sha256:a6148a67b1c3d1c4e0da58fc0285d4a81716767ee2ac733c2c5b2e40aabbcde7",
+      "bytes": 14587
+    },
+    {
+      "sampleId": "verify-36",
+      "kind": "unmodified-candidate-source",
+      "originalFile": "packages/cli/__tests__/verify-36.test.js",
+      "path": "candidates/verify-36/verify-36.test.js.txt",
+      "digest": "sha256:fdaf02c29f3a9fdc6c0b7273ca0d3f18510669cd98126647fb275db82886a256",
+      "bytes": 9497
+    },
+    {
+      "sampleId": "verify-36",
+      "kind": "independent-setup",
+      "path": "receipts/verify-36-setup.json",
+      "digest": "sha256:e57f5221e21a77cc04208fc36aaf854ef4cbb5be735d4b766c8ac69c72bdb0fb",
+      "bytes": 13778
+    },
+    {
+      "sampleId": "verify-36",
+      "kind": "independent-check",
+      "path": "receipts/verify-36-check.json",
+      "digest": "sha256:98fb6ea9a85c64e3931f2a5d7fe291e373fa691aa1fbd94e8d9e67be8b6b12c2",
+      "bytes": 30454
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "kind": "unmodified-candidate-source",
+      "originalFile": "packages/cli/__tests__/verify-08.test.js",
+      "path": "candidates/first-run-darwin-vscode/verify-08.test.js.txt",
+      "digest": "sha256:e40275fa5742b2b07c548920d5354545199dad4bbccb57cdc91a8f1dae7c8d23",
+      "bytes": 9688
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "kind": "independent-setup",
+      "path": "receipts/first-run-darwin-vscode-setup.json",
+      "digest": "sha256:8d679e410a15c3aecfe6b28a10fb9e4bde00a44c5f334c99f6b6848bac68455b",
+      "bytes": 31657
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "kind": "independent-check",
+      "path": "receipts/first-run-darwin-vscode-check.json",
+      "digest": "sha256:e9f8ab6535d5ebcfcbb2ad6cd978550c78d9756fdeebe3647f8c0734b6db802e",
+      "bytes": 26744
+    }
+  ]
+}

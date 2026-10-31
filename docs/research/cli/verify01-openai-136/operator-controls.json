@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "files": [
+    "packages/cli/test-node/verify01-release-candidate-replay.node-test.mjs",
+    "packages/cli/test-node/verify01-native-task-campaign.node-test.mjs"
+  ],
+  "tests": 18,
+  "passed": 18,
+  "failed": 0,
+  "skipped": 0,
+  "modelRequests": 0,
+  "reportDigest": "sha256:4d5a0de15858f24f3c031d5199aa9e0a9fd782c2b878ad7ed3c607c4ba347e40"
+}

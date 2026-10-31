@@ -1,0 +1,163 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+// From __tests__/, ../src resolves to packages/cli/src (not ../../src).
+import { readBoundedImage } from "../src/lib/image-file-boundary.js";
+
+const LIMIT = 20 * 1024 * 1024;
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",
+  "base64",
+);
+let root;
+beforeEach(() => {
+  root = fs.mkdtempSync(join(tmpdir(), "verify-13-image-"));
+});
+afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
+
+function image(name = "image.png") {
+  const path = join(root, name);
+  fs.writeFileSync(path, PNG);
+  return path;
+}
+
+// Observe real descriptors and real reads; no replacement reader bypasses the
+// production admission checks, bounded read loop, or finally block.
+function observedIo(overrides = {}) {
+  return {
+    ...fs,
+    openSync: vi.fn((...args) => fs.openSync(...args)),
+    fstatSync: vi.fn((...args) => fs.fstatSync(...args)),
+    readSync: vi.fn((...args) => fs.readSync(...args)),
+    closeSync: vi.fn((...args) => fs.closeSync(...args)),
+    ...overrides,
+  };
+}
+
+function expectClosed(io) {
+  expect(io.openSync).toHaveBeenCalledTimes(1);
+  const fd = io.openSync.mock.results[0].value;
+  expect(io.closeSync.mock.calls).toEqual([[fd]]);
+  expect(io.fstatSync.mock.calls.every(([handle]) => handle === fd)).toBe(true);
+  expect(io.readSync.mock.calls.every(([handle]) => handle === fd)).toBe(true);
+  expect(() => fs.fstatSync(fd)).toThrow(expect.objectContaining({ code: "EBADF" }));
+}
+
+describe("attachment same-handle read boundary (independent regression)", () => {
+  it("returns the exact small PNG through short reads on one handle and closes it", () => {
+    const target = image();
+    const io = observedIo({
+      readSync: vi.fn((fd, data, offset, length, position) =>
+        fs.readSync(fd, data, offset, Math.min(length, 7), position),
+      ),
+    });
+    const result = readBoundedImage(target, "image/png", PNG.length, io);
+    expect(Buffer.isBuffer(result)).toBe(true);
+    expect(result).toEqual(PNG);
+    expect(io.readSync.mock.calls.length).toBeGreaterThan(2);
+    expect(io.fstatSync).toHaveBeenCalledTimes(2);
+    expectClosed(io);
+  });
+
+  it("rejects empty and over-20-MiB regular files before any read, closing each", () => {
+    for (const size of [0, LIMIT + 1]) {
+      const target = image(`size-${size}.png`);
+      fs.truncateSync(target, size);
+      const io = observedIo();
+      expect(() => readBoundedImage(target, "image/png", LIMIT + 1, io)).toThrow(
+        /Image must contain 1 byte to 20 MiB/,
+      );
+      expect(io.readSync).not.toHaveBeenCalled();
+      expectClosed(io);
+    }
+  });
+
+  it("rejects a valid small PNG exceeding the remaining message budget before reads", () => {
+    const target = image();
+    const io = observedIo();
+    expect(() => readBoundedImage(target, "image/png", PNG.length - 1, io)).toThrow(
+      /Total image attachments exceed 20 MiB per message/,
+    );
+    expect(io.readSync).not.toHaveBeenCalled();
+    expectClosed(io);
+  });
+
+  it("rejects same-size replacement and growth between header and payload reads", () => {
+    for (const change of ["replace", "grow"]) {
+      const target = image(`${change}.png`);
+      // A different, still admissible PNG header, with the same byte length.
+      const replacement = Buffer.from(PNG);
+      replacement.writeUInt32BE(2, 16);
+      let changed = false;
+      const io = observedIo({
+        readSync: vi.fn((...args) => {
+          const count = fs.readSync(...args);
+          if (!changed) {
+            changed = true;
+            if (change === "replace") fs.writeFileSync(target, replacement);
+            else fs.truncateSync(target, LIMIT + 1);
+          }
+          return count;
+        }),
+      });
+      expect(() => readBoundedImage(target, "image/png", LIMIT, io)).toThrow(
+        /Image changed while being read; select it again/,
+      );
+      expect(changed).toBe(true);
+      // The current payload read must finish and reach the final check, rather
+      // than fail earlier on an invalid header, extension, or declared size.
+      expect(io.fstatSync).toHaveBeenCalledTimes(2);
+      const payload = io.readSync.mock.calls[1][1];
+      expect(payload.length).toBe(PNG.length + 1);
+      expect(io.readSync.mock.results[1].value).toBe(
+        change === "replace" ? PNG.length : PNG.length + 1,
+      );
+      expect(payload.subarray(0, PNG.length)).toEqual(
+        change === "replace" ? replacement : PNG,
+      );
+      expect(io.readSync.mock.calls.every((args) => args[3] <= PNG.length + 1)).toBe(true);
+      expectClosed(io);
+    }
+  });
+
+  it("rejects a regular path replaced by a directory immediately before opening", () => {
+    const target = image();
+    const original = fs.statSync(target);
+    expect(original.isFile()).toBe(true);
+    const io = observedIo({
+      openSync: vi.fn((path, flags) => {
+        fs.renameSync(path, `${path}.original`);
+        fs.mkdirSync(path);
+        return fs.openSync(path, flags);
+      }),
+    });
+    expect(() => readBoundedImage(target, "image/png", LIMIT, io)).toThrow(
+      /Image input must be a regular file/,
+    );
+    const opened = io.fstatSync.mock.results[0].value;
+    expect(opened.isDirectory()).toBe(true);
+    expect(opened.ino).not.toBe(original.ino);
+    expect(fs.statSync(`${target}.original`).ino).toBe(original.ino);
+    expect(io.readSync).not.toHaveBeenCalled();
+    expectClosed(io);
+  });
+
+  it("propagates a descriptor read failure and still closes that descriptor", () => {
+    const target = image();
+    const failure = Object.assign(new Error("injected read failure"), { code: "EIO" });
+    const io = observedIo({
+      readSync: vi.fn(() => { throw failure; }),
+    });
+    let caught;
+    try {
+      readBoundedImage(target, "image/png", LIMIT, io);
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBe(failure);
+    expect(io.fstatSync).toHaveBeenCalledTimes(1);
+    expect(io.readSync).toHaveBeenCalledTimes(1);
+    expectClosed(io);
+  });
+});

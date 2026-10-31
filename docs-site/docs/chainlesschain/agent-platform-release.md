@@ -2,7 +2,7 @@
 
 ## CLI 0.166.136 已公开（2026-11-01）
 
-安装 `npm i -g chainlesschain@0.166.136 --registry https://registry.npmjs.org` 后重启 `cc ui` 与 IDE 聊天宿主。完整历史分叉和后台策略恢复已修复。来源 `539e4da6ef89e5142a3f3bb90e2d6123c6afb15e` 通过 CLI CI 76 项、Strict Sandbox 6 项、OIDC 发布与独立公开字节/签名回读。IDE 沿用 Open VSX 0.37.173 与 JetBrains 0.4.189 官方构建，推荐标记仍为 CLI 0.166.135；允许构建包测试不代表商店审批完成。Kernel 0.1.11，PC/mobile 不属于此次发布。历史累计 40/45；剩余五项复测结果单独归档。
+安装 `npm i -g chainlesschain@0.166.136 --registry https://registry.npmjs.org` 后重启 `cc ui` 与 IDE 聊天宿主。完整历史分叉和后台策略恢复已修复。来源 `539e4da6ef89e5142a3f3bb90e2d6123c6afb15e` 通过 CLI CI 76 项、Strict Sandbox 6 项、OIDC 发布与独立公开字节/签名回读。IDE 沿用 Open VSX 0.37.173 与 JetBrains 0.4.189 官方构建，推荐标记仍为 CLI 0.166.135；JetBrains 已审核公开，其全部 JAR 与正式构建逐字节一致，ZIP 容器哈希不同并单独记录。Kernel 0.1.11，PC/mobile 不属于此次发布。五项复测 1/5 通过，跨版本累计 41/45。三项冻结实现缺口在已发布 .136 上已复验；图像候选覆盖缺口补通用指引并单项复测，工程结果不改写原冻结验收。
 
 [发布回执](https://github.com/chainlesschain/chainlesschain/actions/runs/41206368406) · [独立公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/41241946884)。
 

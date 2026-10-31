@@ -1,0 +1,917 @@
+{
+  "schema": "chainlesschain.openai-five-failed-retest-report/v1",
+  "generatedAt": "2026-10-31T21:56:29.367Z",
+  "scope": "only-five-previously-failed",
+  "source": "23e26368c81f129d848831bfaed92200cfa9f653",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "api": "Responses",
+  "formalSample": false,
+  "complete": true,
+  "selectedSampleIds": [
+    "verify-08",
+    "verify-13",
+    "verify-19",
+    "verify-36",
+    "first-run-darwin-vscode"
+  ],
+  "versions": {
+    "cli": "0.166.136",
+    "vscode": "0.37.173",
+    "jetbrains": "0.4.189",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "componentReleaseSources": {
+    "cli": "539e4da6ef89e5142a3f3bb90e2d6123c6afb15e",
+    "openVsx": "98db89940de30106f57ee73c063acf249d23bec0",
+    "jetbrains": "82aa6d703a8695721a7ccf0793a435853bc2bbf2"
+  },
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-31-openai-136.json",
+  "packageSetDigest": "sha256:03ad9830988a12d19acd70de287b563710187e6092302ddce55b15b8b47cd03c",
+  "distribution": {
+    "cli": "verified-public-npm",
+    "vscode": "verified-public-open-vsx",
+    "jetbrains": "verified-successful-actions-build-not-marketplace-approval"
+  },
+  "baseline": {
+    "path": "docs/research/cli/verify01-openai-135/retest-six-99b93fc209/results.json",
+    "digest": "sha256:b6f374e6944f0203dcfa3fb9e0dff0068026d7eadf967947399b229f7c043835",
+    "previousRetestAccepted": 1,
+    "previousRetestTotal": 6,
+    "cumulativeAccepted": 40,
+    "expected": 45
+  },
+  "previousAcceptedRepeated": 0,
+  "generationRecorded": 5,
+  "generationPassed": 5,
+  "acceptanceRecorded": 5,
+  "accepted": 1,
+  "failed": 4,
+  "pending": 0,
+  "cumulativeAcceptedAcrossVersions": 41,
+  "cumulativeIsNotFull45Rerun": true,
+  "physicalRequestsStarted": 72,
+  "usageCompleteRequests": 72,
+  "unknownUsageRequests": 0,
+  "missingBrokerRows": [],
+  "knownTokenOnlyEstimateUsd": 4.1056776,
+  "actualBilledCostUsd": null,
+  "workflow": [
+    {
+      "group": "darwin-vscode",
+      "runId": 41244310370,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41244310370",
+      "status": "completed",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "id": 124664442408,
+          "name": "validate",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-31T21:35:34Z",
+          "completedAt": "2026-10-31T21:36:11Z",
+          "failedStep": null
+        },
+        {
+          "id": 124664595981,
+          "name": "Native darwin-vscode (selected samples)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-31T21:36:14Z",
+          "completedAt": "2026-10-31T21:43:11Z",
+          "failedStep": null
+        },
+        {
+          "id": 124666144187,
+          "name": "Linux acceptance of darwin-vscode deliveries",
+          "status": "completed",
+          "conclusion": "failure",
+          "startedAt": "2026-10-31T21:43:14Z",
+          "completedAt": "2026-10-31T21:46:40Z",
+          "failedStep": "Check source and candidate binding then execute baseline and behavioral controls"
+        }
+      ]
+    },
+    {
+      "group": "linux-cli",
+      "runId": 41244319591,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41244319591",
+      "status": "completed",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "id": 124664468253,
+          "name": "validate",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-31T21:35:40Z",
+          "completedAt": "2026-10-31T21:36:20Z",
+          "failedStep": null
+        },
+        {
+          "id": 124664629244,
+          "name": "Native linux-cli (selected samples)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-31T21:36:23Z",
+          "completedAt": "2026-10-31T21:38:46Z",
+          "failedStep": null
+        },
+        {
+          "id": 124665161580,
+          "name": "Linux acceptance of linux-cli deliveries",
+          "status": "completed",
+          "conclusion": "failure",
+          "startedAt": "2026-10-31T21:38:49Z",
+          "completedAt": "2026-10-31T21:41:53Z",
+          "failedStep": "Check source and candidate binding then execute baseline and behavioral controls"
+        }
+      ]
+    },
+    {
+      "group": "win32-cli",
+      "runId": 41244329556,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41244329556",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 124664498260,
+          "name": "validate",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-31T21:35:48Z",
+          "completedAt": "2026-10-31T21:36:30Z",
+          "failedStep": null
+        },
+        {
+          "id": 124664665601,
+          "name": "Native win32-cli (selected samples)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-31T21:36:34Z",
+          "completedAt": "2026-10-31T21:42:52Z",
+          "failedStep": null
+        },
+        {
+          "id": 124666076278,
+          "name": "Linux acceptance of win32-cli deliveries",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-31T21:42:55Z",
+          "completedAt": "2026-10-31T21:45:16Z",
+          "failedStep": null
+        }
+      ]
+    },
+    {
+      "group": "darwin-jetbrains",
+      "runId": 41244362320,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41244362320",
+      "status": "completed",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "id": 124664595886,
+          "name": "validate",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-31T21:36:14Z",
+          "completedAt": "2026-10-31T21:36:45Z",
+          "failedStep": null
+        },
+        {
+          "id": 124664720875,
+          "name": "Native darwin-jetbrains-verify-36 (selected samples)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-31T21:36:48Z",
+          "completedAt": "2026-10-31T21:48:44Z",
+          "failedStep": null
+        },
+        {
+          "id": 124667405317,
+          "name": "Linux acceptance of darwin-jetbrains-verify-36 deliveries",
+          "status": "completed",
+          "conclusion": "failure",
+          "startedAt": "2026-10-31T21:48:47Z",
+          "completedAt": "2026-10-31T21:51:03Z",
+          "failedStep": "Check source and candidate binding then execute baseline and behavioral controls"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "runId": 41244310370,
+      "id": 13059082262,
+      "name": "verify01-native-subset-acceptance-darwin-vscode-23e26368c81f129d848831bfaed92200cfa9f653",
+      "digest": "sha256:8cdf1327103011c8fca0d0606ad0f3947ee6dfd9e611bd27b334a11726bb9488",
+      "summaryDigest": "sha256:b520fd12cb13ed414f827de494348ff52709c4b8e82669b0ecd9b8aa34058a5b",
+      "bytes": 815877,
+      "expiresAt": "2026-11-14T21:46:36Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41244310370/artifacts/13059082262"
+    },
+    {
+      "runId": 41244310370,
+      "id": 13058656666,
+      "name": "verify01-native-subset-delivery-darwin-vscode-23e26368c81f129d848831bfaed92200cfa9f653",
+      "digest": "sha256:bfd4b7f4c8d8cfe1b9812e9cd8d494ecfab02641a262a0cd1d60600995f27c35",
+      "summaryDigest": "sha256:09893d929e1a70a44928ad71ddf30932233800aa57162e6c8a8d35d3b7babafe",
+      "bytes": 12268737,
+      "expiresAt": "2026-11-14T21:43:03Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41244310370/artifacts/13058656666"
+    },
+    {
+      "runId": 41244319591,
+      "id": 13058691506,
+      "name": "verify01-native-subset-acceptance-linux-cli-23e26368c81f129d848831bfaed92200cfa9f653",
+      "digest": "sha256:3e11dc7861eed2ef79e19666339046ee1575475bad0f9df50af06d78b39c2a07",
+      "summaryDigest": "sha256:6a969ef4580ff11c925e5c810438cb2963d3d6cb6766af7a59b6f1aaeb9f659d",
+      "bytes": 607192,
+      "expiresAt": "2026-11-14T21:41:49Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41244319591/artifacts/13058691506"
+    },
+    {
+      "runId": 41244319591,
+      "id": 13058586419,
+      "name": "verify01-native-subset-delivery-linux-cli-23e26368c81f129d848831bfaed92200cfa9f653",
+      "digest": "sha256:4dc602fe264f72cf0c7587a2dfa7972dcf9e67f1d21d366fe939a06ec81a9132",
+      "summaryDigest": "sha256:40c9941aa3f0deef1bec6628bd2cad04f3c73a5881cf8a27adde8ee08ee02437",
+      "bytes": 2915330,
+      "expiresAt": "2026-11-14T21:38:42Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41244319591/artifacts/13058586419"
+    },
+    {
+      "runId": 41244329556,
+      "id": 13059057063,
+      "name": "verify01-native-subset-acceptance-win32-cli-23e26368c81f129d848831bfaed92200cfa9f653",
+      "digest": "sha256:6e441bd7aabeec58dcbe931de4ba73df77643d3bf18ca9a985b9e088ff9fc5b7",
+      "summaryDigest": "sha256:7d1a2dae3f147126caaa0a8bc485bdc294bab93f4b1352bc85d9f70c33220e7b",
+      "bytes": 621753,
+      "expiresAt": "2026-11-14T21:45:12Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41244329556/artifacts/13059057063"
+    },
+    {
+      "runId": 41244329556,
+      "id": 13058621720,
+      "name": "verify01-native-subset-delivery-win32-cli-23e26368c81f129d848831bfaed92200cfa9f653",
+      "digest": "sha256:1471013538c5b827b1bffaa5f3af07ff6baff1ac43ec836b1aaf5277c141a0f7",
+      "summaryDigest": "sha256:aa3e00254cff0dcd2062a4f3ac5e9844cb5d5e341d293a92cbd2a0bec3a8e061",
+      "bytes": 4415021,
+      "expiresAt": "2026-11-14T21:42:47Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41244329556/artifacts/13058621720"
+    },
+    {
+      "runId": 41244362320,
+      "id": 13059610577,
+      "name": "verify01-native-subset-delivery-darwin-jetbrains-verify-36-23e26368c81f129d848831bfaed92200cfa9f653",
+      "digest": "sha256:bdcdb554f6837fbde5145c3080433f45f7f75f66ba95f1d8e76372e0c32aec09",
+      "summaryDigest": "sha256:8dc834d795c61b79f2d43634ec080cf73c87585c307b5c6ad53c2245c2b7be00",
+      "bytes": 4263386,
+      "expiresAt": "2026-11-14T21:48:37Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41244362320/artifacts/13059610577"
+    },
+    {
+      "runId": 41244362320,
+      "id": 13058903176,
+      "name": "verify01-native-subset-acceptance-darwin-jetbrains-verify-36-23e26368c81f129d848831bfaed92200cfa9f653",
+      "digest": "sha256:c49bcdf64fb24b31479a761373eea6aa25fe44bebef8f8491c0f451760ff1526",
+      "summaryDigest": "sha256:2b2b359ac5e4323398222260c23ad68e1acd462fdbe1504f895da52119f4aea2",
+      "bytes": 636809,
+      "expiresAt": "2026-11-14T21:51:01Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41244362320/artifacts/13058903176"
+    }
+  ],
+  "rows": [
+    {
+      "sampleId": "verify-08",
+      "taskId": "verify-08",
+      "kind": "task",
+      "group": "darwin-vscode",
+      "task": "fork 历史归属",
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "acceptancePassed": false,
+      "requests": 16,
+      "usageCompleteRequests": 16,
+      "knownTokenOnlyEstimateUsd": 1.0806234,
+      "actualBilledCostUsd": null,
+      "generationFailure": null,
+      "checkerFailure": "candidate or baseline regression failed",
+      "generation": {
+        "artifact": "verify01-native-subset-delivery-darwin-vscode-23e26368c81f129d848831bfaed92200cfa9f653",
+        "runId": 41244310370,
+        "summaryDigest": "sha256:09893d929e1a70a44928ad71ddf30932233800aa57162e6c8a8d35d3b7babafe",
+        "hostPassed": true,
+        "sourceScopePassed": true,
+        "identityPassed": true,
+        "terminalVerified": true,
+        "candidates": [
+          {
+            "file": "packages/cli/__tests__/verify-08.test.js",
+            "path": "verify-08/candidate/packages/cli/__tests__/verify-08.test.js",
+            "digest": "sha256:c714f5d791cc96f66e6d05c23c457ec9927d54e52c6a6e6a00deb39a93b13e49",
+            "bytes": 10466
+          }
+        ],
+        "startedAt": "2026-10-31T21:40:54.814Z",
+        "finishedAt": "2026-10-31T21:43:03.352Z"
+      },
+      "acceptance": {
+        "artifact": "verify01-native-subset-acceptance-darwin-vscode-23e26368c81f129d848831bfaed92200cfa9f653",
+        "runId": 41244310370,
+        "sourceSummaryDigest": "sha256:09893d929e1a70a44928ad71ddf30932233800aa57162e6c8a8d35d3b7babafe",
+        "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+        "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+        "checkerSourceCommit": "23e26368c81f129d848831bfaed92200cfa9f653",
+        "generationAssessment": {
+          "passed": true,
+          "originalGenerationPassed": true,
+          "originalTerminalVerified": true,
+          "terminal": {
+            "terminalVerified": true,
+            "observedFallback": false,
+            "usage": {
+              "inputTokens": 4476,
+              "outputTokens": 7209,
+              "cacheReadInputTokens": 51394,
+              "cacheCreationInputTokens": 497221
+            },
+            "totalCostUsd": null
+          },
+          "dialect": "persistent-IDE-with-validated-session-end"
+        },
+        "frozenSourceAssessment": {
+          "exact": true,
+          "contentVerified": true,
+          "filenameEncoding": "utf8"
+        },
+        "setup": {
+          "pass": true,
+          "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+          "receipt": "verify-08-setup-0fbb34fd-03b4-43ab-b042-59efdf1a3613.json",
+          "receiptDigest": "sha256:b3287566956a1d40c770ccf117a62347d7c7b11ee9441a195e084786ff853d74",
+          "scriptDigest": "sha256:bf07183bf170c29dc8c334e1f69747425830b41566105657870750529f66c8e5",
+          "receiptPath": "pack/acceptance-evidence/verify-08-setup-0fbb34fd-03b4-43ab-b042-59efdf1a3613.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 58,
+              "passed": 58,
+              "failed": 0
+            }
+          ],
+          "mutations": []
+        },
+        "check": {
+          "pass": false,
+          "detail": "candidate or baseline regression failed",
+          "receipt": "verify-08-check-e31d6a91-4e74-4bd9-9131-0b2870a64d51.json",
+          "receiptDigest": "sha256:cccd6d7db36995efe40db9b219351f3bd00d58e5c1701818a3a1a197a183290c",
+          "scriptDigest": "sha256:95d1860b898071fcd1631194118ce5019615be5bb9600e77e673e0c89595d534",
+          "receiptPath": "pack/acceptance-evidence/verify-08-check-e31d6a91-4e74-4bd9-9131-0b2870a64d51.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 58,
+              "passed": 58,
+              "failed": 0
+            }
+          ],
+          "mutations": []
+        },
+        "finishedAt": "2026-10-31T21:46:36.623Z"
+      },
+      "candidateExecution": {
+        "total": 4,
+        "passed": 3,
+        "failed": 1,
+        "failures": [
+          {
+            "test": "verify-08: fork history ownership rejects a live capability for the wrong parent/body and rejects it after scope exit",
+            "reason": [
+              "AssertionError: expected null to be truthy"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "sampleId": "verify-13",
+      "taskId": "verify-13",
+      "kind": "task",
+      "group": "linux-cli",
+      "task": "附件同句柄读取边界",
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "acceptancePassed": false,
+      "requests": 9,
+      "usageCompleteRequests": 9,
+      "knownTokenOnlyEstimateUsd": 0.30393000000000003,
+      "actualBilledCostUsd": null,
+      "generationFailure": null,
+      "checkerFailure": "candidate tests did not reject the behavioral mutant",
+      "generation": {
+        "artifact": "verify01-native-subset-delivery-linux-cli-23e26368c81f129d848831bfaed92200cfa9f653",
+        "runId": 41244319591,
+        "summaryDigest": "sha256:40c9941aa3f0deef1bec6628bd2cad04f3c73a5881cf8a27adde8ee08ee02437",
+        "hostPassed": true,
+        "sourceScopePassed": true,
+        "identityPassed": true,
+        "terminalVerified": true,
+        "candidates": [
+          {
+            "file": "packages/cli/__tests__/verify-13.test.js",
+            "path": "verify-13/candidate/packages/cli/__tests__/verify-13.test.js",
+            "digest": "sha256:924339bd6784029644f4d00a01edfe142d19154dd6cce460705bb6d439d2fc2a",
+            "bytes": 6181
+          }
+        ],
+        "startedAt": "2026-10-31T21:37:18.457Z",
+        "finishedAt": "2026-10-31T21:38:42.141Z"
+      },
+      "acceptance": {
+        "artifact": "verify01-native-subset-acceptance-linux-cli-23e26368c81f129d848831bfaed92200cfa9f653",
+        "runId": 41244319591,
+        "sourceSummaryDigest": "sha256:40c9941aa3f0deef1bec6628bd2cad04f3c73a5881cf8a27adde8ee08ee02437",
+        "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+        "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+        "checkerSourceCommit": "23e26368c81f129d848831bfaed92200cfa9f653",
+        "generationAssessment": {
+          "passed": true,
+          "originalGenerationPassed": true,
+          "originalTerminalVerified": true,
+          "terminal": {
+            "terminalVerified": true,
+            "observedFallback": false,
+            "usage": {
+              "inputTokens": 2449,
+              "outputTokens": 4241,
+              "cacheReadInputTokens": 16880,
+              "cacheCreationInputTokens": 127467
+            },
+            "totalCostUsd": 0
+          },
+          "dialect": "one-shot"
+        },
+        "frozenSourceAssessment": {
+          "exact": true,
+          "contentVerified": true,
+          "filenameEncoding": "utf8"
+        },
+        "setup": {
+          "pass": true,
+          "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+          "receipt": "verify-13-setup-1d5bf23e-3ba1-4dab-b9c9-acf29517d7fd.json",
+          "receiptDigest": "sha256:921984888bd78f0a11fb9c920d5ccb89f69fea7a4a6af907bcec56857759fc6b",
+          "scriptDigest": "sha256:db9af39071ef4048af094120805491b38b845ba39875587ce7011dbcbb327e84",
+          "receiptPath": "pack/acceptance-evidence/verify-13-setup-1d5bf23e-3ba1-4dab-b9c9-acf29517d7fd.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 13,
+              "passed": 13,
+              "failed": 0
+            }
+          ],
+          "mutations": []
+        },
+        "check": {
+          "pass": false,
+          "detail": "candidate tests did not reject the behavioral mutant",
+          "receipt": "verify-13-check-3f5e8933-1fa0-4f6e-abd7-97f622933f3c.json",
+          "receiptDigest": "sha256:5263667aea8cb61ebbb580610d3f51a664c59fdc603b5535bfe4250acc124d8a",
+          "scriptDigest": "sha256:7ae6f5fb31441a71257273148c74003bb6493619b0d93f12b79f8c4db012af29",
+          "receiptPath": "pack/acceptance-evidence/verify-13-check-3f5e8933-1fa0-4f6e-abd7-97f622933f3c.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 13,
+              "passed": 13,
+              "failed": 0
+            },
+            {
+              "kind": "candidate",
+              "total": 6,
+              "passed": 6,
+              "failed": 0
+            }
+          ],
+          "mutations": []
+        },
+        "finishedAt": "2026-10-31T21:41:49.180Z"
+      }
+    },
+    {
+      "sampleId": "verify-19",
+      "taskId": "verify-19",
+      "kind": "task",
+      "group": "win32-cli",
+      "task": "取消审批迟到回调",
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "acceptancePassed": true,
+      "requests": 17,
+      "usageCompleteRequests": 17,
+      "knownTokenOnlyEstimateUsd": 0.8761056,
+      "actualBilledCostUsd": null,
+      "generationFailure": null,
+      "checkerFailure": null,
+      "generation": {
+        "artifact": "verify01-native-subset-delivery-win32-cli-23e26368c81f129d848831bfaed92200cfa9f653",
+        "runId": 41244329556,
+        "summaryDigest": "sha256:aa3e00254cff0dcd2062a4f3ac5e9844cb5d5e341d293a92cbd2a0bec3a8e061",
+        "hostPassed": true,
+        "sourceScopePassed": true,
+        "identityPassed": true,
+        "terminalVerified": true,
+        "candidates": [
+          {
+            "file": "packages/cli/__tests__/verify-19.test.js",
+            "path": "verify-19/candidate/packages/cli/__tests__/verify-19.test.js",
+            "digest": "sha256:067a69e0f515c144b9e577bd2465e05fdb74a5ab37f932278a32f85499f58d7e",
+            "bytes": 7589
+          }
+        ],
+        "startedAt": "2026-10-31T21:37:38.108Z",
+        "finishedAt": "2026-10-31T21:42:47.105Z"
+      },
+      "acceptance": {
+        "artifact": "verify01-native-subset-acceptance-win32-cli-23e26368c81f129d848831bfaed92200cfa9f653",
+        "runId": 41244329556,
+        "sourceSummaryDigest": "sha256:aa3e00254cff0dcd2062a4f3ac5e9844cb5d5e341d293a92cbd2a0bec3a8e061",
+        "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+        "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+        "checkerSourceCommit": "23e26368c81f129d848831bfaed92200cfa9f653",
+        "generationAssessment": {
+          "passed": true,
+          "originalGenerationPassed": true,
+          "originalTerminalVerified": true,
+          "terminal": {
+            "terminalVerified": true,
+            "observedFallback": false,
+            "usage": {
+              "inputTokens": 2076,
+              "outputTokens": 5764,
+              "cacheReadInputTokens": 33696,
+              "cacheCreationInputTokens": 405472
+            },
+            "totalCostUsd": 0
+          },
+          "dialect": "one-shot"
+        },
+        "frozenSourceAssessment": {
+          "exact": true,
+          "contentVerified": true,
+          "filenameEncoding": "utf8"
+        },
+        "setup": {
+          "pass": true,
+          "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+          "receipt": "verify-19-setup-c1251a95-5648-46b1-a46c-c21aaba9f622.json",
+          "receiptDigest": "sha256:06ecf3ec7b45b5fe903a4165ea9537bda612c1233419a4badc8ac667ffa221c2",
+          "scriptDigest": "sha256:cc68eebc2ff4f423256c524974b895130949073b9c1f6a8c130aaeed62932761",
+          "receiptPath": "pack/acceptance-evidence/verify-19-setup-c1251a95-5648-46b1-a46c-c21aaba9f622.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 17,
+              "passed": 17,
+              "failed": 0
+            }
+          ],
+          "mutations": []
+        },
+        "check": {
+          "pass": true,
+          "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+          "receipt": "verify-19-check-e37924c7-8293-43a0-be84-8f533f3af943.json",
+          "receiptDigest": "sha256:a6148a67b1c3d1c4e0da58fc0285d4a81716767ee2ac733c2c5b2e40aabbcde7",
+          "scriptDigest": "sha256:85bd49f750080b13e712f75c8234e70c00786f88d2df559518516118ecb1578e",
+          "receiptPath": "pack/acceptance-evidence/verify-19-check-e37924c7-8293-43a0-be84-8f533f3af943.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 17,
+              "passed": 17,
+              "failed": 0
+            },
+            {
+              "kind": "candidate",
+              "total": 4,
+              "passed": 4,
+              "failed": 0
+            }
+          ],
+          "mutations": [
+            {
+              "name": "cancellation-grants-pending-approval",
+              "sourceSha256": "83a8e91d3a03e1e9c1d3ac03eed6551565de7d3fdbd53f7c05f29e127a017f57",
+              "total": 4,
+              "passed": 3,
+              "failed": 1
+            }
+          ]
+        },
+        "finishedAt": "2026-10-31T21:45:12.731Z"
+      },
+      "candidateExecution": {
+        "total": 4,
+        "passed": 3,
+        "failed": 1,
+        "failures": [
+          {
+            "test": "approval verdicts belong to the request that opened the card caller abort wins over a late accept and completes the blocked worker",
+            "reason": [
+              "AssertionError: expected [ true ] to deeply equal [ false ]"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "sampleId": "verify-36",
+      "taskId": "verify-36",
+      "kind": "task",
+      "group": "darwin-jetbrains",
+      "task": "启动配置身份保真",
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "acceptancePassed": false,
+      "requests": 11,
+      "usageCompleteRequests": 11,
+      "knownTokenOnlyEstimateUsd": 0.5570120000000001,
+      "actualBilledCostUsd": null,
+      "generationFailure": null,
+      "checkerFailure": "candidate or baseline regression failed",
+      "generation": {
+        "artifact": "verify01-native-subset-delivery-darwin-jetbrains-verify-36-23e26368c81f129d848831bfaed92200cfa9f653",
+        "runId": 41244362320,
+        "summaryDigest": "sha256:8dc834d795c61b79f2d43634ec080cf73c87585c307b5c6ad53c2245c2b7be00",
+        "hostPassed": true,
+        "sourceScopePassed": true,
+        "identityPassed": true,
+        "terminalVerified": true,
+        "candidates": [
+          {
+            "file": "packages/cli/__tests__/verify-36.test.js",
+            "path": "verify-36/candidate/packages/cli/__tests__/verify-36.test.js",
+            "digest": "sha256:fdaf02c29f3a9fdc6c0b7273ca0d3f18510669cd98126647fb275db82886a256",
+            "bytes": 9497
+          }
+        ],
+        "startedAt": "2026-10-31T21:38:23.489Z",
+        "finishedAt": "2026-10-31T21:48:36.308Z"
+      },
+      "acceptance": {
+        "artifact": "verify01-native-subset-acceptance-darwin-jetbrains-verify-36-23e26368c81f129d848831bfaed92200cfa9f653",
+        "runId": 41244362320,
+        "sourceSummaryDigest": "sha256:8dc834d795c61b79f2d43634ec080cf73c87585c307b5c6ad53c2245c2b7be00",
+        "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+        "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+        "checkerSourceCommit": "23e26368c81f129d848831bfaed92200cfa9f653",
+        "generationAssessment": {
+          "passed": true,
+          "originalGenerationPassed": true,
+          "originalTerminalVerified": true,
+          "terminal": {
+            "terminalVerified": true,
+            "observedFallback": false,
+            "usage": {
+              "inputTokens": 2381,
+              "outputTokens": 6116,
+              "cacheReadInputTokens": 36580,
+              "cacheCreationInputTokens": 243716
+            },
+            "totalCostUsd": null
+          },
+          "dialect": "persistent-IDE-with-validated-session-end"
+        },
+        "frozenSourceAssessment": {
+          "exact": true,
+          "contentVerified": true,
+          "filenameEncoding": "utf8"
+        },
+        "setup": {
+          "pass": true,
+          "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+          "receipt": "verify-36-setup-5692199c-71a0-40cc-ad67-3481b5b0f757.json",
+          "receiptDigest": "sha256:e57f5221e21a77cc04208fc36aaf854ef4cbb5be735d4b766c8ac69c72bdb0fb",
+          "scriptDigest": "sha256:6efa449e9cfe276ec3f5b9e65dbb296f86057e68d798db94198f1906c74ace31",
+          "receiptPath": "pack/acceptance-evidence/verify-36-setup-5692199c-71a0-40cc-ad67-3481b5b0f757.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 7,
+              "passed": 7,
+              "failed": 0
+            }
+          ],
+          "mutations": []
+        },
+        "check": {
+          "pass": false,
+          "detail": "candidate or baseline regression failed",
+          "receipt": "verify-36-check-aff1638c-9974-4afa-b247-5ddae61e32ea.json",
+          "receiptDigest": "sha256:98fb6ea9a85c64e3931f2a5d7fe291e373fa691aa1fbd94e8d9e67be8b6b12c2",
+          "scriptDigest": "sha256:b4fb49de1004157ab7f55859f1a6a878fe0c13ab5cb67d6b3d6f49bfc26f03be",
+          "receiptPath": "pack/acceptance-evidence/verify-36-check-aff1638c-9974-4afa-b247-5ddae61e32ea.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 7,
+              "passed": 7,
+              "failed": 0
+            }
+          ],
+          "mutations": []
+        },
+        "finishedAt": "2026-10-31T21:51:01.151Z"
+      },
+      "candidateExecution": {
+        "total": 6,
+        "passed": 2,
+        "failed": 4,
+        "failures": [
+          {
+            "test": "verify-36: persisted background launch policy identity keeps an empty allowlist distinct from unrestricted and nonempty policies on resume",
+            "reason": [
+              "AssertionError: expected null to deeply equal []"
+            ]
+          },
+          {
+            "test": "verify-36: persisted background launch policy identity rejects invalid persisted policy enums instead of normalizing to permissive defaults",
+            "reason": [
+              "AssertionError: permission.mode: expected [Function] to throw an error",
+              "AssertionError: permission.mode: expected [Function] to throw an error",
+              "AssertionError: sandbox.mode: expected [Function] to throw an error",
+              "AssertionError: sandbox.mode: expected [Function] to throw an error",
+              "AssertionError: mcp.ide: expected [Function] to throw an error",
+              "AssertionError: mcp.ide: expected [Function] to throw an error",
+              "AssertionError: mcp.pdh: expected [Function] to throw an error",
+              "AssertionError: mcp.pdh: expected [Function] to throw an error",
+              "AssertionError: mcp.jetbrains: expected [Function] to throw an error",
+              "AssertionError: mcp.jetbrains: expected [Function] to throw an error"
+            ]
+          },
+          {
+            "test": "verify-36: persisted background launch policy identity rejects malformed persisted tool restrictions, budgets, and unsupported versions",
+            "reason": [
+              "AssertionError: string allowlist: expected [Function] to throw an error",
+              "AssertionError: string allowlist: expected [Function] to throw an error",
+              "AssertionError: object allowlist: expected [Function] to throw an error",
+              "AssertionError: object allowlist: expected [Function] to throw an error",
+              "AssertionError: object denylist: expected [Function] to throw an error",
+              "AssertionError: object denylist: expected [Function] to throw an error",
+              "AssertionError: invalid turn budget: expected [Function] to throw an error",
+              "AssertionError: invalid turn budget: expected [Function] to throw an error",
+              "AssertionError: negative cost budget: expected [Function] to throw an error",
+              "AssertionError: negative cost budget: expected [Function] to throw an error"
+            ]
+          },
+          {
+            "test": "verify-36: persisted background launch policy identity rejects invalid explicit CLI policy values at capture rather than dropping restrictions",
+            "reason": [
+              "AssertionError: --permission-mode: expected [Function] to throw an error",
+              "AssertionError: --sandbox-mode: expected [Function] to throw an error",
+              "AssertionError: --max-turns: expected [Function] to throw an error",
+              "AssertionError: --max-budget-usd: expected [Function] to throw an error"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "taskId": "verify-08",
+      "kind": "first-run",
+      "group": "darwin-vscode",
+      "task": "fork 历史归属",
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "acceptancePassed": false,
+      "requests": 19,
+      "usageCompleteRequests": 19,
+      "knownTokenOnlyEstimateUsd": 1.2880066,
+      "actualBilledCostUsd": null,
+      "generationFailure": null,
+      "checkerFailure": "candidate or baseline regression failed",
+      "generation": {
+        "artifact": "verify01-native-subset-delivery-darwin-vscode-23e26368c81f129d848831bfaed92200cfa9f653",
+        "runId": 41244310370,
+        "summaryDigest": "sha256:09893d929e1a70a44928ad71ddf30932233800aa57162e6c8a8d35d3b7babafe",
+        "hostPassed": true,
+        "sourceScopePassed": true,
+        "identityPassed": true,
+        "terminalVerified": true,
+        "candidates": [
+          {
+            "file": "packages/cli/__tests__/verify-08.test.js",
+            "path": "first-run-darwin-vscode/candidate/packages/cli/__tests__/verify-08.test.js",
+            "digest": "sha256:e40275fa5742b2b07c548920d5354545199dad4bbccb57cdc91a8f1dae7c8d23",
+            "bytes": 9688
+          }
+        ],
+        "startedAt": "2026-10-31T21:38:16.624Z",
+        "finishedAt": "2026-10-31T21:40:54.806Z"
+      },
+      "acceptance": {
+        "artifact": "verify01-native-subset-acceptance-darwin-vscode-23e26368c81f129d848831bfaed92200cfa9f653",
+        "runId": 41244310370,
+        "sourceSummaryDigest": "sha256:09893d929e1a70a44928ad71ddf30932233800aa57162e6c8a8d35d3b7babafe",
+        "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+        "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+        "checkerSourceCommit": "23e26368c81f129d848831bfaed92200cfa9f653",
+        "generationAssessment": {
+          "passed": true,
+          "originalGenerationPassed": true,
+          "originalTerminalVerified": true,
+          "terminal": {
+            "terminalVerified": true,
+            "observedFallback": false,
+            "usage": {
+              "inputTokens": 4596,
+              "outputTokens": 8026,
+              "cacheReadInputTokens": 62526,
+              "cacheCreationInputTokens": 596151
+            },
+            "totalCostUsd": null
+          },
+          "dialect": "persistent-IDE-with-validated-session-end"
+        },
+        "frozenSourceAssessment": {
+          "exact": true,
+          "contentVerified": true,
+          "filenameEncoding": "utf8"
+        },
+        "setup": {
+          "pass": true,
+          "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+          "receipt": "verify-08-setup-ce093fdb-f294-4fb1-a971-7e4bd6fc7f2b.json",
+          "receiptDigest": "sha256:8d679e410a15c3aecfe6b28a10fb9e4bde00a44c5f334c99f6b6848bac68455b",
+          "scriptDigest": "sha256:bf07183bf170c29dc8c334e1f69747425830b41566105657870750529f66c8e5",
+          "receiptPath": "pack/acceptance-evidence/verify-08-setup-ce093fdb-f294-4fb1-a971-7e4bd6fc7f2b.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 58,
+              "passed": 58,
+              "failed": 0
+            }
+          ],
+          "mutations": []
+        },
+        "check": {
+          "pass": false,
+          "detail": "candidate or baseline regression failed",
+          "receipt": "verify-08-check-530c0b01-51e6-41df-b8ae-72e30dfa31b5.json",
+          "receiptDigest": "sha256:e9f8ab6535d5ebcfcbb2ad6cd978550c78d9756fdeebe3647f8c0734b6db802e",
+          "scriptDigest": "sha256:95d1860b898071fcd1631194118ce5019615be5bb9600e77e673e0c89595d534",
+          "receiptPath": "pack/acceptance-evidence/verify-08-check-530c0b01-51e6-41df-b8ae-72e30dfa31b5.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 58,
+              "passed": 58,
+              "failed": 0
+            }
+          ],
+          "mutations": []
+        },
+        "finishedAt": "2026-10-31T21:45:34.753Z"
+      },
+      "candidateExecution": {
+        "total": 4,
+        "passed": 2,
+        "failed": 2,
+        "failures": [
+          {
+            "test": "fork history ownership (independent regression) binds live history to its parent and context, and expires it after the source lock",
+            "reason": [
+              "AssertionError: expected null not to be null"
+            ]
+          },
+          {
+            "test": "fork history ownership (independent regression) accepts a complete real import but rejects a mismatched origin at that exact record",
+            "reason": [
+              "AssertionError: expected -1 to be greater than 1"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "responsesReplayEvidence": {
+    "scope": "actual requests from these five selected samples; not additional paid tasks",
+    "requestsInspected": 72,
+    "requestsWithToolOutput": 67,
+    "requestsWithReasoningReplay": 50,
+    "reasoningItems": 224,
+    "emptySummaryOccurrences": 224,
+    "missingSummaryOccurrences": 0
+  },
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37"
+}

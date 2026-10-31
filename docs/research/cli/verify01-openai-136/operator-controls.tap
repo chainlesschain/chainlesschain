@@ -1,0 +1,123 @@
+TAP version 13
+# warning: unable to access 'C:\\Users\\longfa/.config/git/ignore': Permission denied
+# warning: unable to access 'C:\\Users\\longfa/.config/git/ignore': Permission denied
+# knownfolders:engine-ready
+# knownfolders:before-security-command
+# knownfolders:after-security-command
+# Subtest: an unconfirmed host cleanup prevents subsequent sample work without retry
+ok 1 - an unconfirmed host cleanup prevents subsequent sample work without retry
+  ---
+  duration_ms: 6.2246
+  type: 'test'
+  ...
+# Subtest: package set selects exact complete versions and binds original manifest bytes
+ok 2 - package set selects exact complete versions and binds original manifest bytes
+  ---
+  duration_ms: 57.5218
+  type: 'test'
+  ...
+# Subtest: native archive extraction accepts absolute drive paths even under Git Bash PATH
+ok 3 - native archive extraction accepts absolute drive paths even under Git Bash PATH
+  ---
+  duration_ms: 142.6647
+  type: 'test'
+  ...
+# Subtest: native extraction preserves git archive UTF-8 paths and frozen bytes
+ok 4 - native extraction preserves git archive UTF-8 paths and frozen bytes
+  ---
+  duration_ms: 1162.2912
+  type: 'test'
+  ...
+# Subtest: nine native strata select exactly 36 ordinary and nine independent first samples
+ok 5 - nine native strata select exactly 36 ordinary and nine independent first samples
+  ---
+  duration_ms: 13.1908
+  type: 'test'
+  ...
+# Subtest: full tree diff isolates IDE metadata but rejects unrelated source and linked candidates
+ok 6 - full tree diff isolates IDE metadata but rejects unrelated source and linked candidates
+  ---
+  duration_ms: 17.6356
+  type: 'test'
+  ...
+# Subtest: adapter preserves protocol identity and forces six-file tools/worklog off
+ok 7 - adapter preserves protocol identity and forces six-file tools/worklog off
+  ---
+  duration_ms: 1385.5043
+  type: 'test'
+  ...
+# Subtest: native review opt-in is strict and observation requires a runtime event
+ok 8 - native review opt-in is strict and observation requires a runtime event
+  ---
+  duration_ms: 2.4201
+  type: 'test'
+  ...
+# Subtest: dispatcher review opt-in preserves legacy argv and is journal-bound
+ok 9 - dispatcher review opt-in preserves legacy argv and is journal-bound
+  ---
+  duration_ms: 971.7188
+  type: 'test'
+  ...
+# Subtest: VSCode prompt preserves full UTF8 content up to 1 MiB and first-run deadline up to 30 minutes
+ok 10 - VSCode prompt preserves full UTF8 content up to 1 MiB and first-run deadline up to 30 minutes
+  ---
+  duration_ms: 13.8048
+  type: 'test'
+  ...
+# Subtest: failed JetBrains capture reads one raw JSONL stream and rejects ambiguous generations
+ok 11 - failed JetBrains capture reads one raw JSONL stream and rejects ambiguous generations
+  ---
+  duration_ms: 22.8735
+  type: 'test'
+  ...
+# Subtest: protocol conversion uses output only and Windows comparison leaves raw evidence unchanged
+ok 12 - protocol conversion uses output only and Windows comparison leaves raw evidence unchanged
+  ---
+  duration_ms: 13.3346
+  type: 'test'
+  ...
+# Subtest: native child storage recognizes its isolated profile and keeps ACL verification enabled
+ok 13 - native child storage recognizes its isolated profile and keeps ACL verification enabled
+  ---
+  duration_ms: 728.4698
+  type: 'test'
+  ...
+# Subtest: Windows PowerShell KnownFolders and module cache remain outside the task workspace
+ok 14 - Windows PowerShell KnownFolders and module cache remain outside the task workspace
+  ---
+  duration_ms: 9521.3974
+  type: 'test'
+  ...
+# Subtest: fixture adaptation adds only the current storage helper and preserves behavioral assertions
+ok 15 - fixture adaptation adds only the current storage helper and preserves behavioral assertions
+  ---
+  duration_ms: 31.2468
+  type: 'test'
+  ...
+# Subtest: only a normal failed assertion rejects a mutation; loading, runner and timeout errors do not
+ok 16 - only a normal failed assertion rejects a mutation; loading, runner and timeout errors do not
+  ---
+  duration_ms: 5.5085
+  type: 'test'
+  ...
+# Subtest: zero cases, skipped candidate controls and teardown failures cannot become clean candidate passes
+ok 17 - zero cases, skipped candidate controls and teardown failures cannot become clean candidate passes
+  ---
+  duration_ms: 1.1426
+  type: 'test'
+  ...
+# Subtest: a replay cannot overwrite any input evidence, including through a directory junction
+ok 18 - a replay cannot overwrite any input evidence, including through a directory junction
+  ---
+  duration_ms: 41.9946
+  type: 'test'
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 18
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 14900.207

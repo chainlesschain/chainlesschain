@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "path": "packages/cli/scripts/verify01-release-candidate-replay.mjs",
+  "digest": "sha256:1cde59bc6b5956fd40d2614ed268f6551475462ad2ffe2465ed376e0b69910bf",
+  "category": "LOCAL_DIAGNOSTIC",
+  "review": "Explicitly reviewed four archived candidates only. Reads source from the immutable published tag, binds lock/specs/candidate inputs, runs existing baseline, raw and fixture-adapted controls, unchanged evaluator mutations and repair rollbacks in its own temporary source copy. Uses platform-only child environment, provides no model credential and starts no model inference. Local dependency contents and OS sandbox are not independently attested. Source review is supplementary to the non-exhaustive network scanner.",
+  "peerReview": "Astra independently reviewed causes, strict assertion classification, per-sample controls, immutable inputs and output protection."
+}

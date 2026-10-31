@@ -1,0 +1,208 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+// From __tests__ (not __tests__/unit), ../src resolves to packages/cli/src.
+import {
+  assessBackgroundLaunchProfileCompatibility,
+  buildArgvFromBackgroundLaunchProfile,
+  canonicalBackgroundLaunchProfileJson,
+  captureBackgroundLaunchProfile,
+  fingerprintBackgroundLaunchProfile,
+  normalizeBackgroundLaunchProfile,
+} from "../src/lib/background-launch-profile.js";
+
+let dir;
+let previousHome;
+
+beforeEach(() => {
+  dir = realpathSync.native(mkdtempSync(join(tmpdir(), "cc-verify-36-")));
+  previousHome = process.env.CHAINLESSCHAIN_HOME;
+  process.env.CHAINLESSCHAIN_HOME = join(dir, "home");
+  mkdirSync(process.env.CHAINLESSCHAIN_HOME, { recursive: true });
+});
+
+afterEach(() => {
+  if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+  else process.env.CHAINLESSCHAIN_HOME = previousHome;
+  rmSync(dir, { recursive: true, force: true });
+});
+
+function capture(argv) {
+  return captureBackgroundLaunchProfile({ argv, cwd: dir });
+}
+
+function persist(profile) {
+  const file = join(dir, "launch-profile.json");
+  writeFileSync(file, JSON.stringify(profile));
+  return JSON.parse(readFileSync(file, "utf8"));
+}
+
+function restrictedProfile() {
+  return capture([
+    "agent", "--permission-mode", "plan",
+    "--allowed-tools", "read_file", "--disallowed-tools", "run_shell",
+    "--sandbox", "test-image", "--sandbox-mode", "strict",
+    "--max-turns", "6", "--max-budget-usd", "1.5",
+  ]);
+}
+
+function expectIdentity(before, after) {
+  expect(after).toEqual(before);
+  expect(canonicalBackgroundLaunchProfileJson(after)).toBe(
+    canonicalBackgroundLaunchProfileJson(before),
+  );
+  expect(fingerprintBackgroundLaunchProfile(after)).toBe(
+    fingerprintBackgroundLaunchProfile(before),
+  );
+  expect(assessBackgroundLaunchProfileCompatibility(before, after)).toEqual({
+    compatible: true, reasons: [],
+  });
+}
+
+describe("verify-36: persisted background launch policy identity", () => {
+  it("preserves the effective policy through disk JSON and reconstructed argv", () => {
+    const settings = join(dir, "settings.json");
+    writeFileSync(settings, JSON.stringify({ model: "fixture-model" }));
+    const original = capture([
+      "agent", "--provider", "openai", "--model", "primary",
+      "--fallback-model", "second,first", "--vision-model", "vision",
+      "--base-url", "https://example.test/v1",
+      "--permission-mode", "plan", "--interactive-approvals",
+      "--allowed-tools", "write_file,read_file,read_file",
+      "--disallowed-tools", "run_shell,delete_file",
+      "--sandbox", "test-image", "--sandbox-mode", "strict",
+      "--no-mcp", "--strict-mcp-config", "--no-ide", "--no-pdh",
+      "--no-jetbrains", "--settings", settings,
+      "--max-turns", "6", "--max-budget-usd", "1.5",
+      "--safe-mode", "--no-checkpoint", "--no-project-memory",
+    ]);
+    expect(original).toMatchObject({
+      tools: { allowed: ["read_file", "write_file"], disallowed: ["delete_file", "run_shell"] },
+      permission: { mode: "plan", dangerousBypass: false, interactiveApprovals: true },
+      sandbox: { enabled: true, image: "test-image", mode: "strict", network: false },
+      budget: { maxTurns: 6, maxCostUsd: 1.5 },
+      llm: { fallbackModels: ["second", "first"] },
+      mcp: { disabled: true, strict: true, ide: "disabled", pdh: "disabled", jetbrains: "disabled" },
+      configuration: { sources: expect.arrayContaining([expect.objectContaining({ path: settings, kind: "file" })]) },
+    });
+    const saved = persist(original);
+    expectIdentity(original, normalizeBackgroundLaunchProfile(saved));
+    expectIdentity(original, capture(buildArgvFromBackgroundLaunchProfile(saved)));
+  });
+
+  it("keeps an empty allowlist distinct from unrestricted and nonempty policies on resume", () => {
+    const unrestricted = capture(["agent"]);
+    expect(unrestricted.tools.allowed).toBeNull();
+    expectIdentity(unrestricted, capture(buildArgvFromBackgroundLaunchProfile(persist(unrestricted))));
+    const limited = capture(["agent", "--allowed-tools", "read_file"]);
+    expect(limited.tools.allowed).toEqual(["read_file"]);
+    expectIdentity(limited, capture(buildArgvFromBackgroundLaunchProfile(persist(limited))));
+
+    const denyAll = capture(["agent", "--allowed-tools="]);
+    expect(denyAll.tools.allowed).toEqual([]);
+    const saved = persist(denyAll);
+    expectIdentity(denyAll, normalizeBackgroundLaunchProfile(saved));
+    expect(fingerprintBackgroundLaunchProfile(saved)).not.toBe(
+      fingerprintBackgroundLaunchProfile(unrestricted),
+    );
+    const restored = capture(buildArgvFromBackgroundLaunchProfile(saved));
+    expect(restored.tools.allowed).toEqual([]);
+    expectIdentity(denyAll, restored);
+  });
+
+  it("canonicalizes tool sets but rejects replacement by a different effective policy", () => {
+    const original = persist(restrictedProfile());
+    const equivalent = JSON.parse(JSON.stringify(original));
+    equivalent.tools.allowed = ["read_file", "read_file"];
+    equivalent.tools.disallowed = ["run_shell", "run_shell"];
+    expectIdentity(original, normalizeBackgroundLaunchProfile(equivalent));
+
+    const changes = [
+      ["allowlist expansion", (p) => p.tools.allowed.push("write_file"), "tool-policy-loosened"],
+      ["denylist removal", (p) => { p.tools.disallowed = []; }, "tool-policy-loosened"],
+      ["bypass", (p) => { p.permission.dangerousBypass = true; }, "permission-bypass-enabled"],
+      ["network", (p) => { p.sandbox.network = true; }, "sandbox-loosened"],
+      ["turn budget", (p) => { p.budget.maxTurns = 7; }, "budget-loosened"],
+      ["cost budget", (p) => { p.budget.maxCostUsd = null; }, "budget-loosened"],
+    ];
+    for (const [label, mutate, reason] of changes) {
+      const proposed = JSON.parse(JSON.stringify(original));
+      mutate(proposed);
+      const saved = persist(proposed);
+      expect(fingerprintBackgroundLaunchProfile(saved), label).not.toBe(
+        fingerprintBackgroundLaunchProfile(original),
+      );
+      expect(assessBackgroundLaunchProfileCompatibility(original, saved), label).toEqual({
+        compatible: false, reasons: [reason],
+      });
+    }
+  });
+
+  it("rejects invalid persisted policy enums instead of normalizing to permissive defaults", () => {
+    const valid = restrictedProfile();
+    expectIdentity(valid, normalizeBackgroundLaunchProfile(persist(valid)));
+    expectIdentity(valid, capture(buildArgvFromBackgroundLaunchProfile(valid)));
+    const corruptions = [
+      ["permission.mode", (p) => { p.permission.mode = "plna"; }],
+      ["sandbox.mode", (p) => { p.sandbox.mode = "strcit"; }],
+      ["mcp.ide", (p) => { p.mcp.ide = "disabledd"; }],
+      ["mcp.pdh", (p) => { p.mcp.pdh = "disabledd"; }],
+      ["mcp.jetbrains", (p) => { p.mcp.jetbrains = "disabledd"; }],
+    ];
+    for (const [label, mutate] of corruptions) {
+      const bad = JSON.parse(JSON.stringify(valid));
+      mutate(bad);
+      const saved = persist(bad);
+      // Both direct API ingestion and the resume argv boundary must fail closed.
+      expect.soft(() => normalizeBackgroundLaunchProfile(saved), label).toThrowError();
+      expect.soft(() => buildArgvFromBackgroundLaunchProfile(saved), label).toThrowError();
+      expect(saved).toEqual(bad);
+    }
+  });
+
+  it("rejects malformed persisted tool restrictions, budgets, and unsupported versions", () => {
+    const valid = restrictedProfile();
+    expectIdentity(valid, normalizeBackgroundLaunchProfile(persist(valid)));
+    expectIdentity(valid, capture(buildArgvFromBackgroundLaunchProfile(valid)));
+    const corruptions = [
+      ["string allowlist", (p) => { p.tools.allowed = "read_file"; }],
+      ["object allowlist", (p) => { p.tools.allowed = { read_file: true }; }],
+      ["object denylist", (p) => { p.tools.disallowed = { run_shell: true }; }],
+      ["invalid turn budget", (p) => { p.budget.maxTurns = "not-a-number"; }],
+      ["negative cost budget", (p) => { p.budget.maxCostUsd = -1; }],
+      ["unsupported version", (p) => { p.version = 999; }],
+    ];
+    for (const [label, mutate] of corruptions) {
+      const bad = JSON.parse(JSON.stringify(valid));
+      mutate(bad);
+      const saved = persist(bad);
+      expect.soft(() => normalizeBackgroundLaunchProfile(saved), label).toThrowError();
+      expect.soft(() => buildArgvFromBackgroundLaunchProfile(saved), label).toThrowError();
+      expect(saved).toEqual(bad);
+    }
+  });
+
+  it("rejects invalid explicit CLI policy values at capture rather than dropping restrictions", () => {
+    // Each negative control differs from its positive control in one value only.
+    const controls = [
+      ["--permission-mode", "plan", "plna", (p) => p.permission.mode, "plan"],
+      ["--sandbox-mode", "strict", "strcit", (p) => p.sandbox.mode, "strict"],
+      ["--max-turns", "6", "not-a-number", (p) => p.budget.maxTurns, 6],
+      ["--max-budget-usd", "1.5", "-1", (p) => p.budget.maxCostUsd, 1.5],
+    ];
+    for (const [flag, good, bad, select, expected] of controls) {
+      const positive = capture(["agent", flag, good]);
+      expect(select(positive), flag).toBe(expected);
+      expectIdentity(positive, capture(buildArgvFromBackgroundLaunchProfile(persist(positive))));
+      expect.soft(() => capture(["agent", flag, bad]), flag).toThrowError();
+    }
+  });
+});

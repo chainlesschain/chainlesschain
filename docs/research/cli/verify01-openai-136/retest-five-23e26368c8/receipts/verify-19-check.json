@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-19",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 17,
+      "passed": 17,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "cancellation-grants-pending-approval",
+      "sourceSha256": "83a8e91d3a03e1e9c1d3ac03eed6551565de7d3fdbd53f7c05f29e127a017f57",
+      "total": 4,
+      "passed": 3,
+      "failed": 1
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 129,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 4997,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":3,\"numPassedTestSuites\":3,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":17,\"numPassedTests\":17,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793483101145,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"parseInputEvent — approval verdicts\"],\"fullName\":\"parseInputEvent — approval verdicts parses approve/deny and rejects malformed ones\",\"status\":\"passed\",\"title\":\"parses approve/deny and rejects malformed ones\",\"duration\":2.201039000000037,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"parseInputEvent — approval verdicts\"],\"fullName\":\"parseInputEvent — approval verdicts carries an optional approval binding when present\",\"status\":\"passed\",\"title\":\"carries an optional approval binding when present\",\"duration\":0.3708289999999579,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"parseInputEvent — approval verdicts\"],\"fullName\":\"parseInputEvent — approval verdicts validates structured decisions and fails closed on drift\",\"status\":\"passed\",\"title\":\"validates structured decisions and fails closed on drift\",\"duration\":53.67966400000023,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip approve: the blocked tool gets true; request + resolution are emitted\",\"status\":\"passed\",\"title\":\"approve: the blocked tool gets true; request + resolution are emitted\",\"duration\":227.26169100000016,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip caller abort settles a pending approval and retires live stdin\",\"status\":\"passed\",\"title\":\"caller abort settles a pending approval and retires live stdin\",\"duration\":45.45574099999976,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip deny: the tool gets false\",\"status\":\"passed\",\"title\":\"deny: the tool gets false\",\"duration\":113.64672099999962,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip a structured decision must echo the advertised binding\",\"status\":\"passed\",\"title\":\"a structured decision must echo the advertised binding\",\"duration\":118.21731200000022,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip rejects a structured approval that omits the binding\",\"status\":\"passed\",\"title\":\"rejects a structured approval that omits the binding\",\"duration\":115.22876599999972,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip reuses an exact acceptForTurn grant without opening a second card\",\"status\":\"passed\",\"title\":\"reuses an exact acceptForTurn grant without opening a second card\",\"duration\":141.29031799999984,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip downgrades a session grant to acceptOnce when authority persistence fails\",\"status\":\"passed\",\"title\":\"downgrades a session grant to acceptOnce when authority persistence fails\",\"duration\":115.38596300000017,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip restores a persisted exact session grant before the resumed turn\",\"status\":\"passed\",\"title\":\"restores a persisted exact session grant before the resumed turn\",\"duration\":145.60999200000015,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip discards a corrupt persisted grant ledger and asks again\",\"status\":\"passed\",\"title\":\"discards a corrupt persisted grant ledger and asks again\",\"duration\":110.2111890000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip a mismatched binding is rejected (deny, fail closed) — replay/param-substitution\",\"status\":\"passed\",\"title\":\"a mismatched binding is rejected (deny, fail closed) — replay/param-substitution\",\"duration\":112.19026399999984,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip timeout fails closed\",\"status\":\"passed\",\"title\":\"timeout fails closed\",\"duration\":429.88558600000033,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip stdin close while pending fails closed (no hang)\",\"status\":\"passed\",\"title\":\"stdin close while pending fails closed (no hang)\",\"duration\":108.18312900000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip flag off → no permissionConfirm is injected (fail-closed stays)\",\"status\":\"passed\",\"title\":\"flag off → no permissionConfirm is injected (fail-closed stays)\",\"duration\":29.13626000000022,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip the ApprovalGate confirmer is swapped only when the flag is on\",\"status\":\"passed\",\"title\":\"the ApprovalGate confirmer is swapped only when the flag is on\",\"duration\":55.74896399999943,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793483103821,\"endTime\":1793483105745.749,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/headless-stream-approvals.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 3370,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":4,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793483106182,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"approval verdicts belong to the request that opened the card\"],\"fullName\":\"approval verdicts belong to the request that opened the card ignores a late accept for a 'declined; replacement denied' card while the next card is live\",\"status\":\"passed\",\"title\":\"ignores a late accept for a 'declined; replacement denied' card while the next card is live\",\"duration\":197.50516599999992,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"approval verdicts belong to the request that opened the card\"],\"fullName\":\"approval verdicts belong to the request that opened the card ignores a late accept for a 'accepted once; replacement denied' card while the next card is live\",\"status\":\"passed\",\"title\":\"ignores a late accept for a 'accepted once; replacement denied' card while the next card is live\",\"duration\":47.313592999999855,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"approval verdicts belong to the request that opened the card\"],\"fullName\":\"approval verdicts belong to the request that opened the card ignores a late accept for a 'declined; replacement independently a…' card while the next card is live\",\"status\":\"passed\",\"title\":\"ignores a late accept for a 'declined; replacement independently a…' card while the next card is live\",\"duration\":37.854558,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"approval verdicts belong to the request that opened the card\"],\"fullName\":\"approval verdicts belong to the request that opened the card caller abort wins over a late accept and completes the blocked worker\",\"status\":\"passed\",\"title\":\"caller abort wins over a late accept and completes the blocked worker\",\"duration\":34.45315900000014,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793483108809,\"endTime\":1793483109126.4531,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-19.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/runtime/headless-stream.js"
+      ],
+      "setup": false,
+      "ms": 139,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 3359,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":3,\"numFailedTests\":1,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793483109655,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"approval verdicts belong to the request that opened the card\"],\"fullName\":\"approval verdicts belong to the request that opened the card ignores a late accept for a 'declined; replacement denied' card while the next card is live\",\"status\":\"passed\",\"title\":\"ignores a late accept for a 'declined; replacement denied' card while the next card is live\",\"duration\":198.27233300000034,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"approval verdicts belong to the request that opened the card\"],\"fullName\":\"approval verdicts belong to the request that opened the card ignores a late accept for a 'accepted once; replacement denied' card while the next card is live\",\"status\":\"passed\",\"title\":\"ignores a late accept for a 'accepted once; replacement denied' card while the next card is live\",\"duration\":62.068463000000065,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"approval verdicts belong to the request that opened the card\"],\"fullName\":\"approval verdicts belong to the request that opened the card ignores a late accept for a 'declined; replacement independently a…' card while the next card is live\",\"status\":\"passed\",\"title\":\"ignores a late accept for a 'declined; replacement independently a…' card while the next card is live\",\"duration\":40.57491400000026,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"approval verdicts belong to the request that opened the card\"],\"fullName\":\"approval verdicts belong to the request that opened the card caller abort wins over a late accept and completes the blocked worker\",\"status\":\"failed\",\"title\":\"caller abort wins over a late accept and completes the blocked worker\",\"duration\":39.464113,\"failureMessages\":[\"AssertionError: expected [ true ] to deeply equal [ false ]\\n    at /workspace/packages/cli/__tests__/verify-19.test.js:184:24\\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]}],\"startTime\":1793483112281,\"endTime\":1793483112621.464,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-19.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

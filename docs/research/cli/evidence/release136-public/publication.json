@@ -23,9 +23,16 @@
     "jetbrains": {
       "version": "0.4.189",
       "source": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
-      "status": "verified-successful-official-build",
-      "marketplaceApproval": "not-rechecked",
-      "recommendedCliVersion": "0.166.135"
+      "status": "verified-public",
+      "marketplaceApproval": "approved-listed-not-hidden",
+      "recommendedCliVersion": "0.166.135",
+      "publicReadbackVerifiedAt": "2026-10-31T21:49:31.854Z",
+      "allOriginalPayloadsByteIdentical": true,
+      "extraPublicEntries": 0,
+      "archiveByteIdentical": false,
+      "publicArchiveSha256": "b21ae42829af01b54eb7fae09542c56d3f9992a3dc716fed26980e50ce9eff98",
+      "officialArchiveSha256": "63289b08abb58fb59970f23051ce8110da0e60e3773a3fbe7e2568596690dd82",
+      "downloadUrl": "https://plugins.jetbrains.com/files/32208/1208498/chainlesschain-ide-bridge-0.4.189.zip"
     }
   },
   "scope": "CLI-only repair; existing IDE packages remain available for user-authorized tests before JetBrains Marketplace review",

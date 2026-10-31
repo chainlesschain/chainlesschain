@@ -1,0 +1,6 @@
+﻿"sampleId","taskId","kind","group","generationPassed","candidateAcceptancePassed","acceptancePassed","requests","usageCompleteRequests","knownTokenOnlyEstimateUsd","generationFailure","checkerFailure"
+"verify-08","verify-08","task","darwin-vscode","true","false","false","16","16","1.0806234","","candidate or baseline regression failed"
+"verify-13","verify-13","task","linux-cli","true","false","false","9","9","0.30393000000000003","","candidate tests did not reject the behavioral mutant"
+"verify-19","verify-19","task","win32-cli","true","true","true","17","17","0.8761056","",""
+"verify-36","verify-36","task","darwin-jetbrains","true","false","false","11","11","0.5570120000000001","","candidate or baseline regression failed"
+"first-run-darwin-vscode","verify-08","first-run","darwin-vscode","true","false","false","19","19","1.2880066","","candidate or baseline regression failed"

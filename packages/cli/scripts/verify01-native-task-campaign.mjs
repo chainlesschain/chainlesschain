@@ -185,6 +185,8 @@ Related existing tests: ${spec.baselineTests.join(", ")}
 Only these deliverables may be changed: ${task.expectedFiles.join(", ")}
 Use repository-relative mutation paths. Import paths are relative to the deliverable, not to an existing unit test directory: verify the resolved source path explicitly.
 ${spec.doc ? "Write the requested substantive Markdown runbook with source-verified commands and honest interpretation of insufficient evidence." : "Replace the non-answer placeholder with complete independent Vitest regression tests. Use focused positive and negative behavioral controls, at most six cases. Do not import an existing suite or assert on source text."}
+For each independent validation condition, construct an admissible positive control, then change only that condition for its negative control. Keep the other prerequisites valid so a different guard cannot cause the rejection. For stated limits, cover the accepted boundary and the first rejected value.
+If an intended behavioral assertion exposes a defect in the frozen implementation, keep that assertion and explain the implementation defect in your final response; distinguish it from a test assumption or fixture error.
 Source and existing tests are read-only. Describe implementation defects in your final response instead of modifying source. Only six file tools are available; no shell, code execution, MCP or network tools. Do not inspect node_modules or paths outside the project.
 An independent checker runs baseline, candidate and behavioral coverage tests later in network-disabled Linux Docker. Native generation does not imply native test execution. Do not claim tests passed.
 You have 20 model turns. Write early enough to read back the completed deliverable, then finish with a concise account and limitations.`;
@@ -1138,8 +1140,9 @@ export async function runNativeCampaign(options) {
         ]);
       else if (entry === "vscode") result = await runVSCodeNativeTask(args);
       else {
-        const { runJetBrainsNativeTask } =
-          await import("../../jetbrains-plugin/scripts/verify01-native-task-adapter.mjs");
+        const { runJetBrainsNativeTask } = await import(
+          "../../jetbrains-plugin/scripts/verify01-native-task-adapter.mjs"
+        );
         result = await runJetBrainsNativeTask(args);
       }
       row.host = {

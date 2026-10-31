@@ -1,0 +1,211 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+const root = mkdtempSync(join(tmpdir(), "cc-verify-08-"));
+// Only storage locations are substituted; all authority and history code is real.
+// From __tests__, ../src resolves to packages/cli/src (not packages/src).
+vi.mock("../src/lib/paths.js", () => ({
+  getSessionStoreDir: () => join(root, "home", "sessions"),
+  getHomeDir: () => join(root, "home"),
+  getClaudeProjectStorageDir: () => null,
+  getStatePath: () => join(root, "home", "state"),
+  getMachineSecurityAnchorDir: () => join(root, "security"),
+}));
+const store = await import("../src/harness/jsonl-session-store.js");
+const { createSessionTranscriptBranchProjection, readSessionTranscriptHistory } =
+  await import("../src/lib/session-transcript-history.js");
+const { resolveSessionBranchHistory } =
+  await import("../src/lib/session-branch-history.js");
+
+afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+function pair(id, question, answer) {
+  store.appendUserMessage(id, question);
+  store.appendAssistantMessage(id, answer);
+}
+
+function branch(parentSessionId, branchSessionId, retainedMessageCount) {
+  const messages = store.readVerifiedMessages(parentSessionId)
+    .slice(0, retainedMessageCount);
+  const head = store.findLatestEvent(parentSessionId, null).hash;
+  return store.withSessionAuthorityTransaction(parentSessionId, head, (tx) =>
+    tx.readProjection(() => createSessionTranscriptBranchProjection(
+      parentSessionId,
+      messages,
+      (history) => store.createBranchSession({
+        parentSessionId,
+        branchSessionId,
+        parentTurnId: "selected",
+        messages,
+        history,
+      }),
+    )),
+  );
+}
+
+function body(id) {
+  return readSessionTranscriptHistory(id, { limit: 100 }).messages
+    .map(({ role, text }) => ({ role, content: text }));
+}
+
+function expected(...contents) {
+  return contents.map((content, index) => ({
+    role: index % 2 === 0 ? "user" : "assistant",
+    content,
+  }));
+}
+
+describe("verify-08: fork history ownership", () => {
+  it("restores two different ancestor prefixes and keeps sibling bodies separate", () => {
+    const parent = "v08-prefix-parent";
+    store.startSession(parent, { provider: "test", model: "test" });
+    pair(parent, "ancestor-0", "answer-0");
+    pair(parent, "ancestor-1", "answer-1");
+    pair(parent, "excluded-parent-tail", "excluded-parent-answer");
+    const before = store.readVerifiedEvents(parent);
+    expect(branch(parent, "v08-left", 2).created).toBe(true);
+    expect(branch(parent, "v08-right", 4).created).toBe(true);
+    expect(store.readVerifiedEvents(parent)).toEqual(before);
+
+    pair("v08-left", "left-only", "left-answer");
+    pair("v08-right", "right-only", "right-answer");
+    pair(parent, "later-parent", "later-parent-answer");
+    const left = expected("ancestor-0", "answer-0", "left-only", "left-answer");
+    const right = expected("ancestor-0", "answer-0", "ancestor-1", "answer-1",
+      "right-only", "right-answer");
+    // Exact sequences are negative controls for the discarded suffix and the
+    // sibling's continuation, not merely membership checks for the good rows.
+    expect(body("v08-left")).toEqual(left);
+    expect(body("v08-right")).toEqual(right);
+    expect(store.readVerifiedMessages("v08-left")).toEqual(left);
+    expect(store.readVerifiedMessages("v08-right")).toEqual(right);
+    for (const id of ["v08-left", "v08-right"]) {
+      expect(readSessionTranscriptHistory(id).coverage.kind).toBe("from-origin");
+      expect(store.readVerifiedEvents(id)[1].data.parentSessionId).toBe(parent);
+    }
+    const leftIds = new Set(readSessionTranscriptHistory("v08-left").messages.map((m) => m.id));
+    expect(readSessionTranscriptHistory("v08-right").messages.every((m) => !leftIds.has(m.id))).toBe(true);
+  });
+
+  it("forks an imported history twice without confusing copied ancestry with ownership", async () => {
+    const { getDurableSystemMessageProvenance } =
+      await import("../src/lib/session-message-provenance.js");
+    const ancestor = "v08-fork-ancestor";
+    const source = "v08-fork-source";
+    store.startSession(ancestor, { provider: "test", model: "test" });
+    pair(ancestor, "shared-question", "shared-answer");
+    pair(ancestor, "discarded-question", "discarded-answer");
+    expect(branch(ancestor, source, 2).created).toBe(true);
+    pair(source, "source-question", "source-answer");
+    const sourceEvents = store.readVerifiedEvents(source);
+    const a = store.forkSession(source, { requestId: "fork-a" });
+    const b = store.forkSession(source, { requestId: "fork-b" });
+    expect(typeof a).toBe("string");
+    expect(typeof b).toBe("string");
+    expect(a).not.toBe(b);
+    expect(a).not.toBe(source);
+    expect(b).not.toBe(source);
+    expect(store.readVerifiedEvents(source)).toEqual(sourceEvents);
+    for (const id of [a, b]) {
+      // A fork copies verified events; it does not rewrite their provenance.
+      expect(store.readVerifiedEvents(id).slice(0, sourceEvents.length)).toEqual(sourceEvents);
+      const resumed = store.readVerifiedMessages(id);
+      expect(resumed.filter((m) => m.role !== "system"))
+        .toEqual(expected("shared-question", "shared-answer", "source-question", "source-answer"));
+      const notices = resumed.filter((m) => m.role === "system");
+      expect(notices).toHaveLength(1);
+      expect(notices[0].content).toBe(`[Forked from session ${source}]`);
+      expect(getDurableSystemMessageProvenance(notices[0])?.kind).toBe("fork-lineage");
+    }
+    pair(a, "fork-a-only", "fork-a-answer");
+    pair(b, "fork-b-only", "fork-b-answer");
+    pair(source, "source-later", "source-later-answer");
+    pair(ancestor, "ancestor-later", "ancestor-later-answer");
+    const prefix = ["shared-question", "shared-answer", "source-question", "source-answer"];
+    expect(body(a)).toEqual(expected(...prefix, "fork-a-only", "fork-a-answer"));
+    expect(body(b)).toEqual(expected(...prefix, "fork-b-only", "fork-b-answer"));
+    expect(body(source)).toEqual(expected(...prefix, "source-later", "source-later-answer"));
+    const rowsA = readSessionTranscriptHistory(a).messages;
+    const rowsB = readSessionTranscriptHistory(b).messages;
+    // The common event hashes survive copying, while row identity belongs to
+    // the destination namespace. Equal text alone cannot establish ownership.
+    expect(rowsA.slice(0, 4).map((m) => m.eventId))
+      .toEqual(rowsB.slice(0, 4).map((m) => m.eventId));
+    expect(rowsA.every((m) => m.id.startsWith(`${a}:`))).toBe(true);
+    expect(rowsB.every((m) => m.id.startsWith(`${b}:`))).toBe(true);
+    expect(rowsA[4].eventId).not.toBe(rowsB[4].eventId);
+    expect(store.forkSession(source, { requestId: "fork-a" })).toBe(a);
+    expect(body(a)).toEqual(expected(...prefix, "fork-a-only", "fork-a-answer"));
+  });
+
+  it("inherits the selected nested path, not a sibling or a later parent turn", () => {
+    const parent = "v08-nested-root";
+    store.startSession(parent, { provider: "test", model: "test" });
+    pair(parent, "root-question", "root-answer");
+    pair(parent, "root-discard", "root-discard-answer");
+    branch(parent, "v08-nested-a", 2);
+    branch(parent, "v08-nested-b", 2);
+    pair("v08-nested-a", "a-inherited", "a-inherited-answer");
+    pair("v08-nested-b", "b-private", "b-private-answer");
+    pair("v08-nested-a", "a-discard", "a-discard-answer");
+    expect(branch("v08-nested-a", "v08-grandchild", 4).created).toBe(true);
+    pair("v08-nested-a", "a-later", "a-later-answer");
+    pair("v08-grandchild", "grandchild-only", "grandchild-answer");
+    const wanted = expected("root-question", "root-answer", "a-inherited",
+      "a-inherited-answer", "grandchild-only", "grandchild-answer");
+    expect(body("v08-grandchild")).toEqual(wanted);
+    expect(store.readVerifiedMessages("v08-grandchild")).toEqual(wanted);
+    expect(body("v08-nested-b")).toEqual(expected("root-question", "root-answer",
+      "b-private", "b-private-answer"));
+    expect(store.readVerifiedEvents("v08-grandchild")[1].data.parentSessionId)
+      .toBe("v08-nested-a");
+  });
+
+  it("rejects a live capability for the wrong parent/body and rejects it after scope exit", () => {
+    const parent = "v08-cap-parent";
+    const other = "v08-cap-other";
+    for (const id of [parent, other]) {
+      store.startSession(id, { provider: "test", model: "test" });
+      // Identical text is intentional: ancestry must not be inferred from text.
+      pair(id, "same-question", "same-answer");
+    }
+    const before = store.readVerifiedEvents(parent);
+    const otherBefore = store.readVerifiedEvents(other);
+    const messages = store.readVerifiedMessages(parent);
+    const wrongBody = expected("different-question", "same-answer");
+    let saved;
+    store.withSessionAuthorityTransaction(parent, before.at(-1).hash, (tx) =>
+      tx.readProjection(() => createSessionTranscriptBranchProjection(
+        parent, messages, (history) => {
+          saved = history;
+          expect(resolveSessionBranchHistory(history, parent, messages)).toBeTruthy();
+          for (const [target, parentSessionId, contents] of [
+            ["v08-cap-parent-retry", other, messages],
+            ["v08-cap-body-retry", parent, wrongBody],
+          ]) {
+            expect(() => store.createBranchSession({
+              branchSessionId: target, parentSessionId,
+              messages: contents, history,
+            })).toThrow(/expired or does not match/);
+            // The same target can still be created: rejection happened before
+            // persistence, rather than leaving an idempotently "existing" file.
+            expect(store.createBranchSession({
+              branchSessionId: target, parentSessionId: parent, messages, history,
+            }).created).toBe(true);
+            expect(body(target)).toEqual(expected("same-question", "same-answer"));
+          }
+        },
+      )),
+    );
+    expect(() => store.createBranchSession({
+      branchSessionId: "v08-cap-expired-retry", parentSessionId: parent,
+      messages, history: saved,
+    })).toThrow(/expired or does not match/);
+    expect(branch(parent, "v08-cap-expired-retry", 2).created).toBe(true);
+    expect(body("v08-cap-expired-retry")).toEqual(expected("same-question", "same-answer"));
+    expect(store.readVerifiedEvents(parent)).toEqual(before);
+    expect(store.readVerifiedEvents(other)).toEqual(otherBefore);
+  });
+});

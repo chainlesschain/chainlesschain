@@ -1,0 +1,200 @@
+import "./helpers/test-model-egress.js";
+import { PassThrough } from "node:stream";
+import { setImmediate as nextImmediate } from "node:timers/promises";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+// Resolved from __tests__, not __tests__/unit:
+// ../src/lib/permission-request.js -> packages/cli/src/lib/permission-request.js
+import { normalizePermissionRequest } from "../src/lib/permission-request.js";
+import { runAgentHeadlessStream } from "../src/runtime/headless-stream.js";
+
+const context = () => {
+  const request = normalizePermissionRequest({
+    tool: "run_shell",
+    args: { argv: ["npm", "run", "test:unit"] },
+  });
+  return {
+    tool: request.tool,
+    command: request.command,
+    riskLevel: "medium",
+    reason: "settings rule asks",
+  };
+};
+
+const send = (input, event) => input.write(`${JSON.stringify(event)}\n`);
+const accept = (request) => ({
+  type: "approval",
+  id: request.id,
+  binding: request.binding,
+  decision: { kind: "acceptOnce" },
+  approve: true,
+});
+const decline = (request) => ({
+  type: "approval",
+  id: request.id,
+  binding: request.binding,
+  decision: { kind: "decline" },
+  approve: false,
+});
+
+function run(input, agentLoop, writeOut, options = {}) {
+  return runAgentHeadlessStream(
+    {
+      expandFileRefs: false,
+      interactiveApprovals: true,
+      settingsHooks: {},
+      ...options,
+    },
+    {
+      bootstrap: async () => ({ db: null }),
+      getApprovalGate: async () => null,
+      writeOut: (line) => writeOut(JSON.parse(line)),
+      writeErr: () => {},
+      agentLoop,
+      input,
+    },
+  );
+}
+
+describe("approval verdicts belong to the request that opened the card", () => {
+  beforeEach(() => {
+    vi.stubEnv("CC_APPROVAL_TIMEOUT_MS", "30000");
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  // Identical tool/command on purpose: unrelated argument or policy rejection
+  // must not be what prevents an old accept from approving the replacement.
+  it.each([
+    { label: "declined; replacement denied", firstApproved: false, secondApproved: false },
+    { label: "accepted once; replacement denied", firstApproved: true, secondApproved: false },
+    { label: "declined; replacement independently accepted", firstApproved: false, secondApproved: true },
+  ])("ignores a late accept for a $label card while the next card is live", async ({ firstApproved, secondApproved }) => {
+    const input = new PassThrough();
+    const events = [];
+    const requests = [];
+    const verdicts = [];
+    const checkpoints = [];
+    const deliveries = [];
+    const tasks = [];
+    let secondSettled = false;
+
+    const agentLoop = async function* (_messages, opts) {
+      verdicts.push(await opts.permissionConfirm(context()));
+      const second = await opts.permissionConfirm(context());
+      secondSettled = true;
+      verdicts.push(second);
+      yield { type: "response-complete", content: JSON.stringify(verdicts) };
+      yield { type: "run-ended", reason: "complete" };
+    };
+
+    send(input, { type: "user", text: "request two identical risky operations" });
+    const running = run(input, agentLoop, (event) => {
+      events.push(event);
+      if (event.type === "approval_request") {
+        requests.push(event);
+        if (requests.length === 1) {
+          queueMicrotask(() => send(input, firstApproved ? accept(event) : decline(event)));
+        } else if (requests.length === 2) {
+          // Do not send the replacement's decision until the old accept has
+          // traversed stdin. The old request's real id AND binding are replayed.
+          tasks.push((async () => {
+            await nextImmediate();
+            deliveries.push(accept(requests[0]));
+            send(input, deliveries[0]);
+            await nextImmediate();
+            checkpoints.push({
+              secondSettled,
+              verdicts: [...verdicts],
+              secondResolutions: events.filter(
+                (e) => e.type === "approval_resolved" && e.id === event.id,
+              ),
+            });
+            send(input, secondApproved ? accept(event) : decline(event));
+          })());
+        }
+      }
+      if (event.type === "result") input.end();
+    });
+
+    try {
+      const outcome = await running;
+      await Promise.all(tasks);
+      expect(outcome).toEqual({ exitCode: 0, turns: 1 });
+      expect(requests).toHaveLength(2);
+      expect(requests[0]).toMatchObject({ tool: "run_shell", command: "npm run test:unit", risk: "medium" });
+      expect(requests[1]).toMatchObject({ tool: "run_shell", command: "npm run test:unit", risk: "medium" });
+      expect(requests[1].id).not.toBe(requests[0].id);
+      for (const request of requests) expect(request.binding).toMatch(/^ab_[0-9a-f]{32}$/);
+      expect(deliveries).toEqual([accept(requests[0])]);
+      expect(checkpoints).toEqual([{
+        secondSettled: false,
+        verdicts: [firstApproved],
+        secondResolutions: [],
+      }]);
+      expect(verdicts).toEqual([firstApproved, secondApproved]);
+      const resolutions = events.filter((event) => event.type === "approval_resolved");
+      expect(resolutions).toHaveLength(2);
+      expect(resolutions[0]).toMatchObject({
+        id: requests[0].id,
+        approved: firstApproved,
+        via: firstApproved ? "user-approve" : "user-deny",
+      });
+      expect(resolutions[1]).toMatchObject({
+        id: requests[1].id,
+        approved: secondApproved,
+        via: secondApproved ? "user-approve" : "user-deny",
+      });
+      expect(events.find((event) => event.type === "result").result).toBe(JSON.stringify([firstApproved, secondApproved]));
+    } finally {
+      input.destroy();
+    }
+  });
+
+  it("caller abort wins over a late accept and completes the blocked worker", async () => {
+    const input = new PassThrough();
+    const controller = new AbortController();
+    const events = [];
+    const verdicts = [];
+    const lateDeliveries = [];
+    let workerCompleted = false;
+    const agentLoop = async function* (_messages, opts) {
+      verdicts.push(await opts.permissionConfirm(context()));
+      workerCompleted = true;
+      yield { type: "response-complete", content: "cancelled worker completed" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    send(input, { type: "user", text: "cancel the pending operation" });
+    try {
+      const outcome = await run(input, agentLoop, (event) => {
+        events.push(event);
+        if (event.type === "approval_request") {
+          queueMicrotask(() => {
+            // Abort only after registration is observable. Deliver a faithful
+            // accept afterwards, not a malformed or mismatched-binding reply.
+            controller.abort();
+            lateDeliveries.push(accept(event));
+            send(input, lateDeliveries[0]);
+          });
+        }
+      }, { signal: controller.signal });
+      expect(outcome).toEqual({ exitCode: 0, turns: 1 });
+      expect(controller.signal.aborted).toBe(true);
+      expect(workerCompleted).toBe(true);
+      expect(verdicts).toEqual([false]);
+      expect(input.destroyed).toBe(true);
+      const requests = events.filter((event) => event.type === "approval_request");
+      expect(requests).toHaveLength(1);
+      expect(lateDeliveries).toEqual([accept(requests[0])]);
+      const resolutions = events.filter((event) => event.type === "approval_resolved");
+      expect(resolutions).toHaveLength(1);
+      expect(resolutions[0]).toMatchObject({
+        id: requests[0].id,
+        approved: false,
+        via: "session-closed",
+      });
+    } finally {
+      input.destroy();
+    }
+  });
+});

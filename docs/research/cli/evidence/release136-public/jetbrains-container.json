@@ -1,0 +1,18 @@
+{
+  "originalEntries": [
+    {
+      "name": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.189.jar",
+      "byteIdentical": true,
+      "sha256": "e5fc8a8d1e4313e7b3c8726963d98a73f45e631aafe94d0d2c93bb7340a55929"
+    },
+    {
+      "name": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.189-searchableOptions.jar",
+      "byteIdentical": true,
+      "sha256": "1f0b0ba602182e8e4b7739fa42480ee12ac990227db8dab4354b1a6860a643e7"
+    }
+  ],
+  "extraPublicEntries": [],
+  "missingEntries": [],
+  "archiveByteIdentical": false,
+  "allOriginalPayloadsByteIdentical": true
+}

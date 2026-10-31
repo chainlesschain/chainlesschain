@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "status": "completed",
+  "scope": "only-five-previously-failed",
+  "executionSource": "23e26368c81f129d848831bfaed92200cfa9f653",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-31-openai-136.json",
+  "packageSetDigest": "sha256:03ad9830988a12d19acd70de287b563710187e6092302ddce55b15b8b47cd03c",
+  "model": "gpt-6.1-sol",
+  "selectedSampleIds": [
+    "verify-08",
+    "verify-13",
+    "verify-19",
+    "verify-36",
+    "first-run-darwin-vscode"
+  ],
+  "previousAcceptedRepeated": 0,
+  "dispatches": [
+    {
+      "group": "darwin-vscode",
+      "sampleIds": ["verify-08", "first-run-darwin-vscode"],
+      "runId": 41244310370,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41244310370"
+    },
+    {
+      "group": "linux-cli",
+      "sampleIds": ["verify-13"],
+      "runId": 41244319591,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41244319591"
+    },
+    {
+      "group": "win32-cli",
+      "sampleIds": ["verify-19"],
+      "runId": 41244329556,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41244329556"
+    },
+    {
+      "group": "darwin-jetbrains",
+      "sampleIds": ["verify-36"],
+      "runId": 41244362320,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41244362320"
+    }
+  ],
+  "latestStatusAt": "2026-10-31T21:42:06.513Z",
+  "credentialSource": "User-authorized Desktop/openai.txt",
+  "temporaryCredentialCleanup": "required immediately after generation jobs settle",
+  "localUserConfigChanged": false,
+  "generationRecorded": 5,
+  "independentAcceptanceRecorded": 5,
+  "accepted": 1,
+  "failed": 4,
+  "cumulativeAccepted": 41,
+  "temporaryCredentialRemoved": true,
+  "absenceVerified": true,
+  "followup": "only verify-13 after guidance repair; separate plan"
+}

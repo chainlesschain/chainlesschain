@@ -1,0 +1,41 @@
+{
+  "schema": "chainlesschain.openai-failed-sample-retest/v1",
+  "createdAt": "2026-10-31T22:32:40.379Z",
+  "status": "prepared-not-dispatched",
+  "scope": "only-verify-13-after-independent-control-guidance-repair",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "baseline": {
+    "path": "docs/research/cli/verify01-openai-136/retest-five-23e26368c8/results.json",
+    "digest": "sha256:62a0fdf5ed2a1377151ebdd8e77368c9d301b5ae0d600257d5c96253b2df950b",
+    "cumulativeAccepted": 41,
+    "expected": 45
+  },
+  "selectedSampleIds": ["verify-13"],
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-31-openai-136.json",
+  "packageSetDigest": "sha256:03ad9830988a12d19acd70de287b563710187e6092302ddce55b15b8b47cd03c",
+  "versions": {
+    "cli": "0.166.136",
+    "vscode": "0.37.173",
+    "jetbrains": "0.4.189",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "dispatches": [
+    {
+      "group": "linux-cli",
+      "hosts": "linux",
+      "entries": "cli",
+      "sampleIds": ["verify-13"]
+    }
+  ],
+  "priorAcceptedSamplesRepeated": 0,
+  "deferredFrozenBaselineDefects": [
+    "verify-08",
+    "verify-36",
+    "first-run-darwin-vscode"
+  ],
+  "reason": "The remaining image candidate was not independently varying validation conditions. Generic prompt guidance now requires admissible single-condition controls and exact boundaries, without task answers or evaluator mutations.",
+  "campaignSourceDigest": "sha256:da51be7a24b2c5ddf63f62cbfcff4833451bcb1a733a2b0b1249cc3c06b7816b",
+  "frozenSourceOrAcceptanceChanged": false
+}

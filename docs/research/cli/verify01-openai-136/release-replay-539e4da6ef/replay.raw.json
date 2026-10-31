@@ -1,0 +1,799 @@
+{
+  "schema": "chainlesschain.released-candidate-engineering-replay/v1",
+  "capturedAt": "2026-10-31T22:33:23.712Z",
+  "source": "539e4da6ef89e5142a3f3bb90e2d6123c6afb15e",
+  "version": "0.166.136",
+  "workspace": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3",
+  "sourceWorkspace": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\source",
+  "kind": "local-engineering-replay-with-explicit-fixture-adaptation",
+  "changesFrozenAcceptance": false,
+  "countsAsNewModelAcceptance": false,
+  "modelRequests": 0,
+  "originalRetestSource": "23e26368c81f129d848831bfaed92200cfa9f653",
+  "frozenProjectSource": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "originalCandidateReportDigest": "sha256:62a0fdf5ed2a1377151ebdd8e77368c9d301b5ae0d600257d5c96253b2df950b",
+  "archiveIndexDigest": "sha256:81e42a2269115572b5e29cf5e366bc28da53b8b3f43ef650a960405a41eb77f2",
+  "releaseProofDigest": "sha256:90e77118ff37b0cf1def84719bf88529e74ee13e176a30e9d44d210b859da5c3",
+  "normalizedDependencyLockDigest": "sha256:656f7b0264ba3c74c053829d65e751b6f32bff3b2e1fce637cb51d9dba9e94e7",
+  "reviewSpecsDigest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d",
+  "runnerSourceDigest": "sha256:1cde59bc6b5956fd40d2614ed268f6551475462ad2ffe2465ed376e0b69910bf",
+  "dependencyContentsIndependentlyVerified": false,
+  "reviewedCandidateInputRequired": true,
+  "osSandboxAttested": false,
+  "configLoader": "native",
+  "environmentIsolation": "platform-only-plus-private-state",
+  "selectedSampleIds": [
+    "verify-08",
+    "verify-13",
+    "verify-36",
+    "first-run-darwin-vscode"
+  ],
+  "adaptations": [
+    {
+      "sampleId": "verify-08",
+      "originalDigest": "sha256:c714f5d791cc96f66e6d05c23c457ec9927d54e52c6a6e6a00deb39a93b13e49",
+      "replayDigest": "sha256:d656c03ec49f6fb72a5b289cfbc908035fa2d66f450a138c883ef06be6c06359",
+      "changed": true,
+      "adapter": "add-current-getSessionStoreDir-to-paths-mock-only",
+      "exactAddition": "\n  getSessionStoreDir: () => join(root, \"home\", \"sessions\"),"
+    },
+    {
+      "sampleId": "verify-13",
+      "originalDigest": "sha256:924339bd6784029644f4d00a01edfe142d19154dd6cce460705bb6d439d2fc2a",
+      "replayDigest": "sha256:924339bd6784029644f4d00a01edfe142d19154dd6cce460705bb6d439d2fc2a",
+      "changed": false
+    },
+    {
+      "sampleId": "verify-36",
+      "originalDigest": "sha256:fdaf02c29f3a9fdc6c0b7273ca0d3f18510669cd98126647fb275db82886a256",
+      "replayDigest": "sha256:fdaf02c29f3a9fdc6c0b7273ca0d3f18510669cd98126647fb275db82886a256",
+      "changed": false
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "originalDigest": "sha256:e40275fa5742b2b07c548920d5354545199dad4bbccb57cdc91a8f1dae7c8d23",
+      "replayDigest": "sha256:261b731740df3be1ca3c6066f17308ee91a4485b66e65c502d8b9592ea005e21",
+      "changed": true,
+      "adapter": "add-current-getSessionStoreDir-to-paths-mock-only",
+      "exactAddition": "\n  getSessionStoreDir: () => join(root, \"home\", \"sessions\"),"
+    }
+  ],
+  "baselinePassed": true,
+  "adaptedCandidatesPassed": true,
+  "mutants": [
+    {
+      "sampleId": "verify-08",
+      "taskId": "verify-08",
+      "name": "accept-history-capability-from-wrong-parent",
+      "candidatePassed": true,
+      "rejectedByAssertions": true,
+      "originalSourceDigest": "sha256:5ddd05dec04ecf8378904417f8c29b6b81475acdd24bfceb723aaa4a368e8857",
+      "mutatedSourceDigest": "sha256:b027cb66824de4c42d9b71b8b2c7f2de1b45eda1533601bea1e8a16ea6c38b68",
+      "mutationDigest": "sha256:948ac1f99bdc4309fac245df72e0a662177a8b91a60b9fb2d6d841922e7f8a21"
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "taskId": "verify-08",
+      "name": "accept-history-capability-from-wrong-parent",
+      "candidatePassed": true,
+      "rejectedByAssertions": true,
+      "originalSourceDigest": "sha256:5ddd05dec04ecf8378904417f8c29b6b81475acdd24bfceb723aaa4a368e8857",
+      "mutatedSourceDigest": "sha256:b027cb66824de4c42d9b71b8b2c7f2de1b45eda1533601bea1e8a16ea6c38b68",
+      "mutationDigest": "sha256:948ac1f99bdc4309fac245df72e0a662177a8b91a60b9fb2d6d841922e7f8a21"
+    },
+    {
+      "sampleId": "verify-13",
+      "taskId": "verify-13",
+      "name": "ignore-image-change-on-pinned-handle",
+      "candidatePassed": true,
+      "rejectedByAssertions": false,
+      "originalSourceDigest": "sha256:4aa8ca526e5fb4b7b9b7563cca14cebd082292f3a01285b544228d851d69d709",
+      "mutatedSourceDigest": "sha256:e0cd0906e581ae0516fbb93f51b6cb9b157cf0c7175abb9d8e702733ce8c432b",
+      "mutationDigest": "sha256:bef880c00cd44fe9624465bad1cdb9176865911b64aefc6196b0b08fa2d0ecc0"
+    },
+    {
+      "sampleId": "verify-13",
+      "taskId": "verify-13",
+      "name": "allow-over-pixel-budget",
+      "candidatePassed": true,
+      "rejectedByAssertions": false,
+      "originalSourceDigest": "sha256:4aa8ca526e5fb4b7b9b7563cca14cebd082292f3a01285b544228d851d69d709",
+      "mutatedSourceDigest": "sha256:cf9ee6fedbba1f82dc1bcec09406855c30f3ce2dcba62937838c9d2eb9a84d3b",
+      "mutationDigest": "sha256:4056bdee8b1008217e309cbbfc4e0de272f496c75e5e0479cfc41a32ef4b88e9"
+    },
+    {
+      "sampleId": "verify-36",
+      "taskId": "verify-36",
+      "name": "restore-more-permissive-mode",
+      "candidatePassed": true,
+      "rejectedByAssertions": true,
+      "originalSourceDigest": "sha256:2dbfe63270bbe46ba0016eea483d4c0c7f065301aaa9adf728797b61fe466e9e",
+      "mutatedSourceDigest": "sha256:5fde36e42eba32cacb70b29b9bc80ceb250c656af337c83bab29bc734539044d",
+      "mutationDigest": "sha256:bcc849cfb10d77043e4a59bed8fe17ae515702baf473e0c45a802bf0651b4cb2"
+    }
+  ],
+  "engineering": [
+    {
+      "taskId": "verify-13",
+      "name": "ignore-image-change-on-pinned-handle",
+      "rejectedByAssertions": true
+    },
+    {
+      "taskId": "verify-13",
+      "name": "allow-over-pixel-budget",
+      "rejectedByAssertions": true
+    }
+  ],
+  "engineeringBaselinePassed": true,
+  "rollbacks": [
+    {
+      "sampleId": "verify-08",
+      "kind": "remove-complete-prefix-fix",
+      "candidatePassed": true,
+      "rollbackRejectedByAssertions": true
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "kind": "remove-complete-prefix-fix",
+      "candidatePassed": true,
+      "rollbackRejectedByAssertions": true
+    },
+    {
+      "sampleId": "verify-36",
+      "kind": "restore-entire-frozen-profile-module",
+      "candidatePassed": true,
+      "rollbackRejectedByAssertions": true
+    }
+  ],
+  "results": [
+    {
+      "name": "released-baseline",
+      "exitCode": 0,
+      "signal": null,
+      "runnerError": false,
+      "total": 86,
+      "passed": 86,
+      "failed": 0,
+      "assertionCount": 86,
+      "failedTests": 0,
+      "fileResults": [
+        {
+          "file": "background-launch-profile.test.js",
+          "status": "passed",
+          "passed": 12,
+          "failed": 0,
+          "recorded": 12,
+          "message": ""
+        },
+        {
+          "file": "image-file-boundary.test.js",
+          "status": "passed",
+          "passed": 15,
+          "failed": 0,
+          "recorded": 15,
+          "message": ""
+        },
+        {
+          "file": "session-branch.test.js",
+          "status": "passed",
+          "passed": 19,
+          "failed": 0,
+          "recorded": 19,
+          "message": ""
+        },
+        {
+          "file": "session-transcript-history.test.js",
+          "status": "passed",
+          "passed": 40,
+          "failed": 0,
+          "recorded": 40,
+          "message": ""
+        }
+      ],
+      "loadFailures": [],
+      "failures": [],
+      "passedCleanly": true,
+      "rejectedByAssertions": false,
+      "reportDigest": "sha256:95e0b34c439793b8264e4c56fdb2a7c7d05ea2728b2f889222b97079ff5ad2c4",
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\released-baseline.json"
+    },
+    {
+      "name": "raw-candidates",
+      "exitCode": 1,
+      "signal": null,
+      "runnerError": false,
+      "total": 20,
+      "passed": 19,
+      "failed": 1,
+      "assertionCount": 20,
+      "failedTests": 1,
+      "fileResults": [
+        {
+          "file": "release-candidate-first-run-darwin-vscode.test.js",
+          "status": "failed",
+          "passed": 3,
+          "failed": 1,
+          "recorded": 4,
+          "message": ""
+        },
+        {
+          "file": "release-candidate-verify-08.test.js",
+          "status": "passed",
+          "passed": 4,
+          "failed": 0,
+          "recorded": 4,
+          "message": ""
+        },
+        {
+          "file": "release-candidate-verify-13.test.js",
+          "status": "passed",
+          "passed": 6,
+          "failed": 0,
+          "recorded": 6,
+          "message": ""
+        },
+        {
+          "file": "release-candidate-verify-36.test.js",
+          "status": "passed",
+          "passed": 6,
+          "failed": 0,
+          "recorded": 6,
+          "message": ""
+        }
+      ],
+      "loadFailures": [],
+      "failures": [
+        {
+          "test": "fork history ownership (independent regression) re-forks inherited history without needing either ancestor's transcript",
+          "reasons": [
+            "Error: [vitest] No \"getSessionStoreDir\" export is defined on the \"../src/lib/paths.js\" mock. Did you forget to return it from \"vi.mock\"?"
+          ]
+        }
+      ],
+      "passedCleanly": false,
+      "rejectedByAssertions": false,
+      "passRejection": "candidate or baseline regression failed",
+      "mutantRejection": "mutant failure must include an assertion, not a syntax/import/runner error",
+      "reportDigest": "sha256:0830c38e32b6b17dd8c7feeb12e19e82b5b6955f81005f2e0ebcb3424c36c7ce",
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\raw-candidates.json"
+    },
+    {
+      "name": "fixture-adapted-verify-08",
+      "exitCode": 0,
+      "signal": null,
+      "runnerError": false,
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "assertionCount": 4,
+      "failedTests": 0,
+      "fileResults": [
+        {
+          "file": "release-candidate-verify-08.test.js",
+          "status": "passed",
+          "passed": 4,
+          "failed": 0,
+          "recorded": 4,
+          "message": ""
+        }
+      ],
+      "loadFailures": [],
+      "failures": [],
+      "passedCleanly": true,
+      "rejectedByAssertions": false,
+      "reportDigest": "sha256:272d0a66ebe50cd321a6e98dccd8e2c9b0ab4b39b795cb2c240da5b6d85ac613",
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\fixture-adapted-verify-08.json"
+    },
+    {
+      "name": "fixture-adapted-verify-13",
+      "exitCode": 0,
+      "signal": null,
+      "runnerError": false,
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "assertionCount": 6,
+      "failedTests": 0,
+      "fileResults": [
+        {
+          "file": "release-candidate-verify-13.test.js",
+          "status": "passed",
+          "passed": 6,
+          "failed": 0,
+          "recorded": 6,
+          "message": ""
+        }
+      ],
+      "loadFailures": [],
+      "failures": [],
+      "passedCleanly": true,
+      "rejectedByAssertions": false,
+      "reportDigest": "sha256:9f3c176be1d22b68d9d3bbbe7d5efabf1bd57251edc37fecb53c2ecb54a6feb3",
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\fixture-adapted-verify-13.json"
+    },
+    {
+      "name": "fixture-adapted-verify-36",
+      "exitCode": 0,
+      "signal": null,
+      "runnerError": false,
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "assertionCount": 6,
+      "failedTests": 0,
+      "fileResults": [
+        {
+          "file": "release-candidate-verify-36.test.js",
+          "status": "passed",
+          "passed": 6,
+          "failed": 0,
+          "recorded": 6,
+          "message": ""
+        }
+      ],
+      "loadFailures": [],
+      "failures": [],
+      "passedCleanly": true,
+      "rejectedByAssertions": false,
+      "reportDigest": "sha256:f78f4f4965d1e4a2656930438fef9163c41b0b8473d6202a8821998d09edfbf7",
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\fixture-adapted-verify-36.json"
+    },
+    {
+      "name": "fixture-adapted-first-run-darwin-vscode",
+      "exitCode": 0,
+      "signal": null,
+      "runnerError": false,
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "assertionCount": 4,
+      "failedTests": 0,
+      "fileResults": [
+        {
+          "file": "release-candidate-first-run-darwin-vscode.test.js",
+          "status": "passed",
+          "passed": 4,
+          "failed": 0,
+          "recorded": 4,
+          "message": ""
+        }
+      ],
+      "loadFailures": [],
+      "failures": [],
+      "passedCleanly": true,
+      "rejectedByAssertions": false,
+      "reportDigest": "sha256:d46aff49973962089d892f17cdd7008109c5c16cb3170abaf5a14f033c3a2825",
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\fixture-adapted-first-run-darwin-vscode.json"
+    },
+    {
+      "name": "image-engineering-baseline",
+      "exitCode": 0,
+      "signal": null,
+      "runnerError": false,
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "assertionCount": 6,
+      "failedTests": 0,
+      "fileResults": [
+        {
+          "file": "image-pinned-handle-regression.test.js",
+          "status": "passed",
+          "passed": 6,
+          "failed": 0,
+          "recorded": 6,
+          "message": ""
+        }
+      ],
+      "loadFailures": [],
+      "failures": [],
+      "passedCleanly": true,
+      "rejectedByAssertions": false,
+      "reportDigest": "sha256:446f667973f4745885926525d83ecbb906505d30aa39a8d5bebc04eba40e0f77",
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\image-engineering-baseline.json"
+    },
+    {
+      "name": "verify-08-accept-history-capability-from-wrong-parent",
+      "exitCode": 1,
+      "signal": null,
+      "runnerError": false,
+      "total": 4,
+      "passed": 3,
+      "failed": 1,
+      "assertionCount": 4,
+      "failedTests": 1,
+      "fileResults": [
+        {
+          "file": "release-candidate-verify-08.test.js",
+          "status": "failed",
+          "passed": 3,
+          "failed": 1,
+          "recorded": 4,
+          "message": ""
+        }
+      ],
+      "loadFailures": [],
+      "failures": [
+        {
+          "test": "verify-08: fork history ownership rejects a live capability for the wrong parent/body and rejects it after scope exit",
+          "reasons": [
+            "AssertionError: expected [Function] to throw an error"
+          ]
+        }
+      ],
+      "passedCleanly": false,
+      "rejectedByAssertions": true,
+      "passRejection": "candidate or baseline regression failed",
+      "reportDigest": "sha256:cd0c539d551351deb56ced72874fd0caa81a1be65780f221ccc6cfc9a629ed66",
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\verify-08-accept-history-capability-from-wrong-parent.json"
+    },
+    {
+      "name": "first-run-darwin-vscode-accept-history-capability-from-wrong-parent",
+      "exitCode": 1,
+      "signal": null,
+      "runnerError": false,
+      "total": 4,
+      "passed": 3,
+      "failed": 1,
+      "assertionCount": 4,
+      "failedTests": 1,
+      "fileResults": [
+        {
+          "file": "release-candidate-first-run-darwin-vscode.test.js",
+          "status": "failed",
+          "passed": 3,
+          "failed": 1,
+          "recorded": 4,
+          "message": ""
+        }
+      ],
+      "loadFailures": [],
+      "failures": [
+        {
+          "test": "fork history ownership (independent regression) binds live history to its parent and context, and expires it after the source lock",
+          "reasons": [
+            "AssertionError: expected [Function] to throw an error"
+          ]
+        }
+      ],
+      "passedCleanly": false,
+      "rejectedByAssertions": true,
+      "passRejection": "candidate or baseline regression failed",
+      "reportDigest": "sha256:5e63ccb44f41480bbf46da3a969cee93c2c7a724729bb6bf38e9193edc3e03b4",
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\first-run-darwin-vscode-accept-history-capability-from-wrong-parent.json"
+    },
+    {
+      "name": "verify-13-ignore-image-change-on-pinned-handle",
+      "exitCode": 0,
+      "signal": null,
+      "runnerError": false,
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "assertionCount": 6,
+      "failedTests": 0,
+      "fileResults": [
+        {
+          "file": "release-candidate-verify-13.test.js",
+          "status": "passed",
+          "passed": 6,
+          "failed": 0,
+          "recorded": 6,
+          "message": ""
+        }
+      ],
+      "loadFailures": [],
+      "failures": [],
+      "passedCleanly": true,
+      "rejectedByAssertions": false,
+      "reportDigest": "sha256:993321e71bf7e681cbf39284ab031605ec572dda9aa47c5338852bce5bcd5a44",
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\verify-13-ignore-image-change-on-pinned-handle.json"
+    },
+    {
+      "name": "engineering-verify-13-ignore-image-change-on-pinned-handle",
+      "exitCode": 1,
+      "signal": null,
+      "runnerError": false,
+      "total": 6,
+      "passed": 5,
+      "failed": 1,
+      "assertionCount": 6,
+      "failedTests": 1,
+      "fileResults": [
+        {
+          "file": "image-pinned-handle-regression.test.js",
+          "status": "failed",
+          "passed": 5,
+          "failed": 1,
+          "recorded": 6,
+          "message": ""
+        }
+      ],
+      "loadFailures": [],
+      "failures": [
+        {
+          "test": "attachment same-handle read boundary (independent regression) rejects equal-length content changes even when descriptor timestamps are unchanged",
+          "reasons": [
+            "AssertionError: expected [Function] to throw an error"
+          ]
+        }
+      ],
+      "passedCleanly": false,
+      "rejectedByAssertions": true,
+      "passRejection": "candidate or baseline regression failed",
+      "reportDigest": "sha256:37e8839d5b3e0314a5f78a86f9c3f24fd2403c436b5ab865ebb677cef5ed6bdb",
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\engineering-verify-13-ignore-image-change-on-pinned-handle.json"
+    },
+    {
+      "name": "verify-13-allow-over-pixel-budget",
+      "exitCode": 0,
+      "signal": null,
+      "runnerError": false,
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "assertionCount": 6,
+      "failedTests": 0,
+      "fileResults": [
+        {
+          "file": "release-candidate-verify-13.test.js",
+          "status": "passed",
+          "passed": 6,
+          "failed": 0,
+          "recorded": 6,
+          "message": ""
+        }
+      ],
+      "loadFailures": [],
+      "failures": [],
+      "passedCleanly": true,
+      "rejectedByAssertions": false,
+      "reportDigest": "sha256:a32cb5e68c85ea68b40db9c9873eadd30085f11a6b1964641e00b5e657be74e8",
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\verify-13-allow-over-pixel-budget.json"
+    },
+    {
+      "name": "engineering-verify-13-allow-over-pixel-budget",
+      "exitCode": 1,
+      "signal": null,
+      "runnerError": false,
+      "total": 6,
+      "passed": 5,
+      "failed": 1,
+      "assertionCount": 6,
+      "failedTests": 1,
+      "fileResults": [
+        {
+          "file": "image-pinned-handle-regression.test.js",
+          "status": "failed",
+          "passed": 5,
+          "failed": 1,
+          "recorded": 6,
+          "message": ""
+        }
+      ],
+      "loadFailures": [],
+      "failures": [
+        {
+          "test": "attachment same-handle read boundary (independent regression) rejects independent byte and pixel limits with valid image prerequisites",
+          "reasons": [
+            "AssertionError: expected [Function] to throw an error"
+          ]
+        }
+      ],
+      "passedCleanly": false,
+      "rejectedByAssertions": true,
+      "passRejection": "candidate or baseline regression failed",
+      "reportDigest": "sha256:7f73798698faf957753cbaf024842c67e912fbf20a0575336f652ead9a4efd94",
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\engineering-verify-13-allow-over-pixel-budget.json"
+    },
+    {
+      "name": "verify-36-restore-more-permissive-mode",
+      "exitCode": 1,
+      "signal": null,
+      "runnerError": false,
+      "total": 6,
+      "passed": 1,
+      "failed": 5,
+      "assertionCount": 6,
+      "failedTests": 5,
+      "fileResults": [
+        {
+          "file": "release-candidate-verify-36.test.js",
+          "status": "failed",
+          "passed": 1,
+          "failed": 5,
+          "recorded": 6,
+          "message": ""
+        }
+      ],
+      "loadFailures": [],
+      "failures": [
+        {
+          "test": "verify-36: persisted background launch policy identity preserves the effective policy through disk JSON and reconstructed argv",
+          "reasons": [
+            "AssertionError: expected { version: 1, command: 'agent', …(13) } to deeply equal { version: 1, command: 'agent', …(13) }"
+          ]
+        },
+        {
+          "test": "verify-36: persisted background launch policy identity keeps an empty allowlist distinct from unrestricted and nonempty policies on resume",
+          "reasons": [
+            "AssertionError: expected { version: 1, command: 'agent', …(13) } to deeply equal { version: 1, command: 'agent', …(13) }"
+          ]
+        },
+        {
+          "test": "verify-36: persisted background launch policy identity rejects invalid persisted policy enums instead of normalizing to permissive defaults",
+          "reasons": [
+            "AssertionError: expected { version: 1, command: 'agent', …(13) } to deeply equal { version: 1, command: 'agent', …(13) }"
+          ]
+        },
+        {
+          "test": "verify-36: persisted background launch policy identity rejects malformed persisted tool restrictions, budgets, and unsupported versions",
+          "reasons": [
+            "AssertionError: expected { version: 1, command: 'agent', …(13) } to deeply equal { version: 1, command: 'agent', …(13) }"
+          ]
+        },
+        {
+          "test": "verify-36: persisted background launch policy identity rejects invalid explicit CLI policy values at capture rather than dropping restrictions",
+          "reasons": [
+            "AssertionError: expected { version: 1, command: 'agent', …(13) } to deeply equal { version: 1, command: 'agent', …(13) }"
+          ]
+        }
+      ],
+      "passedCleanly": false,
+      "rejectedByAssertions": true,
+      "passRejection": "candidate or baseline regression failed",
+      "reportDigest": "sha256:c5bc3fb6eac55926b3e6aa9ef1dd83282f8cc582f41fdc6ccdbbebd4d462f579",
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\verify-36-restore-more-permissive-mode.json"
+    },
+    {
+      "name": "rollback-full-history-fork-verify-08",
+      "exitCode": 1,
+      "signal": null,
+      "runnerError": false,
+      "total": 4,
+      "passed": 3,
+      "failed": 1,
+      "assertionCount": 4,
+      "failedTests": 1,
+      "fileResults": [
+        {
+          "file": "release-candidate-verify-08.test.js",
+          "status": "failed",
+          "passed": 3,
+          "failed": 1,
+          "recorded": 4,
+          "message": ""
+        }
+      ],
+      "loadFailures": [],
+      "failures": [
+        {
+          "test": "verify-08: fork history ownership rejects a live capability for the wrong parent/body and rejects it after scope exit",
+          "reasons": [
+            "AssertionError: expected null to be truthy"
+          ]
+        }
+      ],
+      "passedCleanly": false,
+      "rejectedByAssertions": true,
+      "passRejection": "candidate or baseline regression failed",
+      "reportDigest": "sha256:8009fb00636ffd2170d0f50ab56f5c83f988fbbb3f76851d4caa321654ac96e5",
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\rollback-full-history-fork-verify-08.json"
+    },
+    {
+      "name": "rollback-full-history-fork-first-run-darwin-vscode",
+      "exitCode": 1,
+      "signal": null,
+      "runnerError": false,
+      "total": 4,
+      "passed": 2,
+      "failed": 2,
+      "assertionCount": 4,
+      "failedTests": 2,
+      "fileResults": [
+        {
+          "file": "release-candidate-first-run-darwin-vscode.test.js",
+          "status": "failed",
+          "passed": 2,
+          "failed": 2,
+          "recorded": 4,
+          "message": ""
+        }
+      ],
+      "loadFailures": [],
+      "failures": [
+        {
+          "test": "fork history ownership (independent regression) binds live history to its parent and context, and expires it after the source lock",
+          "reasons": [
+            "AssertionError: expected null not to be null"
+          ]
+        },
+        {
+          "test": "fork history ownership (independent regression) accepts a complete real import but rejects a mismatched origin at that exact record",
+          "reasons": [
+            "AssertionError: expected -1 to be greater than 1"
+          ]
+        }
+      ],
+      "passedCleanly": false,
+      "rejectedByAssertions": true,
+      "passRejection": "candidate or baseline regression failed",
+      "reportDigest": "sha256:94c63dc9f6934aa20a7cf2d91458bb9ad8695a4599cd57ba580ebe619a479a25",
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\rollback-full-history-fork-first-run-darwin-vscode.json"
+    },
+    {
+      "name": "rollback-frozen-background-profile-verify-36",
+      "exitCode": 1,
+      "signal": null,
+      "runnerError": false,
+      "total": 6,
+      "passed": 2,
+      "failed": 4,
+      "assertionCount": 6,
+      "failedTests": 4,
+      "fileResults": [
+        {
+          "file": "release-candidate-verify-36.test.js",
+          "status": "failed",
+          "passed": 2,
+          "failed": 4,
+          "recorded": 6,
+          "message": ""
+        }
+      ],
+      "loadFailures": [],
+      "failures": [
+        {
+          "test": "verify-36: persisted background launch policy identity keeps an empty allowlist distinct from unrestricted and nonempty policies on resume",
+          "reasons": [
+            "AssertionError: expected null to deeply equal []"
+          ]
+        },
+        {
+          "test": "verify-36: persisted background launch policy identity rejects invalid persisted policy enums instead of normalizing to permissive defaults",
+          "reasons": [
+            "AssertionError: permission.mode: expected [Function] to throw an error",
+            "AssertionError: permission.mode: expected [Function] to throw an error",
+            "AssertionError: sandbox.mode: expected [Function] to throw an error",
+            "AssertionError: sandbox.mode: expected [Function] to throw an error",
+            "AssertionError: mcp.ide: expected [Function] to throw an error",
+            "AssertionError: mcp.ide: expected [Function] to throw an error",
+            "AssertionError: mcp.pdh: expected [Function] to throw an error",
+            "AssertionError: mcp.pdh: expected [Function] to throw an error",
+            "AssertionError: mcp.jetbrains: expected [Function] to throw an error",
+            "AssertionError: mcp.jetbrains: expected [Function] to throw an error"
+          ]
+        },
+        {
+          "test": "verify-36: persisted background launch policy identity rejects malformed persisted tool restrictions, budgets, and unsupported versions",
+          "reasons": [
+            "AssertionError: string allowlist: expected [Function] to throw an error",
+            "AssertionError: string allowlist: expected [Function] to throw an error",
+            "AssertionError: object allowlist: expected [Function] to throw an error",
+            "AssertionError: object allowlist: expected [Function] to throw an error",
+            "AssertionError: object denylist: expected [Function] to throw an error",
+            "AssertionError: object denylist: expected [Function] to throw an error",
+            "AssertionError: invalid turn budget: expected [Function] to throw an error",
+            "AssertionError: invalid turn budget: expected [Function] to throw an error",
+            "AssertionError: negative cost budget: expected [Function] to throw an error",
+            "AssertionError: negative cost budget: expected [Function] to throw an error"
+          ]
+        },
+        {
+          "test": "verify-36: persisted background launch policy identity rejects invalid explicit CLI policy values at capture rather than dropping restrictions",
+          "reasons": [
+            "AssertionError: --permission-mode: expected [Function] to throw an error",
+            "AssertionError: --sandbox-mode: expected [Function] to throw an error",
+            "AssertionError: --max-turns: expected [Function] to throw an error",
+            "AssertionError: --max-budget-usd: expected [Function] to throw an error"
+          ]
+        }
+      ],
+      "passedCleanly": false,
+      "rejectedByAssertions": true,
+      "passRejection": "candidate or baseline regression failed",
+      "reportDigest": "sha256:139589a94fd60df66b8868dfb5e1f94a8eaf62d21984cf2e8ed93552d0554920",
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release-candidate-replay-1XhKV3\\rollback-frozen-background-profile-verify-36.json"
+    }
+  ]
+}
