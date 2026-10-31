@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.136",
+      "cliVersions": ["0.166.136"],
+      "date": "2026-10-31",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.136: verified history forks and background policy restrictions (candidate, 2026-10-31)",
+          "body": "- Admit complete, verified session-history forks without weakening strict rewind-prefix checks; retain source provenance and capability rejection controls.\n- Preserve plugin/MCP auto-connect restrictions through persisted background launch profiles and real CLI flags. Reject malformed policy values before customization loading or fallback normalization.\n- Cover pinned-image metadata/pixel limits and owner-aborted pending approvals with positive and negative controls. Compare fixture inode identities as BigInt to avoid Windows Number precision loss.\n- This is an engineering repair of the five remaining failed tasks, not a new model acceptance run. Historical six-task acceptance stays 1/6 (cumulative 40/45); publication is blocked until the new exact commit passes complete CLI CI and Strict Sandbox."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.135",
       "cliVersions": ["0.166.135"],
       "date": "2026-10-31",

@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.136: verified history forks and background policy restrictions (candidate, 2026-10-31)
+
+- Admit complete, verified session-history forks without weakening strict rewind-prefix checks; retain source provenance and capability rejection controls.
+- Preserve plugin/MCP auto-connect restrictions through persisted background launch profiles and real CLI flags. Reject malformed policy values before customization loading or fallback normalization.
+- Cover pinned-image metadata/pixel limits and owner-aborted pending approvals with positive and negative controls. Compare fixture inode identities as BigInt to avoid Windows Number precision loss.
+- This is an engineering repair of the five remaining failed tasks, not a new model acceptance run. Historical six-task acceptance stays 1/6 (cumulative 40/45); publication is blocked until the new exact commit passes complete CLI CI and Strict Sandbox.
+
 ### Fixed - cc CLI 0.166.135: Responses disconnect recovery and launch policy preservation (candidate, 2026-10-31)
 
 - Recover genuine pre-output OpenAI Responses JSON disconnects with the existing bounded retry policy, distinct physical request IDs and synchronous usage settlement. Bound stalled headers and JSON reads, preserve HTTP/provider verdicts and caller cancellation, and keep workflow effects and incomplete tool streams non-replayable.

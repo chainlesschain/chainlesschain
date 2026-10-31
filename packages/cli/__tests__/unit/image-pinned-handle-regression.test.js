@@ -56,8 +56,9 @@ describe("attachment same-handle read boundary (independent regression)", () => 
   it("reads a small PNG through short reads, pins the opened inode and closes it", () => {
     const target = file("small.png");
     const replacement = file("replacement.png", Buffer.from("not an image"));
-    const originalInode = fs.statSync(target).ino;
-    const replacementInode = fs.statSync(replacement).ino;
+    // Windows inode IDs can exceed Number.MAX_SAFE_INTEGER; keep exact identity.
+    const originalInode = fs.statSync(target, { bigint: true }).ino;
+    const replacementInode = fs.statSync(replacement, { bigint: true }).ino;
     expect(replacementInode).not.toBe(originalInode);
     const io = trackedIO();
     const open = io.openSync.getMockImplementation();
@@ -66,7 +67,7 @@ describe("attachment same-handle read boundary (independent regression)", () => 
       // Rename after open, before the first fstat: only the pathname changes.
       fs.renameSync(target, join(root, "opened-original.png"));
       fs.renameSync(replacement, target);
-      expect(fs.fstatSync(fd).ino).toBe(originalInode);
+      expect(fs.fstatSync(fd, { bigint: true }).ino).toBe(originalInode);
       return fd;
     });
     io.readSync.mockImplementation((fd, data, offset, length, position) =>
@@ -75,7 +76,7 @@ describe("attachment same-handle read boundary (independent regression)", () => 
     const data = readBoundedImage(target, "image/png", PNG.length, io);
     expect(Buffer.isBuffer(data)).toBe(true);
     expect(data).toEqual(PNG);
-    expect(fs.statSync(target).ino).toBe(replacementInode);
+    expect(fs.statSync(target, { bigint: true }).ino).toBe(replacementInode);
     expect(io.readSync.mock.calls.length).toBeGreaterThan(2);
     expect(io.fstatSync).toHaveBeenCalledTimes(2);
     expectClosed(io);
@@ -88,15 +89,15 @@ describe("attachment same-handle read boundary (independent regression)", () => 
       "base64",
     );
     const replacement = file("other.gif", gif);
-    const selectedInode = fs.statSync(target).ino;
-    const substitutedInode = fs.statSync(replacement).ino;
+    const selectedInode = fs.statSync(target, { bigint: true }).ino;
+    const substitutedInode = fs.statSync(replacement, { bigint: true }).ino;
     expect(substitutedInode).not.toBe(selectedInode);
     const io = trackedIO();
     const open = io.openSync.getMockImplementation();
     io.openSync.mockImplementation((...args) => {
       fs.renameSync(replacement, target);
       const fd = open(...args);
-      expect(fs.fstatSync(fd).ino).toBe(substitutedInode);
+      expect(fs.fstatSync(fd, { bigint: true }).ino).toBe(substitutedInode);
       return fd;
     });
     expect(() => readBoundedImage(target, "image/png", LIMIT, io)).toThrow(
@@ -117,13 +118,13 @@ describe("attachment same-handle read boundary (independent regression)", () => 
       if (oversized) {
         const replacement = file("too-large.png");
         fs.truncateSync(replacement, LIMIT + 1);
-        const replacementInode = fs.statSync(replacement).ino;
-        expect(replacementInode).not.toBe(fs.statSync(target).ino);
+        const replacementInode = fs.statSync(replacement, { bigint: true }).ino;
+        expect(replacementInode).not.toBe(fs.statSync(target, { bigint: true }).ino);
         const open = io.openSync.getMockImplementation();
         io.openSync.mockImplementation((...args) => {
           fs.renameSync(replacement, target);
           const fd = open(...args);
-          expect(fs.fstatSync(fd).ino).toBe(replacementInode);
+          expect(fs.fstatSync(fd, { bigint: true }).ino).toBe(replacementInode);
           return fd;
         });
       }
