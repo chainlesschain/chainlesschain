@@ -1,6 +1,6 @@
-# CLI 0.166.136 candidate validation
+# CLI 0.166.136 validation and publication
 
-Status: candidate only; no production tag or publication yet. User requires successful tests before publication.
+Status: published and independently verified. Exact source `539e4da6ef89e5142a3f3bb90e2d6123c6afb15e` passed all 76 CLI CI jobs and all 6 CLI Strict Sandbox jobs. Actions OIDC publication [41206368406](https://github.com/chainlesschain/chainlesschain/actions/runs/41206368406) succeeded; independent public readback [41241946884](https://github.com/chainlesschain/chainlesschain/actions/runs/41241946884) verified immutable registry bytes and signed provenance. [Publication receipts](../../evidence/release136-public/README.md).
 
 ## Scope
 
@@ -19,4 +19,4 @@ Environment: Windows x64, Node v22.22.2, Vitest v4.1.11, `packages/cli`.
 
 ## Release gate
 
-Publish only after the immutable candidate commit passes complete exact-SHA CLI CI and CLI Strict Sandbox. Prior repair-commit CI is not evidence for the new version commit. Use the existing `v-npm-0.166.136` tag/OIDC workflow; do not bypass tests, relax gates, or use local npm publish. Confirm the registry version, provenance/source revision and tarball after publication. Existing IDE packages are not republished by this CLI-only repair.
+The immutable release tag is `v-npm-0-166-136`. Full exact-SHA CLI CI and CLI Strict Sandbox passed before OIDC publication; prior repair-commit results were not substituted for the release version commit. Registry version, provenance/source revision and tarball are independently verified. Existing IDE packages are not republished by this CLI-only repair. The next user-authorized round selects only the five still-failed model samples, with historical candidates and scores preserved.

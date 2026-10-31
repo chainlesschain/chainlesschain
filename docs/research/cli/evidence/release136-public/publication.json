@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-10-31T21:24:53.049Z",
+  "cli": {
+    "version": "0.166.136",
+    "source": "539e4da6ef89e5142a3f3bb90e2d6123c6afb15e",
+    "status": "verified-public",
+    "publishRun": 41206368406,
+    "readbackRun": 41241946884,
+    "byteIdentical": true,
+    "sha256": "4a27f13d843cfa755f7a54078cfc950ed8fb3a5b38affa79e5d8f27c6ff064b9",
+    "sha512": "e873fd34ac44d38fe50f9833486ce31c78aecab8e0f6a806e392fb156653d9f0f5ee5644e92b0d683938c7c3da6bcad02acb1322797b2e4cac1a75cc1112997d",
+    "bytes": 9523575,
+    "provenanceVerified": true
+  },
+  "ide": {
+    "vscode": {
+      "version": "0.37.173",
+      "source": "98db89940de30106f57ee73c063acf249d23bec0",
+      "status": "previously-verified-public",
+      "recommendedCliVersion": "0.166.135"
+    },
+    "jetbrains": {
+      "version": "0.4.189",
+      "source": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
+      "status": "verified-successful-official-build",
+      "marketplaceApproval": "not-rechecked",
+      "recommendedCliVersion": "0.166.135"
+    }
+  },
+  "scope": "CLI-only repair; existing IDE packages remain available for user-authorized tests before JetBrains Marketplace review",
+  "newModelAcceptance": 0,
+  "cumulativeAcceptanceBeforeNewRetest": 40,
+  "total": 45
+}

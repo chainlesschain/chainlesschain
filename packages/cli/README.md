@@ -2,7 +2,15 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.135 — verified public release
+## CLI 0.166.136 — verified public repair
+
+Install with `npm i -g chainlesschain@0.166.136 --registry https://registry.npmjs.org`, restart the chat host, then run `cc --version` and `cc doctor`. This release repairs full-history session forks and preserves independent plugin/MCP restrictions through background restore. Malformed policy values fail before normalization or customization loading.
+
+Exact source `539e4da6ef89e5142a3f3bb90e2d6123c6afb15e` passed all 76 CLI CI jobs and all 6 Strict Sandbox jobs. [OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/41206368406) and [independent public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/41241946884) verified immutable bytes and signed provenance. Existing Open VSX **0.37.173** and the verified JetBrains **0.4.189** Actions build remain the test pairing; their recommendation metadata still says CLI **0.166.135**. JetBrains Marketplace approval is a separate status. Kernel stays **0.1.11**; Microsoft Marketplace and PC/mobile remain outside this release.
+
+The six-task historical retest stays **1/6**, cumulative **40/45**. Engineering regressions are separate from model acceptance; only the five remaining failures are selected for the next round. [Publication evidence](../../docs/research/cli/evidence/release136-public/README.md).
+
+## CLI 0.166.135 — verified preceding release
 
 This release recovers genuine OpenAI Responses JSON disconnects before accepted output, bounds stalled requests, and settles completed streaming responses without waiting for socket EOF. It preserves empty tool allowlists across resume and rejects malformed saved permission, sandbox and budget settings. HTTP/provider failures, cancellation, usage persistence and incomplete tool-call replay protections remain authoritative.
 

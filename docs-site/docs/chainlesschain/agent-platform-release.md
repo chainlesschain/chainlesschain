@@ -1,8 +1,14 @@
 # Agent Platform 发布与升级指南
 
+## CLI 0.166.136 已公开（2026-11-01）
+
+安装 `npm i -g chainlesschain@0.166.136 --registry https://registry.npmjs.org` 后重启 `cc ui` 与 IDE 聊天宿主。完整历史分叉和后台策略恢复已修复。来源 `539e4da6ef89e5142a3f3bb90e2d6123c6afb15e` 通过 CLI CI 76 项、Strict Sandbox 6 项、OIDC 发布与独立公开字节/签名回读。IDE 沿用 Open VSX 0.37.173 与 JetBrains 0.4.189 官方构建，推荐标记仍为 CLI 0.166.135；允许构建包测试不代表商店审批完成。Kernel 0.1.11，PC/mobile 不属于此次发布。历史累计 40/45；剩余五项复测结果单独归档。
+
+[发布回执](https://github.com/chainlesschain/chainlesschain/actions/runs/41206368406) · [独立公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/41241946884)。
+
 <!-- docs-code-git-sync-2026-10-30 -->
 
-## 当前公开 CLI：0.166.135（2026-10-31）
+## 历史公开 CLI：0.166.135（2026-10-31）
 
 CLI **0.166.135** 与 Open VSX **0.37.173** 已公开并完成制品核验。JetBrains **0.4.189** 已通过完整测试并成功上传，仍待 Marketplace 审核/上架；现有公开 **0.4.188** 仍推荐 CLI **0.166.133**。Kernel 保持 **0.1.11**。本版修复 Responses 断连与取消结算、完成后等待 EOF、上下文摘要预算，以及启动恢复的空白名单与非法配置问题。安装 `npm i -g chainlesschain@0.166.135 --registry https://registry.npmjs.org` 后重启已有聊天宿主。[本版升级指南](./cli-ide-update-2026-10-31-135) · [实际发行状态](https://github.com/chainlesschain/chainlesschain/blob/feature/fix-openai-turn-termination/docs/research/cli/evidence/release135-public/publication.json)。PR #513 等待 JetBrains 公开核验后再合并。Microsoft Marketplace 暂缓，PC/mobile 保持 **v5.0.3.143**。
 

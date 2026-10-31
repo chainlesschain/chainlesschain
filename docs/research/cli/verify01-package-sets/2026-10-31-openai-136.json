@@ -1,0 +1,56 @@
+{
+  "schema": "chainlesschain.native-package-set/v1",
+  "resolvedAt": "2026-10-31T14:38:16.211Z",
+  "versions": {
+    "cli": "0.166.136",
+    "vscode": "0.37.173",
+    "jetbrains": "0.4.189",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "releaseSourceCommit": "539e4da6ef89e5142a3f3bb90e2d6123c6afb15e",
+  "releaseSourceCommits": {
+    "cli": "539e4da6ef89e5142a3f3bb90e2d6123c6afb15e",
+    "openVsx": "98db89940de30106f57ee73c063acf249d23bec0",
+    "jetbrains": "82aa6d703a8695721a7ccf0793a435853bc2bbf2"
+  },
+  "origin": {
+    "cli": {
+      "url": "https://registry.npmjs.org/chainlesschain/0.166.136",
+      "integrity": "e873fd34ac44d38fe50f9833486ce31c78aecab8e0f6a806e392fb156653d9f0f5ee5644e92b0d683938c7c3da6bcad02acb1322797b2e4cac1a75cc1112997d",
+      "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.136.tgz"
+    },
+    "vscode": {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.173",
+      "download": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.173/file/chainlesschain.chainlesschain-ide-0.37.173.vsix"
+    },
+    "jetbrains": {
+      "distribution": "github-actions-artifact",
+      "repository": "chainlesschain/chainlesschain",
+      "sourceCommit": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
+      "runId": 41170221376,
+      "artifactId": 13031069152,
+      "artifactName": "chainlesschain-ide-jetbrains-1",
+      "artifactDigest": "sha256:0c1f36b4082d79d67dccbcaa1870256947f9323578b6953ea7d936f75add9cfe",
+      "tag": "ide-jetbrains-v0.4.189",
+      "file": "chainlesschain-ide-bridge-0.4.189.zip",
+      "workflow": ".github/workflows/ide-extensions.yml",
+      "marketplaceStatus": "uploaded-awaiting-approval"
+    }
+  },
+  "publicArtifacts": {
+    "cli": {
+      "digest": "sha256:4a27f13d843cfa755f7a54078cfc950ed8fb3a5b38affa79e5d8f27c6ff064b9",
+      "bytes": 9523575
+    },
+    "vscode": {
+      "digest": "sha256:51901f565d78d20346538769ba42c1cfb646c5abc66f6189811df64111efb227",
+      "bytes": 745029
+    },
+    "jetbrains": {
+      "digest": "sha256:63289b08abb58fb59970f23051ce8110da0e60e3773a3fbe7e2568596690dd82",
+      "bytes": 1555528
+    }
+  },
+  "authorization": "User authorized only the five still-failed OpenAI samples, using published CLI 0.166.136 with unchanged available IDE packages. Temporary repository OPENAI_API_KEY authorized; delete after generation."
+}
