@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "scope": "local-engineering-not-frozen-model-acceptance",
+  "modelRequests": 0,
+  "releasedSource": "539e4da6ef89e5142a3f3bb90e2d6123c6afb15e",
+  "runtimeSource": {
+    "path": "packages/cli/src/lib/read-file-loop-guard.js",
+    "digest": "sha256:6a8d639e9ab9cfe2da70ba88cbce9ce385cad94759dd0155e3ba458f67b96fcc"
+  },
+  "tests": 109,
+  "passed": 109,
+  "failed": 0,
+  "rollback": {
+    "tests": 62,
+    "passed": 0,
+    "failed": 7,
+    "loadErrors": 0,
+    "executedTests": 7,
+    "skippedTests": 55
+  },
+  "files": [
+    {
+      "path": "regressions.raw.json",
+      "digest": "sha256:ee9867c0255dc50c55b3634154722acf92629be5be404ccc12000e76d4d3873a",
+      "bytes": 61660
+    },
+    {
+      "path": "rollback.raw.json",
+      "digest": "sha256:57d66bf7fbead8d7dcd0760775812264ab17c10a8ce35bae950b1373f7e9e211",
+      "bytes": 26616
+    },
+    {
+      "path": "released-guard.js.txt",
+      "digest": "sha256:ddf9e3eb7377dc50873976339bbb0cdc5a01986cff2350c31d456e5e0d6ca9af",
+      "bytes": 18138
+    },
+    {
+      "path": "source-review.raw.json",
+      "digest": "sha256:ee7d6b677a273f0d9eed99af001c5b494076c4d36e2c5d9284efac8d810b5464",
+      "bytes": 100513
+    }
+  ]
+}

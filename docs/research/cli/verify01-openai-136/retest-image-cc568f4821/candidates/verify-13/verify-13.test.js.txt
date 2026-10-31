@@ -1,0 +1,190 @@
+import { afterEach, describe, expect, it } from "vitest";
+import fs from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+// From __tests__, ../src resolves to packages/cli/src (not ../../src).
+import { readBoundedImage } from "../src/lib/image-file-boundary.js";
+
+const BYTE_LIMIT = 20 * 1024 * 1024;
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",
+  "base64",
+);
+const roots = [];
+afterEach(() => {
+  for (const root of roots.splice(0)) {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+function fixture(data = PNG, size = data.length) {
+  const root = fs.mkdtempSync(join(tmpdir(), "verify-13-image-"));
+  roots.push(root);
+  const path = join(root, "input.png");
+  fs.writeFileSync(path, data);
+  fs.truncateSync(path, size);
+  return { root, path };
+}
+
+// Instrument real descriptor operations; no admission decision is mocked.
+function observe({ beforeOpen, afterRead, chunk = Infinity } = {}) {
+  const opened = [];
+  const stats = [];
+  const reads = [];
+  const closed = [];
+  const io = {
+    openSync(path, flags) {
+      beforeOpen?.();
+      const fd = fs.openSync(path, flags);
+      opened.push(fd);
+      return fd;
+    },
+    fstatSync(fd) {
+      stats.push(fd);
+      return fs.fstatSync(fd);
+    },
+    readSync(fd, buffer, offset, length, position) {
+      const count = fs.readSync(fd, buffer, offset, Math.min(chunk, length), position);
+      reads.push({ fd, length, position, count });
+      afterRead?.(reads.length);
+      return count;
+    },
+    closeSync(fd) {
+      closed.push(fd);
+      fs.closeSync(fd);
+    },
+  };
+  return { io, opened, stats, reads, closed };
+}
+
+function expectClosed(trace) {
+  expect(trace.opened).toHaveLength(1);
+  expect(trace.closed).toEqual(trace.opened);
+  expect(trace.stats.length).toBeGreaterThan(0);
+  for (const fd of trace.stats) expect(fd).toBe(trace.opened[0]);
+  for (const read of trace.reads) expect(read.fd).toBe(trace.opened[0]);
+  expect(() => fs.fstatSync(trace.opened[0])).toThrow(/EBADF/);
+}
+
+function replaceOnOpen(target, data, size = data.length) {
+  const replacement = join(target.root, "replacement");
+  fs.writeFileSync(replacement, data);
+  fs.truncateSync(replacement, size);
+  return observe({ beforeOpen: () => fs.renameSync(replacement, target.path) });
+}
+
+describe("attachment same-handle read boundary (independent regression)", () => {
+  it("reads a small PNG with short reads, using and closing one real handle", () => {
+    const target = fixture();
+    const trace = observe({ chunk: 7 });
+    const result = readBoundedImage(target.path, "image/png", BYTE_LIMIT, trace.io);
+    expect(Buffer.isBuffer(result)).toBe(true);
+    expect(result).toEqual(PNG);
+    expect(trace.reads.length).toBeGreaterThan(2);
+    expect(trace.stats).toHaveLength(2);
+    expectClosed(trace);
+  });
+
+  it("validates the header of a replacement made immediately before open", () => {
+    // Both replacements are regular, equally sized and within all budgets.
+    const gif = Buffer.alloc(PNG.length);
+    gif.write("GIF89a", 0, "ascii");
+    gif.writeUInt16LE(1, 6);
+    gif.writeUInt16LE(1, 8);
+    for (const [bytes, accepted] of [[PNG, true], [gif, false]]) {
+      const target = fixture();
+      const trace = replaceOnOpen(target, bytes);
+      if (accepted) {
+        expect(readBoundedImage(target.path, "image/png", BYTE_LIMIT, trace.io)).toEqual(PNG);
+      } else {
+        expect(() => readBoundedImage(target.path, "image/png", BYTE_LIMIT, trace.io))
+          .toThrow(/extension does not match its file header/);
+      }
+      expect(fs.readFileSync(target.path)).toEqual(bytes);
+      expect(trace.reads.length).toBeGreaterThan(0);
+      expectClosed(trace);
+    }
+  });
+
+  it("checks replacement size on the opened handle: 20 MiB accepted, +1 rejected before read", () => {
+    for (const size of [BYTE_LIMIT, BYTE_LIMIT + 1]) {
+      const target = fixture();
+      const trace = replaceOnOpen(target, PNG, size);
+      // Give both calls sufficient remaining capacity to isolate the per-file cap.
+      const remaining = BYTE_LIMIT + 1;
+      if (size === BYTE_LIMIT) {
+        const result = readBoundedImage(target.path, "image/png", remaining, trace.io);
+        const expected = Buffer.alloc(size);
+        PNG.copy(expected);
+        expect(result.equals(expected)).toBe(true);
+      } else {
+        expect(() => readBoundedImage(target.path, "image/png", remaining, trace.io))
+          .toThrow(/Image must contain 1 byte to 20 MiB/);
+        expect(trace.reads).toHaveLength(0);
+      }
+      expect(fs.statSync(target.path).size).toBe(size);
+      expectClosed(trace);
+    }
+  });
+
+  it("accepts exactly the remaining byte budget and rejects the first byte beyond it", () => {
+    const target = fixture();
+    for (const remaining of [PNG.length, PNG.length - 1]) {
+      const trace = observe();
+      if (remaining === PNG.length) {
+        expect(readBoundedImage(target.path, "image/png", remaining, trace.io)).toEqual(PNG);
+      } else {
+        expect(() => readBoundedImage(target.path, "image/png", remaining, trace.io))
+          .toThrow(/Total image attachments exceed 20 MiB per message/);
+        expect(trace.reads).toHaveLength(0);
+      }
+      expectClosed(trace);
+    }
+  });
+
+  it("admits exactly 40 million declared pixels and rejects the next pixel", () => {
+    // This API admits headers, not codec decoding; only the declared width changes.
+    for (const width of [40_000_000, 40_000_001]) {
+      const bytes = Buffer.from(PNG);
+      bytes.writeUInt32BE(width, 16);
+      const target = fixture(bytes);
+      const trace = observe();
+      if (width === 40_000_000) {
+        expect(readBoundedImage(target.path, "image/png", BYTE_LIMIT, trace.io)).toEqual(bytes);
+      } else {
+        expect(() => readBoundedImage(target.path, "image/png", BYTE_LIMIT, trace.io))
+          .toThrow(/dimensions must be positive and at most 40 megapixels/);
+        // The header was read successfully, but no full-content read was attempted.
+        expect(trace.reads).toHaveLength(1);
+      }
+      expectClosed(trace);
+    }
+  });
+
+  it("bounds payload reads and rejects growth between header and payload reads", () => {
+    for (const grow of [false, true]) {
+      const target = fixture();
+      let changed = false;
+      const trace = observe({
+        afterRead(call) {
+          if (grow && call === 1) {
+            fs.appendFileSync(target.path, Buffer.alloc(1024));
+            changed = true;
+          }
+        },
+      });
+      if (!grow) {
+        expect(readBoundedImage(target.path, "image/png", BYTE_LIMIT, trace.io)).toEqual(PNG);
+      } else {
+        expect(() => readBoundedImage(target.path, "image/png", BYTE_LIMIT, trace.io))
+          .toThrow(/Image changed while being read/);
+        expect(changed).toBe(true);
+        expect(trace.reads).toHaveLength(2);
+        expect(trace.reads[1].count).toBe(PNG.length + 1);
+        expect(trace.stats).toHaveLength(2);
+      }
+      expect(trace.reads.every(({ length }) => length <= PNG.length + 1)).toBe(true);
+      expectClosed(trace);
+    }
+  });
+});

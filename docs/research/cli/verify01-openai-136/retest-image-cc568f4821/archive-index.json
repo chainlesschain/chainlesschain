@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "source": "cc568f48212d8240e5d4746cb73c1065b40b33a2",
+  "archivedAt": "2026-10-31T22:59:52.594Z",
+  "unmodifiedEvidence": true,
+  "installedOrPatchedCandidates": false,
+  "credentialScanPassed": true,
+  "files": [
+    {
+      "sampleId": "verify-13",
+      "kind": "unmodified-candidate-source",
+      "originalFile": "packages/cli/__tests__/verify-13.test.js",
+      "path": "candidates/verify-13/verify-13.test.js.txt",
+      "digest": "sha256:adf039d47a2a39b53714b77f2e46e03c2832ef408358bd967bf06e89b3bba7e9",
+      "bytes": 7175
+    },
+    {
+      "sampleId": "verify-13",
+      "kind": "independent-setup",
+      "path": "receipts/verify-13-setup.json",
+      "digest": "sha256:ff84022cf548285b4e74923af42111c96a317783451803b4a253489e277ad6f8",
+      "bytes": 15531
+    },
+    {
+      "sampleId": "verify-13",
+      "kind": "independent-check",
+      "path": "receipts/verify-13-check.json",
+      "digest": "sha256:e39b9769057d948f7520a76078a105685dcf49b1853f1023e87452bb62fbc4ec",
+      "bytes": 13868
+    }
+  ]
+}

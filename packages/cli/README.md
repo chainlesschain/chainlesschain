@@ -2,6 +2,12 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## CLI 0.166.137 — confirm source delivery before recording read coverage
+
+Install this release with `npm i -g chainlesschain@0.166.137 --registry https://registry.npmjs.org`, restart the chat host, and verify `cc --version` / `cc doctor`. This repair preserves focused recovery when source content is omitted from a model request. Same-batch reservations remain synchronous; only exact source spans actually selected for the provider become historical coverage. Repeated delivery failures stop with an explicit limitation, and confirmed navigation does not advance or move backward on an unsuccessful read.
+
+Local validation: 109 related regressions pass; restoring the released .136 guard makes seven new controls fail. Existing Open VSX **0.37.173** / JetBrains **0.4.189** remain the pairing, with recommendation metadata still at CLI **0.166.135**. No IDE code changes or child-package updates are required. Full exact-source CLI CI and CLI Strict Sandbox must pass before Actions OIDC publication. Historical model acceptance remains **41/45**; the focused image follow-up remains **0/1** and is not rescored by engineering checks. [Evidence](../../docs/research/cli/verify01-openai-136/read-delivery-repair/README.md).
+
 ## CLI 0.166.136 — verified public repair
 
 Install with `npm i -g chainlesschain@0.166.136 --registry https://registry.npmjs.org`, restart the chat host, then run `cc --version` and `cc doctor`. This release repairs full-history session forks and preserves independent plugin/MCP restrictions through background restore. Malformed policy values fail before normalization or customization loading.
@@ -10,7 +16,7 @@ Exact source `539e4da6ef89e5142a3f3bb90e2d6123c6afb15e` passed all 76 CLI CI job
 
 The six-task historical retest stays **1/6**, cumulative **40/45**. Engineering regressions are separate from model acceptance; only the five remaining failures are selected for the next round. [Publication evidence](../../docs/research/cli/evidence/release136-public/README.md).
 
-The .136 five-sample retest accepted **1/5** (verify-19), cumulative **41/45**. A separate published-source engineering replay passed 86 baseline cases and 20 fixture-adapted candidate cases, rejected the three history/profile mutants, and reproduced the failures when removing the corresponding repairs. The image candidate still misses two controls; existing engineering tests reject both and generic generation guidance has been repaired. [Separate replay evidence](../../docs/research/cli/verify01-openai-136/release-replay-539e4da6ef/README.md). These engineering results do not rescore the frozen benchmark.
+The .136 five-sample retest accepted **1/5** (verify-19), cumulative **41/45**. A separate published-source engineering replay passed 86 baseline cases and 20 fixture-adapted candidate cases, rejected the three history/profile mutants, and reproduced the failures when removing the corresponding repairs. The focused image follow-up accepted 0/1: its pixel boundary improved, but metadata-only changes remain uncovered. A separate read-delivery guard repair passes 109 engineering regressions and is not yet published. [Separate replay evidence](../../docs/research/cli/verify01-openai-136/release-replay-539e4da6ef/README.md). These engineering results do not rescore the frozen benchmark.
 
 ## CLI 0.166.135 — verified preceding release
 

@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "scope": "only-verify-13-after-independent-control-guidance-repair",
+  "source": "cc568f48212d8240e5d4746cb73c1065b40b33a2",
+  "ref": "feature/openai136-five-retest",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-31-openai-136.json",
+  "packageSetDigest": "sha256:03ad9830988a12d19acd70de287b563710187e6092302ddce55b15b8b47cd03c",
+  "selectedSampleIds": [
+    "verify-13"
+  ],
+  "baseline": {
+    "path": "docs/research/cli/verify01-openai-136/retest-five-23e26368c8/results.json",
+    "digest": "sha256:62a0fdf5ed2a1377151ebdd8e77368c9d301b5ae0d600257d5c96253b2df950b",
+    "cumulativeAccepted": 41,
+    "expected": 45
+  },
+  "createdAt": "2026-10-31T22:47:51.703Z",
+  "taskSecretCreatedByThisSession": true,
+  "secretName": "OPENAI_API_KEY",
+  "secretConfiguredAt": "2026-10-31T22:46:15Z",
+  "dispatches": [
+    {
+      "group": "linux-cli",
+      "hosts": "linux",
+      "entries": "cli",
+      "sampleIds": [
+        "verify-13"
+      ],
+      "submitted": true,
+      "runId": 41249767142,
+      "submissionStartedAt": "2026-10-31T22:47:51.705Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41249767142",
+      "status": "queued"
+    }
+  ],
+  "allDispatchesSubmitted": true,
+  "finishedDispatchAt": "2026-10-31T22:48:01.042Z",
+  "taskSecretCleaned": true,
+  "taskSecretCleanupVerifiedAt": "2026-10-31T22:54:54.540Z"
+}

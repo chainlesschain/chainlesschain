@@ -27,6 +27,43 @@ function retainedContext(messages, prefix) {
   return null;
 }
 
+function retainLatestToolBatch(messages) {
+  const index = messages.findLastIndex((message) => message.tool_calls?.length);
+  return index > 0 ? [messages[0], ...messages.slice(index)] : [messages[0]];
+}
+
+function visibleSourceProgress(source) {
+  let through = 0;
+  return (messages) => {
+    let latest;
+    for (const message of messages) {
+      if (message.role !== "tool") continue;
+      let page;
+      try {
+        page = JSON.parse(message.content.split("\n\n[Budget ")[0]);
+      } catch {
+        continue;
+      }
+      if (
+        !page.readSpan ||
+        page.contentOmitted ||
+        typeof page.content !== "string"
+      )
+        continue;
+      expect(page.content).toBe(
+        source.slice(
+          page.readSpan.start,
+          page.readSpan.start + page.content.length,
+        ),
+      );
+      expect(page.readSpan.start).toBeLessThanOrEqual(through);
+      through = Math.max(through, page.readSpan.end);
+      latest = page;
+    }
+    return { through, latest };
+  };
+}
+
 vi.mock("../../src/lib/plan-mode.js", () => {
   const planModeManager = {
     isActive: () => false,
@@ -543,10 +580,11 @@ describe("read_file offset/limit line ranges", () => {
       (_, i) => `section ${i + 1}: ${"document content ".repeat(12)}`,
     );
     writeFileSync(join(dir, "f.txt"), documentLines.join("\n"), "utf8");
+    const delivered = visibleSourceProgress(documentLines.join("\n"));
     const compactor = {
       shouldAutoCompact: (messages) => messages.length > 4,
       compress: async (messages) => ({
-        messages: [messages[0]],
+        messages: retainLatestToolBatch(messages),
         stats: {
           originalMessages: messages.length,
           compressedMessages: 1,
@@ -574,24 +612,27 @@ describe("read_file offset/limit line ranges", () => {
           const cursor = progress
             ? JSON.parse(progress.content.split("\n")[1])[0]
             : null;
+          const visible = delivered(messages);
           return {
-            message: cursor?.reachedEnd
-              ? { role: "assistant", content: "completed" }
-              : {
-                  role: "assistant",
-                  tool_calls: [
-                    {
-                      id: `page-${modelCalls}`,
-                      type: "function",
-                      function: {
-                        name: "read_file",
-                        arguments: JSON.stringify(
-                          cursor?.nextRead || { path: "f.txt" },
-                        ),
+            message:
+              visible.through === documentLines.join("\n").length
+                ? { role: "assistant", content: "completed" }
+                : {
+                    role: "assistant",
+                    tool_calls: [
+                      {
+                        id: `page-${modelCalls}`,
+                        type: "function",
+                        function: {
+                          name: "read_file",
+                          arguments: JSON.stringify(
+                            visible.latest?.nextRead ||
+                              cursor?.nextRead || { path: "f.txt" },
+                          ),
+                        },
                       },
-                    },
-                  ],
-                },
+                    ],
+                  },
           };
         },
       },
@@ -616,6 +657,7 @@ describe("read_file offset/limit line ranges", () => {
       (_, i) => `section ${i + 1}: ${"document content ".repeat(12)}`,
     );
     writeFileSync(join(dir, "f.txt"), documentLines.join("\n"), "utf8");
+    const delivered = visibleSourceProgress(documentLines.join("\n"));
     let calls = 0;
     const pages = [];
     for await (const event of agentLoop(
@@ -627,14 +669,7 @@ describe("read_file offset/limit line ranges", () => {
         chatFn: async (messages) => {
           calls++;
           expect(calls).toBeLessThan(30);
-          const progress = retainedContext(
-            messages,
-            "[Current run file read progress",
-          );
-          const cursor = progress
-            ? JSON.parse(progress.content.split("\n")[1])[0]
-            : null;
-          if (cursor?.reachedEnd)
+          if (delivered(messages).through === documentLines.join("\n").length)
             return { message: { role: "assistant", content: "completed" } };
           return {
             message: {
@@ -678,6 +713,70 @@ describe("read_file offset/limit line ranges", () => {
     expect(calls).toBe(pages.length + 1);
   });
 
+  it("stops without claiming completion when provider selection keeps dropping new source", async () => {
+    writeFileSync(join(dir, "f.txt"), "const ready = true;");
+    let calls = 0;
+    const results = [];
+    const completed = [];
+    await expect(
+      (async () => {
+        for await (const event of agentLoop(
+          [{ role: "user", content: "Read f.txt and explain it." }],
+          {
+            cwd: dir,
+            autoCompact: false,
+            autoMicroCompact: false,
+            contextMemorySkipPlanning: true,
+            projectProviderMessages: (messages) =>
+              messages.filter((message) => message.role === "user"),
+            chatFn: async (messages) => {
+              expect(messages.some((message) => message.role === "tool")).toBe(
+                false,
+              );
+              expect(
+                messages.some((message) =>
+                  message.content?.includes("const ready = true;"),
+                ),
+              ).toBe(false);
+              return {
+                message: {
+                  role: "assistant",
+                  tool_calls: [
+                    {
+                      id: `lost-page-${++calls}`,
+                      type: "function",
+                      function: {
+                        name: "read_file",
+                        arguments: JSON.stringify({
+                          path: "f.txt",
+                          offset: 1,
+                          limit: 1,
+                        }),
+                      },
+                    },
+                  ],
+                },
+              };
+            },
+          },
+        )) {
+          if (event.type === "tool-result") results.push(event.result);
+          if (event.type === "response-complete") completed.push(event);
+        }
+      })(),
+    ).rejects.toMatchObject({ code: "CC_AGENT_REPEATED_FILE_READ" });
+    expect(calls).toBe(7);
+    expect(
+      results.filter((result) => typeof result.content === "string"),
+    ).toHaveLength(6);
+    expect(results.at(-1)).toMatchObject({
+      code: "CC_READ_SOURCE_NOT_DELIVERED",
+      reachedEnd: false,
+    });
+    expect(results.at(-1).alreadyRead).toBeUndefined();
+    expect(completed).toEqual([]);
+  });
+
   it("recovers the reported real document through compaction and completes a follow-up file task", async () => {
     const source = fs.readFileSync(
       fileURLToPath(
@@ -689,6 +788,7 @@ describe("read_file offset/limit line ranges", () => {
       "utf8",
     );
     writeFileSync(join(dir, "report.md"), source);
+    const delivered = visibleSourceProgress(source);
     let calls = 0;
     let compactions = 0;
     let covered = 0;
@@ -697,7 +797,7 @@ describe("read_file offset/limit line ranges", () => {
     const compactor = {
       shouldAutoCompact: (messages) => messages.length > 4,
       compress: async (messages) => ({
-        messages: [messages[0]],
+        messages: retainLatestToolBatch(messages),
         stats: {
           originalMessages: messages.length,
           compressedMessages: 1,
@@ -726,14 +826,7 @@ describe("read_file offset/limit line ranges", () => {
           ).toBe("user");
           if (wrote)
             return { message: { role: "assistant", content: "Index written" } };
-          const progress = retainedContext(
-            messages,
-            "[Current run file read progress",
-          );
-          const cursor = progress
-            ? JSON.parse(progress.content.split("\n")[1])[0]
-            : null;
-          if (cursor?.reachedEnd) {
+          if (delivered(messages).through === source.length) {
             const findings = retainedContext(
               messages,
               "[File excerpts retained",

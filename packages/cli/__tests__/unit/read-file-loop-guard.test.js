@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ReadFileLoopGuard } from "../../src/lib/read-file-loop-guard.js";
+import { safeHostToolResultForModel } from "../../src/lib/tool-result-preview.js";
 import {
   buildReadFilePage,
   buildReadFileOutline,
@@ -41,6 +42,158 @@ function fixture() {
 }
 
 describe("ReadFileLoopGuard recovery", () => {
+  it("does not consume source coverage or successful rereads for omitted pages", () => {
+    const { guard, read } = fixture();
+    const source =
+      "const values = [\n  1,\n  2,\n];\nconst ready = true;\nuse(ready);";
+    guard.observeVisibleMessages([]);
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const page = read({ offset: 1, limit: 80 }, source);
+      expect(page.content).toBe(source);
+      const projected = safeHostToolResultForModel("read_file", page);
+      expect(projected.contentOmitted).toBe(true);
+      guard.observeVisibleMessages([
+        { role: "tool", content: JSON.stringify(projected) },
+      ]);
+      const entry = [...guard.progress.values()][0];
+      expect(entry.spans).toEqual([]);
+      expect(entry.rereads.size).toBe(0);
+      expect(entry.summary.reachedEnd).toBe(false);
+    }
+    const focused = read({ offset: 5, limit: 2 }, source);
+    expect(focused.content).toBe("const ready = true;\nuse(ready);");
+    expect(focused.alreadyRead).toBeUndefined();
+    guard.observeVisibleMessages([
+      { role: "tool", content: JSON.stringify(focused) },
+    ]);
+    const entry = [...guard.progress.values()][0];
+    expect(entry.confirmedSpans).toEqual([
+      [focused.readSpan.start, focused.readSpan.end],
+    ]);
+    expect(entry.summary.reachedEnd).toBe(false);
+    expect(entry.undeliveredReads).toBe(4);
+    expect(entry.summary.pendingDelivery).toBe(false);
+  });
+
+  it("does not confirm a partial preview using the original full-page span", () => {
+    const { guard, read } = fixture();
+    const source = "alpha();\nbeta();\ngamma();";
+    guard.observeVisibleMessages([]);
+    const original = read({ offset: 1, limit: 80 }, source);
+    guard.observeVisibleMessages([
+      {
+        role: "tool",
+        content: JSON.stringify({ ...original, content: "alpha();" }),
+      },
+    ]);
+    expect([...guard.progress.values()][0].confirmedSpans).toEqual([]);
+    const actual = read({ offset: 1, limit: 1 }, source);
+    guard.observeVisibleMessages([
+      { role: "tool", content: JSON.stringify(actual) },
+    ]);
+    expect([...guard.progress.values()][0].confirmedSpans).toEqual([
+      [0, actual.readSpan.end],
+    ]);
+    expect(guard.isPageVisible(original)).toBe(false);
+    expect(guard.isPageVisible(actual)).toBe(true);
+  });
+
+  it("does not confirm a read discarded by provider context selection", () => {
+    const { guard, read } = fixture();
+    guard.observeVisibleMessages([]);
+    read({ offset: 1, limit: 80 }, "const ready = true;");
+    guard.observeVisibleMessages([{ role: "user", content: "Continue." }]);
+    expect([...guard.progress.values()][0].confirmedSpans).toEqual([]);
+    expect(read({ offset: 1, limit: 1 }, "const ready = true;").content).toBe(
+      "const ready = true;",
+    );
+  });
+
+  it("does not let delivery of unrelated old source erase omission limits", () => {
+    const { guard, read } = fixture();
+    const source = "const ready = true;\nconst values = [1, 2,];";
+    guard.observeVisibleMessages([]);
+    const safe = read({ offset: 1, limit: 1 }, source);
+    guard.observeVisibleMessages([
+      { role: "tool", content: JSON.stringify(safe) },
+    ]);
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const omitted = read({ offset: 2, limit: 1 }, source);
+      const projected = safeHostToolResultForModel("read_file", omitted);
+      expect(projected.contentOmitted).toBe(true);
+      guard.observeVisibleMessages([
+        { role: "tool", content: JSON.stringify(safe) },
+        { role: "tool", content: JSON.stringify(projected) },
+      ]);
+      const entry = [...guard.progress.values()][0];
+      expect(entry.summary.lastReadRange).toEqual(safe.range);
+      expect(entry.summary.nextRead).toEqual(safe.nextRead);
+      expect(entry.summary.reachedEnd).toBe(false);
+    }
+    expect(read({ offset: 2, limit: 1 }, source).code).toBe(
+      "CC_READ_SOURCE_NOT_DELIVERED",
+    );
+  });
+
+  it("bounds unsuccessful delivery without claiming already-read source", () => {
+    const { guard, read } = fixture();
+    guard.observeVisibleMessages([]);
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const page = read({ offset: 1, limit: 80 }, "const ready = true;");
+      expect(page.content).toBe("const ready = true;");
+      guard.observeVisibleMessages([]);
+    }
+    const stopped = read({ offset: 1, limit: 1 }, "const ready = true;");
+    expect(stopped.code).toBe("CC_READ_SOURCE_NOT_DELIVERED");
+    expect(stopped.alreadyRead).toBeUndefined();
+    expect(stopped.reachedEnd).toBe(false);
+  });
+
+  it("does not move the confirmed cursor backward after a focused earlier reread", () => {
+    const { guard, read } = fixture();
+    const source = "one();\ntwo();\nthree();\nfour();\nfive();\nsix();";
+    guard.observeVisibleMessages([]);
+    const deliver = (page) =>
+      guard.observeVisibleMessages([
+        { role: "tool", content: JSON.stringify(page) },
+      ]);
+    deliver(read({ offset: 1, limit: 2 }, source));
+    const later = read({ offset: 5, limit: 1 }, source);
+    deliver(later);
+    deliver(read({ offset: 1, limit: 1 }, source));
+    const entry = [...guard.progress.values()][0];
+    expect(entry.summary.lastReadRange).toEqual(later.range);
+    expect(entry.summary.nextRead).toEqual(later.nextRead);
+    expect(entry.summary.reachedEnd).toBe(false);
+  });
+
+  it("recognizes an actually delivered empty file without consuming failure attempts", () => {
+    const { guard, read } = fixture();
+    guard.observeVisibleMessages([]);
+    const page = read({}, "");
+    guard.observeVisibleMessages([
+      { role: "tool", content: JSON.stringify(page) },
+    ]);
+    const entry = [...guard.progress.values()][0];
+    expect(entry.summary.reachedEnd).toBe(true);
+    expect(entry.undeliveredReads).toBe(0);
+    expect(read({}, "").alreadyRead).toBe(true);
+  });
+
+  it("keeps same-batch reservations and ordinary limits after confirmed delivery", () => {
+    const { guard, read } = fixture();
+    guard.observeVisibleMessages([]);
+    const source = "alpha();\nbeta();";
+    const page = read({}, source);
+    for (let attempt = 0; attempt < 5; attempt++) read({}, source);
+    expect(read({}, source).readRecovery.action).toBe("pending-delivery");
+    guard.observeVisibleMessages([
+      { role: "tool", content: JSON.stringify(page) },
+    ]);
+    expect([...guard.progress.values()][0].summary.reachedEnd).toBe(true);
+    expect(read({}, source).alreadyRead).toBe(true);
+  });
+
   it("restores a bounded source page when the planner dropped the original read", () => {
     const { guard, read } = fixture();
     const source = "const start = () => work();\nawait start();";
@@ -66,11 +219,15 @@ describe("ReadFileLoopGuard recovery", () => {
     guard.observeVisibleMessages([]);
     expect(batch({}, source).readRecovery.action).toBe("context-restore");
     expect(guard.repeatedBatches).toBe(0);
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 5; i++) {
       guard.observeVisibleMessages([]);
-      expect(batch({}, source).contentOmitted).toBe(true);
+      expect(batch({}, source).readRecovery.action).toBe("context-restore");
     }
-    expect(guard.stalled).toBe(true);
+    guard.observeVisibleMessages([]);
+    for (let i = 0; i < 8; i++) {
+      expect(batch({}, source).code).toBe("CC_READ_SOURCE_NOT_DELIVERED");
+      guard.observeVisibleMessages([]);
+    }
   });
 
   it("requires the actual source and version, not an outline or truncated prefix", () => {

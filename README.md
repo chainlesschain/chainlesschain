@@ -2,7 +2,7 @@
 
 ## 当前公开 CLI：0.166.136（2026-11-01）
 
-CLI **0.166.136** 已完成完整精确提交测试、Actions OIDC 发布和独立公共包/签名回读，修复完整历史分叉与后台策略恢复。安装：`npm i -g chainlesschain@0.166.136 --registry https://registry.npmjs.org`，重启聊天宿主。IDE 测试配对仍为 Open VSX **0.37.173** / JetBrains **0.4.189** 官方构建；两者推荐标记仍为 CLI **0.166.135**，JetBrains 已审核公开，其全部 JAR 与正式构建逐字节一致（ZIP 容器哈希不同）。Kernel **0.1.11**；PC/mobile 维持独立版本。五项模型复测 **1/5** 通过（verify-19），跨版本累计 **41/45**。三项冻结实现缺口已在 .136 发布源码上复验；图像测试覆盖不足正在修复生成指引并单项复测。[发行证据](docs/research/cli/evidence/release136-public/README.md)。
+CLI **0.166.136** 已完成完整精确提交测试、Actions OIDC 发布和独立公共包/签名回读，修复完整历史分叉与后台策略恢复。安装：`npm i -g chainlesschain@0.166.136 --registry https://registry.npmjs.org`，重启聊天宿主。IDE 测试配对仍为 Open VSX **0.37.173** / JetBrains **0.4.189** 官方构建；两者推荐标记仍为 CLI **0.166.135**，JetBrains 已审核公开，其全部 JAR 与正式构建逐字节一致（ZIP 容器哈希不同）。Kernel **0.1.11**；PC/mobile 维持独立版本。五项模型复测 **1/5** 通过（verify-19），跨版本累计 **41/45**。三项冻结实现缺口已在 .136 发布源码上复验；图像单项复测 0/1，仍缺仅元数据变化的对照；另修复源码被省略后误记已读的问题，109 项工程回归通过，读取修复尚未发布。[发行证据](docs/research/cli/evidence/release136-public/README.md)。
 
 ## 历史公开 CLI：0.166.135（2026-10-31）
 

@@ -4,6 +4,7 @@ import { isToolRecoveryPaused } from "./tool-recovery-result.js";
 import { hostToolOutputIdentity } from "./tool-result-preview.js";
 import { serializeRetainedContext } from "./retained-context-preview.js";
 const MAX_FILES = 12;
+const MAX_UNDELIVERED_READS = 6;
 
 function keyFor(filePath, args) {
   return JSON.stringify([
@@ -94,6 +95,44 @@ export class ReadFileLoopGuard {
         retainContext(context);
       }
     }
+    for (const entry of this.progress.values()) {
+      for (const pending of entry.pendingPages) {
+        if (this.isPageVisible(pending.page)) {
+          entry.confirmedSpans = mergeSpan(
+            entry.confirmedSpans,
+            pending.page.readSpan,
+          );
+          if (pending.page.readSpan.end >= entry.confirmedCursorEnd) {
+            entry.confirmedCursorEnd = pending.page.readSpan.end;
+            entry.confirmedCursor = {
+              lastReadRange: pending.page.range,
+              nextRead: pending.page.nextRead || null,
+            };
+          }
+        } else {
+          entry.undeliveredReads++;
+          if (pending.reread) entry.rereads.delete(pending.reread);
+          if (pending.restoring) entry.contextRestoreOffered = false;
+        }
+      }
+      entry.pendingPages = [];
+      // Execution reserves ranges synchronously for parallel reads. Only
+      // source actually selected for the provider becomes historical coverage.
+      entry.spans = entry.confirmedSpans.map((span) => [...span]);
+      if (entry.summary) {
+        const through =
+          entry.confirmedSpans[0]?.[0] === 0 ? entry.confirmedSpans[0][1] : 0;
+        entry.summary.readThrough = through;
+        entry.summary.reachedEnd = through >= entry.total;
+        entry.summary.pendingDelivery = false;
+        if (entry.confirmedCursor)
+          Object.assign(entry.summary, entry.confirmedCursor);
+        else {
+          delete entry.summary.lastReadRange;
+          entry.summary.nextRead = null;
+        }
+      }
+    }
   }
 
   isPageVisible(page) {
@@ -103,8 +142,29 @@ export class ReadFileLoopGuard {
           keyFor(visible.path, {}) === keyFor(page.path, {}) &&
           visible.fileVersion === page.fileVersion &&
           typeof page.content === "string" &&
-          page.content.length > 0 &&
-          visible.content.includes(page.content),
+          (page.content.length > 0 || page.readSpan?.total === 0) &&
+          ((visible.readSpan &&
+            page.readSpan &&
+            visible.readSpan.total === page.readSpan.total &&
+            visible.readSpan.start <= page.readSpan.start &&
+            visible.readSpan.end >= page.readSpan.end &&
+            visible.readSpan.end - visible.readSpan.start >=
+              visible.content.length &&
+            visible.readSpan.end - visible.readSpan.start <=
+              visible.content.length + 1 &&
+            page.readSpan.end - page.readSpan.start >= page.content.length &&
+            page.readSpan.end - page.readSpan.start <=
+              page.content.length + 1 &&
+            visible.content.slice(
+              page.readSpan.start - visible.readSpan.start,
+              page.readSpan.start -
+                visible.readSpan.start +
+                page.content.length,
+            ) === page.content) ||
+            (!visible.readSpan &&
+              !visible.contentTruncated &&
+              JSON.stringify(visible.range) === JSON.stringify(page.range) &&
+              visible.content === page.content)),
       ) === true
     );
   }
@@ -166,6 +226,11 @@ export class ReadFileLoopGuard {
       entry = {
         fileVersion,
         spans: [],
+        confirmedSpans: [],
+        pendingPages: [],
+        undeliveredReads: 0,
+        confirmedCursor: null,
+        confirmedCursorEnd: 0,
         rereads: new Set(),
         summary: null,
         excerpts: [],
@@ -184,7 +249,21 @@ export class ReadFileLoopGuard {
         readProgress: { newContent: false },
       };
     }
+    if (entry.undeliveredReads >= MAX_UNDELIVERED_READS) {
+      return {
+        path: filePath,
+        fileVersion,
+        code: "CC_READ_SOURCE_NOT_DELIVERED",
+        error:
+          "Repeated file reads did not deliver source content to the model. Report this limitation or use a focused search; do not claim the file was read.",
+        contentOmitted: true,
+        reachedEnd: false,
+        readRecovery: { action: "source-unavailable" },
+      };
+    }
     let span = page.readSpan;
+    let reread;
+    let restoringPage = false;
     const covered = entry.spans.some(
       ([start, end]) => start <= span.start && end >= span.end,
     );
@@ -221,6 +300,7 @@ export class ReadFileLoopGuard {
         span = page.readSpan;
         targeted = true;
         entry.contextRestoreOffered = true;
+        restoringPage = true;
       }
     }
     if (covered || (coveredPrefix && !targeted)) {
@@ -240,6 +320,7 @@ export class ReadFileLoopGuard {
         entry.rereads.size < 3
       ) {
         entry.rereads.add(fingerprint);
+        reread = fingerprint;
         page.readRecovery = {
           action: restoring ? "context-restore" : "targeted-review",
         };
@@ -257,6 +338,19 @@ export class ReadFileLoopGuard {
           };
           newContent = true;
         } else {
+          const confirmedEnd =
+            entry.confirmedSpans[0]?.[0] === 0 ? entry.confirmedSpans[0][1] : 0;
+          if (this.visiblePages !== null && confirmedEnd < span.total) {
+            return {
+              path: filePath,
+              fileVersion,
+              contentOmitted: true,
+              reachedEnd: false,
+              readProgress: { newContent: false },
+              readRecovery: { action: "pending-delivery" },
+              hint: "This range has a read pending in the current tool batch. Historical source coverage is recorded only after content reaches the model.",
+            };
+          }
           return {
             path: filePath,
             fileVersion,
@@ -283,6 +377,25 @@ export class ReadFileLoopGuard {
       }
     }
     entry.spans = mergeSpan(entry.spans, page.readSpan);
+    entry.total = page.readSpan.total;
+    if (this.visiblePages === null) {
+      // Direct tool consumers without provider selection keep synchronous
+      // semantics. Agent runs observe the initial request before any reads.
+      entry.confirmedSpans = entry.spans.map((span) => [...span]);
+    } else {
+      entry.pendingPages.push({
+        page: {
+          path: page.path,
+          fileVersion: page.fileVersion,
+          content: page.content,
+          readSpan: { ...page.readSpan },
+          ...(page.range ? { range: { ...page.range } } : {}),
+          ...(page.nextRead ? { nextRead: { ...page.nextRead } } : {}),
+        },
+        reread,
+        restoring: restoringPage,
+      });
+    }
     entry.lastReadRequest = this.visibleRequest;
     // Coverage alone cannot restore source code after compaction. Keep bounded
     // observed pages for every file type, not only large Markdown outlines.
@@ -302,10 +415,12 @@ export class ReadFileLoopGuard {
       ].slice(-2);
     }
     const allRead =
-      entry.spans[0]?.[0] === 0 && entry.spans[0][1] >= page.readSpan.total;
+      entry.confirmedSpans[0]?.[0] === 0 &&
+      entry.confirmedSpans[0][1] >= page.readSpan.total;
     // A read of the tail alone must never imply coverage of earlier sections.
     const previousEnd = entry.summary?.readThrough || 0;
-    const updateCursor = page.readSpan.end >= previousEnd;
+    const updateCursor =
+      this.visiblePages === null && page.readSpan.end >= previousEnd;
     entry.summary = {
       ...entry.summary,
       path: filePath,
@@ -317,8 +432,16 @@ export class ReadFileLoopGuard {
           }
         : {}),
       reachedEnd: allRead,
+      ...(this.visiblePages !== null ? { pendingDelivery: true } : {}),
       ...(page.outline ? { outline: page.outline } : {}),
     };
+    if (updateCursor) {
+      entry.confirmedCursorEnd = page.readSpan.end;
+      entry.confirmedCursor = {
+        lastReadRange: page.range,
+        nextRead: page.nextRead || null,
+      };
+    }
     this.progress.delete(key);
     this.progress.set(key, entry);
     // Discard pathological fragmented coverage instead of inventing coverage.
@@ -336,6 +459,13 @@ export class ReadFileLoopGuard {
     // as another duplicate would immediately schedule another "one-turn"
     // pause and prevent read_file from ever becoming available again.
     if (isToolRecoveryPaused(result)) return;
+    if (
+      tool === "read_file" &&
+      result?.code === "CC_READ_SOURCE_NOT_DELIVERED"
+    ) {
+      this.repeatedBatches = Math.max(this.repeatedBatches, 6);
+      return;
+    }
     if (
       !this.batch ||
       result?.error ||

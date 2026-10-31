@@ -1,0 +1,2 @@
+﻿"sampleId","taskId","kind","group","generationPassed","candidateAcceptancePassed","acceptancePassed","requests","usageCompleteRequests","knownTokenOnlyEstimateUsd","generationFailure","checkerFailure"
+"verify-13","verify-13","task","linux-cli","true","false","false","13","13","0.5089044","","candidate tests did not reject the behavioral mutant"

@@ -5,11 +5,18 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Public release scope: CLI **0.166.135** from `82aa6d703a8695721a7ccf0793a435853bc2bbf2` passed full exact-source CLI CI / Strict Sandbox, OIDC publication and independent public readback, with Context/Memory Kernel **0.1.11**. Open VSX **0.37.173** is public and byte-identical to its official VSIX at `98db89940de30106f57ee73c063acf249d23bec0`; only two VS Code README/version files differ from CLI source. JetBrains **0.4.189** passed its complete release gates and was uploaded, but awaits Marketplace approval/listing. Current public JetBrains remains **0.4.188** with CLI **0.166.133** recommendation. See [actual publication progress](docs/research/cli/evidence/release135-public/publication.json).
+> Public release scope: CLI **0.166.136** from `539e4da6ef89e5142a3f3bb90e2d6123c6afb15e` passed full exact-source CLI CI / Strict Sandbox, OIDC publication and independent public readback, with Context/Memory Kernel **0.1.11**. Open VSX **0.37.173** and JetBrains **0.4.189** are public; both retain CLI **0.166.135** recommendation metadata. JetBrains JAR payloads match its official build; ZIP container hashes differ. See [publication evidence](docs/research/cli/evidence/release136-public/README.md). CLI **0.166.137** below awaits its own exact-source release gates.
 >
-> `Unreleased` is a rolling source-development log retaining historical candidate labels, not a publication ledger. Historical OpenAI acceptance remains **39/45**; release checks add no task acceptance. PR #513 remains unmerged pending JetBrains public readback. Microsoft Marketplace is deferred; PC/mobile remain **v5.0.3.143**.
+> `Unreleased` is a rolling source-development log retaining historical candidate labels, not a publication ledger. Historical OpenAI acceptance is **41/45** across versions; the focused image follow-up remains **0/1**. Engineering checks add no model task acceptance. Microsoft Marketplace is deferred; PC/mobile remain **v5.0.3.143**.
 
 ## [Unreleased]
+
+### Fixed - cc CLI 0.166.137: confirm model-visible source before recording read coverage (candidate, 2026-11-01)
+
+- Separate synchronous same-batch read reservations from exact source spans actually delivered in a provider request. Omitted or discarded source no longer exhausts successful rereads or receives an incorrect already-read result.
+- Preserve the last confirmed navigation cursor, reject partial previews as complete-page evidence, and bound cumulative delivery failures without letting unrelated old source reset that limit. Keep the existing Evidence JSON validation unchanged.
+- Verify 109 related regressions and seven rollback controls. Compaction integration fixtures preserve the newest complete tool batch and require continuous source coverage actually received by the mock model; continuously discarded source ends without a completion claim.
+- Retain the raw five-sample result (1/5), image follow-up (0/1), cumulative 41/45 and credential cleanup receipts. Current IDE packages remain compatible; this CLI-only repair requires complete exact-source CLI CI / Strict Sandbox and Actions OIDC before publication.
 
 ### Fixed - cc CLI 0.166.136: verified history forks and background policy restrictions (candidate, 2026-10-31)
 

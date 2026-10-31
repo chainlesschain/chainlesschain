@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.openai-failed-sample-retest/v1",
   "createdAt": "2026-10-31T22:32:40.379Z",
-  "status": "prepared-not-dispatched",
+  "status": "completed",
   "scope": "only-verify-13-after-independent-control-guidance-repair",
   "provider": "openai",
   "model": "gpt-6.1-sol",
@@ -37,5 +37,13 @@
   ],
   "reason": "The remaining image candidate was not independently varying validation conditions. Generic prompt guidance now requires admissible single-condition controls and exact boundaries, without task answers or evaluator mutations.",
   "campaignSourceDigest": "sha256:da51be7a24b2c5ddf63f62cbfcff4833451bcb1a733a2b0b1249cc3c06b7816b",
-  "frozenSourceOrAcceptanceChanged": false
+  "frozenSourceOrAcceptanceChanged": false,
+  "executionSource": "cc568f48212d8240e5d4746cb73c1065b40b33a2",
+  "runId": 41249767142,
+  "resultPath": "docs/research/cli/verify01-openai-136/retest-image-cc568f4821/results.json",
+  "resultDigest": "sha256:ac63dde8fa3bee2dca634720e0db6dd0321f32539120109c8a5fa62bfe1cddf7",
+  "accepted": 0,
+  "cumulativeAccepted": 41,
+  "temporaryCredentialRemoved": true,
+  "absenceVerified": true
 }

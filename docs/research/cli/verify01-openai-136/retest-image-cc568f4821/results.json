@@ -1,0 +1,232 @@
+{
+  "schema": "chainlesschain.openai-single-failure-followup-report/v1",
+  "generatedAt": "2026-10-31T22:58:57.428Z",
+  "scope": "only-verify-13-after-independent-control-guidance-repair",
+  "source": "cc568f48212d8240e5d4746cb73c1065b40b33a2",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "api": "Responses",
+  "formalSample": false,
+  "complete": true,
+  "selectedSampleIds": [
+    "verify-13"
+  ],
+  "versions": {
+    "cli": "0.166.136",
+    "vscode": "0.37.173",
+    "jetbrains": "0.4.189",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "componentReleaseSources": {
+    "cli": "539e4da6ef89e5142a3f3bb90e2d6123c6afb15e",
+    "openVsx": "98db89940de30106f57ee73c063acf249d23bec0",
+    "jetbrains": "82aa6d703a8695721a7ccf0793a435853bc2bbf2"
+  },
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-31-openai-136.json",
+  "packageSetDigest": "sha256:03ad9830988a12d19acd70de287b563710187e6092302ddce55b15b8b47cd03c",
+  "distribution": {
+    "cli": "verified-public-npm",
+    "vscode": "verified-public-open-vsx",
+    "jetbrains": "verified-successful-actions-build-not-marketplace-approval"
+  },
+  "baseline": {
+    "path": "docs/research/cli/verify01-openai-136/retest-five-23e26368c8/results.json",
+    "digest": "sha256:62a0fdf5ed2a1377151ebdd8e77368c9d301b5ae0d600257d5c96253b2df950b",
+    "cumulativeAccepted": 41,
+    "expected": 45
+  },
+  "previousAcceptedRepeated": 0,
+  "generationRecorded": 1,
+  "generationPassed": 1,
+  "acceptanceRecorded": 1,
+  "accepted": 0,
+  "failed": 1,
+  "pending": 0,
+  "cumulativeAcceptedAcrossVersions": 41,
+  "cumulativeIsNotFull45Rerun": true,
+  "physicalRequestsStarted": 13,
+  "usageCompleteRequests": 13,
+  "unknownUsageRequests": 0,
+  "missingBrokerRows": [],
+  "knownTokenOnlyEstimateUsd": 0.5089044,
+  "actualBilledCostUsd": null,
+  "workflow": [
+    {
+      "group": "linux-cli",
+      "runId": 41249767142,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41249767142",
+      "status": "completed",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "id": 124680642686,
+          "name": "validate",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-31T22:50:15Z",
+          "completedAt": "2026-10-31T22:50:56Z",
+          "failedStep": null
+        },
+        {
+          "id": 124681296963,
+          "name": "Native linux-cli (selected samples)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-31T22:51:08Z",
+          "completedAt": "2026-10-31T22:54:06Z",
+          "failedStep": null
+        },
+        {
+          "id": 124681966449,
+          "name": "Linux acceptance of linux-cli deliveries",
+          "status": "completed",
+          "conclusion": "failure",
+          "startedAt": "2026-10-31T22:54:57Z",
+          "completedAt": "2026-10-31T22:57:14Z",
+          "failedStep": "Check source and candidate binding then execute baseline and behavioral controls"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "runId": 41249767142,
+      "id": 13061145968,
+      "name": "verify01-native-subset-delivery-linux-cli-cc568f48212d8240e5d4746cb73c1065b40b33a2",
+      "digest": "sha256:c6409a858196083d8b01883c692ab9eaf7f6a14e353c18a14fc61c98e8cd6b8e",
+      "summaryDigest": "sha256:5ec4b4f61237bbd14b709fd763a93228d41e1acce1ebdb6957bccf342f678e68",
+      "bytes": 3450926,
+      "expiresAt": "2026-11-14T22:54:00Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41249767142/artifacts/13061145968"
+    },
+    {
+      "runId": 41249767142,
+      "id": 13060014274,
+      "name": "verify01-native-subset-acceptance-linux-cli-cc568f48212d8240e5d4746cb73c1065b40b33a2",
+      "digest": "sha256:191557926436cb80a6ac8376297f145790b89d968c0eb013ad0ee6ae31d0d644",
+      "summaryDigest": "sha256:cdf82c64d9dce992d7530908462e95e9389019a0d3ccfdb99eb9308ba2ced3a2",
+      "bytes": 606885,
+      "expiresAt": "2026-11-14T22:57:11Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41249767142/artifacts/13060014274"
+    }
+  ],
+  "rows": [
+    {
+      "sampleId": "verify-13",
+      "taskId": "verify-13",
+      "kind": "task",
+      "group": "linux-cli",
+      "task": "附件同句柄读取边界",
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "acceptancePassed": false,
+      "requests": 13,
+      "usageCompleteRequests": 13,
+      "knownTokenOnlyEstimateUsd": 0.5089044,
+      "actualBilledCostUsd": null,
+      "generationFailure": null,
+      "checkerFailure": "candidate tests did not reject the behavioral mutant",
+      "generation": {
+        "artifact": "verify01-native-subset-delivery-linux-cli-cc568f48212d8240e5d4746cb73c1065b40b33a2",
+        "runId": 41249767142,
+        "summaryDigest": "sha256:5ec4b4f61237bbd14b709fd763a93228d41e1acce1ebdb6957bccf342f678e68",
+        "hostPassed": true,
+        "sourceScopePassed": true,
+        "identityPassed": true,
+        "terminalVerified": true,
+        "candidates": [
+          {
+            "file": "packages/cli/__tests__/verify-13.test.js",
+            "path": "verify-13/candidate/packages/cli/__tests__/verify-13.test.js",
+            "digest": "sha256:adf039d47a2a39b53714b77f2e46e03c2832ef408358bd967bf06e89b3bba7e9",
+            "bytes": 7175
+          }
+        ],
+        "startedAt": "2026-10-31T22:52:22.436Z",
+        "finishedAt": "2026-10-31T22:54:00.602Z"
+      },
+      "acceptance": {
+        "artifact": "verify01-native-subset-acceptance-linux-cli-cc568f48212d8240e5d4746cb73c1065b40b33a2",
+        "runId": 41249767142,
+        "sourceSummaryDigest": "sha256:5ec4b4f61237bbd14b709fd763a93228d41e1acce1ebdb6957bccf342f678e68",
+        "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+        "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+        "checkerSourceCommit": "cc568f48212d8240e5d4746cb73c1065b40b33a2",
+        "generationAssessment": {
+          "passed": true,
+          "originalGenerationPassed": true,
+          "originalTerminalVerified": true,
+          "terminal": {
+            "terminalVerified": true,
+            "observedFallback": false,
+            "usage": {
+              "inputTokens": 2535,
+              "outputTokens": 4990,
+              "cacheReadInputTokens": 26364,
+              "cacheCreationInputTokens": 225649
+            },
+            "totalCostUsd": 0
+          },
+          "dialect": "one-shot"
+        },
+        "frozenSourceAssessment": {
+          "exact": true,
+          "contentVerified": true,
+          "filenameEncoding": "utf8"
+        },
+        "setup": {
+          "pass": true,
+          "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+          "receipt": "verify-13-setup-64b18028-321f-4cae-a6f5-65f7edd56ce3.json",
+          "receiptDigest": "sha256:ff84022cf548285b4e74923af42111c96a317783451803b4a253489e277ad6f8",
+          "scriptDigest": "sha256:db9af39071ef4048af094120805491b38b845ba39875587ce7011dbcbb327e84",
+          "receiptPath": "pack/acceptance-evidence/verify-13-setup-64b18028-321f-4cae-a6f5-65f7edd56ce3.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 13,
+              "passed": 13,
+              "failed": 0
+            }
+          ],
+          "mutations": []
+        },
+        "check": {
+          "pass": false,
+          "detail": "candidate tests did not reject the behavioral mutant",
+          "receipt": "verify-13-check-171abc43-f7db-49a4-8f60-225885e66967.json",
+          "receiptDigest": "sha256:e39b9769057d948f7520a76078a105685dcf49b1853f1023e87452bb62fbc4ec",
+          "scriptDigest": "sha256:7ae6f5fb31441a71257273148c74003bb6493619b0d93f12b79f8c4db012af29",
+          "receiptPath": "pack/acceptance-evidence/verify-13-check-171abc43-f7db-49a4-8f60-225885e66967.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 13,
+              "passed": 13,
+              "failed": 0
+            },
+            {
+              "kind": "candidate",
+              "total": 6,
+              "passed": 6,
+              "failed": 0
+            }
+          ],
+          "mutations": []
+        },
+        "finishedAt": "2026-10-31T22:57:11.018Z"
+      }
+    }
+  ],
+  "responsesReplayEvidence": {
+    "scope": "actual requests from the single image follow-up sample; not additional paid tasks",
+    "requestsInspected": 13,
+    "requestsWithToolOutput": 12,
+    "requestsWithReasoningReplay": 8,
+    "reasoningItems": 23,
+    "emptySummaryOccurrences": 23,
+    "missingSummaryOccurrences": 0
+  },
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37"
+}

@@ -63,3 +63,7 @@ docs/research/cli/evidence/recovery-2026-10-24/changelog-artifact-parity/**
 
 # Preserve the downloaded GitHub metadata bytes bound by the request audit.
 docs/research/cli/evidence/recovery-2026-10-27/verify09-artifact.json
+
+# Preserve exact source-delivery regression and rollback evidence.
+docs/research/cli/verify01-openai-136/read-delivery-repair/**
+!docs/research/cli/verify01-openai-136/read-delivery-repair/README.md
