@@ -77,16 +77,28 @@
       "rationale": "GitHub checks/status readback. API responses are evidence inputs, not publication or financial admission."
     },
     {
+      "path": "packages/cli/scripts/verify01-native-plugin-artifact.mjs",
+      "category": "DISTRIBUTION",
+      "rationale": "Operator-only authenticated GitHub API GET and gh artifact download from the fixed chainlesschain repository. Validates successful push workflow/tag/source, exact artifact identity and original plugin ZIP size/hash before exporting only its local path. Authentication exists only in the download step, never in task/model child environments. Does not publish a package, call a model or claim Marketplace approval.",
+      "digest": "sha256:1207d8c47439619983fcb319c4bdce5bbbaa9115da5834dfbcd42caf07923a40"
+    },
+    {
       "path": "packages/cli/scripts/verify01-native-task-campaign.mjs",
-      "digest": "sha256:34e2e76a63876021673037dfe4610612303eebcadce77890a2ac185bc1406769",
+      "digest": "sha256:52e7f01d6317fafc9beb277793f8224b3af202583df4185f1bc22abb22d2b186",
       "category": "MODEL_REQUEST",
-      "rationale": "Downloads exact public packages and launches the native CLI/IDE task cohort with explicit provider/source/package identity. OpenAI keeps the installed CLI official base URL and native Responses serializer, using a source-bound per-run launcher and fetch forwarder to the authenticated loopback broker. The installed CLI is unchanged and receives only a 64-hex capability; the account key remains in the operator broker. All original file scopes, host cleanup, terminal evidence, request/output/timeout limits, receipt settlement and formal-scope refusal remain. Historical Volcengine policy and outcomes are separate. This review is not formal financial or native admission."
+      "rationale": "Downloads exact public packages and launches the native CLI/IDE task cohort with explicit provider/source/package identity. OpenAI keeps the installed CLI official base URL and native Responses serializer, using a source-bound per-run launcher and fetch forwarder to the authenticated loopback broker. The installed CLI is unchanged and receives only a 64-hex capability; the account key remains in the operator broker. All original file scopes, host cleanup, terminal evidence, request/output/timeout limits, receipt settlement and formal-scope refusal remain. Historical Volcengine policy and outcomes are separate. This review is not formal financial or native admission. Explicit operator-selected JetBrains builds may be installed before Marketplace approval: a source-bound same-repository successful release artifact and its exact payload hash are verified; receipts label the build channel without claiming Marketplace availability. User authorized this diagnostic distribution change; model and independent acceptance limits are unchanged."
     },
     {
       "path": "packages/cli/scripts/verify01-native-toolchain-prepare.mjs",
       "digest": "sha256:7d1424de87da2609548287ce33a03fed2e2c5b10d095c0caadc97a96ea8aea4b",
       "category": "DISTRIBUTION",
       "rationale": "Bounded registry artifact download and toolchain preparation; no provider inference. Artifact identity and native admission are independently checked."
+    },
+    {
+      "path": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:c4b11e676cd8865c0d42af3c7c74d2c232ea80625944ee5dc86bf48f2624a833",
+      "category": "MODEL_REQUEST",
+      "rationale": "Explicit operator-only native OpenAI fetch forwarder and launcher, activated only for the expected installed CLI agent entry in the hermetic OpenAI diagnostic environment. Loads the exact installed CLI budget-scope module and refuses active formal scope before credential/URL inspection and before each fetch. Only the fixed official Responses POST with a 64-hex broker capability is forwarded to the fixed IPv4 loopback path; account keys are rejected, bodies and cancellation are preserved, and TLS/certificate or product endpoint checks are unchanged. The host broker owns actual OpenAI credentials, limits, receipts and unknown-usage handling. No financial or OS admission is established."
     },
     {
       "path": "packages/cli/scripts/verify01-public-vscode-matrix-diagnostic.mjs",
@@ -495,12 +507,6 @@
       "digest": "sha256:31a7409e1b5a386bde23aa0040dfd26b01cc5aebb999d0c376580db4bdfc4dba",
       "category": "LOCAL_DIAGNOSTIC",
       "rationale": "TCP reachability diagnostics; a connection probe is not an inference request."
-    },
-    {
-      "path": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
-      "digest": "sha256:c4b11e676cd8865c0d42af3c7c74d2c232ea80625944ee5dc86bf48f2624a833",
-      "category": "MODEL_REQUEST",
-      "rationale": "Explicit operator-only native OpenAI fetch forwarder and launcher, activated only for the expected installed CLI agent entry in the hermetic OpenAI diagnostic environment. Loads the exact installed CLI budget-scope module and refuses active formal scope before credential/URL inspection and before each fetch. Only the fixed official Responses POST with a 64-hex broker capability is forwarded to the fixed IPv4 loopback path; account keys are rejected, bodies and cancellation are preserved, and TLS/certificate or product endpoint checks are unchanged. The host broker owns actual OpenAI credentials, limits, receipts and unknown-usage handling. No financial or OS admission is established."
     }
   ]
 }

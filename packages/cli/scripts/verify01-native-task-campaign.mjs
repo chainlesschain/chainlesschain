@@ -21,6 +21,7 @@ import { nativeProviderProfile } from "./verify01-native-provider-profile.mjs";
 import { openAiNativeCliLauncher } from "./verify01-openai-transport-preload.mjs";
 import { VERIFY01_REVIEW_SPECS } from "./verify01-review-specs.mjs";
 import { requireUnscopedModelTransport } from "../src/lib/formal-budget-provider-scope.js";
+import { readNativePluginArtifact } from "./verify01-native-plugin-artifact.mjs";
 
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
 const planRoot = "docs/research/cli/verify01-plan-2026-10-13-volcengine";
@@ -615,6 +616,7 @@ export async function runNativeCampaign(options) {
     );
   if (entry === "jetbrains")
     bindingFiles.push(
+      "packages/cli/scripts/verify01-native-plugin-artifact.mjs",
       "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.mjs",
       "packages/jetbrains-plugin/build.gradle.kts",
       "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
@@ -937,8 +939,21 @@ export async function runNativeCampaign(options) {
           "installed CLI identity mismatch",
         );
         if (entry !== "cli") {
-          let url, metadata;
-          if (entry === "vscode") {
+          let url, metadata, artifactBytes;
+          const artifact =
+            entry === "jetbrains"
+              ? readNativePluginArtifact(
+                  packageSetBytes
+                    ? JSON.parse(packageSetBytes.toString("utf8"))
+                    : null,
+                  process.env.CC_VERIFY01_JETBRAINS_ARCHIVE,
+                )
+              : null;
+          if (artifact) {
+            metadata = artifact.binding;
+            artifactBytes = artifact.bytes;
+            url = `https://github.com/${metadata.repository}/actions/runs/${metadata.runId}/artifacts/${metadata.artifactId}`;
+          } else if (entry === "vscode") {
             metadata = await (
               await publicFetch(
                 `https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${versions.vscode}`,
@@ -959,9 +974,9 @@ export async function runNativeCampaign(options) {
             url = `https://plugins.jetbrains.com/files/${metadata.file}`;
           }
           assert.equal(new URL(url).protocol, "https:");
-          const bytes = Buffer.from(
-            await (await publicFetch(url)).arrayBuffer(),
-          );
+          const bytes =
+            artifactBytes ||
+            Buffer.from(await (await publicFetch(url)).arrayBuffer());
           assert.ok(bytes.length > 100000 && bytes.length < 128 * 1024 * 1024);
           pluginArchive = path.join(
             scratch,
@@ -970,6 +985,10 @@ export async function runNativeCampaign(options) {
           fs.writeFileSync(pluginArchive, bytes);
           pluginDigest = hash(bytes);
           save("public-extension.json", {
+            distribution: artifact
+              ? "github-actions-artifact"
+              : "public-marketplace",
+            marketplaceApprovalClaimed: artifact ? false : undefined,
             metadata,
             url,
             digest: pluginDigest,
@@ -1119,9 +1138,8 @@ export async function runNativeCampaign(options) {
         ]);
       else if (entry === "vscode") result = await runVSCodeNativeTask(args);
       else {
-        const { runJetBrainsNativeTask } = await import(
-          "../../jetbrains-plugin/scripts/verify01-native-task-adapter.mjs"
-        );
+        const { runJetBrainsNativeTask } =
+          await import("../../jetbrains-plugin/scripts/verify01-native-task-adapter.mjs");
         result = await runJetBrainsNativeTask(args);
       }
       row.host = {
