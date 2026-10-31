@@ -31,6 +31,7 @@ function createTranscriptReconciler({ document, log, create, write }) {
       text: row.text,
       role: row.role,
       streaming: !!row.streaming,
+      saved: !!row.id,
     });
   }
   function apply(rows) {
@@ -73,6 +74,7 @@ function createTranscriptReconciler({ document, log, create, write }) {
           !old ||
           old.text !== row.text ||
           old.role !== row.role ||
+          (row.role === "tool" && old.saved !== !!row.id) ||
           old.streaming !== !!row.streaming
         ) {
           if (

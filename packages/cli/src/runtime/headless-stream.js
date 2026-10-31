@@ -3821,6 +3821,31 @@ async function runAgentHeadlessStreamInWorkspace(
         { code: "CC_SESSION_TOOL_ROUND_SETTLEMENT_HEAD_UNKNOWN" },
       );
     }
+    // Only a new, acknowledged tool_round has item positions to associate
+    // with live IDE output. A no-op settlement returns an existing head only.
+    if (appended.event?.type === "tool_round") {
+      const items = appended.event.data.messages.map((message, itemIndex) => ({
+        itemIndex,
+        role: message.role,
+        toolCallId:
+          message.role === "assistant"
+            ? message.tool_calls[0].id
+            : message.tool_call_id,
+      }));
+      for (let offset = 0; offset < items.length; offset += 100) {
+        emit({
+          type: "system",
+          subtype: "tool_round_persisted",
+          session_id: sessionId,
+          transcript_refs: {
+            schema: "chainlesschain.session-tool-round-references/v1",
+            sessionId,
+            eventId: appended.hash,
+            items: items.slice(offset, offset + 100),
+          },
+        });
+      }
+    }
     return appended;
   };
   const settleToolRoundsForHost = (phase, clientMessageId = null) => {

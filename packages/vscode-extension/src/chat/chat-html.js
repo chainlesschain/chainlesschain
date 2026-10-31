@@ -17,6 +17,7 @@ const {
   snapshotHostImageAttachments,
 } = require("./host-dom-image-fixtures");
 const { createTranscriptReconciler } = require("./transcript-reconciler");
+const { writeSavedToolResult } = require("./saved-tool-result");
 const { createQuestionForms } = require("./question-form-drafts");
 const {
   createImagePreviewGate,
@@ -48,7 +49,7 @@ const ELICITATION_FORM_SOURCE = fs.readFileSync(
 // the current Extension Host. VS Code can preserve that DOM across an
 // Extension Host restart when retainContextWhenHidden is enabled, so this is
 // an explicit UI/Host handshake rather than relying on the extension version.
-const CHAT_UI_PROTOCOL_VERSION = 11;
+const CHAT_UI_PROTOCOL_VERSION = 12;
 const TRANSCRIPT_ENTRY_MAX_CHARS = 200_000;
 
 function migrateBootstrapLastSent(lastSentByTab, activeTabId, nextActiveTabId) {
@@ -232,6 +233,8 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   .assistant th { background: var(--vscode-textCodeBlock-background, rgba(128,128,128,.15)); }
   .tool { opacity:.75; font-family: var(--vscode-editor-font-family); font-size:.92em; }
   .tool.err { color: var(--vscode-errorForeground); }
+  .saved-tool-result summary { cursor:pointer; }
+  .saved-tool-result pre { white-space:pre-wrap; overflow-wrap:anywhere; }
   .info { opacity:.6; font-style:italic; font-size:.92em; }
   .mono { font-family: var(--vscode-editor-font-family); font-size:.88em; opacity:.85; }
   .error { color: var(--vscode-errorForeground); }
@@ -674,6 +677,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     if (streamEl) streamRenderer.finish(streamEl, streamRaw);
   }
   ${createTranscriptReconciler.toString()}
+  ${writeSavedToolResult.toString()}
   function writeTranscriptRow(el, row) {
     if (row.role === "assistant") {
       if (row.streaming) {
@@ -686,6 +690,8 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         if (streamEl === el) streamEl = null;
       }
       el.setAttribute("aria-busy", row.streaming ? "true" : "false");
+    } else if (row.role === "tool" && row.id) {
+      writeSavedToolResult(document, el, row);
     } else el.textContent = row.text;
     el.dataset.truncated = row.truncated ? "true" : "false";
     el.title = row.truncated ? "Shortened for display; the saved session retains its original content." : "";
@@ -1553,7 +1559,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
           thinkingTextState = null;
           delete turnStateByTab[tabKey()];
         }
-        const navigationKey = JSON.stringify([m.contextOnly, m.coverage, m.nextCursor]);
+        const navigationKey = JSON.stringify([m.contextOnly, m.coverage, m.nextCursor, m.savedSnapshot]);
         let navigation = log.querySelector("[data-history-navigation]");
         if (!navigation || navigation.dataset.historyNavigation !== navigationKey) {
         if (navigation) navigation.remove();
@@ -1574,6 +1580,12 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
           older.textContent = "Older messages";
           older.addEventListener("click", () => vscode.postMessage({ type: "transcriptPage", cursor: m.nextCursor }));
           navigation.appendChild(older);
+        }
+        if (m.savedSnapshot) {
+          const live = document.createElement("button");
+          live.textContent = "Live conversation";
+          live.addEventListener("click", () => vscode.postMessage({ type: "transcriptPage", live: true }));
+          navigation.appendChild(live);
         }
         const latest = document.createElement("button");
         latest.textContent = "Latest messages";

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -11,6 +11,7 @@ import { createTaskWorklogHarness } from "../helpers/task-worklog-harness.js";
 
 let cwd;
 let harness;
+const platformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
 function TaskWorklog(options) {
   return harness.create(options);
 }
@@ -18,9 +19,112 @@ beforeEach(() => {
   cwd = fs.mkdtempSync(path.join(os.tmpdir(), "cc-worklog-"));
   harness = createTaskWorklogHarness();
 });
-afterEach(() => fs.rmSync(cwd, { recursive: true, force: true }));
+afterEach(() => {
+  vi.restoreAllMocks();
+  Object.defineProperty(process, "platform", platformDescriptor);
+  fs.rmSync(cwd, { recursive: true, force: true });
+});
 
 describe("durable Markdown task worklog", () => {
+  it("retries temporary Windows projection locks without removing the old file", () => {
+    const log = new TaskWorklog({ cwd, sessionId: "locked" });
+    log.user("Original objective");
+    const original = fs.readFileSync(log.file, "utf8");
+    const rename = fs.renameSync;
+    Object.defineProperty(process, "platform", { value: "win32" });
+    let attempts = 0;
+    vi.spyOn(fs, "renameSync").mockImplementation((source, target) => {
+      expect(target).toBe(log.file);
+      expect(fs.readFileSync(log.file, "utf8")).toBe(original);
+      if (++attempts < 3)
+        throw Object.assign(new Error("Temporary reader lock"), {
+          code: "EPERM",
+        });
+      rename(source, target);
+    });
+    log.user("Continue after the reader closes");
+    expect(attempts).toBe(3);
+    expect(readTaskWorklog(cwd, "locked").state.requests.at(-1)).toBe(
+      "Continue after the reader closes",
+    );
+    expect(fs.readdirSync(path.dirname(log.file))).toEqual(["WORKLOG.md"]);
+  });
+
+  it.each([
+    ["win32", 8],
+    ["linux", 1],
+  ])(
+    "bounds %s retries and preserves the previous projection on failure",
+    (platform, expectedAttempts) => {
+      const log = new TaskWorklog({ cwd, sessionId: "permanent-lock" });
+      log.user("Original objective");
+      const original = fs.readFileSync(log.file, "utf8");
+      Object.defineProperty(process, "platform", { value: platform });
+      const failure = Object.assign(new Error("Reader still holds the file"), {
+        code: "EPERM",
+      });
+      const rename = vi.spyOn(fs, "renameSync").mockImplementation(() => {
+        throw failure;
+      });
+      expect(() => log.user("New canonical checkpoint")).toThrow(failure);
+      expect(rename).toHaveBeenCalledTimes(expectedAttempts);
+      expect(fs.readFileSync(log.file, "utf8")).toBe(original);
+      expect(fs.readdirSync(path.dirname(log.file))).toEqual(["WORKLOG.md"]);
+      rename.mockRestore();
+      expect(log.readHistory("permanent-lock").state.requests.at(-1)).toBe(
+        "New canonical checkpoint",
+      );
+    },
+  );
+
+  it("does not hide the write error when temporary-file cleanup also fails", () => {
+    const log = new TaskWorklog({ cwd, sessionId: "cleanup-lock" });
+    log.user("Original objective");
+    Object.defineProperty(process, "platform", { value: "linux" });
+    const failure = Object.assign(new Error("Projection replace failed"), {
+      code: "EIO",
+    });
+    vi.spyOn(fs, "renameSync").mockImplementation(() => {
+      throw failure;
+    });
+    vi.spyOn(fs, "unlinkSync").mockImplementation(() => {
+      throw Object.assign(new Error("Cleanup locked"), { code: "EPERM" });
+    });
+    expect(() => log.user("New instruction")).toThrow(failure);
+  });
+
+  it("stops retrying if the projection directory becomes a junction", () => {
+    const log = new TaskWorklog({ cwd, sessionId: "redirected" });
+    log.user("Original objective");
+    const directory = path.dirname(log.file);
+    const original = path.join(cwd, "original-projection");
+    const redirected = path.join(cwd, "redirect-target");
+    fs.mkdirSync(redirected);
+    const rename = fs.renameSync;
+    Object.defineProperty(process, "platform", { value: "win32" });
+    const replace = vi.spyOn(fs, "renameSync").mockImplementation(() => {
+      rename(directory, original);
+      fs.symlinkSync(redirected, directory, "junction");
+      throw Object.assign(new Error("Temporary reader lock"), {
+        code: "EPERM",
+      });
+    });
+    try {
+      expect(() => log.user("New instruction")).toThrow(
+        /regular workspace directory/,
+      );
+      expect(replace).toHaveBeenCalledTimes(1);
+      expect(fs.readdirSync(redirected)).toEqual([]);
+      expect(
+        fs.readFileSync(path.join(original, "WORKLOG.md"), "utf8"),
+      ).toContain("Original objective");
+    } finally {
+      replace.mockRestore();
+      if (fs.lstatSync(directory).isSymbolicLink()) fs.unlinkSync(directory);
+      if (fs.existsSync(original)) rename(original, directory);
+    }
+  });
+
   it("retains failed-test evidence from successful log retrieval through churn, restart and handoff", () => {
     const log = new TaskWorklog({ cwd, sessionId: "ci-source" });
     log.user("Fix the reported CI failure");

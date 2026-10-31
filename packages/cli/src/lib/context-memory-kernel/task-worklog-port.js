@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { renameWithRetry } from "../config-manager.js";
 import { redactSecretsInText } from "../ide-context-redaction.js";
 import {
   diagnosticExcerpt,
@@ -437,6 +438,11 @@ export class TaskWorklog {
 function writeProjection(cwd, sessionId, markdown) {
   const file = worklogPath(cwd, sessionId, true);
   const temporary = file + "." + randomUUID() + ".tmp";
+  let writeError;
+  const validatePath = () => {
+    if (worklogPath(cwd, sessionId) !== file)
+      throw new Error("Worklog workspace path changed while saving");
+  };
   try {
     const fd = fs.openSync(temporary, "wx", 0o600);
     try {
@@ -445,9 +451,26 @@ function writeProjection(cwd, sessionId, markdown) {
     } finally {
       fs.closeSync(fd);
     }
-    worklogPath(cwd, sessionId);
-    fs.renameSync(temporary, file);
+    // Windows readers can briefly lock the existing projection. Retry only
+    // the atomic replacement, rechecking directory/link boundaries each time.
+    renameWithRetry(temporary, file, {
+      attempts: process.platform === "win32" ? 8 : 1,
+      _rename: (source, target) => {
+        validatePath();
+        fs.renameSync(source, target);
+      },
+    });
+  } catch (error) {
+    writeError = error;
+    throw error;
   } finally {
-    if (fs.existsSync(temporary)) fs.unlinkSync(temporary);
+    try {
+      validatePath();
+      if (fs.existsSync(temporary)) fs.unlinkSync(temporary);
+    } catch (error) {
+      // Never follow a redirected directory to clean up, or hide the original
+      // write failure behind a second transient lock on its temporary file.
+      if (!writeError) throw error;
+    }
   }
 }

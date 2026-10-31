@@ -18,6 +18,7 @@ const {
 } = require("./permission-mode-state");
 const {
   acceptTranscriptInputReceipt,
+  acceptTranscriptToolRoundReceipt,
   appendTranscript,
   loadTranscriptPage,
 } = require("./transcript-cache");
@@ -1178,6 +1179,37 @@ class ChatViewProvider {
           });
           return;
         }
+        if (
+          baseline &&
+          page.coverage?.kind === "snapshot-boundary" &&
+          conv.transcript?.some(
+            (row) =>
+              !row.id &&
+              !row.eventRef &&
+              ["assistant", "tool"].includes(row.role),
+          )
+        ) {
+          // Older hosts cannot associate snapshot items with live output.
+          // Keep that output and its diagnostics; never guess by matching text
+          // or append an entire replacement snapshot after a process exit.
+          if (syncOnly) {
+            if (conv.transcriptSnapshotGeneration !== page.generation) {
+              conv.transcriptSnapshotGeneration = page.generation;
+              this._postFrom(conv.id, {
+                kind: "info",
+                text: "Saved conversation context changed. Select Latest messages to view the saved snapshot.",
+              });
+            }
+          } else {
+            conv.transcriptBrowsingOlder = true;
+            this._postFromTranscript(conv, {
+              ...page,
+              savedSnapshot: true,
+              replaceView: true,
+            });
+          }
+          return;
+        }
         mergeTranscript(conv, page, { baseline: !!baseline });
         revision = conv.transcriptRevision;
         if (!conv.transcriptBrowsingOlder)
@@ -1339,6 +1371,7 @@ class ChatViewProvider {
     conv.transcriptRevision = (conv.transcriptRevision || 0) + 1;
     conv.transcriptRequest = null;
     conv.transcriptAwaiting = false;
+    conv.transcriptSnapshotGeneration = null;
     this._stopLoop(conv.id);
     this._lastCallUsage.delete(conv.id);
     this._convs.resetTurnState(conv.id);
@@ -1381,6 +1414,7 @@ class ChatViewProvider {
       )
         return;
       acceptTranscriptInputReceipt(conv, evt, sessionToken);
+      acceptTranscriptToolRoundReceipt(conv, evt, sessionToken);
       if (
         evt?.type === "session_error" ||
         isPersistenceResult(evt) ||
@@ -4986,6 +5020,16 @@ class ChatViewProvider {
         }
       }
     } else if (m.type === "transcriptPage") {
+      if (m.live === true) {
+        const conv = this._activeConv();
+        conv.transcriptBrowsingOlder = false;
+        this._postFromTranscript(conv, {
+          ...conv.transcriptPageMetadata,
+          messages: conv.transcript || [],
+          replaceView: true,
+        });
+        return;
+      }
       this._restoreTranscript(
         this._activeConv(),
         typeof m.cursor === "string" ? m.cursor : null,
