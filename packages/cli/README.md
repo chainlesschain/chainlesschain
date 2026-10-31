@@ -2,11 +2,13 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.135
+## CLI 0.166.135 — verified public release
 
 This release recovers genuine OpenAI Responses JSON disconnects before accepted output, bounds stalled requests, and settles completed streaming responses without waiting for socket EOF. It preserves empty tool allowlists across resume and rejects malformed saved permission, sandbox and budget settings. HTTP/provider failures, cancellation, usage persistence and incomplete tool-call replay protections remain authoritative.
 
-Install with `npm i -g chainlesschain@0.166.135 --registry https://registry.npmjs.org`, restart the chat host, then run `cc --version` and `cc doctor`. Paired IDE versions are Open VSX **0.37.172** and JetBrains **0.4.189**, recommending CLI **0.166.135**; Kernel stays **0.1.11**. Check the [release guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html) for channel publication status. Microsoft Marketplace and PC/mobile releases are outside this release scope.
+Install with `npm i -g chainlesschain@0.166.135 --registry https://registry.npmjs.org`, restart the chat host, then run `cc --version` and `cc doctor`. Public Open VSX **0.37.173** recommends CLI **0.166.135**. JetBrains **0.4.189** recommends the same CLI and has been uploaded after passing all release gates, but awaits Marketplace approval/listing. Current public JetBrains **0.4.188** retains its CLI **0.166.133** recommendation; Kernel stays **0.1.11**. Check the [release guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html) for channel publication status. Microsoft Marketplace and PC/mobile releases are outside this release scope.
+
+Exact CLI source `82aa6d703a8695721a7ccf0793a435853bc2bbf2` passed all 76 CLI CI jobs and all 6 Strict Sandbox jobs. [OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/41168880872) and [independent public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/41169921448) verified registry bytes, provenance and direct child dependencies. [Component-specific publication evidence](../../docs/research/cli/evidence/release135-public/publication.json).
 
 The preceding OpenAI native cohort accepted **39/45** tasks. Runtime regression tests and this release do not change that historical result or establish formal paid/native production admission.
 

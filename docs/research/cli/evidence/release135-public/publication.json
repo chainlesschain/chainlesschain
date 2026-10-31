@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "status": "awaiting-jetbrains-approval",
+  "checkedAt": "2026-10-31T05:35:55.134Z",
+  "sourceCommit": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
+  "sourceCommits": {
+    "cli": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
+    "openVsx": "98db89940de30106f57ee73c063acf249d23bec0",
+    "jetbrains": "82aa6d703a8695721a7ccf0793a435853bc2bbf2"
+  },
+  "cli": {
+    "version": "0.166.135",
+    "status": "verified-public",
+    "sourceCommit": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
+    "publishRun": 41168880872,
+    "readbackRun": 41169921448,
+    "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.135.tgz",
+    "sha256": "e52985eaf12a9097bd66b19fe9848bf2ddbb1db76b3f40174190600e3b6249cd",
+    "bytes": 9521173,
+    "byteIdentical": true,
+    "provenanceVerified": true
+  },
+  "openVsx": {
+    "version": "0.37.173",
+    "status": "verified-public",
+    "sourceCommit": "98db89940de30106f57ee73c063acf249d23bec0",
+    "run": 41171249316,
+    "recommendedCliVersion": "0.166.135",
+    "sha256": "51901f565d78d20346538769ba42c1cfb646c5abc66f6189811df64111efb227",
+    "bytes": 745029,
+    "byteIdentical": true,
+    "download": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.173/file/chainlesschain.chainlesschain-ide-0.37.173.vsix"
+  },
+  "jetbrains": {
+    "version": "0.4.189",
+    "status": "uploaded-awaiting-marketplace-approval",
+    "sourceCommit": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
+    "run": 41170221376,
+    "recommendedCliVersion": "0.166.135",
+    "uploadSucceeded": true,
+    "approve": null,
+    "listed": null,
+    "hidden": null,
+    "publicReadbackVerified": false,
+    "previousVerifiedPublicVersion": "0.4.188"
+  },
+  "pullRequest": 513,
+  "publishBeforeMerge": {
+    "merged": false,
+    "autoMerge": false,
+    "waitingForJetbrainsPublicReadback": true
+  },
+  "microsoftMarketplace": "deferred",
+  "pcMobile": "unchanged-v5.0.3.143",
+  "newModelTaskAcceptance": 0,
+  "liveRecoveryProbe": "not-run-waiting-for-both-ide-public-readbacks",
+  "workflows": [
+    {
+      "id": 41161921412,
+      "name": "CLI CI",
+      "sha": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41161921412"
+    },
+    {
+      "id": 41161921343,
+      "name": "CLI Strict Sandbox",
+      "sha": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41161921343"
+    },
+    {
+      "id": 41168880872,
+      "name": "Publish CLI release to npm",
+      "sha": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41168880872"
+    },
+    {
+      "id": 41169921448,
+      "name": "CLI npm release readback",
+      "sha": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41169921448"
+    },
+    {
+      "id": 41171249316,
+      "name": "IDE Extensions",
+      "sha": "98db89940de30106f57ee73c063acf249d23bec0",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41171249316"
+    },
+    {
+      "id": 41170221376,
+      "name": "IDE Extensions",
+      "sha": "82aa6d703a8695721a7ccf0793a435853bc2bbf2",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41170221376"
+    }
+  ]
+}

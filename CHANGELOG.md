@@ -5,9 +5,9 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Public release scope: CLI **0.166.133** is the immutable package from `2eb0c5b1e048509362f9d980f94acee55c2ffa9f`, with `@chainlesschain/context-memory-kernel@0.1.11`. Its OIDC publication, independent public readback and companion Open VSX **0.37.171** verification passed. JetBrains **0.4.188** is approved, listed and publicly downloadable, with its original payload verified against the official build; see [publication evidence](docs/research/cli/evidence/release133-public/publication.json).
+> Public release scope: CLI **0.166.135** from `82aa6d703a8695721a7ccf0793a435853bc2bbf2` passed full exact-source CLI CI / Strict Sandbox, OIDC publication and independent public readback, with Context/Memory Kernel **0.1.11**. Open VSX **0.37.173** is public and byte-identical to its official VSIX at `98db89940de30106f57ee73c063acf249d23bec0`; only two VS Code README/version files differ from CLI source. JetBrains **0.4.189** passed its complete release gates and was uploaded, but awaits Marketplace approval/listing. Current public JetBrains remains **0.4.188** with CLI **0.166.133** recommendation. See [actual publication progress](docs/research/cli/evidence/release135-public/publication.json).
 >
-> `Unreleased` is a rolling source-development log that retains historical candidate labels, not a publication ledger. Public `.133` includes the model-platform and optional self-evolution fixes after its exact-source gates and verified CLI publication. Historical candidate wording below does not supersede the channel status above.
+> `Unreleased` is a rolling source-development log retaining historical candidate labels, not a publication ledger. Historical OpenAI acceptance remains **39/45**; release checks add no task acceptance. PR #513 remains unmerged pending JetBrains public readback. Microsoft Marketplace is deferred; PC/mobile remain **v5.0.3.143**.
 
 ## [Unreleased]
 

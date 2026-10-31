@@ -2,13 +2,13 @@
 
 <!-- docs-code-git-sync-2026-10-30 -->
 
-## CLI 0.166.135 发布准备（2026-10-31）
+## 当前公开 CLI：0.166.135（2026-10-31）
 
-候选 CLI **0.166.135** 修复 Responses 断连与取消结算、完成事件后等待 EOF，以及启动策略恢复的空白名单与非法配置问题。配套 Open VSX **0.37.172** / JetBrains **0.4.189** 按 CLI 核验后发布的顺序进行；Kernel 保持 **0.1.11**。[本版升级指南](./cli-ide-update-2026-10-31-135)记录修复与范围。
+CLI **0.166.135** 与 Open VSX **0.37.173** 已公开并完成制品核验。JetBrains **0.4.189** 已通过完整测试并成功上传，仍待 Marketplace 审核/上架；现有公开 **0.4.188** 仍推荐 CLI **0.166.133**。Kernel 保持 **0.1.11**。本版修复 Responses 断连与取消结算、完成后等待 EOF、上下文摘要预算，以及启动恢复的空白名单与非法配置问题。安装 `npm i -g chainlesschain@0.166.135 --registry https://registry.npmjs.org` 后重启已有聊天宿主。[本版升级指南](./cli-ide-update-2026-10-31-135) · [实际发行状态](https://github.com/chainlesschain/chainlesschain/blob/feature/fix-openai-turn-termination/docs/research/cli/evidence/release135-public/publication.json)。PR #513 等待 JetBrains 公开核验后再合并。Microsoft Marketplace 暂缓，PC/mobile 保持 **v5.0.3.143**。
 
 上一轮 OpenAI 36+9 已完成独立验收 **39/45**；原火山历史 **34/45** 单列。工程回归和发行不改写两组模型任务结果。
 
-## 当前公开 CLI：0.166.133（2026-10-30）
+## 历史公开 CLI：0.166.133（2026-10-30）
 
 安装：`npm i -g chainlesschain@0.166.133 --registry https://registry.npmjs.org`。Open VSX **0.37.171** / JetBrains **0.4.188** 均已公开并完成制品核验，两个 IDE 均推荐 CLI **0.166.133**，Kernel 保持 **0.1.11**。升级后重启聊天宿主，运行 `cc --version` 与 `cc doctor`。
 

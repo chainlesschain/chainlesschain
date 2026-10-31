@@ -1,0 +1,11 @@
+{
+  "schema": "chainlesschain.openvsx-public-payload-readback/v1",
+  "version": "0.37.173",
+  "recommendedCliVersion": "0.166.135",
+  "releaseSourceCommit": "98db89940de30106f57ee73c063acf249d23bec0",
+  "downloadUrl": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.173/file/chainlesschain.chainlesschain-ide-0.37.173.vsix",
+  "archiveByteIdentical": true,
+  "sha256": "51901f565d78d20346538769ba42c1cfb646c5abc66f6189811df64111efb227",
+  "bytes": 745029,
+  "verifiedAt": "2026-10-31T05:24:30.821Z"
+}

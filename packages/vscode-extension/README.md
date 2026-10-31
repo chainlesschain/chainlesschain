@@ -6,7 +6,7 @@ MCP bridge.
 
 ## Release pairing
 
-Version **0.37.173** recommends CLI **`0.166.135`** and pairs with JetBrains **0.4.189**. CLI 0.166.135 is public and independently verified. The extension has not been published; its tagged release must pass the complete IDE host matrix before upload. Restart existing chat hosts after upgrading to load the CLI Responses recovery and launch-policy fixes.
+Version **0.37.173** recommends CLI **`0.166.135`** and pairs with JetBrains **0.4.189**. CLI 0.166.135 is public and independently verified. The extension is public on Open VSX, with a successful complete tagged matrix and a byte-identical public VSIX. JetBrains 0.4.189 is uploaded but still awaits Marketplace approval/listing. Restart existing chat hosts after upgrading to load the CLI Responses recovery and launch-policy fixes.
 
 ## Self-evolution switch
 
@@ -15,6 +15,26 @@ Version **0.37.173** recommends CLI **`0.166.135`** and pairs with JetBrains **0
 Open **Skill 自进化配置** from the command palette to enable or disable self-evolution. It defaults to off and shares `evolution.enabled` in the CLI user `config.json` with `cc ui` and JetBrains. Enabling can initialize the local signed runtime; disabling keeps ordinary Agent use available and preserves deployment data. Stop and restart a running Agent session after switching. These controls require CLI 0.166.127 and the paired extension version below.
 
 ## Current release
+
+<!-- release173-status -->
+
+Open VSX version **0.37.173** pairs with public CLI `0.166.135`.
+
+The complete [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41171249316) passed, including real Linux, Windows and macOS host gates. The public VSIX matches the official candidate byte for byte. CLI `0.166.135` is the recommended public release. JetBrains **0.4.189** passed its complete matrix and was uploaded, but its public approval/listing remains pending; existing public **0.4.188** still recommends CLI **0.166.133**. Kernel remains **0.1.11**. [Publication progress](../../docs/research/cli/evidence/release135-public/README.md).
+
+Immutable tag `ide-vscode-v0.37.173` selects source `98db89940de30106f57ee73c063acf249d23bec0`. Download the [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.173/file/chainlesschain.chainlesschain-ide-0.37.173.vsix), `chainlesschain-ide-0.37.173.vsix`.
+
+Install CLI with `npm i -g chainlesschain@0.166.135 --registry https://registry.npmjs.org`. Using `@0.166.135` selects this verified pairing. Restart the chat host and run `cc --version` and `cc doctor`. This pairing carries CLI Responses recovery, bounded completion/cancellation, context-summary retention and saved launch-policy fixes. Historical OpenAI acceptance remains **39/45**, with no new model-task acceptance from publication.
+
+| Component                 | Current public status                                           |
+| ------------------------- | --------------------------------------------------------------- |
+| VS Code extension         | **0.37.173**; public and listed, with a verified immutable VSIX |
+| Recommended CLI           | **`chainlesschain@0.166.135`**; verified public package         |
+| Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI  |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors             |
+| Distribution              | Open VSX and versioned VSIX; Microsoft Marketplace deferred     |
+
+### Previous verified release (.171 / .133)
 
 <!-- release171-status -->
 
