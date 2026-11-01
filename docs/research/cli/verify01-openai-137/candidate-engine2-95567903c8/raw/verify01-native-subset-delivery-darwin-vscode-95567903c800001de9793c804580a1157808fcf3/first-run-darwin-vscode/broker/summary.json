@@ -1,0 +1,17 @@
+{
+  "formalSample": false,
+  "physicalRequestsStarted": 12,
+  "usageCompleteRequests": 12,
+  "tasks": [
+    {
+      "taskId": "first-run-darwin-vscode",
+      "requests": 12,
+      "errorCode": null
+    }
+  ],
+  "poisoned": null,
+  "actualBilledCostUsd": null,
+  "tokenOnlyEstimateUsd": 0.401372,
+  "knownTokenOnlyEstimateUsd": 0.401372,
+  "fxRate": null
+}

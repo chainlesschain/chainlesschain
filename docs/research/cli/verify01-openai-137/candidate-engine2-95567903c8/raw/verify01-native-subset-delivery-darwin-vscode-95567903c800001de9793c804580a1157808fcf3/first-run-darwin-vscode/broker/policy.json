@@ -1,0 +1,33 @@
+{
+  "endpoint": "https://api.openai.com/v1/responses",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "protocol": "responses",
+  "childBaseUrl": "https://api.openai.com/v1",
+  "childTransport": "source-bound-operator-fetch-forwarder-v1",
+  "maximumRequestsPerTask": 24,
+  "maximumRequestBytes": 262144,
+  "maximumResponseBytes": 16777216,
+  "maximumAnswerTokens": 8192,
+  "timeoutMs": 180000,
+  "connectionAttemptTimeoutMs": 2000,
+  "formalSample": false,
+  "pricingSource": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+  "standardUsdPerMillion": {
+    "input": 2,
+    "cachedInput": 0.1,
+    "output": 10
+  },
+  "allowedTaskIds": [
+    "first-run-darwin-vscode"
+  ],
+  "allowTextOnlyRequests": true,
+  "retries": 0,
+  "redirects": false,
+  "fallback": false,
+  "credentialsInModelChild": false,
+  "actualBilledCostUsd": null,
+  "fxRate": null,
+  "defaultThinkingPreserved": true,
+  "providerHardQuotaVerified": false
+}

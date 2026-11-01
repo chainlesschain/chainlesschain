@@ -80,3 +80,4 @@ docs/research/cli/verify01-openai-137/preflight-*/**
 docs/research/cli/verify01-openai-137/public-generator-*/**
 docs/research/cli/verify01-openai-137/candidate-engine*/**
 docs/research/cli/verify01-openai-137/task-binding-repair/*.json
+docs/research/cli/verify01-openai-137/source-expression-repair/*.json

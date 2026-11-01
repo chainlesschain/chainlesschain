@@ -5,6 +5,7 @@
  * read_file's own 50k self-limit and never telling the model it was cut).
  */
 import { describe, it, expect } from "vitest";
+import fs from "node:fs";
 import {
   capToolResultString,
   MAX_TOOL_RESULT_CHARS,
@@ -371,6 +372,10 @@ describe("complete structured output previews", () => {
       readSpan: raw.readSpan,
       fileVersion: raw.fileVersion,
     });
+    expect(JSON.parse(text).content).toContain(
+      "Read a complete surrounding statement or container",
+    );
+    expect(JSON.parse(text).content).toContain("within existing size limits");
     expect(JSON.stringify(raw)).toBe(before);
     expect(() => projectText(text)).not.toThrow();
   });
@@ -431,3 +436,45 @@ describe("complete structured output previews", () => {
     }
   });
 });
+
+describe("source file evidence previews", () => {
+  it.each([
+    "../../src/lib/session-branch-history.js",
+    "../../src/lib/image-file-boundary.js",
+    "./image-file-boundary.test.js",
+    "./session-branch.test.js",
+  ])("preserves real full and paged source reads: %s", (file) => {
+    const source = fs.readFileSync(new URL(file, import.meta.url), "utf8");
+    for (const args of [
+      { path: "source.js" },
+      { path: "source.js", offset: 1, limit: 150 },
+    ]) {
+      const raw = buildReadFilePage(source, args, {
+        filePath: "source.js",
+        fileVersion: "1:2:3",
+        maxChars: 50000,
+      });
+      const preview = JSON.parse(toolResultForModel("read_file", raw, []));
+      expect(preview.content).toBe(raw.content);
+      expect(preview.contentOmitted).not.toBe(true);
+    }
+  });
+});
+
+it.each([85, 145])(
+  "preserves the original transcript source first-read page (%s lines)",
+  (limit) => {
+    const source = fs.readFileSync(
+      new URL("./session-transcript-history.test.js", import.meta.url),
+      "utf8",
+    );
+    const raw = buildReadFilePage(
+      source,
+      { path: "source.js", offset: 1, limit },
+      { filePath: "source.js", fileVersion: "1:2:3", maxChars: 50000 },
+    );
+    expect(JSON.parse(toolResultForModel("read_file", raw, [])).content).toBe(
+      raw.content,
+    );
+  },
+);

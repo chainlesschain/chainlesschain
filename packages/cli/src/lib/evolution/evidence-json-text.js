@@ -1,3 +1,5 @@
+import { parse as parseSource, parseExpressionAt, tokenizer } from "acorn";
+
 // Decode data only: no evaluation, revivers, prototype setters or permissive
 // JSON repair. Budgets belong to the entire projection, including nested text.
 export const EVIDENCE_JSON_POLICY = Object.freeze({
@@ -177,6 +179,7 @@ export function createEvidenceJsonTextBoundary(
   policy = EVIDENCE_JSON_POLICY,
 ) {
   let nodes = 0;
+  let sourceTokens = 0;
   let bytes = 0;
   const PARSE_FAILURE = Symbol("evidence-json-parse-failure");
   const reject = (
@@ -303,7 +306,11 @@ export function createEvidenceJsonTextBoundary(
   const parser = (
     text,
     start,
-    { allowSingleQuotedStrings = false, allowSourceExpressions = false } = {},
+    {
+      allowSingleQuotedStrings = false,
+      allowSourceExpressions = false,
+      allowSourceLiteralSyntax = false,
+    } = {},
   ) => {
     let index = start;
     const whitespace = () => {
@@ -405,8 +412,35 @@ export function createEvidenceJsonTextBoundary(
           }
           index++;
           whitespace();
+          if (text[index] === end) {
+            if (!allowSourceLiteralSyntax) parserReject("trailing-comma");
+            index++;
+            return output;
+          }
         }
         return parserReject("syntax");
+      }
+      // JavaScript numeric separators/radices are never JSON syntax. Admit
+      // them only in a container independently proven by the source parser.
+      const sourceNumber =
+        /^[+-]?(?:0[xX][0-9a-fA-F_]+|0[bB][01_]+|0[oO][0-7_]+|[0-9][0-9_]*(?:\.[0-9_]*)?(?:[eE][+-]?[0-9_]+)?)/u.exec(
+          text.slice(index),
+        )?.[0];
+      if (
+        sourceNumber &&
+        (sourceNumber.includes("_") || /^[+-]?0[xXbBoO]/u.test(sourceNumber))
+      ) {
+        if (!allowSourceLiteralSyntax) parserReject("source-number");
+        const unsigned = sourceNumber.replace(/^[+-]/u, "").replaceAll("_", "");
+        const number =
+          (sourceNumber.startsWith("-") ? -1 : 1) * Number(unsigned);
+        if (
+          !Number.isFinite(number) ||
+          (Number.isInteger(number) && !Number.isSafeInteger(number))
+        )
+          parserReject("budget");
+        index += sourceNumber.length;
+        return number;
       }
       const token =
         /^(?:true|false|null|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?)/u.exec(
@@ -460,6 +494,7 @@ export function createEvidenceJsonTextBoundary(
       layer = 0,
       objectOnly = false,
       codeText = false,
+      sourceText = false,
       pythonFString = false,
       fencedCodeLanguages = null,
       visit,
@@ -478,6 +513,7 @@ export function createEvidenceJsonTextBoundary(
           output += scanText(text.slice(start, end), {
             ...options,
             codeText: true,
+            sourceText: layer === 0,
           });
           offset = end;
         }
@@ -516,6 +552,214 @@ export function createEvidenceJsonTextBoundary(
           "Agent model code expression under an opaque source context cannot be safely projected",
         ),
     );
+    // Source syntax is a separate, explicit boundary. A paired tool's decoded
+    // string values do not inherit it. JSON-shaped standalone expressions still
+    // require strict JSON, even when they happen to parse as JavaScript arrays.
+    let sourceRanges;
+    let sourceBindings;
+    let tokenStarts;
+    let containerEnds;
+    let interpolationStarts;
+    const sourceOptions = {
+      ecmaVersion: "latest",
+      sourceType: "module",
+      allowReturnOutsideFunction: true,
+    };
+    const sourceContainer = (start) => {
+      if (
+        !sourceText ||
+        !codeText ||
+        policy.sourceLiteralPolicy !== "explicit-source-containers-v1"
+      )
+        return null;
+      const explicit = new Set([
+        "VariableDeclarator",
+        "FunctionDeclaration",
+        "FunctionExpression",
+        "ArrowFunctionExpression",
+        "CallExpression",
+        "NewExpression",
+        "MemberExpression",
+        "AssignmentExpression",
+        "ReturnStatement",
+      ]);
+      const bindingNames = (root) => {
+        const names = [];
+        const pending = [root];
+        while (pending.length) {
+          const node = pending.pop();
+          if (!node || typeof node.type !== "string") continue;
+          if (
+            (node.type === "MemberExpression" || node.type === "Property") &&
+            node.computed
+          )
+            return null;
+          if (["Identifier", "PrivateIdentifier"].includes(node.type))
+            names.push(node.name);
+          if (node.type === "Literal" && typeof node.value === "string")
+            names.push(node.value);
+          for (const child of Object.values(node)) {
+            if (Array.isArray(child)) pending.push(...child);
+            else if (child && typeof child === "object") pending.push(child);
+          }
+        }
+        return names;
+      };
+      const collect = (root, admitted = false, bindings = null) => {
+        const provenAncestry = bindings !== null;
+        const stack = [[root, admitted, bindings]];
+        while (stack.length) {
+          const [node, parentSource, parentBindings] = stack.pop();
+          if (!node || typeof node.type !== "string") continue;
+          const isSource = parentSource || explicit.has(node.type);
+          let ownBindings = [];
+          if (node.type === "VariableDeclarator")
+            ownBindings = bindingNames(node.id);
+          if (["AssignmentExpression", "AssignmentPattern"].includes(node.type))
+            ownBindings = bindingNames(node.left);
+          if (
+            ["Property", "PropertyDefinition", "MethodDefinition"].includes(
+              node.type,
+            )
+          )
+            ownBindings = node.computed ? null : bindingNames(node.key);
+          const activeBindings =
+            parentBindings && ownBindings
+              ? [...parentBindings, ...ownBindings]
+              : null;
+          if (
+            isSource &&
+            ["ArrayExpression", "ObjectExpression"].includes(node.type)
+          ) {
+            sourceRanges.set(node.start, node.end);
+            if (provenAncestry) sourceBindings.set(node.start, activeBindings);
+          }
+          if (node.type === "TemplateLiteral" && provenAncestry) {
+            for (const quasi of node.quasis.slice(0, -1))
+              sourceBindings.set(quasi.end + 1, activeBindings);
+          }
+          for (const value of Object.values(node)) {
+            if (Array.isArray(value))
+              for (const child of value)
+                stack.push([child, isSource, activeBindings]);
+            else if (value && typeof value === "object")
+              stack.push([value, isSource, activeBindings]);
+          }
+        }
+      };
+      if (!sourceRanges) {
+        sourceRanges = new Map();
+        sourceBindings = new Map();
+        tokenStarts = new Set();
+        containerEnds = new Map();
+        interpolationStarts = new Set();
+        const templates = [];
+        const delimiters = [];
+        let completePrefixEnd = 0;
+        try {
+          for (const token of tokenizer(text, sourceOptions)) {
+            if (++sourceTokens > (policy.maxSourceTokens ?? policy.maxNodes))
+              parserReject("budget");
+            tokenStarts.add(token.start);
+            const label = token.type.label;
+            if (label === "`") {
+              if (templates.at(-1)?.inText) templates.pop();
+              else templates.push({ start: token.start, inText: true });
+            }
+            if (label === "${" && templates.length) {
+              templates.at(-1).inText = false;
+            }
+            if (["[", "{", "${", "("].includes(label)) {
+              delimiters.push(token);
+              if (label === "${") interpolationStarts.add(token.start);
+            } else if (["]", "}", ")"].includes(label)) {
+              const opening = delimiters.pop();
+              if (
+                opening?.type.label === "${" &&
+                label === "}" &&
+                templates.length
+              )
+                templates.at(-1).inText = true;
+              if (
+                opening &&
+                ((opening.type.label === "[" && label === "]") ||
+                  (opening.type.label === "(" && label === ")") ||
+                  (["{", "${"].includes(opening.type.label) && label === "}"))
+              )
+                containerEnds.set(opening.start, token.end);
+            }
+            if (
+              delimiters.length === 0 &&
+              templates.length === 0 &&
+              [";", "}"].includes(label)
+            )
+              completePrefixEnd = token.end;
+          }
+        } catch (error) {
+          if (error?.[PARSE_FAILURE]) throw error;
+          tokenStarts.clear();
+          interpolationStarts.clear();
+          return null;
+        }
+        try {
+          collect(parseSource(text, sourceOptions), false, []);
+        } catch {
+          // A page may end inside a later statement. A fully parsed top-level
+          // prefix still proves the ancestors of earlier complete constructs.
+          // Try only one tokenizer-bounded prefix; partial/unproven constructs
+          // retain the conservative source-prefix checks.
+          if (completePrefixEnd > 0 && completePrefixEnd < text.length) {
+            try {
+              collect(
+                parseSource(text.slice(0, completePrefixEnd), sourceOptions),
+                false,
+                [],
+              );
+            } catch {
+              /* No complete program prefix was proven. */
+            }
+          }
+        }
+      }
+      if (!sourceRanges.has(start) && tokenStarts.has(start)) {
+        try {
+          const end = containerEnds.get(start);
+          if (!end) return null;
+          const expression = parseExpressionAt(
+            text.slice(0, end),
+            start,
+            sourceOptions,
+          );
+          // A complete member/call expression proves source syntax itself.
+          // A declaration prefix can also prove a complete literal on a page
+          // whose later statements are incomplete. Comments/strings cannot
+          // nominate starts: only tokenizer-confirmed source tokens qualify.
+          const declared =
+            /(?:^|[;\n])\s*(?:const|let|var)\s+[$_A-Za-z][$_A-Za-z0-9]*\s*=\s*$/u.test(
+              text.slice(0, start),
+            );
+          const iteration =
+            /(?:^|[;\n])\s*for\s*\(\s*(?:const|let|var)\s+[$_A-Za-z][$_A-Za-z0-9]*\s+of\s*$/u.test(
+              text.slice(0, start),
+            );
+          const member = /^\s*\.\s*[$_A-Za-z][$_A-Za-z0-9]*/u.exec(
+            text.slice(end),
+          );
+          if (member) {
+            const memberExpression = parseExpressionAt(
+              text.slice(0, end + member[0].length),
+              start,
+              sourceOptions,
+            );
+            collect(memberExpression);
+          }
+          collect(expression, declared || iteration);
+        } catch {
+          /* No complete, explicit source expression. */
+        }
+      }
+      return sourceRanges.get(start) ?? null;
+    };
     if (objectOnly) {
       const reader = parser(text, 0);
       let parsed;
@@ -543,6 +787,43 @@ export function createEvidenceJsonTextBoundary(
     let plainStart = 0;
     for (let index = 0; index < text.length; ) {
       const char = text[index];
+      // A tokenizer-proven template interpolation is source punctuation,
+      // not a JSON object. Its complete expression must parse independently;
+      // the normal scanner still visits all literals inside it.
+      if (
+        sourceText &&
+        codeText &&
+        char === "{" &&
+        text[index - 1] === "$" &&
+        ['"', "'"].includes(text.slice(index + 1).trimStart()[0]) &&
+        policy.sourceLiteralPolicy === "explicit-source-containers-v1"
+      ) {
+        sourceContainer(index);
+        const end = containerEnds?.get(index - 1);
+        if (interpolationStarts?.has(index - 1) && end) {
+          try {
+            const expression = parseExpressionAt(
+              text.slice(0, end - 1),
+              index + 1,
+              sourceOptions,
+            );
+            if (text.slice(expression.end, end - 1).trim() === "") {
+              const bindings = sourceBindings.get(index);
+              if (!bindings)
+                reject(
+                  "Agent model code expression under an opaque source context cannot be safely projected",
+                );
+              bindings.forEach(requireSafeSourceKey);
+              index++;
+              continue;
+            }
+          } catch (error) {
+            // Projection failures must propagate; only Acorn syntax failures
+            // may fall back to the strict scanner.
+            if (!(error instanceof SyntaxError)) throw error;
+          }
+        }
+      }
       const next =
         char === "{" || char === "["
           ? text.slice(index + 1).match(/^\s*(.)/u)?.[1]
@@ -652,7 +933,7 @@ export function createEvidenceJsonTextBoundary(
         index++;
         continue;
       }
-      const reader = parser(text, index, {
+      let reader = parser(text, index, {
         // A recognized container is always tried as strict JSON first, even
         // inside code. Only an explicit non-JSON token allows literal scanning.
         allowSingleQuotedStrings: codeText && !container,
@@ -667,21 +948,50 @@ export function createEvidenceJsonTextBoundary(
         valueEnd = reader.end();
       } catch (error) {
         const kind = error?.[PARSE_FAILURE];
-        if (
-          !codeText ||
-          !["code-expression", "source-expression"].includes(kind)
-        )
-          rejectParseFailure(error);
-        if (kind === "source-expression") {
-          requireSafeSourceAssignments(index);
+        let sourceEnd = null;
+        if (["trailing-comma", "source-number"].includes(kind)) {
+          try {
+            sourceEnd = sourceContainer(index);
+          } catch (sourceError) {
+            rejectParseFailure(sourceError);
+          }
+        }
+        if (sourceEnd !== null) {
+          const bindings = sourceBindings.get(index);
+          if (sourceBindings.has(index)) {
+            if (!bindings)
+              reject(
+                "Agent model code expression under an opaque source context cannot be safely projected",
+              );
+            bindings.forEach(requireSafeSourceKey);
+          } else requireSafeSourceAssignments(index);
           const key = assignmentKeyBefore(text, plainStart, index);
           if (key) requireSafeSourceKey(key);
+          reader = parser(text, index, { allowSourceLiteralSyntax: true });
+          try {
+            parsed = reader.value();
+            valueEnd = reader.end();
+          } catch (sourceError) {
+            rejectParseFailure(sourceError);
+          }
+          if (valueEnd !== sourceEnd) reject();
+        } else {
+          if (
+            !codeText ||
+            !["code-expression", "source-expression"].includes(kind)
+          )
+            rejectParseFailure(error);
+          if (kind === "source-expression") {
+            requireSafeSourceAssignments(index);
+            const key = assignmentKeyBefore(text, plainStart, index);
+            if (key) requireSafeSourceKey(key);
+          }
+          // Python/JavaScript containers may contain single quotes or expressions.
+          // Scan their literals individually, preserving nested strict JSON scans.
+          // Keep consumed nodes charged so repeated fallback cannot reset budgets.
+          index++;
+          continue;
         }
-        // Python/JavaScript containers may contain single quotes or expressions.
-        // Scan their literals individually, preserving nested strict JSON scans.
-        // Keep consumed nodes charged so repeated fallback cannot reset budgets.
-        index++;
-        continue;
       }
       reader.whitespace();
       let pair = quoted && text[reader.end()] === ":";

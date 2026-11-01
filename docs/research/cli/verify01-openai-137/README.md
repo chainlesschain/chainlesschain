@@ -1,6 +1,6 @@
 # 修复后源码五项复测：发布前置条件
 
-最新候选引擎与被维护项目固定 `b7498521795702515cf8c24b9842da6ae3bed5db`，包含原任务压缩绑定修复。[新三包构建](https://github.com/chainlesschain/chainlesschain/actions/runs/41275646986) **3/3 job成功**，[测试制品](https://github.com/chainlesschain/chainlesschain/actions/runs/41275646986/artifacts/13070379361)尚未发布；之前F候选已淘汰。第二轮候选使用单独的 `candidate2-*` 项目绑定、包集合及回执，全部五项重新生成、独立验收；当前没有本轮5/5结果，原41/45不变。
+第二轮候选引擎与被维护项目固定 `b7498521795702515cf8c24b9842da6ae3bed5db`，执行/检查提交 `95567903c800001de9793c804580a1157808fcf3`，包含原任务压缩绑定修复。[三包构建](https://github.com/chainlesschain/chainlesschain/actions/runs/41275646986) **3/3 job成功**；实际生成并独立验收为 **0/5**，不能发布。[原始轨迹、候选、全部77次代理请求/响应/用量与独立回执](candidate-engine2-95567903c8/README.md)已按原字节归档。新发现合法JavaScript尾逗号被源码预览扫描器误判，发送前完整源码已变为Text omitted，模型反复分页直至保护/轮次耗尽。修复处理中，后续必须重建同源候选再验收；旧41/45不变。
 
 新包原始摘要、SHA512、构建来源和13份关键CLI源码清单已核验。[项目投影](candidate2-project-projection-preflight.raw.json)含23430条目，旧答案/验收器0条、9份必要源码和基线逐字节一致；[实际选择器](candidate2-selector-preflight.raw.json)4组生成及4组只验收 **8/8**。携带新候选实际全局变量并使用workflow的隔离覆盖执行完整Node预检 **153/153**，没有网络/模型请求。[同源执行计划](candidate2-five-retest-plan.json)保持原提示、宿主、变异与预算。
 
@@ -37,3 +37,5 @@
 修复必须把入口捕获的原任务身份贯穿压缩快照、规划和提交验证，保持无任务、改写或新增伪复制的闭锁语义，不能从模型摘要重造任务。Windows shell修复已通过真实Bash/PowerShell参数展开对照，候选包相关Node **8/8**。下一次从修复后同一提交重建CLI/IDE候选及被维护项目，重新生成全部五项；当前仍未发布新版本。
 
 原任务绑定修复已通过六套本机回归 **69/69**，并通过旧入口去掉绑定后复现故障的正反控制；补充独立审查/循环上限 **18/18**。额外用量整套未完成，不计作整套通过。[原字节报告与审计](task-binding-repair/README.md)。本机工程检查不计入五项模型验收；需重建同源候选重新生成。
+
+源码表达式修复最终本机专项 **430/430**、真实agent到模拟OpenAI wire **2/2**（包含canonical compaction）通过，7文件按LF/SHA冻结；原始预览精确回放70/80，8个首次读取均保留，10个未证中段页仍闭锁，完整JetBrains文件可投影并验签。保留v8与严格JSON/敏感字段检查，新v9显式源码范围及独立有界词法工作预算；[最终原字节报告与边界说明](source-expression-repair/README.md)。完整驱动Node153/153。本机额外宽范围headless/changelog选择未完成不记成功；用户指定后续直接GitHub Actions。下一候选安装证明将验证16份关键源码；仍须新五项5/5及完整精确提交云端矩阵才发布。

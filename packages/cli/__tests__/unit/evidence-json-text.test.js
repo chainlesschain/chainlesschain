@@ -4,7 +4,11 @@ import {
   EVIDENCE_JSON_POLICY,
 } from "../../src/lib/evolution/evidence-json-text.js";
 
-function boundary(codeText = true, policy = EVIDENCE_JSON_POLICY) {
+function boundary(
+  codeText = true,
+  policy = EVIDENCE_JSON_POLICY,
+  sourceText = false,
+) {
   const scan = createEvidenceJsonTextBoundary(
     (message) => new Error(message),
     policy,
@@ -24,6 +28,7 @@ function boundary(codeText = true, policy = EVIDENCE_JSON_POLICY) {
   const project = (text, layer = 0, textContext) =>
     scan(text, {
       codeText,
+      sourceText: sourceText && layer === 0,
       pythonFString: textContext?.pythonFString === true,
       layer,
       visit,
@@ -91,5 +96,71 @@ describe("code text evidence budgets", () => {
       pythonFStringPolicy: "bounded-static-label-alignment-v1",
     });
     expect(() => scan(`print(f"{'branch':<52}")`)).toThrow(/budget/u);
+  });
+});
+
+describe("explicit source container grammar", () => {
+  const policy = {
+    ...EVIDENCE_JSON_POLICY,
+    sourceLiteralPolicy: "explicit-source-containers-v1",
+  };
+  const source = () => boundary(true, policy, true);
+  it.each([
+    'const values = ["one", "two",];',
+    'store(id, `question-${i}: ${"x".repeat(90)}`);',
+    'const values = {"one": 1,};',
+    "const sizes = [0, 40_000_001];",
+    "const sizes = [-40_000_001, +0xff, -0b101, -1_0e2,];",
+    "const sizes = [0xff, 0b101, 0o70, 1_000.25];",
+    '["one", "two",].includes(value);',
+    'const values = ["one",];\nfunction unfinished(',
+  ])("preserves explicit JavaScript source: %s", (text) => {
+    expect(source()(text)).toBe(text);
+  });
+  it.each([
+    '["one",]',
+    '{"one":1,}',
+    'const values = {"one":1,"\\u006fne":2,};',
+    "const values = [9_007_199_254_740_992];",
+    "const values = [1_0e999];",
+    'const values = ["one",};',
+    '/* const values = */ ["one",];',
+    'store(`question-${{"one":1,"one":2}}`);',
+    "store(`question-${[9_007_199_254_740_992]}`);",
+    'store(`question-${{"note":"bad\\q"}}`);',
+  ])("rejects unsafe or unproven source: %s", (text) => {
+    expect(() => source()(text)).toThrow();
+  });
+  it("does not grant syntax to arbitrary codeText or decoded source strings", () => {
+    const text = 'const values = ["one",];';
+    expect(() => boundary(true, policy)(text)).toThrow();
+    expect(() => source()(JSON.stringify(text))).toThrow();
+    expect(() => boundary(true)(text)).toThrow();
+  });
+  it("accounts source proof tokens separately while bounding them across fields", () => {
+    const text = "const x = 1;\n".repeat(5) + 'const values = ["one",];';
+    const scan = boundary(
+      true,
+      { ...policy, maxNodes: 16, maxSourceTokens: 50 },
+      true,
+    );
+    expect(scan(text)).toBe(text);
+    expect(() => scan(text)).toThrow(/budget/);
+  });
+  it("retains shared resource limits", () => {
+    expect(() =>
+      boundary(
+        true,
+        { ...policy, maxNodes: 4 },
+        true,
+      )('const values = ["one", "two",];'),
+    ).toThrow(/budget/);
+    expect(() =>
+      boundary(
+        true,
+        { ...policy, maxDecodedBytes: 4 },
+        true,
+      )('const values = ["one",];'),
+    ).toThrow(/budget/);
   });
 });

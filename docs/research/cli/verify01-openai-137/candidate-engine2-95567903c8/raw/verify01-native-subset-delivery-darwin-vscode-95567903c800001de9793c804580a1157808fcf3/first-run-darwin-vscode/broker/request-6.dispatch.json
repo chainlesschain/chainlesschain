@@ -1,0 +1,10 @@
+{
+  "id": 6,
+  "taskId": "first-run-darwin-vscode",
+  "startedAt": "2026-11-01T05:34:05.447Z",
+  "usage": null,
+  "tokenOnlyEstimateUsd": null,
+  "actualBilledCostUsd": null,
+  "errorCode": null,
+  "responseMode": "sse"
+}

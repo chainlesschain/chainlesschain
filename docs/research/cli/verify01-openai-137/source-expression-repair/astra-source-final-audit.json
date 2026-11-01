@@ -1,0 +1,153 @@
+{
+  "schema": "chainlesschain.source-evidence-fix-audit/v1",
+  "createdAt": "2026-11-01T07:34:12.159715Z",
+  "worktree": "C:/Users/longfa/AppData/Local/Temp/cc-openai136-operator",
+  "paidRequests": 0,
+  "sourceFiles": [
+    {
+      "path": "packages/cli/src/lib/evolution/evidence-json-text.js",
+      "sha256": "2023b1958e107fb27314b0518e73970e5ae0bab94fba4da72e7b1dcd197820d2",
+      "bytes": 40941,
+      "crlf": 0
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-evidence-projector.js",
+      "sha256": "2267fb233d9f9806795606abd68ebeffd34547bde1ae3809d190afaee90ae641",
+      "bytes": 141147,
+      "crlf": 0
+    },
+    {
+      "path": "packages/cli/src/lib/tool-result-preview.js",
+      "sha256": "a7ce5eb2a8cad9cb02f5ee533dcd69301b9f1177affc52bd6a9b726a6764c0af",
+      "bytes": 9727,
+      "crlf": 0
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evidence-json-text.test.js",
+      "sha256": "73dcb6139660c4a3b6add8dc2de49a227f2a9f706a7e57fd775622dd610fb863",
+      "bytes": 5593,
+      "crlf": 0
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-evidence-projector.test.js",
+      "sha256": "a72138f30005fe8429fa3be1426687e1b394c3aceaa936f6beb7b004f68fdd88",
+      "bytes": 149479,
+      "crlf": 0
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-core-tool-result-cap.test.js",
+      "sha256": "d2cc99be0957f8a9b3e10a312653d4c0d927a1a8f54d0550ed43c944abb4492f",
+      "bytes": 17201,
+      "crlf": 0
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-evolution-runtime-composition.test.js",
+      "sha256": "8c91722e383c18a09b7683b8c896329443c7349df0d371e40f9f04236bf3c63f",
+      "bytes": 283770,
+      "crlf": 0
+    }
+  ],
+  "ruleset": {
+    "currentVersion": 9,
+    "jsonTextPolicyVersion": 6,
+    "digest": "sha256:3e255559e6f20702d997a0ab1319776db25c455c5ca7f0209ae851dc780bc50f",
+    "historicalV8Digest": "sha256:94947b20e2ef152e3663c3bcc2160f6335a51068efcb5803a3eed47d15f9e064"
+  },
+  "changes": [
+    "Explicit paired-tool source fields only; decoded data and standalone JSON remain strict.",
+    "Acorn proves source containers; original JSON value parser still checks duplicate decoded keys, numbers, structure and depth.",
+    "Trailing commas, safe numeric separators/radices and proven template interpolation are supported.",
+    "Complete AST ancestry bounds sensitive bindings; incomplete pages retain conservative prefix checks.",
+    "Source proof work has an independent shared 32768-token limit; original JSON node/depth/byte/layer budgets unchanged.",
+    "read_file omitted previews request a complete statement/container within existing size limits."
+  ],
+  "focused": {
+    "passed": 430,
+    "failed": 0,
+    "report": "astra-source-focused-final-template-tests.json",
+    "command": "node packages/cli/node_modules/vitest/vitest.mjs run __tests__/unit/evidence-json-text.test.js __tests__/unit/agent-core-tool-result-cap.test.js __tests__/unit/evolution-evidence-projector.test.js --root packages/cli --pool=threads --reporter=json --outputFile=C:/Users/longfa/AppData/Local/Temp/cc-release-133/astra-source-focused-final-template-tests.json"
+  },
+  "originalPreviewReplay": {
+    "report": "astra-source-preview-replay.json",
+    "reads": 80,
+    "preserved": 70,
+    "firstReads": 8,
+    "firstReadsPreserved": 8,
+    "remainingOmitted": 10
+  },
+  "rawIngressReplay": {
+    "report": "astra-source-ingress-final-template-replay-tests.json",
+    "originalGroups": 5,
+    "originalGroupsAdmitted": 4,
+    "originalPagesAdmitted": 10,
+    "rejectedGroup": "verify-36",
+    "reason": "background-launch-profile.test.js first 240 of 373 lines is incomplete; earlier sensitive prefix cannot be proven unrelated. Full file passes projection and receipt verification in the committed regression suite.",
+    "outcomesReport": "astra-source-ingress-replay-outcomes.json",
+    "testPassed": 1,
+    "testFailed": 0
+  },
+  "wire": {
+    "report": "astra-source-wire-final-template-tests.json",
+    "status": "passed",
+    "command": "node packages/cli/node_modules/vitest/vitest.mjs run __tests__/unit/agent-evolution-runtime-composition.test.js --root packages/cli --pool=threads -t 'preserves real source reads' --reporter=json --outputFile=C:/Users/longfa/AppData/Local/Temp/cc-release-133/astra-source-wire-final-template-tests.json",
+    "requiresLocalElevation": "Windows native owner-only storage OPEN_FAILED under sandbox; elevated runs preserve real storage checks.",
+    "bounds": {
+      "planningWindowTokens": 32768,
+      "outputTokens": 8192,
+      "requestBytes": 262144,
+      "testTimeoutMs": 120000
+    },
+    "scope": "Real runtime composition, agentLoop, read_file, projector/verifier and mocked OpenAI Responses. Two batches of two real source files. Canonical compaction precedes source reads in compaction variant. Does not claim old source remains verbatim after compaction.",
+    "priorDiagnosticReports": [
+      "astra-source-wire-tests.json",
+      "astra-wire-probe.jsonl"
+    ],
+    "priorNonCompactionRequestBytes": [
+      2570,
+      27499,
+      48924
+    ],
+    "passed": 2,
+    "failed": 0,
+    "assertions": [
+      {
+        "name": "Agent evolution runtime production composition preserves real source reads on the OpenAI wire after canonical planning (compact=false)",
+        "status": "passed",
+        "durationMs": 28048.644299999996
+      },
+      {
+        "name": "Agent evolution runtime production composition preserves real source reads on the OpenAI wire after canonical planning (compact=true)",
+        "status": "passed",
+        "durationMs": 34230.4955
+      }
+    ]
+  },
+  "limitations": [
+    "No new source syntax privilege for nested retainedReadContext or a second JSON decoding layer.",
+    "Incomplete source pages can still be omitted or rejected; full-source recovery must remain within existing limits.",
+    "Local validation does not replace GitHub Linux/Windows/macOS authority matrices or the five real candidate acceptance tasks."
+  ],
+  "temporaryFixtures": "Tracked encoding.md and Desktop ingress materialized from exact HEAD due sparse checkout; no shared-repository edits, commits, pushes, dispatches or secret operations.",
+  "reportSha256": {
+    "astra-source-focused-final-template-tests.json": "e33f74db7836bb864f155826e9d6d14f5be3be0fdb3e29c1bf864b16217b4386",
+    "astra-source-wire-final-template-tests.json": "9bc72bb06e346d5349eda9e764caa383748e75e20914a784b8616dfece5d37e9",
+    "astra-source-ingress-final-template-replay-tests.json": "529139fd7a315cbdabdd6e1d3552567fe51c6c514e4eaaf3caeb8be7b5b55e76",
+    "astra-source-preview-replay.json": "4169dff1532c61e771ee73dd81d56dca90f5b4a432bd881384611d5fed21c36f",
+    "astra-source-ingress-replay-outcomes.json": "52a67bce7e39a0b0b610469414acb5fd00700b33ecc99f117e2f0740bc304438",
+    "astra-source-final-files.json": "2b2534e18999acafa791f1922121d5b9df84f965ffa838ab78659b7fb912ff84",
+    "astra-source-template-before-tests.json": "2f37034d4e95527d9063fe8a4ad0dbfa954bb365e97d90b0e9f94932a3b40f25"
+  },
+  "securityFollowup": {
+    "beforeReport": "astra-source-template-before-tests.json",
+    "beforePassed": 1,
+    "beforeFailed": 4,
+    "reproduced": "Real projector admitted quoted template interpolation plaintext under sensitive variable/property/arrow/partial bindings.",
+    "fix": "Only newly admitted quoted template interpolations get the new source grammar. They require exact complete-program or fully parsed top-level-prefix AST ancestry. Sensitive static ancestors and unproven/computed ancestors fail closed. Standard identifier interpolation retains prior scanner behavior.",
+    "regressions": "Variable, property, member assignment, nested template, class field/accessor/private field, parameter default, computed-key opacity, incomplete source, and ordinary complete/paged source controls.",
+    "supersededFinalReports": [
+      "astra-source-focused-tests.json",
+      "astra-source-wire-final-tests.json"
+    ]
+  },
+  "sourceHashesRechecked": true
+}

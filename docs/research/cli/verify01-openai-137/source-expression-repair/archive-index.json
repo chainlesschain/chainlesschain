@@ -1,0 +1,47 @@
+{
+  "schema": "chainlesschain.raw-evidence-index/v1",
+  "paidModelRequests": 0,
+  "publicationReady": false,
+  "files": [
+    {
+      "path": "astra-source-final-audit.json",
+      "sha256": "9fdaa36778aa2d956bb20dee188a6474c5fb4127e8965778dd631a50e7568b7a",
+      "bytes": 8006
+    },
+    {
+      "path": "astra-source-focused-final-template-tests.json",
+      "sha256": "e33f74db7836bb864f155826e9d6d14f5be3be0fdb3e29c1bf864b16217b4386",
+      "bytes": 151597
+    },
+    {
+      "path": "astra-source-wire-final-template-tests.json",
+      "sha256": "9bc72bb06e346d5349eda9e764caa383748e75e20914a784b8616dfece5d37e9",
+      "bytes": 91346
+    },
+    {
+      "path": "astra-source-ingress-final-template-replay-tests.json",
+      "sha256": "529139fd7a315cbdabdd6e1d3552567fe51c6c514e4eaaf3caeb8be7b5b55e76",
+      "bytes": 114208
+    },
+    {
+      "path": "astra-source-preview-replay.json",
+      "sha256": "4169dff1532c61e771ee73dd81d56dca90f5b4a432bd881384611d5fed21c36f",
+      "bytes": 22676
+    },
+    {
+      "path": "astra-source-ingress-replay-outcomes.json",
+      "sha256": "52a67bce7e39a0b0b610469414acb5fd00700b33ecc99f117e2f0740bc304438",
+      "bytes": 479
+    },
+    {
+      "path": "astra-source-final-files.json",
+      "sha256": "2b2534e18999acafa791f1922121d5b9df84f965ffa838ab78659b7fb912ff84",
+      "bytes": 1398
+    },
+    {
+      "path": "astra-source-template-before-tests.json",
+      "sha256": "2f37034d4e95527d9063fe8a4ad0dbfa954bb365e97d90b0e9f94932a3b40f25",
+      "bytes": 122716
+    }
+  ]
+}

@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed - cc CLI 0.166.137: confirm model-visible source before recording read coverage (candidate, 2026-11-01)
 
+- Distinguish proven JavaScript source expressions from JSON data when previewing and projecting file results. Valid source trailing commas and numeric separators must not silently omit entire source pages; standalone and decoded JSON retain their strict parsing, sensitive-key and budget checks. The source context change has a new projection ruleset identity.
+- Keep generated regression assertions within runner resource limits: compare large binary payloads by length and byte equality or digest instead of expanding every byte through a deep matcher. This is general coding guidance, not task-specific acceptance feedback or a change to evaluation budgets.
 - Preserve the captured original user task and owned resume sources through canonical compaction, including tool/assistant tails, persistent sessions and legitimate repeated user messages. Verify task identity before planning and commit; reject asynchronous loss, rewrites or new duplicates without reconstructing the task from model summaries.
 - Validate 69 focused local regressions and the original-entry fault-injection control; these engineering checks require freshly rebuilt same-source CLI/IDE candidates and independent five-task acceptance before publication.
 - Expose `agent --context-window <tokens>` to apply an explicit planning window through headless, streaming and interactive sessions when a gateway has tighter transport limits than the model's documented context. This controls planning; serialized request limits remain independently enforced.

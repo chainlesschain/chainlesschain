@@ -1,0 +1,44 @@
+[
+  {
+    "path": "packages/cli/src/lib/evolution/evidence-json-text.js",
+    "sha256": "2023b1958e107fb27314b0518e73970e5ae0bab94fba4da72e7b1dcd197820d2",
+    "bytes": 40941,
+    "crlf": 0
+  },
+  {
+    "path": "packages/cli/src/lib/evolution/evolution-evidence-projector.js",
+    "sha256": "2267fb233d9f9806795606abd68ebeffd34547bde1ae3809d190afaee90ae641",
+    "bytes": 141147,
+    "crlf": 0
+  },
+  {
+    "path": "packages/cli/src/lib/tool-result-preview.js",
+    "sha256": "a7ce5eb2a8cad9cb02f5ee533dcd69301b9f1177affc52bd6a9b726a6764c0af",
+    "bytes": 9727,
+    "crlf": 0
+  },
+  {
+    "path": "packages/cli/__tests__/unit/evidence-json-text.test.js",
+    "sha256": "73dcb6139660c4a3b6add8dc2de49a227f2a9f706a7e57fd775622dd610fb863",
+    "bytes": 5593,
+    "crlf": 0
+  },
+  {
+    "path": "packages/cli/__tests__/unit/evolution-evidence-projector.test.js",
+    "sha256": "a72138f30005fe8429fa3be1426687e1b394c3aceaa936f6beb7b004f68fdd88",
+    "bytes": 149479,
+    "crlf": 0
+  },
+  {
+    "path": "packages/cli/__tests__/unit/agent-core-tool-result-cap.test.js",
+    "sha256": "d2cc99be0957f8a9b3e10a312653d4c0d927a1a8f54d0550ed43c944abb4492f",
+    "bytes": 17201,
+    "crlf": 0
+  },
+  {
+    "path": "packages/cli/__tests__/unit/agent-evolution-runtime-composition.test.js",
+    "sha256": "8c91722e383c18a09b7683b8c896329443c7349df0d371e40f9f04236bf3c63f",
+    "bytes": 283770,
+    "crlf": 0
+  }
+]

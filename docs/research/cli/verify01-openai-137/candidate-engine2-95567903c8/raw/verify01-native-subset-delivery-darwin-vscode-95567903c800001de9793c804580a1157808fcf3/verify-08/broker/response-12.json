@@ -1,0 +1,102 @@
+{
+  "id": "resp_045ff18d3edb22ca016ae6cfad972c87d08ebd26ee9b06680d",
+  "object": "response",
+  "created_at": 1793511341,
+  "status": "completed",
+  "access_programs": null,
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "completed_at": 1793511355,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 2048,
+  "max_tool_calls": null,
+  "model": "gpt-6.1-sol",
+  "moderation": null,
+  "output": [
+    {
+      "id": "rs_045ff18d3edb22ca016ae6cfae633c87d08ceefd9bd9655b32",
+      "type": "reasoning",
+      "content": [],
+      "encrypted_content": "gAAAAABq5s-7vJGL2T6MQNhX_yCcQjPiqCvq6raxFyK-I6ugrCfSa3LP56WrWTGQlFrx2P3wZqqKCvKSpKAHvcvEuOwV4oTIncvAIFIL9Dw-zJxstRFPs4PPgtC9lU5fFp_3-nSo7h7girXUUzsRjGWhKBpGHrVNq8Y0kIDUKdJVh_yXkN_Y2bs5yzum3W_nGFJGF_smTi3P1EFT6g14VWjVgsi-d8Awnlf2f2XvnZg8Ohw1n5E6MRbQcxRstnfZ14cJ3WnU3JRiUCLsFfHKYFsYRvCSoSKIZ0cwF4A_ftbV6MIlu9G5O-pklMW8fIpeOp6jk3qx28hsVKQOjbSAxxQB1WM7gLcEMK4zzmIS5zU_6gpwcDF2JH_6BUuXBEZXtgmNa-yBMT9k6R2q0qvKkuo4bsI_U3Q1ASqByvYwbNNYF9j2EYi6WIA8kK4jHIGfGiKzzkBKenaGM5Ec_GKh44Na05RzRt9SdpcIx9Phd4zrzi-AHKqfvKoOyM-2S1j2HY_NMqfQSG2NbZDMgqeWoEm9SZSyv-GtlTyEpTi56E-9zgUMfHd-ZxtyIRiLCyCIOBBhXyEcarhtuWw_hMikAClI-nfFidk01p-qVBeKc87-ph1UBGZBiTaae2Y45RplfohINlCN5-YRN6dzb0Pz6YbLswXXD653bz9u70_qtMXG2k1xb9knWD4WFnl2vizELEpcem01GDv7P2gxsiWxlcHJfX0QF2QnozeyPHvZHL5tKlukrK4YCPtiKZxisY8-VtEu2AfRR43WAs8soNtItlpmWRbxemniSY8YSskYvEb5Wey7P7R_O6KvWvw5Rjowp-bnCpfAdBKKfrLlj8wXvB1J2GBuOK6wKEaYd7QC6mHEmw8UgXn_PRE17eCOCax5bNB27aLiErBZ3v1Gy5scTB7_nUO92ezUZBGH9-k4bzEhhUhr-1mll-rCtbRoAVJ-BfWeDMHLzLl_qo4s1n5J3y96q1T0LfTRHKaMiNje6Nxg_Cm8WVDXODPQdjo6M2xZQiS_dilGHB-pJbmeC-4C8Oz0j3aIrkovqIsl1a_8PKQOyr5Uu9FMpOSMPEh9iedUHMC2umfDh4xAhbChWgvViMf4VofcCMGAzTCO9dh7rqbAQBQan-_uASxHARIUbgWiytEctbUbm5MJ4vQMayUUkmII1ZOsY8BynZgJ05K8fzqi8OtG-y9hfet0ga7EWAlgGcB1F8t2tWLrpqlIzPLwXbtMgA0X53VrK7AfPcpmQ9Ai7bGgDHc0Ad9bFAmCt7BjPvIrGtr2OUJO-3g5oLN9xcOnJDa78CCCAIGgy8GDXfeZiIfp0GTY9snxLCuabsy01sPOTrhyfDkTXcw-_t3D1z6aDEKujaUxnuKBKTzi6trjmSEzyfdEHljMheh12owD9A79tFGt-8Z0MpQUMLod83wX6UAgf3OXXZjkQN7i0hkHlMcEqsGAmNBQQazNYoLSZ15D5iERq4Ve-lHQv9X1QfIU8G572fEbnfQvOf29KmW8Mx0dAP8GrBpqCY7cyMKnGfbzlhAXUiH_nhZKMGg8fHpi25WK2H3rZp6mH31dK8abkpD2jfbL1Ei5gK-L2ZxBOydUUyVQ4KFgOysDAlYEZ25_CuGMrLyCREJ_9mhIfVvGO73ZJLc6iNnOgPVb0Ly5JmXqpfnICxkJnj5qxSzmq6Ya5Im12inLg4j8DpCl07vx50xCQcZFs70=",
+      "summary": []
+    },
+    {
+      "id": "msg_045ff18d3edb22ca016ae6cfaee92487d08dad5867c8fa7ca9",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "{\"objective\":\"Add regression coverage for canonical session transcript branch history: two independent branches from the same ancestor, and provenance isolation between different parent sessions containing identical message text.\",\"constraints\":[\"Use only verified APIs and fixture contracts; do not test speculative interfaces.\",\"Branch-history projection consumers must be synchronous and execute under the source session authority transaction/read-projection lock.\",\"Do not claim unavailable source was read or tests passed without execution evidence.\",\"Workspace root: /private/tmp/cc-native-Bzs80v/1046f2a6-e378-4953-8635-5b0d39a5bea0/workspace.\"],\"keyDecisions\":[\"Focus regressions on sibling-branch independence and identical-text/different-parent provenance isolation.\",\"Reuse the existing historyBranch(parentSessionId, branchSessionId, retainedMessageCount) helper in packages/cli/__tests__/unit/session-transcript-history.test.js.\",\"No implementation defect has been confirmed; verify remaining fixture setup before writing tests.\",\"createSessionTranscriptBranchProjection(sessionId, messages, consume) rejects non-array messages, non-function consumers, and AsyncFunction consumers, then delegates to createSessionTranscriptHistoryProjection(sessionId, {}, { messages, consume }).\",\"Existing historyBranch reads and slices verified parent messages, obtains the latest event hash, and calls store.withSessionAuthorityTransaction followed by transaction.readProjection and createSessionTranscriptBranchProjection; its synchronous callback invokes store.createBranchSession with parentSessionId, branchSessionId, parentTurnId: \\\"selected\\\", messages, and history.\",\"createBranchSession accepts branchSessionId, optional parentSessionId/parentTurnId/messages/meta/history and returns {branchSessionId, created, messages}; it strictly canonicalizes messages and resolves the history capability before creating a branch file.\",\"Branch history capabilities are scoped through a WeakMap, deleted after the synchronous consumer returns, and validated against parentSessionId and branchContextDigest(messages). Expired or mismatched capabilities throw \\\"Branch history capability is expired or does not match the branch\\\".\"],\"changedFiles\":[],\"tests\":[\"No tests were written or executed in the visible history; no test-execution tool was available.\",\"Existing start(id, count = 8) fixture calls store.startSession(id, { provider: \\\"test\\\", model: \\\"test\\\" }) and appends count user/assistant pairs with question-/answer-index text and repeated padding.\",\"Existing texts(page) helper returns page.messages.map((m) => m.text).\",\"Existing rewind helper appends checkpoint_timeline_commit with action \\\"restore-conversation\\\", retained messages, HISTORY_PREFIX_SCHEMA metadata, and binding: { turns: [] }.\",\"Focused search found no beforeEach or literal \\\"import * as store\\\" in packages/cli/__tests__/unit/session-transcript-history.test.js; actual store initialization and temporary-directory setup remain unverified.\"],\"unresolvedSideEffects\":[\"No external mutations or side effects are evidenced in the visible history; no file writes were reported.\"],\"checkpoints\":[\"Confirmed projection API at packages/cli/src/lib/session-transcript-history.js lines 438\u2013463.\",\"Confirmed transcript provenance emission in packages/cli/src/lib/session-transcript-history.js near line 359: role, concatenated text, sourceEventId: event.hash, and sourceItemIndex: index.\",\"Confirmed historyBranch helper in packages/cli/__tests__/unit/session-transcript-history.test.js lines 135\u2013159 and start fixture near line 71.\",\"Focused searches recovered portions of packages/cli/src/lib/session-branch-history.js: BRANCH_HISTORY_SCHEMA is \\\"chainlesschain.session-branch-history/v1\\\", BRANCH_HISTORY_SYSTEM_ORIGINS_SCHEMA is \\\"chainlesschain.session-branch-history/v2\\\", and event names are \\\"session_history_message\\\" and \\\"session_history_origin\\\".\",\"createBranchHistoryImport starts near line 64 of packages/cli/src/lib/session-branch-history.js; it captures a first session_start event after deleting SESSION_GENERATION_AUTHORITY_FIELD, and invalid imports throw code SESSION_BRANCH_HISTORY_INVALID with message \\\"Branch display history is incomplete or inconsistent\\\".\",\"A focused search located export function createBranchSession near line 6923, but its containing file path was not included in the visible result; recover the path rather than guessing.\"],\"blockers\":[\"Repeated read_file attempts for packages/cli/src/lib/session-branch-history.js returned CC_READ_SOURCE_NOT_DELIVERED; only focused-search snippets were actually available.\",\"Reading the beginning of packages/cli/__tests__/unit/session-transcript-history.test.js unexpectedly resumed at line 60 and omitted 40842 characters, so imports and temporary-directory configuration were not delivered.\",\"No test-execution tool was available in the visible session.\"],\"nextSteps\":[\"Use focused searches to recover imports, store initialization, temporary-directory isolation, and cleanup hooks in packages/cli/__tests__/unit/session-transcript-history.test.js.\",\"Inspect narrowly targeted existing branch-history assertions and result identity/provenance fields before choosing exact assertions.\",\"Add regressions in packages/cli/__tests__/unit/session-transcript-history.test.js for two independent sibling branches and for identical message bodies from different parents, using the verified historyBranch helper.\",\"Assert branch independence and source ownership using verified identity/provenance fields rather than text equality alone.\",\"Run the targeted unit test file when execution tooling becomes available; otherwise explicitly report the tests as unexecuted.\",\"Avoid implementation changes unless the new regressions or additional verified inspection demonstrate a defect.\"]}"
+        }
+      ],
+      "phase": "final_answer",
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+    "context": "all_turns",
+    "effort": "medium",
+    "mode": "standard",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "total_tokens": 0
+    },
+    "web_search": {
+      "num_requests": 0
+    }
+  },
+  "tools": [],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 6694,
+    "input_tokens_details": {
+      "cache_write_tokens": 6691,
+      "cached_tokens": 0
+    },
+    "output_tokens": 1108,
+    "output_tokens_details": {
+      "reasoning_tokens": 21
+    },
+    "total_tokens": 7802
+  },
+  "user": null,
+  "metadata": {}
+}

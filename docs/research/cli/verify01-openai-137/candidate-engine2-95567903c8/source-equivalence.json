@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "engineSource": "b7498521795702515cf8c24b9842da6ae3bed5db",
+  "projectSource": "b7498521795702515cf8c24b9842da6ae3bed5db",
+  "executionAndReleaseSource": "95567903c800001de9793c804580a1157808fcf3",
+  "runtimePathsByteIdentical": [
+    "packages/cli/src",
+    "packages/cli/bin",
+    "packages/cli/package.json",
+    "package-lock.json",
+    "packages/vscode-extension/src",
+    "packages/vscode-extension/package.json",
+    "packages/jetbrains-plugin/src",
+    "packages/jetbrains-plugin/build.gradle.kts",
+    "packages/jetbrains-plugin/gradle.properties"
+  ],
+  "sourceCommitsNotConflated": true,
+  "verifiedAt": "2026-11-01T05:24:55.766Z"
+}

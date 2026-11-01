@@ -52,6 +52,7 @@ import {
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V5_DIGEST,
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V6_DIGEST,
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V7_DIGEST,
+  EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V8_DIGEST,
   EVOLUTION_SKILL_DECISION_PROJECTION_RULESET_DIGEST,
   EVOLUTION_PROJECTION_SOURCE_DENIED_CODE,
   EVOLUTION_PROJECTION_STORAGE_FAILED_CODE,
@@ -875,6 +876,55 @@ describe("EvolutionEvidenceProjector", () => {
     return request;
   };
 
+  it.each([
+    ["read_file", { content: 'const values = ["one", "two",];' }],
+    ["read_file", { content: "const sizes = [0, 40_000_001];" }],
+    ["run_code", { output: 'const values = {"one":1,};' }],
+    ["search_files", { matches: [{ context: 'const values = ["one",];' }] }],
+  ])(
+    "admits explicit source fields through real projection (%s)",
+    async (tool, result) => {
+      const h = harness();
+      const request = runCodeRequest("unused");
+      request.messages[0].tool_calls[0].function.name = tool;
+      request.messages[0].tool_calls[0].function.arguments = JSON.stringify({
+        path: "source.js",
+      });
+      request.messages[1].content = JSON.stringify(result);
+      const bundle = await h.projector.projectAgentModelRequest(
+        input(request, "signed-source:free-form-tool"),
+      );
+      expect(bundle.modelProjection.content).toEqual(request);
+      await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+        verified: true,
+      });
+      expect(
+        buildAgentModelRequest(request, bundle.modelProjection),
+      ).toBeTruthy();
+    },
+  );
+
+  it.each([
+    { metadata: { content: 'const values = ["one",];' } },
+    { content: JSON.stringify('const values = ["one",];') },
+    { content: '["one",]' },
+    { content: 'const values = {"one":1,"\\u006fne":2,};' },
+    { content: "const values = [9_007_199_254_740_992];" },
+  ])(
+    "does not grant source grammar to nested data or unsafe literals",
+    async (result) => {
+      const h = harness();
+      const request = runCodeRequest("unused");
+      request.messages[0].tool_calls[0].function.name = "read_file";
+      request.messages[1].content = JSON.stringify(result);
+      await expect(
+        h.projector.projectAgentModelRequest(
+          input(request, "signed-source:free-form-tool"),
+        ),
+      ).rejects.toThrow();
+    },
+  );
+
   const fencedRequest = (content, role = "system") => ({
     messages: [{ role, content }],
     tools: [],
@@ -1116,6 +1166,178 @@ describe("EvolutionEvidenceProjector", () => {
         ),
       ).rejects.toThrow(/malformed/u);
     }
+  });
+
+  it("admits the complete background profile test source while redacting fixture credentials", async () => {
+    const h = harness();
+    const source = fs.readFileSync(
+      new URL("./background-launch-profile.test.js", import.meta.url),
+      "utf8",
+    );
+    const request = runCodeRequest("unused");
+    request.messages[0].tool_calls[0].function.name = "read_file";
+    request.messages[1].content = JSON.stringify({ content: source });
+    const bundle = await h.projector.projectAgentModelRequest(
+      input(request, "signed-source:free-form-tool"),
+    );
+    const projected = JSON.parse(
+      bundle.modelProjection.content.messages[1].content,
+    ).content;
+    expect(projected).toContain("assessBackgroundLaunchProfileCompatibility");
+    expect(projected).toContain("[REDACTED:");
+    await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+      verified: true,
+    });
+  });
+
+  it.each([
+    'const password = `${"plaintext-secret"}`;',
+    'const password = `prefix${"plaintext-secret"}`;',
+    'const object = {password: `${"plaintext-secret"}`};',
+    'const object = {password: `prefix${"plaintext-secret"}`};',
+    'object.password = `prefix${"plaintext-secret"}`;',
+    'class Account { password = `${"plaintext-secret"}`; }',
+    'class Account { #password = `${"plaintext-secret"}`; }',
+    'function configure(password = `${"plaintext-secret"}`) {}',
+    'object["pass" + "word"] = `${"plaintext-secret"}`;',
+    'class Account { get password() { return `${"plaintext-secret"}`; } }',
+    'const password = `outer${`inner${"plaintext-secret"}`}`;',
+
+    'const password = () => `${"plaintext-secret"}`;',
+    'const password = `${"plaintext-secret"}`; function unfinished(',
+  ])(
+    "keeps sensitive template interpolation ancestors closed: %s",
+    async (code) => {
+      const h = harness();
+      await expect(
+        h.projector.projectAgentModelRequest(
+          input(
+            runCodeRequest(code, "arguments"),
+            "signed-source:free-form-tool",
+          ),
+        ),
+      ).rejects.toThrow(/sensitive key|opaque source/);
+      expect(h.attestor.sign).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([85, 145])(
+    "proves template ancestors in a complete program prefix before a truncated statement (%s lines)",
+    async (limit) => {
+      const h = harness();
+      const source = fs
+        .readFileSync(
+          new URL("./session-transcript-history.test.js", import.meta.url),
+          "utf8",
+        )
+        .split("\n")
+        .slice(0, limit)
+        .join("\n");
+      const request = runCodeRequest("unused");
+      request.messages[0].tool_calls[0].function.name = "read_file";
+      request.messages[1].content = JSON.stringify({ content: source });
+      const bundle = await h.projector.projectAgentModelRequest(
+        input(request, "signed-source:free-form-tool"),
+      );
+      expect(
+        JSON.parse(bundle.modelProjection.content.messages[1].content).content,
+      ).toBe(source);
+      await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+        verified: true,
+      });
+    },
+  );
+
+  it("preserves ordinary template interpolation through real projection", async () => {
+    const h = harness();
+    const code = 'store(id, `question-${i}: ${"x".repeat(90)}`);';
+    const request = runCodeRequest(code, "arguments");
+    const bundle = await h.projector.projectAgentModelRequest(
+      input(request, "signed-source:free-form-tool"),
+    );
+    expect(bundle.modelProjection.content).toEqual(request);
+    await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+      verified: true,
+    });
+  });
+
+  it("uses complete source ancestry to end unrelated sensitive bindings", async () => {
+    const h = harness();
+    const request = runCodeRequest(
+      'const password = "unprefixedSecretValue"; const values = ["one",];',
+      "arguments",
+    );
+    const bundle = await h.projector.projectAgentModelRequest(
+      input(request, "signed-source:free-form-tool"),
+    );
+    expect(JSON.stringify(bundle.modelProjection.content)).not.toContain(
+      "unprefixedSecretValue",
+    );
+    expect(
+      bundle.modelProjection.content.messages[0].tool_calls[0].function
+        .arguments.code,
+    ).toContain('["one",]');
+    await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+      verified: true,
+    });
+  });
+
+  it.each([
+    'const password = ["one",];',
+    'const value = {password: ["one",]};',
+    'const password = () => ["one",];',
+    'const password = (() => { const values = ["one",]; function unfinished(',
+  ])(
+    "keeps enclosing or unproven sensitive source bindings closed: %s",
+    async (code) => {
+      const h = harness();
+      await expect(
+        h.projector.projectAgentModelRequest(
+          input(
+            runCodeRequest(code, "arguments"),
+            "signed-source:free-form-tool",
+          ),
+        ),
+      ).rejects.toThrow(/sensitive key|opaque source|malformed/);
+    },
+  );
+
+  it("does not grant source grammar to fences inside decoded JSON data", async () => {
+    const h = harness();
+    const content = JSON.stringify({
+      note: '```javascript\nconst values = ["one",];\n```',
+    });
+    await expect(
+      h.projector.projectAgentModelRequest(
+        input(fencedRequest(content), "signed-source:free-form-tool"),
+      ),
+    ).rejects.toThrow(/malformed/u);
+  });
+
+  it("preserves v8 receipts and its stricter source-container grammar", async () => {
+    expect(EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V8_DIGEST).toBe(
+      "sha256:94947b20e2ef152e3663c3bcc2160f6335a51068efcb5803a3eed47d15f9e064",
+    );
+    const h = harness();
+    const bundle = await h.projector.projectAgentModelRequest(
+      input(runCodeRequest("print('ready')"), "signed-source:free-form-tool"),
+    );
+    const historical = await reattest(
+      h,
+      bundle,
+      bundle.modelProjection.content,
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V8_DIGEST,
+    );
+    await expect(h.verifier.verify(historical)).resolves.toMatchObject({
+      verified: true,
+    });
+    const changed = await reattest(
+      h,
+      bundle,
+      runCodeRequest('const values = ["one",];', "arguments"),
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V8_DIGEST,
+    );
+    await expect(h.verifier.verify(changed)).rejects.toThrow(/malformed/u);
   });
 
   it("preserves v7 receipts and historical source-expression rejection", async () => {
@@ -1757,6 +1979,22 @@ status = {'count': 2, 'ok': True}`;
       for (const location of ["result", "arguments", "serialized-arguments"]) {
         for (const content of [text, `rows = [None]\nresult = ${text}\n`]) {
           const h = harness();
+          if (
+            text === '{"ok":true,}' &&
+            content !== text &&
+            location !== "result"
+          ) {
+            const bundle = await h.projector.projectAgentModelRequest(
+              input(
+                runCodeRequest(content, location),
+                "signed-source:free-form-tool",
+              ),
+            );
+            expect(bundle.modelProjection.content).toEqual(
+              runCodeRequest(content, location),
+            );
+            continue;
+          }
           await expect(
             h.projector.projectAgentModelRequest(
               input(
