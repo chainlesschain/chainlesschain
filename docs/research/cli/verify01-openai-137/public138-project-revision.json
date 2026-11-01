@@ -1,0 +1,19 @@
+{
+  "schema": "chainlesschain.verify01-project-revision/v1",
+  "cohortId": "repaired-source-followup-public-cli138-unfinished-four-2026-11-02",
+  "parentProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "parentPlanDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "projectCommit": "e42ea07b6da7ab2c3eb709002448b32d5fedf535",
+  "selectedSampleIds": [
+    "verify-08",
+    "verify-13",
+    "verify-36",
+    "first-run-darwin-vscode"
+  ],
+  "taskDeliverables": {
+    "verify-08": ["packages/cli/__tests__/repair137-verify-08.test.js"],
+    "verify-13": ["packages/cli/__tests__/repair137-verify-13.test.js"],
+    "verify-36": ["packages/cli/__tests__/repair137-verify-36.test.js"]
+  },
+  "reason": "User authorized immediate post-publication validation without waiting for JetBrains review. Regenerate only the four historically unfinished samples, retaining the separately accepted CLI136 verify-19 result without counting it as a new CLI138 result. Use exact public CLI138 source and original prompts, deliverable names, host allocation, independent behavioral oracles and budgets. Retain review_changes=true and the 32768-token planning window for comparison with the prior repaired-engine follow-up; no previous candidate answers are exposed."
+}

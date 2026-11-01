@@ -1,0 +1,97 @@
+{
+  "schema": "chainlesschain.published-engine-unfinished-retest/v1",
+  "createdAt": "2026-11-01T19:20:09.711Z",
+  "status": "prepared-not-dispatched",
+  "scope": "four-historically-unfinished-after-publication",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "api": "Responses",
+  "formalSample": false,
+  "reviewChanges": true,
+  "projectSource": "e42ea07b6da7ab2c3eb709002448b32d5fedf535",
+  "projectRevisionFile": "docs/research/cli/verify01-openai-137/public138-project-revision.json",
+  "projectRevisionDigest": "sha256:363897dada05d84a84fee2c79ad30d1dc0b4342d2f22d642c62189f77e31496a",
+  "packageSelection": "latest",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-02-openai-138.json",
+  "packageSetDigest": "sha256:c4bb6f6737e8a37b96cce2240d17f0756274490261791cbbccb8a0fd353f2dcf",
+  "packageResolutionPath": "docs/research/cli/verify01-openai-138/package-resolution.json",
+  "packageResolutionDigest": "sha256:6dd8bf9ef4f6fa96dfe40d48ac7230914e18fa6005aabc1203372ca0fc9f2685",
+  "versions": {
+    "cli": "0.166.138",
+    "vscode": "0.37.174",
+    "jetbrains": "0.4.191",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "distribution": "mixed-public-and-official-artifact",
+  "selectedSampleIds": [
+    "verify-08",
+    "verify-13",
+    "verify-36",
+    "first-run-darwin-vscode"
+  ],
+  "skippedSamples": [
+    {
+      "sampleId": "verify-19",
+      "reason": "User requested no repeat of previously accepted tasks",
+      "acceptedEvidence": "docs/research/cli/verify01-openai-136/retest-five-23e26368c8/results.json",
+      "acceptedEvidenceDigest": "sha256:62a0fdf5ed2a1377151ebdd8e77368c9d301b5ae0d600257d5c96253b2df950b",
+      "acceptedCliVersion": "0.166.136",
+      "countedAsCli138Acceptance": false,
+      "latestReviewEnabledFailureRetained": true
+    }
+  ],
+  "requestBudgets": {
+    "modelTurns": 20,
+    "physicalRequests": 24,
+    "outputTokens": 8192,
+    "requestBodyBytes": 262144,
+    "requestTimeoutMs": 180000,
+    "contextWindowTokens": 32768,
+    "largerThanPriorRound": false
+  },
+  "maximumPhysicalRequestsAcrossSelectedSamples": 96,
+  "historicalFrozen": {
+    "accepted": 41,
+    "total": 45,
+    "changed": false
+  },
+  "priorRepairedEngine": {
+    "path": "docs/research/cli/verify01-openai-137/candidate-engine3-a531924f36/results.json",
+    "digest": "sha256:b558e039764cf22fd006546f1af24e948e6e535ce610a9798c9f1802cefb09b9",
+    "accepted": 0,
+    "total": 5,
+    "reviewChanges": true,
+    "notCombined": true
+  },
+  "independentAcceptance": {
+    "freshGeneration": true,
+    "separateLinuxDocker": true,
+    "originalBehavioralMutants": true,
+    "sourceScopeExact": true,
+    "requireNormalGenerationTermination": true,
+    "requireCompleteUsage": true
+  },
+  "dispatches": [
+    {
+      "group": "darwin-vscode",
+      "hosts": "macos",
+      "entries": "vscode",
+      "sampleIds": ["verify-08", "first-run-darwin-vscode"]
+    },
+    {
+      "group": "linux-cli",
+      "hosts": "linux",
+      "entries": "cli",
+      "sampleIds": ["verify-13"]
+    },
+    {
+      "group": "darwin-jetbrains",
+      "hosts": "macos",
+      "entries": "jetbrains",
+      "sampleIds": ["verify-36"]
+    }
+  ],
+  "marketplaceApprovalRequired": false,
+  "modelRequestsStarted": 0
+}
