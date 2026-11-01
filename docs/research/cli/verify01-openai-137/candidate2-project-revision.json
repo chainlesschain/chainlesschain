@@ -1,0 +1,21 @@
+{
+  "schema": "chainlesschain.verify01-project-revision/v1",
+  "cohortId": "repaired-source-followup-cli137-candidate2-task-binding-five",
+  "parentProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "parentPlanDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "projectCommit": "b7498521795702515cf8c24b9842da6ae3bed5db",
+  "selectedSampleIds": [
+    "verify-08",
+    "verify-13",
+    "verify-19",
+    "verify-36",
+    "first-run-darwin-vscode"
+  ],
+  "taskDeliverables": {
+    "verify-08": ["packages/cli/__tests__/repair137-verify-08.test.js"],
+    "verify-13": ["packages/cli/__tests__/repair137-verify-13.test.js"],
+    "verify-19": ["packages/cli/__tests__/repair137-verify-19.test.js"],
+    "verify-36": ["packages/cli/__tests__/repair137-verify-36.test.js"]
+  },
+  "reason": "User-required fresh five-task prepublication gate after repairing original-task preservation in canonical compaction. Rebuild CLI/IDE candidate packages and maintained project from this exact source. Preserve the original prompts, host allocation, model, budgets, behavioral mutants and delivery paths; do not provide prior candidate answers or task-specific repair feedback. Prior rounds remain independently archived without combining scores."
+}
