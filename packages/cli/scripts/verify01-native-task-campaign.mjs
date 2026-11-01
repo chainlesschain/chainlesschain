@@ -98,6 +98,22 @@ export function loadNativePackageSet(versionsFile) {
   };
 }
 
+/** Keep the released CLI's diagnostic planning window equal to the prior cohort. */
+export function nativePublicPlanningContext(manifest) {
+  if (manifest?.diagnosticExecution === undefined) return {};
+  assert.ok(manifest.publicGeneratorProof, "explicit public proof required");
+  assert.deepEqual(Object.keys(manifest.diagnosticExecution), [
+    "contextWindowTokens",
+  ]);
+  assert.equal(manifest.diagnosticExecution.contextWindowTokens, 32768);
+  const version = manifest.versions?.cli?.match(/^0\.166\.(\d+)$/u);
+  assert.ok(
+    version && Number(version[1]) >= 137,
+    "CLI context option required",
+  );
+  return { contextWindowTokens: 32768 };
+}
+
 export function verifyNativePrereleaseInstall(
   binding,
   installDirectory,
@@ -619,10 +635,16 @@ export async function runNativeCampaign(options) {
     packageSetDigest,
     bytes: packageSetBytes,
   } = loadNativePackageSet(versionsFile);
+  const packageManifest = packageSetBytes
+    ? JSON.parse(packageSetBytes.toString("utf8"))
+    : null;
   const candidatePackages = readPrereleasePackages(
-    packageSetBytes ? JSON.parse(packageSetBytes.toString("utf8")) : null,
+    packageManifest,
     process.env.CC_VERIFY01_PRERELEASE_DIRECTORY,
   );
+  const publicPlanningContext = candidatePackages
+    ? {}
+    : nativePublicPlanningContext(packageManifest);
   const packageBinding = {
     ...(packageSetDigest ? { packageSetDigest } : {}),
     ...(candidatePackages ? { prepublication: candidatePackages.binding } : {}),
@@ -1166,7 +1188,7 @@ export async function runNativeCampaign(options) {
                   contextWindowTokens:
                     candidatePackages.binding.contextWindowTokens,
                 }
-              : {},
+              : publicPlanningContext,
           ),
           { flag: "wx" },
         );
@@ -1183,6 +1205,11 @@ export async function runNativeCampaign(options) {
             : { publicCliEntry: publicCliPath }),
           childBaseUrl,
           brokerBaseUrl: broker.baseUrl,
+          ...(publicPlanningContext.contextWindowTokens
+            ? {
+                planningWindowTokens: publicPlanningContext.contextWindowTokens,
+              }
+            : {}),
           preloadDigest: hash(fs.readFileSync(openAiPreloadPath)),
           installedCliModified: false,
         };

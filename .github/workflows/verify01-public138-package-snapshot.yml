@@ -1,0 +1,54 @@
+name: VERIFY01 public 138 package identity preflight
+
+on:
+  push:
+    branches: [feature/openai138-four-retest]
+    paths:
+      - .github/workflows/verify01-public138-package-snapshot.yml
+      - packages/cli/scripts/verify01-public138-package-snapshot.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: verify01-public138-package-preflight-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    if: github.repository == 'chainlesschain/chainlesschain' && github.ref == 'refs/heads/feature/openai138-four-retest'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Resolve original published packages and official pending plugin
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node packages/cli/scripts/verify01-public138-package-snapshot.mjs
+      - name: Preserve account-free package identity evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: verify01-public138-package-preflight-${{ github.sha }}
+          path: |
+            docs/research/cli/verify01-package-sets/2026-11-02-openai-138.json
+            docs/research/cli/verify01-openai-138/package-resolution.json
+          if-no-files-found: warn
+      - name: Commit only the resolved package identity to this evaluation branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- docs/research/cli/verify01-package-sets/2026-11-02-openai-138.json docs/research/cli/verify01-openai-138/package-resolution.json
+          git diff --cached --check
+          git commit -m 'test(verify01): bind public 138 four-case package identity [skip ci]'
+          git push origin HEAD:refs/heads/feature/openai138-four-retest
