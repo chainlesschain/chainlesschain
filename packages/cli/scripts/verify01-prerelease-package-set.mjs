@@ -290,6 +290,11 @@ export function createPrereleaseBundle(
     "src/lib/coding-task-guidance.js",
     "src/lib/model-capabilities.js",
     "src/lib/context-memory-kernel/provider-context.js",
+    "src/lib/context-memory-kernel/live-compaction.js",
+    "src/lib/context-memory-kernel/message-adapter.js",
+    "src/lib/context-memory-kernel/task-binding.js",
+    "src/lib/context-memory-kernel/jsonl-session-context-port.js",
+    "src/runtime/message-roles.js",
   ].map((file) => ({
     file,
     digest: digest(fs.readFileSync(path.join(root, "packages/cli", file))),

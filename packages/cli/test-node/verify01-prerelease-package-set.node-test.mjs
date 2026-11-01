@@ -309,3 +309,82 @@ test("all native entries forward the explicit smaller context only for agent cal
     ]);
   }
 });
+
+test("the actual candidate download command expands the manifest on Windows and POSIX", (t) => {
+  const { root } = fixture(t);
+  const workflow = fs.readFileSync(
+    new URL(
+      "../../../.github/workflows/verify01-native-task-campaign.yml",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const step = workflow
+    .split(
+      "- name: Download and verify explicitly selected prerelease CLI and IDE packages",
+    )[1]
+    .split(
+      "- name: Run original project tasks through installed native entry",
+    )[0];
+  const run = step
+    .split("run: >-")[1]
+    .trim()
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .join(" ")
+    .replace(
+      "node packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "node argv-probe.cjs",
+    )
+    .replaceAll("${{ runner.temp }}", root);
+  fs.writeFileSync(
+    path.join(root, "argv-probe.cjs"),
+    "process.stdout.write(JSON.stringify(process.argv.slice(2)))",
+  );
+  const manifest =
+    "docs/research/cli/verify01-package-sets/fixture-candidate.json";
+  const execute = (shell) => {
+    const bash =
+      process.platform === "win32"
+        ? path.join(
+            process.env.ProgramFiles || "C:\\Program Files",
+            "Git/bin/bash.exe",
+          )
+        : "bash";
+    const executable =
+      shell === "bash"
+        ? bash
+        : process.platform === "win32"
+          ? "powershell.exe"
+          : "bash";
+    const args =
+      shell === "bash" || process.platform !== "win32"
+        ? ["--noprofile", "--norc", "-c", run]
+        : ["-NoProfile", "-NonInteractive", "-Command", run];
+    return spawnSync(executable, args, {
+      cwd: root,
+      env: { ...process.env, NATIVE_PACKAGE_SET_FILE: manifest },
+      windowsHide: true,
+      encoding: "utf8",
+      timeout: 15000,
+    });
+  };
+  const configured = step.match(/^[ \t]+shell: ([^\r\n]+)/mu)?.[1].trim();
+  const actual = execute(configured);
+  assert.equal(actual.status, 0, actual.stderr);
+  const args = JSON.parse(actual.stdout);
+  assert.equal(args[0], manifest);
+  assert.equal(
+    path.resolve(args[1]),
+    path.join(root, "verify01-prerelease-packages"),
+  );
+  if (process.platform === "win32") {
+    const omitted = execute(undefined);
+    assert.equal(omitted.status, 0, omitted.stderr);
+    assert.notEqual(
+      JSON.parse(omitted.stdout)[0],
+      manifest,
+      "PowerShell does not expand a POSIX environment reference",
+    );
+  }
+});

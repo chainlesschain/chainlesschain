@@ -5,7 +5,30 @@ import { join } from "node:path";
 import { agentLoop } from "../helpers/test-model-egress.js";
 import { IterationBudget } from "../../src/lib/iteration-budget.js";
 
+// Fault injection reproduces the old boundary: automatic compaction received
+// no current-task binding. The planner and provider guard remain real.
+const baseline = vi.hoisted(() => ({ omitTaskBinding: false }));
+vi.mock(
+  "../../src/lib/context-memory-kernel/live-compaction.js",
+  async (original) => {
+    const actual = await original();
+    return {
+      ...actual,
+      compactLiveMessagesCanonical: (messages, options) => {
+        baseline.budget = options.compressor.getCompactionTokenBudget(messages);
+        return actual.compactLiveMessagesCanonical(
+          messages,
+          baseline.omitTaskBinding
+            ? { ...options, requiredUserBindings: [] }
+            : options,
+        );
+      },
+    };
+  },
+);
+
 afterEach(() => {
+  baseline.omitTaskBinding = false;
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
@@ -22,10 +45,18 @@ const summary = JSON.stringify({
   nextSteps: ["Verify the result"],
 });
 
-function history() {
+function history(toolTail = false) {
   const messages = [{ role: "system", content: "Preserve task constraints." }];
+  if (toolTail)
+    messages.push({
+      role: "user",
+      content: "Implement and verify the original task. ".repeat(100),
+      name: "original-task-owner",
+      taskId: "task-137",
+    });
   for (let i = 0; i < 36; i++) {
-    messages.push({ role: "user", content: `Inspect file ${i}` });
+    if (!toolTail)
+      messages.push({ role: "user", content: `Inspect file ${i}` });
     messages.push({
       role: "assistant",
       content: "",
@@ -60,14 +91,28 @@ function history() {
         .repeat(80),
     });
   }
-  messages.push({ role: "user", content: "Continue verification." });
+  if (!toolTail)
+    messages.push({ role: "user", content: "Continue verification." });
   return messages;
 }
 
 describe("operator window synthetic Responses preflight", () => {
-  it.each([false, true])(
-    "bounds serialized compaction requests; protected overflow=%s",
-    async (protectedOverflow) => {
+  it.each([
+    [false, false, false, false],
+    [true, false, false, false],
+    [false, true, false, false],
+    [true, true, false, false],
+    [false, true, true, true],
+    [false, true, false, true],
+  ])(
+    "bounds serialized compaction requests; protected overflow=%s tool tail=%s binding omitted=%s large handoff=%s",
+    async (
+      protectedOverflow,
+      toolTail,
+      omitTaskBinding = false,
+      largeHandoff = false,
+    ) => {
+      baseline.omitTaskBinding = omitTaskBinding;
       const cwd = mkdtempSync(join(tmpdir(), "cc-window-wire-"));
       vi.stubEnv("CHAINLESSCHAIN_HOME", cwd);
       const bodies = [];
@@ -91,7 +136,16 @@ describe("operator window synthetic Responses preflight", () => {
                 content: [
                   {
                     type: "output_text",
-                    text: bodies.length === 1 ? summary : "done",
+                    text:
+                      bodies.length === 1
+                        ? largeHandoff
+                          ? JSON.stringify({
+                              ...JSON.parse(summary),
+                              objective:
+                                String.fromCodePoint(0x6458).repeat(4000),
+                            })
+                          : summary
+                        : "done",
                   },
                 ],
               },
@@ -101,7 +155,14 @@ describe("operator window synthetic Responses preflight", () => {
         };
       });
       vi.stubGlobal("fetch", fetch);
-      const messages = history();
+      const messages = history(toolTail);
+      if (largeHandoff)
+        messages[1].content = "Implement and verify the original task. ".repeat(
+          400,
+        );
+      const task = structuredClone(
+        messages.findLast((message) => message.role === "user"),
+      );
       if (protectedOverflow)
         messages[0].content = "Protected constraint ".repeat(20000);
       const events = [];
@@ -131,8 +192,33 @@ describe("operator window synthetic Responses preflight", () => {
           failure = error;
         }
         expect(bodies.length).toBeGreaterThan(0);
-        if (protectedOverflow) {
+        if (omitTaskBinding) {
+          expect(
+            failure?.code,
+            JSON.stringify({
+              failure: String(failure),
+              events: events.map(({ type, code, reason, error }) => ({
+                type,
+                code,
+                reason,
+                error,
+              })),
+              requests: bodies.length,
+              compactionBudget: baseline.budget,
+            }),
+          ).toBe("CC_AGENT_TASK_CONTEXT_LOST");
+          expect(events.some((event) => event.type === "compaction")).toBe(
+            true,
+          );
           expect(bodies).toHaveLength(1);
+          expect(
+            events.some((event) => event.type === "response-complete"),
+          ).toBe(false);
+        } else if (protectedOverflow) {
+          expect(bodies).toHaveLength(1);
+          expect(events.some((event) => event.type === "compaction")).toBe(
+            false,
+          );
           expect(
             failure ||
               events.find(
@@ -156,6 +242,11 @@ describe("operator window synthetic Responses preflight", () => {
             ),
           ).toHaveLength(2);
           expect(bodies[1].max_output_tokens).toBe(8192);
+          if (toolTail)
+            expect(
+              bodies[1].input.filter((message) => message.role === "user"),
+            ).toHaveLength(1);
+          expect(JSON.stringify(bodies[1].input)).toContain(task.content);
           expect(
             events.find((e) => e.type === "context.plan.created")?.plan
               .inputBudget,

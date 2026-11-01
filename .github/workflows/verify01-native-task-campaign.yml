@@ -297,6 +297,7 @@ jobs:
           "$NATIVE_PACKAGE_SET_FILE" "$RUNNER_TEMP/verify01-jetbrains-build"
       - name: Download and verify explicitly selected prerelease CLI and IDE packages
         if: inputs.package_set == 'prerelease'
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-

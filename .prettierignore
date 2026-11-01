@@ -78,3 +78,5 @@ docs/research/cli/verify01-openai-137/preflight-*/**
 
 # Preserve the complete public-generator cohort's original bytes and receipts.
 docs/research/cli/verify01-openai-137/public-generator-*/**
+docs/research/cli/verify01-openai-137/candidate-engine*/**
+docs/research/cli/verify01-openai-137/task-binding-repair/*.json
