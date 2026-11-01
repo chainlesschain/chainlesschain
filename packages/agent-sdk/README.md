@@ -5,9 +5,10 @@ contract for **stream events, approval callbacks, checkpoints, and session
 resume**, so consumers (VS Code extension, web-panel, custom hosts) stop
 hand-assembling CLI argv and hand-parsing NDJSON.
 
-Version **0.2.16** fixes backpressured writes and failed input pipes.
-Version **0.2.15** is the preceding release. New publication requires the
-exact-source release gates and public archive verification.
+Version **0.2.17** corrects the protocol fixture assertion for preserved
+tool-call identity. Runtime behavior is unchanged from **0.2.16**, which
+fixes backpressured writes and failed input pipes. Publication requires
+the exact-source release gates and public archive verification.
 
 ```ts
 import { AgentSession, listSessions } from "@chainlesschain/agent-sdk";

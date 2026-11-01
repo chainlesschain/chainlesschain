@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { DIAGNOSTIC } from "./verify01-volcengine-task-diagnostic.mjs";
+import { prereleasePackageBinding } from "./verify01-prerelease-package-set.mjs";
 import {
   BROKER,
   createVolcengineDiagnosticBroker,
@@ -41,17 +42,27 @@ export function assertNativeProviderIdentity(
   provider,
   sourceSha,
   packageBinding,
+  projectIdentity,
 ) {
   const profile = nativeProviderProfile(provider);
   const hash = (value) =>
     `sha256:${createHash("sha256").update(value).digest("hex")}`;
   assert.match(sourceSha, /^[a-f0-9]{40}$/u);
   assert.equal(summary.executionSourceCommit, sourceSha);
+  const revision = projectIdentity?.revisionBinding ?? null;
+  assert.deepEqual(summary.projectRevision ?? null, revision);
+  if (projectIdentity) {
+    assert.equal(summary.projectCommit, projectIdentity.projectCommit);
+    assert.equal(summary.planDigest, projectIdentity.planDigest);
+  }
+  if (revision) assert.equal(provider, "openai");
   assert.equal(
     summary.cohortKind,
-    provider === "openai"
-      ? "new-openai-provider-diagnostic"
-      : "volcengine-native-diagnostic",
+    revision
+      ? "repaired-source-followup"
+      : provider === "openai"
+        ? "new-openai-provider-diagnostic"
+        : "volcengine-native-diagnostic",
   );
   assert.deepEqual(summary.modelTransport, {
     provider: profile.provider,
@@ -64,6 +75,14 @@ export function assertNativeProviderIdentity(
   if (packageBinding) {
     assert.deepEqual(summary.versions, packageBinding.versions);
     assert.equal(summary.packageSetDigest, packageBinding.packageSetDigest);
+    const candidate = packageBinding.bytes
+      ? prereleasePackageBinding(
+          JSON.parse(packageBinding.bytes.toString("utf8")),
+        )
+      : null;
+    assert.deepEqual(summary.prepublication ?? null, candidate);
+    if (candidate)
+      assert.equal(candidate.sourceCommit, projectIdentity?.projectCommit);
   }
   assert.equal(
     summary.executionIdentityDigest,

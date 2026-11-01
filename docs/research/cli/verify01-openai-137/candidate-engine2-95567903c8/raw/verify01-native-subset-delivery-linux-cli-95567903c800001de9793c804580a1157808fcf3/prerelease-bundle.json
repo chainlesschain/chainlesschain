@@ -1,0 +1,87 @@
+{
+  "schema": "chainlesschain.verify01-prerelease-bundle/v1",
+  "sourceCommit": "b7498521795702515cf8c24b9842da6ae3bed5db",
+  "runId": 41275646986,
+  "versions": {
+    "cli": "0.166.137",
+    "vscode": "0.37.174",
+    "jetbrains": "0.4.190",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "files": {
+    "cli": {
+      "file": "chainlesschain-0.166.137.tgz",
+      "digest": "sha256:35f64bf68935b5e51160bd4cc92f6bd81b0918105fb8ca679b2282b7dbba353e",
+      "integrity": "sha512-Sq0SP60fnM6W/bnfKQbM+XQzV4UbEvt2wmIN+8N5Ta+vZrvs36YdjqVHVuFgj0rgcAfc45yxug+q3UVqXdoOaQ==",
+      "bytes": 9531057
+    },
+    "vscode": {
+      "file": "chainlesschain-ide-0.37.174.vsix",
+      "digest": "sha256:edf645fc309539e576baeabe23deadfb7c028404ee0ab8c864b930f98722472a",
+      "integrity": "sha512-uivdZ3Cxk3wAeFWN8rqRH9cbVktmcqjIcIFw9Lqb0RLZXid3K4aBXYHTT+/HmgLm2oKR1fSsfdZekXXuozePXg==",
+      "bytes": 748119
+    },
+    "jetbrains": {
+      "file": "chainlesschain-ide-bridge-0.4.190.zip",
+      "digest": "sha256:8141941662c2d3ccbac300781d3504ea626af82b127223f88c7393ed1709401f",
+      "integrity": "sha512-rbkLefaOWJE08PoG32iVffCni4aKf5ILide9wBSGlkSDc4LYQoc+xA/zJi3gxO68JbsJg63NgetWAC27lM1fiQ==",
+      "bytes": 1555790
+    }
+  },
+  "cliSourceFiles": [
+    {
+      "file": "bin/chainlesschain.js",
+      "digest": "sha256:32339064da330222d3f1129c201a5e9473441ed3d12b4758193696d3c3565547"
+    },
+    {
+      "file": "src/commands/agent.js",
+      "digest": "sha256:cfa3c35dbf5e8940650d10742b5b25eec377150bf9268363415e558d01053d4e"
+    },
+    {
+      "file": "src/runtime/agent-core.js",
+      "digest": "sha256:e17a70f3f99f8cf6c7fc7f7164b9c55c35e5d35c38905d4662c438da18cd5baa"
+    },
+    {
+      "file": "src/lib/read-file-loop-guard.js",
+      "digest": "sha256:6a8d639e9ab9cfe2da70ba88cbce9ce385cad94759dd0155e3ba458f67b96fcc"
+    },
+    {
+      "file": "src/lib/coding-change-review-context.js",
+      "digest": "sha256:e431da08b462da3c452ffd60fce4b1e2c4d5a16fb9e2250cfefbbb3633dd6808"
+    },
+    {
+      "file": "src/lib/coding-task-guidance.js",
+      "digest": "sha256:641136a127c5e2a9ab7217e29ed1568038116570dffad78ecaeabe925e2425e2"
+    },
+    {
+      "file": "src/lib/model-capabilities.js",
+      "digest": "sha256:3153beb805ac7e044fb77e1594d39c140a55c5585067db49f111d5f92a35e865"
+    },
+    {
+      "file": "src/lib/context-memory-kernel/provider-context.js",
+      "digest": "sha256:d075c4c4fb91b64fe9d590ff8403600de83648a898137e14399d6af9da45b272"
+    },
+    {
+      "file": "src/lib/context-memory-kernel/live-compaction.js",
+      "digest": "sha256:6eb8adc555688c25d99bbcf4f6e9302dfe41926d0cb34ba9f02b5baa3c0019f8"
+    },
+    {
+      "file": "src/lib/context-memory-kernel/message-adapter.js",
+      "digest": "sha256:bfb6aab468818c9fff56f9fdaf878e93e9f39cf4ee7322304c348f380fbd3ce3"
+    },
+    {
+      "file": "src/lib/context-memory-kernel/task-binding.js",
+      "digest": "sha256:44415b38b941fc0828a9830e20c46cdc13a87453aab94cd6ab0642f44a046257"
+    },
+    {
+      "file": "src/lib/context-memory-kernel/jsonl-session-context-port.js",
+      "digest": "sha256:af56de83f273d89d4688d40e4f40493e683ff23db156f5bf93d73c71400f0a22"
+    },
+    {
+      "file": "src/runtime/message-roles.js",
+      "digest": "sha256:e60dcd7d2f24f5517d3ff706e9a5df9958aabd4390eb6fd655760ce1187b7a66"
+    }
+  ],
+  "published": false
+}

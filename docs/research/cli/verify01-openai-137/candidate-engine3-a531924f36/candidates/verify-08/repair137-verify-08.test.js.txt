@@ -1,0 +1,106 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+const root = mkdtempSync(join(tmpdir(), "cc-fork-ownership-"));
+// From __tests__/ (not __tests__/unit/), ../src resolves to packages/cli/src.
+vi.mock("../src/lib/paths.js", () => ({
+  getHomeDir: () => join(root, "home"),
+  getSessionStoreDir: () => join(root, "home", "sessions"),
+  getClaudeProjectStorageDir: () => null,
+  getStatePath: () => join(root, "home", "state"),
+  getMachineSecurityAnchorDir: () => join(root, "security"),
+}));
+const store = await import("../src/harness/jsonl-session-store.js");
+const { readSessionTranscriptHistory, createSessionTranscriptBranchProjection } =
+  await import("../src/lib/session-transcript-history.js");
+
+afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+const history = (id) => readSessionTranscriptHistory(id, { limit: 100 });
+const bodies = (page) => page.messages.map(({ role, text }) => ({ role, text }));
+const user = (text) => ({ role: "user", text });
+const assistant = (text) => ({ role: "assistant", text });
+
+// These expectations are literal fixture histories, not outputs of a second
+// projection used as an oracle. Every excluded tail is accepted in its owner.
+describe("fork display-history ownership", () => {
+  it("forks a verified history branch without importing the excluded parent suffix", () => {
+    const parent = "archive-parent";
+    const branch = "archive-branch";
+    store.startSession(parent, { provider: "test", model: "test" });
+    store.appendUserMessage(parent, "retained question");
+    store.appendAssistantMessage(parent, "retained answer");
+    store.appendUserMessage(parent, "excluded question");
+    store.appendAssistantMessage(parent, "excluded answer");
+    const ancestor = [user("retained question"), assistant("retained answer")];
+    const parentBody = [...ancestor, user("excluded question"), assistant("excluded answer")];
+    expect(bodies(history(parent))).toEqual(parentBody);
+    const messages = store.readVerifiedMessages(parent).slice(0, 2);
+    const head = store.findLatestEvent(parent, null).hash;
+    store.withSessionAuthorityTransaction(parent, head, (transaction) =>
+      transaction.readProjection(() =>
+        createSessionTranscriptBranchProjection(parent, messages, (history) =>
+          store.createBranchSession({
+            parentSessionId: parent,
+            branchSessionId: branch,
+            parentTurnId: "selected",
+            messages,
+            history,
+          }),
+        ),
+      ),
+    );
+    expect(bodies(history(branch))).toEqual(ancestor);
+    const result = store.forkSession(branch, { requestId: "archive-fork" });
+    const fork = typeof result === "string" ? result : result.id;
+    expect(fork).not.toBe(branch);
+    const archivedRows = history(branch).messages;
+    const forkRows = history(fork).messages;
+    expect(bodies(history(fork))).toEqual(ancestor);
+    // Copied archive events retain their event identity, but display row IDs
+    // belong to the session being restored, not to its source session.
+    expect(forkRows.map((row) => row.eventId)).toEqual(archivedRows.map((row) => row.eventId));
+    expect(forkRows.map((row) => row.itemIndex)).toEqual(archivedRows.map((row) => row.itemIndex));
+    for (const row of forkRows) {
+      expect(row.id).toBe(`${fork}:${row.eventId}:${row.itemIndex}`);
+      expect(archivedRows.map((source) => source.id)).not.toContain(row.id);
+    }
+    store.appendUserMessage(branch, "branch-only body");
+    expect(bodies(history(branch))).toEqual([...ancestor, user("branch-only body")]);
+    expect(bodies(history(fork))).toEqual(ancestor);
+    store.appendAssistantMessage(fork, "fork-only body");
+    expect(bodies(history(fork))).toEqual([...ancestor, assistant("fork-only body")]);
+    expect(bodies(history(branch))).toEqual([...ancestor, user("branch-only body")]);
+    expect(bodies(history(parent))).toEqual(parentBody);
+  });
+  it("restores the shared ancestor but keeps both post-fork bodies independent", () => {
+    const parent = "ownership-parent";
+    store.startSession(parent, { provider: "test", model: "test" });
+    store.appendUserMessage(parent, "shared question");
+    store.appendAssistantMessage(parent, "shared answer");
+    const ancestor = [user("shared question"), assistant("shared answer")];
+    expect(bodies(history(parent))).toEqual(ancestor);
+    const result = store.forkSession(parent, { requestId: "ownership-fork" });
+    const child = typeof result === "string" ? result : result.id;
+    expect(child).not.toBe(parent);
+    expect(bodies(history(child))).toEqual(ancestor);
+
+    store.appendUserMessage(parent, "parent-only question");
+    store.appendAssistantMessage(parent, "parent-only answer");
+    expect(bodies(history(parent))).toEqual([
+      ...ancestor, user("parent-only question"), assistant("parent-only answer"),
+    ]);
+    expect(bodies(history(child))).toEqual(ancestor);
+
+    store.appendUserMessage(child, "child-only question");
+    store.appendAssistantMessage(child, "child-only answer");
+    expect(bodies(history(child))).toEqual([
+      ...ancestor, user("child-only question"), assistant("child-only answer"),
+    ]);
+    expect(bodies(history(parent))).toEqual([
+      ...ancestor, user("parent-only question"), assistant("parent-only answer"),
+    ]);
+  });
+});

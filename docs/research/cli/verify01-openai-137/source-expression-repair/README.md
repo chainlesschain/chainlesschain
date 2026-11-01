@@ -1,0 +1,9 @@
+# Source expression repair: local evidence, not publication admission
+
+The final exact seven-file source passed **430/430** focused regressions and **2/2** real agent-to-mocked-OpenAI wire cases, including canonical compaction and two batches of two source reads. Requests retain the 32768 planning window, 8192 output limit and 262144-byte transport ceiling. The final reports contain `-final-template` in their names; earlier 414-test and earlier wire reports are superseded.
+
+V9 grants source syntax only to paired tool source fields and explicit source text. Strict standalone/decoded JSON, sensitive bindings, historical v8 receipts and original JSON budgets remain protected. A separate bounded source-token proof budget avoids charging source punctuation as JSON nodes. Sensitive quoted-template regression controls reproduced four failures before the fix and reject those inputs afterward.
+
+Exact-source preview replay preserves 70/80 excerpts and all eight first reads. Ten uncertain intermediate pages remain omitted. Actual archived ingress replay admits four groups/ten original pages; the incomplete JetBrains 240/373-line page remains closed, while its complete source passes projection and verification. Recovery guidance asks for complete statements or containers within existing limits. No model candidate answers, task prompts, behavioral mutants or model budgets are changed.
+
+An extra broad local headless/changelog selection was retired without a passing result after spending excessive time in native Windows helpers. The user directed subsequent validation to GitHub Actions. The complete exact-source cloud CLI CI and Strict Sandbox, a freshly rebuilt same-source candidate cohort, and independent **5/5** real task acceptance remain required before CLI OIDC and then IDE publication. Historical 41/45 and the preceding candidate round 0/5 stay separate.

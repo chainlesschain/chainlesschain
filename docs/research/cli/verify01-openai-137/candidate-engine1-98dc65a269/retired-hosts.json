@@ -1,0 +1,28 @@
+{
+  "checkedAt": "2026-11-01T04:07:47.312Z",
+  "runtimeFailure": "Current user task binding lost after canonical compaction",
+  "results": [
+    {
+      "runId": 41270948988,
+      "group": "darwin-vscode",
+      "source": "98dc65a2699e0fee43daf56941befcc0695e3738",
+      "nativeJob": 124743918989,
+      "status": "queued",
+      "step": null,
+      "modelStepStatus": null,
+      "cancelled": true,
+      "reason": "Stop obsolete known-broken engine before any model stage; preserve paid request settlement elsewhere"
+    },
+    {
+      "runId": 41270976333,
+      "group": "darwin-jetbrains",
+      "source": "98dc65a2699e0fee43daf56941befcc0695e3738",
+      "nativeJob": 124744251095,
+      "status": "queued",
+      "step": null,
+      "modelStepStatus": null,
+      "cancelled": true,
+      "reason": "Stop obsolete known-broken engine before any model stage; preserve paid request settlement elsewhere"
+    }
+  ]
+}

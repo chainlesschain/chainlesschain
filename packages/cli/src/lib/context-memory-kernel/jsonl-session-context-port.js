@@ -54,12 +54,17 @@ function compactStats(event, messages) {
 
 /** SessionContextPort backed by the CLI's verified, anchored JSONL transcript. */
 export class JsonlSessionContextPort {
-  constructor({ sessionId, allowedSinks = ["*"] } = {}) {
+  constructor({
+    sessionId,
+    allowedSinks = ["*"],
+    requiredUserMessages = [],
+  } = {}) {
     if (typeof sessionId !== "string" || !sessionId.trim()) {
       throw new TypeError("JsonlSessionContextPort requires sessionId");
     }
     this.sessionId = sessionId.trim();
     this.allowedSinks = [...allowedSinks];
+    this.requiredUserMessages = requiredUserMessages;
     this.ownedHeadAdvances = new Map();
   }
 
@@ -113,16 +118,20 @@ export class JsonlSessionContextPort {
             memoryRevision = revision;
           }
         },
-        finish: (authority) => ({
-          sessionId,
-          head: authority.headHash,
-          memoryRevision,
-          items: messagesToContextItems(authority.readMessages(), {
+        finish: (authority) => {
+          const messages = authority.readMessages();
+          return {
             sessionId,
-            allowedSinks: this.allowedSinks,
-            allowExternalization: true,
-          }),
-        }),
+            head: authority.headHash,
+            memoryRevision,
+            items: messagesToContextItems(messages, {
+              sessionId,
+              allowedSinks: this.allowedSinks,
+              allowExternalization: true,
+              requiredUserMessages: this.requiredUserMessages,
+            }),
+          };
+        },
       };
     });
   }

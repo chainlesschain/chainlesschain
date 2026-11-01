@@ -1,0 +1,28 @@
+{
+  "schema": "chainlesschain.release-authorization/v1",
+  "version": "0.166.138",
+  "requiredChildPackage": {
+    "name": "@chainlesschain/agent-sdk",
+    "version": "0.2.17"
+  },
+  "authorizationSource": "Latest user instruction in operator session",
+  "userInstruction": "不论5个任务是否成功都可以先发布",
+  "fiveTaskSuccessRequiredForThisPublication": false,
+  "originalAuthorization": "docs/research/cli/verify01-openai-137/publication-authorization.json",
+  "actualRecordedModelCohort": {
+    "version": "0.166.137",
+    "result": "0/5",
+    "source": "a531924f367e60b61834aa8369634d0e241697b3",
+    "newModelTasksFor138": 0,
+    "historicalFrozen": "41/45 unchanged"
+  },
+  "requiredGates": [
+    "Complete exact-source CLI CI Linux/Windows/macOS, including SDK build and tests",
+    "Complete exact-source Strict Sandbox",
+    "Actions OIDC; SDK publication and signed readback before CLI",
+    "CLI independent signed registry readback before IDE tags"
+  ],
+  "preserveFailed137Tag": true,
+  "reviewBudgetFollowupDeferred": true,
+  "recordedAt": "2026-11-01T11:33:40.162Z"
+}

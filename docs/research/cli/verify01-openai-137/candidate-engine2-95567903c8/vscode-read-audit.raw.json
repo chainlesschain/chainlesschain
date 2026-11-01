@@ -1,0 +1,1259 @@
+{
+  "schema": "chainlesschain.verify01-read-delivery-diagnosis/v1",
+  "executionSource": "95567903c800001de9793c804580a1157808fcf3",
+  "engineSource": "b7498521795702515cf8c24b9842da6ae3bed5db",
+  "readOnly": true,
+  "paidRequestsInAnalysis": 0,
+  "samples": [
+    {
+      "sampleId": "verify-08",
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 13,
+        "usageCompleteRequests": 13,
+        "tasks": [
+          {
+            "taskId": "verify-08",
+            "requests": 13,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostUsd": null,
+        "tokenOnlyEstimateUsd": 0.40889499999999995,
+        "knownTokenOnlyEstimateUsd": 0.40889499999999995,
+        "fxRate": null
+      },
+      "terminal": [
+        {
+          "type": "result",
+          "subtype": "error",
+          "is_error": true,
+          "error": "Repeated file reads or identical large command outputs: the model did not resume the task after six no-progress batches and recovery guidance. The task is not complete. Use a targeted section or compute a bounded summary before retrying.",
+          "turn": 1,
+          "trace_id": "tr-6550fb17-730c-49b9-a5e4-ddb3122eff7a",
+          "seq": 154
+        }
+      ],
+      "directDeliveryCounts": {
+        "omitted-marker": 12,
+        "exact-content": 18,
+        "changed-or-released": 1
+      },
+      "originalTaskPreservedInMainRequests": [
+        {
+          "request": 1,
+          "taskCopies": 1
+        },
+        {
+          "request": 2,
+          "taskCopies": 1
+        },
+        {
+          "request": 3,
+          "taskCopies": 1
+        },
+        {
+          "request": 4,
+          "taskCopies": 1
+        },
+        {
+          "request": 5,
+          "taskCopies": 1
+        },
+        {
+          "request": 6,
+          "taskCopies": 1
+        },
+        {
+          "request": 7,
+          "taskCopies": 1
+        },
+        {
+          "request": 8,
+          "taskCopies": 1
+        },
+        {
+          "request": 9,
+          "taskCopies": 1
+        },
+        {
+          "request": 10,
+          "taskCopies": 1
+        },
+        {
+          "request": 11,
+          "taskCopies": 1
+        },
+        {
+          "request": 13,
+          "taskCopies": 1
+        }
+      ],
+      "readDeliveries": [
+        {
+          "callId": "call_BgjzZjFcjaGqOD1eoYfo8j8R",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 240,
+            "totalLines": 241
+          },
+          "sourceChars": 8424,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 2,
+          "firstProviderContentChars": 74,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_dbf357MR9XEPUGTYpCUxuuNI",
+          "file": "repair137-verify-08.test.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 2,
+            "totalLines": 2
+          },
+          "sourceChars": 27,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 2,
+          "firstProviderContentChars": 27,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_ZXmWiVRVqFIqfODAH2En4Ka3",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 80,
+            "endLine": 169,
+            "totalLines": 241
+          },
+          "sourceChars": 3169,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 3,
+          "firstProviderContentChars": 74,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_MQYSdgfdc6LzdUdgnsWkkAeW",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 170,
+            "endLine": 241,
+            "totalLines": 241
+          },
+          "sourceChars": 2521,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 3,
+          "firstProviderContentChars": 2521,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_5JXzPXbLBqZoeGDOcH6fgcTM",
+          "file": "session-branch.test.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 140,
+            "totalLines": 207
+          },
+          "sourceChars": 5481,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 3,
+          "firstProviderContentChars": 5481,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_17bWcxo59KwxUAEAKy2eofMZ",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 145,
+            "totalLines": 1139
+          },
+          "sourceChars": 5235,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 3,
+          "firstProviderContentChars": 74,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_vQsBBC8Y1YQHPAMcyyGB8721",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 79,
+            "totalLines": 241
+          },
+          "sourceChars": 2733,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 4,
+          "firstProviderContentChars": 2733,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_0FXNVXbmpD7UNetnvfwPnfim",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 80,
+            "endLine": 159,
+            "totalLines": 241
+          },
+          "sourceChars": 2761,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 4,
+          "firstProviderContentChars": 74,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_MQvRMe77IWnSuk2ZnLUw2m7o",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 75,
+            "totalLines": 1139
+          },
+          "sourceChars": 3011,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 4,
+          "firstProviderContentChars": 74,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_sa6MfDyC9wdh0lsGAxHSHAfJ",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 76,
+            "endLine": 144,
+            "totalLines": 1139
+          },
+          "sourceChars": 2174,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 4,
+          "firstProviderContentChars": 2174,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_E9u5BdWnPQr2WfqinxPdChmN",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 40,
+            "totalLines": 1139
+          },
+          "sourceChars": 1625,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 5,
+          "firstProviderContentChars": 1625,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_wNVtw11zr46FdFxXFVIShpSp",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 41,
+            "endLine": 75,
+            "totalLines": 1139
+          },
+          "sourceChars": 1385,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 5,
+          "firstProviderContentChars": 74,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_lAz3OznmWBWFpepvE9bPodi8",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 140,
+            "endLine": 181,
+            "totalLines": 1139
+          },
+          "sourceChars": 1250,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 5,
+          "firstProviderContentChars": 1250,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_XikRy1rvSB0fQwzt67D0ZWid",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 80,
+            "endLine": 121,
+            "totalLines": 241
+          },
+          "sourceChars": 1529,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 5,
+          "firstProviderContentChars": 74,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_ZEGLkWWqYpUcLgWtjJq1770R",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 122,
+            "endLine": 169,
+            "totalLines": 241
+          },
+          "sourceChars": 1639,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 5,
+          "firstProviderContentChars": 1639,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_jXopOEPD1nFXG3HpptWzXOL2",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 41,
+            "endLine": 59,
+            "totalLines": 1139
+          },
+          "sourceChars": 757,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 6,
+          "firstProviderContentChars": 757,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_xtufsOxq9n23PnbIf9GnshUZ",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 60,
+            "endLine": 75,
+            "totalLines": 1139
+          },
+          "sourceChars": 627,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 6,
+          "firstProviderContentChars": 73,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_q44gyONMgqcyhNO0rFTDbbQe",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 80,
+            "endLine": 101,
+            "totalLines": 241
+          },
+          "sourceChars": 771,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 6,
+          "firstProviderContentChars": 771,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_Umz6eSxLMPHydoNTzAcl37D4",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 102,
+            "endLine": 121,
+            "totalLines": 241
+          },
+          "sourceChars": 757,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 6,
+          "firstProviderContentChars": 73,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_p60j7eYo8R4kXvmZYwt0wQ8t",
+          "file": "jsonl-session-store.js",
+          "range": {
+            "startLine": 6469,
+            "endLine": 6533,
+            "totalLines": 7813
+          },
+          "sourceChars": 2357,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 6,
+          "firstProviderContentChars": 2357,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_7DoMOc5cJ0TPefElLXU2jGs0",
+          "file": "repair137-verify-08.test.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 2,
+            "totalLines": 2
+          },
+          "sourceChars": 27,
+          "readProgress": {
+            "newContent": false
+          },
+          "firstProviderRequest": 6,
+          "firstProviderContentChars": 0,
+          "firstDelivery": "changed-or-released",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_QzHSfH8ENTbjS6QJdzaFYnPW",
+          "file": "session-branch.test.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 65,
+            "totalLines": 207
+          },
+          "sourceChars": 2286,
+          "readProgress": {
+            "newContent": false
+          },
+          "firstProviderRequest": 7,
+          "firstProviderContentChars": 2286,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_LB2n9OoIlF1iDjOMqefixjpa",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 170,
+            "endLine": 240,
+            "totalLines": 241
+          },
+          "sourceChars": 2520,
+          "readProgress": {
+            "newContent": false
+          },
+          "firstProviderRequest": 7,
+          "firstProviderContentChars": 2520,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_olO4k4YBBgdJkAJAEHkgBiXf",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 540,
+            "endLine": 591,
+            "totalLines": 1139
+          },
+          "sourceChars": 2282,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 7,
+          "firstProviderContentChars": 2282,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_rfEVfOiDs34y9XgNYbDiQ9wm",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 65,
+            "endLine": 75,
+            "totalLines": 1139
+          },
+          "sourceChars": 450,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 7,
+          "firstProviderContentChars": 73,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_zDyStuOQPwZMlGbZ0wYkQVDR",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 102,
+            "endLine": 112,
+            "totalLines": 241
+          },
+          "sourceChars": 445,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 7,
+          "firstProviderContentChars": 73,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_2DDCsFmUt7skslszQLVuJkOy",
+          "file": "session-transcript-history.js",
+          "range": {
+            "startLine": 438,
+            "endLine": 463,
+            "totalLines": 463
+          },
+          "sourceChars": 631,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 8,
+          "firstProviderContentChars": 631,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_dU8yKxp2NxhkOxCqZJxnDhAT",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 76,
+            "endLine": 105,
+            "totalLines": 1139
+          },
+          "sourceChars": 937,
+          "readProgress": {
+            "newContent": false
+          },
+          "firstProviderRequest": 8,
+          "firstProviderContentChars": 937,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_7r3aBcQ3Tz3BewNQyD02vW5j",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 130,
+            "endLine": 140,
+            "totalLines": 1139
+          },
+          "sourceChars": 413,
+          "readProgress": {
+            "newContent": false
+          },
+          "firstProviderRequest": 8,
+          "firstProviderContentChars": 413,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_xNw26Lrdf9BCLQkYWs43Kluk",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 140,
+            "endLine": 169,
+            "totalLines": 1139
+          },
+          "sourceChars": 901,
+          "readProgress": {
+            "newContent": false
+          },
+          "firstProviderRequest": 9,
+          "firstProviderContentChars": 901,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_1QmrdMpzA4p7SuQ6wAXjVuCk",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 60,
+            "endLine": 1139,
+            "totalLines": 1139
+          },
+          "sourceChars": 40840,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 9,
+          "firstProviderContentChars": 75,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 12,
+        "usageCompleteRequests": 12,
+        "tasks": [
+          {
+            "taskId": "first-run-darwin-vscode",
+            "requests": 12,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostUsd": null,
+        "tokenOnlyEstimateUsd": 0.401372,
+        "knownTokenOnlyEstimateUsd": 0.401372,
+        "fxRate": null
+      },
+      "terminal": [
+        {
+          "type": "result",
+          "subtype": "error",
+          "is_error": true,
+          "error": "Repeated file reads or identical large command outputs: the model did not resume the task after six no-progress batches and recovery guidance. The task is not complete. Use a targeted section or compute a bounded summary before retrying.",
+          "turn": 1,
+          "trace_id": "tr-ab934994-8c08-47ae-a8a9-1caa1f56787e",
+          "seq": 144
+        }
+      ],
+      "directDeliveryCounts": {
+        "omitted-marker": 10,
+        "exact-content": 18,
+        "changed-or-released": 3
+      },
+      "originalTaskPreservedInMainRequests": [
+        {
+          "request": 1,
+          "taskCopies": 1
+        },
+        {
+          "request": 2,
+          "taskCopies": 1
+        },
+        {
+          "request": 3,
+          "taskCopies": 1
+        },
+        {
+          "request": 4,
+          "taskCopies": 1
+        },
+        {
+          "request": 5,
+          "taskCopies": 1
+        },
+        {
+          "request": 6,
+          "taskCopies": 1
+        },
+        {
+          "request": 7,
+          "taskCopies": 1
+        },
+        {
+          "request": 8,
+          "taskCopies": 1
+        },
+        {
+          "request": 9,
+          "taskCopies": 1
+        },
+        {
+          "request": 10,
+          "taskCopies": 1
+        },
+        {
+          "request": 11,
+          "taskCopies": 1
+        },
+        {
+          "request": 12,
+          "taskCopies": 1
+        }
+      ],
+      "readDeliveries": [
+        {
+          "callId": "call_Lvm6533bTPrQlzB8D1XH8PNv",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 240,
+            "totalLines": 241
+          },
+          "sourceChars": 8424,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 2,
+          "firstProviderContentChars": 74,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_WpILnkswBgeKOyPiYl1EKJeb",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 65,
+            "endLine": 159,
+            "totalLines": 241
+          },
+          "sourceChars": 3244,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 3,
+          "firstProviderContentChars": 74,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_4flbH8LP1f5kzHiT4M0XkjYP",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 160,
+            "endLine": 241,
+            "totalLines": 241
+          },
+          "sourceChars": 2929,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 3,
+          "firstProviderContentChars": 2929,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_z9gCbhkwj0KZx0d0YuqZAauS",
+          "file": "repair137-verify-08.test.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 2,
+            "totalLines": 2
+          },
+          "sourceChars": 27,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 3,
+          "firstProviderContentChars": 27,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_6kgxh0gWaAqr0y2KQcXofQAj",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 64,
+            "totalLines": 241
+          },
+          "sourceChars": 2250,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 4,
+          "firstProviderContentChars": 2250,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_aMXpOM26yDpaCP7NGOz9YNEM",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 65,
+            "endLine": 112,
+            "totalLines": 241
+          },
+          "sourceChars": 1700,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 4,
+          "firstProviderContentChars": 74,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_nnNZLJOg8eNKFnCoAGENX04P",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 113,
+            "endLine": 159,
+            "totalLines": 241
+          },
+          "sourceChars": 1543,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 4,
+          "firstProviderContentChars": 1543,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_pxkpZIpkM2VWVsPcrVIujmkQ",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 85,
+            "totalLines": 1139
+          },
+          "sourceChars": 3256,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 4,
+          "firstProviderContentChars": 74,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_FIaV0m29HvqC87zCtF3TyrFp",
+          "file": "session-branch.test.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 95,
+            "totalLines": 207
+          },
+          "sourceChars": 3561,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 4,
+          "firstProviderContentChars": 3561,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_RqDa4wmJnPxXstmCUEv3IDO1",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 25,
+            "endLine": 62,
+            "totalLines": 1139
+          },
+          "sourceChars": 1707,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 5,
+          "firstProviderContentChars": 1707,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_9APMjrGJES2O0YkpE54lCx2D",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 64,
+            "endLine": 109,
+            "totalLines": 1139
+          },
+          "sourceChars": 1558,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 5,
+          "firstProviderContentChars": 74,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_hkr5BNRz9TIvqoi1UFO4gtF8",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 865,
+            "endLine": 939,
+            "totalLines": 1139
+          },
+          "sourceChars": 3205,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 5,
+          "firstProviderContentChars": 74,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_l1WGqfvKeWYt4oDiy26O9qZm",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 88,
+            "endLine": 113,
+            "totalLines": 241
+          },
+          "sourceChars": 1000,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 5,
+          "firstProviderContentChars": 74,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_b4JGh55v5xV0gCp2r0yFloaH",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 24,
+            "totalLines": 1139
+          },
+          "sourceChars": 799,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 6,
+          "firstProviderContentChars": 799,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_DBfEP5Ucc5QzHXW8YlGsC6m4",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 80,
+            "endLine": 108,
+            "totalLines": 1139
+          },
+          "sourceChars": 982,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 6,
+          "firstProviderContentChars": 982,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_sJIX6TMFqvmVQIh5EG5PofXO",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 480,
+            "endLine": 519,
+            "totalLines": 1139
+          },
+          "sourceChars": 1317,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 6,
+          "firstProviderContentChars": 1317,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_QWeskudercEXfh8ZmB4nay22",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 65,
+            "endLine": 87,
+            "totalLines": 241
+          },
+          "sourceChars": 736,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 6,
+          "firstProviderContentChars": 736,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_fGsdft0utnFU8JA9nNwT47Xp",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 88,
+            "endLine": 112,
+            "totalLines": 241
+          },
+          "sourceChars": 963,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 6,
+          "firstProviderContentChars": 73,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_7qR0DSG1isJtKF0mXVQNF5ew",
+          "file": "jsonl-session-store.js",
+          "range": {
+            "startLine": 6917,
+            "endLine": 6964,
+            "totalLines": 7813
+          },
+          "sourceChars": 1883,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 6,
+          "firstProviderContentChars": 1883,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_GnQpFPdYdCbi8K4vxyRk3bLC",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 160,
+            "endLine": 199,
+            "totalLines": 241
+          },
+          "sourceChars": 1624,
+          "readProgress": {
+            "newContent": false
+          },
+          "firstProviderRequest": 7,
+          "firstProviderContentChars": 1624,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_0WfNFioT8TCl51FfmOq5ghS9",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 200,
+            "endLine": 241,
+            "totalLines": 241
+          },
+          "sourceChars": 1304,
+          "readProgress": {
+            "newContent": false
+          },
+          "firstProviderRequest": 7,
+          "firstProviderContentChars": 1304,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_XlEFMXaFGmWPjetgpqIoqp1s",
+          "file": "repair137-verify-08.test.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 2,
+            "totalLines": 2
+          },
+          "sourceChars": 27,
+          "readProgress": {
+            "newContent": false
+          },
+          "firstProviderRequest": 7,
+          "firstProviderContentChars": 0,
+          "firstDelivery": "changed-or-released",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_CXbGpG3EKMiMungw91oNDIe3",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 62,
+            "totalLines": 241
+          },
+          "sourceChars": 2203,
+          "readProgress": {
+            "newContent": false
+          },
+          "firstProviderRequest": 8,
+          "firstProviderContentChars": 2203,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_6zdimtTz2rFYaSlBQyizKJFw",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 300,
+            "endLine": 369,
+            "totalLines": 1139
+          },
+          "sourceChars": 2792,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 8,
+          "firstProviderContentChars": 2792,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_MNWeCSSw7qspLlrLMnmb4k3R",
+          "file": "session-branch.test.js",
+          "range": {
+            "startLine": 96,
+            "endLine": 160,
+            "totalLines": 207
+          },
+          "sourceChars": 2717,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 8,
+          "firstProviderContentChars": 2717,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_7VkuKnBt3LoEfauKfFWf6CVV",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 1,
+            "endLine": 24,
+            "totalLines": 1139
+          },
+          "sourceChars": 799,
+          "readProgress": {
+            "newContent": false
+          },
+          "firstProviderRequest": 9,
+          "firstProviderContentChars": 0,
+          "firstDelivery": "changed-or-released",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_Z7sZhkttqdgMpYj8XnSaDmWn",
+          "file": "jsonl-session-store.js",
+          "range": {
+            "startLine": 6917,
+            "endLine": 6964,
+            "totalLines": 7813
+          },
+          "sourceChars": 1883,
+          "readProgress": {
+            "newContent": false
+          },
+          "firstProviderRequest": 9,
+          "firstProviderContentChars": 0,
+          "firstDelivery": "changed-or-released",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_Rc8HMVqu82VWrXMazEq26Jl0",
+          "file": "session-branch-history.js",
+          "range": {
+            "startLine": 63,
+            "endLine": 139,
+            "totalLines": 241
+          },
+          "sourceChars": 2552,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 9,
+          "firstProviderContentChars": 74,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_LBpp0EudZ9BGCwPyyxkI4QnS",
+          "file": "session-transcript-history.test.js",
+          "range": {
+            "startLine": 37,
+            "endLine": 79,
+            "totalLines": 1139
+          },
+          "sourceChars": 1675,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 11,
+          "firstProviderContentChars": 74,
+          "firstDelivery": "omitted-marker",
+          "everExactDirectDelivery": false
+        },
+        {
+          "callId": "call_OSfcquBlIKAo2m2pnC2bRvs0",
+          "file": "session-transcript-history.js",
+          "range": {
+            "startLine": 320,
+            "endLine": 351,
+            "totalLines": 463
+          },
+          "sourceChars": 1201,
+          "readProgress": {
+            "newContent": true
+          },
+          "firstProviderRequest": 11,
+          "firstProviderContentChars": 1201,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        },
+        {
+          "callId": "call_exCKoZxJSIGsgy0f8cPn3ehG",
+          "file": "jsonl-session-store.js",
+          "range": {
+            "startLine": 6917,
+            "endLine": 6939,
+            "totalLines": 7813
+          },
+          "sourceChars": 1005,
+          "readProgress": {
+            "newContent": false
+          },
+          "firstProviderRequest": 12,
+          "firstProviderContentChars": 1005,
+          "firstDelivery": "exact-content",
+          "everExactDirectDelivery": true
+        }
+      ]
+    }
+  ],
+  "minimalReproduction": {
+    "function": "safeHostToolResultForModel",
+    "module": "packages/cli/src/lib/tool-result-preview.js",
+    "tool": "read_file",
+    "hostRange": {
+      "startLine": 1,
+      "endLine": 1
+    },
+    "omittedValidJavaScript": [
+      "const a = [\"one\", \"two\",];",
+      "const a = {\"a\": 1,};"
+    ],
+    "acceptedControls": [
+      "const a = [\"one\", \"two\"];",
+      "const a = { a: 1, };"
+    ],
+    "scannerError": "Agent model JSON text is malformed or ambiguous",
+    "actualProductionExample": "session-branch-history.js lines 110-115: trailing-comma array of timeline-replacement/context-snapshot/branch-snapshot strings"
+  },
+  "conclusion": "Host source preview omitted valid JavaScript before the first provider request containing the tool result. Missing complete-source delivery explains repeated shrinking ranges and eventual guard stop. Current task binding survives main requests. Do not disable delivery guards, relax general JSON validation, or raise budgets."
+}

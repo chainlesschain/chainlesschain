@@ -2,9 +2,9 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.174] - CLI .137 and durable diagnostic recovery (candidate, 2026-11-01)
+## [0.37.174] - CLI .138 and durable diagnostic recovery (candidate, 2026-11-01)
 
-- Recommend CLI 0.166.137 and pair with JetBrains 0.4.190 only after verified upstream publication. Kernel remains 0.1.11.
+- Recommend CLI 0.166.138 and pair with JetBrains 0.4.190 only after verified upstream publication. Kernel remains 0.1.11.
 - Retain actionable compaction/provider diagnostics in chat, preserve saved tool-result identity across reload and reconciliation, and prevent loss of completed tool output during transcript updates.
 - Carry CLI source-delivery coverage and terminal Responses compaction failure repairs. Historical model acceptance remains 41/45; engineering checks do not rescore the image candidate.
 - Require complete exact-source IDE host gates and public VSIX readback. Microsoft Marketplace remains deferred.

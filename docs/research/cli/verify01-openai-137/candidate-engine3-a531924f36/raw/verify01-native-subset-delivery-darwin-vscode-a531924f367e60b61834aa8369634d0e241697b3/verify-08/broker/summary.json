@@ -1,0 +1,17 @@
+{
+  "formalSample": false,
+  "physicalRequestsStarted": 21,
+  "usageCompleteRequests": 21,
+  "tasks": [
+    {
+      "taskId": "verify-08",
+      "requests": 21,
+      "errorCode": null
+    }
+  ],
+  "poisoned": null,
+  "actualBilledCostUsd": null,
+  "tokenOnlyEstimateUsd": 0.6927655999999999,
+  "knownTokenOnlyEstimateUsd": 0.6927655999999999,
+  "fxRate": null
+}

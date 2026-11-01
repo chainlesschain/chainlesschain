@@ -163,7 +163,7 @@
       "testId": "rejects bypassPermissions when managed policy disables it",
       "producer": {
         "path": "packages/cli/__tests__/unit/headless-runner.test.js",
-        "sha256": "sha256:da4f2c58929486a7d3759a4e9cbcc61572807f1562f40bd4ea35e5e499744a22"
+        "sha256": "sha256:fe5739a1ebd84dced769731afc6e20e2c9074f744b8bd76d56d6c1aae2af10a3"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]

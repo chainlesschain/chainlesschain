@@ -1,0 +1,346 @@
+{
+  "id": "resp_0a498a3d881ab163016ae6d064573887d1bcc09a952cb24505",
+  "object": "response",
+  "created_at": 1793511524,
+  "status": "completed",
+  "access_programs": null,
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "completed_at": 1793511544,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 8192,
+  "max_tool_calls": null,
+  "model": "gpt-6.1-sol",
+  "moderation": null,
+  "output": [
+    {
+      "id": "rs_0a498a3d881ab163016ae6d065886487d1bc74af2185b4edda",
+      "type": "reasoning",
+      "content": [],
+      "encrypted_content": "gAAAAABq5tB49qXZjqQpDZkP_7kCzBrAQZN-cEPyGSDFilNk-HZR7ckwgBEmpHqQBWPV9kLarEvBn8D4Jvi9Z0WLQLg4-rotVb4TPq8zC-Wt5mdMSd54XHWgHVn8WSuuw0hle9d2I030PWeaVngWrPYIlkFP4O3ThIhkzr-Q77RHs95fkOp_9IZn1NLsU1qMv1HeX1vgmB_Ax74qSk5ka5YDgq5IQAziImTOa8REn2IDtT1Z6liTuLanzcVfcJE7-tyPl2F20EgJAbgU7dKrKL13ApY3e_1p4oHd5ksl4aveTG_6MENVSZiXVOdTK42hV-zGuKDQxQnLN7Nekx7MWQw393eE_Szzv2efGIrGhnirZlfu9J3l48cFL26mVKm784ZMR4CEZyveYfKYiP1ZV2MrEU3kOzz22GD60Ec9by5E62tzvOKqmJBjN6WCQ43PWYffixFUOGTrsssOuEj6M2t7-SL6YGKRAEv1emGnWy6t7k0xrkEA1fTKdDHHdFeO3ocohST3K3FBbcEhPmunoqjT9fcxIx89_tflDzQRvKz3KQt1wxPIW2r1B7cbBd8KW-BrmrAH2BRYNRVfbzF5bBGHRSNzGxtdyNEtcT_ThkTD1guUZn2RVYkt6XZiARIs_J9DxtAmi7cz5zuzA8OqRTds3kaV_jQA9sq2y_x79Ix9MzW1DwzDc6KmevjR699jc_Oa0DXGQ44QQjHe9GL_JIZdeidm8Ut9-Bq41wPjzaG2KueF37165sfqxIe6QB4vT305gZj6c29eL2PBq3YC-iTCp6qd-OMb7lR7G551EPqoN3tzNLIMJr3mCSV6PYLT2GTvKHg9kW7Mj7aztVagKLYYrFgtErYAtoSF3K-zPKmM-tghV9Lu8IYHLTRvYz3Pt7IBhTqj6sy5PXJPEQ0NvxPZna349tizmqdTFhLlu8tOCWCFP04DIAqc06RHBRD5Bdf-RKkM0iQVgdYsAd5nWDG9GnXoeDLkWo9u96YkMWbanC7jmfA3tJ-U6cbyA4RIkNpJkhtXRm00pFnjBEHcwG1PzrHciVBzb6Ah9bXX8PFNXp_GkGbWLNx4-WxKJwLBwGkuddC-SNcCjExGOsmaek5VKH4ykj-iRU4iDt3jdgKUDu74PiAxq1lom1JPpj-q9phpgS07tH87Xsi7wtC_dulImXcGeeg1I4oEBf6VrsCN7vPjsAcs_iIHflDeGVqdVX3KA2ix8UvucSv4XpfGwNS43GRoP2W0IEzSvfQWzgib6c2VWs2NfAut_oXxPTagVfXWNKQy4hUY-SBaxrNYGy_pysuHPboMfkkrP2di7PdEE4w1QyCw81zaqNkS8lQc_GG4S5ivQOhdi2tc1WKUwcrgt7a0uDJ-z9_XC-H4fbYpReFXWE3u7UnPZxZb2g0GZzqFJ8bbq0okEciug9w21R6jciTVI9DWJMTZRTNtSXXy3vQdT-nuGcxOJzMweEsiA67HaG_fROS3q-yhtPSs3nX8Zy3Z89irbQfsiE7r51JSnB5sBJ69X1DNM8PSH2dGHNbGc3cABWDgJYEbkZmKFzudTfAy_q14PLNgxz4EcrzaF0BzPynd9osaf-8Ovm3B6CJ8ltv35lkMMyvT3E0F81jg6vQyuesApib3Fi9hrqAGs8A66_Yp0MaSd52mM1V6YUSvdGjnR2uJKbsKrp_RCRwOWtbC0HoZreZisU3VqGyaZ1u7wcuJ9O7fb6NBEYFYTKdXK7ZXMdCkkTRriROA6K1ZQxTy6RyvbX8OBneyDEmHm33ZGvZVL7YiNEuV3sjAKXDGX9Jdnnm8ub2CQtsPAd1pXiK6Tibmpa1B6tTnOe2etfulpoCPyTq26tcYuMdMtcgeLS_DAXFbUYgiZ5Oce4ODCH19MfNKf5IXB72utThfi2Ia8ca7MleY9U3wvHcp_7YsJJTt6Vh0-Yd9Mc8_v6Pf7TfSoPnyohbgpvvkpP7RFdoGWeS03cE_PSlJObh9KP9ZW3FbaFoZw0Vp9l1qBnijnk2j4QFtSdn7Q-Sls8e-MVmN4R_WMf02AeCMBfU3GZ5BveJvpjXEgT-Olevc3g3La1VrZ2qrdwxB_RyuZxy72mn3iEWEd-rzpx1TBe7Qnx-js67jcwxwr4CQ-w5eTCftmJ_QIoSQCCr93zi_8D6Q2-gfOH42d-c6hkTcN8B4x6bV3VPwlNrhoUS_9jWkyG-NmAoLlJmrGO8jLshwg9VX8zkH19PmxSFlZ25KeN9clKoz00LbZA3AgqxliIquG9koS8bOsvcMBpN0Rw-RT0NywVC8LXyhwUCMbj4wA5g_A6nLszlPIhpNZo67xWcfb2gkktWo4DfKrr5XrlIXFczeQPeK1zpBWghU2tGt-J6RMAKWpjwgNtVhR20tu9VTIw4oVRm759MtWbbetqhNH6FJXaANK7Dlww-lDQ0TqwT5-1Tm5DdqgS2diqlE1eHFQnZVIMHtyaSufyRXI8ULqmzTTUyaW6IbBwSPKm6LPuQcWTodBXrNKJBm5khS5qPdpwhsIIImXceMSNdko_Ryy43MyTyXC_AorWijoNEk3XYMkOVuX1vvItXWAPxwWrhdlMz9-xkLnNvaPsN1Uxr7SR1mFyHn80qn_AJ_3azXiesiT4Bin5gGRLjqH_u4NOlz2G2Q1LqO-LiMS8Nt3Rm0-b2WmgETkgfzW5K4-MucDhjOSV3xY9ak0itjM7AFSA0c8rdBcDFL5fj9e7u2GaoLl8k0pWdvlu0n2M87DBiPl4yt_0hXFUmv_g66andLVCP7NTzVuBWWtEdIvg3to5uzMv0-EYcueFuEQHz8zVfoUQsAdgAcaKU2HJCXNO0kW4mZTjUWYuV5Og6eogxwjcfYwTj26nsxLmtxYX9Xq7GdDwONXGPY3VKksGNtKpLrb2mhq4cp_G9EtwA601o4_cXSB-Rb3UHWzitoorIaQJemvTC919yqw5H2lFdFWt0c40gFpuowTRnB8TRcjRZsp-KK2ul7HJ1eg82vQLrvVxIh2bOFqPfLXu2cJrpkAc3OcJauMC57zygmx3MSudakfPFOD-dDPKJGKmgXC6N0l5JsTHpGoefqZVBnW0gIMdaEl7FZGEgmIyUqWkzmUDh7n8aJMyb1Kqf7PDHBif19UTSd5kPjFbh5HAC3kYxzIjF_YQt0JVNfxpItMjDDvR4O9S6bx0j1vi7Tq6bSwC5SX6ay70L_ko_HgoCRDfiS-mQG9DwCAPCg1h6lbcv1jhMx93fqynfncc0yYot9kWwAHOjrrF3EqdTBuw5weFbM4locXHAbyMHcO5c_Az6RJRqxcsPReQyATiOdXQkm74s-8TllUHOUo74naWq3gjVPAwgnWnEhKhNgJAK2cyU5fz3dxy1tAzfuIMMMXmOPmbmB6mLEmnXFyuiuzrgfa7IHh7D99hA6UkOPB4uR3TL9xsKVwiqOqBqKBzqTWVESjYp4otiJTSmWHnTkHllsInU7t5PLv28ta4utUCKPFpaX3aHqhChU6zCRYHEKf10mkBVtOLV3S-L5QzlsUU4H6h6iV_UE_Cx5Kmy_MGCL44uuSPAEXiC5XnS7WC9C_QVLkfuRuSgxuyCak-ZjLOSeHZh7EMlaJuezOjXQUgO3LD1Dq04fgxLVFBRnJRTY79yyFXH2pZ-qk9OjbDqnd2cebIoajDx61mfEzMPw9uUi-MhIg5YPXIKWvHvN_pq3VeMYuZ8VHCnX59yJcl7EkxqTeIuHnIP8mLkHOXSPQaKng-272LocGk8aFdhEd0q_p0BnupHEehBespeiR5GTnw39lRisH6DOrjJ_ddibnWrsPTf6CMPLq8oXhX2HFY_vpFEa8LVgH3giYWStUmgqvbSwXxJmiYHJiWPRGhmPXK41g10Pnx9ssgBi6R7AghADkCc1KYK7X7O5EzKiUCq7cVZbmshjvaBfA0c3t3alwi5yve0WSFz6-TMFm1BuDZ5-LXdl1lPCZ-CAW8UVWt6pZUT6Onem-ihngGj3DxMPaUqikjJ3bMIw7IXZ9h_hGaLNW0KiA9JcDp7_7ze3MJr1x6dq3JN0pT7xUAb0551UyNQTYq0rxw73jYihaz4CTtubLvExFEhy2FWD1l20ibvCB3XM1feVzCGBjSg7LK9btRxsrQIWArjLtCEhfiWAgeWRLvkYFVo8YFMBVZKmfNIurH8T0JyW8hAIepILo1BxT8LoAS-M_8nc32FdvMQjChVQvIRfo_3Sbqt3nSgoWtbEIRQX9tF-psuM6H8315sFUNLc8bSiunF7aakcQamhCw3TvGoHRK73Ba24f0uBO1B8PIgkdsEVowBJRtTfhlSKHfp8DvCYbII70RRg8Fc428uQNcZV6bW9X7YHoNFJvTWiVWj8OoXkXKK8hdgFOyd1CdBZKjKcFQGDp6nsYZiQXGH_AfVrzAAhSYGhsXVVJ-NMsAgCCpXNPLQFRPIvLn4e3jNJkdE1P6_EQjsgfSkh1QZ816sVlsrN9sS1sMHVNcKm47benngVAtr5PYWdAdCgl7EWqAPhiusBPxBcF9upLzcLilWXBtyDyEICq10cg169EHUeG96niohoUObSwgjRhBPbS7b9MNf0WAWHsT6sZKAO4uOwRzd_jzDK0-4mKR9-UuG7CRLsqodYHJTyNMMGAr6nLQJvVup1bk3ddxif1IXVldzXpSdxnU1vtr-sOviGkJmRYg4Jlow0Ua1VCdvgmxkLen7MUKnbGztm0bchc5ndCtExC9S1wT6n8ORpr4b-mMVsTKzo68ZeoPDtp44vmtnrK9Uhys3JLu9qtwyGyds13z4z6uWbtLf08VqH9rC5dOSiZc1gSxXFTqMEgH_D9gj86FaaB0Knem-urmF_0JxGP8C5P8uQHUM1QIAEe0B9YYOMYNG0VFBVor3RjpSpiQlc22IssVL6h67isPSRT0fKh8FeS5rHxSMd38UK2AWOqABu5pG2y6Zm3e5n2ykNmlFEG2Rsk5Mf0rvjgGg0dy8s60Tm_XTJhV04rWGTatInd7k99Xy4w1FzWVxq9qSOzBIe6whfLAz-spI0ORP-dbM80P1PcBpEHeZ-WfgTLUh0W5Mr7Ux_cVrsCSw05rPXfqxuvVVZq07cm0Js_W-aPX7mujpPdvFOYJr72AbE-rFf6ZofnpVRimy2xqh5-dFARaAXtTaaLaNYvKWhGckZqm08J2d00vql1M4a_1JyBcde99wl3Ja6OrwXvmS2bEpY7yQ1Zof24qmmkUJwcCNcM-PC49fk7TyI83mpuVnRgkeu_hA39jGAdQfaMRRSnFh41oj_XIut8wXrgM7738JRQi4IoIMNU7xOmH8nRWMZGhnigQDcacjfheV6vjCDZVuhwlTYYdm4LbzVGmayGmb5PADTQSq06N2y6AL05uoVqFz4XuBtyhuf6soUitwWkA3Zy9SAQl3aFSXDXl604keAQvYrSIlj57R2hzFXOgVRZFtnaNx9j_B0N2LWhxjqExd-2FpQ4wqfR7uFKtbl_96LQVbVril_T4f7JtyI2GKwIZ_Xnl-YY1ESNJn_yqZ-2MXeKjQtCi54ZsaXSpgcZ_9zCzoMURy9kYfNiu09Sz5Z71H1cmPC4_WkI_76n-twiqvC5fVEtTvzqtU18FPo7DSp0Pay9hfac0_VhW4Sno4Zt-Hx8uZ1unwop_EqT3tgaRH5X80ClNK_rfWyywd7ZeJcjOKp3EF1cxO3OnBnbEJ-tP-B5ZWiTtMgzR7XrOt3lzmsqkCA81j70vmPp-QuU6xCunGn_I57Z4gWSoXaCOUaHVJywGed65-AB85YdCf0a3GHvfwFLaiQdl4nbGPHu1ZmvHTYErWVqREu9BEE2GDrDlBgIFZOm5YyKkYJE9YbM2ZjzpQWPlPwzZYhO05BkfgbvETINr5bzbli-rJYc3ccRPKh115VfugSmQ__STh95J6rXoQSW2zfevOY-oVHFpKgPmCV29UPhM6w3d61md9IDddhY62oQHQ-RxeWz4j3QsSaAy4MZzTjp83Hbhvle2lnEQTKmTrq_7fm_fudjlOMKf0HrpOryu1IYUIL3waJxDmInKa16Tp94SZJLeDe6iCyB6OD3ca_FCVUri1sVm8JJ13o5nB2lLNexvhQqUQZhUP5uIYqBKAq56ClxYtpR7Op0eDREujokMQkSmnDGAKvNtOh-tAt8ALO8OtLHSd6Jpde-QOpgPamRu1MmZ0dXd_LsTRA-vTBhQFGdgKVULBpZZSqrXDmVdevicObW2lIkei6tdQHhCP-nerQSUZ00bBVGdj_t22UHrBRvRl23eOeVoUzre8af6CRvuGBnCd_CDDn8hmXp5yWx1OkQ66RX8zo1bEbc0EsMbNEjwYVpqJEf2i238drufPEHZPuOnUwmzyBUL9hqeLno6lQkr8NCT6Sc5oykW1aO4g4neoucg-nXzxeTXEDD_UinC1XiZ8xMJL0CfX89lN0AwRPyMaU5VFVUAHLIilPd_phKQnDHWSKRHi6BMXqsEIrXSFSjhwZ1iP_yShDKpggIQWaYhqJPX8C7BsKpdkUyfe0N9gbfq9s8VPt5rgHU5wI64bkwFjVE80RrMdwoFJfKH0jnUJbHRLQNBdI6pC49yQXGUwM2C__JZtq_vwwqBCnaGlsV3Yrc8PPRGo9uWKffD7XKJ5k9Qi-wLLJ54p5514DNdlFGnYxKyFPoNP_H3YJnFxwOWDDE_Qw37TZpadE8c9ya_YkT3EW6YUzbCq78IXgLr_EzX4bsAN3ylPD4IxxjgHD6ru6hKU-4IazWxXzqGVttv3mnEQYwejWuHHYYqbprZ3r5an-CNMWuT4hNjRQS_V6CET-MZH4WqGWsQ30T2DFSZxRBUbhMkyOOeApU11COtuPAFkpPXBumHE1Rm3xf1K7MlVklOUCxchqNgDcvnqMHrLIWJErk96S73OrJ-4VmyUosaeFVLvzuBPyixnD_94vihnIZDRILpy9NyBB-wmoESD_oEFDPbdeGsE4jtoXeARrFQqIPmRDKef0AUTe36YNYbrUAwKsZdsYF5Mfz3ui5AzaQlxJefDpI5pwacROWAA4a0Y1bXoITMkws86RR628ytIRH5uCSaybxb61jMvN8jO1IbmLdDFTP8TrDvp4DLj_1StIBdw0OLrYtwIlqFPC_xCPjXP5TmS1GqtWzikH56vblzFlN8kRbc1SZXjPpekIRUjVKu0ail-aQAFzORm178aN7ZL90HUnwM_Hji13_rVJkd76LjJmhrPU9QMBaAliHU5wwdE08-0JEISUK_UcX_V8EMyiOm4uohixZbRYzsE8KAloYKXIvuo72LnT_oijuwbTyKUPuPaARujL5ENtHwvC69LrLRs_tVlBV2_89jZXF06yb4vVAITnSk-EuZTqZgxcBNtXPlncFYNgqLIkqZLxcW2p2cDoVILSa1KSs0yzdrYxtOy3NhjyFSuwRDVbgju-etLfjrpeJLCRTY2FA3eLZICaqd4wRC0RgFtWwQ_wfA1qNADkxuopvd65G9bgs1lLbpa_gCi9TBKn5cjjBDVH4v2G7jo2Yuu0i0YYdLaL4ME-PaGy8C8CoYmdIVOLbnvwSJAHps8qHjuBphQE7xto4etVmd74fMw6-D4fxTD0jvqGhB_YsWMZz_OywVTnEKtouAoKVu70VAxF6CWIoaw1xS_EVzVRjmz0e5C5LRGzHm64W4binKl2CHH5DkBaQyetT7lLXVTsJQvWEnRTadk8HN5Otc0oiEFNc8WLTdph1E3l1vxQIn-jsHaw3Nl8Oq3F3htFXW5Q42qvWAIgH34-_y52kjnIMuqclPbPwhhjrBb1QhZh2LRiyr6VFyidjXDhHIAntL8GEB5FLADhSBIoRD44muUXDuAqL47oi1c316HQrAS-DYtRq9Ng7525WMPbbEQ1_yG64-JQlYxw2vN2KB8CzLTqsYOPIcnHcCkK_HeXAtoDpYQn4j8br-F-N34_j7BSz4-j2hSLBVaX4NHu5RulRdL35TjV5Kh9UDsfY1X19TReS1u6X7fVEaX48WIHb82OMbPtOVm-pxm-bTlczcKqY_qWrnHyOGwelIrIfzSL5Gi5I2IQXNpyYlGuHiJBGAOIEuWstXSOgOeNem9VehYFK2GTWMJOHDxJA22IeqP1BTUrt3fcc5P4LRiqYrMSdJglv1KxRL2CFx0IeFKN2TNnNijf4y2zMs2XPWI8I58_L1JIqaL2nbzSdATzddQlPOGyjEfBNLo-GwE9Bnald1A4lst7_66csh4gkbhEDMqXDUCEeLQUdfyiE8k94t5_zPKxDgNT8rbBUDT18o5DjWJfpZFvkp-AxLtiRnJ_yfZ1iGhNc7ZorX8mcay8qbKL0oqWnSWTDYwysmCZBX6MnxgOk9gKaKTlzbOdVc4oCp3_sB-zgvZLQz112JLopgMayKgQqfV-ndhBoRNX8zSWPRyo21Ary0qSxfotwBHX1PXySx7djwoJZTnGyEp1zrKIxMK7b_7NlkT0vLYqlKjwuz9-seVE3vLhhQwQ66aRpma_7cMu9HP9qTU9NKMP1XYddY-dB8J_i_DcMgVgb8YX0lHBwBc1AAR5Mg==",
+      "summary": []
+    },
+    {
+      "id": "msg_0a498a3d881ab163016ae6d06e86e087d194a5d81efa74cddd",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "\u6307\u5b9a\u6e90\u7801\u53ea\u8d1f\u8d23\u8bf7\u6c42\u89c4\u8303\u5316\uff0c\u53d6\u6d88\u4e0e\u5ba1\u6279\u8def\u7531\u7531\u73b0\u6709\u6d4b\u8bd5\u8c03\u7528\u7684\u6d41\u5f0f\u8fd0\u884c\u65f6\u5904\u7406\u3002\u6211\u5c06\u8865\u5145\u201c\u6b63\u5e38\u63a5\u53d7\uff0f\u53d6\u6d88\u540e\u8fdf\u5230\u63a5\u53d7\u201d\u7684\u5bf9\u7167\uff0c\u5e76\u5206\u522b\u9694\u79bb\u65e7\u8bf7\u6c42 ID\u3001\u65e7 binding\uff0c\u907f\u514d\u56e0\u53e6\u4e00\u9879\u4e0d\u5339\u914d\u800c\u8bef\u5224\u8986\u76d6\u3002\n"
+        }
+      ],
+      "phase": "commentary",
+      "role": "assistant"
+    },
+    {
+      "id": "fc_0a498a3d881ab163016ae6d06fcb5c87d1b77812af87f74e4c",
+      "type": "function_call",
+      "status": "completed",
+      "arguments": "{\"path\":\"packages/cli/__tests__/repair137-verify-19.test.js\",\"content\":\"import \\\"./helpers/test-model-egress.js\\\";\\nimport { describe, expect, it } from \\\"vitest\\\";\\nimport { PassThrough } from \\\"node:stream\\\";\\n// From __tests__, ../src resolves to packages/cli/src (not ../../src).\\nimport { normalizePermissionRequest } from \\\"../src/lib/permission-request.js\\\";\\nimport { runAgentHeadlessStream } from \\\"../src/runtime/headless-stream.js\\\";\\n\\nconst request = normalizePermissionRequest({\\n  tool: \\\"run_shell\\\",\\n  args: { command: \\\"echo fixed\\\" },\\n});\\n\\nfunction send(input, event) {\\n  input.write(JSON.stringify(event) + \\\"\\\\n\\\");\\n}\\n\\nfunction verdict(card, approve, overrides = {}) {\\n  return {\\n    type: \\\"approval\\\",\\n    id: card.id,\\n    binding: card.binding,\\n    approve,\\n    decision: { kind: approve ? \\\"acceptOnce\\\" : \\\"decline\\\" },\\n    ...overrides,\\n  };\\n}\\n\\nasync function runApprovals({ count, onRequest, signal }) {\\n  const input = new PassThrough();\\n  const events = [];\\n  const decisions = [];\\n  const cards = [];\\n  send(input, { type: \\\"user\\\", text: \\\"request permission\\\" });\\n  try {\\n    const outcome = await runAgentHeadlessStream(\\n      {\\n        expandFileRefs: false,\\n        interactiveApprovals: true,\\n        settingsHooks: {},\\n        signal,\\n      },\\n      {\\n        bootstrap: async () => ({ db: null }),\\n        getApprovalGate: async () => null,\\n        input,\\n        writeErr: () => {},\\n        writeOut(line) {\\n          const event = JSON.parse(line);\\n          events.push(event);\\n          if (event.type === \\\"approval_request\\\") {\\n            cards.push(event);\\n            // Let the real confirmer finish registering before delivering input.\\n            queueMicrotask(() => onRequest({ input, event, cards }));\\n          }\\n        },\\n        agentLoop: async function* (_messages, options) {\\n          for (let index = 0; index < count; index += 1) {\\n            const approved = await options.permissionConfirm({\\n              tool: request.tool,\\n              args: request.args,\\n              toolCallId: `regression-call-${index}`,\\n              riskLevel: \\\"medium\\\",\\n            });\\n            decisions.push(approved);\\n          }\\n          // Complete the worker, including in the cancellation case.\\n          input.end();\\n          yield {\\n            type: \\\"response-complete\\\",\\n            content: JSON.stringify(decisions),\\n          };\\n          yield { type: \\\"run-ended\\\", reason: \\\"complete\\\" };\\n        },\\n      },\\n    );\\n    return { outcome, events, decisions, cards };\\n  } finally {\\n    input.destroy();\\n  }\\n}\\n\\ndescribe(\\\"approval ownership after cancellation or acceptance\\\", () => {\\n  // Same command and risk on both requests: unrelated prerequisites stay valid.\\n  // Each stale-field case changes exactly one routing field from a valid accept.\\n  it.each([\\n    [false, \\\"current\\\"],\\n    [false, \\\"retired-id\\\"],\\n    [false, \\\"retired-binding\\\"],\\n    [true, \\\"current\\\"],\\n    [true, \\\"retired-id\\\"],\\n    [true, \\\"retired-binding\\\"],\\n  ])(\\\"first accepted=%s, second callback=%s\\\", async (firstAccepted, route) => {\\n    const result = await runApprovals({\\n      count: 2,\\n      onRequest({ input, event, cards }) {\\n        if (cards.length === 1) {\\n          // Declining cancels this approval, without closing the live session.\\n          send(input, verdict(event, firstAccepted));\\n          return;\\n        }\\n        if (route === \\\"current\\\") {\\n          send(input, verdict(event, true));\\n        } else {\\n          const retired = cards[0];\\n          send(input, verdict(event, true, route === \\\"retired-id\\\"\\n            ? { id: retired.id }\\n            : { binding: retired.binding }));\\n          // A real current verdict completes the worker if the stale ID is\\n          // ignored. If it was wrongly accepted, the true result exposes that.\\n          send(input, verdict(event, false));\\n        }\\n      },\\n    });\\n\\n    expect(result.outcome).toEqual({ exitCode: 0, turns: 1 });\\n    expect(result.cards).toHaveLength(2);\\n    const [first, second] = result.cards;\\n    expect(first.id).not.toBe(second.id);\\n    expect(typeof first.binding).toBe(\\\"string\\\");\\n    expect(first.binding.length).toBeGreaterThan(0);\\n    expect(typeof second.binding).toBe(\\\"string\\\");\\n    expect(second.binding.length).toBeGreaterThan(0);\\n    expect(first.binding).not.toBe(second.binding);\\n    for (const card of result.cards) {\\n      expect(card).toMatchObject({ tool: \\\"run_shell\\\", command: \\\"echo fixed\\\" });\\n    }\\n    expect(result.decisions).toEqual([firstAccepted, route === \\\"current\\\"]);\\n    const resolved = result.events.filter((event) => event.type === \\\"approval_resolved\\\");\\n    expect(resolved).toHaveLength(2);\\n    expect(resolved[0]).toMatchObject({ id: first.id, approved: firstAccepted });\\n    expect(resolved[1]).toMatchObject({\\n      id: second.id,\\n      approved: route === \\\"current\\\",\\n      via: route === \\\"retired-binding\\\" ? \\\"binding-mismatch\\\"\\n        : route === \\\"retired-id\\\" ? \\\"user-deny\\\" : \\\"user-approve\\\",\\n    });\\n  });\\n});\\n\"}",
+      "call_id": "call_IIuPxmdOyM2tYN9ARx16Pd8k",
+      "name": "write_file"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+    "context": "all_turns",
+    "effort": "medium",
+    "mode": "standard",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "total_tokens": 0
+    },
+    "web_search": {
+      "num_requests": 0
+    }
+  },
+  "tools": [
+    {
+      "type": "function",
+      "description": "Read a file's content. Use search_files to locate relevant sections and offset+limit to read them. For large files, follow the returned nextRead cursor; range describes only the lines actually returned. Reuse unchanged content already in context instead of re-reading the same page. Jupyter notebooks (.ipynb) are rendered as a compact cell listing for notebook_edit \u2014 pass raw:true for underlying JSON.",
+      "name": "read_file",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "File path to read"
+          },
+          "offset": {
+            "type": "integer",
+            "description": "1-based line number to start reading from (omit to read from the top). Use with limit to page a large file."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of lines to return starting at offset (omit to read to end, subject to the size cap)."
+          },
+          "column": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "1-based character position within the first rendered line. Use the column from nextRead to continue an oversized single line without repeating its beginning."
+          },
+          "hashed": {
+            "type": "boolean",
+            "description": "Prefix each line with a 6-char content hash for edit_file_hashed anchoring"
+          },
+          "raw": {
+            "type": "boolean",
+            "description": "For .ipynb: return the raw notebook JSON instead of the rendered cell listing"
+          }
+        },
+        "required": [
+          "path",
+          "offset",
+          "limit",
+          "column",
+          "hashed",
+          "raw"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "Write content to a file (create or overwrite). For a large new file, write a small complete section first, then extend it with edit_file using a unique existing anchor. Aim for a few thousand characters of new content per call and wait for the result before continuing; each write_file call replaces the whole file.",
+      "name": "write_file",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Use exactly one listed canonical repo-relative path. Read tools may return absolute paths; those are not valid mutation arguments in this run. Do not use an absolute path, ./ prefix, .. segment or backslash. This schema is guidance; all execution-time permission and file-identity checks still apply.",
+            "enum": [
+              "packages/cli/__tests__/repair137-verify-19.test.js"
+            ]
+          },
+          "content": {
+            "type": "string",
+            "description": "File content"
+          }
+        },
+        "required": [
+          "path",
+          "content"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "Replace a string in a file. old_string must match EXACTLY ONE place \u2014 include enough surrounding context to make it unique, or the edit is rejected. To extend a file in small complete sections, use a unique existing anchor as old_string and retain that anchor plus the new section in new_string; do not resend the whole growing file. Wait for each edit result before continuing. Pass replace_all:true to change every occurrence instead.",
+      "name": "edit_file",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Use exactly one listed canonical repo-relative path. Read tools may return absolute paths; those are not valid mutation arguments in this run. Do not use an absolute path, ./ prefix, .. segment or backslash. This schema is guidance; all execution-time permission and file-identity checks still apply.",
+            "enum": [
+              "packages/cli/__tests__/repair137-verify-19.test.js"
+            ]
+          },
+          "old_string": {
+            "type": "string",
+            "description": "Exact string to replace; must be unique in the file unless replace_all is true"
+          },
+          "new_string": {
+            "type": "string",
+            "description": "Replacement string"
+          },
+          "replace_all": {
+            "type": "boolean",
+            "description": "Replace every occurrence of old_string instead of requiring a unique match (default false)"
+          }
+        },
+        "required": [
+          "path",
+          "old_string",
+          "new_string",
+          "replace_all"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "Replace a single line in a file, anchored by its content hash. Use this instead of edit_file for robust edits: each line of read_file output (with hashed:true) is tagged with a 6-char hash like 'a3Kp9Z| const x = ...'. Pass the hash as anchor_hash, the current line as expected_line, and the replacement as new_line. Rejects edits if the line drifted (hash mismatch) \u2014 retry by re-reading the file with hashed:true.",
+      "name": "edit_file_hashed",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Use exactly one listed canonical repo-relative path. Read tools may return absolute paths; those are not valid mutation arguments in this run. Do not use an absolute path, ./ prefix, .. segment or backslash. This schema is guidance; all execution-time permission and file-identity checks still apply.",
+            "enum": [
+              "packages/cli/__tests__/repair137-verify-19.test.js"
+            ]
+          },
+          "anchor_hash": {
+            "type": "string",
+            "description": "6-char base64url hash of the line to replace (from read_file with hashed:true)"
+          },
+          "expected_line": {
+            "type": "string",
+            "description": "Current content of the line \u2014 used as a second-layer check against hash collisions. Compared after .trim()."
+          },
+          "new_line": {
+            "type": "string",
+            "description": "Replacement line content (without the hash tag prefix). Preserve the original indentation."
+          }
+        },
+        "required": [
+          "path",
+          "anchor_hash",
+          "expected_line",
+          "new_line"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "Search for files by name pattern or content. For a long text file, pass path and pattern: returns matching line/column positions, nearby context, and nextRead arguments for read_file. This streams the file instead of loading it into model context. Continue capped results with nextOffset as offset. Omit path for the existing directory search.",
+      "name": "search_files",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string",
+            "description": "Glob pattern or search string"
+          },
+          "path": {
+            "type": "string",
+            "description": "One text file to search by literal keyword (takes precedence over directory/content_search)."
+          },
+          "regex": {
+            "type": "boolean",
+            "description": "Single-file search only: evaluate a regular expression in overlapping 64K text windows (default false). Prefer literals for exact coverage across window boundaries."
+          },
+          "caseSensitive": {
+            "type": "boolean",
+            "description": "Single-file search only: match case (default false)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Single-file search: zero-based character offset to continue from nextOffset (default 0)."
+          },
+          "maxMatches": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Single-file search: maximum matching excerpts (default 20)."
+          },
+          "contextChars": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000,
+            "description": "Single-file search: characters around each match (default 150)."
+          },
+          "directory": {
+            "type": "string",
+            "description": "Directory to search in (default: cwd)"
+          },
+          "content_search": {
+            "type": "boolean",
+            "description": "If true, search file contents instead of names"
+          }
+        },
+        "required": [
+          "pattern",
+          "path",
+          "regex",
+          "caseSensitive",
+          "offset",
+          "maxMatches",
+          "contextChars",
+          "directory",
+          "content_search"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "List contents of a directory",
+      "name": "list_dir",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Directory path (default: cwd)"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "strict": true
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 19364,
+    "input_tokens_details": {
+      "cache_write_tokens": 16268,
+      "cached_tokens": 2252
+    },
+    "output_tokens": 1952,
+    "output_tokens_details": {
+      "reasoning_tokens": 516
+    },
+    "total_tokens": 21316
+  },
+  "user": null,
+  "metadata": {}
+}

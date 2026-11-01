@@ -1,0 +1,142 @@
+import "./helpers/test-model-egress.js";
+import { describe, expect, it } from "vitest";
+import { PassThrough } from "node:stream";
+// From __tests__, ../src resolves to packages/cli/src (not ../../src).
+import { normalizePermissionRequest } from "../src/lib/permission-request.js";
+import { runAgentHeadlessStream } from "../src/runtime/headless-stream.js";
+
+const request = normalizePermissionRequest({
+  tool: "run_shell",
+  args: { command: "echo fixed" },
+});
+
+function send(input, event) {
+  input.write(JSON.stringify(event) + "\n");
+}
+
+function verdict(card, approve, overrides = {}) {
+  return {
+    type: "approval",
+    id: card.id,
+    binding: card.binding,
+    approve,
+    decision: { kind: approve ? "acceptOnce" : "decline" },
+    ...overrides,
+  };
+}
+
+async function runApprovals({ count, onRequest, signal }) {
+  const input = new PassThrough();
+  const events = [];
+  const decisions = [];
+  const cards = [];
+  send(input, { type: "user", text: "request permission" });
+  try {
+    const outcome = await runAgentHeadlessStream(
+      {
+        expandFileRefs: false,
+        interactiveApprovals: true,
+        settingsHooks: {},
+        signal,
+      },
+      {
+        bootstrap: async () => ({ db: null }),
+        getApprovalGate: async () => null,
+        input,
+        writeErr: () => {},
+        writeOut(line) {
+          const event = JSON.parse(line);
+          events.push(event);
+          if (event.type === "approval_request") {
+            cards.push(event);
+            // Let the real confirmer finish registering before delivering input.
+            queueMicrotask(() => onRequest({ input, event, cards }));
+          }
+        },
+        agentLoop: async function* (_messages, options) {
+          for (let index = 0; index < count; index += 1) {
+            const approved = await options.permissionConfirm({
+              ...request,
+              toolCallId: `regression-call-${index}`,
+              riskLevel: "medium",
+            });
+            decisions.push(approved);
+          }
+          // Complete the worker, including in the cancellation case.
+          input.end();
+          yield {
+            type: "response-complete",
+            content: JSON.stringify(decisions),
+          };
+          yield { type: "run-ended", reason: "complete" };
+        },
+      },
+    );
+    return { outcome, events, decisions, cards };
+  } finally {
+    input.destroy();
+  }
+}
+
+describe("approval ownership after cancellation or acceptance", () => {
+  // Same command and risk on both requests: unrelated prerequisites stay valid.
+  // Each stale-field case changes exactly one routing field from a valid accept.
+  it.each([
+    [false, "current"],
+    [false, "retired-id"],
+    [false, "retired-binding"],
+    [false, "retired-callback"],
+    [true, "current"],
+    [true, "retired-id"],
+    [true, "retired-binding"],
+    [true, "retired-callback"],
+  ])("first accepted=%s, second callback=%s", async (firstAccepted, route) => {
+    const result = await runApprovals({
+      count: 2,
+      onRequest({ input, event, cards }) {
+        if (cards.length === 1) {
+          // Declining cancels this approval, without closing the live session.
+          send(input, verdict(event, firstAccepted));
+          return;
+        }
+        if (route === "current") {
+          send(input, verdict(event, true));
+        } else {
+          const retired = cards[0];
+          const staleFields = route === "retired-id"
+            ? { id: retired.id }
+            : route === "retired-binding"
+              ? { binding: retired.binding }
+              : { id: retired.id, binding: retired.binding };
+          send(input, verdict(event, true, staleFields));
+          // A real current verdict completes the worker if the stale ID is
+          // ignored. If it was wrongly accepted, the true result exposes that.
+          send(input, verdict(event, false));
+        }
+      },
+    });
+
+    expect(result.outcome).toEqual({ exitCode: 0, turns: 1 });
+    expect(result.cards).toHaveLength(2);
+    const [first, second] = result.cards;
+    expect(first.id).not.toBe(second.id);
+    expect(typeof first.binding).toBe("string");
+    expect(first.binding.length).toBeGreaterThan(0);
+    expect(typeof second.binding).toBe("string");
+    expect(second.binding.length).toBeGreaterThan(0);
+    expect(first.binding).not.toBe(second.binding);
+    for (const card of result.cards) {
+      expect(card).toMatchObject({ tool: "run_shell", command: "echo fixed" });
+    }
+    expect(result.decisions).toEqual([firstAccepted, route === "current"]);
+    const resolved = result.events.filter((event) => event.type === "approval_resolved");
+    expect(resolved).toHaveLength(2);
+    expect(resolved[0]).toMatchObject({ id: first.id, approved: firstAccepted });
+    expect(resolved[1]).toMatchObject({
+      id: second.id,
+      approved: route === "current",
+      via: route === "retired-binding" ? "binding-mismatch"
+        : route === "current" ? "user-approve" : "user-deny",
+    });
+  });
+});

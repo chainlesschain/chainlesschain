@@ -1,0 +1,57 @@
+{
+  "id": 2,
+  "taskId": "verify-36",
+  "startedAt": "2026-11-01T08:50:51.565Z",
+  "usage": {
+    "input_tokens": 9133,
+    "input_tokens_details": {
+      "cache_write_tokens": 5129,
+      "cached_tokens": 3927
+    },
+    "output_tokens": 166,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 9299
+  },
+  "tokenOnlyEstimateUsd": 0.0124647,
+  "actualBilledCostUsd": null,
+  "errorCode": null,
+  "responseMode": "sse",
+  "finish": "tool_calls",
+  "estimateExcludesUnreportedCacheWritesAndOtherFees": true,
+  "responseId": "resp_0858db17d6c20ef1016ae6fd6bb49c87d1a1ef6aa1e4d3dbd6",
+  "model": "gpt-6.1-sol",
+  "serviceTier": "default",
+  "finishedAt": "2026-11-01T08:50:54.204Z",
+  "transport": {
+    "socketAssignedMs": 1,
+    "dnsLookupMs": 2,
+    "tcpConnectedMs": 15,
+    "tlsConnectedMs": 30,
+    "dispatchStartedMs": 30,
+    "requestFinishedMs": 30,
+    "responseStartedMs": 348,
+    "dispatchStarted": true,
+    "failureCategory": null,
+    "connectionAttempts": [
+      {
+        "event": "start",
+        "family": 4,
+        "elapsedMs": 2,
+        "errorCode": null
+      }
+    ],
+    "nestedErrorCodes": [],
+    "errorCode": null,
+    "errorSyscall": null
+  },
+  "response": {
+    "storedSha256": "eb6b91e770fe4d2129bc43ceaea16f3a7adcc921c347e0236247793aafea63c0",
+    "storedBytes": 28370,
+    "status": 200,
+    "originalSha256": "eb6b91e770fe4d2129bc43ceaea16f3a7adcc921c347e0236247793aafea63c0",
+    "originalBytes": 28370,
+    "sensitiveValueRedacted": false
+  }
+}

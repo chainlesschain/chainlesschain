@@ -1,0 +1,191 @@
+{
+  "schema": "chainlesschain.repaired-engine-five-prepublication-plan/v1",
+  "createdAt": "2026-11-01T08:05:17.810Z",
+  "status": "verified-candidates-prepared-not-dispatched",
+  "scope": "fresh-repaired-engine-five-before-release",
+  "projectRevisionFile": "docs/research/cli/verify01-openai-137/candidate3-project-revision.json",
+  "projectRevisionDigest": "sha256:d9ddcedf54685b526f9df39a40deb45b70d22de1ce539f9e1473b37a0577dbe9",
+  "projectSource": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+  "engineSource": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+  "selectedSampleIds": [
+    "verify-08",
+    "verify-13",
+    "verify-19",
+    "verify-36",
+    "first-run-darwin-vscode"
+  ],
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "api": "Responses",
+  "reviewChanges": true,
+  "packageSelection": "prerelease",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-01-prerelease-137-r3.json",
+  "packageSetDigest": "sha256:c787fb5a8efb109eb20c35e9e46e68d7c7989f348dd5952d03e6ced15f33792a",
+  "versions": {
+    "cli": "0.166.137",
+    "vscode": "0.37.174",
+    "jetbrains": "0.4.190",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "prepublication": {
+    "schema": "chainlesschain.verify01-prerelease-package-set/v1",
+    "distribution": "prerelease-actions-artifact",
+    "repository": "chainlesschain/chainlesschain",
+    "workflow": ".github/workflows/verify01-prerelease-packages.yml",
+    "sourceCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+    "runId": 41286076748,
+    "artifactId": 13074779528,
+    "artifactName": "verify01-prerelease-packages-5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+    "artifactDigest": "sha256:94fae62c1f00f168492b0d587e576e3d980e19c5ad4e0ee5affe6c3fa24c9cfa",
+    "contextWindowTokens": 32768,
+    "files": {
+      "cli": {
+        "file": "chainlesschain-0.166.137.tgz",
+        "digest": "sha256:bcff986c9ef9d82addf2eb02bf986918d48d156847864826b365fe39fcfac760",
+        "integrity": "sha512-SGNuuClcxuwdPlMwT1E6u9VX6IFgdoo+uGvj/9rIv0uyKhV0lfkG+/VOzAPNa2Jn9b9auHEorKela8LN3RTQNA==",
+        "bytes": 9534675
+      },
+      "vscode": {
+        "file": "chainlesschain-ide-0.37.174.vsix",
+        "digest": "sha256:e9c3f268330e46425baaee2a5021ddf41c8c967e40a3bba0e2e885056197080d",
+        "integrity": "sha512-69y0jwuk/cUIRsQFFUycBuGXBJ1AJKuge28aQa1kBhSGkoxLnQrjZ3TmD7NCcM2Yh3TLd703Ye+ZTXA9rmlhyQ==",
+        "bytes": 748119
+      },
+      "jetbrains": {
+        "file": "chainlesschain-ide-bridge-0.4.190.zip",
+        "digest": "sha256:1b91a3e43b7add1c54c5d096afa9d85238e93b432dca9a30615554a0bd5d13f3",
+        "integrity": "sha512-Ox97R/M+9zhignkMa3hwmcXwMayQfoMEUTF1wYf1PupwoN6WxA1sRiXKzUjdueAo8xozP9RPm5wzAfPcIwxwBQ==",
+        "bytes": 1555647
+      }
+    },
+    "cliSourceFiles": [
+      {
+        "file": "bin/chainlesschain.js",
+        "digest": "sha256:32339064da330222d3f1129c201a5e9473441ed3d12b4758193696d3c3565547"
+      },
+      {
+        "file": "src/commands/agent.js",
+        "digest": "sha256:cfa3c35dbf5e8940650d10742b5b25eec377150bf9268363415e558d01053d4e"
+      },
+      {
+        "file": "src/runtime/agent-core.js",
+        "digest": "sha256:e17a70f3f99f8cf6c7fc7f7164b9c55c35e5d35c38905d4662c438da18cd5baa"
+      },
+      {
+        "file": "src/lib/read-file-loop-guard.js",
+        "digest": "sha256:6a8d639e9ab9cfe2da70ba88cbce9ce385cad94759dd0155e3ba458f67b96fcc"
+      },
+      {
+        "file": "src/lib/coding-change-review-context.js",
+        "digest": "sha256:e431da08b462da3c452ffd60fce4b1e2c4d5a16fb9e2250cfefbbb3633dd6808"
+      },
+      {
+        "file": "src/lib/coding-task-guidance.js",
+        "digest": "sha256:4ab1c7d56c6eaa0b68c03a1c465950cccfdf4f8161b84d1ccba90394f5caa573"
+      },
+      {
+        "file": "src/lib/tool-result-preview.js",
+        "digest": "sha256:a7ce5eb2a8cad9cb02f5ee533dcd69301b9f1177affc52bd6a9b726a6764c0af"
+      },
+      {
+        "file": "src/lib/evolution/evidence-json-text.js",
+        "digest": "sha256:2023b1958e107fb27314b0518e73970e5ae0bab94fba4da72e7b1dcd197820d2"
+      },
+      {
+        "file": "src/lib/evolution/evolution-evidence-projector.js",
+        "digest": "sha256:2267fb233d9f9806795606abd68ebeffd34547bde1ae3809d190afaee90ae641"
+      },
+      {
+        "file": "src/lib/model-capabilities.js",
+        "digest": "sha256:3153beb805ac7e044fb77e1594d39c140a55c5585067db49f111d5f92a35e865"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/provider-context.js",
+        "digest": "sha256:d075c4c4fb91b64fe9d590ff8403600de83648a898137e14399d6af9da45b272"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/live-compaction.js",
+        "digest": "sha256:6eb8adc555688c25d99bbcf4f6e9302dfe41926d0cb34ba9f02b5baa3c0019f8"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/message-adapter.js",
+        "digest": "sha256:bfb6aab468818c9fff56f9fdaf878e93e9f39cf4ee7322304c348f380fbd3ce3"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/task-binding.js",
+        "digest": "sha256:44415b38b941fc0828a9830e20c46cdc13a87453aab94cd6ab0642f44a046257"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/jsonl-session-context-port.js",
+        "digest": "sha256:af56de83f273d89d4688d40e4f40493e683ff23db156f5bf93d73c71400f0a22"
+      },
+      {
+        "file": "src/runtime/message-roles.js",
+        "digest": "sha256:e60dcd7d2f24f5517d3ff706e9a5df9958aabd4390eb6fd655760ce1187b7a66"
+      }
+    ],
+    "published": false
+  },
+  "planningWindowTokens": 32768,
+  "requestBudgets": {
+    "modelTurns": 20,
+    "physicalRequests": 24,
+    "outputTokens": 8192,
+    "requestBodyBytes": 262144,
+    "requestTimeoutMs": 180000,
+    "largerThanPriorRound": false
+  },
+  "historicalFrozen": {
+    "project": "b2aa3aba082873570e85dce39b00754e5504ff37",
+    "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+    "accepted": 41,
+    "total": 45,
+    "changed": false
+  },
+  "priorPublicGeneratorRepairedProjectRound": {
+    "source": "3e28f78b4eab09ac5311c3d7da553a0b008617ad",
+    "projectSource": "52868c59d1c98131d6ce7e7ff177f55d53e509b0",
+    "accepted": 1,
+    "total": 5,
+    "archive": "docs/research/cli/verify01-openai-137/public-generator-3e28f78b4e",
+    "notCombined": true
+  },
+  "allFiveRepeatedForUserRequiredFreshEngineGate": true,
+  "oldFrozenScoresNotCombined": true,
+  "requiredAcceptance": {
+    "selectedSamples": 5,
+    "passed": 5,
+    "independentBehavioralMutants": 6,
+    "sourceScopeExact": true,
+    "hostEvidence": true,
+    "unknownUsageRequests": 0
+  },
+  "dispatches": [
+    {
+      "group": "darwin-vscode",
+      "hosts": "macos",
+      "entries": "vscode",
+      "sampleIds": ["verify-08", "first-run-darwin-vscode"]
+    },
+    {
+      "group": "linux-cli",
+      "hosts": "linux",
+      "entries": "cli",
+      "sampleIds": ["verify-13"]
+    },
+    {
+      "group": "win32-cli",
+      "hosts": "windows",
+      "entries": "cli",
+      "sampleIds": ["verify-19"]
+    },
+    {
+      "group": "darwin-jetbrains",
+      "hosts": "macos",
+      "entries": "jetbrains",
+      "sampleIds": ["verify-36"]
+    }
+  ],
+  "publicationBlockedUntil": "All five freshly generated candidate-engine deliveries pass complete native generation and independent Linux Docker acceptance; complete final exact-source CLI CI/Strict Sandbox; OIDC CLI publication and independent readback; only then IDE publication."
+}

@@ -1,0 +1,110 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+const root = mkdtempSync(join(tmpdir(), "cc-fork-ownership-"));
+vi.mock("../src/lib/paths.js", () => ({
+  getHomeDir: () => join(root, "home"),
+  getSessionStoreDir: () => join(root, "home", "sessions"),
+  getClaudeProjectStorageDir: () => null,
+  getStatePath: () => join(root, "home", "state"),
+  getMachineSecurityAnchorDir: () => join(root, "security"),
+}));
+// From __tests__ (not __tests__/unit), ../src resolves to packages/cli/src.
+const store = await import("../src/harness/jsonl-session-store.js");
+const { createSessionTranscriptBranchProjection, readSessionTranscriptHistory } =
+  await import("../src/lib/session-transcript-history.js");
+const { resolveSessionBranchHistory } =
+  await import("../src/lib/session-branch-history.js");
+
+afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+function pair(id, label) {
+  store.appendUserMessage(id, `${label}:question`);
+  store.appendAssistantMessage(id, `${label}:answer`);
+}
+function start(id) {
+  store.startSession(id, { provider: "test", model: "test" });
+  pair(id, "ancestor");
+  pair(id, "parent-only");
+}
+function projection(parent, messages, consume) {
+  const head = store.findLatestEvent(parent, null).hash;
+  return store.withSessionAuthorityTransaction(parent, head, (transaction) =>
+    transaction.readProjection(() =>
+      createSessionTranscriptBranchProjection(parent, messages, consume),
+    ),
+  );
+}
+function fork(parent, child, retained) {
+  const messages = store.readVerifiedMessages(parent).slice(0, retained);
+  return projection(parent, messages, (history) =>
+    store.createBranchSession({
+      parentSessionId: parent,
+      branchSessionId: child,
+      parentTurnId: "selected",
+      messages,
+      history,
+    }),
+  );
+}
+function body(id) {
+  return store.readVerifiedMessages(id)
+    .filter((message) => ["user", "assistant", "tool"].includes(message.role))
+    .map(({ role, content }) => ({ role, content }));
+}
+const expectedPair = (label) => [
+  { role: "user", content: `${label}:question` },
+  { role: "assistant", content: `${label}:answer` },
+];
+const text = (id) => readSessionTranscriptHistory(id).messages.map((row) => row.text);
+
+describe("fork history ownership (independent regression)", () => {
+  it("restores two siblings and a descendant without importing post-fork history", () => {
+    const parent = "ownership-parent";
+    start(parent);
+    const ancestorRows = readSessionTranscriptHistory(parent).messages.slice(0, 2);
+    expect(fork(parent, "ownership-left", 2).created).toBe(true);
+    pair(parent, "between-forks");
+    expect(fork(parent, "ownership-right", 2).created).toBe(true);
+    pair("ownership-left", "left-only");
+    pair("ownership-right", "right-only");
+    pair(parent, "after-forks");
+
+    // Re-open from persisted authority, not an in-memory conversation array.
+    for (const [id, own, other] of [
+      ["ownership-left", "left-only", "right-only"],
+      ["ownership-right", "right-only", "left-only"],
+    ]) {
+      expect(body(id)).toEqual([...expectedPair("ancestor"), ...expectedPair(own)]);
+      const page = readSessionTranscriptHistory(id);
+      expect(page.messages.map((row) => row.text)).toEqual(
+        [...expectedPair("ancestor"), ...expectedPair(own)].map((m) => m.content),
+      );
+      expect(page.messages.slice(0, 2)).toEqual(ancestorRows);
+      expect(page.messages.slice(2).map((row) => row.id)).not.toEqual(
+        ancestorRows.map((row) => row.id),
+      );
+      for (const excluded of [other, "parent-only", "between-forks", "after-forks"])
+        expect(text(id).some((value) => value.includes(excluded))).toBe(false);
+    }
+    expect(body(parent)).toEqual([
+      ...expectedPair("ancestor"), ...expectedPair("parent-only"),
+      ...expectedPair("between-forks"), ...expectedPair("after-forks"),
+    ]);
+    expect(fork("ownership-left", "ownership-grandchild", 4).created).toBe(true);
+    pair("ownership-left", "left-later");
+    pair("ownership-grandchild", "grandchild-only");
+    expect(body("ownership-grandchild")).toEqual([
+      ...expectedPair("ancestor"), ...expectedPair("left-only"),
+      ...expectedPair("grandchild-only"),
+    ]);
+    expect(text("ownership-grandchild")).toEqual([
+      ...expectedPair("ancestor"), ...expectedPair("left-only"),
+      ...expectedPair("grandchild-only"),
+    ].map((m) => m.content));
+    expect(readSessionTranscriptHistory("ownership-grandchild").messages.slice(0, 4))
+      .toEqual(readSessionTranscriptHistory("ownership-left").messages.slice(0, 4));
+  });
+});

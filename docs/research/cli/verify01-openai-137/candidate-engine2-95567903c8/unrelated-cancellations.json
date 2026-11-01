@@ -1,0 +1,61 @@
+{
+  "reason": "User explicitly requested cancellation of runners unrelated to this CLI/IDE release; preserve exact-source CLI CI, Strict Sandbox and all five native task runs.",
+  "results": [
+    {
+      "id": 41276787553,
+      "name": "E2E Tests",
+      "source": "95567903c800001de9793c804580a1157808fcf3",
+      "path": ".github/workflows/e2e-tests.yml",
+      "statusBefore": "in_progress",
+      "cancelRequested": true,
+      "submissionStartedAt": "2026-11-01T05:31:01.346Z",
+      "verifiedStatus": "completed",
+      "verifiedConclusion": "cancelled"
+    },
+    {
+      "id": 41276787565,
+      "name": "Full Test Automation with Diagnostics",
+      "source": "95567903c800001de9793c804580a1157808fcf3",
+      "path": ".github/workflows/test-automation-full.yml",
+      "statusBefore": "in_progress",
+      "cancelRequested": true,
+      "submissionStartedAt": "2026-11-01T05:31:08.809Z",
+      "verifiedStatus": "completed",
+      "verifiedConclusion": "cancelled"
+    },
+    {
+      "id": 41276787564,
+      "name": "Code Quality & Security",
+      "source": "95567903c800001de9793c804580a1157808fcf3",
+      "path": ".github/workflows/code-quality.yml",
+      "statusBefore": "queued",
+      "cancelRequested": true,
+      "submissionStartedAt": "2026-11-01T05:31:15.256Z",
+      "verifiedStatus": "completed",
+      "verifiedConclusion": "cancelled"
+    },
+    {
+      "id": 41276787632,
+      "name": "CI Tests",
+      "source": "95567903c800001de9793c804580a1157808fcf3",
+      "path": ".github/workflows/test.yml",
+      "statusBefore": "queued",
+      "cancelRequested": true,
+      "submissionStartedAt": "2026-11-01T05:31:18.879Z",
+      "verifiedStatus": "completed",
+      "verifiedConclusion": "cancelled"
+    },
+    {
+      "id": 41275553832,
+      "name": "VERIFY01 Host Diagnostics",
+      "source": "b7498521795702515cf8c24b9842da6ae3bed5db",
+      "path": ".github/workflows/verify01-host-diagnostics.yml",
+      "statusBefore": "in_progress",
+      "cancelRequested": true,
+      "submissionStartedAt": "2026-11-01T05:31:22.990Z",
+      "verifiedStatus": "completed",
+      "verifiedConclusion": "cancelled"
+    }
+  ],
+  "verifiedAt": "2026-11-01T05:36:08.574Z"
+}

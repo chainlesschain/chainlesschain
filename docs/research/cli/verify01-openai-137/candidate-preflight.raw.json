@@ -1,0 +1,56 @@
+{
+  "schema": "chainlesschain.operator-offline-audit/v1",
+  "sourceCommit": "18455a2b95498043f5bb6364f63d5ce32d277303",
+  "modelRequestsMadeByAudit": 0,
+  "syntheticPreflight": {
+    "file": "packages/cli/__tests__/unit/agent-context-window-transport.test.js",
+    "passed": 3,
+    "failed": 0,
+    "command": "node node_modules/vitest/vitest.mjs run __tests__/unit/agent-context-window-transport.test.js --pool=threads",
+    "windowTokens": 32768,
+    "outputCapTokens": 8192,
+    "plannedInputTokens": 22938,
+    "maximumSerializedRequestBytes": 262144,
+    "checks": [
+      "Long tool and assistant history triggers provider-backed compaction; synthetic summary then main response; both actual serialized Responses request bodies fit the unchanged byte limit",
+      "Protected system context overflow admits one synthetic summary request, refuses the subsequent main request, and never reports completion",
+      "Exhausted iteration budget makes no provider request, preserves the original budget, and ends budget-exhausted"
+    ],
+    "limitation": "Synthetic provider responses and summary, not live task acceptance; token window alone does not guarantee a serialized-byte limit. CLI with no explicit internal output cap uses its ordinary planning reserve."
+  },
+  "parameterAndForwardingTests": {
+    "passed": 11,
+    "files": [
+      "packages/cli/__tests__/unit/agent-context-window.test.js",
+      "packages/cli/__tests__/unit/headless-runner.test.js",
+      "packages/cli/__tests__/unit/headless-stream.test.js"
+    ],
+    "scope": "9 parser/planner cases plus 2 targeted runtime forwarding cases; full headless suite was stopped locally without results and is not counted"
+  },
+  "historicalFirstRunDiagnosis": {
+    "executionSourceCommit": "3e28f78b4eab09ac5311c3d7da553a0b008617ad",
+    "sampleId": "first-run-darwin-vscode",
+    "terminalSubtype": "error_max_turns",
+    "iterationBudget": 20,
+    "iterationsConsumed": 20,
+    "physicalRequests": 20,
+    "usageCompleteRequests": 20,
+    "brokerPassed": true,
+    "brokerErrorCode": null,
+    "hostTimeout": true,
+    "hostSignal": "SIGKILL",
+    "rootCause": "Model exhausted the unchanged 20-turn allowance while reading the candidate during review. The host later timed out without initial/restart/terminal receipts and reported a generic UI validation failure."
+  },
+  "candidateIdentityReview": {
+    "blockingFindings": [],
+    "reviewed": [
+      "Explicit prerelease manifest with no fallback to public package selection",
+      "Successful exact-source Actions run and artifact metadata binding",
+      "Original package bytes verified by SHA256, SHA512 and length",
+      "Installed CLI local-tarball lock integrity/version and eight source-file digests verified",
+      "Archived bundle and provenance compared with committed package identity",
+      "Candidate engine and target project source commits must match"
+    ],
+    "reportRequirement": "Validate archived bundle/provenance against the committed package manifest; sourceFilesVerified count alone is insufficient evidence."
+  }
+}

@@ -1,0 +1,346 @@
+{
+  "id": "resp_03a1ff651a3c714a016ae6fc1d9d4887d1b880c6fe676cdc10",
+  "object": "response",
+  "created_at": 1793522717,
+  "status": "completed",
+  "access_programs": null,
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "completed_at": 1793522732,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 8192,
+  "max_tool_calls": null,
+  "model": "gpt-6.1-sol",
+  "moderation": null,
+  "output": [
+    {
+      "id": "rs_03a1ff651a3c714a016ae6fc1ecd9087d187d9b3275f16283f",
+      "type": "reasoning",
+      "content": [],
+      "encrypted_content": "gAAAAABq5vwsVQAtJ3VmJNZS1GudbwcUyp4qyld5L4UWqeKGndZTdQqgVnRDgtkE5q1acf4_aYwxQiWh9JtWtII0aFojrZVEDW2JietatvbNAonn6tXnCJeVAuoQFyE_2gB4r-1FDX2lCbT1G71s6JBMnYPus8jG03SIr4lO_M-P1xAPFVxqPOuj_9lCzDvw1JTX9tKFitgsfGto9JRT2rYQGpsk5axLgM0X4O8kKPhSIfbjxhbvmnFXf-30dlBynicr0GTX8d5HzKlnHQj0ykY-y_VpFJBftsqO4Ugm12EEWJnhvztiLH-1cbqGm5Cvhg2rrtKpMQuhRiBXMjJdRgMzBmP9KtR9jEDVGlNmycW5CRyCdk6gbGijZ-t6NFEO9KW3ZRIIkekfhqzt_9qk_7n9bDoxjvbYMCCFijL-YDLe_fWTgzkiBuI62MSlnZoNwGKgjrqG1b5ht6FVVOMnneT-BrMiYC7qFTZ4AftzUCFsBN4kivdmJLchraQOABrJwxJdiERTlaY6Trdk5_KawPaRUz4dlQdimyB0Z-dA2dkR1NC9Qt4OrAwKLR7J4nVUCb4ils35arEc92csiVnV0ZRRIeNJN6n1CHRYQArrR-qqp3pwgAgjJrxq7CGxqZcar7s5YZ-ybUtLxMqf0V4wGAJhqHCM0L_Z5F4xKnQx1Urglyb-CU-uUotxfHx2_AlH3fKlfPxnir4yuTm3OZMIU7Ab5sTJNk7EA-GF0T4muEDqTs4HeNHtYO5GMfjC-y0eHBLxKuwtsh8E94XdatxliOjGLOYZNcNi7SqnNbA5L9dOxjKdYXQIhnucBiNhSbxTfsu9lWWas0q007e4XQB3pb4LROQhoAL8sB_-t3lqwOJM4-0DDbuAZKguyXABs9eDHsWKyqv1rbRHXza9KP-5cJXVRUKcIAykD0fxEH7oZ1Q-wOjcjm0yxdzSGgOEEyybaZVtPNVpkulS59KLvO6MY1y0DWSkhwqsBcJrTKcYapmtG2UjrglhGTNXRHVPNipQShFa0Aj7teDuFZqlrzQ0k1h6WkyTdpDnHxY47G78Txw600fOecoK8W2Lkw8YfAinJ7Kqmb3aI6Xt5u3yILDOzrVeOEazDtGzPyDrt50T_v_QYCTUuyAYBBOilaEAlBbZBoyYgrGqEteB8LoMS9zdW08R6pK5z5-jM3AykoFe9jwXzNg6y5Z-T7en8VdBil1nl5uS23dqEpIlVwyCbINM7fg4kOPBBYBcd0_00vsKIREO6KuXPgX5LrSr4utGW33SFWsA9IHCYFXoBggPfAz2koU2v0O63CV20Y3qyn_2R5EtKlcP4_Mxxy1FuT5_cVyjeLTba1B4jV_JuW092uePYJI86IyNAD6UktHZTRzF33DNU6lhpyNnlkMG1MOVX4xRgjAb5M9dlSN_vXp9mcuBS_N_oBEjtDz4LgLyqNlx3zHe0LDvtHvNDPjk0OIrq_lVUgIPavs8UmglwD2tX2y436nFL9vv73-d8l9FHgIW0tM5yufZWFGppxVC0GNqW8-Imk2DvKzDCZIdnD-q-3F-aaDRXTDgUlz4zF9JMRE-vAAbgT7arW98vI8PyVlL-14dJHcU_zuBQKXvRr8es9SjYnHXfcsOm0E3C4jTh7Y4aE6P6jccl8YA5ufXQ-SqMl5A8WzoTkBKJ5F6AN0m10inizYuMz-FjyhlhIXZnLUPUC6ZASvh3FWy2rm2FnSLxetd2PPdE-WsuQFEgWnIhMOqbCpJg3rg_dM2DhISEIXSr9S0iEH-d6oFB9KxoYfBsn3YQ_Ox3fliGw0IqKdPB51RyIPbxT1pTZfjVQbFAJbu01h5Su4z-jQNKN7JvQ6NXVSz-ATlM-z5YfS6l9xgbFh9-78VSgqZ5adSIN_8BN4Z6wQZ8bw3NFFz9Nq0Sjn52Iw8S8rGM97AQueTZ-CErwSoT_91Iv9NXdUT6ExKq_IuvapvMaA_PCLN4UDH1HtpBbwiX_t2VteldpvrqZKi1yTSoo7UVWMNXUxLAK-YbytshtcGbbegElH2LHNBz2NrzKNfoiYDnSEuiOqJfsqkGX5kM4c6ISr48DrtwZ37wKo8nkKGujdSwF84-o6ljhr890QNkDW8UQRXtGNlcrfqwyJVfcaq5FO9TdcK4k62ha4iU8jaeZJQ0j0t9e0RAh-Ycl4E_iKxEcNzo5NnujMwIPttA6-YjSIbM-atjWvjk-c9HVUP9nk-zOlszXgUWyz4r3QdMyqPzQIH22TYNjN9KUOwUceQCC5unwHl6wzUrvwBdwgS_lkj6KFRSRurxWkf7p07d8dhMzL4OUnu3kBXCzNHS5Omr6KzV7K7WEDGY-9RHxyjjCceZD8uvrXtz45wq5_fQCCktHrZweJ_apNjqvjY8aRr31wKz5a5LE5yncNCdCEatNuHZSsF4uJeHLkoB9dMtGcRjt36vh8V3YJNg8gUAjDZXrpzypfeo-ZTBgy3bkRavbKEML3PgCqpUdDLFHAgSKv25AztN1as6ofR_IF5byumzPnhHe_vfiFdu53zolknWdvMEKo21wUkOcD3-FPv2RQM-3IGBI0RVxAx_o4SwANJFDVZdVSSicnIC0v6r2jGItcQN3f4PyeIvc0hmHZAvL0nusmKoBmwuyKnOmutooHcWjR7bAWwck39Vys9VfkxQVCjbyDJyLsXuMQSqMqY1dnbePp0mf-Os7K1Byje8ZqXf7zWwGLHM0ngqcn7ZajrgMg-pFpF8-2Cb-EHoF7wT2oG930FRleIljemDXa5C70ALCHXLxU1QhLir3d3KJ7yi9f_tkiQIHH1xVI06ACWV1lINBJLjOMdFoNj8MQSNez31rXCPEdi47Mb7mKnxHoom2yh_ivZ_s3BNxeR299Y-dfFQsQsGVn91SeMzJAynH3H6exUrnC3gsksVhxISMfOtwvNWY6a5fbFmdyBuiJyJfWvos3O3moYWy-mSX7ACWqBHMAB1zEo-xtLio5TCujsRTO3_FHfMm8hlTNlkNyO5RMOJUDxsOv_pzwqIjorrABN_1bP06EYX05IOySBG-IF3QbaUxXUwQI6kUQ5ISs3xrOF-mSIcxAVcg5V6kDS2CjdOA3_VQpstDUG2HXAc4sId-lg2HoUAOEUUkSuPF0slL4TuJTQ5TcJrlh2dbNPVMBYTNTGpbeysvFUJBu7ScXTkm3I5XqEJAOkeu9J3tlkipgcaWOaRZXdmnpxMKB4V02Qnz4mCQyWG8S0jz_brP7fCSU_zseegKH0c5uJ2zhRtRwj8i1PU2ffg5lJcxC8D3sx8Nv6yj63Mh_EcruES6estz2g4HirpPkL8eh_MvcuwluvT7GKz7xUTyrLlOosE00ur4HjUvF7Fzo8kxZD8rsOORSRVeIx7WC5X7qS_iTf6h9NEtJb6oQ8NcmXEvDZpB-pOZqZyBuBZ8QraS38-Fhq_5UtpYzhLEOiLnfSG8v8djucFAJURGrO8B4CidHBYc37as7W_aDlgGWc3srrBahyztjsw3xVp61idSeSE5mV9lE6lxacAAvitx4CxoXiAqr1TPlXNic1MyajlobsBUg_nyIUaX_ZQcGv_p_4F0_wSKGSEb3bPAzm2null43ZNTCqB4E2x2o6Q9wejWj6WsCrWZqmG1iKziwRyByUowzBApHrHu4oHMifCptUYZKXFvPdCGSsxvnauyGulGCPXeHKMD8HjAHzSUoO_sZOXE15VQO75sK58RQF7FM4Mqr9rl8_CwhArIT7pTmzhY7T6QiBltpwK27L_gq1ENv3AqhDPuS5HKxlRpqvpwApNBDEkzrjY1S3DzF5YAPVlJ5PqSXmFNTHU_jzZXClGS1jIUn3xByQ19dtfx1W9s-dv_U-kpxA7nQWsvEigq3U1DdHcvAH4alur6JcKWPdF-SnZPpf0F3f8D0AHbmlOGdVDnPHNFkUEuNrjTSANqtz0hYpRdWj1heElWHMoK10Grv9coX8jluzliuQ1LK_1vNC2D9Anu5MTQY-K6ZJBseUrP-c8LLtP8k9kvGSHSD3wNoBQ8iAs3HrsockI9Wfg_AeUx1A-57jUj3JCP-fUE4PI5FtTM55iE39FbvOYfIUwLigChpzv4y-VCNZr10BYx6B-Opzi6iceaqwfDZs-Vd9_QEM9NfkKcSY-rjxDMeivsIDpPgLDDqRNsUOCrHOfMKMInvzisMKT8gcfoww_XueBZiakzZHuc3WvG22xz1cVpt8Fnc4-019o2pZGEYiddXj-VrdMaq7SDEzx6YIVdJIT3C8kgdi8Cb668EHK4HkDnf2C3cnv1s2Klw0B2NNvK-bEeBiIyggT8vCtyC--aP473uiBO-vkdtAOUYzz7pYcURfVsQX7VP3Toz72DojhugBRix10VvWWFcYAOQuaFdhQo8F5Gtmo5c3h2O5txD9zEEm5SPDACAgx3QC3XobFo-aiRmzwUneu3H45-87Re9tliqo1WkkPxAE-VfoMINDTdK0SxjLPgJUT9roOh-42h8mVPJflPr-2ho08XrRRiFahiXemLxAOZVKNqc_arO42O7_J0FJZ6I--x3oeiLPsUmmzump_ajYMErOhimd8n174El_7hGkqBS7O3PlCUa8Hxy7Vxs_Xo1HnRKrDV0gO7_omrJfkL9CLhf9BcOl7MsYHF06umuENCMANqqt6ixfJ3MTsT4DFn2_FGPuKfd2vHQyY4ZvwBEUa2HUK-qDbZffDVh5W3ZJlZJgP7eYbzqdjMvE-IMfIZgR0RJvnb7Y77J3SYt-xiIQUCY6sYc6bMKWNf4kZGvtiWsa9mRCl4AOiUCXkB2gNCjKACPyj90O_Xs4Imv5HTeSCUJdAP4LWmOtjdCJSlMksYhFnCRpF-33sXAwB8nvnWsquDH6n_enWF7Xjs1D5StAxFLfHwEFBoqzSsAZw5HzWMK-OcZeONhcOXH8BnW978Jzuq2jmJbVXqE2ekjzIirOAE6hMgLWgjXtuKrPt7owlEV0vwuiF9T6Uzf1Wzg1m3n86ggvtiJ3WHQGIAUSLkVOQ51p60V0VFKrjZSrx_lSkb4-1KCgKGS00g1BQBeDYlO8YVQSQ45M6eUt_P6zm-JIy6vM_rIkbKTmGYNdlHfuA2YpnVjexDuqBy0kC9qqoxhtdh6UXhuzmWc_13WTbKRmCDjMaMb2TN_6octdcEjNX49lfMYuC65bJ5bsvkcuIcymrEKXOhboDf2FvPa2WF_6NwEYiH3o3JLdPBhAPEf4zfG5z5Ty55ZvclR2iWBtF5-h-RnGpj1wmG7JEeMr6Hp2uJSm-1VA208ltD13pgswEBCrMLN3Y5COAQkKsiKY4JAF5mwt58gcnP4tsjyp_6OUOp0bl53ooqd8YYwAQvDhySD50eFardhuflxaiUj2HOPnSu4hz0odj66lcylqbPX59XuscJte-9JktDftfLSZmatl7T7_WvFG2KrdaYGwfYQIxE0ViIvb0TVxHE1UMakhx5wbHdAKCaKtqo0eAM7Uf-fhxhasw9SM-1CAXGvCE2nRLx9j5HBECw8Kt3P903zVJtDnPdDqmAypWJO2yeD_U5x1z-FkvPo3_OiBeNJCjAeppPQWN8EW0_Sfk-vWn2UtYL_dNuHQHpfA-xMYiVg_DPyLBZe2j5TcytnXrpjySLGiCWdlnr0Yjz9_PxkMzglBgQMN0lKrbCBSpmpHnxVilhohLHp-GmfCYo4etVwwSkEIEb941yp0-w7GRs9R5IqX00A6UVoHVPK38UL0UeRxG33I4Sloxas1mUPrudeYuK-jY81oZLgkb4oKJ0Gpq1k5BShn9WwY3fiIe056KQbUEBVIOHq8_Vvg--8ZmnRqU0tvp3UMw862vRXLkNfObKJZQmvQmXuXF9zXdAHB-3sXj8sofbedkI9klmlMSqcY4rx6pokxn_fc-ueOQvhl7JTDP_FmAd67RxX41mykGERXIzA0YgcXokIVOmXOoenaFMmWthB3YOt5rOEzXZlF7L1M6GWz_TPGe8GE1QK4DwlQSk-BV8gc0L11Om4z6T_X83vEu7oCXPRjQUU0klhqR7A_POvwOg514QONuvmX1PqVNBzkYZe922LkcIZcgpmZlE8Z23vQUjM1xkCdIRpGplbl3aNDgjnuKXegC1Gjvp_dlbxXn7kRbUV_F_QrxcjuhqWQObxt3vlWtTOW5rivlhNy2KuGYaKJacS4N_RE5dJsjS7txgK7PJdmJ-Sk81xNOFgDqSXZ60GanycYwfcI0qfQ7PMk_wqNf8EnQV4CScCgbtqRcoVBCgzU869csuse3ZUMrEWssVOaCJb_ksJJtgIsVb0engRUHdAC-iPW2Zu1UqoccLTBNkzxHji-kkdHdfkwoxm-qRgosj62HLGNv-5T-N2sfeMShp3aMi-8CiurOkK6ysleRCMvZipaGctAWqaCV13DUWAlvojqxtXJ-9fZnN0HPQAzh32NB--ipoKBDaGER19Evaecqpzwm9wa7coB9R1HGpJAG-B9QuyYFgIIjtVu6eigDsjSiM3NYNo88KtwZF3CcSq9iwm4OxIdnHJr-gO398KkxogqnWz4_RZ2S2BRZoyJIyimbb6b2gsnHD-HwIdB3hQBTQx8Wphp0LuzWCD9UIZzN6fnptCtwjSsXCWxZtbHXtUNCpGPIZazkRMkxxhiKixIsX8bBu6fEeL8ylxpit6Qkjq-hXZJbxgC-TfSOQbhKIqrHbXdYG2M4s0LWAk5UZN70LC4NapFVnt4LmQ5USjMIWGmDLLJVoBpkFaGR1RzylfH76SuLHY6w3F9aQ83H5aXCiOLnppQRZYWqnHtHiuACt88gSjDyqNpPnEPdgU-8qqMqT14FuB5kvL4IKaXagl9Sx9BJMUdiMxs2GbHVBEiIg19slTAh94CbLotevjQT4BYQCUVEkYEqR5mWqCIBxtG5b_fxkxmY076WeqjVIScF-PRha19Z8i99enwWmDGcjtAxrZ74b2VaLIPLRfNhHoQG5rCT1aos0XThHZDVuMIvShINP_p7ZJDGS6I-q3Z8onlZCGWFSdgPYQFxZssUvWj887CeMOz08SWoji7yU8Pf8-aSOwV_JpG1vx4pMs5OBoE0Fy0aJwnNVlcMHWVl5H4V4u5z5lBpEJi2bNXDkvE-aCXyN2vic0jdSvA9laVVtNz-yyq6UH2MNEyV9xmbYguEDcj3JIMec_P4NkkMXxk4eUnXlGzDbvM5a-rHVKNtodYnSiOmgy6p5Pe37-aNaIWH8wtBqpUNrdbOA-YyaJ1hIJHz9pEsycnsa2L5M9-qyR_39CMUBL3U6lyidylkm6kDCxFNm2r0Mu4dJf_G-Tbs7hRggZZiJxB1EOxNDwswQothzmUZ9ECK3wsmYuaDkaajBV9F__r_6kCfXDdFuu8Aq-8CtG3nm3koKB7IJxE7BkPnuoSpv1IC20VYTrfKLhLVlW2G8J91vvGRskyptI4gDa7AAXFJ6Q1d-TEa40mrKbzQ6fHhayzfHkiEpwiZ_q1YUTrDJrTM8mHvQ-ix4cfna_h9TnD7T2NBxkWTJLNxsYIj33ehALa1NZo9GhII8lv3Ky1VBpsekDoYya37Wa9t2SZjPD-LHsqKAxg4CDGnbbtIWAsHiE7tYp3_dd_oWtULUnLNQhp77qlcKHlPCuyFjEZ_TAPHOfO0Cb7FvLI2xnpNoNRClqj3tgiwMBgJMTPOUQqif03_zxRLrTnOxxl6SRhfxNET0l7mGvO8r_SrrLhBRTsL2uNkuHcO0o3XwD2XAheL3QRHnUJycOga2AThwQH2xtWYcuEz-uzk3x79H5L9W0BfKqRV7KkEgpmEV97bjYAPygVfqdrI5vOMBXpgME7eQwpR4SrD6vy9X4EeenbR6AC5_Q6lxxmEkEro3zuyfeHKeOu56RWc-iLJ9TTm5SV4pO3LVK8T2bQaD0jtVBURDqQLgVln51dpZuUrEeTqI0BkuDlwWD6UKlulRaMDMao0qRsjN4cSdTYwkZwi4lSQby13wu4nBvVwhvH_hFz6Ni0vP72KTPNP1-g-4aNxMLTid9TTzpHZ9IhJRwKSlL7UUawosb7nZPUdHy_GLjYn6Yq3HDWDe3wK1QF9z5zlsge3ob_DPrw2mFG07UelSN6qlTHVVz1zj0wEwi0jAwwIcIYB3REDK3gszmYwMZyEHCCXOvYTGPD5wqj-UdcpkdKBjhv0tbQ919XOD7MSCCJJIuMEvctEue3n3t-92taO9hCQL5p3FGesRGvfgWZ9YHX2cuzofTtZgwyyDhYHuCiLv4A6u8WX-bbR1inugxk-hCWHdRkXib-57YVjc48E1OMjF_BD3eDs2ovpiGwhNg72VcL2LZYPp5WcnUw2fg4lvGrt1nYVKNKOkqGwMUIkkqCRrSj-W8oiaAVSiyIfYI=",
+      "summary": []
+    },
+    {
+      "id": "msg_03a1ff651a3c714a016ae6fc29c78c87d18f90c7c19ef61bbe",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "\u5df2\u8865\u5165\u5927\u5c0f\u3001\u50cf\u7d20\u6570\u53ca\u5269\u4f59\u9884\u7b97\u7684\u7cbe\u786e\u8fb9\u754c\u5bf9\u7167\uff0c\u5e76\u5c06\u8bfb\u53d6\u671f\u95f4\u7684\u5b57\u8282\u6570\u3001\u5143\u6570\u636e\u548c\u5934\u90e8\u53d8\u5316\u5206\u522b\u9694\u79bb\u6d4b\u8bd5\u3002\u5b9e\u73b0\u4f1a\u56fa\u5b9a\u5df2\u6253\u5f00\u7684\u53e5\u67c4\uff0c\u56e0\u6b64\u8def\u5f84\u88ab\u66ff\u6362\u65f6\u5e94\u4ecd\u8bfb\u53d6\u539f\u6587\u4ef6\uff1b\u6d4b\u8bd5\u5c06\u533a\u5206\u8fd9\u79cd\u5b89\u5168\u884c\u4e3a\u4e0e\u540c\u4e00\u53e5\u67c4\u5185\u5bb9\u53d8\u5316\u540e\u5fc5\u987b\u62d2\u7edd\u7684\u60c5\u51b5\u3002\n"
+        }
+      ],
+      "phase": "commentary",
+      "role": "assistant"
+    },
+    {
+      "id": "fc_03a1ff651a3c714a016ae6fc2b340087d1bf915b1d4d1b9dab",
+      "type": "function_call",
+      "status": "completed",
+      "arguments": "{\"path\":\"packages/cli/__tests__/repair137-verify-13.test.js\",\"old_string\":\"      const replacement = Buffer.from(PNG);\\n      replacement.writeUInt32BE(2, 16);\\n      const io = trackedIo({\\n        openSync: (...args) => {\\n          const fd = fs.openSync(...args);\",\"new_string\":\"      const replacement = Buffer.from(PNG);\\n      replacement.writeUInt32BE(2, 16);\\n      let openedIdentity;\\n      const io = trackedIo({\\n        openSync: (...args) => {\\n          const fd = fs.openSync(...args);\\n          const stat = fs.fstatSync(fd);\\n          openedIdentity = { dev: stat.dev, ino: stat.ino };\",\"replace_all\":false}",
+      "call_id": "call_evrDqKewGQgojuxG0NifVNUN",
+      "name": "edit_file"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+    "context": "all_turns",
+    "effort": "medium",
+    "mode": "standard",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "total_tokens": 0
+    },
+    "web_search": {
+      "num_requests": 0
+    }
+  },
+  "tools": [
+    {
+      "type": "function",
+      "description": "Read a file's content. Use search_files to locate relevant sections and offset+limit to read them. For large files, follow the returned nextRead cursor; range describes only the lines actually returned. Reuse unchanged content already in context instead of re-reading the same page. Jupyter notebooks (.ipynb) are rendered as a compact cell listing for notebook_edit \u2014 pass raw:true for underlying JSON.",
+      "name": "read_file",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "File path to read"
+          },
+          "offset": {
+            "type": "integer",
+            "description": "1-based line number to start reading from (omit to read from the top). Use with limit to page a large file."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of lines to return starting at offset (omit to read to end, subject to the size cap)."
+          },
+          "column": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "1-based character position within the first rendered line. Use the column from nextRead to continue an oversized single line without repeating its beginning."
+          },
+          "hashed": {
+            "type": "boolean",
+            "description": "Prefix each line with a 6-char content hash for edit_file_hashed anchoring"
+          },
+          "raw": {
+            "type": "boolean",
+            "description": "For .ipynb: return the raw notebook JSON instead of the rendered cell listing"
+          }
+        },
+        "required": [
+          "path",
+          "offset",
+          "limit",
+          "column",
+          "hashed",
+          "raw"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "Write content to a file (create or overwrite). For a large new file, write a small complete section first, then extend it with edit_file using a unique existing anchor. Aim for a few thousand characters of new content per call and wait for the result before continuing; each write_file call replaces the whole file.",
+      "name": "write_file",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Use exactly one listed canonical repo-relative path. Read tools may return absolute paths; those are not valid mutation arguments in this run. Do not use an absolute path, ./ prefix, .. segment or backslash. This schema is guidance; all execution-time permission and file-identity checks still apply.",
+            "enum": [
+              "packages/cli/__tests__/repair137-verify-13.test.js"
+            ]
+          },
+          "content": {
+            "type": "string",
+            "description": "File content"
+          }
+        },
+        "required": [
+          "path",
+          "content"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "Replace a string in a file. old_string must match EXACTLY ONE place \u2014 include enough surrounding context to make it unique, or the edit is rejected. To extend a file in small complete sections, use a unique existing anchor as old_string and retain that anchor plus the new section in new_string; do not resend the whole growing file. Wait for each edit result before continuing. Pass replace_all:true to change every occurrence instead.",
+      "name": "edit_file",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Use exactly one listed canonical repo-relative path. Read tools may return absolute paths; those are not valid mutation arguments in this run. Do not use an absolute path, ./ prefix, .. segment or backslash. This schema is guidance; all execution-time permission and file-identity checks still apply.",
+            "enum": [
+              "packages/cli/__tests__/repair137-verify-13.test.js"
+            ]
+          },
+          "old_string": {
+            "type": "string",
+            "description": "Exact string to replace; must be unique in the file unless replace_all is true"
+          },
+          "new_string": {
+            "type": "string",
+            "description": "Replacement string"
+          },
+          "replace_all": {
+            "type": "boolean",
+            "description": "Replace every occurrence of old_string instead of requiring a unique match (default false)"
+          }
+        },
+        "required": [
+          "path",
+          "old_string",
+          "new_string",
+          "replace_all"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "Replace a single line in a file, anchored by its content hash. Use this instead of edit_file for robust edits: each line of read_file output (with hashed:true) is tagged with a 6-char hash like 'a3Kp9Z| const x = ...'. Pass the hash as anchor_hash, the current line as expected_line, and the replacement as new_line. Rejects edits if the line drifted (hash mismatch) \u2014 retry by re-reading the file with hashed:true.",
+      "name": "edit_file_hashed",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Use exactly one listed canonical repo-relative path. Read tools may return absolute paths; those are not valid mutation arguments in this run. Do not use an absolute path, ./ prefix, .. segment or backslash. This schema is guidance; all execution-time permission and file-identity checks still apply.",
+            "enum": [
+              "packages/cli/__tests__/repair137-verify-13.test.js"
+            ]
+          },
+          "anchor_hash": {
+            "type": "string",
+            "description": "6-char base64url hash of the line to replace (from read_file with hashed:true)"
+          },
+          "expected_line": {
+            "type": "string",
+            "description": "Current content of the line \u2014 used as a second-layer check against hash collisions. Compared after .trim()."
+          },
+          "new_line": {
+            "type": "string",
+            "description": "Replacement line content (without the hash tag prefix). Preserve the original indentation."
+          }
+        },
+        "required": [
+          "path",
+          "anchor_hash",
+          "expected_line",
+          "new_line"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "Search for files by name pattern or content. For a long text file, pass path and pattern: returns matching line/column positions, nearby context, and nextRead arguments for read_file. This streams the file instead of loading it into model context. Continue capped results with nextOffset as offset. Omit path for the existing directory search.",
+      "name": "search_files",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string",
+            "description": "Glob pattern or search string"
+          },
+          "path": {
+            "type": "string",
+            "description": "One text file to search by literal keyword (takes precedence over directory/content_search)."
+          },
+          "regex": {
+            "type": "boolean",
+            "description": "Single-file search only: evaluate a regular expression in overlapping 64K text windows (default false). Prefer literals for exact coverage across window boundaries."
+          },
+          "caseSensitive": {
+            "type": "boolean",
+            "description": "Single-file search only: match case (default false)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Single-file search: zero-based character offset to continue from nextOffset (default 0)."
+          },
+          "maxMatches": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Single-file search: maximum matching excerpts (default 20)."
+          },
+          "contextChars": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000,
+            "description": "Single-file search: characters around each match (default 150)."
+          },
+          "directory": {
+            "type": "string",
+            "description": "Directory to search in (default: cwd)"
+          },
+          "content_search": {
+            "type": "boolean",
+            "description": "If true, search file contents instead of names"
+          }
+        },
+        "required": [
+          "pattern",
+          "path",
+          "regex",
+          "caseSensitive",
+          "offset",
+          "maxMatches",
+          "contextChars",
+          "directory",
+          "content_search"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "List contents of a directory",
+      "name": "list_dir",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Directory path (default: cwd)"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "strict": true
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 21714,
+    "input_tokens_details": {
+      "cache_write_tokens": 19243,
+      "cached_tokens": 2394
+    },
+    "output_tokens": 786,
+    "output_tokens_details": {
+      "reasoning_tokens": 516
+    },
+    "total_tokens": 22500
+  },
+  "user": null,
+  "metadata": {}
+}

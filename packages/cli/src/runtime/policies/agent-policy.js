@@ -23,6 +23,7 @@ export function resolveAgentPolicy({
 
   return {
     model: connection.model || defaults.model || "qwen2:7b",
+    contextMemoryModelWindowTokens: overrides.contextMemoryModelWindowTokens,
     visionModel: overrides.visionModel,
     provider: connection.provider,
     baseUrl: connection.baseUrl,

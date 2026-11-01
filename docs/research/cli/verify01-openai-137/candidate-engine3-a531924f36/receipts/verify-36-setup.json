@@ -1,0 +1,119 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-36",
+  "stage": "setup",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 12,
+      "passed": 12,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 1572,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "npm",
+        "ci",
+        "--workspace",
+        "packages/cli",
+        "--workspace",
+        "desktop-app-vue",
+        "--include-workspace-root=false",
+        "--legacy-peer-deps",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund",
+        "--cache",
+        "/tmp/npm-cache",
+        "--userconfig",
+        "/dev/null"
+      ],
+      "setup": true,
+      "ms": 53201,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "\nadded 2535 packages in 53s\n",
+      "stderr": "npm warn EBADENGINE Unsupported engine {\nnpm warn EBADENGINE   package: 'eslint-visitor-keys@5.0.1',\nnpm warn EBADENGINE   required: { node: '^20.19.0 || ^22.13.0 || >=24' },\nnpm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }\nnpm warn EBADENGINE }\nnpm warn EBADENGINE Unsupported engine {\nnpm warn EBADENGINE   package: 'pdfjs-dist@5.7.284',\nnpm warn EBADENGINE   required: { node: '>=22.13.0 || >=24' },\nnpm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }\nnpm warn EBADENGINE }\nnpm warn skipping integrity check for git dependency ssh://git@github.com/electron/node-gyp.git\nnpm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation\nnpm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.\nnpm warn deprecated npmlog@6.0.2: This package is no longer supported.\nnpm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.\nnpm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.\nnpm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.\nnpm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead\nnpm warn deprecated multiaddr@10.0.1: This module is deprecated, please upgrade to @multiformats/multiaddr\nnpm warn deprecated gauge@4.0.4: This package is no longer supported.\nnpm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated fstream@1.0.12: This package is no longer supported.\nnpm warn deprecated are-we-there-yet@3.0.1: This package is no longer supported.\nnpm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.\nnpm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs\nnpm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead\nnpm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead\nnpm warn deprecated vue-i18n@9.14.5: v9 and v10 no longer supported. please migrate to v11. about maintenance status, see https://vue-i18n.intlify.dev/guide/maintenance.html\nnpm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated npmlog@4.1.2: This package is no longer supported.\nnpm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.\nnpm warn deprecated gauge@2.7.4: This package is no longer supported.\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.\nnpm warn deprecated fluent-ffmpeg@2.1.3: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.\n",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--input-type=commonjs",
+        "--eval",
+        "process.chdir(\"/workspace/node_modules/better-sqlite3\"); require(\"/workspace/node_modules/prebuild-install/bin.js\");"
+      ],
+      "setup": true,
+      "ms": 424,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--input-type=commonjs",
+        "--eval",
+        "const fs=require(\"node:fs\"),crypto=require(\"node:crypto\"),Database=require(\"/workspace/node_modules/better-sqlite3\"); const db=new Database(\":memory:\"); if(db.prepare(\"select 42 as value\").get().value!==42) throw new Error(\"SQLite native probe failed\"); db.close(); const bytes=fs.readFileSync(\"/workspace/node_modules/better-sqlite3/build/Release/better_sqlite3.node\"); console.log(JSON.stringify({sha256:crypto.createHash(\"sha256\").update(bytes).digest(\"hex\"),sqliteVerified:true}));"
+      ],
+      "setup": false,
+      "ms": 246,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"sha256\":\"df9fbd0d061f360d81fb51e265c53c9605020bd68219e34f33c07c85de15719a\",\"sqliteVerified\":true}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1349,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":12,\"numPassedTests\":12,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793523291997,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile refuses to capture an ephemeral profile that resume cannot preserve\",\"status\":\"passed\",\"title\":\"refuses to capture an ephemeral profile that resume cannot preserve\",\"duration\":4.407050000000027,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile captures a versioned effective envelope without prompt or credentials\",\"status\":\"passed\",\"title\":\"captures a versioned effective envelope without prompt or credentials\",\"duration\":23.159422000000006,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile does not persist parent-only background worktree switches\",\"status\":\"passed\",\"title\":\"does not persist parent-only background worktree switches\",\"duration\":6.404231999999979,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile uses canonical JSON for stable fingerprints and changes on policy drift\",\"status\":\"passed\",\"title\":\"uses canonical JSON for stable fingerprints and changes on policy drift\",\"duration\":17.94099,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile rebuilds resumable argv while keeping redacted values out\",\"status\":\"passed\",\"title\":\"rebuilds resumable argv while keeping redacted values out\",\"duration\":1.8145000000000095,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile detects configuration content changes and can refresh explicitly\",\"status\":\"passed\",\"title\":\"detects configuration content changes and can refresh explicitly\",\"duration\":6.57839899999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile preserves an explicit empty tool allowlist in resumed argv\",\"status\":\"passed\",\"title\":\"preserves an explicit empty tool allowlist in resumed argv\",\"duration\":5.32095099999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile rejects a malformed persisted permission.mode instead of relaxing it\",\"status\":\"passed\",\"title\":\"rejects a malformed persisted permission.mode instead of relaxing it\",\"duration\":2.2699850000000197,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile rejects a malformed persisted sandbox.mode instead of relaxing it\",\"status\":\"passed\",\"title\":\"rejects a malformed persisted sandbox.mode instead of relaxing it\",\"duration\":2.0408840000000055,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile rejects a malformed persisted budget.maxCostUsd instead of relaxing it\",\"status\":\"passed\",\"title\":\"rejects a malformed persisted budget.maxCostUsd instead of relaxing it\",\"duration\":1.8521010000000047,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile rejects a malformed persisted budget.maxTurns instead of relaxing it\",\"status\":\"passed\",\"title\":\"rejects a malformed persisted budget.maxTurns instead of relaxing it\",\"duration\":1.3663009999999645,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile sanitizes base URLs and strips both API key argv forms\",\"status\":\"passed\",\"title\":\"sanitizes base URLs and strips both API key argv forms\",\"duration\":0.9416549999999688,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793523292468,\"endTime\":1793523292542.9417,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/background-launch-profile.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "nativeDependency": {
+    "sha256": "df9fbd0d061f360d81fb51e265c53c9605020bd68219e34f33c07c85de15719a",
+    "sqliteVerified": true
+  },
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

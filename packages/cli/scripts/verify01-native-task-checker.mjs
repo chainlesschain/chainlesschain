@@ -4,6 +4,10 @@
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import {
+  prereleasePackageBinding,
+  verifyPrereleaseArtifactMetadata,
+} from "./verify01-prerelease-package-set.mjs";
 import path from "node:path";
 import os from "node:os";
 import { createHash } from "node:crypto";
@@ -206,6 +210,10 @@ export function validateNativeSelection(plan, source, sampleIds) {
 
 export function assertNativePackageSet(source, versionsFile) {
   const packageSet = loadNativePackageSet(versionsFile);
+  const candidate = packageSet.bytes
+    ? prereleasePackageBinding(JSON.parse(packageSet.bytes.toString("utf8")))
+    : null;
+  assert.deepEqual(source.prepublication ?? null, candidate);
   assert.deepEqual(
     source.versions,
     packageSet.versions,
@@ -217,6 +225,7 @@ export function assertNativePackageSet(source, versionsFile) {
     "generation package-set digest differs from checker selection",
   );
   for (const row of source.samples) {
+    assert.deepEqual(row.prepublication ?? null, candidate);
     assert.deepEqual(
       row.versions,
       packageSet.versions,
@@ -228,7 +237,7 @@ export function assertNativePackageSet(source, versionsFile) {
       `sample ${row.sampleId} package-set digest differs`,
     );
   }
-  return packageSet;
+  return candidate ? { ...packageSet, prepublication: candidate } : packageSet;
 }
 
 export async function checkNativeCampaign({
@@ -282,11 +291,44 @@ export async function checkNativeCampaign({
   );
   assert.equal(source.projectCommit, projectCommit);
   assert.equal(source.planDigest, planDigest);
-  const { versions, packageSetDigest } = assertNativePackageSet(
+  const { versions, packageSetDigest, prepublication } = assertNativePackageSet(
     source,
     versionsFile,
   );
-  const packageBinding = packageSetDigest ? { packageSetDigest } : {};
+  const packageBinding = {
+    ...(packageSetDigest ? { packageSetDigest } : {}),
+    ...(prepublication ? { prepublication } : {}),
+  };
+  if (prepublication) {
+    assert.equal(prepublication.sourceCommit, projectCommit);
+    const proof = json(artifactFile(input, "prerelease-bundle.json"));
+    assert.equal(proof.sourceCommit, projectCommit);
+    assert.equal(proof.runId, prepublication.runId);
+    assert.deepEqual(proof.versions, versions);
+    assert.deepEqual(proof.files, prepublication.files);
+    assert.deepEqual(proof.cliSourceFiles, prepublication.cliSourceFiles);
+    assert.equal(proof.published, false);
+    const provenance = json(artifactFile(input, "prerelease-provenance.json"));
+    verifyPrereleaseArtifactMetadata(
+      prepublication,
+      provenance.run,
+      provenance.artifact,
+    );
+    const lock = json(artifactFile(input, "package-lock.json"));
+    const locked = lock.packages["node_modules/chainlesschain"];
+    assert.equal(locked.version, versions.cli);
+    assert.equal(locked.integrity, prepublication.files.cli.integrity);
+    assert.match(locked.resolved, /^file:/u);
+    assert.equal(
+      source.install.candidateInstallation.sourceCommit,
+      projectCommit,
+    );
+    assert.equal(
+      source.install.candidateInstallation.sourceFilesVerified,
+      prepublication.cliSourceFiles.length,
+    );
+    assert.equal(source.install.candidateInstallation.published, false);
+  }
   if (packageSetDigest)
     assert.equal(
       hash(fs.readFileSync(artifactFile(input, "package-set.json"))),

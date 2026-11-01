@@ -1,0 +1,75 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+// From __tests__, ../src resolves to packages/cli/src (not ../../src).
+import {
+  assessBackgroundLaunchProfileCompatibility,
+  buildArgvFromBackgroundLaunchProfile,
+  canonicalBackgroundLaunchProfileJson,
+  captureBackgroundLaunchProfile,
+  fingerprintBackgroundLaunchProfile,
+  normalizeBackgroundLaunchProfile,
+} from "../src/lib/background-launch-profile.js";
+
+let cwd;
+let previousHome;
+beforeEach(() => {
+  cwd = realpathSync.native(mkdtempSync(join(tmpdir(), "launch-identity-")));
+  previousHome = process.env.CHAINLESSCHAIN_HOME;
+  process.env.CHAINLESSCHAIN_HOME = join(cwd, "home");
+  mkdirSync(process.env.CHAINLESSCHAIN_HOME, { recursive: true });
+});
+afterEach(() => {
+  if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+  else process.env.CHAINLESSCHAIN_HOME = previousHome;
+  rmSync(cwd, { recursive: true, force: true });
+});
+
+function base() {
+  return normalizeBackgroundLaunchProfile({ version: 1, workspace: { cwd } });
+}
+function changed(profile, group, field, value) {
+  const copy = structuredClone(profile);
+  if (field === null) copy[group] = value;
+  else copy[group][field] = value;
+  return copy;
+}
+function rejectsAtEveryBoundary(profile, field) {
+  const error = {
+    code: "BACKGROUND_LAUNCH_PROFILE_INVALID",
+    message: `Invalid background launch profile field: ${field}`,
+  };
+  // All consumers must reject; canonicalization must not bless a relaxed policy.
+  for (const consume of [normalizeBackgroundLaunchProfile,
+    canonicalBackgroundLaunchProfileJson, fingerprintBackgroundLaunchProfile,
+    buildArgvFromBackgroundLaunchProfile]) {
+    expect(() => consume(profile)).toThrowError(expect.objectContaining(error));
+  }
+}
+
+describe("persisted launch policy identity (independent regression)", () => {
+  it.each([null, [], ["read_file"]])("preserves allowlist identity %j through disk and argv", (allowed) => {
+    const argv = ["agent", "--permission-mode", "plan", "--sandbox-mode", "strict",
+      "--disallowed-tools", "run_shell", "--max-turns", "1", "--max-budget-usd", "0.25"];
+    if (allowed !== null) argv.push("--allowed-tools", allowed.join(","));
+    const original = captureBackgroundLaunchProfile({ argv, cwd });
+    expect(original.tools).toEqual({ allowed, disallowed: ["run_shell"] });
+    expect(original.permission.mode).toBe("plan");
+    expect(original.sandbox.mode).toBe("strict");
+    expect(original.budget.maxTurns).toBe(1);
+    expect(original.budget.maxCostUsd).toBe(0.25);
+    const file = join(cwd, "saved-profile.json");
+    writeFileSync(file, canonicalBackgroundLaunchProfileJson(original));
+    const restored = normalizeBackgroundLaunchProfile(JSON.parse(readFileSync(file, "utf8")));
+    expect(restored).toEqual(original);
+    const rebuilt = buildArgvFromBackgroundLaunchProfile(restored);
+    if (allowed === null) expect(rebuilt).not.toContain("--allowed-tools");
+    else expect(rebuilt.slice(rebuilt.indexOf("--allowed-tools"), rebuilt.indexOf("--allowed-tools") + 2))
+      .toEqual(["--allowed-tools", allowed.join(",")]);
+    const recaptured = captureBackgroundLaunchProfile({ argv: rebuilt, cwd });
+    expect(recaptured).toEqual(original);
+    expect(fingerprintBackgroundLaunchProfile(recaptured)).toBe(fingerprintBackgroundLaunchProfile(original));
+    expect(assessBackgroundLaunchProfileCompatibility(original, recaptured)).toEqual({ compatible: true, reasons: [] });
+  });
+});

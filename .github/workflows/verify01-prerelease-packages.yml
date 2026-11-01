@@ -1,0 +1,82 @@
+name: VERIFY01 prerelease CLI and IDE packages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-subreaper:
+    uses: ./.github/workflows/_cli-linux-subreaper.yml
+    with:
+      commit_sha: ${{ github.sha }}
+
+  package-candidates:
+    needs: linux-subreaper
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify exact candidate source
+        run: test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.22.2"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: ./.github/actions/setup-node-deps
+      - name: Build CLI distribution assets
+        working-directory: packages/cli
+        run: |
+          npm run commands:manifest:check
+          npm run commands:help-index:check
+          npm run commands:completions:check
+          npm run build:web-panel:force
+          npm run build:changelog
+      - uses: actions/download-artifact@v6
+        with:
+          name: linux-subreaper-x64-${{ github.sha }}
+          path: packages/cli/src/assets/linux-subreaper
+      - uses: actions/download-artifact@v6
+        with:
+          name: linux-subreaper-arm64-${{ github.sha }}
+          path: packages/cli/src/assets/linux-subreaper
+      - name: Pack CLI candidate with release payload validation
+        run: |
+          mkdir -p release-candidates
+          npm pack --workspace=packages/cli --pack-destination release-candidates
+          CC_RELEASE_VERSION=$(node -p "require('./packages/cli/package.json').version") node packages/cli/scripts/npm-release-artifact.mjs create \
+            release-candidates/chainlesschain-$(node -p "require('./packages/cli/package.json').version").tgz \
+            release-candidates/cli-payload.json
+      - name: Package VS Code candidate
+        working-directory: packages/vscode-extension
+        run: |
+          npm run check:agent-sdk
+          node scripts/sync-elicitation-schema.mjs --check
+          npx --yes @vscode/vsce@3.9.2 package --no-dependencies --out ../../release-candidates/chainlesschain-ide-$(node -p "require('./package.json').version").vsix
+          node scripts/verify-vsix.mjs ../../release-candidates/chainlesschain-ide-$(node -p "require('./package.json').version").vsix
+      - name: Prepare pinned Gradle wrapper
+        run: >-
+          node scripts/lib/verify01-gradle-bootstrap.mjs
+          --project-dir packages/jetbrains-plugin
+          --artifact-dir "${{ runner.temp }}/verify01-candidate-gradle"
+      - name: Build JetBrains candidate
+        working-directory: packages/jetbrains-plugin
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon buildPlugin
+          cp build/distributions/chainlesschain-ide-bridge-*.zip ../../release-candidates/
+      - name: Bind source, versions and original package bytes
+        run: node packages/cli/scripts/verify01-prerelease-package-set.mjs --create release-candidates
+      - uses: actions/upload-artifact@v6
+        with:
+          name: verify01-prerelease-packages-${{ github.sha }}
+          path: release-candidates/
+          if-no-files-found: error
+          retention-days: 90

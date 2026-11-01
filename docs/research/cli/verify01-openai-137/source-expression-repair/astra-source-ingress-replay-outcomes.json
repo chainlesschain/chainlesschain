@@ -1,0 +1,27 @@
+[
+  {
+    "sample": "verify-36",
+    "status": "rejected",
+    "reason": "Agent model code expression under a sensitive key cannot be safely projected"
+  },
+  {
+    "sample": "first-run-darwin-vscode",
+    "status": "admitted",
+    "count": 3
+  },
+  {
+    "sample": "verify-08",
+    "status": "admitted",
+    "count": 3
+  },
+  {
+    "sample": "verify-13",
+    "status": "admitted",
+    "count": 2
+  },
+  {
+    "sample": "verify-19",
+    "status": "admitted",
+    "count": 2
+  }
+]

@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "candidateSource": "18455a2b95498043f5bb6364f63d5ce32d277303",
+  "packageSetDigest": "sha256:bb069455abf45ce4bac05db04a576fb117a74061f38c87c25eb2f57232cc9710",
+  "projectRevisionDigest": "sha256:2b7d17c0ea90ce89206730c7c6a9287a38cfc124129908d98797dbedb919a42e",
+  "observations": [
+    {
+      "host": "macos",
+      "entry": "vscode",
+      "sampleIds": [
+        "verify-08",
+        "first-run-darwin-vscode"
+      ],
+      "acceptanceOnly": false,
+      "selectedCells": 1,
+      "networkRequests": 0,
+      "modelRequests": 0
+    },
+    {
+      "host": "macos",
+      "entry": "vscode",
+      "sampleIds": [
+        "verify-08",
+        "first-run-darwin-vscode"
+      ],
+      "acceptanceOnly": true,
+      "selectedCells": 1,
+      "networkRequests": 0,
+      "modelRequests": 0
+    },
+    {
+      "host": "linux",
+      "entry": "cli",
+      "sampleIds": [
+        "verify-13"
+      ],
+      "acceptanceOnly": false,
+      "selectedCells": 1,
+      "networkRequests": 0,
+      "modelRequests": 0
+    },
+    {
+      "host": "linux",
+      "entry": "cli",
+      "sampleIds": [
+        "verify-13"
+      ],
+      "acceptanceOnly": true,
+      "selectedCells": 1,
+      "networkRequests": 0,
+      "modelRequests": 0
+    },
+    {
+      "host": "windows",
+      "entry": "cli",
+      "sampleIds": [
+        "verify-19"
+      ],
+      "acceptanceOnly": false,
+      "selectedCells": 1,
+      "networkRequests": 0,
+      "modelRequests": 0
+    },
+    {
+      "host": "windows",
+      "entry": "cli",
+      "sampleIds": [
+        "verify-19"
+      ],
+      "acceptanceOnly": true,
+      "selectedCells": 1,
+      "networkRequests": 0,
+      "modelRequests": 0
+    },
+    {
+      "host": "macos",
+      "entry": "jetbrains",
+      "sampleIds": [
+        "verify-36"
+      ],
+      "acceptanceOnly": false,
+      "selectedCells": 1,
+      "networkRequests": 0,
+      "modelRequests": 0
+    },
+    {
+      "host": "macos",
+      "entry": "jetbrains",
+      "sampleIds": [
+        "verify-36"
+      ],
+      "acceptanceOnly": true,
+      "selectedCells": 1,
+      "networkRequests": 0,
+      "modelRequests": 0
+    }
+  ],
+  "passed": 8,
+  "modelRequests": 0,
+  "scope": "Exact workflow selector only; not native generation or independent acceptance"
+}

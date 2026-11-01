@@ -3544,6 +3544,7 @@ async function startAgentReplInWorkspaceOwned(
   });
   if (feature("PROMPT_COMPRESSOR") || contextMemoryCutover.canonical) {
     _compressor = new PromptCompressor({
+      contextMemoryModelWindowTokens: options.contextMemoryModelWindowTokens,
       model,
       provider,
       llmQuery: async (prompt) => {
@@ -9852,6 +9853,7 @@ async function startAgentReplInWorkspaceOwned(
         usageEvents,
         thinking: reasoning,
       } = await agentLoop(messages, {
+        contextMemoryModelWindowTokens: options.contextMemoryModelWindowTokens,
         ...captureSkillRuntimeDependencies(options),
         ...liveOpts,
         waitForOutput: _replOutputFlow.wait,

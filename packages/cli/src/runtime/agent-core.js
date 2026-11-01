@@ -1,4 +1,7 @@
-import { projectMessagesWithTaskBinding } from "./message-roles.js";
+import {
+  projectMessagesWithTaskBinding,
+  getTaskCompactionBindings,
+} from "./message-roles.js";
 import {
   providerFetch,
   requireUnscopedToolExecution,
@@ -14660,6 +14663,7 @@ async function _getAutoCompactor(options) {
             return compactLiveMessagesCanonical(messages, {
               compressor: compatibilitySummarizer,
               compressOptions,
+              requiredUserBindings: compressOptions.requiredUserBindings,
               sessionId: options.sessionId,
               operationId: `auto-${randomUUID()}`,
               provider: options.provider || "ollama",
@@ -14997,6 +15001,11 @@ export async function* agentLoop(messages, options) {
           ).length === 1,
       }
     : null;
+  const taskCompactionBindings = getTaskCompactionBindings(
+    options.projectProviderMessages,
+    messages,
+    currentUserTaskBinding,
+  );
   if (options.serviceTier != null) {
     resolveModelServiceTier(
       resolveModelCapabilityProfile(options),
@@ -15919,6 +15928,7 @@ export async function* agentLoop(messages, options) {
               }
             : await compactor.compress(workingMessages, {
                 preserveToolPairs: true,
+                requiredUserBindings: taskCompactionBindings,
                 ...pinOpts,
               });
           if (

@@ -206,17 +206,22 @@ export function messagesToContextItems(messagesInput, options = {}) {
     ? [...options.allowedSinks]
     : DEFAULT_ALLOWED_SINKS;
   const items = [];
-  const requiredUser = options.requiredUserMessage;
-  if (
-    requiredUser != null &&
-    (!Number.isSafeInteger(requiredUser.index) ||
-      requiredUser.index < 0 ||
-      requiredUser.index >= messages.length ||
-      requiredUser.message?.role !== "user" ||
-      !isDeepStrictEqual(messages[requiredUser.index], requiredUser.message))
-  ) {
-    throw new TypeError("Invalid current-user task binding");
+  const requiredUsers =
+    options.requiredUserMessages ||
+    (options.requiredUserMessage ? [options.requiredUserMessage] : []);
+  for (const requiredUser of requiredUsers) {
+    if (
+      requiredUser != null &&
+      (!Number.isSafeInteger(requiredUser.index) ||
+        requiredUser.index < 0 ||
+        requiredUser.index >= messages.length ||
+        requiredUser.message?.role !== "user" ||
+        !isDeepStrictEqual(messages[requiredUser.index], requiredUser.message))
+    ) {
+      throw new TypeError("Invalid current-user task binding");
+    }
   }
+  const requiredIndexes = new Set(requiredUsers.map(({ index }) => index));
   const trustedSystemIndexes = new Set(
     Array.isArray(options.trustedSystemIndexes)
       ? options.trustedSystemIndexes.filter(Number.isSafeInteger)
@@ -305,14 +310,13 @@ export function messagesToContextItems(messagesInput, options = {}) {
     const item = items[index];
     if (
       index !== lastIndex &&
-      item.sourceRef.eventSequence !== requiredUser?.index
+      !requiredIndexes.has(item.sourceRef.eventSequence)
     )
       continue;
     const payload = JSON.parse(loadBundleContent(item, sessionId));
     if (
       payload.messages.at(-1)?.role === "user" &&
-      (index === lastIndex ||
-        item.sourceRef.eventSequence === requiredUser?.index)
+      (index === lastIndex || requiredIndexes.has(item.sourceRef.eventSequence))
     ) {
       const protectedItem = { ...item };
       delete protectedItem.digest;

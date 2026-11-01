@@ -1,3 +1,9 @@
+import { isDeepStrictEqual } from "node:util";
+import {
+  resolveTaskBinding,
+  taskBindingMatchCount,
+  advanceTaskBinding,
+} from "./task-binding.js";
 import { randomUUID } from "node:crypto";
 import {
   canonicalDigest,
@@ -84,6 +90,7 @@ class CallbackSessionContextPort extends InMemorySessionContextPort {
     head,
     physicalAuthority,
     allowExternalization = false,
+    requiredUserMessages = [],
   }) {
     const initialHead =
       head ||
@@ -99,6 +106,7 @@ class CallbackSessionContextPort extends InMemorySessionContextPort {
         items: messagesToContextItems(messages, {
           sessionId,
           allowExternalization,
+          requiredUserMessages,
         }),
       },
     ]);
@@ -262,10 +270,22 @@ export async function compactLiveMessagesCanonical(
           !isCompactionHostBase(message) &&
           !isRuntimeOnlySessionMessage(message),
       );
+  const requiredUserBindings = (options.requiredUserBindings || []).map(
+    (binding) => ({
+      ...binding,
+      message: structuredClone(binding.message),
+      matchCount: taskBindingMatchCount(binding),
+    }),
+  );
+  const summarizerOptions = { ...(options.compressOptions || {}) };
+  delete summarizerOptions.requiredUserBindings;
+  for (const binding of requiredUserBindings)
+    resolveTaskBinding(liveMessages, binding);
   const ephemeralMessages = [];
+  const durableSourceIndexes = new Map();
   {
     let sequence = 0;
-    for (const message of liveMessages) {
+    for (const [liveIndex, message] of liveMessages.entries()) {
       if (
         isRuntimeOnlySessionMessage(message) ||
         isCompactionHostBase(message) ||
@@ -274,9 +294,29 @@ export async function compactLiveMessagesCanonical(
           !getDurableSystemMessageProvenance(message))
       )
         ephemeralMessages.push({ sequence, message });
-      else sequence += 1;
+      else {
+        durableSourceIndexes.set(liveIndex, sequence);
+        sequence += 1;
+      }
     }
   }
+  // Carry host-resolved source indexes into the verified authority projection.
+  // Identical historical user text is not a substitute for this source identity.
+  const requiredUserMessages = requiredUserBindings.map((binding) => ({
+    index: durableSourceIndexes.get(
+      resolveTaskBinding(liveMessages, binding).index,
+    ),
+    message: binding.message,
+  }));
+  const initialItems = messagesToContextItems(messages, {
+    sessionId,
+    allowExternalization: persistentSession,
+    requiredUserMessages,
+  });
+  const boundItems = requiredUserMessages.map(({ index }, bindingIndex) => ({
+    item: initialItems.find((item) => item.sourceRef.eventSequence === index),
+    binding: requiredUserBindings[bindingIndex],
+  }));
   if (typeof options.commit === "function") {
     const bootstrapRuntime = createCliContextMemoryRuntime({
       sessionId,
@@ -288,6 +328,7 @@ export async function compactLiveMessagesCanonical(
     if (persistentSession) {
       verifiedAuthoritySnapshot = await new JsonlSessionContextPort({
         sessionId,
+        requiredUserMessages,
       }).readSnapshot(sessionId);
     }
     const sessionPort = new CallbackSessionContextPort({
@@ -298,6 +339,7 @@ export async function compactLiveMessagesCanonical(
       trigger,
       summaryStats: () => summaryStats,
       allowExternalization: persistentSession,
+      requiredUserMessages,
       ...(verifiedAuthoritySnapshot?.head
         ? { head: verifiedAuthoritySnapshot.head, physicalAuthority: true }
         : {}),
@@ -312,6 +354,10 @@ export async function compactLiveMessagesCanonical(
     });
   } else if (persistentSession) {
     runtime = createCliContextMemoryRuntime({
+      sessionPort: new JsonlSessionContextPort({
+        sessionId,
+        requiredUserMessages,
+      }),
       sessionId,
       scopeKey: `cli:session:${sessionId}`,
       env: options.env,
@@ -336,6 +382,7 @@ export async function compactLiveMessagesCanonical(
         items: messagesToContextItems(messages, {
           sessionId,
           allowExternalization: false,
+          requiredUserMessages,
         }),
       },
     ]);
@@ -362,6 +409,7 @@ export async function compactLiveMessagesCanonical(
     const inputItems = messagesToContextItems(messages, {
       sessionId,
       allowExternalization: true,
+      requiredUserMessages,
     });
     const inputDigest = canonicalDigest(
       inputItems.map((item) => item.digest),
@@ -384,11 +432,59 @@ export async function compactLiveMessagesCanonical(
   const model = options.model || "default";
   const memoryRevision = await runtime.memoryPort.getRevision();
   let settledOutputItems = null;
-  if (ephemeralMessages.length) {
+  {
     const appendCompaction = runtime.sessionPort.appendCompaction.bind(
       runtime.sessionPort,
     );
     runtime.sessionPort.appendCompaction = async (event, expectedHead) => {
+      const outputMessages = contextItemsToMessages(event.outputItems, {
+        sessionId,
+      });
+      for (const { item, binding } of boundItems) {
+        resolveTaskBinding(messagesInput, binding);
+        const retained = event.outputItems.filter(
+          (output) => output.itemId === item.itemId,
+        );
+        const originalOutputs = contextItemsToMessages(
+          event.outputItems.filter((output) =>
+            initialItems.some(
+              (input) =>
+                input.itemId === output.itemId &&
+                input.digest === output.digest,
+            ),
+          ),
+          { sessionId },
+        );
+        // A summary can faithfully retain an older identical user turn from
+        // its verified dropped parents. Such history is not a new task copy.
+        const derivedParents = new Set(
+          event.outputItems
+            .filter(
+              (output) =>
+                !initialItems.some((input) => input.itemId === output.itemId),
+            )
+            .flatMap((output) => output.provenance.parentDigests || []),
+        );
+        const historicalOutputs = contextItemsToMessages(
+          initialItems.filter((input) => derivedParents.has(input.digest)),
+          { sessionId },
+        );
+        const matches = (list) =>
+          list.filter((message) => isDeepStrictEqual(message, binding.message))
+            .length;
+        if (
+          retained.length !== 1 ||
+          retained[0].digest !== item.digest ||
+          matches(outputMessages) >
+            matches(originalOutputs) + matches(historicalOutputs)
+        ) {
+          const error = new Error(
+            "The current user task was lost, changed or duplicated in compaction output",
+          );
+          error.code = "CC_AGENT_TASK_CONTEXT_LOST";
+          throw error;
+        }
+      }
       const result = await appendCompaction(event, expectedHead);
       if (result?.ok === true) settledOutputItems = event.outputItems;
       return result;
@@ -427,7 +523,7 @@ export async function compactLiveMessagesCanonical(
         });
         const result = await compressor.compress(droppedMessages, {
           preserveToolPairs: true,
-          ...(options.compressOptions || {}),
+          ...summarizerOptions,
         });
         summaryStats = result.stats || {};
         summaryReceipt = usageReceipt(summaryStats, provider, model);
@@ -513,7 +609,9 @@ export async function compactLiveMessagesCanonical(
       receipt,
     };
   }
-  const snapshot = await runtime.sessionPort.readSnapshot(sessionId);
+  const snapshot = settledOutputItems
+    ? null
+    : await runtime.sessionPort.readSnapshot(sessionId);
   // Reattach host policy and private retry nudges at their durable sequence
   // boundaries. They remain live, never enter the receipt, and do not move a
   // retry instruction behind tool exchanges that happened after that retry.
@@ -531,11 +629,21 @@ export async function compactLiveMessagesCanonical(
       ephemeralMessages[ephemeralIndex].sequence <= sequence
     )
       restoredMessages.push(ephemeralMessages[ephemeralIndex++].message);
-    restoredMessages.push(...contextItemsToMessages([item], { sessionId }));
+    const bound = boundItems.find((entry) => entry.item.itemId === item.itemId);
+    restoredMessages.push(
+      ...(bound
+        ? [bound.binding.original]
+        : contextItemsToMessages([item], { sessionId })),
+    );
   }
   restoredMessages.push(
     ...ephemeralMessages.slice(ephemeralIndex).map(({ message }) => message),
   );
+  // Advance only the host binding's known multiplicity after a verified commit;
+  // older identical turns may have been legitimately summarized away.
+  requiredUserBindings.forEach((_, index) => {
+    advanceTaskBinding(options.requiredUserBindings[index], restoredMessages);
+  });
   return {
     messages: restoredMessages,
     stats: {

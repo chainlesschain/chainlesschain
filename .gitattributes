@@ -209,4 +209,8 @@ docs/research/cli/evidence/budget-egress-review-2026-10-29/** -text !eol -whites
 # Assisted CI deliveries and original checker evidence retain exact source bytes.
 docs/research/cli/evidence/native131-assisted-install-2026-10-30/** -text !eol -whitespace
 docs/research/cli/evidence/native131-assisted-verify10-2026-10-30/** -text !eol -whitespace
+
+# Raw repaired-project cohort artifacts retain their recorded byte digests.
+docs/research/cli/verify01-openai-137/public-generator-*/** -text !eol -whitespace
+docs/research/cli/verify01-openai-137/*.raw.json -text !eol -whitespace
 docs/research/cli/evidence/native131-assisted-integration-2026-10-30/** -text !eol -whitespace

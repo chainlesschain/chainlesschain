@@ -1,0 +1,57 @@
+{
+  "id": 8,
+  "taskId": "first-run-darwin-vscode",
+  "startedAt": "2026-11-01T08:47:48.152Z",
+  "usage": {
+    "input_tokens": 20172,
+    "input_tokens_details": {
+      "cache_write_tokens": 15372,
+      "cached_tokens": 3956
+    },
+    "output_tokens": 125,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 20297
+  },
+  "tokenOnlyEstimateUsd": 0.0340776,
+  "actualBilledCostUsd": null,
+  "errorCode": null,
+  "responseMode": "sse",
+  "finish": "tool_calls",
+  "estimateExcludesUnreportedCacheWritesAndOtherFees": true,
+  "responseId": "resp_003cc4b4dd7d9280016ae6fcb4e9f487d2840dad2408454059",
+  "model": "gpt-6.1-sol",
+  "serviceTier": "default",
+  "finishedAt": "2026-11-01T08:47:50.984Z",
+  "transport": {
+    "socketAssignedMs": 2,
+    "dnsLookupMs": 3,
+    "tcpConnectedMs": 6,
+    "tlsConnectedMs": 12,
+    "dispatchStartedMs": 12,
+    "requestFinishedMs": 13,
+    "responseStartedMs": 475,
+    "dispatchStarted": true,
+    "failureCategory": null,
+    "connectionAttempts": [
+      {
+        "event": "start",
+        "family": 4,
+        "elapsedMs": 3,
+        "errorCode": null
+      }
+    ],
+    "nestedErrorCodes": [],
+    "errorCode": null,
+    "errorSyscall": null
+  },
+  "response": {
+    "storedSha256": "e71be1327e982474443c3fc65c21169cc733c0f8e14d355f7572ac461a8b89a4",
+    "storedBytes": 26550,
+    "status": 200,
+    "originalSha256": "e71be1327e982474443c3fc65c21169cc733c0f8e14d355f7572ac461a8b89a4",
+    "originalBytes": 26550,
+    "sensitiveValueRedacted": false
+  }
+}

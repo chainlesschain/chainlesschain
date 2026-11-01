@@ -1,0 +1,78 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-13",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 15,
+      "passed": 15,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 125,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 592,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":15,\"numPassedTests\":15,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793511506547,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary recognizes bounded png headers\",\"status\":\"passed\",\"title\":\"recognizes bounded png headers\",\"duration\":2.4252419999999972,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary recognizes bounded jpeg headers\",\"status\":\"passed\",\"title\":\"recognizes bounded jpeg headers\",\"duration\":0.43485300000000393,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary recognizes bounded gif headers\",\"status\":\"passed\",\"title\":\"recognizes bounded gif headers\",\"duration\":0.4438069999999925,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary recognizes bounded webp headers\",\"status\":\"passed\",\"title\":\"recognizes bounded webp headers\",\"duration\":0.3833060000000046,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects a forged extension and malformed header before returning content\",\"status\":\"passed\",\"title\":\"rejects a forged extension and malformed header before returning content\",\"duration\":1.206612000000007,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects zero and oversized pixel declarations\",\"status\":\"passed\",\"title\":\"rejects zero and oversized pixel declarations\",\"duration\":0.6359050000000082,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary bounds file size before any read or full-buffer allocation\",\"status\":\"passed\",\"title\":\"bounds file size before any read or full-buffer allocation\",\"duration\":1.1922509999999988,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary bounds the combined attachment bytes and identifies the failing entry\",\"status\":\"passed\",\"title\":\"bounds the combined attachment bytes and identifies the failing entry\",\"duration\":13.310420999999991,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects excess image count before opening files\",\"status\":\"passed\",\"title\":\"rejects excess image count before opening files\",\"duration\":0.6018429999999739,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects non-regular handles and closes them\",\"status\":\"passed\",\"title\":\"rejects non-regular handles and closes them\",\"duration\":0.735494000000017,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary uses bounded descriptor reads when the file grows after its size check\",\"status\":\"passed\",\"title\":\"uses bounded descriptor reads when the file grows after its size check\",\"duration\":0.7513679999999852,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects a same-size image whose pinned handle mtimeMs changes\",\"status\":\"passed\",\"title\":\"rejects a same-size image whose pinned handle mtimeMs changes\",\"duration\":0.6759849999999972,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects a same-size image whose pinned handle ctimeMs changes\",\"status\":\"passed\",\"title\":\"rejects a same-size image whose pinned handle ctimeMs changes\",\"duration\":0.49490299999999365,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary supports short reads and rejects a truncated file\",\"status\":\"passed\",\"title\":\"supports short reads and rejects a truncated file\",\"duration\":0.605620000000016,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary caps JPEG header scanning at 1 MiB\",\"status\":\"passed\",\"title\":\"caps JPEG header scanning at 1 MiB\",\"duration\":1.8581010000000049,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793511506738,\"endTime\":1793511506763.8582,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/image-file-boundary.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 77058,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":1,\"numFailedTestSuites\":0,\"numPendingTestSuites\":1,\"numTotalTests\":8,\"numPassedTests\":0,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793511507142,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"independent same-handle image admission regressions\"],\"fullName\":\"independent same-handle image admission regressions reads a small PNG exactly, including short reads, and closes its one handle\",\"status\":\"pending\",\"title\":\"reads a small PNG exactly, including short reads, and closes its one handle\",\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"independent same-handle image admission regressions\"],\"fullName\":\"independent same-handle image admission regressions accepts exactly 20 MiB but rejects the next byte before reading\",\"status\":\"pending\",\"title\":\"accepts exactly 20 MiB but rejects the next byte before reading\",\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"independent same-handle image admission regressions\"],\"fullName\":\"independent same-handle image admission regressions accepts the remaining-byte boundary and rejects the first byte over it\",\"status\":\"pending\",\"title\":\"accepts the remaining-byte boundary and rejects the first byte over it\",\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"independent same-handle image admission regressions\"],\"fullName\":\"independent same-handle image admission regressions checks dimensions (40000000 x 1 versus 40000001 x 1)\",\"status\":\"pending\",\"title\":\"checks dimensions (40000000 x 1 versus 40000001 x 1)\",\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"independent same-handle image admission regressions\"],\"fullName\":\"independent same-handle image admission regressions checks dimensions (1 x 1 versus 0 x 1)\",\"status\":\"pending\",\"title\":\"checks dimensions (1 x 1 versus 0 x 1)\",\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"independent same-handle image admission regressions\"],\"fullName\":\"independent same-handle image admission regressions checks dimensions (1 x 1 versus 1 x 0)\",\"status\":\"pending\",\"title\":\"checks dimensions (1 x 1 versus 1 x 0)\",\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"independent same-handle image admission regressions\"],\"fullName\":\"independent same-handle image admission regressions detects replacement of admitted bytes before the full-content read\",\"status\":\"pending\",\"title\":\"detects replacement of admitted bytes before the full-content read\",\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"independent same-handle image admission regressions\"],\"fullName\":\"independent same-handle image admission regressions caps reads and rejects growth immediately before the first read\",\"status\":\"pending\",\"title\":\"caps reads and rejects growth immediately before the first read\",\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793511507142,\"endTime\":1793511507142,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/repair137-verify-13.test.js\"}]}\n",
+      "stderr": "\n<--- Last few GCs --->\n\n[20:0x19d24000]    41828 ms: Scavenge 1928.5 (1963.4) -> 1928.5 (1964.4) MB, pooled: 0 MB, 362.07 / 0.00 ms  (average mu = 0.825, current mu = 0.673) allocation failure; \n[20:0x19d24000]    43491 ms: Mark-Compact 2089.6 (2124.6) -> 2088.7 (2136.4) MB, pooled: 0 MB, 1587.64 / 0.00 ms  (average mu = 0.751, current mu = 0.538) allocation failure; GC in old space requested\n\n\n<--- JS stacktrace --->\n\nFATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory\n----- Native stack trace -----\n\n 1: 0xe1bdfe node::OOMErrorHandler(char const*, v8::OOMDetails const&) [/usr/local/bin/node]\n 2: 0x123e800 v8::Utils::ReportOOMFailure(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [/usr/local/bin/node]\n 3: 0x123ead7 v8::internal::V8::FatalProcessOutOfMemory(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [/usr/local/bin/node]\n 4: 0x146c615  [/usr/local/bin/node]\n 5: 0x1485e89 v8::internal::Heap::CollectGarbage(v8::internal::AllocationSpace, v8::internal::GarbageCollectionReason, v8::GCCallbackFlags) [/usr/local/bin/node]\n 6: 0x145a558 v8::internal::HeapAllocator::AllocateRawWithLightRetrySlowPath(int, v8::internal::AllocationType, v8::internal::AllocationOrigin, v8::internal::AllocationAlignment) [/usr/local/bin/node]\n 7: 0x145b485 v8::internal::HeapAllocator::AllocateRawWithRetryOrFailSlowPath(int, v8::internal::AllocationType, v8::internal::AllocationOrigin, v8::internal::AllocationAlignment) [/usr/local/bin/node]\n 8: 0x143387e v8::internal::Factory::AllocateRaw(int, v8::internal::AllocationType, v8::internal::AllocationAlignment) [/usr/local/bin/node]\n 9: 0x1422974 v8::internal::FactoryBase<v8::internal::Factory>::AllocateRawWithImmortalMap(int, v8::internal::AllocationType, v8::internal::Tagged<v8::internal::Map>, v8::internal::AllocationAlignment) [/usr/local/bin/node]\n10: 0x1423e3e v8::internal::FactoryBase<v8::internal::Factory>::NewRawOneByteString(int, v8::internal::AllocationType) [/usr/local/bin/node]\n11: 0x1423eb6 v8::internal::FactoryBase<v8::internal::Factory>::NewStringFromOneByte(v8::base::Vector<unsigned char const>, v8::internal::AllocationType) [/usr/local/bin/node]\n12: 0x1424455 v8::internal::FactoryBase<v8::internal::Factory>::SmiToString(v8::internal::Tagged<v8::internal::Smi>, v8::internal::NumberCacheMode) [/usr/local/bin/node]\n13: 0x15fa6bd  [/usr/local/bin/node]\n14: 0x161e793  [/usr/local/bin/node]\n15: 0x16a8dd5 v8::internal::FastGetOwnValuesOrEntries(v8::internal::Isolate*, v8::internal::Handle<v8::internal::JSReceiver>, bool, v8::internal::Handle<v8::internal::FixedArray>*) [/usr/local/bin/node]\n16: 0x16a9318 v8::internal::GetOwnValuesOrEntries(v8::internal::Isolate*, v8::internal::Handle<v8::internal::JSReceiver>, v8::internal::PropertyFilter, bool, bool) [/usr/local/bin/node]\n17: 0x189f2e7 v8::internal::Runtime_ObjectEntries(int, unsigned long*, v8::internal::Isolate*) [/usr/local/bin/node]\n18: 0x7f0df9e6c476 \n",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "skipped, pending, todo or empty tests cannot pass acceptance"
+}

@@ -1,0 +1,117 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-36",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 12,
+      "passed": 12,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 147,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 833,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":12,\"numPassedTests\":12,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793511895120,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile refuses to capture an ephemeral profile that resume cannot preserve\",\"status\":\"passed\",\"title\":\"refuses to capture an ephemeral profile that resume cannot preserve\",\"duration\":3.408030999999994,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile captures a versioned effective envelope without prompt or credentials\",\"status\":\"passed\",\"title\":\"captures a versioned effective envelope without prompt or credentials\",\"duration\":15.158141,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile does not persist parent-only background worktree switches\",\"status\":\"passed\",\"title\":\"does not persist parent-only background worktree switches\",\"duration\":4.814736000000039,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile uses canonical JSON for stable fingerprints and changes on policy drift\",\"status\":\"passed\",\"title\":\"uses canonical JSON for stable fingerprints and changes on policy drift\",\"duration\":13.457171999999957,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile rebuilds resumable argv while keeping redacted values out\",\"status\":\"passed\",\"title\":\"rebuilds resumable argv while keeping redacted values out\",\"duration\":1.4891410000000178,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile detects configuration content changes and can refresh explicitly\",\"status\":\"passed\",\"title\":\"detects configuration content changes and can refresh explicitly\",\"duration\":5.443138000000033,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile preserves an explicit empty tool allowlist in resumed argv\",\"status\":\"passed\",\"title\":\"preserves an explicit empty tool allowlist in resumed argv\",\"duration\":2.5143699999999853,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile rejects a malformed persisted permission.mode instead of relaxing it\",\"status\":\"passed\",\"title\":\"rejects a malformed persisted permission.mode instead of relaxing it\",\"duration\":3.320725999999979,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile rejects a malformed persisted sandbox.mode instead of relaxing it\",\"status\":\"passed\",\"title\":\"rejects a malformed persisted sandbox.mode instead of relaxing it\",\"duration\":1.81398200000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile rejects a malformed persisted budget.maxCostUsd instead of relaxing it\",\"status\":\"passed\",\"title\":\"rejects a malformed persisted budget.maxCostUsd instead of relaxing it\",\"duration\":1.2553620000000478,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile rejects a malformed persisted budget.maxTurns instead of relaxing it\",\"status\":\"passed\",\"title\":\"rejects a malformed persisted budget.maxTurns instead of relaxing it\",\"duration\":1.2088739999999802,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile sanitizes base URLs and strips both API key argv forms\",\"status\":\"passed\",\"title\":\"sanitizes base URLs and strips both API key argv forms\",\"duration\":0.7868700000000217,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793511895443,\"endTime\":1793511895497.7869,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/background-launch-profile.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1017,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793511895955,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"persisted launch policy validation (independent controls)\"],\"fullName\":\"persisted launch policy validation (independent controls) rejects malformed sections without substituting default policy\",\"status\":\"passed\",\"title\":\"rejects malformed sections without substituting default policy\",\"duration\":39.18017500000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"persisted launch policy validation (independent controls)\"],\"fullName\":\"persisted launch policy validation (independent controls) requires actual booleans for every policy switch\",\"status\":\"passed\",\"title\":\"requires actual booleans for every policy switch\",\"duration\":82.68618500000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"persisted launch policy validation (independent controls)\"],\"fullName\":\"persisted launch policy validation (independent controls) rejects unknown permission, sandbox and MCP states\",\"status\":\"passed\",\"title\":\"rejects unknown permission, sandbox and MCP states\",\"duration\":33.85821499999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"persisted launch policy validation (independent controls)\"],\"fullName\":\"persisted launch policy validation (independent controls) requires arrays of nonblank strings without coercing policy lists\",\"status\":\"passed\",\"title\":\"requires arrays of nonblank strings without coercing policy lists\",\"duration\":15.844932999999969,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"persisted launch policy validation (independent controls)\"],\"fullName\":\"persisted launch policy validation (independent controls) enforces positive safe-integer budgets, including both integer boundaries\",\"status\":\"passed\",\"title\":\"enforces positive safe-integer budgets, including both integer boundaries\",\"duration\":63.208211000000006,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"persisted launch policy validation (independent controls)\"],\"fullName\":\"persisted launch policy validation (independent controls) accepts fractional costs but rejects zero, negative, nonfinite and malformed costs\",\"status\":\"passed\",\"title\":\"accepts fractional costs but rejects zero, negative, nonfinite and malformed costs\",\"duration\":6.729407999999978,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793511896274,\"endTime\":1793511896515.7295,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/repair137-verify-36.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/background-launch-profile.js"
+      ],
+      "setup": false,
+      "ms": 169,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1012,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793511897136,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"persisted launch policy validation (independent controls)\"],\"fullName\":\"persisted launch policy validation (independent controls) rejects malformed sections without substituting default policy\",\"status\":\"passed\",\"title\":\"rejects malformed sections without substituting default policy\",\"duration\":39.72269600000004,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"persisted launch policy validation (independent controls)\"],\"fullName\":\"persisted launch policy validation (independent controls) requires actual booleans for every policy switch\",\"status\":\"passed\",\"title\":\"requires actual booleans for every policy switch\",\"duration\":86.09039000000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"persisted launch policy validation (independent controls)\"],\"fullName\":\"persisted launch policy validation (independent controls) rejects unknown permission, sandbox and MCP states\",\"status\":\"passed\",\"title\":\"rejects unknown permission, sandbox and MCP states\",\"duration\":35.57444300000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"persisted launch policy validation (independent controls)\"],\"fullName\":\"persisted launch policy validation (independent controls) requires arrays of nonblank strings without coercing policy lists\",\"status\":\"passed\",\"title\":\"requires arrays of nonblank strings without coercing policy lists\",\"duration\":18.55323800000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"persisted launch policy validation (independent controls)\"],\"fullName\":\"persisted launch policy validation (independent controls) enforces positive safe-integer budgets, including both integer boundaries\",\"status\":\"passed\",\"title\":\"enforces positive safe-integer budgets, including both integer boundaries\",\"duration\":64.289173,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"persisted launch policy validation (independent controls)\"],\"fullName\":\"persisted launch policy validation (independent controls) accepts fractional costs but rejects zero, negative, nonfinite and malformed costs\",\"status\":\"passed\",\"title\":\"accepts fractional costs but rejects zero, negative, nonfinite and malformed costs\",\"duration\":6.935505000000035,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793511897452,\"endTime\":1793511897702.9355,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/repair137-verify-36.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate tests did not reject the behavioral mutant"
+}

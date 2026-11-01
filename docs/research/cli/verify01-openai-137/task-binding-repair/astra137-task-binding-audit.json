@@ -1,0 +1,152 @@
+{
+  "schema": "chainlesschain.compaction-task-binding-local-audit/v1",
+  "createdAt": "2026-11-01T04:54:44.402638+00:00",
+  "status": "runtime-fix-validated-local-only",
+  "redacted": true,
+  "paidModelRequests": 0,
+  "releaseReadiness": false,
+  "candidateRebuildRequired": true,
+  "files": [
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "sha256": "e17a70f3f99f8cf6c7fc7f7164b9c55c35e5d35c38905d4662c438da18cd5baa"
+    },
+    {
+      "path": "packages/cli/src/runtime/message-roles.js",
+      "sha256": "e60dcd7d2f24f5517d3ff706e9a5df9958aabd4390eb6fd655760ce1187b7a66"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/live-compaction.js",
+      "sha256": "6eb8adc555688c25d99bbcf4f6e9302dfe41926d0cb34ba9f02b5baa3c0019f8"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/message-adapter.js",
+      "sha256": "bfb6aab468818c9fff56f9fdaf878e93e9f39cf4ee7322304c348f380fbd3ce3"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/jsonl-session-context-port.js",
+      "sha256": "af56de83f273d89d4688d40e4f40493e683ff23db156f5bf93d73c71400f0a22"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/task-binding.js",
+      "sha256": "44415b38b941fc0828a9830e20c46cdc13a87453aab94cd6ab0642f44a046257"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-context-window-transport.test.js",
+      "sha256": "c27a38514175f2aa6a716043b422c2e1a02754522c849cf945a7084b40717113"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/canonical-compaction-task-binding.test.js",
+      "sha256": "f5b1316b2ea43a71a5b6dcf0e30e0e184405887c701b79a111a359c4b16c7f3b"
+    }
+  ],
+  "failureRootCause": {
+    "observedCandidate": "98dc65a2699e0fee43daf56941befcc0695e3738",
+    "installedEngineRevision": "18455a2b95498043f5bb6364f63d5ce32d277303",
+    "os": "linux",
+    "actualPhysicalRequests": 14,
+    "actualCompleteUsageRecords": 14,
+    "actualUnknownUsage": 0,
+    "committedMessageCounts": {
+      "before": 54,
+      "after": 11
+    },
+    "terminalCode": "CC_AGENT_TASK_CONTEXT_LOST",
+    "mechanism": "Automatic canonical compaction omitted the host current-user binding. With assistant/tool tail the original user was ordinary conversation; final planning with the generated handoff could evict it under the conversation partition ceiling. The provider guard correctly refused the next request."
+  },
+  "implementation": {
+    "bindingCapture": "Capture exact original current-user snapshot, original object identity, initial matching multiplicity and only host-owned resume-merge source bindings. Ordinary message mapping fields confer no authority.",
+    "projection": "Resolve against live identity before canonical normalization; carry verified live source index through runtime/host-message filtering into canonical indexes. Both JSONL and live item projections use identical protected task-state bindings and retain full authority digest comparison.",
+    "commitGuard": "Before append, recheck the actual caller array and the bound canonical itemId/digest. Exact same-text historical users in a summary are admitted only up to their verified dropped parent snapshot multiplicity. New task copies without that source capacity are rejected; the current original item can never be replaced by a generated summary.",
+    "restoration": "Restore original bound object references from retained canonical source items. Update the known historical multiplicity in a private WeakMap only after verified commit.",
+    "unchanged": [
+      "provider task-loss guard",
+      "context and output token ceilings",
+      "iteration budget",
+      "provider dispatch sites",
+      "usage settlement authority",
+      "independent-review requirement guard"
+    ]
+  },
+  "controls": {
+    "oldBoundaryFaultInjection": {
+      "testFile": "packages/cli/__tests__/unit/agent-context-window-transport.test.js",
+      "trajectory": "Original user with metadata, 36 tool/assistant rounds, no appended final user, 32768-token declared window, same valid larger handoff in both arms.",
+      "oldArm": "Test-only wrapper removes only requiredUserBindings at canonical compactor entry. Real canonical planner commits, then real provider task guard throws CC_AGENT_TASK_CONTEXT_LOST. Exactly one stubbed Responses fetch (summary); no next provider fetch.",
+      "fixedArm": "Same history and handoff with binding: canonical compaction commits and request completes; exactly two stubbed Responses fetches, original user retained.",
+      "result": "passed"
+    },
+    "legitimateDuplicateText": {
+      "testFile": "packages/cli/__tests__/unit/canonical-compaction-task-binding.test.js",
+      "cases": [
+        "memory: repeated Continue across two compactions",
+        "JSONL: repeated Continue across two compactions",
+        "faithful older identical user retained by a summary from verified dropped parents"
+      ],
+      "result": "passed",
+      "proof": "The current original object survives exactly once across two commits in memory and JSONL. Historical equal text can be carried by verified dropped summary parents. New unsupported clones are rejected; ordinary message mapping fields confer no identity."
+    },
+    "preCommitRaces": {
+      "cases": [
+        "remove original task from caller array during summarizer await",
+        "rewrite original task during summarizer await",
+        "append exact cloned task during summarizer await"
+      ],
+      "result": "all passed; commit callback not invoked"
+    },
+    "negativeAdmission": [
+      "task loss",
+      "task rewrite",
+      "task duplicate",
+      "generated-summary task duplicate",
+      "original protected task exceeds budget"
+    ],
+    "positivePorts": [
+      "in-memory",
+      "callback commit",
+      "verified JSONL",
+      "verified JSONL with callback commit"
+    ],
+    "resumeProjection": "Owned resume source messages survive compaction and their exact merge remains bound."
+  },
+  "validation": {
+    "primaryReport": "astra137-task-binding-final-tests.json",
+    "passedTests": 69,
+    "failedTests": 0,
+    "suiteFiles": 6,
+    "success": true,
+    "gitDiffCheck": "passed",
+    "supplementaryReviewUsage": {
+      "status": "partial-not-overall-pass",
+      "completedSelection": {
+        "file": "packages/cli/__tests__/unit/agent-core.test.js",
+        "passed": 18,
+        "skipped": 158,
+        "selection": "opt-in change review plus MAX_ITERATIONS",
+        "maxIterationsDurationMs": 82412,
+        "timeoutUnchangedMs": 90000
+      },
+      "incompleteSelection": "automatic semantic-compaction usage boundaries; no file result emitted before the hung process was stopped",
+      "terminatedOwnPid": 21984,
+      "terminationScope": "Only PID 21984 after matching the complete task-specific Vitest command line; no global node termination."
+    },
+    "earlierBroadRun": {
+      "status": "not accepted",
+      "reason": "General agent-core MAX_ITERATIONS exceeded the existing 90-second timeout under local load. The worker remained hanging and was terminated after exact command-line verification. Intermediate source/test edits also mean this run is not final-source evidence.",
+      "terminatedOwnPid": 20804,
+      "terminationScope": "only verified own test process; no global node or user CLI termination"
+    },
+    "primaryRunDurationSeconds": 89.27,
+    "ownedProcessCleanup": {
+      "verifiedRootPids": [
+        20804,
+        21984
+      ],
+      "method": "Enumerated Win32_Process and recursively followed ParentProcessId only from those two verified own test roots.",
+      "liveRootsOrDescendantsFound": 0,
+      "userApplicationProcessesTouched": false,
+      "verifiedAt": "2026-11-01T04:54:44.410652+00:00"
+    }
+  },
+  "sourceFrozen": true
+}

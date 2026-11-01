@@ -25,6 +25,7 @@ import {
 import { resolveImages, resolveVisionLlm } from "../lib/image-input.js";
 import { resolveLlmConnection } from "../lib/llm-connection-resolution.js";
 import { loadConfig } from "../lib/config-manager.js";
+import { resolveModelCapabilityProfile } from "../lib/model-capabilities.js";
 import { captureUnattendedActionPolicy } from "../lib/unattended-action-policy.js";
 import {
   assertSandboxCapabilities,
@@ -308,6 +309,14 @@ export function registerAgentCommand(program, dependencies = {}) {
       "Headless task 鈥?when given (or with -p / piped stdin), runs non-interactively",
     )
     .option("--model <model>", "Model name")
+    .option(
+      "--context-window <tokens>",
+      "Operator-declared planning window (1024-16777216 tokens); not runtime verified",
+      (value) =>
+        resolveModelCapabilityProfile({
+          contextMemoryModelWindowTokens: value,
+        }).contextWindowTokens,
+    )
     .option(
       "--provider <provider>",
       "LLM provider (ollama, openai, volcengine, deepseek, ...)",
@@ -1699,6 +1708,7 @@ export function registerAgentCommand(program, dependencies = {}) {
             unattendedActionPolicy,
             toolAdmission,
             model: options.model,
+            contextMemoryModelWindowTokens: options.contextWindow,
             thinking,
             thinkingBudget,
             provider: options.provider,
@@ -2011,6 +2021,7 @@ export function registerAgentCommand(program, dependencies = {}) {
           prompt,
           images,
           model: visionLlm.model || options.model,
+          contextMemoryModelWindowTokens: options.contextWindow,
           visionModel: options.visionModel,
           thinking,
           thinkingBudget,
@@ -2281,6 +2292,7 @@ export function registerAgentCommand(program, dependencies = {}) {
         skillRetrievalRevocationReader,
       }).createAgentRuntime({
         model: options.model,
+        contextMemoryModelWindowTokens: options.contextWindow,
         visionModel: options.visionModel,
         thinking,
         thinkingBudget,

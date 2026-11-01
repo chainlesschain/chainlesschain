@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "projectCommit": "18455a2b95498043f5bb6364f63d5ce32d277303",
+  "revisionBinding": {
+    "schema": "chainlesschain.verify01-project-revision/v1",
+    "path": "docs/research/cli/verify01-openai-137/candidate-project-revision.json",
+    "digest": "sha256:2b7d17c0ea90ce89206730c7c6a9287a38cfc124129908d98797dbedb919a42e",
+    "cohortId": "repaired-source-followup-cli137-candidate-engine-five",
+    "parentProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+    "parentPlanDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+    "projectCommit": "18455a2b95498043f5bb6364f63d5ce32d277303",
+    "selectedSampleIds": [
+      "verify-08",
+      "verify-13",
+      "verify-19",
+      "verify-36",
+      "first-run-darwin-vscode"
+    ],
+    "formalSample": false,
+    "projectionPolicy": "chainlesschain.verify01-repaired-source-projection/v1",
+    "exclusionsDigest": "sha256:ed693174376d83aa411b73306a5b151a8d0f967a01a106e3f020c4ed8e676862",
+    "reason": "User-required prepublication gate using freshly built unreleased CLI and IDE candidates from this exact repaired source as both the execution engine and maintained project. Regenerate all original five samples independently without prior candidates or task-specific repair feedback; preserve original prompts, host allocation, turns, request and transport limits, and behavioral mutants. Use an explicit smaller planning window to respect the unchanged diagnostic transport cap. The earlier public .136-generator repaired-project cohort remains 1/5 and the frozen historical 41/45 is unchanged."
+  },
+  "projectPlanDigest": "sha256:e8cebee4c8f6652244f3895cdaf07feb3cd60a5b459adc2ac40fdec27aa9ae9f",
+  "projectedArchiveDigest": "sha256:9cb7462e5a6f6d25c3c323a2c1a27df7f324e343e07ece04fc254a47a82e2011",
+  "archiveMembers": 23426,
+  "historicalAnswersAndEvaluatorsAbsent": true,
+  "sourceAndBaselinesByteIdentical": [
+    {
+      "path": "packages/cli/src/lib/session-branch-history.js",
+      "digest": "sha256:5ddd05dec04ecf8378904417f8c29b6b81475acdd24bfceb723aaa4a368e8857",
+      "bytes": 8425
+    },
+    {
+      "path": "packages/cli/__tests__/unit/session-branch.test.js",
+      "digest": "sha256:5021526b3171eca1645212f796144853b4a43a389592b2ea56c355213a8781d9",
+      "bytes": 7703
+    },
+    {
+      "path": "packages/cli/__tests__/unit/session-transcript-history.test.js",
+      "digest": "sha256:3ad2e774a3be6bb48c8d6e33b72697931273e056ecc2b09198ecb190e6831e7c",
+      "bytes": 43232
+    },
+    {
+      "path": "packages/cli/src/lib/image-file-boundary.js",
+      "digest": "sha256:4aa8ca526e5fb4b7b9b7563cca14cebd082292f3a01285b544228d851d69d709",
+      "bytes": 4915
+    },
+    {
+      "path": "packages/cli/__tests__/unit/image-file-boundary.test.js",
+      "digest": "sha256:5de46532b6d359aeace86c995519bc8cab54eebf608f8e8d13eb623ba7cdc96e",
+      "bytes": 5990
+    },
+    {
+      "path": "packages/cli/src/lib/permission-request.js",
+      "digest": "sha256:baa9a9cf9a0a0a08ecf1e8bf220c4bc7620b6acbe05ed5682c7dff9a2b09df4a",
+      "bytes": 1388
+    },
+    {
+      "path": "packages/cli/__tests__/unit/headless-stream-approvals.test.js",
+      "digest": "sha256:ebd9f63ae219985a7afaa3c25e629a18ec529b9f8b37eac0bba90b7cbd1b665c",
+      "bytes": 25320
+    },
+    {
+      "path": "packages/cli/src/lib/background-launch-profile.js",
+      "digest": "sha256:2dbfe63270bbe46ba0016eea483d4c0c7f065301aaa9adf728797b61fe466e9e",
+      "bytes": 39025
+    },
+    {
+      "path": "packages/cli/__tests__/unit/background-launch-profile.test.js",
+      "digest": "sha256:e5247be3e530c11d7398fe76ef896ac1bd1e3003813fabf509d86b04a64ee194",
+      "bytes": 11419
+    }
+  ],
+  "generatedReviewPack": {
+    "reviewDigest": "sha256:ae91f5b52dc2d312185e860990d3d171c37a013fef204453e7c45c799626e0a2",
+    "tasks": 36,
+    "mutantsChanged": false,
+    "execution": "not-run-offline-structural-preflight"
+  },
+  "modelRequests": 0
+}

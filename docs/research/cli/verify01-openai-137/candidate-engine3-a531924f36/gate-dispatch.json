@@ -1,0 +1,37 @@
+{
+  "source": "a531924f367e60b61834aa8369634d0e241697b3",
+  "ref": "verify01-engine137r3-a531924f36",
+  "dispatches": [
+    {
+      "workflow": "cli-ci.yml",
+      "submissionStartedAt": "2026-11-01T08:33:06.608Z",
+      "submitted": true,
+      "runId": 41289334448,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289334448",
+      "reconciled": true
+    },
+    {
+      "workflow": "cli-strict-sandbox.yml",
+      "absenceReconciliations": [
+        {
+          "checkedAt": "2026-11-01T08:35:02.217Z",
+          "fullListCount": 0
+        },
+        {
+          "checkedAt": "2026-11-01T08:35:23.828Z",
+          "fullListCount": 0
+        }
+      ],
+      "priorUncertainAttempts": [
+        {
+          "submissionStartedAt": "2026-11-01T08:33:24.112Z",
+          "reconciledAbsent": true
+        }
+      ],
+      "submissionStartedAt": "2026-11-01T08:35:23.829Z",
+      "submitted": true,
+      "runId": 41289510002,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289510002"
+    }
+  ]
+}

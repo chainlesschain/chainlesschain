@@ -148,6 +148,7 @@ test("workflow validates a single matching host and entry before subset dispatch
   const env = {
     ...process.env,
     NATIVE_PROVIDER: "volcengine",
+    NATIVE_PROJECT_REVISION_FILE: "",
     GITHUB_OUTPUT: output,
     HOST_SELECTION: "windows",
     ENTRY_SELECTION: "jetbrains",

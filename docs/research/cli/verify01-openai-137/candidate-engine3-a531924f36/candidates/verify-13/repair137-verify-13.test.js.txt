@@ -1,0 +1,276 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+// From __tests__, ../src resolves to packages/cli/src (not ../../src).
+import { readBoundedImage } from "../src/lib/image-file-boundary.js";
+
+const BYTE_LIMIT = 20 * 1024 * 1024;
+const roots = [];
+// A complete 1x1 PNG; this boundary admits headers, not decoded pixels.
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1sAAAAASUVORK5CYII=",
+  "base64",
+);
+
+afterEach(() => {
+  for (const root of roots.splice(0)) {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+function image(bytes = PNG, size = bytes.length) {
+  const root = fs.mkdtempSync(join(tmpdir(), "same-handle-image-"));
+  roots.push(root);
+  const path = join(root, "input.png");
+  fs.writeFileSync(path, bytes);
+  if (size !== bytes.length) fs.truncateSync(path, size);
+  return path;
+}
+
+function trackedIo(overrides = {}) {
+  return {
+    openSync: vi.fn(overrides.openSync || ((...args) => fs.openSync(...args))),
+    fstatSync: vi.fn(overrides.fstatSync || ((...args) => fs.fstatSync(...args))),
+    readSync: vi.fn(overrides.readSync || ((...args) => fs.readSync(...args))),
+    closeSync: vi.fn((...args) => fs.closeSync(...args)),
+  };
+}
+
+function closedOnSameHandle(io, path) {
+  expect(io.openSync).toHaveBeenCalledTimes(1);
+  expect(io.openSync.mock.calls[0][0]).toBe(path);
+  const fd = io.openSync.mock.results[0].value;
+  expect(Number.isInteger(fd)).toBe(true);
+  expect(io.closeSync.mock.calls).toEqual([[fd]]);
+  for (const [usedFd] of [...io.fstatSync.mock.calls, ...io.readSync.mock.calls]) {
+    expect(usedFd).toBe(fd);
+  }
+  // Verify real closure, not merely that a spy was called.
+  expect(() => fs.fstatSync(fd)).toThrow(expect.objectContaining({ code: "EBADF" }));
+}
+
+function read(path, io, remaining = BYTE_LIMIT, mediaType = "image/png") {
+  return readBoundedImage(path, mediaType, remaining, io);
+}
+
+describe("independent same-handle image boundary regressions", () => {
+  it("reads a small PNG through short descriptor reads and closes the real handle", () => {
+    const path = image();
+    const io = trackedIo({
+      readSync: (fd, data, offset, length, position) =>
+        fs.readSync(fd, data, offset, Math.min(length, 7), position),
+    });
+    try {
+      const data = read(path, io);
+      expect(Buffer.isBuffer(data)).toBe(true);
+      expect(data.length).toBe(PNG.length);
+      expect(data.equals(PNG)).toBe(true);
+      expect(io.fstatSync).toHaveBeenCalledTimes(2);
+      expect(io.readSync.mock.calls.length).toBeGreaterThan(2);
+    } finally {
+      closedOnSameHandle(io, path);
+    }
+  });
+
+  it("pins the original inode even if its pathname is replaced before the first read", () => {
+    for (const replace of [false, true]) {
+      const path = image();
+      const replacement = Buffer.from(PNG);
+      replacement.writeUInt32BE(2, 16);
+      let openedIdentity;
+      const io = trackedIo({
+        openSync: (...args) => {
+          const fd = fs.openSync(...args);
+          const stat = fs.fstatSync(fd);
+          openedIdentity = { dev: stat.dev, ino: stat.ino };
+          if (replace) {
+            fs.renameSync(path, `${path}.original`);
+            fs.writeFileSync(path, replacement);
+          }
+          return fd;
+        },
+      });
+      try {
+        const data = read(path, io);
+        expect(data.length).toBe(PNG.length);
+        expect(data.equals(PNG)).toBe(true);
+        expect(io.fstatSync).toHaveBeenCalledTimes(2);
+        for (const result of io.fstatSync.mock.results) {
+          expect({ dev: result.value.dev, ino: result.value.ino }).toEqual(openedIdentity);
+        }
+        const current = fs.statSync(path);
+        if (replace) {
+          expect({ dev: current.dev, ino: current.ino }).not.toEqual(openedIdentity);
+          expect(fs.readFileSync(path).equals(replacement)).toBe(true);
+          expect(data.equals(replacement)).toBe(false);
+        }
+      } finally {
+        closedOnSameHandle(io, path);
+      }
+    }
+  });
+
+  it("accepts exactly 20 MiB and rejects the first excess byte before reading", () => {
+    for (const size of [BYTE_LIMIT, BYTE_LIMIT + 1]) {
+      const path = image(PNG, size); // Sparse padding avoids a large input allocation.
+      const io = trackedIo();
+      // Keep the independent remaining-budget guard admissible for both sizes.
+      const remaining = BYTE_LIMIT + 1;
+      try {
+        if (size === BYTE_LIMIT) {
+          const data = read(path, io, remaining);
+          expect(data.length).toBe(BYTE_LIMIT);
+          const expected = Buffer.alloc(BYTE_LIMIT);
+          PNG.copy(expected);
+          expect(data.equals(expected)).toBe(true);
+          expect(io.fstatSync).toHaveBeenCalledTimes(2);
+        } else {
+          expect(() => read(path, io, remaining)).toThrow("Image must contain 1 byte to 20 MiB");
+          expect(io.readSync).not.toHaveBeenCalled();
+          expect(io.fstatSync).toHaveBeenCalledTimes(1);
+        }
+      } finally {
+        closedOnSameHandle(io, path);
+      }
+    }
+  });
+
+  it.each([
+    [40_000_000, 1, 40_000_001, 1],
+    [1, 1, 0, 1],
+    [1, 1, 1, 0],
+  ])("isolates pixel admission: %i x %i versus %i x %i", (w, h, badW, badH) => {
+    for (const [width, height, accepted] of [[w, h, true], [badW, badH, false]]) {
+      const bytes = Buffer.from(PNG);
+      bytes.writeUInt32BE(width, 16);
+      bytes.writeUInt32BE(height, 20);
+      const path = image(bytes);
+      const io = trackedIo();
+      try {
+        if (accepted) {
+          expect(read(path, io).equals(bytes)).toBe(true);
+        } else {
+          expect(() => read(path, io)).toThrow(
+            "Image dimensions must be positive and at most 40 megapixels",
+          );
+          expect(io.fstatSync).toHaveBeenCalledTimes(1);
+          expect(io.readSync).toHaveBeenCalledTimes(1); // Header only.
+        }
+      } finally {
+        closedOnSameHandle(io, path);
+      }
+    }
+  });
+
+  it("rejects a media mismatch with the same otherwise admissible PNG", () => {
+    const path = image();
+    for (const mediaType of ["image/png", "image/jpeg"]) {
+      const io = trackedIo();
+      try {
+        if (mediaType === "image/png") {
+          expect(read(path, io, BYTE_LIMIT, mediaType).equals(PNG)).toBe(true);
+        } else {
+          expect(() => read(path, io, BYTE_LIMIT, mediaType)).toThrow(
+            "Image extension does not match its file header",
+          );
+          expect(io.readSync).toHaveBeenCalledTimes(1);
+        }
+      } finally {
+        closedOnSameHandle(io, path);
+      }
+    }
+  });
+
+  it.each(["short body", "extra byte", "size", "mtimeMs", "ctimeMs", "header"])(
+    "rejects only the isolated %s transition after header admission",
+    (condition) => {
+      for (const changed of [false, true]) {
+        // A zero tail keeps the header snapshot equal after truncation:
+        // the unread byte in Buffer.alloc is also zero. Thus only the byte
+        // count guard can reject that case, not the later header comparison.
+        const bytes = Buffer.concat([PNG, Buffer.from([0])]);
+        const path = image(bytes);
+        let baseline;
+        let stats = 0;
+        let reads = 0;
+        let transitioned = false;
+        const replacement = Buffer.from(bytes);
+        replacement.writeUInt32BE(2, 16); // Still an admissible PNG header.
+        const io = trackedIo({
+          fstatSync: (fd) => {
+            const actual = fs.fstatSync(fd);
+            if (++stats === 1) {
+              baseline = {
+                isFile: () => actual.isFile(),
+                size: actual.size,
+                mtimeMs: actual.mtimeMs,
+                ctimeMs: actual.ctimeMs,
+              };
+            }
+            // Freeze unrelated stat fields so they cannot hide a missing guard.
+            // All bytes are still obtained from the real pinned descriptor.
+            const result = { ...baseline };
+            if (stats === 2 && changed && ["size", "mtimeMs", "ctimeMs"].includes(condition)) {
+              result[condition] += 1;
+            }
+            return result;
+          },
+          readSync: (...args) => {
+            const count = fs.readSync(...args);
+            if (++reads === 1) {
+              // The complete small header has been read. Mutate before the
+              // production reader starts its full-body pass at position zero.
+              expect(count).toBe(bytes.length);
+              transitioned = true;
+              if (changed && condition === "short body") fs.truncateSync(path, bytes.length - 1);
+              if (changed && condition === "extra byte") fs.appendFileSync(path, Buffer.from([0]));
+              if (changed && condition === "header") fs.writeFileSync(path, replacement);
+            }
+            return count;
+          },
+        });
+        try {
+          if (changed) {
+            expect(() => read(path, io)).toThrow(
+              "Image changed while being read; select it again",
+            );
+          } else {
+            expect(read(path, io).equals(bytes)).toBe(true);
+          }
+          expect(transitioned).toBe(true);
+          expect(io.fstatSync).toHaveBeenCalledTimes(2);
+          expect(io.readSync.mock.calls[1][4]).toBe(0);
+          expect(io.readSync.mock.calls.every((args) => args[3] <= bytes.length + 1)).toBe(true);
+          const bodyBytes = io.readSync.mock.results.slice(1).reduce((n, result) => n + result.value, 0);
+          expect(bodyBytes).toBeLessThanOrEqual(bytes.length + 1);
+          if (changed && condition === "header") {
+            expect(bodyBytes).toBe(bytes.length);
+            expect(fs.readFileSync(path).equals(replacement)).toBe(true);
+          }
+        } finally {
+          closedOnSameHandle(io, path);
+        }
+      }
+    },
+  );
+
+  it("admits the exact remaining budget and rejects one byte over that budget", () => {
+    const path = image();
+    for (const remaining of [PNG.length, PNG.length - 1]) {
+      const io = trackedIo();
+      try {
+        if (remaining === PNG.length) {
+          expect(read(path, io, remaining).equals(PNG)).toBe(true);
+        } else {
+          expect(() => read(path, io, remaining)).toThrow(
+            "Total image attachments exceed 20 MiB per message",
+          );
+          expect(io.readSync).not.toHaveBeenCalled();
+        }
+      } finally {
+        closedOnSameHandle(io, path);
+      }
+    }
+  });
+});

@@ -1,6 +1,7 @@
 import {
   createEvidenceJsonTextBoundary,
   AGENT_CODE_TEXT_RESULT_TOOLS,
+  EVIDENCE_JSON_POLICY,
 } from "./evolution/evidence-json-text.js";
 import { createHash } from "node:crypto";
 
@@ -33,7 +34,11 @@ const PREVIEW_HINT =
 
 /** Check only host-created excerpts; original uncut tool text still reaches ingress. */
 function completeExcerpt(text, tool) {
-  const scan = createEvidenceJsonTextBoundary((message) => new Error(message));
+  const scan = createEvidenceJsonTextBoundary((message) => new Error(message), {
+    ...EVIDENCE_JSON_POLICY,
+    sourceLiteralPolicy: "explicit-source-containers-v1",
+    maxSourceTokens: 32768,
+  });
   const visit = (value, layer) => {
     if (typeof value === "string") return project(value, layer);
     if (Array.isArray(value)) return value.map((child) => visit(child, layer));
@@ -48,6 +53,7 @@ function completeExcerpt(text, tool) {
     scan(value, {
       layer,
       codeText: AGENT_CODE_TEXT_RESULT_TOOLS.includes(tool),
+      sourceText: layer === 0,
       visit,
       plain: (plain) => plain,
       equal: (left, right) => JSON.stringify(left) === JSON.stringify(right),
@@ -235,7 +241,10 @@ export function safeHostToolResultForModel(tool, result) {
     const text = result[field];
     if (typeof text !== "string" || completeExcerpt(text, tool)) continue;
     if (safe === result) safe = { ...result };
-    safe[field] = omitted(text.length);
+    safe[field] =
+      tool === "read_file"
+        ? `Text omitted (${text.length} chars); this excerpt could not be safely projected. Read a complete surrounding statement or container; expand the range or read the full file within existing size limits when necessary. Omitted content has not been inspected.`
+        : omitted(text.length);
     safe[`${field}Omitted`] = true;
     safe[`${field}OmittedChars`] = text.length;
   }

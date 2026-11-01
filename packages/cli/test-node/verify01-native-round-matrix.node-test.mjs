@@ -201,6 +201,10 @@ test("manual OpenAI selector binds all cells to current packages, a dedicated ke
   );
   assert.match(
     run({ PACKAGE_SET_SELECTION: "frozen" }).stderr,
-    /latest public packages/u,
+    /explicitly selected public or prerelease packages/u,
+  );
+  assert.match(
+    run({ PACKAGE_SET_SELECTION: "prerelease" }).stderr,
+    /explicit committed candidate package identity/u,
   );
 });

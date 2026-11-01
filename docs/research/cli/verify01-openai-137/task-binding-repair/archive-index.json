@@ -1,0 +1,18 @@
+{
+  "schema": "chainlesschain.raw-evidence-index/v1",
+  "createdAt": "2026-11-01T05:01:30.078Z",
+  "paidModelRequests": 0,
+  "releaseReady": false,
+  "files": [
+    {
+      "path": "astra137-task-binding-audit.json",
+      "sha256": "80414b720f013b942853a22e3dea6b3b90e54c153ace6291f83e574d2f40d870",
+      "bytes": 7919
+    },
+    {
+      "path": "astra137-task-binding-final-tests.json",
+      "sha256": "69aeb57da563432d1f47ae853c837d338f5bd805bbf70c3bdc4071a10b7e908b",
+      "bytes": 23142
+    }
+  ]
+}

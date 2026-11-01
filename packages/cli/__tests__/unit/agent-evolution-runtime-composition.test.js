@@ -3847,6 +3847,144 @@ describe("Agent evolution runtime production composition", () => {
     };
   }
 
+  it.each([false, true])(
+    "preserves real source reads on the OpenAI wire after canonical planning (compact=%s)",
+    async (compact) => {
+      const f = modelFixture();
+      const sources = [
+        "../../src/lib/session-branch-history.js",
+        "../../src/lib/image-file-boundary.js",
+        "./image-file-boundary.test.js",
+        "./session-branch.test.js",
+      ].map((file) => ({
+        name: path.basename(file),
+        text: fs.readFileSync(new URL(file, import.meta.url), "utf8"),
+      }));
+      for (const source of sources)
+        fs.writeFileSync(path.join(f.root, source.name), source.text);
+      let turn = 0;
+      let mainTurn = 0;
+      f.transport.mockImplementation(async (_url, request) => {
+        expect(Buffer.byteLength(request.body)).toBeLessThanOrEqual(262144);
+        const body = JSON.parse(request.body);
+        f.seen.push(body);
+        turn++;
+        const index = body.tools?.some((tool) => tool.name === "read_file")
+          ? mainTurn++
+          : -1;
+        const output =
+          index < 0
+            ? [
+                {
+                  type: "message",
+                  role: "assistant",
+                  content: [
+                    {
+                      type: "output_text",
+                      text: JSON.stringify({
+                        objective: "Inspect source files",
+                        constraints: [],
+                        keyDecisions: [],
+                        changedFiles: [],
+                        tests: [],
+                        unresolvedSideEffects: [],
+                        checkpoints: [],
+                        blockers: [],
+                        nextSteps: ["Read source"],
+                      }),
+                    },
+                  ],
+                },
+              ]
+            : index < 2
+              ? sources
+                  .slice(index * 2, index * 2 + 2)
+                  .map((source, offset) => ({
+                    type: "function_call",
+                    id: `fc_${index}_${offset}`,
+                    call_id: `read_${index}_${offset}`,
+                    name: "read_file",
+                    arguments: JSON.stringify({ path: source.name }),
+                  }))
+              : [
+                  {
+                    type: "message",
+                    role: "assistant",
+                    content: [{ type: "output_text", text: "done" }],
+                  },
+                ];
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          json: async () => ({
+            id: `resp_${turn}`,
+            status: "completed",
+            model: "gpt-6.1-sol",
+            output,
+            usage: { input_tokens: 10, output_tokens: 10, total_tokens: 20 },
+          }),
+        };
+      });
+      const messages = [{ role: "system", content: "Inspect source files." }];
+      if (compact)
+        for (let i = 0; i < 6; i++) {
+          messages.push({ role: "user", content: `Previous task ${i}` });
+          messages.push({
+            role: "assistant",
+            content:
+              i === 0
+                ? "Earlier source analysis. ".repeat(6500)
+                : `Previous analysis ${i} completed.`,
+          });
+        }
+      messages.push({
+        role: "user",
+        content:
+          "Read all four source files and preserve their implementation details.",
+      });
+      const events = [];
+      for await (const event of coreAgentLoop(messages, {
+        ...f.callOptions,
+        provider: "openai",
+        model: "gpt-6.1-sol",
+        apiKey: "test-key",
+        baseUrl: "https://api.openai.com/v1",
+        cwd: f.root,
+        hermeticExecution: true,
+        enabledToolNames: ["read_file"],
+        contextMemorySkipPlanning: false,
+        autoCompact: true,
+        autoMicroCompact: false,
+        persistCompaction: false,
+        contextMemoryModelWindowTokens: 32768,
+        maxOutputTokens: 8192,
+        contextMemoryEnv: {
+          CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default",
+        },
+        contextMemoryFilePath: path.join(f.root, "source-kernel.json"),
+        onUsageBoundary: () => {},
+      }))
+        events.push(event);
+      expect(events.some((event) => event.type === "response-complete")).toBe(
+        true,
+      );
+      expect(events.some((event) => event.type === "compaction")).toBe(compact);
+      const outputs = f.seen.flatMap((body) =>
+        body.input
+          .filter((item) => item.type === "function_call_output")
+          .map((item) => JSON.parse(item.output)),
+      );
+      for (const source of sources)
+        expect(
+          outputs.some((output) => output.content === source.text),
+          source.name,
+        ).toBe(true);
+      expect(JSON.stringify(outputs)).not.toContain("Text omitted");
+    },
+    120000,
+  );
+
   it.each([0, 1])(
     "reports user ingress failure after %s completed turns without admitting or replaying the input",
     async (completedTurns) => {

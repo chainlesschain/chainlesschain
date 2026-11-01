@@ -1,0 +1,1044 @@
+{
+  "findings": [
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-branch-history.js",
+      "first": true,
+      "chars": 8424,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 240,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 3244,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 65,
+        "endLine": 159,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 2929,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 160,
+        "endLine": 241,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 2250,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 64,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 1700,
+      "preserved": false,
+      "omitted": true,
+      "range": {
+        "startLine": 65,
+        "endLine": 112,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 1543,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 113,
+        "endLine": 159,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-transcript-history.test.js",
+      "first": true,
+      "chars": 3256,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 85,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-branch.test.js",
+      "first": true,
+      "chars": 3561,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 95,
+        "totalLines": 207
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 1707,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 25,
+        "endLine": 62,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 1558,
+      "preserved": false,
+      "omitted": true,
+      "range": {
+        "startLine": 64,
+        "endLine": 109,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 3205,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 865,
+        "endLine": 939,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 1000,
+      "preserved": false,
+      "omitted": true,
+      "range": {
+        "startLine": 88,
+        "endLine": 113,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 799,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 24,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 982,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 80,
+        "endLine": 108,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 1317,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 480,
+        "endLine": 519,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 736,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 65,
+        "endLine": 87,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 963,
+      "preserved": false,
+      "omitted": true,
+      "range": {
+        "startLine": 88,
+        "endLine": 112,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 1624,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 160,
+        "endLine": 199,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 1304,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 200,
+        "endLine": 241,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 2203,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 62,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 2792,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 300,
+        "endLine": 369,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-branch.test.js",
+      "first": false,
+      "chars": 2717,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 96,
+        "endLine": 160,
+        "totalLines": 207
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 799,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 24,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 2552,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 63,
+        "endLine": 139,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "first-run-darwin-vscode",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 1675,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 37,
+        "endLine": 79,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-branch-history.js",
+      "first": true,
+      "chars": 8424,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 240,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 3169,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 80,
+        "endLine": 169,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 2521,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 170,
+        "endLine": 241,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-branch.test.js",
+      "first": true,
+      "chars": 5481,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 140,
+        "totalLines": 207
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-transcript-history.test.js",
+      "first": true,
+      "chars": 5235,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 145,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 2733,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 79,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 2761,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 80,
+        "endLine": 159,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 3011,
+      "preserved": false,
+      "omitted": true,
+      "range": {
+        "startLine": 1,
+        "endLine": 75,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 2174,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 76,
+        "endLine": 144,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 1625,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 40,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 1385,
+      "preserved": false,
+      "omitted": true,
+      "range": {
+        "startLine": 41,
+        "endLine": 75,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 1250,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 140,
+        "endLine": 181,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 1529,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 80,
+        "endLine": 121,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 1639,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 122,
+        "endLine": 169,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 757,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 41,
+        "endLine": 59,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 627,
+      "preserved": false,
+      "omitted": true,
+      "range": {
+        "startLine": 60,
+        "endLine": 75,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 771,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 80,
+        "endLine": 101,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 757,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 102,
+        "endLine": 121,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-branch.test.js",
+      "first": false,
+      "chars": 2286,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 65,
+        "totalLines": 207
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 2520,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 170,
+        "endLine": 240,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 2283,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 540,
+        "endLine": 591,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 450,
+      "preserved": false,
+      "omitted": true,
+      "range": {
+        "startLine": 65,
+        "endLine": 75,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-branch-history.js",
+      "first": false,
+      "chars": 445,
+      "preserved": false,
+      "omitted": true,
+      "range": {
+        "startLine": 102,
+        "endLine": 112,
+        "totalLines": 241
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 937,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 76,
+        "endLine": 105,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 413,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 130,
+        "endLine": 140,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 901,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 140,
+        "endLine": 169,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "verify-08",
+      "name": "session-transcript-history.test.js",
+      "first": false,
+      "chars": 40842,
+      "preserved": false,
+      "omitted": true,
+      "range": {
+        "startLine": 60,
+        "endLine": 1139,
+        "totalLines": 1139
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.js",
+      "first": true,
+      "chars": 4915,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 155,
+        "totalLines": 155
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.test.js",
+      "first": true,
+      "chars": 5990,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 175,
+        "totalLines": 175
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.js",
+      "first": false,
+      "chars": 2420,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 75,
+        "totalLines": 155
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.js",
+      "first": false,
+      "chars": 2494,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 76,
+        "endLine": 155,
+        "totalLines": 155
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.test.js",
+      "first": false,
+      "chars": 2949,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 85,
+        "totalLines": 175
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.test.js",
+      "first": false,
+      "chars": 3040,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 86,
+        "endLine": 175,
+        "totalLines": 175
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.js",
+      "first": false,
+      "chars": 1223,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 38,
+        "totalLines": 155
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.js",
+      "first": false,
+      "chars": 1196,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 39,
+        "endLine": 75,
+        "totalLines": 155
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.test.js",
+      "first": false,
+      "chars": 1365,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 43,
+        "totalLines": 175
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.test.js",
+      "first": false,
+      "chars": 1583,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 44,
+        "endLine": 85,
+        "totalLines": 175
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.js",
+      "first": false,
+      "chars": 539,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 39,
+        "endLine": 58,
+        "totalLines": 155
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.js",
+      "first": false,
+      "chars": 656,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 59,
+        "endLine": 75,
+        "totalLines": 155
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.test.js",
+      "first": false,
+      "chars": 785,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 44,
+        "endLine": 64,
+        "totalLines": 175
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.test.js",
+      "first": false,
+      "chars": 797,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 65,
+        "endLine": 85,
+        "totalLines": 175
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.js",
+      "first": false,
+      "chars": 307,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 59,
+        "endLine": 67,
+        "totalLines": 155
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.js",
+      "first": false,
+      "chars": 348,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 68,
+        "endLine": 75,
+        "totalLines": 155
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.test.js",
+      "first": false,
+      "chars": 381,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 44,
+        "endLine": 53,
+        "totalLines": 175
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.test.js",
+      "first": false,
+      "chars": 403,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 54,
+        "endLine": 64,
+        "totalLines": 175
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.js",
+      "first": false,
+      "chars": 1021,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 76,
+        "endLine": 115,
+        "totalLines": 155
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.js",
+      "first": false,
+      "chars": 1472,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 116,
+        "endLine": 155,
+        "totalLines": 155
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.test.js",
+      "first": false,
+      "chars": 1433,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 86,
+        "endLine": 130,
+        "totalLines": 175
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.test.js",
+      "first": false,
+      "chars": 1606,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 131,
+        "endLine": 175,
+        "totalLines": 175
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.js",
+      "first": false,
+      "chars": 1276,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 40,
+        "totalLines": 155
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.js",
+      "first": false,
+      "chars": 1143,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 41,
+        "endLine": 75,
+        "totalLines": 155
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.test.js",
+      "first": false,
+      "chars": 1747,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 53,
+        "totalLines": 175
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.test.js",
+      "first": false,
+      "chars": 797,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 65,
+        "endLine": 85,
+        "totalLines": 175
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.js",
+      "first": false,
+      "chars": 4915,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 155,
+        "totalLines": 155
+      }
+    },
+    {
+      "sample": "verify-13",
+      "name": "image-file-boundary.test.js",
+      "first": false,
+      "chars": 5990,
+      "preserved": true,
+      "omitted": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 175,
+        "totalLines": 175
+      }
+    }
+  ]
+}

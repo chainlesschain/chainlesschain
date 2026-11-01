@@ -166,6 +166,34 @@ export function createResumeRoleProjection(messages) {
   return projection;
 }
 
+/** Capture the original user sources needed by an owned resume merge. */
+export function getTaskCompactionBindings(projection, input, taskBinding) {
+  if (!taskBinding) return [];
+  const owned = RESUME_ROLE_PROJECTIONS.get(projection);
+  const capture = (binding) => ({
+    ...binding,
+    matchCount: input.filter((message) =>
+      isDeepStrictEqual(message, binding.message),
+    ).length,
+  });
+  if (!owned) return [capture(taskBinding)];
+  const sourceIndex = input.indexOf(taskBinding.original);
+  const group = owned(input).sources.find((indices) =>
+    indices.includes(sourceIndex),
+  );
+  return (group || [sourceIndex]).map((index) => {
+    if (index === sourceIndex) return capture(taskBinding);
+    const original = input[index];
+    return capture({
+      original,
+      message: JSON.parse(canonicalJson(original)),
+      allowContentRelocation:
+        input.filter((message) => isDeepStrictEqual(message, original))
+          .length === 1,
+    });
+  });
+}
+
 /**
  * Preserve a bound task through this module's exact, captured resume merges.
  * Arbitrary callbacks, wrappers and forged properties never receive lineage.

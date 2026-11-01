@@ -1,0 +1,34 @@
+{
+  "schema": "chainlesschain.repaired-source-generation-dispatch/v1",
+  "source": "3e28f78b4eab09ac5311c3d7da553a0b008617ad",
+  "projectSource": "52868c59d1c98131d6ce7e7ff177f55d53e509b0",
+  "ref": "verify01-prepublish-cli137-3e28f78b4e",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "publicGeneratorVersions": {
+    "cli": "0.166.136",
+    "vscode": "0.37.173",
+    "jetbrains": "0.4.189"
+  },
+  "dispatches": [
+    {
+      "group": "darwin-vscode",
+      "sampleIds": ["verify-08", "first-run-darwin-vscode"],
+      "runId": 41262768914
+    },
+    { "group": "linux-cli", "sampleIds": ["verify-13"], "runId": 41262792404 },
+    { "group": "win32-cli", "sampleIds": ["verify-19"], "runId": 41263223472 },
+    {
+      "group": "darwin-jetbrains",
+      "sampleIds": ["verify-36"],
+      "runId": 41263237989
+    }
+  ],
+  "allFourSubmitted": true,
+  "finishedDispatchAt": "2026-11-01T01:58:26.934Z",
+  "fiveIndependentAcceptancesComplete": false,
+  "published": false,
+  "historicalFrozenAccepted": 41,
+  "historicalFrozenTotal": 45,
+  "historicalFrozenChanged": false
+}

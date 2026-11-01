@@ -1,0 +1,270 @@
+{
+  "schema": 1,
+  "generationSource": "3e28f78b4eab09ac5311c3d7da553a0b008617ad",
+  "checkerSource": "9313bf8399a5782a29487098c8fcd9aa0cace0aa",
+  "projectSource": "52868c59d1c98131d6ce7e7ff177f55d53e509b0",
+  "accepted": 1,
+  "total": 5,
+  "publicationReady": false,
+  "archivedAt": "2026-11-01T02:48:16.730Z",
+  "unmodifiedCandidates": true,
+  "credentialScanPassed": true,
+  "temporarySecretAbsent": true,
+  "files": [
+    {
+      "path": ".gitattributes",
+      "digest": "sha256:2b57885df151a14e79c71a5e391c1b56696e0e07e510d0605649c4f3b071f0a6",
+      "bytes": 69
+    },
+    {
+      "path": "results.json",
+      "digest": "sha256:c4d4f8f65b95003c3e1362ff18331c5c2c125f65e56511e5c68c29ee72d51472",
+      "bytes": 36103
+    },
+    {
+      "path": "results.csv",
+      "digest": "sha256:c2fb54f795d4e983f9fc1510262e711149fb09863dc07e824beab7d7c4dba10b",
+      "bytes": 544
+    },
+    {
+      "path": "dispatch.json",
+      "digest": "sha256:7f323fb146cd8aa4828b11363331437c4e937c2788ae344fa7151fea9d401da5",
+      "bytes": 4788
+    },
+    {
+      "path": "secret-cleanup.json",
+      "digest": "sha256:d3e1a686e14877e678ad1bd37f4077b35c8e38b3c011efe12758fd074faef2cc",
+      "bytes": 1524
+    },
+    {
+      "path": "source-review.json",
+      "digest": "sha256:e195700ac138c136c5df0af4e512368a291edc1a148756de40298599ff73ff7f",
+      "bytes": 101716
+    },
+    {
+      "path": "runtime-source-equivalence.json",
+      "digest": "sha256:b5f02f7758575a9f26279f33f307af21e56b8e5e6d1b59cbc5acdfbe40bed35d",
+      "bytes": 1383
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-3e28f78b4eab09ac5311c3d7da553a0b008617ad-summary.json",
+      "digest": "sha256:bf4a0489622aa20f84771ca86aa1b188f875d538fd29da3e9792123c0894340e",
+      "bytes": 859861,
+      "kind": "original-summary",
+      "runId": 41262768914
+    },
+    {
+      "path": "raw/verify01-native-subset-acceptance-darwin-vscode-9313bf8399a5782a29487098c8fcd9aa0cace0aa-summary.json",
+      "digest": "sha256:a1fe713b3eaea05f5637a9ed19c13ef42c1acfb3d956638d38362060058bdc31",
+      "bytes": 847646,
+      "kind": "original-summary",
+      "runId": 41265622471
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-3e28f78b4eab09ac5311c3d7da553a0b008617ad-summary.json",
+      "digest": "sha256:cdb9725acbf2b22c6c5ccdb9e68a9683fea98cb5d5ab3818487fa79b451b4ff5",
+      "bytes": 290515,
+      "kind": "original-summary",
+      "runId": 41262792404
+    },
+    {
+      "path": "raw/verify01-native-subset-acceptance-linux-cli-9313bf8399a5782a29487098c8fcd9aa0cace0aa-summary.json",
+      "digest": "sha256:4bf1b25033fa844720d36cdaf966c0949aa41d642f84d37b8bce84ec215ed8d1",
+      "bytes": 280862,
+      "kind": "original-summary",
+      "runId": 41264126265
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-3e28f78b4eab09ac5311c3d7da553a0b008617ad-summary.json",
+      "digest": "sha256:84c87dcb4bffd697f867085393a6b418bcda656fdbc69b116e3064d44222d440",
+      "bytes": 411551,
+      "kind": "original-summary",
+      "runId": 41263223472
+    },
+    {
+      "path": "raw/verify01-native-subset-acceptance-win32-cli-9313bf8399a5782a29487098c8fcd9aa0cace0aa-summary.json",
+      "digest": "sha256:312a942a67d54eba7e6ca3b5e2e8bd312a3159e6dec7ece74af6a54b070aa9be",
+      "bytes": 401834,
+      "kind": "original-summary",
+      "runId": 41264206644
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-3e28f78b4eab09ac5311c3d7da553a0b008617ad-summary.json",
+      "digest": "sha256:07056449f0e1b65a3fcd0c5677a08016e647ac49ed6ccfd22fae69605bec7102",
+      "bytes": 425648,
+      "kind": "original-summary",
+      "runId": 41263237989
+    },
+    {
+      "path": "raw/verify01-native-subset-acceptance-darwin-jetbrains-verify-36-9313bf8399a5782a29487098c8fcd9aa0cace0aa-summary.json",
+      "digest": "sha256:86ab60746e16006801a1b2994b300b6117f41a1ec79ac5d231c6680c4735268f",
+      "bytes": 414322,
+      "kind": "original-summary",
+      "runId": 41264223842
+    },
+    {
+      "path": "candidates/verify-08/repair137-verify-08.test.js.txt",
+      "digest": "sha256:356490751850789a78dee78ada12a2dbd91f41d567e36441afb5126bb0709e89",
+      "bytes": 11417,
+      "kind": "unmodified-candidate-source",
+      "sampleId": "verify-08",
+      "originalFile": "packages/cli/__tests__/repair137-verify-08.test.js"
+    },
+    {
+      "path": "receipts/verify-08-setup.json",
+      "digest": "sha256:84346229513b7117f08d49669638557ccb9715ae2fbb779522fbce4a3846a397",
+      "bytes": 32014,
+      "kind": "independent-setup",
+      "sampleId": "verify-08"
+    },
+    {
+      "path": "receipts/verify-08-check.json",
+      "digest": "sha256:cb9006354a87c4d1bcbf9a839af45db5b31f6ece60026ee26a6ce35d8549e253",
+      "bytes": 29745,
+      "kind": "independent-check",
+      "sampleId": "verify-08"
+    },
+    {
+      "path": "candidates/verify-13/repair137-verify-13.test.js.txt",
+      "digest": "sha256:4bcd1180dbe1971750bdedbda132af765d18ec54f986579759a854d6b751c19d",
+      "bytes": 9222,
+      "kind": "unmodified-candidate-source",
+      "sampleId": "verify-13",
+      "originalFile": "packages/cli/__tests__/repair137-verify-13.test.js"
+    },
+    {
+      "path": "receipts/verify-13-setup.json",
+      "digest": "sha256:8fcb11eab396663d4d2ecd9e83942946e62bdaf332501c8458ceaba6a5710d11",
+      "bytes": 16234,
+      "kind": "independent-setup",
+      "sampleId": "verify-13"
+    },
+    {
+      "path": "receipts/verify-13-check.json",
+      "digest": "sha256:005e2af4edad877e225258ff3726dbd0961271713423be6157d57fff8ada7824",
+      "bytes": 15988,
+      "kind": "independent-check",
+      "sampleId": "verify-13"
+    },
+    {
+      "path": "candidates/verify-19/repair137-verify-19.test.js.txt",
+      "digest": "sha256:76eaa0a4f2f73bf85b7f1aabe31faded1e4548d8f12f8e99484f3144f99244ca",
+      "bytes": 7266,
+      "kind": "unmodified-candidate-source",
+      "sampleId": "verify-19",
+      "originalFile": "packages/cli/__tests__/repair137-verify-19.test.js"
+    },
+    {
+      "path": "receipts/verify-19-setup.json",
+      "digest": "sha256:a1fd41fdf854b26f89d3d4c43633ed6b42fbfa33bb31477d13618622f1432396",
+      "bytes": 17612,
+      "kind": "independent-setup",
+      "sampleId": "verify-19"
+    },
+    {
+      "path": "receipts/verify-19-check.json",
+      "digest": "sha256:cdec3cf49c207e9345be3704657c2b784c36319da2a8f2614816c28171866bf9",
+      "bytes": 14211,
+      "kind": "independent-check",
+      "sampleId": "verify-19"
+    },
+    {
+      "path": "candidates/verify-36/repair137-verify-36.test.js.txt",
+      "digest": "sha256:5e8484b3b583c2cfa57859c8c22a879d366a00f8b7675105746adbbe976fa435",
+      "bytes": 8835,
+      "kind": "unmodified-candidate-source",
+      "sampleId": "verify-36",
+      "originalFile": "packages/cli/__tests__/repair137-verify-36.test.js"
+    },
+    {
+      "path": "receipts/verify-36-setup.json",
+      "digest": "sha256:4b4332e39cb694ddfd06b311b9ae41488fa3c326a44e0dd80a064be12f6e017e",
+      "bytes": 15521,
+      "kind": "independent-setup",
+      "sampleId": "verify-36"
+    },
+    {
+      "path": "receipts/verify-36-check.json",
+      "digest": "sha256:c50aa0969d45df377e08d3e82e646e45b30ab9acbf7bb81623e59cdfbb3c919e",
+      "bytes": 31161,
+      "kind": "independent-check",
+      "sampleId": "verify-36"
+    },
+    {
+      "path": "candidates/first-run-darwin-vscode/repair137-verify-08.test.js.txt",
+      "digest": "sha256:b820f278905fa4783f292fdea3af3bab6ab3dcafbd932a50e7a669eb70316a5f",
+      "bytes": 10338,
+      "kind": "unmodified-candidate-source",
+      "sampleId": "first-run-darwin-vscode",
+      "originalFile": "packages/cli/__tests__/repair137-verify-08.test.js"
+    },
+    {
+      "path": "receipts/first-run-darwin-vscode-setup.json",
+      "digest": "sha256:9950157a3cf9d0fc3ab56ca400d3e23ed399624cbed5a2eba179f95b89123078",
+      "bytes": 32024,
+      "kind": "independent-setup",
+      "sampleId": "first-run-darwin-vscode"
+    },
+    {
+      "path": "receipts/first-run-darwin-vscode-check.json",
+      "digest": "sha256:a180917beb9b21bb0c624ce25670595a09122af874a8266550752bf41cf691ad",
+      "bytes": 30472,
+      "kind": "independent-check",
+      "sampleId": "first-run-darwin-vscode"
+    },
+    {
+      "path": "raw/run-41262792404.json",
+      "digest": "sha256:2ee03e53fb07003c50cf4b4fdab9f0f43d56a8003c3e34e8a5edbdfd6508384e",
+      "bytes": 29072
+    },
+    {
+      "path": "raw/run-41264126265.json",
+      "digest": "sha256:1f20f61d95d4126bfebc12f5ff928de6bf5949372dca15134665782f86593e1c",
+      "bytes": 24301
+    },
+    {
+      "path": "raw/run-41263223472.json",
+      "digest": "sha256:71693c20b48ca6153b803aa58b1e53a76b479547f8a25901a087094cda4b6746",
+      "bytes": 29338
+    },
+    {
+      "path": "raw/run-41264206644.json",
+      "digest": "sha256:0a6e9d450401d46dc5fb14c6ee22f6d55d9efd28eb4ae27728d5ebdb62b4562c",
+      "bytes": 24301
+    },
+    {
+      "path": "README.md",
+      "digest": "sha256:e1ec65109f69068c5185dbbfcafd8edaafea1b15456f4fa8905ae3f0ca10bb9f",
+      "bytes": 1490
+    },
+    {
+      "path": "raw/run-41262768914.json",
+      "digest": "sha256:4cce9bea3782f661b485d645d0e841fc2458e34c3d7a32d16ee8f6e9f8df73da",
+      "bytes": 29076,
+      "kind": "completed-workflow-status",
+      "runId": 41262768914
+    },
+    {
+      "path": "raw/run-41265622471.json",
+      "digest": "sha256:fc1bcfb3d266659c89aa8208d3a1b453127dac7106a36e18dc69d2057bfa5813",
+      "bytes": 24305,
+      "kind": "completed-workflow-status",
+      "runId": 41265622471
+    },
+    {
+      "path": "raw/run-41263237989.json",
+      "digest": "sha256:0290c0928d535f6b519e26bcb94a94c994cf823c79c8d14376e86629aeab0b0c",
+      "bytes": 29364,
+      "kind": "completed-workflow-status",
+      "runId": 41263237989
+    },
+    {
+      "path": "raw/run-41264223842.json",
+      "digest": "sha256:4b64162c5e32b91cf4df745d10fc13e61cd462a0962476dedab9e6aaf169f515",
+      "bytes": 24318,
+      "kind": "completed-workflow-status",
+      "runId": 41264223842
+    }
+  ],
+  "allEightWorkflowStatusesArchived": true
+}

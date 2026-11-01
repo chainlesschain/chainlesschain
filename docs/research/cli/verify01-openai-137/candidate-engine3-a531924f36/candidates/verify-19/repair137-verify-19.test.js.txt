@@ -1,0 +1,129 @@
+import { describe, expect, it } from "vitest";
+import { PassThrough } from "node:stream";
+// From __tests__, ../src resolves to packages/cli/src (not ../../src).
+import { runAgentHeadlessStream } from "../src/runtime/headless-stream.js";
+import { normalizePermissionRequest } from "../src/lib/permission-request.js";
+
+const immediate = () => new Promise((resolve) => setImmediate(resolve));
+
+describe("approval callbacks belong to one live request", () => {
+  it.each([false, true])(
+    "isolates a subsequent identical request (cancel first: %s)",
+    async (cancelFirst) => {
+      const input = new PassThrough();
+      const events = [];
+      const requests = [];
+      const decisions = [];
+      const executions = [];
+      const barriers = [];
+      const jobs = [];
+      const request = normalizePermissionRequest({
+        tool: "run_shell",
+        args: { command: "echo fixed" },
+      });
+      const send = (event) => {
+        if (!input.destroyed && !input.writableEnded)
+          input.write(JSON.stringify(event) + "\n");
+      };
+      const accept = (event, id = event.id) => ({
+        type: "approval",
+        id,
+        approve: true,
+        binding: event.binding,
+      });
+      // Cleanup only: EOF must never be the reason the tested denial occurs.
+      let watchdogFired = false;
+      const watchdog = setTimeout(() => {
+        watchdogFired = true;
+        input.end();
+      }, 3000);
+      let calls = 0;
+      send({ type: "user", text: "first request" });
+      try {
+        await runAgentHeadlessStream(
+          { expandFileRefs: false, interactiveApprovals: true, settingsHooks: {} },
+          {
+            bootstrap: async () => ({ db: null }),
+            getApprovalGate: async () => null,
+            input,
+            writeErr: () => {},
+            writeOut(line) {
+              const event = JSON.parse(line);
+              events.push(event);
+              if (event.type !== "approval_request") return;
+              requests.push(event);
+              if (requests.length === 1) {
+                // The real input pump processes interrupt before the late verdict.
+                if (cancelFirst) send({ type: "interrupt" });
+                send(accept(event));
+                send({ type: "user", text: "same command, new request" });
+              } else if (requests.length === 2) {
+                jobs.push((async () => {
+                  // Replay the actual old callback, then isolate ID membership:
+                  // the second probe has the LIVE binding and only its ID differs
+                  // from the admissible positive control sent below.
+                  send(accept(requests[0]));
+                  send(accept(event, requests[0].id));
+                  await immediate();
+                  barriers.push({
+                    decisions: [...decisions],
+                    resolutions: events.filter(
+                      (e) => e.type === "approval_resolved" && e.id === event.id,
+                    ).length,
+                  });
+                  send(accept(event));
+                })());
+              }
+            },
+            agentLoop: async function* (_messages, options) {
+              const call = ++calls;
+              const accepted = await options.permissionConfirm({
+                toolCallId: `invocation-${call}`,
+                tool: request.tool,
+                args: request.args,
+                riskLevel: "medium",
+              });
+              decisions.push({ call, accepted });
+              if (accepted) executions.push(call);
+              if (call === 2) input.end();
+              yield {
+                type: "response-complete",
+                content: accepted ? "executed" : "denied",
+              };
+            },
+          },
+        );
+        await Promise.all(jobs);
+      } finally {
+        clearTimeout(watchdog);
+        input.destroy();
+      }
+      expect(watchdogFired).toBe(false);
+      expect(calls).toBe(2);
+      expect(requests).toHaveLength(2);
+      expect(requests[0].id).not.toBe(requests[1].id);
+      expect(requests.map((e) => e.command)).toEqual(["echo fixed", "echo fixed"]);
+      expect(requests.every((e) => typeof e.binding === "string" && e.binding.length > 0)).toBe(true);
+      expect(barriers).toEqual([{
+        decisions: [{ call: 1, accepted: !cancelFirst }],
+        resolutions: 0,
+      }]);
+      expect(decisions).toEqual([
+        { call: 1, accepted: !cancelFirst },
+        { call: 2, accepted: true },
+      ]);
+      expect(executions).toEqual(cancelFirst ? [2] : [1, 2]);
+      const resolved = events.filter((e) => e.type === "approval_resolved");
+      expect(resolved).toHaveLength(2);
+      expect(resolved).toEqual([
+        expect.objectContaining({ id: requests[0].id, approved: !cancelFirst }),
+        expect.objectContaining({ id: requests[1].id, approved: true }),
+      ]);
+      if (cancelFirst) {
+        expect(resolved[0].via).not.toBe("stdin-closed");
+        expect(resolved[0].via).not.toBe("timeout");
+      }
+    },
+    10000,
+  );
+});

@@ -1,0 +1,154 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+// From __tests__, ../src resolves to packages/cli/src (not ../../src).
+import {
+  buildArgvFromBackgroundLaunchProfile,
+  canonicalBackgroundLaunchProfileJson,
+  captureBackgroundLaunchProfile,
+  fingerprintBackgroundLaunchProfile,
+  normalizeBackgroundLaunchProfile,
+} from "../src/lib/background-launch-profile.js";
+
+let cwd;
+let previousHome;
+beforeEach(() => {
+  cwd = realpathSync.native(mkdtempSync(join(tmpdir(), "cc-identity-36-")));
+  previousHome = process.env.CHAINLESSCHAIN_HOME;
+  process.env.CHAINLESSCHAIN_HOME = join(cwd, "home");
+  mkdirSync(process.env.CHAINLESSCHAIN_HOME, { recursive: true });
+});
+afterEach(() => {
+  if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+  else process.env.CHAINLESSCHAIN_HOME = previousHome;
+  rmSync(cwd, { recursive: true, force: true });
+});
+
+const saved = (value) => JSON.parse(JSON.stringify(value));
+const capture = (argv = ["agent"]) => captureBackgroundLaunchProfile({ argv, cwd });
+
+// Every negative starts from its accepted positive; only the named field changes.
+// Exercise the same validation through normalization, identity, and resume APIs.
+function rejectsField(profile, field) {
+  for (const boundary of [
+    normalizeBackgroundLaunchProfile,
+    canonicalBackgroundLaunchProfileJson,
+    fingerprintBackgroundLaunchProfile,
+    buildArgvFromBackgroundLaunchProfile,
+  ]) {
+    expect(() => boundary(profile)).toThrowError(
+      `Invalid background launch profile field: ${field}`,
+    );
+  }
+}
+function accepts(profile) {
+  const normalized = normalizeBackgroundLaunchProfile(saved(profile));
+  expect(normalized).toEqual(profile);
+  expect(() => buildArgvFromBackgroundLaunchProfile(saved(profile))).not.toThrow();
+  expect(fingerprintBackgroundLaunchProfile(saved(profile))).toMatch(/^[a-f0-9]{64}$/);
+}
+
+const booleanFields = {
+  permission: ["dangerousBypass", "unattended", "interactiveApprovals", "remoteControl"],
+  sandbox: ["enabled", "network"],
+  mcp: ["disabled", "strict", "project"],
+  plugins: ["disabled"],
+  runtime: ["safeMode", "bare", "managedCheckpoint", "noProjectMemory", "noFileRefs",
+    "noSlashMacros", "noRecallMemory", "noMcpAutoConnect", "autoRewake", "autoPin",
+    "noStream", "noParkOnExit"],
+};
+const integerBudgets = ["maxTurns", "thinkingTokens", "maxRewakes", "maxOuterTurns",
+  "goalMaxTokens", "goalMaxTimeMs"];
+const costBudgets = ["maxCostUsd", "goalMaxCostUsd"];
+
+describe("persisted launch policy validation (independent controls)", () => {
+  it("rejects malformed sections without substituting default policy", () => {
+    for (const group of ["llm", "tools", "permission", "sandbox", "mcp", "plugins", "runtime", "budget"]) {
+      const positive = capture();
+      accepts(positive);
+      for (const value of [[], "invalid", false, 1]) {
+        const negative = saved(positive);
+        negative[group] = value;
+        rejectsField(negative, group);
+      }
+    }
+  });
+
+  it("requires actual booleans for every policy switch", () => {
+    for (const [group, fields] of Object.entries(booleanFields)) {
+      for (const field of fields) {
+        for (const value of [false, true]) {
+          const positive = capture();
+          positive[group][field] = value;
+          accepts(positive);
+          const negative = saved(positive);
+          negative[group][field] = String(value);
+          rejectsField(negative, `${group}.${field}`);
+        }
+      }
+    }
+  });
+
+  it("rejects unknown permission, sandbox and MCP states", () => {
+    for (const [group, field, values] of [
+      ["permission", "mode", ["manual", "auto", "dontAsk", "default", "plan", "acceptEdits", "bypassPermissions"]],
+      ["sandbox", "mode", ["off", "workspace-write", "strict"]],
+      ...["ide", "pdh", "jetbrains"].map((field) => ["mcp", field, ["auto", "enabled", "disabled"]]),
+    ]) {
+      for (const value of values) {
+        const positive = capture();
+        positive[group][field] = value;
+        accepts(positive);
+        const negative = saved(positive);
+        negative[group][field] = `${value}-unknown`;
+        rejectsField(negative, `${group}.${field}`);
+      }
+    }
+  });
+
+  it("requires arrays of nonblank strings without coercing policy lists", () => {
+    for (const [group, field] of [["tools", "allowed"], ["tools", "disallowed"], ["permission", "unattendedAllow"]]) {
+      for (const list of [[], ["Read"]]) {
+        const positive = capture();
+        positive[group][field] = list;
+        accepts(positive);
+        for (const value of ["Read", ["Read", ""], ["Read", "  "], ["Read", 1]]) {
+          const negative = saved(positive);
+          negative[group][field] = value;
+          rejectsField(negative, `${group}.${field}`);
+        }
+      }
+    }
+  });
+
+  it("enforces positive safe-integer budgets, including both integer boundaries", () => {
+    for (const field of integerBudgets) {
+      for (const [valid, invalid] of [
+        [1, 0], [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER + 1],
+        [1, 1.5], [1, "1e0"], [1, "1junk"], [1, -1],
+      ]) {
+        const positive = capture();
+        positive.budget[field] = valid;
+        accepts(positive);
+        const negative = saved(positive);
+        negative.budget[field] = invalid;
+        rejectsField(negative, `budget.${field}`);
+      }
+    }
+  });
+
+  it("accepts fractional costs but rejects zero, negative, nonfinite and malformed costs", () => {
+    for (const field of costBudgets) {
+      const positive = capture();
+      positive.budget[field] = 0.125;
+      accepts(positive);
+      // No smallest positive real cost is specified; zero is the excluded edge.
+      for (const value of [0, -0.125, "Infinity", "1e309", "0.125junk", true]) {
+        const negative = saved(positive);
+        negative.budget[field] = value;
+        rejectsField(negative, `budget.${field}`);
+      }
+    }
+  });
+});

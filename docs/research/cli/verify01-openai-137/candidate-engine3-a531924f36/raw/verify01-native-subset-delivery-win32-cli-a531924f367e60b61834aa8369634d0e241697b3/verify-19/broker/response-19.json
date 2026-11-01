@@ -1,0 +1,338 @@
+{
+  "id": "resp_04fa72e925247fbb016ae6fd340ad887d0ab12c83eeb0d805b",
+  "object": "response",
+  "created_at": 1793522996,
+  "status": "completed",
+  "access_programs": null,
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "completed_at": 1793523013,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 8192,
+  "max_tool_calls": null,
+  "model": "gpt-6.1-sol",
+  "moderation": null,
+  "output": [
+    {
+      "id": "rs_04fa72e925247fbb016ae6fd3503c887d0b890981c908d5ffe",
+      "type": "reasoning",
+      "content": [],
+      "encrypted_content": "gAAAAABq5v1FVad7awAn6wTt2sQwAOOxeEfmNDU3r3_F4U9SZhav5NyJbAhP2t8ShBQDBulA089PSv28JSpxcsN8PHQ1rnlTGzM0GlnRmbJeSNgXsbpGCpg7bhOhxkjTq8oTbCK2B65kWOGRKeNmALMxthAQrbRCKxG-72r5qMRg7z3itktZhhLyVBq_BekVR4KBdi0UyC2lEtQVjktmcZToeXVmyVjUnV7waSUBBfMncIL8XYEhiceyxabm0FnfOYavSJzNB2T6FEp5ZAgdAmzmDhuS7ZNGxRa70cvfG4ic6IGaQN0TzQ-yF3bQl6qU41zhK2pgSxHWWnrMVI0u4s42Mju4uVaUN5nbElt3WlIVyWWgZIMdEh0xTewTG9_XcYHM781wsc5piupzg2gro19mrrVE_S11hVBOK0-vg5H8sLAFxKihvRB2gZX4e-Ptsx-71yA8NugzGevKgf7AcYl9AEa8VGN3kzwGtUb81S7M43oTHHBdKd9Zrl8p7r5_3myUJV1BnIbJMjSXcIPf8RIeRJ1CnSV8prUVce9gdyBU2J4l2DPs0BCIuI8x4H9BP6i3ApXe-qb2ibYuwCp1P1BGd7FiA-CfNvVWFeVXTfM94iCt7XdRJCR-fYnoJFArrNb2x6M_wCZ7iWSb-xXsPOab9PKdYizlI0iARpmCZjUIuCnB83DAZo7e5SQoEMHa45B5TMztt2cIS0-NyFTuOPB3_Ncq0406032a8Vx-BoiYEfTO1DJRU0nRcULssP4A6PvHb1xAD78Y2kMYUFl7olUn0IUVm7zbGTjdBfNI2PfYa6Tti8hY5UTxPcPYmNPf38m4t-X4zKIBm2s4G5EbAziaZpt9q0y6nVv0QaSEN6qrABgBCGkqxEGM927sFYEL0c0w8Qc48m-5ze48Ne8cnHGEaN7tgRHshtZBW9UgaAg5s_AgvrAuP3cVeweeAe-S75cDAO8ESpi4bx5rTuxChx7txxj1H1-UxIzX1G6U6IORl2oUA_pVp4eg9ggPwbJsNwu-uy-4aVQx84g3dcGHt1q3a-zW9FWR7nVuRO9CPKJxlwaEVuUB05L2MLKTJYXD9kegAezRE3Tp_dVw-KoaJfqQ9gyz5jXNC6TzAsMmeUDssXOSzsysyn34-Gfe25IT5oth7LNjs-kVgOIicLqY_TTYMkwyH5TD42hy6tEoPtVGNa-Or226WjBt1dHxFZlkg7yOftfgm8JZkhWCfBz6cHD5BIOpQPxZ_wD9lU_nQD9HwiNyQqEp1j3USKeOLr7D9Cd2VYOgJS8rDx5rmRtekSAJbIrafx74Ev6Dp6CF3JAY-cjBoNGqKeL6_Q-omW9oI_wZ0yv-NmBdnq7GOzHsEJ2M_a6y5icm4VnV0-2xtKm2sIiilyQX8dtBRiRoYrMij08EM25-WRx2Neu6uuhDCzeNpsJ9a3Ibg8Vmqo-jrGxBo8lwinOQeEjAbcMwexVoVVWCWQMOl7fHjrWBdCpPZ0ww756A7eWF1i2eeRh5JSqahh9FaB850kOhdhTbSPWxHwjTnuTc69zvZz1PQWovOzSI3oC1igEZybBd9UpQMgfGlJ3cvJUbq6C0K5fgNYdNXXqcsCD48kaWupzZwuQDGGyo71GXA3CMIslMfZUoADJ7qGdEkzDxt9f1l9KI9JtOlioRXiBttIYovbG3GRqoGP-Ijr8tkBgjeP1e9fSEFnIRfiNzFKpRCtR8j1YAwcqkhuKXBg196Uq_w78Gr_HcCq4zOYHO0earCAUr0dUmiho7lVMnfxAqNtI2KhwzG9H70epw69LzKiZGF8YUJiAFtvDl9Vu84KcIpEFwWLMIaYZc23mXABWMn9OhdOEDAJ3kO4MeNIDCaAwzrrlqw3Bgq9p1v-9wVF9a-UxXynjeoIR8z7B-zqEwOhX8c_zBNaYISDKShDv9ucdQEmYd6tQC-jkIz8nJMyaqaxLSQ4-JP8U3AX3yf1Izqkwn_KHnIfVzHlkx9Pf1PGcyi1YPGdFG-QifIWnO-7IdqS9LQejg_J7ouYp6BTWtXjJoXmi_wu6bmTmYCSD_turpW-RN9iB-Icxd0WX2yR-G7_SfQNFcvfzLxaGunAYz04mfZ-xZXFmav1pmdKmdYzQCA8M1D1g15v-EMdYPAHKXLqKffjEYrUyho5biP2FHRskAmL6rUzk5r2gv3HGCcGbqxdotQLVw_DV75POOip3dx3QxHBgIXB7wF0yD3EaAstzUc2mLedK43L0tH3Odp8YY-Ko7CkNVLHqxQ7a2Gt21GUcQ60iqMExROrqv2RLDIxqTPiVb5VbZ6gxiM0flsKeRfwQsouQxknxp_T6Mu5Lul3zladn0g9nSdwRdW2ZjNY5J6_pwqoJhmLF_wPSuYQZy0fm-stMOAkYk_msfr4uIhA0kIm2fBmoGyNjLns8W-kahM3061pUdzTiQQ_7nscalD7RDnf8uYUZqM6bew7PuOesboTtBklXcADk126GtdxjkH3CrYc6RNrbkws18Jp1XLhg4QFbgkqe18dNiy2sjPhHicEkmc_E4dlFGBgKO48HP650NSGimQ7p4L_djWPcfnQ3b0T4wWO97_528PdVTDLOZYc8Xe8tcpdJT4Uf0ww-jhGCU_dwhCkXAXEcGLyx6JH6PYkImm0QdAFGSxi_wd_jwqRRFIGbfM61RL7ImTcs1D2bDTWYJXJix1O8v7G0KJ0QZCaJvbacM2_GjjIARh7Ib9zfN7j70OEQBgPzOhi9FwVFO6xVvLwo7KjFXhnKfJ56NGMpbUNeWyrRdna9VBE6ABixodlu8GqEZ27OeE34gX9sDp7zwBhtESJ7k0P6ryeAMEZLfTLftC5kSZN5WSHNMHsZoTg3QzMJFgXtFZlVAwn8K5dIs9LF9ZqaOhhZsNbjddlTGEUKIw9g9__QllSHMthcF_1vRJT5X937buxVNp2zEX6vala-GE7HW7UsO4KNEb453dUMaEfFp5-cphTzNMYqipyQzx9U_nmNYSFGNLxI53EOSJSGL6GEnKr5_RiqZjigJptbs66SJCtPzCum0YbI2eH-7vMW9lpSktRcXj-PCxIE1xYYHniNRDwjkJsQttiZyS9avTV5Lnl9OGC01q7-BOKeKdlyZQAEIl-y-2wE4wuPtIu6BgpmAMH2VPsepBG7-viASiaXAH88TThxMigZFK94jpl0KLv3mXHIyIScwQWFSXU2RM__8k1xnkQWZGMGFOm9iOnbsvsQROJTIZLubTlBQseSXTHg1iOuD2bWNUWsrlZm3hJsoHQ73V_vurFk5bFMQLWXFhC9P34v6Q-GXYtacppC_lTg_B4J6g3LVO-p06ThbTOMgtsV52XdRIYvPdVvPxexD2Xz4Dw0s1x5wCmAZn9GjAqZeUAPF_nSbrU5mbFx2jx1yt7EOQiEJTCLAfaSYHcZX_SlmudHGysr-jjnp5HXptlOxeRvovCNEnjs474EhLMZy1N37N8seeD5-FLMFswcqSwYIDbA5xjQzmLPOxS2gxzl6OITt29E-Kgt7c5s8bRoV2UFiFtU9tg7E-5hUc0Dy3_LxV74YY0-EkQyAs5QorEomkHF836ZcdoBqr_0whO1fWKrU0-7QbWrBewoUxrwpBO5HR4MvYly6R0eHoQ_slauw6R7cYJbVjpcMwjg1fuE3cIO_YQXZ6ilt_XciXozeMYfZ019IQGkkgSDcX6mak05wKrAP-f_SzV8TAI_-XYeFmj3GQ29s_FFPxcOVdHXGf2XSCOVm-0TeqTOSkzsFaFMxZfeU89weZmf0p9wkev0VZEque0Alledsof4R1Fboyl0mwEYgmZUuofxuWed0yrAJnADnLWHZc476uZUGthsr6huwGMfxpLEGDSLS2lEnOljHCzMmQoxLze1Q24oPcW3epy4psDhnDKAaX4nySLotS7-xz1vX9Z8qrdB46zTvsA1fHL641UhfkyLL3B7PJDpJxRM3gnsXXoM6zbz0UbKjTEvUb0_iFuEnKCCAzGrofd3rDMmtdcHdzvPSkuRn2Z1aOE6huVpMfuYiiMrWyuGLM-HXslgfzcQRA2XjKd2_LTqE3MiOcZx1UnFca3oA6MmEyvnizI7jbG0w9KS9Ih0m1KACPX9dWDXAKnTWI3eoLNi-wu4yTYJHN_ajhboPaF-AcWrKgV78y25RXaTBlAhuWTfcjnzcTUDqASgMCeHi6Ed5nwdABIexge0_rJO5csGNxBehgNkgzc61aAQ5IqaSOoZFKF3FlIV_QVx_heOHo0sEi9UI5jp1jB9rMqY0vmrwO9xLcJTTH15mJG15Ga0feTwnT6nJhKuPmwZUm5VxmNfYNzysjdV-cEgB-nc6_5TWktL41xxxH68MrTSoeDqlkJuo7uDjmaXiU1p7YzmMFaiCwQl-o1vdKsrCvPYfd2QhxoLERTY3UZsIMHETKfGeCjjNPcdxNDxJjrXrK_131stXxi1Lwo1Gt6EiqHFdHgwFFsm5IMpB8hLoaFA4g1YB031GcMoahtui0j0nePuMbFvO9pZ47BJlsWBWhU7nrn6wDREDwYleag8BOnSY9aEvUkcKnkEcergAhbw71gQbwfcpP3DDOMh84yj0kjijC-gFaCWHYajBlhrB43CfBztRu_z0CsZn7-7B-_N1uIczoIHW67PV_FnQjngMVZY166DuR0DN5H0SsOd6E2C4apHmB3j7N-LDl0oYOBzryBwhoYz3CVvXmAo3uvkqOkj6Jl2opYAbil_BWI6pbmu4XUDvvQJMUWlCmP8eJHeHCkdCZrUCQwxGYc3OM-ScbPZJMSNEev01MIbaq1zRTmIVDvhCcHvDpKRKXgkJc7l7YbdybVUHkA44DI_2fZYTB2BnfHPYVc47IzD-Q5qeqWQ8woPWpx4Dj4Q5gNCfiPFkU3LFIerUY_Vg2kg8khcgYHXoVrUu7b2iUZSdSd1j8ebkv5vQJi2GlApSvSG2bEUaSLFzWxcG8g2Tm2P0bsQuUjrQrLQ0VyRQJ2kRU27oiIgC9XPl3Kdp9o7k4Oc7XEW0zYk40amgxlbfzVYGK_2dYxIvUtH-3D6vd_-HC030gcFSa6qadF-98P2iUmqkySekDxer5hSQMkHob1ERbnR0vPu7WsalumdipqI26wCP--quDtHB6k81ydVhy2Dqd6CNRAVB111VOfN4pNkMnlTyVacrNZh4XUqAUpMFkTQ-FS84DyXIk3KYbhSXJoFRYqq6nKaH7j72PBHKuJbkH1LDdpdfWjSduw-SYO77GO78oDTlSyJSoSt1Wm9nYcOMseOOA5X5Ev4rNEpsc5cJJfyvI3qQ-K09IT22T4ZnnUHjZLHQHePzVzhyF4dIhR33odbuNHvg_cCBkly2tEup1uae1_Jg-7XjEIwxbXMZRr05WIxQM7G6TvWNZXVsHNtVT5XsEAmkv2Mdovz8uPfFwrufLP9Ec7uZSEGWyhundZhFF616R8M_tHylFA7XbucGwCKnVcTLPQHaYWa4KimyMFcQ4OL8xLm8DY0qu6JmwI-y0jLSQu4jjX66C_H0MPvW0bDGKb4kFgAlXamaiNPw5Xy7KYuvJTfVk_qVaZU9bEMpf8rU34QhI9pRuGmutW_G1ctr2YlCRNcM5CW9UPC8Pg3MQTnMjWdOFDOBV6AsrSoFvajM-JiiwMxTfWtr4bg2T4NiumSRWCEHxT9nBhlZPKY3yej0zl5TPKda0dLwksQTIcHdP2s-qyOjmfgwwMi3ugn8V7obDEjpnHgpVirCqiGgEdGg_aJIRmBlS6cruzt-UVksslmfwL83IrHvaqBdcPSggv4avoJ_aQrHPLTG8BLDuXp8kqyeul-i5p4Q9J6B4WAT7---p0iECRFfM0xSN5UWpKmO1jAfDIS9KNSGsucTDPCwjMQzVSoj4ebMIbJc_KRZufdHjwBhOouyuVhkDupY1bQqMkAuhSYRCDDnb0RoDDQV1AT215_Ggaj7UXGJDH6JGvSVwswvdXDy0JiM38w9-TIa4Iiad70IaVyqLdmbc1R0PZjfpvYz7Ko6LiaxLc_WDJQz328nl-fxkl7kWAqhhLDIfdn4Ltzud--M68B96FEJFEBiXRvVRPWOrbyT79NqGn9C6vD9B2x038hj6DyhM5gaZgBSS7ljdOYdG823-6EEBkngb2jMB-j2C7cq_7a5XU1dtrpVesMIvP_bMkDPJ_aYCGbc6nyEth6p1DAONLBaUbNqgmoNwqxPkJCV6n6FtPjuzV_GX-hfNEZ3EMyozXgNn8FFSWq-FE-j9dei9sEMrfrSs1qYe2RPY1VZ0bSY7zKe4cvcVk9HIYhQ5rKY6o9ul3e6bIH0CYb5L5L2opsbU-gWM4VydqoYHfqsQZRXfkOL6rp_qxiQ9IrDOclDUMRrd3n_SxQ6v5q3yBHSIXVFzldQYMRK2GP8Mo4lyF8q02ALbFLy1Hou1bpYx5wt5U6SwYMCDCoe0CXXMqC_7e4DXP4wQn7CZ1r_wWHqgJZE6W35-JPkZYBUcHBb7t8YCwvbdaCgzZQ45iuKmzL5w2gKIhn3b8p7jSJrgKuX7trPklVKcP0oeLdTqwjHx1ps2GlkWJSfZNIL0ulb_IfYOuEcCpIRw-VkCF9wXNyUPzSLXP-1EtHbyjuz_stL93wfYtMN2KdvsqqEPBkbiHszGygz7FOMsQUOQKdWD6w9a-MyatD4Vo0T0qYQMkl-OysPgFQhtkQAPceBMdhkJKvo76I4LxIG08qkodMndbllzeaTZp0ho-32DdUnwNF4_JuWvJOw_hDc-lNK1yyfOmZVXeP4mtEh-mRa-tnPVXmSlKvqGAhX-mvemsnOzY9TI0nerHh9rDj_yLoMiCWMsMQ_vzyAgQl89uuZSw8jdfHFmpVLjHqldtPegmJLgzuZrt7odxIjRQnkHHjniaNQS8OaxrPWGWCG1RxpQvi-KTygSeSzBJjfH150FXi84MZoeAoQ9iTHvYaYvBMzigab7qaJWMjb2ek17oEFot03q7zZROtNAm5O2aNU7RWcusnvrB8kHQbcQ25qm3bgm-Y65Wl7xSu2R3y___egP2bBScwvoKszOMXBT08nPGIbQjubrpNrFAl43nrb55aHOSfoPersMi9uho1MTuhmCnxx9vLKlesxAX5BY0YidFOrNDxuweHWNzRY7Sg0NfxUac6EXSTiIrbR3Gb7wjCGIZe8oKONEXa_y-EmIuAR6NIGK_Mw-OTKXCNe79TOxRxVD4UcXsVVXKuw2Kb5YItZh5rg2l7MhCgde2ZIQFjrpFER2HWVp1gna249AeZfAlVmcyJUoppstgM_PNELH3SH0Q05M-LXE9loLIjHLDwuxXM_ae8-wEVghICCj58Ko0l7aDSnM2V_a1VdhP63DgLPVkYl59j4ihgVqyeX8h_V5ojnc5izY9w0ON5uUgT4oCzv_rA3gZ63GV2o04dJtjPVRbtr-TQ5iHZxb6EpXtKlTK7nxm8oiGjJaaHb-i_ECLDjLs3oVPlRrPwqCC9chkiTsgA6nlNY-u0bhNJQT9P0-daw9lObiDBMLKUWVcdiDYlYwesKU0FhdcJnevptKKNCdv9-eNCsmiV-HsTGsQ7bdpnr8Tqv8aSV5aVtNu_X-tk5DWpcIZi8AAo1-F3egkRTVolGvDk_ZMejxgeyjXqaMmNeVAlWsSU4K_NxEd4i6P4VBQnuJPAH1H92HheJbm0W7NM5498xzz9W1gHtr6NuR5PfQjkzTMv_mO27ipd2TnyDeUda0QGgi7TEkZatYlQgRgRPfxwEornNxmE0ttHDQrYXVTSjSdUnVRSL6x6WaXq-HpZe6Uf3q-jQn--T5pfLErzFV8laJMZrmT6KT2xRMAQEhQx0aAu0M5VYdi3E00Z0P7Ki6bJ48aP4TYSUiLCWNJC8OOR09yUvkUu-BJu1K5scGLD5ZjbmZRLeY4FMwMnbrfDWHH7aEhu2_U-qkuhltt0Uc7dK37Nr1QjgOXmQ0RIDProxV4OLshgC7u4vZwGGlLTH6qf7Do_lnFtOYrqpNaHYejHKxFsm61cA6Cjf1dRE0eXHZDgxkF0tQ9J4cZgXf9rDqWjJxn0xNOhTaQVX7pGYeJGduo_ZFE90WFtvLSOdy7eJSEcpGbpVHySWX4JOZzlmVErCS5e1lNATQwaL4t9Gr0ysPDzR1r3OTamsDwZVyQmWwFV8KUNdKdrTRlp_Fl5b3HNS1yZxMh9Lt959bZA3sktTiJqM_gnn0jN8hAtDO1HecMBJl4SpLL818Emz2cIpxAvPW0VT8VTLQjXXqmOxFLkGVfD9T-_pkxwXYKky7sM2Hf2cyJLMuFmDjULbx2GS3EBjoqOcL1dAqPikoh5mJv7mMJYCWKy1GChRHGkvMr8q-FKP41cqxs8tiDQiK-EDA7DmX7RDxqjLfygh_DRHFV7LM5ReivFDBJYaTA4EFgHtv9hWtXCsL6VQTI1mvaI7gi8Ixb67AfyYtCrUdSrPJHSzJfP1whoV7AABHDidQ3HrWlStPjR5mwNm8eFf0f0xNeHSGpq93gD9lbqPQp26iOZbDEGAzFz_io_jWl0d2Jg3T1LHx8mGUXRsnHeODiFoPOO12JQqdSl0uVUZt7GgEOQMGF22ycgmfhCjBe1GV0leRc6ilfwgI52XXmLcj7rp-peI1JOEuIvAE7ymI2-AXU_EjQFok-b65PoqfKGARs2pxMu9bG-g7hbBWcSjxqR45qCVOkVHqjzASDU-NHML5ytaZFgv5aOS2X41gGbY0WvRA0YML5VVf0p1CVQSzMLUFUijsuRQgrJd2_GrfPeLVBRnJbuywL4qG2FsG9elu0IqcVPWY-T_dstRrZY3GWl-or1lj-kIe7NMexj-YPDJ-X1MXQntLEwb2t2PUR7A_GNE4PwBdKK3ajATL1oLMsM3_eOO67Uv8sALqiIT-QTN3SdVsb64tz9eIMdv2CNg0nmFqBxSyUtTP3tU8ChH1cDHVkBgw4cjijCy0x-rqBh3HuWVmJcl3HesjHyFHzJtKxBBPunqEekZnBb80w==",
+      "summary": []
+    },
+    {
+      "id": "rs_04fa72e925247fbb016ae6fd41b13c87d0b8c73222064bde73",
+      "type": "reasoning",
+      "content": [],
+      "encrypted_content": "gAAAAABq5v1F69RmxPwG1P7hXKp_khYPxVsJ_X_XqfTBP4IisBYVxdjs_QL1rR3b01sfNLZ9AdO9Sp6sVFEqH7mvmTCL0WNkmTD6bXtjc9pBc1kadmxk0SPLrpspPbrv7vW8Zym6pPJLM7kLXKGfiZOrayJe45SFfLY5Ajx8tPRfc4hEcO3NQaSWEFs3jO_SstTYjn_aKBHvlJP4z6a6FWtAWZ_Um9WHc9eEWYquu-uh8Wh_zQ28ACdZ_-okWQz4dx9L4vueWY-GhzebuZe4x3G-bhM8p699dq-XmJM-UG_Mht_w3mCw_v6IxseV9wUUmmAuZK1uHKASo7wBa1rHGqc4noaU13LldA5u3QxSixodPIwl4225W6EilZpdgwn8SvdmfDHBGwlxKZkE1B6ClzzOR6naDCgM0cVHXjkvHlUsqHrHnlJ4U-1e6jyxezS_HPluufFC_9W7GspL8C9GuEJkY5H8hqpqEBpjeAm1H_JO0siqdFOy_AJov2e55gQsxczkuoot4UbYTvhmBP3OAvf1eC_mDJ8_ONHITekif7JKpNw8ORBipfHJ4Ps7vjZFY_DMXoFFbj3OgbPqJa5TOCh9QKumwQocH8YAKWAOHpxbrDf9XP2hNcACaaVAUGwiqz7d_X2Er26eG40QpXAwd6K0LbE9CCTvm6Z_jNUBpA2Mh9mbghDz8O3H1LR0-SRbwOL5mH1ylau4g516m5SNgDh5tX3gO1l6Ut1qH6a3fRI0T8ccXqor8rE6gpZlQ5vUfnCFG9ip9GCSgm8x1vNZEgWdXGEY0XrB6vZ_ZkmBSA6zTi9Zm-0QaX6nBCeAe2tv_kLedLPm-N73M4nmd9JmPUg526HhOI2eU_zM86EEGTOLBnbBL2A0RjqC77A2EQIK0jvIanulrAk6c16XoIgfvhr2-3iCtTJbKFLP7C3V4dvr7rb18KmQBw3MkaCvndlP5mh37muoCoQwB7qqT5m_yHZY3FSfCV_OSxMRvlN9ct0s9JxH6ztkB0ziWYPIdSzzWRnBKaF84yYZTi__cHy50JEGXOGgWBwCHg8gX1OYd7BMNisAkJuO6ycgLnXDH8t0j86VfZ3IXkzhqiz7zsYrGzcsgQPgVHF2VAYT3Cpvn8re7jdqRDryyPYc8oM-83xZga5JEs9JFqw_TTcRqtT96aKoigpCJKLQa08kNaDOfK6hdWZ2213td9FptS4AoFC8yDnG35FMshVIxRDn448RVaAZV7CmbIgqJMZRf_lM0hAF2wZFogoGo5mrx9FOwCGVEA5LE088A0yLnjzgdUrIMuT_8WHW03EOowhn6_3Nd8VopdAUAU8aS3Ma9E3MJROf54dgkI7vE0oGvUgVbRjN58JyeB15f9kklh23XbAj-K-dhiz3_i9HOrag4gJuz1EcHf9SfRhRBqTfu7nZkFjQzcjnb0JwlbrOXsPsFkwjfEwuKGQSjxaF6BIk3ji5nsEhttkRYOSMpv839u0bJzY_MxAT7Vw3EjVZSsMAUgWfpCAp_ugvY7XaSJqN0WIr1SRYVZbEf_JPxlZTKo42rEk7CV8DHGHKXn9QYxDpRFLO5rz_vLmdG107wsQKBT212TsYXeEwN7GahcJY33ITh_A2ZGEqpKJRfdYLJNQ5wDcyQAYzc8-NC4IDvAFQNghG44aQnNvkTncSdT0crTIMONqOlMzpb-S8mqsmyKNAsA04zfcXmxzDYLgWLRgvcm_lNhK7Cd3JM1135i8XqlaIuvc2EDoADzmNna1KHJKqRGo5EE9VjVuI9ukIwvmGKF_7d-iBkkdKM4nFyIF0R_iqY4LGsNkwM0YfuQPVnGU_Q2ByhzHYDHpk5jHkYOmNpvhLvq-Ouv9tDFlH1gtyM9MKMsomGryaF4EZQM5LCqGMEcuQRS_VYz3ie2g5vI41v8JYWpPTyFyVdOf2FUI4bV73RI40LK1ZOxVaVdOAfDfDYhtrRBBEJr0jeOXBm4fUxaKYQanO4Gm8K9HYL8PzIkM-eoUaXMVYNcTp3J10ZrZKm1zbr1JsNJ0RDvh0LLVh6mbX9AZrXeUh6ffDKQw4v6XE7SxNinTHKuGcKp_I-aNbD1cTVesDUWd5DD9-B2ZFERByvttxTpVB9T41xtPWHOAnYLbw_3XB77XCdrUOa7XXnCO6yeMQFScS35kMpp9IIXMMyB8HBpeOZmhnSNdsjS38aRTFphIKqILIgJcsn6UMrNUP0SUE0wsJSf7E3Tpg3PE7mUbAcELJn_gztudNjcMnvAgb_ysxBsXib4rYQZ--BacKUfA7Ke3fuaf4Uc-cg0ML4zsfBkRSs_4wMqPbk9tnSA-bOHJ1GlDE-xF2YMyCLb5AneC93m43ajaRoah6jle-VGDkN_j2R-9gxwZ4TPWGObIwuPNUilweohjOIznZR8O1P90pf87NwKtSB0FmWucoZKMEA5m4BBXDvj9zDtitmPgBIRUXBgqVib3JJYvvX0Qeg1MptGzED08XEGm9FmqcXQdjokaPcdqF3fR0R8421HyyDGBJUUoVyDPg5DCdbqw48J3SgU0J1D1KZLr1zwV63ajyewgLuIdChygE_OAvqF6hZgucMnI61OJaGo6nkJh2Q3nG-89J1NrnQJ7JUhuiVVmx-tx9XJlEBpsDECAgg21zA8rnTYSuNx---PHdC25wOmz_rw5VMuZvXaOUEHCBdLuAXnMB_eFwNrhylYf5fyxCzwIJUGeXeQhF0KOtQNrsa_e7C7sStOpKCA6C3GRJSI0AEjbgypncWdW5uXDve0F_puRGQB67lsONzCEodDGyA1D3YlfvBMw9ixoAtTq4O1w-1qRwYWWIW6spGdcKKgP_j7vKrvMbzC7Jh8wlM1AmsCaBrIlS0v2hiRCfHCPFiecDGkyrBpr1lzOqK-rTZMJbklZ0KcZSbbPPXzx-JIjYWGrgVyKph9Z4jQtQPHr93PMiZ_ObNjJ8Ye1P4kFPTttxUyibj1g_hg4MmvZo2MXKQjdkbwyq-xBrNU_d9JtaZnVYmlbKqrbu6IKhya5ocET3FVnr-U09rlyNygmeXRL4tyw8l7Pju1_ptbwOJ8S4G5JWv0bfKHiP-UATMp-fDTuztsXXztAK2Co87w==",
+      "summary": []
+    },
+    {
+      "id": "fc_04fa72e925247fbb016ae6fd446d9c87d0a06950e434bac3b5",
+      "type": "function_call",
+      "status": "completed",
+      "arguments": "{\"pattern\":\"interrupt\",\"path\":\"packages/cli/__tests__/unit/headless-stream-approvals.test.js\",\"regex\":false,\"caseSensitive\":true,\"offset\":0,\"maxMatches\":5,\"contextChars\":500,\"directory\":\"\",\"content_search\":false}",
+      "call_id": "call_xsV6EGYljGxi35DqqBMiSN0M",
+      "name": "search_files"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+    "context": "all_turns",
+    "effort": "medium",
+    "mode": "standard",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "total_tokens": 0
+    },
+    "web_search": {
+      "num_requests": 0
+    }
+  },
+  "tools": [
+    {
+      "type": "function",
+      "description": "Read a file's content. Use search_files to locate relevant sections and offset+limit to read them. For large files, follow the returned nextRead cursor; range describes only the lines actually returned. Reuse unchanged content already in context instead of re-reading the same page. Jupyter notebooks (.ipynb) are rendered as a compact cell listing for notebook_edit \u2014 pass raw:true for underlying JSON.",
+      "name": "read_file",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "File path to read"
+          },
+          "offset": {
+            "type": "integer",
+            "description": "1-based line number to start reading from (omit to read from the top). Use with limit to page a large file."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of lines to return starting at offset (omit to read to end, subject to the size cap)."
+          },
+          "column": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "1-based character position within the first rendered line. Use the column from nextRead to continue an oversized single line without repeating its beginning."
+          },
+          "hashed": {
+            "type": "boolean",
+            "description": "Prefix each line with a 6-char content hash for edit_file_hashed anchoring"
+          },
+          "raw": {
+            "type": "boolean",
+            "description": "For .ipynb: return the raw notebook JSON instead of the rendered cell listing"
+          }
+        },
+        "required": [
+          "path",
+          "offset",
+          "limit",
+          "column",
+          "hashed",
+          "raw"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "Write content to a file (create or overwrite). For a large new file, write a small complete section first, then extend it with edit_file using a unique existing anchor. Aim for a few thousand characters of new content per call and wait for the result before continuing; each write_file call replaces the whole file.",
+      "name": "write_file",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Use exactly one listed canonical repo-relative path. Read tools may return absolute paths; those are not valid mutation arguments in this run. Do not use an absolute path, ./ prefix, .. segment or backslash. This schema is guidance; all execution-time permission and file-identity checks still apply.",
+            "enum": [
+              "packages/cli/__tests__/repair137-verify-19.test.js"
+            ]
+          },
+          "content": {
+            "type": "string",
+            "description": "File content"
+          }
+        },
+        "required": [
+          "path",
+          "content"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "Replace a string in a file. old_string must match EXACTLY ONE place \u2014 include enough surrounding context to make it unique, or the edit is rejected. To extend a file in small complete sections, use a unique existing anchor as old_string and retain that anchor plus the new section in new_string; do not resend the whole growing file. Wait for each edit result before continuing. Pass replace_all:true to change every occurrence instead.",
+      "name": "edit_file",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Use exactly one listed canonical repo-relative path. Read tools may return absolute paths; those are not valid mutation arguments in this run. Do not use an absolute path, ./ prefix, .. segment or backslash. This schema is guidance; all execution-time permission and file-identity checks still apply.",
+            "enum": [
+              "packages/cli/__tests__/repair137-verify-19.test.js"
+            ]
+          },
+          "old_string": {
+            "type": "string",
+            "description": "Exact string to replace; must be unique in the file unless replace_all is true"
+          },
+          "new_string": {
+            "type": "string",
+            "description": "Replacement string"
+          },
+          "replace_all": {
+            "type": "boolean",
+            "description": "Replace every occurrence of old_string instead of requiring a unique match (default false)"
+          }
+        },
+        "required": [
+          "path",
+          "old_string",
+          "new_string",
+          "replace_all"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "Replace a single line in a file, anchored by its content hash. Use this instead of edit_file for robust edits: each line of read_file output (with hashed:true) is tagged with a 6-char hash like 'a3Kp9Z| const x = ...'. Pass the hash as anchor_hash, the current line as expected_line, and the replacement as new_line. Rejects edits if the line drifted (hash mismatch) \u2014 retry by re-reading the file with hashed:true.",
+      "name": "edit_file_hashed",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Use exactly one listed canonical repo-relative path. Read tools may return absolute paths; those are not valid mutation arguments in this run. Do not use an absolute path, ./ prefix, .. segment or backslash. This schema is guidance; all execution-time permission and file-identity checks still apply.",
+            "enum": [
+              "packages/cli/__tests__/repair137-verify-19.test.js"
+            ]
+          },
+          "anchor_hash": {
+            "type": "string",
+            "description": "6-char base64url hash of the line to replace (from read_file with hashed:true)"
+          },
+          "expected_line": {
+            "type": "string",
+            "description": "Current content of the line \u2014 used as a second-layer check against hash collisions. Compared after .trim()."
+          },
+          "new_line": {
+            "type": "string",
+            "description": "Replacement line content (without the hash tag prefix). Preserve the original indentation."
+          }
+        },
+        "required": [
+          "path",
+          "anchor_hash",
+          "expected_line",
+          "new_line"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "Search for files by name pattern or content. For a long text file, pass path and pattern: returns matching line/column positions, nearby context, and nextRead arguments for read_file. This streams the file instead of loading it into model context. Continue capped results with nextOffset as offset. Omit path for the existing directory search.",
+      "name": "search_files",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string",
+            "description": "Glob pattern or search string"
+          },
+          "path": {
+            "type": "string",
+            "description": "One text file to search by literal keyword (takes precedence over directory/content_search)."
+          },
+          "regex": {
+            "type": "boolean",
+            "description": "Single-file search only: evaluate a regular expression in overlapping 64K text windows (default false). Prefer literals for exact coverage across window boundaries."
+          },
+          "caseSensitive": {
+            "type": "boolean",
+            "description": "Single-file search only: match case (default false)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Single-file search: zero-based character offset to continue from nextOffset (default 0)."
+          },
+          "maxMatches": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Single-file search: maximum matching excerpts (default 20)."
+          },
+          "contextChars": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000,
+            "description": "Single-file search: characters around each match (default 150)."
+          },
+          "directory": {
+            "type": "string",
+            "description": "Directory to search in (default: cwd)"
+          },
+          "content_search": {
+            "type": "boolean",
+            "description": "If true, search file contents instead of names"
+          }
+        },
+        "required": [
+          "pattern",
+          "path",
+          "regex",
+          "caseSensitive",
+          "offset",
+          "maxMatches",
+          "contextChars",
+          "directory",
+          "content_search"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "List contents of a directory",
+      "name": "list_dir",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Directory path (default: cwd)"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "strict": true
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 19831,
+    "input_tokens_details": {
+      "cache_write_tokens": 17364,
+      "cached_tokens": 2390
+    },
+    "output_tokens": 691,
+    "output_tokens_details": {
+      "reasoning_tokens": 623
+    },
+    "total_tokens": 20522
+  },
+  "user": null,
+  "metadata": {}
+}

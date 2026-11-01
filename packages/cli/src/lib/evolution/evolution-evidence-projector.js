@@ -614,7 +614,7 @@ export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V7_DIGEST = `sha256:${crea
     "utf8",
   )
   .digest("hex")}`;
-const AGENT_MODEL_RULESET = Object.freeze({
+const AGENT_MODEL_RULESET_V8 = Object.freeze({
   ...AGENT_MODEL_RULESET_V7,
   schema: "chainlesschain.evolution-agent-model-projection-rules/v8",
   version: 8,
@@ -622,6 +622,25 @@ const AGENT_MODEL_RULESET = Object.freeze({
     ...AGENT_MODEL_RULESET_V7.jsonTextPolicy,
     version: 5,
     sourceExpressionPolicy: "bounded-source-tokens-v1",
+  }),
+});
+export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V8_DIGEST = `sha256:${createHash(
+  "sha256",
+)
+  .update(
+    `${AGENT_MODEL_RULESET_V8.schema}\0${JSON.stringify(AGENT_MODEL_RULESET_V8)}`,
+    "utf8",
+  )
+  .digest("hex")}`;
+const AGENT_MODEL_RULESET = Object.freeze({
+  ...AGENT_MODEL_RULESET_V8,
+  schema: "chainlesschain.evolution-agent-model-projection-rules/v9",
+  version: 9,
+  jsonTextPolicy: Object.freeze({
+    ...AGENT_MODEL_RULESET_V8.jsonTextPolicy,
+    version: 6,
+    sourceLiteralPolicy: "explicit-source-containers-v1",
+    maxSourceTokens: 32768,
   }),
 });
 export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST = `sha256:${createHash(
@@ -659,6 +678,7 @@ const SUPPORTED_RULESETS = new Map([
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V5_DIGEST, AGENT_MODEL_RULESET_V5],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V6_DIGEST, AGENT_MODEL_RULESET_V6],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V7_DIGEST, AGENT_MODEL_RULESET_V7],
+  [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V8_DIGEST, AGENT_MODEL_RULESET_V8],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST, AGENT_MODEL_RULESET],
 ]);
 
@@ -734,6 +754,7 @@ const AGENT_VALUE_PATTERNS = Object.freeze([
 function valuePatterns(ruleset) {
   return ruleset === SKILL_DECISION_RULESET ||
     ruleset === AGENT_MODEL_RULESET ||
+    ruleset === AGENT_MODEL_RULESET_V8 ||
     ruleset === AGENT_MODEL_RULESET_V7 ||
     ruleset === AGENT_MODEL_RULESET_V6 ||
     ruleset === AGENT_MODEL_RULESET_V5 ||
@@ -1459,6 +1480,43 @@ function isAgentCodeTextPath(payload, path, resultToolNames) {
   return false;
 }
 
+// Unlike historical codeText literal scanning, source grammar is confined to
+// exact paired-tool source fields. A second $json descent is ordinary data.
+function isAgentSourceTextPath(payload, path, resultToolNames) {
+  if (!isAgentCodeTextPath(payload, path, resultToolNames)) return false;
+  const message = payload.messages[Number(path[1])];
+  if (path[2] === "tool_calls") {
+    const fields = path.slice(6);
+    if (fields[0] === "$json") fields.shift();
+    return fields.length === 1 && fields[0] === "code";
+  }
+  const calls = payload.messages.flatMap((candidate) =>
+    candidate?.role === "assistant" && Array.isArray(candidate.tool_calls)
+      ? candidate.tool_calls.filter((call) => call?.id === message.tool_call_id)
+      : [],
+  );
+  if (calls.length !== 1) return false;
+  const tool = calls[0].function?.name;
+  const fields = path.slice(3);
+  if (fields[0] === "$json") fields.shift();
+  if (fields.includes("$json")) return false;
+  if (tool === "search_files")
+    return (
+      fields.length === 3 &&
+      fields[0] === "matches" &&
+      /^\d+$/u.test(fields[1]) &&
+      ["context", "text"].includes(fields[2])
+    );
+  const sourceFields = {
+    read_file: ["content"],
+    run_code: ["output"],
+    run_shell: ["stdout", "stderr"],
+    check_shell: ["stdout", "stderr"],
+    git: ["stdout", "stderr"],
+  };
+  return fields.length === 1 && (sourceFields[tool] || []).includes(fields[0]);
+}
+
 function sanitizePayload(
   payload,
   ruleset = RULESET,
@@ -1489,6 +1547,7 @@ function sanitizePayload(
     const toolArguments = jsonText && isAgentToolArgumentsPath(path);
     const opaqueTransportBlock =
       ruleset === AGENT_MODEL_RULESET ||
+      ruleset === AGENT_MODEL_RULESET_V8 ||
       ruleset === AGENT_MODEL_RULESET_V7 ||
       ruleset === AGENT_MODEL_RULESET_V6 ||
       ruleset === AGENT_MODEL_RULESET_V5 ||
@@ -1515,6 +1574,11 @@ function sanitizePayload(
         layer,
         objectOnly: toolArguments,
         codeText: codeText || textContext?.pythonFString === true,
+        sourceText: isAgentSourceTextPath(
+          payload,
+          path,
+          ruleset.codeTextResultTools,
+        ),
         pythonFString: textContext?.pythonFString === true,
         // Only direct message text can contain Markdown code examples. Tool
         // arguments and recursively decoded strings keep their existing rules.
@@ -3385,6 +3449,7 @@ function validateBundleIntegrity(bundle) {
     }
     if (
       ruleset === AGENT_MODEL_RULESET ||
+      ruleset === AGENT_MODEL_RULESET_V8 ||
       ruleset === AGENT_MODEL_RULESET_V7 ||
       ruleset === AGENT_MODEL_RULESET_V6 ||
       ruleset === AGENT_MODEL_RULESET_V5 ||
@@ -3397,6 +3462,7 @@ function validateBundleIntegrity(bundle) {
         allowStructuredArgumentText: ruleset !== AGENT_MODEL_RULESET_V1,
         allowOpaqueTransportBlocks:
           ruleset === AGENT_MODEL_RULESET ||
+          ruleset === AGENT_MODEL_RULESET_V8 ||
           ruleset === AGENT_MODEL_RULESET_V7 ||
           ruleset === AGENT_MODEL_RULESET_V6 ||
           ruleset === AGENT_MODEL_RULESET_V5 ||

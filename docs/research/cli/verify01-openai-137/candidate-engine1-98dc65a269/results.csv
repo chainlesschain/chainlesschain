@@ -1,0 +1,6 @@
+"sampleId","group","status","requests","usageCompleteRequests","unknownUsageRequests","knownTokenOnlyEstimateUsd","actualBilledCostUsd","validationFailure"
+"verify-08","","pending","","","","","",""
+"verify-13","linux-cli","failed","14","14","0","0.46339280000000005","",""
+"verify-19","","pending","","","","","",""
+"verify-36","","pending","","","","","",""
+"first-run-darwin-vscode","","pending","","","","","",""

@@ -21,6 +21,7 @@ import { currentHostHooksV2WorkspaceRoot } from "../../src/lib/hooks-v2-workspac
 import { HostResourceBudget } from "../../src/lib/host-resource-budget.js";
 import { createPermissionRulesProvider } from "../../src/lib/permission-authority.js";
 import { getPlanModeManager } from "../../src/lib/plan-mode.js";
+import { prepareCanonicalProviderContext } from "../../src/lib/context-memory-kernel/provider-context.js";
 import { SideEffectLedger } from "../../src/lib/side-effect-ledger.js";
 import {
   inputSubmissionDigest,
@@ -256,6 +257,50 @@ describe("runAgentHeadlessStream", () => {
       },
     });
     expect(JSON.stringify(terminal)).not.toContain("private endpoint");
+  });
+
+  it("carries the operator window through IDE stream input into the planner", async () => {
+    const cwd = mkdtempSync(path.join(tmpdir(), "cc-stream-window-"));
+    let prepared;
+    const deps = baseDeps({
+      input: input({ text: "hello" }),
+      agentLoop: async function* (_messages, options) {
+        prepared = await prepareCanonicalProviderContext(
+          [{ role: "user", content: "hello" }],
+          {
+            ...options,
+            cwd,
+            maxOutputTokens: 8192,
+            contextMemoryFilePath: path.join(cwd, "kernel.json"),
+            contextMemoryEnv: {
+              CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default",
+            },
+            contextMemorySelectedToolNames: [],
+          },
+        );
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+    });
+    try {
+      const result = await runAgentHeadlessStream(
+        {
+          cwd,
+          persist: false,
+          expandFileRefs: false,
+          useRegisteredMcp: false,
+          provider: "openai",
+          model: "gpt-6.1-sol",
+          contextMemoryModelWindowTokens: 32768,
+        },
+        deps,
+      );
+      expect(result.exitCode).toBe(0);
+      expect(prepared.modelCapabilities.contextWindowTokens).toBe(32768);
+      expect(prepared.plan.inputBudget).toBe(22938);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
   });
 
   it("seeds initial rules from the injected branded permission provider", async () => {

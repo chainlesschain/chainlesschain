@@ -1,0 +1,204 @@
+[
+  {
+    "id": 13077600500,
+    "node_id": "MDg6QXJ0aWZhY3QxMzA3NzYwMDUwMA==",
+    "name": "verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3",
+    "size_in_bytes": 10806058,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13077600500",
+    "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13077600500/zip",
+    "expired": false,
+    "digest": "sha256:6f85fa3eb9c1de038293057bd8ee753037c38fdba4c182ab4d3d0af80eb7bcdd",
+    "created_at": "2026-11-01T09:51:28Z",
+    "updated_at": "2026-11-01T09:51:28Z",
+    "expires_at": "2026-11-15T08:51:26Z",
+    "workflow_run": {
+      "id": 41289772666,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "verify01-engine137r3-a531924f36",
+      "head_sha": "a531924f367e60b61834aa8369634d0e241697b3"
+    },
+    "group": "darwin-vscode",
+    "expectedSampleIds": [
+      "verify-08",
+      "first-run-darwin-vscode"
+    ],
+    "collectionRole": "generation-and-original-acceptance"
+  },
+  {
+    "id": 13076972359,
+    "node_id": "MDg6QXJ0aWZhY3QxMzA3Njk3MjM1OQ==",
+    "name": "verify01-native-subset-acceptance-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3",
+    "size_in_bytes": 835169,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13076972359",
+    "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13076972359/zip",
+    "expired": false,
+    "digest": "sha256:265af36fce9e6f493f8ddddcdf764eb8b9e7049cc70a3bc60b116d8915990ef9",
+    "created_at": "2026-11-01T09:54:22Z",
+    "updated_at": "2026-11-01T09:54:22Z",
+    "expires_at": "2026-11-15T08:54:21Z",
+    "workflow_run": {
+      "id": 41289772666,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "verify01-engine137r3-a531924f36",
+      "head_sha": "a531924f367e60b61834aa8369634d0e241697b3"
+    },
+    "group": "darwin-vscode",
+    "expectedSampleIds": [
+      "verify-08",
+      "first-run-darwin-vscode"
+    ],
+    "collectionRole": "generation-and-original-acceptance"
+  },
+  {
+    "id": 13077465612,
+    "node_id": "MDg6QXJ0aWZhY3QxMzA3NzQ2NTYxMg==",
+    "name": "verify01-native-subset-acceptance-linux-cli-a531924f367e60b61834aa8369634d0e241697b3",
+    "size_in_bytes": 642648,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13077465612",
+    "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13077465612/zip",
+    "expired": false,
+    "digest": "sha256:0792111fecd3c8267f371dad7af5176c08840dac4e8caec0448630fa8284ab0f",
+    "created_at": "2026-11-01T09:49:09Z",
+    "updated_at": "2026-11-01T09:49:09Z",
+    "expires_at": "2026-11-15T08:49:08Z",
+    "workflow_run": {
+      "id": 41289782686,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "verify01-engine137r3-a531924f36",
+      "head_sha": "a531924f367e60b61834aa8369634d0e241697b3"
+    },
+    "group": "linux-cli",
+    "expectedSampleIds": [
+      "verify-13"
+    ],
+    "collectionRole": "generation-and-original-acceptance"
+  },
+  {
+    "id": 13077136056,
+    "node_id": "MDg6QXJ0aWZhY3QxMzA3NzEzNjA1Ng==",
+    "name": "verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3",
+    "size_in_bytes": 4860765,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13077136056",
+    "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13077136056/zip",
+    "expired": false,
+    "digest": "sha256:d458584b21845e3c0cfb7d863a975f23a78c20bfb15ca2612ad1caaaaaeb03f1",
+    "created_at": "2026-11-01T09:46:34Z",
+    "updated_at": "2026-11-01T09:46:34Z",
+    "expires_at": "2026-11-15T08:46:33Z",
+    "workflow_run": {
+      "id": 41289782686,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "verify01-engine137r3-a531924f36",
+      "head_sha": "a531924f367e60b61834aa8369634d0e241697b3"
+    },
+    "group": "linux-cli",
+    "expectedSampleIds": [
+      "verify-13"
+    ],
+    "collectionRole": "generation-and-original-acceptance"
+  },
+  {
+    "id": 13077301323,
+    "node_id": "MDg6QXJ0aWZhY3QxMzA3NzMwMTMyMw==",
+    "name": "verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3",
+    "size_in_bytes": 4651024,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13077301323",
+    "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13077301323/zip",
+    "expired": false,
+    "digest": "sha256:929d2513006db97d849e5b5cc56a8ec8bb0765a864c0b279fc667be72690cfd8",
+    "created_at": "2026-11-01T09:50:28Z",
+    "updated_at": "2026-11-01T09:50:28Z",
+    "expires_at": "2026-11-15T08:50:25Z",
+    "workflow_run": {
+      "id": 41289794523,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "verify01-engine137r3-a531924f36",
+      "head_sha": "a531924f367e60b61834aa8369634d0e241697b3"
+    },
+    "group": "win32-cli",
+    "expectedSampleIds": [
+      "verify-19"
+    ],
+    "collectionRole": "generation-and-original-acceptance"
+  },
+  {
+    "id": 13077066902,
+    "node_id": "MDg6QXJ0aWZhY3QxMzA3NzA2NjkwMg==",
+    "name": "verify01-native-subset-acceptance-win32-cli-a531924f367e60b61834aa8369634d0e241697b3",
+    "size_in_bytes": 767069,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13077066902",
+    "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13077066902/zip",
+    "expired": false,
+    "digest": "sha256:75df6bb31df7e272d8a9f4bd6f56eb4c5f1723d36caf3e8b31d764af320355a8",
+    "created_at": "2026-11-01T09:52:40Z",
+    "updated_at": "2026-11-01T09:52:40Z",
+    "expires_at": "2026-11-15T08:52:39Z",
+    "workflow_run": {
+      "id": 41289794523,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "verify01-engine137r3-a531924f36",
+      "head_sha": "a531924f367e60b61834aa8369634d0e241697b3"
+    },
+    "group": "win32-cli",
+    "expectedSampleIds": [
+      "verify-19"
+    ],
+    "collectionRole": "generation-and-original-acceptance"
+  },
+  {
+    "id": 13076837668,
+    "node_id": "MDg6QXJ0aWZhY3QxMzA3NjgzNzY2OA==",
+    "name": "verify01-native-subset-acceptance-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3",
+    "size_in_bytes": 727924,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13076837668",
+    "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13076837668/zip",
+    "expired": false,
+    "digest": "sha256:2172760953f2156ce794666c057091fa59767b9518a6702e516ec827b5cd9ef9",
+    "created_at": "2026-11-01T09:54:56Z",
+    "updated_at": "2026-11-01T09:54:56Z",
+    "expires_at": "2026-11-15T08:54:55Z",
+    "workflow_run": {
+      "id": 41289807558,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "verify01-engine137r3-a531924f36",
+      "head_sha": "a531924f367e60b61834aa8369634d0e241697b3"
+    },
+    "group": "darwin-jetbrains",
+    "expectedSampleIds": [
+      "verify-36"
+    ],
+    "collectionRole": "generation-and-original-acceptance"
+  },
+  {
+    "id": 13076448545,
+    "node_id": "MDg6QXJ0aWZhY3QxMzA3NjQ0ODU0NQ==",
+    "name": "verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3",
+    "size_in_bytes": 4526093,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13076448545",
+    "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13076448545/zip",
+    "expired": false,
+    "digest": "sha256:b0e79ee307d15de05e8b20d2643c4f2a69dd1dae68613fc79fc50e2f82553a63",
+    "created_at": "2026-11-01T09:52:35Z",
+    "updated_at": "2026-11-01T09:52:35Z",
+    "expires_at": "2026-11-15T08:52:33Z",
+    "workflow_run": {
+      "id": 41289807558,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "verify01-engine137r3-a531924f36",
+      "head_sha": "a531924f367e60b61834aa8369634d0e241697b3"
+    },
+    "group": "darwin-jetbrains",
+    "expectedSampleIds": [
+      "verify-36"
+    ],
+    "collectionRole": "generation-and-original-acceptance"
+  }
+]

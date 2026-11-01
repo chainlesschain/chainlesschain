@@ -1,6 +1,6 @@
 # Agent Platform 发布与升级指南
 
-下一版 CLI **0.166.137** / Open VSX **0.37.174** / JetBrains **0.4.190** 尚未发布。发布前须在明确绑定的修复后项目源码上重新生成原五个失败样本，并独立验收 **5/5 全过**；旧冻结分数保持。[执行记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/verify01-openai-137/README.md)。
+下一版 CLI **0.166.138** / Open VSX **0.37.174** / JetBrains **0.4.190** 待发布，上游 Agent SDK **0.2.17** 先行。`.137` 在 CLI 上传前因 SDK 目录测试变更未升版被来源保护拦住，原标签保留。用户已明确允许不等待五项任务成功先发布；`.137` 候选整体验收仍为 **0/5**、旧冻结 **41/45** 不变。新最终提交须通过完整三平台 CLI CI / Strict Sandbox，发布与回读顺序为 SDK → CLI → IDE。[执行记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/verify01-openai-137/README.md)。
 
 ## CLI 0.166.136 已公开（2026-11-01）
 
