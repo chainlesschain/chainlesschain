@@ -3945,6 +3945,7 @@ async function runAgentHeadlessStreamInWorkspace(
     return settleToolRoundsForHost(phase);
   };
   const loopOptionsBase = {
+    contextMemoryModelWindowTokens: options.contextMemoryModelWindowTokens,
     ...(evolutionIngress === null ? {} : { evolutionIngress }),
     reviewChanges: options.reviewChanges === true,
     model,

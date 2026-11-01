@@ -50,6 +50,7 @@ import { computeEventHash } from "../../src/harness/transcript-integrity.js";
 import { HostResourceBudget } from "../../src/lib/host-resource-budget.js";
 import { HERMETIC_CODING_SYSTEM_PROMPT } from "../../src/lib/coding-task-guidance.js";
 import { createPermissionRulesProvider } from "../../src/lib/permission-authority.js";
+import { prepareCanonicalProviderContext } from "../../src/lib/context-memory-kernel/provider-context.js";
 
 const runAgentHeadless = (options = {}, deps = {}) =>
   runAgentHeadlessWithIngress(
@@ -102,6 +103,45 @@ const replyText = (content) =>
   }));
 
 describe("bounded transport terminal details", () => {
+  it("forwards the operator window into the actual provider planner", async () => {
+    const cwd = mkdtempSync(join(tmpdir(), "cc-headless-window-"));
+    const { deps } = makeDeps(replyText("done"));
+    let prepared;
+    deps.agentLoop = async function* (_messages, options) {
+      prepared = await prepareCanonicalProviderContext(
+        [{ role: "user", content: "hello" }],
+        {
+          ...options,
+          cwd,
+          maxOutputTokens: 8192,
+          contextMemoryFilePath: join(cwd, "kernel.json"),
+          contextMemoryEnv: {
+            CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default",
+          },
+          contextMemorySelectedToolNames: [],
+        },
+      );
+      yield { type: "response-complete", content: "done" };
+    };
+    try {
+      const result = await runAgentHeadless(
+        {
+          prompt: "hello",
+          cwd,
+          persist: false,
+          provider: "openai",
+          model: "gpt-6.1-sol",
+          contextMemoryModelWindowTokens: 32768,
+        },
+        deps,
+      );
+      expect(result.exitCode).toBe(0);
+      expect(prepared.modelCapabilities.contextWindowTokens).toBe(32768);
+      expect(prepared.plan.inputBudget).toBe(22938);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
   it.each(["json", "stream-json"])(
     "preserves %s failure outcome without another loop call",
     async (outputFormat) => {

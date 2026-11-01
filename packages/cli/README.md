@@ -4,9 +4,9 @@ Publication prerequisite: regenerate the five previously failed samples on an ex
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.137 — confirm source delivery before recording read coverage
+## CLI 0.166.137 — prepared candidate, not yet published
 
-Install this release with `npm i -g chainlesschain@0.166.137 --registry https://registry.npmjs.org`, restart the chat host, and verify `cc --version` / `cc doctor`. This repair preserves focused recovery when source content is omitted from a model request. Same-batch reservations remain synchronous; only exact source spans actually selected for the provider become historical coverage. Repeated delivery failures stop with an explicit limitation, and confirmed navigation does not advance or move backward on an unsuccessful read.
+After verified publication, install with `npm i -g chainlesschain@0.166.137 --registry https://registry.npmjs.org`, restart the chat host, and verify `cc --version` / `cc doctor`. The current public installation command remains `npm i -g chainlesschain@0.166.136 --registry https://registry.npmjs.org`. The candidate preserves focused recovery when source content is omitted from a model request. Same-batch reservations remain synchronous; only exact source spans actually selected for the provider become historical coverage. Repeated delivery failures stop with an explicit limitation, and confirmed navigation does not advance or move backward on an unsuccessful read.
 
 Local validation: 109 related regressions pass; restoring the released .136 guard makes seven new controls fail. The prepared pairing is Open VSX **0.37.174** / JetBrains **0.4.190**, both recommending CLI **0.166.137**, released only after the CLI is verified public. Until then the older public IDEs remain compatible. VS Code also preserves provider diagnostics and saved tool identity across reload; no child-package update is required. Full exact-source CLI CI and CLI Strict Sandbox must pass before Actions OIDC publication. Historical model acceptance remains **41/45**; the focused image follow-up remains **0/1** and is not rescored by engineering checks. [Evidence](../../docs/research/cli/verify01-openai-136/read-delivery-repair/README.md).
 
@@ -847,6 +847,8 @@ chainlesschain agent --provider openai  # Reads the stored credential
 ```
 
 Built-in tools (19): `read_file`, `write_file`, `edit_file`, `edit_file_hashed`, `notebook_edit`, `run_shell`, `check_shell`, `git`, `search_files`, `list_dir`, `run_skill`, `list_skills`, `run_code`, `spawn_sub_agent`, `web_fetch`, `web_search`, `todo_write`, `ask_user_question`, `search_sessions`
+
+For gateways with a smaller context allowance, use `cc agent --context-window 32768 -p "your task"`. This operator-declared planning window accepts integers from 1024 to 16777216 and applies to interactive, headless and streamed sessions. It does not change the model's official capabilities, output cap or turn budget. Token planning does not guarantee a serialized request fits a gateway's byte limit; verify the actual request size for that gateway.
 
 **Search first, then read the relevant source.** Use `web_search` with keywords when no URL is known. It returns source links and bounded snippets (`maxResults`, default 8; `maxSnippetChars`, default 2000). The configured provider is respected; `auto` selects an available API key or keyless DuckDuckGo. Captcha, authentication, rate-limit and network failures are errors, never a claim that no sources exist. Configure `.chainlesschain/config.json:webSearch` with an available provider if keyless search is blocked.
 

@@ -2942,6 +2942,7 @@ async function runAgentHeadlessInWorkspace(
     });
   };
   const loopOptions = {
+    contextMemoryModelWindowTokens: options.contextMemoryModelWindowTokens,
     ...(evolutionIngress === null ? {} : { evolutionIngress }),
     model,
     provider,

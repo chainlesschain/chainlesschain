@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { DIAGNOSTIC } from "./verify01-volcengine-task-diagnostic.mjs";
+import { prereleasePackageBinding } from "./verify01-prerelease-package-set.mjs";
 import {
   BROKER,
   createVolcengineDiagnosticBroker,
@@ -74,6 +75,14 @@ export function assertNativeProviderIdentity(
   if (packageBinding) {
     assert.deepEqual(summary.versions, packageBinding.versions);
     assert.equal(summary.packageSetDigest, packageBinding.packageSetDigest);
+    const candidate = packageBinding.bytes
+      ? prereleasePackageBinding(
+          JSON.parse(packageBinding.bytes.toString("utf8")),
+        )
+      : null;
+    assert.deepEqual(summary.prepublication ?? null, candidate);
+    if (candidate)
+      assert.equal(candidate.sourceCommit, projectIdentity?.projectCommit);
   }
   assert.equal(
     summary.executionIdentityDigest,

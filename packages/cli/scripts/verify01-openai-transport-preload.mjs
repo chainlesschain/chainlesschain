@@ -42,10 +42,20 @@ export function createOpenAiBrokerFetch(options) {
 }
 
 /** Explicit Node argv survives IDE child-environment sanitization. */
-export function openAiNativeCliLauncher(cliPath, preloadPath) {
+export function openAiNativeCliLauncher(
+  cliPath,
+  preloadPath,
+  { contextWindowTokens } = {},
+) {
   assert.ok(path.isAbsolute(cliPath) && path.isAbsolute(preloadPath));
+  if (contextWindowTokens !== undefined)
+    assert.equal(contextWindowTokens, 32768);
   const preload = pathToFileURL(preloadPath).href;
-  return `const {spawn}=require('node:child_process');const args=process.argv.slice(2);const prefix=args[0]==='agent'?['--import',${JSON.stringify(preload)}]:[];const child=spawn(process.execPath,[...prefix,${JSON.stringify(cliPath)},...args],{stdio:'inherit',env:process.env,windowsHide:true});child.on('error',e=>{console.error(e.message);process.exitCode=1});child.on('exit',code=>{process.exitCode=code??1});`;
+  const context =
+    contextWindowTokens === undefined
+      ? ""
+      : `if(args[0]==='agent')args.push('--context-window','${contextWindowTokens}');`;
+  return `const {spawn}=require('node:child_process');const args=process.argv.slice(2);${context}const prefix=args[0]==='agent'?['--import',${JSON.stringify(preload)}]:[];const child=spawn(process.execPath,[...prefix,${JSON.stringify(cliPath)},...args],{stdio:'inherit',env:process.env,windowsHide:true});child.on('error',e=>{console.error(e.message);process.exitCode=1});child.on('exit',code=>{process.exitCode=code??1});`;
 }
 
 const entry = process.env.CC_VERIFY01_OPENAI_CLI_ENTRY;

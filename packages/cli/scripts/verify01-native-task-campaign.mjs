@@ -23,6 +23,10 @@ import { VERIFY01_REVIEW_SPECS } from "./verify01-review-specs.mjs";
 import { requireUnscopedModelTransport } from "../src/lib/formal-budget-provider-scope.js";
 import { readNativePluginArtifact } from "./verify01-native-plugin-artifact.mjs";
 import {
+  readPrereleasePackages,
+  verifyPrereleaseCliInstallation,
+} from "./verify01-prerelease-package-set.mjs";
+import {
   loadNativeProjectRevision,
   nativeProjectArchivePaths,
 } from "./verify01-project-revision.mjs";
@@ -596,7 +600,14 @@ export async function runNativeCampaign(options) {
     packageSetDigest,
     bytes: packageSetBytes,
   } = loadNativePackageSet(versionsFile);
-  const packageBinding = packageSetDigest ? { packageSetDigest } : {};
+  const candidatePackages = readPrereleasePackages(
+    packageSetBytes ? JSON.parse(packageSetBytes.toString("utf8")) : null,
+    process.env.CC_VERIFY01_PRERELEASE_DIRECTORY,
+  );
+  const packageBinding = {
+    ...(packageSetDigest ? { packageSetDigest } : {}),
+    ...(candidatePackages ? { prepublication: candidatePackages.binding } : {}),
+  };
   assert.equal(confirmLive, true);
   if (projectRevisionFile)
     assert.match(
@@ -626,6 +637,7 @@ export async function runNativeCampaign(options) {
     "packages/cli/scripts/verify01-openai-transport-preload.mjs",
     "packages/cli/scripts/verify01-review-specs.mjs",
     "packages/cli/scripts/verify01-project-revision.mjs",
+    "packages/cli/scripts/verify01-prerelease-package-set.mjs",
     "packages/cli/src/lib/eval/stream-terminal.js",
     "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
     `${planRoot}/plan.json`,
@@ -673,6 +685,14 @@ export async function runNativeCampaign(options) {
   const output = path.resolve(outputDir);
   assert.ok(!fs.existsSync(output), "new output directory required");
   mkdir(output);
+  if (candidatePackages) {
+    for (const file of ["bundle.json", "provenance.json"])
+      fs.copyFileSync(
+        path.join(process.env.CC_VERIFY01_PRERELEASE_DIRECTORY, file),
+        path.join(output, `prerelease-${file}`),
+        fs.constants.COPYFILE_EXCL,
+      );
+  }
   let fetchPreload;
   if (fetchDiagnostics) {
     const bytes = fs.readFileSync(path.join(repository, fetchPreloadSource));
@@ -711,6 +731,18 @@ export async function runNativeCampaign(options) {
       basePlanDigest: DIAGNOSTIC.planDigest,
     });
   validateNativeProjectSelection(revisionBinding, sampleIds);
+  if (candidatePackages) {
+    assert.ok(
+      revisionBinding,
+      "candidate generation requires an explicit repaired project",
+    );
+    assert.equal(
+      candidatePackages.binding.sourceCommit,
+      projectCommit,
+      "candidate engine and repaired project source must match",
+    );
+    assert.equal(provider, "openai");
+  }
   const revisionMetadata = revisionBinding
     ? { projectRevision: revisionBinding }
     : {};
@@ -959,7 +991,7 @@ export async function runNativeCampaign(options) {
           [
             npmEntrypoint(),
             "install",
-            `chainlesschain@${versions.cli}`,
+            candidatePackages?.files.cli || `chainlesschain@${versions.cli}`,
             "--omit=dev",
             "--no-audit",
             "--no-fund",
@@ -967,15 +999,23 @@ export async function runNativeCampaign(options) {
           ],
           install,
         );
-        assert.ok(installed.ok, "public CLI install failed");
+        assert.ok(installed.ok, "selected CLI package install failed");
         const lock = json(path.join(install, "package-lock.json")),
           locked = lock.packages["node_modules/chainlesschain"];
         assert.equal(locked.version, versions.cli);
-        assert.ok(
-          !locked.link &&
-            locked.integrity &&
-            locked.resolved.startsWith("https://registry.npmjs.org/"),
-        );
+        let candidateInstallation;
+        if (candidatePackages)
+          candidateInstallation = verifyPrereleaseCliInstallation(
+            candidatePackages.binding,
+            lock,
+            path.join(install, "node_modules/chainlesschain"),
+          );
+        else
+          assert.ok(
+            !locked.link &&
+              locked.integrity &&
+              locked.resolved.startsWith("https://registry.npmjs.org/"),
+          );
         save("package-lock.json", lock);
         const installedCli = path.join(
           install,
@@ -993,7 +1033,7 @@ export async function runNativeCampaign(options) {
         if (entry !== "cli") {
           let url, metadata, artifactBytes;
           const artifact =
-            entry === "jetbrains"
+            !candidatePackages && entry === "jetbrains"
               ? readNativePluginArtifact(
                   packageSetBytes
                     ? JSON.parse(packageSetBytes.toString("utf8"))
@@ -1001,7 +1041,11 @@ export async function runNativeCampaign(options) {
                   process.env.CC_VERIFY01_JETBRAINS_ARCHIVE,
                 )
               : null;
-          if (artifact) {
+          if (candidatePackages) {
+            metadata = candidatePackages.binding;
+            artifactBytes = fs.readFileSync(candidatePackages.files[entry]);
+            url = `https://github.com/${metadata.repository}/actions/runs/${metadata.runId}/artifacts/${metadata.artifactId}`;
+          } else if (artifact) {
             metadata = artifact.binding;
             artifactBytes = artifact.bytes;
             url = `https://github.com/${metadata.repository}/actions/runs/${metadata.runId}/artifacts/${metadata.artifactId}`;
@@ -1037,10 +1081,13 @@ export async function runNativeCampaign(options) {
           fs.writeFileSync(pluginArchive, bytes);
           pluginDigest = hash(bytes);
           save("public-extension.json", {
-            distribution: artifact
-              ? "github-actions-artifact"
-              : "public-marketplace",
-            marketplaceApprovalClaimed: artifact ? false : undefined,
+            distribution: candidatePackages
+              ? "prerelease-actions-artifact"
+              : artifact
+                ? "github-actions-artifact"
+                : "public-marketplace",
+            marketplaceApprovalClaimed:
+              candidatePackages || artifact ? false : undefined,
             metadata,
             url,
             digest: pluginDigest,
@@ -1056,6 +1103,7 @@ export async function runNativeCampaign(options) {
           lifecycleScriptsEnabled: true,
           sampleId: sample.id,
           locked,
+          ...(candidateInstallation ? { candidateInstallation } : {}),
         };
         row.install = summary.install;
       } else
@@ -1083,14 +1131,29 @@ export async function runNativeCampaign(options) {
         cliPath = path.join(sampleOutput, "operator-openai-cli.cjs");
         fs.writeFileSync(
           cliPath,
-          openAiNativeCliLauncher(publicCliPath, openAiPreloadPath),
+          openAiNativeCliLauncher(
+            publicCliPath,
+            openAiPreloadPath,
+            candidatePackages
+              ? {
+                  contextWindowTokens:
+                    candidatePackages.binding.contextWindowTokens,
+                }
+              : {},
+          ),
           { flag: "wx" },
         );
         environment.CC_VERIFY01_OPENAI_CLI_ENTRY = publicCliPath;
         environment.CC_VERIFY01_OPENAI_BROKER_BASE_URL = broker.baseUrl;
         row.operatorTransport = {
           kind: providerProfile.policy.childTransport,
-          publicCliEntry: publicCliPath,
+          ...(candidatePackages
+            ? {
+                candidateCliEntry: publicCliPath,
+                distribution: "prerelease-actions-artifact",
+                published: false,
+              }
+            : { publicCliEntry: publicCliPath }),
           childBaseUrl,
           brokerBaseUrl: broker.baseUrl,
           preloadDigest: hash(fs.readFileSync(openAiPreloadPath)),

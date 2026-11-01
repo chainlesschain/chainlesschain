@@ -37,7 +37,7 @@ on:
         type: choice
         required: true
         default: latest
-        options: [latest, frozen]
+        options: [latest, frozen, prerelease]
       package_set_file:
         description: "Committed exact package-set manifest for this round; keep prior manifests unchanged"
         type: string
@@ -105,6 +105,7 @@ jobs:
           node --test
           packages/cli/test-node/verify01-native-task-campaign.node-test.mjs
           packages/cli/test-node/verify01-project-revision.node-test.mjs
+          packages/cli/test-node/verify01-prerelease-package-set.node-test.mjs
           packages/cli/test-node/verify01-release-candidate-replay.node-test.mjs
           packages/cli/test-node/verify01-native-plugin-artifact.node-test.mjs
           packages/cli/test-node/verify01-native-subset.node-test.mjs
@@ -144,13 +145,16 @@ jobs:
             import {validateNativePackageSetFile, assertUnfinishedNativeSamples} from "./packages/cli/scripts/verify01-native-retest-plan.mjs";
             import {nativeProviderCells} from "./packages/cli/scripts/verify01-native-round-matrix.mjs";
             import {nativeProviderProfile} from "./packages/cli/scripts/verify01-native-provider-profile.mjs";
+            import {prereleasePackageBinding} from "./packages/cli/scripts/verify01-prerelease-package-set.mjs";
             const provider = nativeProviderProfile(process.env.NATIVE_PROVIDER || "volcengine").provider;
             const run = process.env.DELIVERY_RUN, commit = process.env.DELIVERY_COMMIT;
             if (!!run !== !!commit || (run && (!/^[1-9][0-9]+$/.test(run) || !/^[a-f0-9]{40}$/.test(commit)))) throw new Error("paired exact delivery run and commit required");
             const packageSet = process.env.PACKAGE_SET_SELECTION || "latest";
-            if (!["latest", "frozen"].includes(packageSet)) throw new Error("unknown package set");
-            if (!run && packageSet !== "latest") throw new Error("Further model execution must use latest public packages");
-            const packageBinding = packageSet === "latest" ? validateNativePackageSetFile(process.env.NATIVE_PACKAGE_SET_FILE || undefined) : null;
+            if (!["latest", "frozen", "prerelease"].includes(packageSet)) throw new Error("unknown package set");
+            if (!run && !["latest", "prerelease"].includes(packageSet)) throw new Error("Further model execution requires explicitly selected public or prerelease packages");
+            const packageBinding = packageSet !== "frozen" ? validateNativePackageSetFile(process.env.NATIVE_PACKAGE_SET_FILE || undefined) : null;
+            const candidate = packageBinding ? prereleasePackageBinding(JSON.parse(packageBinding.bytes.toString("utf8"))) : null;
+            if ((packageSet === "prerelease") !== Boolean(candidate)) throw new Error("prerelease selection requires an explicit committed candidate package identity");
             const basePlanDir = "docs/research/cli/verify01-plan-2026-10-13-volcengine";
             const project = loadNativeProjectRevision({
               revisionFile: process.env.NATIVE_PROJECT_REVISION_FILE || undefined,
@@ -162,11 +166,14 @@ jobs:
             validateNativeProjectSelection(project.revisionBinding, parseNativeSampleIds(process.env.SAMPLE_SELECTION));
             if (project.revisionBinding && provider !== "openai") throw new Error("repaired-source follow-up requires the explicit OpenAI diagnostic cohort");
             if (provider === "openai") {
-              if (packageSet !== "latest") throw new Error("OpenAI cohort requires the current public package set");
+              if (!["latest", "prerelease"].includes(packageSet)) throw new Error("OpenAI cohort requires an explicit public or prerelease package set");
               const cli = JSON.parse(fs.readFileSync("packages/cli/package.json", "utf8")).version;
               const vscode = JSON.parse(fs.readFileSync("packages/vscode-extension/package.json", "utf8")).version;
               const jetbrains = fs.readFileSync("packages/jetbrains-plugin/src/main/resources/META-INF/plugin.xml", "utf8").match(/^\s*<version>([^<]+)<\/version>\s*$/m)?.[1];
-              if (project.revisionBinding) {
+              if (candidate) {
+                if (!project.revisionBinding || candidate.sourceCommit !== project.projectCommit) throw new Error("Candidate engine and maintained project must use the same explicit repaired source");
+                for (const [name, version] of Object.entries({cli, vscode, jetbrains})) if (!version || packageBinding.versions[name] !== version) throw new Error("Candidate versions must match the checked-out prepared release");
+              } else if (project.revisionBinding) {
                 const proof = JSON.parse(fs.readFileSync("docs/research/cli/evidence/release136-public/publication.json", "utf8"));
                 const publicPackages = {cli: proof.cli, vscode: proof.ide.vscode, jetbrains: proof.ide.jetbrains};
                 for (const [name, record] of Object.entries(publicPackages)) if (!["verified-public", "previously-verified-public"].includes(record.status) || packageBinding.versions[name] !== record.version) throw new Error("Repaired-source generation requires the independently verified public package pairing");
@@ -281,6 +288,13 @@ jobs:
         run: >-
           node packages/cli/scripts/verify01-native-plugin-artifact.mjs
           "$NATIVE_PACKAGE_SET_FILE" "$RUNNER_TEMP/verify01-jetbrains-build"
+      - name: Download and verify explicitly selected prerelease CLI and IDE packages
+        if: inputs.package_set == 'prerelease'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node packages/cli/scripts/verify01-prerelease-package-set.mjs
+          "$NATIVE_PACKAGE_SET_FILE" "${{ runner.temp }}/verify01-prerelease-packages"
       - name: Run original project tasks through installed native entry
         timeout-minutes: 115
         shell: bash
@@ -309,7 +323,7 @@ jobs:
           if [[ "$FETCH_DIAGNOSTICS" == "true" ]]; then
             diagnostics=(--fetch-diagnostics)
           fi
-          if [[ "$NATIVE_PACKAGE_SET" == "latest" ]]; then
+          if [[ "$NATIVE_PACKAGE_SET" == "latest" || "$NATIVE_PACKAGE_SET" == "prerelease" ]]; then
             package=(--versions-file "$NATIVE_PACKAGE_SET_FILE")
           fi
           if [[ -n "$NATIVE_SAMPLES" ]]; then
@@ -407,7 +421,7 @@ jobs:
           if [[ -n "$NATIVE_PROJECT_REVISION_FILE" ]]; then
             revision=(--project-revision-file "$NATIVE_PROJECT_REVISION_FILE")
           fi
-          if [[ "$NATIVE_PACKAGE_SET" == "latest" ]]; then
+          if [[ "$NATIVE_PACKAGE_SET" == "latest" || "$NATIVE_PACKAGE_SET" == "prerelease" ]]; then
             package=(--versions-file "$NATIVE_PACKAGE_SET_FILE")
           fi
           if [[ -n "$NATIVE_SAMPLES" ]]; then

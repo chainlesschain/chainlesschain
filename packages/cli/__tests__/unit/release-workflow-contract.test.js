@@ -596,6 +596,7 @@ describe("CLI release workflow contracts", () => {
       "packages/cli/test-node/verify01-native-task-campaign.node-test.mjs",
       "packages/cli/test-node/verify01-release-candidate-replay.node-test.mjs",
       "packages/cli/test-node/verify01-project-revision.node-test.mjs",
+      "packages/cli/test-node/verify01-prerelease-package-set.node-test.mjs",
       "packages/cli/test-node/verify01-native-subset.node-test.mjs",
       "packages/cli/test-node/verify01-native-retest-plan.node-test.mjs",
       "packages/cli/test-node/verify01-native-retest-round.node-test.mjs",

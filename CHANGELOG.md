@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed - cc CLI 0.166.137: confirm model-visible source before recording read coverage (candidate, 2026-11-01)
 
+- Expose `agent --context-window <tokens>` to apply an explicit planning window through headless, streaming and interactive sessions when a gateway has tighter transport limits than the model's documented context. This controls planning; serialized request limits remain independently enforced.
 - Separate synchronous same-batch read reservations from exact source spans actually delivered in a provider request. Omitted or discarded source no longer exhausts successful rereads or receives an incorrect already-read result.
 - Preserve the last confirmed navigation cursor, reject partial previews as complete-page evidence, and bound cumulative delivery failures without letting unrelated old source reset that limit. Keep the existing Evidence JSON validation unchanged.
 - Verify 109 related regressions and seven rollback controls. Compaction integration fixtures preserve the newest complete tool batch and require continuous source coverage actually received by the mock model; continuously discarded source ends without a completion claim.
