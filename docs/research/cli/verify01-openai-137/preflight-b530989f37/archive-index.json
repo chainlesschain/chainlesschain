@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "source": "b530989f3717e96f818691fda22562b4e7f86b59",
+  "modelRequests": 0,
+  "candidates": 0,
+  "samplesScored": 0,
+  "temporarySecretAbsent": true,
+  "files": [
+    {
+      "path": ".gitattributes",
+      "digest": "sha256:95ad2e76dedfe548184ad395c1fc3ebcf04c92a963ebda221e3667a2f633b615",
+      "bytes": 25
+    },
+    {
+      "path": "dispatch.json",
+      "digest": "sha256:282fc76f13125fb205da4808d490599c2f2f4c6af2c237aaeddee28e94890be1",
+      "bytes": 6012
+    },
+    {
+      "path": "secret-cleanup.json",
+      "digest": "sha256:5c9cd375fc269b83925e436d68bd5d077ca7b6cf203197a8da3916ec75092faa",
+      "bytes": 420
+    },
+    {
+      "path": "status.json",
+      "digest": "sha256:ad47e2840680608b7c35aafe88a2d077565768b55d8b53155f0adb6389a4dafd",
+      "bytes": 21073
+    },
+    {
+      "path": "validation.log",
+      "digest": "sha256:99c91953cbc0f0ce2abb542bc83a1f5608bfb2a7f9c2804cdb6abcd28da39b1a",
+      "bytes": 79226
+    },
+    {
+      "path": "isolated-preflight.tap",
+      "digest": "sha256:3037732ec0bd756a90f45826c3a2dc61b989ef9f61f5d1f9b1b5ca22852c1aef",
+      "bytes": 33852
+    },
+    {
+      "path": "README.md",
+      "digest": "sha256:93a20bed18806d56249109e006f5b775454f18eec91ef9d691af29cb2f589233",
+      "bytes": 1182
+    }
+  ]
+}

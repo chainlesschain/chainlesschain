@@ -101,6 +101,13 @@ jobs:
           --include-workspace-root=false --omit=dev --ignore-scripts
           --legacy-peer-deps --no-audit --no-fund
       - name: Validate exact sample selection, candidate binding and host controls
+        # Fixtures select their own provider/package identity. Operator inputs
+        # remain available to the actual selection and execution steps below.
+        env:
+          NATIVE_PROVIDER: ""
+          NATIVE_PACKAGE_SET: ""
+          NATIVE_PACKAGE_SET_FILE: ""
+          NATIVE_PROJECT_REVISION_FILE: ""
         run: >-
           node --test
           packages/cli/test-node/verify01-native-task-campaign.node-test.mjs
