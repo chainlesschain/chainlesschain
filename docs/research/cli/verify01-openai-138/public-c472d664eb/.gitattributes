@@ -1,0 +1,3 @@
+raw/** -text !eol -whitespace
+receipts/** -text !eol -whitespace
+candidates/** -text !eol -whitespace

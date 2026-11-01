@@ -1,0 +1,79 @@
+{
+  "source": "c472d664ebfe8ca6ebd198cbd894d606a9b16195",
+  "accepted": 2,
+  "total": 4,
+  "failures": [
+    {
+      "sampleId": "verify-08",
+      "authorModelTurns": 20,
+      "physicalRequests": 20,
+      "reviewRequested": true,
+      "reviewObserved": false,
+      "lastAuthorAction": {
+        "type": "edit_file",
+        "seq": 187,
+        "description": "Correct branch-local display IDs and assert archived sourceEventId provenance"
+      },
+      "terminal": {
+        "subtype": "error_max_turns",
+        "seq": 191
+      },
+      "candidateTests": {
+        "passed": 3,
+        "total": 3
+      },
+      "behavioralMutantsRejected": 1,
+      "readDeliveryEvidence": {
+        "modelRound": 17,
+        "providerRequest": 18,
+        "contentOmitted": true,
+        "omittedCharacters": 4768,
+        "nextAction": "Read full candidate range"
+      },
+      "rootCause": "Author phase exhausted original 20-turn budget before a normal author result or independent review",
+      "readDeliveryOverheadIsCompleteRootCause": false
+    },
+    {
+      "sampleId": "verify-36",
+      "authorModelTurns": 20,
+      "physicalRequests": 21,
+      "additionalRequest": {
+        "source": "semantic-compaction",
+        "seq": 149
+      },
+      "reviewRequested": true,
+      "reviewObserved": false,
+      "lastAuthorAction": {
+        "type": "edit_file",
+        "seq": 179,
+        "description": "Correct it.each parameter nesting"
+      },
+      "terminal": {
+        "subtype": "error_max_turns",
+        "seq": 183
+      },
+      "candidateTests": {
+        "passed": 23,
+        "total": 23
+      },
+      "behavioralMutantsRejected": 1,
+      "readDeliveryEvidence": {
+        "rangeExpansions": [34, 68, 94, 161],
+        "providerOmissionForAllRangesProven": false
+      },
+      "rootCause": "Author phase exhausted original 20-turn budget before a normal author result or independent review",
+      "readDeliveryOverheadIsCompleteRootCause": false
+    }
+  ],
+  "futureRepairDirections": [
+    "Reserve author, independent review and final reporting work within the existing total turn budget",
+    "Preserve exact requested ranges and bind complete-structure recovery to file versions",
+    "Confirm actual provider-visible context before treating successful reads as delivered"
+  ],
+  "changesAppliedToPublicCli": false,
+  "reviewBudgetWipIncluded": false,
+  "budgetsRaised": false,
+  "reviewDisabled": false,
+  "candidatesEditedByOperator": false,
+  "paidRerunsPerformedAfterResults": false
+}
