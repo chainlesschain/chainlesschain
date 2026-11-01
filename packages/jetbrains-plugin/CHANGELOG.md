@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.191] - release recommendation regression repair (candidate, 2026-11-02)
+
+- Keep the upgrade-floor JUnit checks aligned with the configured CLI recommendation across releases. Cover null, malformed, older, equal and newer registry versions; release metadata verification still independently checks the runtime recommendation against Gradle properties.
+- Recommend published CLI 0.166.138 and pair with public Open VSX 0.37.174. Plugin runtime behavior is unchanged from the .190 candidate.
+- Preserve the immutable .190 tag and failed JUnit release record. Publish .191 only after its complete exact-source IDE release gates pass; Marketplace approval is separate from upload.
+
 ## [0.4.190] - CLI .138 source-delivery pairing (candidate, 2026-11-01)
 
 - Recommend CLI 0.166.138 and pair with Open VSX 0.37.174 only after verified upstream publication. Kernel remains 0.1.11.
