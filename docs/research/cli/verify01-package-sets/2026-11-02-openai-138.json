@@ -1,0 +1,63 @@
+{
+  "schema": "chainlesschain.native-package-set/v1",
+  "resolvedAt": "2026-11-01T19:13:37.964Z",
+  "versions": {
+    "cli": "0.166.138",
+    "vscode": "0.37.174",
+    "jetbrains": "0.4.191",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "releaseSourceCommit": "e42ea07b6da7ab2c3eb709002448b32d5fedf535",
+  "releaseSourceCommits": {
+    "cli": "e42ea07b6da7ab2c3eb709002448b32d5fedf535",
+    "openVsx": "e42ea07b6da7ab2c3eb709002448b32d5fedf535",
+    "jetbrains": "ef13d5238e2b3e4c4571e48e820d0eb31a3107b2"
+  },
+  "publicGeneratorProof": {
+    "path": "docs/research/cli/evidence/release138-public/publication.json",
+    "digest": "sha256:58425094932d6ab5ef319a69c160070bde416ba5891aa677efa57dc384823c6b"
+  },
+  "diagnosticExecution": {
+    "contextWindowTokens": 32768
+  },
+  "origin": {
+    "cli": {
+      "url": "https://registry.npmjs.org/chainlesschain/0.166.138",
+      "integrity": "694998d06c4063bff0bf26f0ff131f4b1161acc311e120c106140284264c8cac06b2bad3308197dbebcd920d08bcc9cfc81e52a77ef685fd6b9513fb618196e0",
+      "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.138.tgz"
+    },
+    "vscode": {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.174",
+      "download": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.174/file/chainlesschain.chainlesschain-ide-0.37.174.vsix"
+    },
+    "jetbrains": {
+      "distribution": "github-actions-artifact",
+      "repository": "chainlesschain/chainlesschain",
+      "sourceCommit": "ef13d5238e2b3e4c4571e48e820d0eb31a3107b2",
+      "runId": 41327724484,
+      "artifactId": 13093651388,
+      "artifactName": "chainlesschain-ide-jetbrains-1",
+      "artifactDigest": "sha256:0cda9818c2fec44e2d90f2d6568ccc01270b123bf926f29cc84065f62042d378",
+      "tag": "ide-jetbrains-v0.4.191",
+      "file": "chainlesschain-ide-bridge-0.4.191.zip",
+      "workflow": ".github/workflows/ide-extensions.yml",
+      "marketplaceStatus": "uploaded-awaiting-approval"
+    }
+  },
+  "publicArtifacts": {
+    "cli": {
+      "digest": "sha256:cb3cbf6ca38120799f38088cdf587f8034dffbd338a7ba021d12a43ca56685f7",
+      "bytes": 9535043
+    },
+    "vscode": {
+      "digest": "sha256:a716e07ad284383a6c0cdeab428f7d68a305faeefcdd9d7c4ecfe45a69b56649",
+      "bytes": 748121
+    },
+    "jetbrains": {
+      "digest": "sha256:06fd3e4095dd7d8804e9a022dca82775378574c1e7880215fcc8f4f239830d2a",
+      "bytes": 1555994
+    }
+  },
+  "authorization": "User explicitly authorizes immediate validation using available packages without waiting for JetBrains review. Preserve previous accepted samples and independent acceptance; no paid call in this preflight."
+}
