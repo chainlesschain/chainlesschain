@@ -367,6 +367,7 @@ jobs:
         if: inputs.provider == 'openai'
         env:
           EXPECTED_DELIVERY_SHA: ${{ inputs.accept_existing_commit || github.sha }}
+          NATIVE_PROJECT_REVISION_FILE: ${{ inputs.project_revision_file || '' }}
         shell: bash
         run: |
           node --input-type=module <<'NODE'
@@ -374,9 +375,19 @@ jobs:
             import path from "node:path";
             import {assertNativeProviderIdentity} from "./packages/cli/scripts/verify01-native-provider-profile.mjs";
             import {validateNativePackageSetFile} from "./packages/cli/scripts/verify01-native-retest-plan.mjs";
+            import {loadNativeProjectRevision} from "./packages/cli/scripts/verify01-project-revision.mjs";
+            import {DIAGNOSTIC} from "./packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs";
             const summary = JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP, "native-delivery", "summary.json"), "utf8"));
             const packageBinding = validateNativePackageSetFile(process.env.NATIVE_PACKAGE_SET_FILE);
-            assertNativeProviderIdentity(summary, "openai", process.env.EXPECTED_DELIVERY_SHA, packageBinding);
+            const basePlanDir = "docs/research/cli/verify01-plan-2026-10-13-volcengine";
+            const project = loadNativeProjectRevision({
+              revisionFile: process.env.NATIVE_PROJECT_REVISION_FILE || undefined,
+              plan: JSON.parse(fs.readFileSync(`${basePlanDir}/plan.json`, "utf8")),
+              catalog: JSON.parse(fs.readFileSync(`${basePlanDir}/tasks.json`, "utf8")),
+              bindings: JSON.parse(fs.readFileSync(`${basePlanDir}/comparison-bindings.json`, "utf8")),
+              baseProjectCommit: DIAGNOSTIC.projectCommit, basePlanDigest: DIAGNOSTIC.planDigest,
+            });
+            assertNativeProviderIdentity(summary, "openai", process.env.EXPECTED_DELIVERY_SHA, packageBinding, project);
           NODE
       - name: Pin independent Linux checker image
         run: |

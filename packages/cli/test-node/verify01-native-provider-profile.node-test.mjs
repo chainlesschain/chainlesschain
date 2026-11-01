@@ -4,12 +4,17 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import {
   nativeProviderProfile,
   assertNativeProviderIdentity,
 } from "../scripts/verify01-native-provider-profile.mjs";
 import { nativeEnvironment } from "../scripts/verify01-native-task-campaign.mjs";
 import { inspectModelTrace } from "../scripts/verify01-volcengine-task-diagnostic.mjs";
+import { DIAGNOSTIC } from "../scripts/verify01-volcengine-task-diagnostic.mjs";
+import { loadNativeProjectRevision } from "../scripts/verify01-project-revision.mjs";
+import { validateNativePackageSetFile } from "../scripts/verify01-native-retest-plan.mjs";
 
 test("trace identity follows the selected provider and rejects mismatched usage", () => {
   const original = nativeProviderProfile();
@@ -169,5 +174,140 @@ test("acceptance rejects a different provider, source, policy or package identit
     assert.throws(() =>
       assertNativeProviderIdentity(tampered, "openai", sha, packageBinding),
     );
+  }
+});
+
+test("the real acceptance workflow binds explicit repaired source and rejects substituted identities", (t) => {
+  const repository = fileURLToPath(new URL("../../../", import.meta.url));
+  const workflow = fs.readFileSync(
+    path.join(
+      repository,
+      ".github/workflows/verify01-native-task-campaign.yml",
+    ),
+    "utf8",
+  );
+  const step = workflow
+    .split("- name: Bind OpenAI delivery identity before acceptance")[1]
+    .split("- name: Pin independent Linux checker image")[0];
+  assert.match(
+    step,
+    /NATIVE_PROJECT_REVISION_FILE: \$\{\{ inputs\.project_revision_file \|\| '' \}\}/u,
+  );
+  const script = step.match(/<<'NODE'\r?\n([\s\S]+?)\r?\n\s+NODE/u)?.[1];
+  assert.ok(script, "execute the exact workflow identity step");
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-provider-identity-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const delivery = path.join(root, "native-delivery");
+  fs.mkdirSync(delivery);
+  const sourceSha = "a".repeat(40);
+  const packageFile =
+    "docs/research/cli/verify01-package-sets/2026-10-31-openai-136.json";
+  const packages = validateNativePackageSetFile(packageFile);
+  const profile = nativeProviderProfile("openai");
+  const hash = (value) =>
+    `sha256:${createHash("sha256").update(value).digest("hex")}`;
+  const planRoot = path.join(
+    repository,
+    "docs/research/cli/verify01-plan-2026-10-13-volcengine",
+  );
+  const read = (name) =>
+    JSON.parse(fs.readFileSync(path.join(planRoot, name), "utf8"));
+  for (const revisionFile of [
+    undefined,
+    "docs/research/cli/verify01-openai-137/project-revision.json",
+  ]) {
+    const project = loadNativeProjectRevision({
+      revisionFile,
+      plan: read("plan.json"),
+      catalog: read("tasks.json"),
+      bindings: read("comparison-bindings.json"),
+      baseProjectCommit: DIAGNOSTIC.projectCommit,
+      basePlanDigest: DIAGNOSTIC.planDigest,
+    });
+    const summary = {
+      executionSourceCommit: sourceSha,
+      cohortKind: project.revisionBinding
+        ? "repaired-source-followup"
+        : "new-openai-provider-diagnostic",
+      projectCommit: project.projectCommit,
+      planDigest: project.planDigest,
+      ...(project.revisionBinding
+        ? { projectRevision: project.revisionBinding }
+        : {}),
+      ...packages,
+      modelTransport: {
+        provider: profile.provider,
+        model: profile.model,
+        endpoint: profile.policy.endpoint,
+        policyDigest: hash(JSON.stringify(profile.policy)),
+        defaultThinkingPreserved: true,
+        formalSample: false,
+      },
+    };
+    summary.executionIdentityDigest = hash(
+      JSON.stringify({
+        sourceSha,
+        taskPlanDigest: summary.planDigest,
+        versions: summary.versions,
+        packageSetDigest: summary.packageSetDigest,
+        modelTransport: summary.modelTransport,
+      }),
+    );
+    const run = (value, selectedRevision = revisionFile) => {
+      fs.writeFileSync(
+        path.join(delivery, "summary.json"),
+        JSON.stringify(value),
+      );
+      return spawnSync(
+        process.execPath,
+        ["--input-type=module", "-e", script],
+        {
+          cwd: repository,
+          windowsHide: true,
+          encoding: "utf8",
+          timeout: 20000,
+          env: {
+            ...process.env,
+            RUNNER_TEMP: root,
+            EXPECTED_DELIVERY_SHA: sourceSha,
+            NATIVE_PACKAGE_SET_FILE: packageFile,
+            NATIVE_PROJECT_REVISION_FILE: selectedRevision || "",
+          },
+        },
+      );
+    };
+    const result = run(summary);
+    assert.equal(result.status, 0, result.stderr);
+    for (const mutate of [
+      (s) => {
+        s.projectCommit = "b".repeat(40);
+      },
+      (s) => {
+        s.planDigest = `sha256:${"c".repeat(64)}`;
+      },
+      (s) => {
+        s.projectRevision = { substituted: true };
+      },
+      (s) => {
+        s.cohortKind = "original-frozen-evaluation";
+      },
+      (s) => {
+        s.executionIdentityDigest = "sha256:substituted";
+      },
+    ]) {
+      const changed = structuredClone(summary);
+      mutate(changed);
+      assert.notEqual(run(changed).status, 0, "substituted identity must fail");
+    }
+    if (project.revisionBinding) {
+      assert.throws(() =>
+        assertNativeProviderIdentity(summary, "openai", sourceSha, packages),
+      );
+      assert.notEqual(
+        run(summary, "").status,
+        0,
+        "repaired source requires explicit operator revision",
+      );
+    }
   }
 });

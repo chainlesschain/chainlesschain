@@ -216,6 +216,7 @@ describe("compactConversationWithProvider", () => {
       reason: "provider_transport_outcome_unknown",
       usageOutcome: "unknown",
       callId: "failed-semantic-call",
+      providerError: { category: "unknown" },
     });
   });
 
