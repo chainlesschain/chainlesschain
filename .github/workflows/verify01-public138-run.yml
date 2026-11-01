@@ -1,0 +1,52 @@
+name: VERIFY01 dispatch authorized public 138 unfinished tasks
+
+on:
+  push:
+    tags: [verify01-public138-run-*]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify01-public138-paid-dispatch-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    if: github.repository == 'chainlesschain/chainlesschain' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      actions: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Check authorized scope and duplicate-dispatch guards
+        run: node --test packages/cli/test-node/verify01-public138-dispatch.node-test.mjs
+      - name: Dispatch only the four authorized samples once
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OPENAI_CREDENTIAL_PRESENT: ${{ secrets.OPENAI_API_KEY != '' }}
+        run: node packages/cli/scripts/verify01-public138-dispatch.mjs
+      - name: Preserve submission journal even after an uncertain response
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: verify01-public138-dispatch-${{ github.sha }}
+          path: docs/research/cli/verify01-openai-138/dispatch.json
+          if-no-files-found: warn
+      - name: Commit only the dispatch journal to the evaluation branch
+        if: always()
+        run: |
+          file=docs/research/cli/verify01-openai-138/dispatch.json
+          if [[ ! -f "$file" ]]; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- "$file"
+          git commit -m 'test(verify01): record authorized four-case dispatch receipt [skip ci]'
+          git push origin HEAD:refs/heads/feature/openai138-four-retest

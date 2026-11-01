@@ -10,7 +10,7 @@
   "reviewChanges": true,
   "projectSource": "e42ea07b6da7ab2c3eb709002448b32d5fedf535",
   "projectRevisionFile": "docs/research/cli/verify01-openai-137/public138-project-revision.json",
-  "projectRevisionDigest": "sha256:363897dada05d84a84fee2c79ad30d1dc0b4342d2f22d642c62189f77e31496a",
+  "projectRevisionDigest": "sha256:d4bc02e85fed5628995d1026f3389aad18b5468305f18e123839a90fe850bba7",
   "packageSelection": "latest",
   "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-02-openai-138.json",
   "packageSetDigest": "sha256:c4bb6f6737e8a37b96cce2240d17f0756274490261791cbbccb8a0fd353f2dcf",
