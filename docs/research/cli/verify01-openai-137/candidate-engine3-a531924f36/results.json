@@ -1,0 +1,1335 @@
+{
+  "schema": "chainlesschain.candidate137r3-five-report/v1",
+  "generatedAt": "2026-11-01T08:57:21.938Z",
+  "scope": "newRepairedSourceCohort5 only",
+  "source": "a531924f367e60b61834aa8369634d0e241697b3",
+  "acceptanceSource": "a531924f367e60b61834aa8369634d0e241697b3",
+  "projectCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+  "planDigest": "sha256:78f3e9bd5605c50057ce34a892e5ac71c026c4a42f1883c1ddc7a9a05388e196",
+  "projectRevision": {
+    "schema": "chainlesschain.verify01-project-revision/v1",
+    "path": "docs/research/cli/verify01-openai-137/candidate3-project-revision.json",
+    "digest": "sha256:d9ddcedf54685b526f9df39a40deb45b70d22de1ce539f9e1473b37a0577dbe9",
+    "cohortId": "repaired-source-followup-cli137-candidate3-source-expressions-five",
+    "parentProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+    "parentPlanDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+    "projectCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+    "selectedSampleIds": [
+      "verify-08",
+      "verify-13",
+      "verify-19",
+      "verify-36",
+      "first-run-darwin-vscode"
+    ],
+    "formalSample": false,
+    "projectionPolicy": "chainlesschain.verify01-repaired-source-projection/v1",
+    "exclusionsDigest": "sha256:ed693174376d83aa411b73306a5b151a8d0f967a01a106e3f020c4ed8e676862",
+    "reason": "User-required fresh five-task prepublication gate after repairing source-expression previews and task preservation. Rebuild CLI/IDE candidates and the maintained project from this exact source. Preserve original task prompts, host allocation, model, budgets, behavioral mutants and delivery paths. Generic runtime guidance uses bounded binary assertions; no previous candidate answers or task-specific repair feedback are included. All prior scores remain separate."
+  },
+  "versions": {
+    "cli": "0.166.137",
+    "vscode": "0.37.174",
+    "jetbrains": "0.4.190",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "packageSetDigest": "sha256:c787fb5a8efb109eb20c35e9e46e68d7c7989f348dd5952d03e6ced15f33792a",
+  "prepublication": {
+    "schema": "chainlesschain.verify01-prerelease-package-set/v1",
+    "distribution": "prerelease-actions-artifact",
+    "repository": "chainlesschain/chainlesschain",
+    "workflow": ".github/workflows/verify01-prerelease-packages.yml",
+    "sourceCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+    "runId": 41286076748,
+    "artifactId": 13074779528,
+    "artifactName": "verify01-prerelease-packages-5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+    "artifactDigest": "sha256:94fae62c1f00f168492b0d587e576e3d980e19c5ad4e0ee5affe6c3fa24c9cfa",
+    "contextWindowTokens": 32768,
+    "files": {
+      "cli": {
+        "file": "chainlesschain-0.166.137.tgz",
+        "digest": "sha256:bcff986c9ef9d82addf2eb02bf986918d48d156847864826b365fe39fcfac760",
+        "integrity": "sha512-SGNuuClcxuwdPlMwT1E6u9VX6IFgdoo+uGvj/9rIv0uyKhV0lfkG+/VOzAPNa2Jn9b9auHEorKela8LN3RTQNA==",
+        "bytes": 9534675
+      },
+      "vscode": {
+        "file": "chainlesschain-ide-0.37.174.vsix",
+        "digest": "sha256:e9c3f268330e46425baaee2a5021ddf41c8c967e40a3bba0e2e885056197080d",
+        "integrity": "sha512-69y0jwuk/cUIRsQFFUycBuGXBJ1AJKuge28aQa1kBhSGkoxLnQrjZ3TmD7NCcM2Yh3TLd703Ye+ZTXA9rmlhyQ==",
+        "bytes": 748119
+      },
+      "jetbrains": {
+        "file": "chainlesschain-ide-bridge-0.4.190.zip",
+        "digest": "sha256:1b91a3e43b7add1c54c5d096afa9d85238e93b432dca9a30615554a0bd5d13f3",
+        "integrity": "sha512-Ox97R/M+9zhignkMa3hwmcXwMayQfoMEUTF1wYf1PupwoN6WxA1sRiXKzUjdueAo8xozP9RPm5wzAfPcIwxwBQ==",
+        "bytes": 1555647
+      }
+    },
+    "cliSourceFiles": [
+      {
+        "file": "bin/chainlesschain.js",
+        "digest": "sha256:32339064da330222d3f1129c201a5e9473441ed3d12b4758193696d3c3565547"
+      },
+      {
+        "file": "src/commands/agent.js",
+        "digest": "sha256:cfa3c35dbf5e8940650d10742b5b25eec377150bf9268363415e558d01053d4e"
+      },
+      {
+        "file": "src/runtime/agent-core.js",
+        "digest": "sha256:e17a70f3f99f8cf6c7fc7f7164b9c55c35e5d35c38905d4662c438da18cd5baa"
+      },
+      {
+        "file": "src/lib/read-file-loop-guard.js",
+        "digest": "sha256:6a8d639e9ab9cfe2da70ba88cbce9ce385cad94759dd0155e3ba458f67b96fcc"
+      },
+      {
+        "file": "src/lib/coding-change-review-context.js",
+        "digest": "sha256:e431da08b462da3c452ffd60fce4b1e2c4d5a16fb9e2250cfefbbb3633dd6808"
+      },
+      {
+        "file": "src/lib/coding-task-guidance.js",
+        "digest": "sha256:4ab1c7d56c6eaa0b68c03a1c465950cccfdf4f8161b84d1ccba90394f5caa573"
+      },
+      {
+        "file": "src/lib/tool-result-preview.js",
+        "digest": "sha256:a7ce5eb2a8cad9cb02f5ee533dcd69301b9f1177affc52bd6a9b726a6764c0af"
+      },
+      {
+        "file": "src/lib/evolution/evidence-json-text.js",
+        "digest": "sha256:2023b1958e107fb27314b0518e73970e5ae0bab94fba4da72e7b1dcd197820d2"
+      },
+      {
+        "file": "src/lib/evolution/evolution-evidence-projector.js",
+        "digest": "sha256:2267fb233d9f9806795606abd68ebeffd34547bde1ae3809d190afaee90ae641"
+      },
+      {
+        "file": "src/lib/model-capabilities.js",
+        "digest": "sha256:3153beb805ac7e044fb77e1594d39c140a55c5585067db49f111d5f92a35e865"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/provider-context.js",
+        "digest": "sha256:d075c4c4fb91b64fe9d590ff8403600de83648a898137e14399d6af9da45b272"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/live-compaction.js",
+        "digest": "sha256:6eb8adc555688c25d99bbcf4f6e9302dfe41926d0cb34ba9f02b5baa3c0019f8"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/message-adapter.js",
+        "digest": "sha256:bfb6aab468818c9fff56f9fdaf878e93e9f39cf4ee7322304c348f380fbd3ce3"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/task-binding.js",
+        "digest": "sha256:44415b38b941fc0828a9830e20c46cdc13a87453aab94cd6ab0642f44a046257"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/jsonl-session-context-port.js",
+        "digest": "sha256:af56de83f273d89d4688d40e4f40493e683ff23db156f5bf93d73c71400f0a22"
+      },
+      {
+        "file": "src/runtime/message-roles.js",
+        "digest": "sha256:e60dcd7d2f24f5517d3ff706e9a5df9958aabd4390eb6fd655760ce1187b7a66"
+      }
+    ],
+    "published": false
+  },
+  "model": "gpt-6.1-sol",
+  "formalSample": false,
+  "changesFrozenAcceptance": false,
+  "historicalFrozenScore": "41/45 (unchanged; not combined)",
+  "complete": true,
+  "workflowsSuccessful": false,
+  "publicationReady": false,
+  "gate": null,
+  "gateReasons": [
+    {
+      "where": "workflow",
+      "reason": "all original generation jobs and all four explicitly bound acceptance workflows must succeed"
+    }
+  ],
+  "accepted": 0,
+  "failed": 5,
+  "pending": 0,
+  "physicalRequestsStarted": 99,
+  "usageCompleteRequests": 99,
+  "unknownUsageRequests": 0,
+  "missingUsageSamples": [],
+  "knownTokenOnlyEstimateUsd": 3.1873117,
+  "actualBilledCostUsd": null,
+  "workflow": [
+    {
+      "group": "darwin-vscode",
+      "runId": 41289772666,
+      "acceptanceRunId": 41289772666,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289772666",
+      "generationEligible": true,
+      "generationStatus": {
+        "status": "completed",
+        "conclusion": "failure",
+        "digest": "sha256:4196270adf438270112a61cd4bd9c0d698d2c11d8b59d77455cd6a3cc7322ce4",
+        "jobs": [
+          {
+            "name": "validate",
+            "status": "completed",
+            "conclusion": "success",
+            "failedStep": null
+          },
+          {
+            "name": "Native darwin-vscode (selected samples)",
+            "status": "completed",
+            "conclusion": "success",
+            "failedStep": null
+          },
+          {
+            "name": "Linux acceptance of darwin-vscode deliveries",
+            "status": "completed",
+            "conclusion": "failure",
+            "failedStep": "Check source and candidate binding then execute baseline and behavioral controls"
+          }
+        ]
+      },
+      "status": "completed",
+      "conclusion": "failure",
+      "statusDigest": "sha256:4196270adf438270112a61cd4bd9c0d698d2c11d8b59d77455cd6a3cc7322ce4"
+    },
+    {
+      "group": "linux-cli",
+      "runId": 41289782686,
+      "acceptanceRunId": 41289782686,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289782686",
+      "generationEligible": false,
+      "generationStatus": {
+        "status": "completed",
+        "conclusion": "failure",
+        "digest": "sha256:76fdfb7f30b72269ff8a22d04984c31f7b99f6d3a0f9e32d2d60ef9229cb1260",
+        "jobs": [
+          {
+            "name": "validate",
+            "status": "completed",
+            "conclusion": "success",
+            "failedStep": null
+          },
+          {
+            "name": "Native linux-cli (selected samples)",
+            "status": "completed",
+            "conclusion": "failure",
+            "failedStep": "Run original project tasks through installed native entry"
+          },
+          {
+            "name": "Linux acceptance of linux-cli deliveries",
+            "status": "completed",
+            "conclusion": "failure",
+            "failedStep": "Check source and candidate binding then execute baseline and behavioral controls"
+          }
+        ]
+      },
+      "status": "completed",
+      "conclusion": "failure",
+      "statusDigest": "sha256:76fdfb7f30b72269ff8a22d04984c31f7b99f6d3a0f9e32d2d60ef9229cb1260"
+    },
+    {
+      "group": "win32-cli",
+      "runId": 41289794523,
+      "acceptanceRunId": 41289794523,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289794523",
+      "generationEligible": false,
+      "generationStatus": {
+        "status": "completed",
+        "conclusion": "failure",
+        "digest": "sha256:7886a71c3899e9ce40adfb957abbbfaa23c34005d9e945708b1761af6d072720",
+        "jobs": [
+          {
+            "name": "validate",
+            "status": "completed",
+            "conclusion": "success",
+            "failedStep": null
+          },
+          {
+            "name": "Native win32-cli (selected samples)",
+            "status": "completed",
+            "conclusion": "failure",
+            "failedStep": "Run original project tasks through installed native entry"
+          },
+          {
+            "name": "Linux acceptance of win32-cli deliveries",
+            "status": "completed",
+            "conclusion": "failure",
+            "failedStep": "Check source and candidate binding then execute baseline and behavioral controls"
+          }
+        ]
+      },
+      "status": "completed",
+      "conclusion": "failure",
+      "statusDigest": "sha256:7886a71c3899e9ce40adfb957abbbfaa23c34005d9e945708b1761af6d072720"
+    },
+    {
+      "group": "darwin-jetbrains",
+      "runId": 41289807558,
+      "acceptanceRunId": 41289807558,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289807558",
+      "generationEligible": false,
+      "generationStatus": {
+        "status": "completed",
+        "conclusion": "failure",
+        "digest": "sha256:251457bcc3b1983c67a1d748ee107d0894ae173e222e487a661ce323682d82bb",
+        "jobs": [
+          {
+            "name": "validate",
+            "status": "completed",
+            "conclusion": "success",
+            "failedStep": null
+          },
+          {
+            "name": "Native darwin-jetbrains-verify-36 (selected samples)",
+            "status": "completed",
+            "conclusion": "failure",
+            "failedStep": "Run original project tasks through installed native entry"
+          },
+          {
+            "name": "Linux acceptance of darwin-jetbrains-verify-36 deliveries",
+            "status": "completed",
+            "conclusion": "failure",
+            "failedStep": "Check source and candidate binding then execute baseline and behavioral controls"
+          }
+        ]
+      },
+      "status": "completed",
+      "conclusion": "failure",
+      "statusDigest": "sha256:251457bcc3b1983c67a1d748ee107d0894ae173e222e487a661ce323682d82bb"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13077600500,
+      "name": "verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3",
+      "runId": 41289772666,
+      "archiveDigest": "sha256:6f85fa3eb9c1de038293057bd8ee753037c38fdba4c182ab4d3d0af80eb7bcdd",
+      "summaryDigest": "sha256:83997d1830c09b267032ca16bb098ae7d82fc5a3f7c55fe5f19678e2e8ff7fd7",
+      "summaryPath": "verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289772666/artifacts/13077600500",
+      "prepublication": {
+        "distribution": "prerelease-actions-artifact",
+        "sourceCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+        "runId": 41286076748,
+        "artifactId": 13074779528,
+        "published": false
+      },
+      "prereleaseBundleDigest": "sha256:41c0c738dab533c77944c08f305864e8ec5b52dd9bc03e053970d57e921fd4d4",
+      "prereleaseProvenanceDigest": "sha256:457669a0dd785d0dbbf84cada514c2f3a15480246436594d73cd17c9a0ef3d10"
+    },
+    {
+      "id": 13076972359,
+      "name": "verify01-native-subset-acceptance-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3",
+      "runId": 41289772666,
+      "archiveDigest": "sha256:265af36fce9e6f493f8ddddcdf764eb8b9e7049cc70a3bc60b116d8915990ef9",
+      "summaryDigest": "sha256:fb50c7815599436ec6cd66fdce33252b4ae82dae8418a4ee114e0bb79c782b7c",
+      "summaryPath": "verify01-native-subset-acceptance-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289772666/artifacts/13076972359"
+    },
+    {
+      "id": 13077465612,
+      "name": "verify01-native-subset-acceptance-linux-cli-a531924f367e60b61834aa8369634d0e241697b3",
+      "runId": 41289782686,
+      "archiveDigest": "sha256:0792111fecd3c8267f371dad7af5176c08840dac4e8caec0448630fa8284ab0f",
+      "summaryDigest": "sha256:5df28773a22274bdbe9ad9218b5b346958e820a68ddbc371982ee65aa02e48ce",
+      "summaryPath": "verify01-native-subset-acceptance-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289782686/artifacts/13077465612"
+    },
+    {
+      "id": 13077136056,
+      "name": "verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3",
+      "runId": 41289782686,
+      "archiveDigest": "sha256:d458584b21845e3c0cfb7d863a975f23a78c20bfb15ca2612ad1caaaaaeb03f1",
+      "summaryDigest": "sha256:f08bbfb16f2973e73803498c144cdd7e8ae7fce07edb7afd893b212058e54166",
+      "summaryPath": "verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289782686/artifacts/13077136056",
+      "prepublication": {
+        "distribution": "prerelease-actions-artifact",
+        "sourceCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+        "runId": 41286076748,
+        "artifactId": 13074779528,
+        "published": false
+      },
+      "prereleaseBundleDigest": "sha256:41c0c738dab533c77944c08f305864e8ec5b52dd9bc03e053970d57e921fd4d4",
+      "prereleaseProvenanceDigest": "sha256:457669a0dd785d0dbbf84cada514c2f3a15480246436594d73cd17c9a0ef3d10"
+    },
+    {
+      "id": 13077301323,
+      "name": "verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3",
+      "runId": 41289794523,
+      "archiveDigest": "sha256:929d2513006db97d849e5b5cc56a8ec8bb0765a864c0b279fc667be72690cfd8",
+      "summaryDigest": "sha256:a8540f5d255d759cd8a515555981164c26c2051bdd59847299322b81d32f4fdd",
+      "summaryPath": "verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289794523/artifacts/13077301323",
+      "prepublication": {
+        "distribution": "prerelease-actions-artifact",
+        "sourceCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+        "runId": 41286076748,
+        "artifactId": 13074779528,
+        "published": false
+      },
+      "prereleaseBundleDigest": "sha256:41c0c738dab533c77944c08f305864e8ec5b52dd9bc03e053970d57e921fd4d4",
+      "prereleaseProvenanceDigest": "sha256:457669a0dd785d0dbbf84cada514c2f3a15480246436594d73cd17c9a0ef3d10"
+    },
+    {
+      "id": 13077066902,
+      "name": "verify01-native-subset-acceptance-win32-cli-a531924f367e60b61834aa8369634d0e241697b3",
+      "runId": 41289794523,
+      "archiveDigest": "sha256:75df6bb31df7e272d8a9f4bd6f56eb4c5f1723d36caf3e8b31d764af320355a8",
+      "summaryDigest": "sha256:3c545a3231b5195e6fc3fc1b711dce663ead156a3b34777976a8efaaa6787a5c",
+      "summaryPath": "verify01-native-subset-acceptance-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289794523/artifacts/13077066902"
+    },
+    {
+      "id": 13076837668,
+      "name": "verify01-native-subset-acceptance-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3",
+      "runId": 41289807558,
+      "archiveDigest": "sha256:2172760953f2156ce794666c057091fa59767b9518a6702e516ec827b5cd9ef9",
+      "summaryDigest": "sha256:18a83509a112b5a33d8276ddaf974f789f2aaa21d2d8331042cc8e68ee5deeba",
+      "summaryPath": "verify01-native-subset-acceptance-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289807558/artifacts/13076837668"
+    },
+    {
+      "id": 13076448545,
+      "name": "verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3",
+      "runId": 41289807558,
+      "archiveDigest": "sha256:b0e79ee307d15de05e8b20d2643c4f2a69dd1dae68613fc79fc50e2f82553a63",
+      "summaryDigest": "sha256:d5b4d1ab5bd89b4288932d4a019e6a22b38a997d7ba28f17932c0f47ac63c80f",
+      "summaryPath": "verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289807558/artifacts/13076448545",
+      "prepublication": {
+        "distribution": "prerelease-actions-artifact",
+        "sourceCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+        "runId": 41286076748,
+        "artifactId": 13074779528,
+        "published": false
+      },
+      "prereleaseBundleDigest": "sha256:41c0c738dab533c77944c08f305864e8ec5b52dd9bc03e053970d57e921fd4d4",
+      "prereleaseProvenanceDigest": "sha256:457669a0dd785d0dbbf84cada514c2f3a15480246436594d73cd17c9a0ef3d10"
+    }
+  ],
+  "historicalAcceptance": [],
+  "rows": [
+    {
+      "sampleId": "verify-08",
+      "status": "failed",
+      "requests": 21,
+      "usageCompleteRequests": 21,
+      "unknownUsageRequests": 0,
+      "knownTokenOnlyEstimateUsd": 0.6927655999999999,
+      "actualBilledCostUsd": null,
+      "generation": {
+        "id": 13077600500,
+        "name": "verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3",
+        "runId": 41289772666,
+        "archiveDigest": "sha256:6f85fa3eb9c1de038293057bd8ee753037c38fdba4c182ab4d3d0af80eb7bcdd",
+        "summaryDigest": "sha256:83997d1830c09b267032ca16bb098ae7d82fc5a3f7c55fe5f19678e2e8ff7fd7",
+        "summaryPath": "verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289772666/artifacts/13077600500",
+        "prepublication": {
+          "distribution": "prerelease-actions-artifact",
+          "sourceCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+          "runId": 41286076748,
+          "artifactId": 13074779528,
+          "published": false
+        },
+        "prereleaseBundleDigest": "sha256:41c0c738dab533c77944c08f305864e8ec5b52dd9bc03e053970d57e921fd4d4",
+        "prereleaseProvenanceDigest": "sha256:457669a0dd785d0dbbf84cada514c2f3a15480246436594d73cd17c9a0ef3d10",
+        "generationPassed": true,
+        "candidateInstallation": {
+          "distribution": "prerelease-actions-artifact",
+          "sourceCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+          "runId": 41286076748,
+          "artifactId": 13074779528,
+          "locked": {
+            "version": "0.166.137",
+            "resolved": "file:../../../../Users/runner/work/_temp/verify01-prerelease-packages/chainlesschain-0.166.137.tgz",
+            "integrity": "sha512-SGNuuClcxuwdPlMwT1E6u9VX6IFgdoo+uGvj/9rIv0uyKhV0lfkG+/VOzAPNa2Jn9b9auHEorKela8LN3RTQNA==",
+            "hasInstallScript": true,
+            "license": "MIT",
+            "dependencies": {
+              "@aws-sdk/client-s3": "^3.700.0",
+              "@chainlesschain/context-memory-kernel": "0.1.11",
+              "@chainlesschain/core-config": "0.1.2",
+              "@chainlesschain/core-db": "0.1.5",
+              "@chainlesschain/core-env": "0.1.2",
+              "@chainlesschain/core-infra": "0.1.1",
+              "@chainlesschain/core-mtc": "0.2.3",
+              "@chainlesschain/core-multisig": "0.1.4",
+              "@chainlesschain/personal-data-hub": "0.4.66",
+              "@chainlesschain/session-core": "0.3.24",
+              "@chainlesschain/shared-logger": "0.1.1",
+              "@inquirer/prompts": "^7.2.0",
+              "@noble/curves": "^1.9.7",
+              "@tootallnate/quickjs-emscripten": "^0.23.0",
+              "acorn": "8.17.0",
+              "ajv": "^8.20.0",
+              "ajv-formats": "^3.0.1",
+              "chalk": "^5.4.1",
+              "commander": "^12.1.0",
+              "esbuild-wasm": "0.28.1",
+              "js-yaml": "^3.15.1",
+              "koffi": "^2.16.3",
+              "ora": "^8.1.1",
+              "pac-resolver": "^7.0.1",
+              "semver": "^7.6.3",
+              "sql.js": "^1.14.1",
+              "undici": "^7.30.1",
+              "webdav": "^5.10.0",
+              "ws": "^8.14.2"
+            },
+            "bin": {
+              "cc": "bin/chainlesschain.js",
+              "chainlesschain": "bin/chainlesschain.js",
+              "clc": "bin/chainlesschain.js",
+              "clchain": "bin/chainlesschain.js"
+            },
+            "engines": {
+              "node": ">=22.12.0"
+            },
+            "optionalDependencies": {
+              "better-sqlite3": "^12.1.0",
+              "node-pty": "^1.0.0",
+              "pdf-parse": "^1.1.1"
+            },
+            "peerDependencies": {
+              "playwright": "^1.40.0"
+            },
+            "peerDependenciesMeta": {
+              "playwright": {
+                "optional": true
+              }
+            }
+          },
+          "sourceFilesVerified": 16,
+          "published": false
+        },
+        "candidates": [
+          {
+            "file": "packages/cli/__tests__/repair137-verify-08.test.js",
+            "path": "verify-08/candidate/packages/cli/__tests__/repair137-verify-08.test.js",
+            "digest": "sha256:474e84a17922aefc1ac06a89a44b80eb4a0c1068b74eecf33b251261206321f9",
+            "bytes": 5428,
+            "archivePath": "verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/candidate/packages/cli/__tests__/repair137-verify-08.test.js"
+          }
+        ],
+        "failure": null
+      },
+      "acceptance": {
+        "id": 13076972359,
+        "name": "verify01-native-subset-acceptance-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3",
+        "runId": 41289772666,
+        "archiveDigest": "sha256:265af36fce9e6f493f8ddddcdf764eb8b9e7049cc70a3bc60b116d8915990ef9",
+        "summaryDigest": "sha256:fb50c7815599436ec6cd66fdce33252b4ae82dae8418a4ee114e0bb79c782b7c",
+        "summaryPath": "verify01-native-subset-acceptance-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289772666/artifacts/13076972359",
+        "setup": {
+          "pass": true,
+          "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+          "receipt": "verify-08-setup-37142581-1f90-4cc5-b03b-33b0c99049b5.json",
+          "receiptDigest": "sha256:069fc0962a634455d20ba9a4c68c928e82547a984ba79f2a3dd250ba0a2b0339",
+          "scriptDigest": "sha256:41b07b56d85c745fdccef5d0454941a8abca834bedd6781ecde54cb6b65086b3",
+          "receiptPath": "pack/acceptance-evidence/verify-08-setup-37142581-1f90-4cc5-b03b-33b0c99049b5.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 59,
+              "passed": 59,
+              "failed": 0
+            }
+          ],
+          "mutations": [],
+          "archivePath": "verify01-native-subset-acceptance-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/pack/acceptance-evidence/verify-08-setup-37142581-1f90-4cc5-b03b-33b0c99049b5.json"
+        },
+        "check": {
+          "pass": false,
+          "detail": "candidate tests did not reject the behavioral mutant",
+          "receipt": "verify-08-check-49f3872e-0e5f-4a9f-b5ce-9b51eb7b6256.json",
+          "receiptDigest": "sha256:06e6a24b86dacbe91c2b5103211888c811acb69a2f3a2d7cd32e8cdff1f15be4",
+          "scriptDigest": "sha256:f6ca61f585d17bcad2dddc37b939d094868988e60bee05e68de78cb843afea06",
+          "receiptPath": "pack/acceptance-evidence/verify-08-check-49f3872e-0e5f-4a9f-b5ce-9b51eb7b6256.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 59,
+              "passed": 59,
+              "failed": 0
+            },
+            {
+              "kind": "candidate",
+              "total": 2,
+              "passed": 2,
+              "failed": 0
+            }
+          ],
+          "mutations": [],
+          "archivePath": "verify01-native-subset-acceptance-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/pack/acceptance-evidence/verify-08-check-49f3872e-0e5f-4a9f-b5ce-9b51eb7b6256.json"
+        },
+        "passed": false,
+        "candidateAcceptancePassed": false,
+        "generationAssessment": {
+          "passed": true,
+          "originalGenerationPassed": true,
+          "originalTerminalVerified": true,
+          "terminal": {
+            "terminalVerified": true,
+            "observedFallback": false,
+            "usage": {
+              "inputTokens": 9473,
+              "outputTokens": 6469,
+              "cacheReadInputTokens": 68636,
+              "cacheCreationInputTokens": 301133
+            },
+            "totalCostUsd": null
+          },
+          "dialect": "persistent-IDE-with-validated-session-end"
+        },
+        "frozenSourceAssessment": {
+          "exact": true,
+          "contentVerified": true,
+          "filenameEncoding": "utf8"
+        },
+        "failure": "candidate tests did not reject the behavioral mutant"
+      },
+      "group": "darwin-vscode"
+    },
+    {
+      "sampleId": "verify-13",
+      "status": "failed",
+      "requests": 20,
+      "usageCompleteRequests": 20,
+      "unknownUsageRequests": 0,
+      "knownTokenOnlyEstimateUsd": 0.6847624,
+      "actualBilledCostUsd": null,
+      "generation": {
+        "id": 13077136056,
+        "name": "verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3",
+        "runId": 41289782686,
+        "archiveDigest": "sha256:d458584b21845e3c0cfb7d863a975f23a78c20bfb15ca2612ad1caaaaaeb03f1",
+        "summaryDigest": "sha256:f08bbfb16f2973e73803498c144cdd7e8ae7fce07edb7afd893b212058e54166",
+        "summaryPath": "verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289782686/artifacts/13077136056",
+        "prepublication": {
+          "distribution": "prerelease-actions-artifact",
+          "sourceCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+          "runId": 41286076748,
+          "artifactId": 13074779528,
+          "published": false
+        },
+        "prereleaseBundleDigest": "sha256:41c0c738dab533c77944c08f305864e8ec5b52dd9bc03e053970d57e921fd4d4",
+        "prereleaseProvenanceDigest": "sha256:457669a0dd785d0dbbf84cada514c2f3a15480246436594d73cd17c9a0ef3d10",
+        "generationPassed": false,
+        "candidateInstallation": {
+          "distribution": "prerelease-actions-artifact",
+          "sourceCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+          "runId": 41286076748,
+          "artifactId": 13074779528,
+          "locked": {
+            "version": "0.166.137",
+            "resolved": "file:../../../home/runner/work/_temp/verify01-prerelease-packages/chainlesschain-0.166.137.tgz",
+            "integrity": "sha512-SGNuuClcxuwdPlMwT1E6u9VX6IFgdoo+uGvj/9rIv0uyKhV0lfkG+/VOzAPNa2Jn9b9auHEorKela8LN3RTQNA==",
+            "hasInstallScript": true,
+            "license": "MIT",
+            "dependencies": {
+              "@aws-sdk/client-s3": "^3.700.0",
+              "@chainlesschain/context-memory-kernel": "0.1.11",
+              "@chainlesschain/core-config": "0.1.2",
+              "@chainlesschain/core-db": "0.1.5",
+              "@chainlesschain/core-env": "0.1.2",
+              "@chainlesschain/core-infra": "0.1.1",
+              "@chainlesschain/core-mtc": "0.2.3",
+              "@chainlesschain/core-multisig": "0.1.4",
+              "@chainlesschain/personal-data-hub": "0.4.66",
+              "@chainlesschain/session-core": "0.3.24",
+              "@chainlesschain/shared-logger": "0.1.1",
+              "@inquirer/prompts": "^7.2.0",
+              "@noble/curves": "^1.9.7",
+              "@tootallnate/quickjs-emscripten": "^0.23.0",
+              "acorn": "8.17.0",
+              "ajv": "^8.20.0",
+              "ajv-formats": "^3.0.1",
+              "chalk": "^5.4.1",
+              "commander": "^12.1.0",
+              "esbuild-wasm": "0.28.1",
+              "js-yaml": "^3.15.1",
+              "koffi": "^2.16.3",
+              "ora": "^8.1.1",
+              "pac-resolver": "^7.0.1",
+              "semver": "^7.6.3",
+              "sql.js": "^1.14.1",
+              "undici": "^7.30.1",
+              "webdav": "^5.10.0",
+              "ws": "^8.14.2"
+            },
+            "bin": {
+              "cc": "bin/chainlesschain.js",
+              "chainlesschain": "bin/chainlesschain.js",
+              "clc": "bin/chainlesschain.js",
+              "clchain": "bin/chainlesschain.js"
+            },
+            "engines": {
+              "node": ">=22.12.0"
+            },
+            "optionalDependencies": {
+              "better-sqlite3": "^12.1.0",
+              "node-pty": "^1.0.0",
+              "pdf-parse": "^1.1.1"
+            },
+            "peerDependencies": {
+              "playwright": "^1.40.0"
+            },
+            "peerDependenciesMeta": {
+              "playwright": {
+                "optional": true
+              }
+            }
+          },
+          "sourceFilesVerified": 16,
+          "published": false
+        },
+        "candidates": [
+          {
+            "file": "packages/cli/__tests__/repair137-verify-13.test.js",
+            "path": "verify-13/candidate/packages/cli/__tests__/repair137-verify-13.test.js",
+            "digest": "sha256:892b872b61902cf6172a3a838a0039104cced46bfde693a46fd053c69e40d949",
+            "bytes": 10486,
+            "archivePath": "verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/candidate/packages/cli/__tests__/repair137-verify-13.test.js"
+          }
+        ],
+        "failure": null
+      },
+      "acceptance": {
+        "id": 13077465612,
+        "name": "verify01-native-subset-acceptance-linux-cli-a531924f367e60b61834aa8369634d0e241697b3",
+        "runId": 41289782686,
+        "archiveDigest": "sha256:0792111fecd3c8267f371dad7af5176c08840dac4e8caec0448630fa8284ab0f",
+        "summaryDigest": "sha256:5df28773a22274bdbe9ad9218b5b346958e820a68ddbc371982ee65aa02e48ce",
+        "summaryPath": "verify01-native-subset-acceptance-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289782686/artifacts/13077465612",
+        "setup": {
+          "pass": true,
+          "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+          "receipt": "verify-13-setup-c8624503-84e9-4946-9828-9fc38e13340c.json",
+          "receiptDigest": "sha256:83483a1d405d919d3173143848ccb94afedbac387a9a60c692ef80c92aa8e53c",
+          "scriptDigest": "sha256:0398e8e25acbf0a6b15055eb603710a5ff8c9a42ef8e3b3eb959ead016edc5bb",
+          "receiptPath": "pack/acceptance-evidence/verify-13-setup-c8624503-84e9-4946-9828-9fc38e13340c.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 15,
+              "passed": 15,
+              "failed": 0
+            }
+          ],
+          "mutations": [],
+          "archivePath": "verify01-native-subset-acceptance-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/pack/acceptance-evidence/verify-13-setup-c8624503-84e9-4946-9828-9fc38e13340c.json"
+        },
+        "check": {
+          "pass": true,
+          "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+          "receipt": "verify-13-check-0414ee8d-28c3-4c50-a9aa-1166062a3791.json",
+          "receiptDigest": "sha256:980d1223f2b7c49b646d7e6684940897deac9d045190feb605ced04fd9be053a",
+          "scriptDigest": "sha256:a2bbf6d57476a710e3d4896dcc82c4bd7221475029f59ec46f6d8da13a0b71f1",
+          "receiptPath": "pack/acceptance-evidence/verify-13-check-0414ee8d-28c3-4c50-a9aa-1166062a3791.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 15,
+              "passed": 15,
+              "failed": 0
+            },
+            {
+              "kind": "candidate",
+              "total": 14,
+              "passed": 14,
+              "failed": 0
+            }
+          ],
+          "mutations": [
+            {
+              "name": "ignore-image-change-on-pinned-handle",
+              "sourceSha256": "e0cd0906e581ae0516fbb93f51b6cb9b157cf0c7175abb9d8e702733ce8c432b",
+              "total": 14,
+              "passed": 12,
+              "failed": 2
+            },
+            {
+              "name": "allow-over-pixel-budget",
+              "sourceSha256": "cf9ee6fedbba1f82dc1bcec09406855c30f3ce2dcba62937838c9d2eb9a84d3b",
+              "total": 14,
+              "passed": 13,
+              "failed": 1
+            }
+          ],
+          "archivePath": "verify01-native-subset-acceptance-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/pack/acceptance-evidence/verify-13-check-0414ee8d-28c3-4c50-a9aa-1166062a3791.json"
+        },
+        "passed": false,
+        "candidateAcceptancePassed": true,
+        "generationAssessment": {
+          "passed": false,
+          "originalGenerationPassed": false,
+          "originalTerminalVerified": false,
+          "terminal": {
+            "terminalVerified": false,
+            "observedFallback": false,
+            "usage": {
+              "inputTokens": 1540,
+              "outputTokens": 9232,
+              "cacheReadInputTokens": 44924,
+              "cacheCreationInputTokens": 292435
+            },
+            "totalCostUsd": 0
+          },
+          "dialect": "one-shot"
+        },
+        "frozenSourceAssessment": {
+          "exact": true,
+          "contentVerified": true,
+          "filenameEncoding": "utf8"
+        },
+        "failure": null
+      },
+      "group": "linux-cli"
+    },
+    {
+      "sampleId": "verify-19",
+      "status": "failed",
+      "requests": 21,
+      "usageCompleteRequests": 21,
+      "unknownUsageRequests": 0,
+      "knownTokenOnlyEstimateUsd": 0.676314,
+      "actualBilledCostUsd": null,
+      "generation": {
+        "id": 13077301323,
+        "name": "verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3",
+        "runId": 41289794523,
+        "archiveDigest": "sha256:929d2513006db97d849e5b5cc56a8ec8bb0765a864c0b279fc667be72690cfd8",
+        "summaryDigest": "sha256:a8540f5d255d759cd8a515555981164c26c2051bdd59847299322b81d32f4fdd",
+        "summaryPath": "verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289794523/artifacts/13077301323",
+        "prepublication": {
+          "distribution": "prerelease-actions-artifact",
+          "sourceCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+          "runId": 41286076748,
+          "artifactId": 13074779528,
+          "published": false
+        },
+        "prereleaseBundleDigest": "sha256:41c0c738dab533c77944c08f305864e8ec5b52dd9bc03e053970d57e921fd4d4",
+        "prereleaseProvenanceDigest": "sha256:457669a0dd785d0dbbf84cada514c2f3a15480246436594d73cd17c9a0ef3d10",
+        "generationPassed": false,
+        "candidateInstallation": {
+          "distribution": "prerelease-actions-artifact",
+          "sourceCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+          "runId": 41286076748,
+          "artifactId": 13074779528,
+          "locked": {
+            "version": "0.166.137",
+            "resolved": "file:D:/a/_temp/verify01-prerelease-packages/chainlesschain-0.166.137.tgz",
+            "integrity": "sha512-SGNuuClcxuwdPlMwT1E6u9VX6IFgdoo+uGvj/9rIv0uyKhV0lfkG+/VOzAPNa2Jn9b9auHEorKela8LN3RTQNA==",
+            "hasInstallScript": true,
+            "license": "MIT",
+            "dependencies": {
+              "@aws-sdk/client-s3": "^3.700.0",
+              "@chainlesschain/context-memory-kernel": "0.1.11",
+              "@chainlesschain/core-config": "0.1.2",
+              "@chainlesschain/core-db": "0.1.5",
+              "@chainlesschain/core-env": "0.1.2",
+              "@chainlesschain/core-infra": "0.1.1",
+              "@chainlesschain/core-mtc": "0.2.3",
+              "@chainlesschain/core-multisig": "0.1.4",
+              "@chainlesschain/personal-data-hub": "0.4.66",
+              "@chainlesschain/session-core": "0.3.24",
+              "@chainlesschain/shared-logger": "0.1.1",
+              "@inquirer/prompts": "^7.2.0",
+              "@noble/curves": "^1.9.7",
+              "@tootallnate/quickjs-emscripten": "^0.23.0",
+              "acorn": "8.17.0",
+              "ajv": "^8.20.0",
+              "ajv-formats": "^3.0.1",
+              "chalk": "^5.4.1",
+              "commander": "^12.1.0",
+              "esbuild-wasm": "0.28.1",
+              "js-yaml": "^3.15.1",
+              "koffi": "^2.16.3",
+              "ora": "^8.1.1",
+              "pac-resolver": "^7.0.1",
+              "semver": "^7.6.3",
+              "sql.js": "^1.14.1",
+              "undici": "^7.30.1",
+              "webdav": "^5.10.0",
+              "ws": "^8.14.2"
+            },
+            "bin": {
+              "cc": "bin/chainlesschain.js",
+              "chainlesschain": "bin/chainlesschain.js",
+              "clc": "bin/chainlesschain.js",
+              "clchain": "bin/chainlesschain.js"
+            },
+            "engines": {
+              "node": ">=22.12.0"
+            },
+            "optionalDependencies": {
+              "better-sqlite3": "^12.1.0",
+              "node-pty": "^1.0.0",
+              "pdf-parse": "^1.1.1"
+            },
+            "peerDependencies": {
+              "playwright": "^1.40.0"
+            },
+            "peerDependenciesMeta": {
+              "playwright": {
+                "optional": true
+              }
+            }
+          },
+          "sourceFilesVerified": 16,
+          "published": false
+        },
+        "candidates": [
+          {
+            "file": "packages/cli/__tests__/repair137-verify-19.test.js",
+            "path": "verify-19/candidate/packages/cli/__tests__/repair137-verify-19.test.js",
+            "digest": "sha256:45e39f6da343968f06a3c8fe6f41ee371ed171596b6cb08fa255aa871356f2cb",
+            "bytes": 5053,
+            "archivePath": "verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/candidate/packages/cli/__tests__/repair137-verify-19.test.js"
+          }
+        ],
+        "failure": null
+      },
+      "acceptance": {
+        "id": 13077066902,
+        "name": "verify01-native-subset-acceptance-win32-cli-a531924f367e60b61834aa8369634d0e241697b3",
+        "runId": 41289794523,
+        "archiveDigest": "sha256:75df6bb31df7e272d8a9f4bd6f56eb4c5f1723d36caf3e8b31d764af320355a8",
+        "summaryDigest": "sha256:3c545a3231b5195e6fc3fc1b711dce663ead156a3b34777976a8efaaa6787a5c",
+        "summaryPath": "verify01-native-subset-acceptance-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289794523/artifacts/13077066902",
+        "setup": {
+          "pass": true,
+          "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+          "receipt": "verify-19-setup-1ac5f81b-e60b-4c89-aae0-881aef60783a.json",
+          "receiptDigest": "sha256:170c076dc48215c72908cf35674a0cced0868c2170d77e1adc603c1079b6e1f5",
+          "scriptDigest": "sha256:831ca31672be9290ebf0575a31e76277980d444671968e0e237d8c68eac74b30",
+          "receiptPath": "pack/acceptance-evidence/verify-19-setup-1ac5f81b-e60b-4c89-aae0-881aef60783a.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 18,
+              "passed": 18,
+              "failed": 0
+            }
+          ],
+          "mutations": [],
+          "archivePath": "verify01-native-subset-acceptance-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/pack/acceptance-evidence/verify-19-setup-1ac5f81b-e60b-4c89-aae0-881aef60783a.json"
+        },
+        "check": {
+          "pass": false,
+          "detail": "candidate or baseline regression failed",
+          "receipt": "verify-19-check-4058d991-e4e7-42dd-b83c-3cf66cd5215b.json",
+          "receiptDigest": "sha256:fa6584862d3b36f6b78bc5796c97201a125d1a78f7853b3d34e6a9cddead6693",
+          "scriptDigest": "sha256:9b2709ad7bfad1008d183298e6cee457e95291999469f2ca1905e885bf31a14c",
+          "receiptPath": "pack/acceptance-evidence/verify-19-check-4058d991-e4e7-42dd-b83c-3cf66cd5215b.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 18,
+              "passed": 18,
+              "failed": 0
+            }
+          ],
+          "mutations": [],
+          "archivePath": "verify01-native-subset-acceptance-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/pack/acceptance-evidence/verify-19-check-4058d991-e4e7-42dd-b83c-3cf66cd5215b.json"
+        },
+        "passed": false,
+        "candidateAcceptancePassed": false,
+        "generationAssessment": {
+          "passed": false,
+          "originalGenerationPassed": false,
+          "originalTerminalVerified": false,
+          "terminal": {
+            "terminalVerified": false,
+            "observedFallback": false,
+            "usage": {
+              "inputTokens": 11489,
+              "outputTokens": 8399,
+              "cacheReadInputTokens": 38360,
+              "cacheCreationInputTokens": 282755
+            },
+            "totalCostUsd": 0
+          },
+          "dialect": "one-shot"
+        },
+        "frozenSourceAssessment": {
+          "exact": true,
+          "contentVerified": true,
+          "filenameEncoding": "utf8"
+        },
+        "failure": "candidate or baseline regression failed"
+      },
+      "group": "win32-cli"
+    },
+    {
+      "sampleId": "verify-36",
+      "status": "failed",
+      "requests": 16,
+      "usageCompleteRequests": 16,
+      "unknownUsageRequests": 0,
+      "knownTokenOnlyEstimateUsd": 0.4932859,
+      "actualBilledCostUsd": null,
+      "generation": {
+        "id": 13076448545,
+        "name": "verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3",
+        "runId": 41289807558,
+        "archiveDigest": "sha256:b0e79ee307d15de05e8b20d2643c4f2a69dd1dae68613fc79fc50e2f82553a63",
+        "summaryDigest": "sha256:d5b4d1ab5bd89b4288932d4a019e6a22b38a997d7ba28f17932c0f47ac63c80f",
+        "summaryPath": "verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289807558/artifacts/13076448545",
+        "prepublication": {
+          "distribution": "prerelease-actions-artifact",
+          "sourceCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+          "runId": 41286076748,
+          "artifactId": 13074779528,
+          "published": false
+        },
+        "prereleaseBundleDigest": "sha256:41c0c738dab533c77944c08f305864e8ec5b52dd9bc03e053970d57e921fd4d4",
+        "prereleaseProvenanceDigest": "sha256:457669a0dd785d0dbbf84cada514c2f3a15480246436594d73cd17c9a0ef3d10",
+        "generationPassed": false,
+        "candidateInstallation": {
+          "distribution": "prerelease-actions-artifact",
+          "sourceCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+          "runId": 41286076748,
+          "artifactId": 13074779528,
+          "locked": {
+            "version": "0.166.137",
+            "resolved": "file:../../../../Users/runner/work/_temp/verify01-prerelease-packages/chainlesschain-0.166.137.tgz",
+            "integrity": "sha512-SGNuuClcxuwdPlMwT1E6u9VX6IFgdoo+uGvj/9rIv0uyKhV0lfkG+/VOzAPNa2Jn9b9auHEorKela8LN3RTQNA==",
+            "hasInstallScript": true,
+            "license": "MIT",
+            "dependencies": {
+              "@aws-sdk/client-s3": "^3.700.0",
+              "@chainlesschain/context-memory-kernel": "0.1.11",
+              "@chainlesschain/core-config": "0.1.2",
+              "@chainlesschain/core-db": "0.1.5",
+              "@chainlesschain/core-env": "0.1.2",
+              "@chainlesschain/core-infra": "0.1.1",
+              "@chainlesschain/core-mtc": "0.2.3",
+              "@chainlesschain/core-multisig": "0.1.4",
+              "@chainlesschain/personal-data-hub": "0.4.66",
+              "@chainlesschain/session-core": "0.3.24",
+              "@chainlesschain/shared-logger": "0.1.1",
+              "@inquirer/prompts": "^7.2.0",
+              "@noble/curves": "^1.9.7",
+              "@tootallnate/quickjs-emscripten": "^0.23.0",
+              "acorn": "8.17.0",
+              "ajv": "^8.20.0",
+              "ajv-formats": "^3.0.1",
+              "chalk": "^5.4.1",
+              "commander": "^12.1.0",
+              "esbuild-wasm": "0.28.1",
+              "js-yaml": "^3.15.1",
+              "koffi": "^2.16.3",
+              "ora": "^8.1.1",
+              "pac-resolver": "^7.0.1",
+              "semver": "^7.6.3",
+              "sql.js": "^1.14.1",
+              "undici": "^7.30.1",
+              "webdav": "^5.10.0",
+              "ws": "^8.14.2"
+            },
+            "bin": {
+              "cc": "bin/chainlesschain.js",
+              "chainlesschain": "bin/chainlesschain.js",
+              "clc": "bin/chainlesschain.js",
+              "clchain": "bin/chainlesschain.js"
+            },
+            "engines": {
+              "node": ">=22.12.0"
+            },
+            "optionalDependencies": {
+              "better-sqlite3": "^12.1.0",
+              "node-pty": "^1.0.0",
+              "pdf-parse": "^1.1.1"
+            },
+            "peerDependencies": {
+              "playwright": "^1.40.0"
+            },
+            "peerDependenciesMeta": {
+              "playwright": {
+                "optional": true
+              }
+            }
+          },
+          "sourceFilesVerified": 16,
+          "published": false
+        },
+        "candidates": [
+          {
+            "file": "packages/cli/__tests__/repair137-verify-36.test.js",
+            "path": "verify-36/candidate/packages/cli/__tests__/repair137-verify-36.test.js",
+            "digest": "sha256:12f33f746aebb17246b592602bb99ba67cc4613b4e1a4ba8e8ef1a98d0508cc6",
+            "bytes": 3634,
+            "archivePath": "verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/candidate/packages/cli/__tests__/repair137-verify-36.test.js"
+          }
+        ],
+        "failure": "model task failed before a restartable result; see real protocol"
+      },
+      "acceptance": {
+        "id": 13076837668,
+        "name": "verify01-native-subset-acceptance-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3",
+        "runId": 41289807558,
+        "archiveDigest": "sha256:2172760953f2156ce794666c057091fa59767b9518a6702e516ec827b5cd9ef9",
+        "summaryDigest": "sha256:18a83509a112b5a33d8276ddaf974f789f2aaa21d2d8331042cc8e68ee5deeba",
+        "summaryPath": "verify01-native-subset-acceptance-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289807558/artifacts/13076837668",
+        "setup": {
+          "pass": true,
+          "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+          "receipt": "verify-36-setup-43b02916-4bb2-4cf2-8b16-9fd8e87e7ea2.json",
+          "receiptDigest": "sha256:a54219eaa54ab1f6f8e402d87cc9b290e32b0763fd7d7edd1e1450e3d0d90777",
+          "scriptDigest": "sha256:0635e99fbba83dd6666f0aa8325d9b42260de9c48580c02a79386c35860c0312",
+          "receiptPath": "pack/acceptance-evidence/verify-36-setup-43b02916-4bb2-4cf2-8b16-9fd8e87e7ea2.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 12,
+              "passed": 12,
+              "failed": 0
+            }
+          ],
+          "mutations": [],
+          "archivePath": "verify01-native-subset-acceptance-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/pack/acceptance-evidence/verify-36-setup-43b02916-4bb2-4cf2-8b16-9fd8e87e7ea2.json"
+        },
+        "check": {
+          "pass": true,
+          "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+          "receipt": "verify-36-check-953d914e-1a0c-4f91-acd5-8e6796dec1a1.json",
+          "receiptDigest": "sha256:3ec6f8e9ea96bae826c8524c0e995e199d52d3cc2161c9da84b76619448475d1",
+          "scriptDigest": "sha256:8da734b1abd78a3006c90e738136301444eaa611f51991a80d545615b64c2ce5",
+          "receiptPath": "pack/acceptance-evidence/verify-36-check-953d914e-1a0c-4f91-acd5-8e6796dec1a1.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 12,
+              "passed": 12,
+              "failed": 0
+            },
+            {
+              "kind": "candidate",
+              "total": 3,
+              "passed": 3,
+              "failed": 0
+            }
+          ],
+          "mutations": [
+            {
+              "name": "restore-more-permissive-mode",
+              "sourceSha256": "5fde36e42eba32cacb70b29b9bc80ceb250c656af337c83bab29bc734539044d",
+              "total": 3,
+              "passed": 0,
+              "failed": 3
+            }
+          ],
+          "archivePath": "verify01-native-subset-acceptance-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/pack/acceptance-evidence/verify-36-check-953d914e-1a0c-4f91-acd5-8e6796dec1a1.json"
+        },
+        "passed": false,
+        "candidateAcceptancePassed": true,
+        "generationAssessment": {
+          "passed": false,
+          "originalGenerationPassed": false,
+          "originalTerminalVerified": false,
+          "terminal": {
+            "terminalVerified": false,
+            "observedFallback": false,
+            "usage": null,
+            "totalCostUsd": null
+          },
+          "dialect": "persistent-IDE-with-validated-session-end"
+        },
+        "frozenSourceAssessment": {
+          "exact": true,
+          "contentVerified": true,
+          "filenameEncoding": "utf8"
+        },
+        "failure": null
+      },
+      "group": "darwin-jetbrains"
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "status": "failed",
+      "requests": 21,
+      "usageCompleteRequests": 21,
+      "unknownUsageRequests": 0,
+      "knownTokenOnlyEstimateUsd": 0.6401837999999999,
+      "actualBilledCostUsd": null,
+      "generation": {
+        "id": 13077600500,
+        "name": "verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3",
+        "runId": 41289772666,
+        "archiveDigest": "sha256:6f85fa3eb9c1de038293057bd8ee753037c38fdba4c182ab4d3d0af80eb7bcdd",
+        "summaryDigest": "sha256:83997d1830c09b267032ca16bb098ae7d82fc5a3f7c55fe5f19678e2e8ff7fd7",
+        "summaryPath": "verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289772666/artifacts/13077600500",
+        "prepublication": {
+          "distribution": "prerelease-actions-artifact",
+          "sourceCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+          "runId": 41286076748,
+          "artifactId": 13074779528,
+          "published": false
+        },
+        "prereleaseBundleDigest": "sha256:41c0c738dab533c77944c08f305864e8ec5b52dd9bc03e053970d57e921fd4d4",
+        "prereleaseProvenanceDigest": "sha256:457669a0dd785d0dbbf84cada514c2f3a15480246436594d73cd17c9a0ef3d10",
+        "generationPassed": true,
+        "candidateInstallation": {
+          "distribution": "prerelease-actions-artifact",
+          "sourceCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+          "runId": 41286076748,
+          "artifactId": 13074779528,
+          "locked": {
+            "version": "0.166.137",
+            "resolved": "file:../../../../Users/runner/work/_temp/verify01-prerelease-packages/chainlesschain-0.166.137.tgz",
+            "integrity": "sha512-SGNuuClcxuwdPlMwT1E6u9VX6IFgdoo+uGvj/9rIv0uyKhV0lfkG+/VOzAPNa2Jn9b9auHEorKela8LN3RTQNA==",
+            "hasInstallScript": true,
+            "license": "MIT",
+            "dependencies": {
+              "@aws-sdk/client-s3": "^3.700.0",
+              "@chainlesschain/context-memory-kernel": "0.1.11",
+              "@chainlesschain/core-config": "0.1.2",
+              "@chainlesschain/core-db": "0.1.5",
+              "@chainlesschain/core-env": "0.1.2",
+              "@chainlesschain/core-infra": "0.1.1",
+              "@chainlesschain/core-mtc": "0.2.3",
+              "@chainlesschain/core-multisig": "0.1.4",
+              "@chainlesschain/personal-data-hub": "0.4.66",
+              "@chainlesschain/session-core": "0.3.24",
+              "@chainlesschain/shared-logger": "0.1.1",
+              "@inquirer/prompts": "^7.2.0",
+              "@noble/curves": "^1.9.7",
+              "@tootallnate/quickjs-emscripten": "^0.23.0",
+              "acorn": "8.17.0",
+              "ajv": "^8.20.0",
+              "ajv-formats": "^3.0.1",
+              "chalk": "^5.4.1",
+              "commander": "^12.1.0",
+              "esbuild-wasm": "0.28.1",
+              "js-yaml": "^3.15.1",
+              "koffi": "^2.16.3",
+              "ora": "^8.1.1",
+              "pac-resolver": "^7.0.1",
+              "semver": "^7.6.3",
+              "sql.js": "^1.14.1",
+              "undici": "^7.30.1",
+              "webdav": "^5.10.0",
+              "ws": "^8.14.2"
+            },
+            "bin": {
+              "cc": "bin/chainlesschain.js",
+              "chainlesschain": "bin/chainlesschain.js",
+              "clc": "bin/chainlesschain.js",
+              "clchain": "bin/chainlesschain.js"
+            },
+            "engines": {
+              "node": ">=22.12.0"
+            },
+            "optionalDependencies": {
+              "better-sqlite3": "^12.1.0",
+              "node-pty": "^1.0.0",
+              "pdf-parse": "^1.1.1"
+            },
+            "peerDependencies": {
+              "playwright": "^1.40.0"
+            },
+            "peerDependenciesMeta": {
+              "playwright": {
+                "optional": true
+              }
+            }
+          },
+          "sourceFilesVerified": 16,
+          "published": false
+        },
+        "candidates": [
+          {
+            "file": "packages/cli/__tests__/repair137-verify-08.test.js",
+            "path": "first-run-darwin-vscode/candidate/packages/cli/__tests__/repair137-verify-08.test.js",
+            "digest": "sha256:746fdb546926cdce710c40446552ad31055d21f14ff3b039e4d9661f4b74bf42",
+            "bytes": 5626,
+            "archivePath": "verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/candidate/packages/cli/__tests__/repair137-verify-08.test.js"
+          }
+        ],
+        "failure": null
+      },
+      "acceptance": {
+        "id": 13076972359,
+        "name": "verify01-native-subset-acceptance-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3",
+        "runId": 41289772666,
+        "archiveDigest": "sha256:265af36fce9e6f493f8ddddcdf764eb8b9e7049cc70a3bc60b116d8915990ef9",
+        "summaryDigest": "sha256:fb50c7815599436ec6cd66fdce33252b4ae82dae8418a4ee114e0bb79c782b7c",
+        "summaryPath": "verify01-native-subset-acceptance-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41289772666/artifacts/13076972359",
+        "setup": {
+          "pass": true,
+          "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+          "receipt": "verify-08-setup-13255edb-b9ea-40af-8858-9d9e96bd27de.json",
+          "receiptDigest": "sha256:bc18798693a1b59897f7042c5be2d2e858bca30591d170de8c665d0b53d9abfe",
+          "scriptDigest": "sha256:41b07b56d85c745fdccef5d0454941a8abca834bedd6781ecde54cb6b65086b3",
+          "receiptPath": "pack/acceptance-evidence/verify-08-setup-13255edb-b9ea-40af-8858-9d9e96bd27de.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 59,
+              "passed": 59,
+              "failed": 0
+            }
+          ],
+          "mutations": [],
+          "archivePath": "verify01-native-subset-acceptance-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/pack/acceptance-evidence/verify-08-setup-13255edb-b9ea-40af-8858-9d9e96bd27de.json"
+        },
+        "check": {
+          "pass": false,
+          "detail": "candidate or baseline regression failed",
+          "receipt": "verify-08-check-97e716d3-a060-43ce-8729-5985558e3995.json",
+          "receiptDigest": "sha256:2a9ceec13fc0c9cee9fbacd190aaabd4552787d3b7c7b66525284734484d93f0",
+          "scriptDigest": "sha256:f6ca61f585d17bcad2dddc37b939d094868988e60bee05e68de78cb843afea06",
+          "receiptPath": "pack/acceptance-evidence/verify-08-check-97e716d3-a060-43ce-8729-5985558e3995.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 59,
+              "passed": 59,
+              "failed": 0
+            }
+          ],
+          "mutations": [],
+          "archivePath": "verify01-native-subset-acceptance-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/pack/acceptance-evidence/verify-08-check-97e716d3-a060-43ce-8729-5985558e3995.json"
+        },
+        "passed": false,
+        "candidateAcceptancePassed": false,
+        "generationAssessment": {
+          "passed": true,
+          "originalGenerationPassed": true,
+          "originalTerminalVerified": true,
+          "terminal": {
+            "terminalVerified": true,
+            "observedFallback": false,
+            "usage": {
+              "inputTokens": 8706,
+              "outputTokens": 5772,
+              "cacheReadInputTokens": 69378,
+              "cacheCreationInputTokens": 279057
+            },
+            "totalCostUsd": null
+          },
+          "dialect": "persistent-IDE-with-validated-session-end"
+        },
+        "frozenSourceAssessment": {
+          "exact": true,
+          "contentVerified": true,
+          "filenameEncoding": "utf8"
+        },
+        "failure": "candidate or baseline regression failed"
+      },
+      "group": "darwin-vscode"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "schema": "chainlesschain.release-authorization/v1",
+  "version": "0.166.137",
+  "ideVersions": {
+    "openVsx": "0.37.174",
+    "jetbrains": "0.4.190"
+  },
+  "authorizationSource": "User message in current operator session",
+  "userInstruction": "不论5个任务是否成功都可以先发布",
+  "supersedes": "Earlier requirement to pass all five samples before publication",
+  "fiveTaskSuccessRequiredForThisPublication": false,
+  "fiveTaskResultsUnchanged": {
+    "generationAndAcceptanceCommit": "a531924f367e60b61834aa8369634d0e241697b3",
+    "engineSource": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+    "result": "0/5",
+    "physicalRequests": 99,
+    "usageCompleteRequests": 99,
+    "unknownUsageRequests": 0,
+    "historicalFrozen": "41/45 unchanged; not combined"
+  },
+  "requiredGates": [
+    "Complete exact-release-commit CLI CI across every configured OS",
+    "Complete exact-release-commit CLI Strict Sandbox across every configured OS",
+    "GitHub Actions npm OIDC Trusted Publishing",
+    "Verified public upstream CLI before IDE publication"
+  ],
+  "knownUnresolved": [
+    "Late independent review can exhaust the unchanged model turn budget",
+    "Unproven partial source fragments can still be omitted and terminate through read-delivery guards",
+    "Model-generated regression assertions and behavioral coverage remain unreliable in three of the five samples"
+  ],
+  "reviewBudgetFollowupDeferred": true,
+  "recordedAt": "2026-11-01T09:14:32.685Z"
+}

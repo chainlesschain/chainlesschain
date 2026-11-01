@@ -1,0 +1,2563 @@
+{
+  "schema": 1,
+  "source": "a531924f367e60b61834aa8369634d0e241697b3",
+  "engineSource": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+  "projectSource": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+  "complete": true,
+  "modelAcceptance": "0/5",
+  "originalFiveTaskGatePassed": false,
+  "physicalRequests": 99,
+  "usageCompleteRequests": 99,
+  "unknownUsageRequests": 0,
+  "knownTokenOnlyEstimateUsd": 3.1873117,
+  "actualBilledCostUsd": null,
+  "credentialScanPassed": true,
+  "temporarySecretAbsent": true,
+  "files": [
+    {
+      "path": ".gitattributes",
+      "digest": "sha256:95ad2e76dedfe548184ad395c1fc3ebcf04c92a963ebda221e3667a2f633b615",
+      "bytes": 25
+    },
+    {
+      "path": "dispatch.json",
+      "digest": "sha256:e2455ce18d47d939b8fc65c88f803881278922ae8b0697dc158979718369b3f2",
+      "bytes": 7306
+    },
+    {
+      "path": "secret-cleanup.json",
+      "digest": "sha256:d1307cbd660953f59a959ece6e1cb63e20da6c5f624724c03cc114adfeca1d65",
+      "bytes": 1524
+    },
+    {
+      "path": "source-equivalence.json",
+      "digest": "sha256:cd2a8b1c76310e25c9d36bbb4350412bbc479cf90ee80896e23980f5d9cc5dc5",
+      "bytes": 663
+    },
+    {
+      "path": "artifact-index.raw.json",
+      "digest": "sha256:662152b82fd383c547cea56d115c018b78a51930fe417a1dcf6c6b9e2c0d594c",
+      "bytes": 8602
+    },
+    {
+      "path": "results.json",
+      "digest": "sha256:b558e039764cf22fd006546f1af24e948e6e535ce610a9798c9f1802cefb09b9",
+      "bytes": 60426
+    },
+    {
+      "path": "results.csv",
+      "digest": "sha256:a5e2d5d7cf6a6b9273d1d8d18d891fd51fc65c05ee330476066ad897d9044a07",
+      "bytes": 533
+    },
+    {
+      "path": "cloud-source-review.json",
+      "digest": "sha256:fa4be6db3ee4e7c1ee781ea04fd22da500e9e21ee30262b04b2ac5b244fc67b1",
+      "bytes": 20168
+    },
+    {
+      "path": "gate-dispatch.json",
+      "digest": "sha256:6cdde415661e306a12f2b57757da1db4a275d3b4346637ad3e9668edd9628d33",
+      "bytes": 1054
+    },
+    {
+      "path": "raw/run-41289772666.json",
+      "digest": "sha256:4196270adf438270112a61cd4bd9c0d698d2c11d8b59d77455cd6a3cc7322ce4",
+      "bytes": 29349
+    },
+    {
+      "path": "raw/run-41289782686.json",
+      "digest": "sha256:76fdfb7f30b72269ff8a22d04984c31f7b99f6d3a0f9e32d2d60ef9229cb1260",
+      "bytes": 29345
+    },
+    {
+      "path": "raw/run-41289794523.json",
+      "digest": "sha256:7886a71c3899e9ce40adfb957abbbfaa23c34005d9e945708b1761af6d072720",
+      "bytes": 29611
+    },
+    {
+      "path": "raw/run-41289807558.json",
+      "digest": "sha256:251457bcc3b1983c67a1d748ee107d0894ae173e222e487a661ce323682d82bb",
+      "bytes": 29637
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+      "digest": "sha256:83997d1830c09b267032ca16bb098ae7d82fc5a3f7c55fe5f19678e2e8ff7fd7",
+      "bytes": 852233
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/prerelease-bundle.json",
+      "digest": "sha256:41c0c738dab533c77944c08f305864e8ec5b52dd9bc03e053970d57e921fd4d4",
+      "bytes": 3815
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/prerelease-provenance.json",
+      "digest": "sha256:457669a0dd785d0dbbf84cada514c2f3a15480246436594d73cd17c9a0ef3d10",
+      "bytes": 16237
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/package-lock.json",
+      "digest": "sha256:8693e6157c172dae762ba4a5294eb59ee16bf7c2e5857ee2b3fa0d3c00b3dcbb",
+      "bytes": 210574
+    },
+    {
+      "path": "raw/verify01-native-subset-acceptance-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+      "digest": "sha256:fb50c7815599436ec6cd66fdce33252b4ae82dae8418a4ee114e0bb79c782b7c",
+      "bytes": 828392
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/model-stream.ndjson",
+      "digest": "sha256:20bfc12e1ca12b88f7142e44c70a647f359674c3d224f73ba865f86efc826e35",
+      "bytes": 2497165
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/summary.json",
+      "digest": "sha256:254f3949045e8e470f0bcfad699e67487689df6d0740522f8deeff571a13788b",
+      "bytes": 437459
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/policy.json",
+      "digest": "sha256:99e712a08bbd0a8b39533ae3434e2433f9400df1d41d527363811cd4e8427c4f",
+      "bytes": 927
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-1.dispatch.json",
+      "digest": "sha256:68e62b76a7b138b769940eff37f3721a06139c3ede6e1a9369b51c5ebb45dca7",
+      "bytes": 208
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-1.effective.json",
+      "digest": "sha256:04c81b37dba07e2a26927622284e5a29ea96e571929bf78d8443a60aee600b5d",
+      "bytes": 23793
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-1.original.json",
+      "digest": "sha256:74e75d0e3321c9063f0009edeeed7ee3883f89a15a04906cff1a09f282bf7d40",
+      "bytes": 23735
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-1.receipt.json",
+      "digest": "sha256:50703d7bcbcf48dfd6336ed2374bad7ef0e3a06e73203c61d6eb91bf3f97c823",
+      "bytes": 1510
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-10.dispatch.json",
+      "digest": "sha256:ca49ec3f551ce0a9e65773d04def3293e912096d3c79a9e2bb57b517fd9d6982",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-10.effective.json",
+      "digest": "sha256:99556df3b498b96ed549426350fa5407228fc415ab9f615c72635d82b8043adc",
+      "bytes": 95464
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-10.original.json",
+      "digest": "sha256:261763723a8f5f79c6757c50addcb05ab2d5e9c4886d3aa2065ce6d95edc742e",
+      "bytes": 95406
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-10.receipt.json",
+      "digest": "sha256:28f81ebd39b1ce892c5a53c27e839d305f45e9415ab19269aab6429272ece3bf",
+      "bytes": 1520
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-11.dispatch.json",
+      "digest": "sha256:28d1b8d46f542b94ab7da6557ca6c9de97ba377d4790d1d92df77096efdd94e5",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-11.effective.json",
+      "digest": "sha256:8dec7481285189471d4cf8a655fce864eadaca7fbf8f40eaf2d70a1b72a61508",
+      "bytes": 104904
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-11.original.json",
+      "digest": "sha256:d107651502ef86c0740eac993d0fae3e2bf05484d7bf3a5d4abec46c4394d8da",
+      "bytes": 104846
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-11.receipt.json",
+      "digest": "sha256:e800c4f3abd1d718c90c316f7e85815e80d9fbb6a028bd74c35739bf16e38205",
+      "bytes": 1520
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-12.dispatch.json",
+      "digest": "sha256:8b905361417ba9b3c06c11c164e5722ecf58b6bdb95c8146af3b4d63669bf7b5",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-12.effective.json",
+      "digest": "sha256:179b681f7a472b67564e2dd3f4f88189ee0d0e54367da5c6dedd641cdf61feae",
+      "bytes": 95227
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-12.original.json",
+      "digest": "sha256:28cf5f61f57be259232a30a86ed31e3e16ce3af67a374932ff27608853801342",
+      "bytes": 95169
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-12.receipt.json",
+      "digest": "sha256:467a239f4a14ea1ff9db1500a9e5863e23fde2a418e5d62ba65e8893dd68239c",
+      "bytes": 1520
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-13.dispatch.json",
+      "digest": "sha256:3fa790560ce3afc35de44108ff3af15faebb0b848bd1baaa7e28938c8e6c633c",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-13.effective.json",
+      "digest": "sha256:a5acc878609011d6e720c6fd2f63ae86d5ddb37f714689f4203ecf71e809b02f",
+      "bytes": 96932
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-13.original.json",
+      "digest": "sha256:ee5f90d2e36819357876747e4629693c468bbc8b11875eecaeeda0618a27802a",
+      "bytes": 96874
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-13.receipt.json",
+      "digest": "sha256:cfd258c763691b3669ad135970c911a32cab9385a3faf478eabae00c7a31ac78",
+      "bytes": 1520
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-14.dispatch.json",
+      "digest": "sha256:848516b64c1bc13b31695b18d1f37d0157445844b7ee8323347686bd7f044bb9",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-14.effective.json",
+      "digest": "sha256:fb038b2208d12a59f8d1e77f9d5e8204dad85e994f025444562b345402c92d35",
+      "bytes": 99217
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-14.original.json",
+      "digest": "sha256:19ee2ff71b473ba214919b10ac8ed821b553cb5a5d0c6bde4a7860d9b504badb",
+      "bytes": 99159
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-14.receipt.json",
+      "digest": "sha256:0b1cf32d153a951b1487d951d2e2d34dd2d4634e6c9532f046f4165f485eaff3",
+      "bytes": 1517
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-15.dispatch.json",
+      "digest": "sha256:38c189fe43fff071b7f14269c726b44c4249e2ebbdebb52fe075d47633fec7fd",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-15.effective.json",
+      "digest": "sha256:3323df326e054010d58d53f9ddb903eb0fff476e003247fd3352538e830272f8",
+      "bytes": 103029
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-15.original.json",
+      "digest": "sha256:49d48a2d1920acafd0555bd73397f217d822c70734d6e772eac48abc6333fc2f",
+      "bytes": 102971
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-15.receipt.json",
+      "digest": "sha256:4c86864c47ca6c183c294f9f8f48660f7d0f49f84144db2919116a5b46e90b77",
+      "bytes": 1521
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-16.dispatch.json",
+      "digest": "sha256:5570959892983bfc134197a8d7f65b45fdad94f42fbf1da20495afea43be937b",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-16.effective.json",
+      "digest": "sha256:1066c4c7e9472913ba689a0dc9cf04f8c9a9065068e3cb2379e994fd4afde1cf",
+      "bytes": 97866
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-16.original.json",
+      "digest": "sha256:51c49d291d0f48cb07d6b2189ca2a259c3f42464f0257cc3fb4fbafd70f8f177",
+      "bytes": 97808
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-16.receipt.json",
+      "digest": "sha256:f62a6c860863644800bfac61d1367dd1a17647c250bbedd54e66863dd7325492",
+      "bytes": 1517
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-17.dispatch.json",
+      "digest": "sha256:d4891513b293b2e7131832f0edb747df22dd5e6a656a1fa1f4cf903dbd5b8a10",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-17.effective.json",
+      "digest": "sha256:f315a4e10f75588fd1691e4629b328021e4fd0c2817cb21ff5c79e51abb8d243",
+      "bytes": 103488
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-17.original.json",
+      "digest": "sha256:9d8661949e043ad26a4cdd11e812acf7eb9ee08b6a139a1d6249f11661d69a8e",
+      "bytes": 103430
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-17.receipt.json",
+      "digest": "sha256:b3744788efe1cdb400a59681edd2f4fa0aea04f9a0d0190ccb5c19178e7f5b14",
+      "bytes": 1520
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-18.dispatch.json",
+      "digest": "sha256:209d2c78a1e44aff96d9523880ee2e15e92585731bf312457ad342b350c51633",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-18.effective.json",
+      "digest": "sha256:c1443751222d32b9c769dae74da270b616405dbd7c304808c84543adcf6dd98f",
+      "bytes": 103086
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-18.original.json",
+      "digest": "sha256:e1097f53500177a3c9b376b26d8b258fc4dbff756d8b4489064f3ed420e17159",
+      "bytes": 103028
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-18.receipt.json",
+      "digest": "sha256:e950560cbab53e4dbcda12a21ee303986b831f25627c706a8afe7d8b680243a0",
+      "bytes": 1519
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-19.dispatch.json",
+      "digest": "sha256:fa97430c07d6d957f84f4fe27d78267303095a7ba3ab8d3114f8b438e0be3cfb",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-19.effective.json",
+      "digest": "sha256:fc319bce61052aa0f9be05cb962139018f90ed7b9b5be52534a5c37b5cfa3725",
+      "bytes": 104566
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-19.original.json",
+      "digest": "sha256:0dad761af50c357b84d55f1211ca2cf8e1fd20db1978466e6e5eb3aaea611901",
+      "bytes": 104508
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-19.receipt.json",
+      "digest": "sha256:274a8a454118c3cbb8fe6193843a43a87c85afe5ed64ce29dafb26eb3a04c377",
+      "bytes": 1520
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-2.dispatch.json",
+      "digest": "sha256:74eef75886f2013071f64177f4fd8f6d8756db4cf7dad147e644b4275743f05a",
+      "bytes": 208
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-2.effective.json",
+      "digest": "sha256:95518bcffdcd0463b95a7320161eb89923a4e8c3b540a30fa0be18a5d55df190",
+      "bytes": 56998
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-2.original.json",
+      "digest": "sha256:d2a77c2b53bef8f1045f7724819c07664b171d51c2986b90b9e9ca2def9bab4c",
+      "bytes": 56940
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-2.receipt.json",
+      "digest": "sha256:48342dd9b3ea71cf5802236c3cac936a167a58be5ad023ba7d7d17481a8d481c",
+      "bytes": 1526
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-20.dispatch.json",
+      "digest": "sha256:c8f28f71d6de4dabddae31b41e0d2a726554c57b70f347f72f62d09a11ed9c47",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-20.effective.json",
+      "digest": "sha256:aec9c28cf2acd94d8b31d49519e440492f8ced523f0b06e4f0bd59acee69398c",
+      "bytes": 103067
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-20.original.json",
+      "digest": "sha256:c8e9c69bb9261f7b651c6a79558292635753c3beaa41669abcf82c93dd08e059",
+      "bytes": 103009
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-20.receipt.json",
+      "digest": "sha256:e365e2971742b246be60ed9a72cd4536c29a93f428b16a8b699138dc421dc121",
+      "bytes": 1519
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-21.dispatch.json",
+      "digest": "sha256:e92cb0ae8b99b1ebc3b713a928851c7cae13aa3bc942175812c880c344fb17f7",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-21.effective.json",
+      "digest": "sha256:972914846a0451aea18e416a0c8ede864fbf43455c693ee37f55920a6504bc04",
+      "bytes": 103711
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-21.original.json",
+      "digest": "sha256:8c72ad4be7165ef7bb107ee43dcf7fe4c4111c275180c13b2df4e0854d680179",
+      "bytes": 103653
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-21.receipt.json",
+      "digest": "sha256:a0d56cb0f0d53230b352b972815c7f1cc01de5be986d02cec44d99529a114505",
+      "bytes": 1522
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-3.dispatch.json",
+      "digest": "sha256:c2d940e7464cca93d9f0f6111d91b215e49c89bcab2e2c2d42b95808b1b9af32",
+      "bytes": 208
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-3.effective.json",
+      "digest": "sha256:7d74faabc1e685fde3386880844750c9902bae4f82b71dfe5d3b4ef5bdd2b5f0",
+      "bytes": 94214
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-3.original.json",
+      "digest": "sha256:05c932c13aaf0369822140313e8e22019c0f7c1b4f21a7c8fd1294de9c37dede",
+      "bytes": 94156
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-3.receipt.json",
+      "digest": "sha256:683e67d272e5470bc77ccdd929dcee64e76bac2ffa9df2e390cb2e768a91f5ee",
+      "bytes": 1533
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-4.dispatch.json",
+      "digest": "sha256:c202d5c6c829eab984e9fab759d096c369d0c1f09592982f7474fe5709b4663b",
+      "bytes": 208
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-4.effective.json",
+      "digest": "sha256:3f72a8dc994fe5e1997b74c2bfb933f10eb2e56916efa2fc3aca205608875b83",
+      "bytes": 90926
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-4.original.json",
+      "digest": "sha256:5f812d9eea4395d2cfc4c08ed13f906c014ff1295c82ffd1d9710dd694a67f82",
+      "bytes": 90868
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-4.receipt.json",
+      "digest": "sha256:3c6dd9e82b859083f986e0b27f52e97905ee1a400860bcfa35ea42e2ec142fed",
+      "bytes": 1520
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-5.dispatch.json",
+      "digest": "sha256:be12de0cb25343e61c1d6c195f2f380b65c6bfb5e7dc75092edcb40e85cf9d91",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-5.effective.json",
+      "digest": "sha256:8a89e46915065834c932495e55b8790a9e8b34bdf51f36f1f8e5734c3920fe0c",
+      "bytes": 26302
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-5.original.json",
+      "digest": "sha256:db0a0b614eeabfcf258af09c621780cda5b3d4a8931f986f1e403c316f0724d7",
+      "bytes": 26273
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-5.receipt.json",
+      "digest": "sha256:9167ff4680a04cc405460a4f274d606e01d4e930fcfdb514ab10c8f9a88543a7",
+      "bytes": 1506
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-6.dispatch.json",
+      "digest": "sha256:3b4dbecf6762978ab418a190df6678a5ee1a78c6c367e28006d3b5f2b4472dd8",
+      "bytes": 208
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-6.effective.json",
+      "digest": "sha256:1de62e5cc4f6748d7f2971f792623ee9f8baec236be6ff24505a1a5fa952f5bd",
+      "bytes": 45125
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-6.original.json",
+      "digest": "sha256:4ddae9667e45ab98d9cf06f894c7e7c3f3c66491d4e395aca200b08332e01825",
+      "bytes": 45067
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-6.receipt.json",
+      "digest": "sha256:f1f91bb2bfeca8d4d24e166e483d5728c813f92332fb5adc550292778cf2494e",
+      "bytes": 1517
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-7.dispatch.json",
+      "digest": "sha256:6eeb873c4bf1c8aaa386bcae7140ee4205c40a31f28da642a6464baace562c56",
+      "bytes": 208
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-7.effective.json",
+      "digest": "sha256:45addbb5aa8b1d429d82b88ce96d741ce1e25b930389d977ded571f9cf8fb4c6",
+      "bytes": 68935
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-7.original.json",
+      "digest": "sha256:c379b5ee22cfc74f8888e2c31b36e35656cffcd7e917a0a44164275a2dfeef65",
+      "bytes": 68877
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-7.receipt.json",
+      "digest": "sha256:eeea29cf9d87677623bec711fe9bdb00b2d54a9ff8afb1f9632209f61bfccdd2",
+      "bytes": 1516
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-8.dispatch.json",
+      "digest": "sha256:b290dae2bde09f36bcf98b206669627ef339aee59f2aea37262b365836825b4f",
+      "bytes": 208
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-8.effective.json",
+      "digest": "sha256:2abb44d7a9b9707b4144ba22020722d37ad19e06717ebe5871cca804a99f7e77",
+      "bytes": 88711
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-8.original.json",
+      "digest": "sha256:8af5a5841f5551dd22b1730bdd23a51b5dd7e1ac8e78d602d87b20d18982448a",
+      "bytes": 88653
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-8.receipt.json",
+      "digest": "sha256:5f8fb914b21b2913657a9801cd7ed8e17d501bc8f62e286347316c8dac6ead39",
+      "bytes": 1514
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-9.dispatch.json",
+      "digest": "sha256:3389bc61e8aa3e15299b70a99972fa3268dd69088783218af1166cb970ec11f7",
+      "bytes": 208
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-9.effective.json",
+      "digest": "sha256:519b92a0608c0978d1c73803d4cba6171a0082fd8c33e4185613bb959a263a5e",
+      "bytes": 87514
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-9.original.json",
+      "digest": "sha256:a342febcdebcf15c740bb81b9bbdd0337982a9a5677570760e12ae7938631aeb",
+      "bytes": 87456
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/request-9.receipt.json",
+      "digest": "sha256:331269baf3f311f16a49a97d9858341fbebc705b377202b782f59d6161bdca4b",
+      "bytes": 1520
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/response-5.json",
+      "digest": "sha256:c1b3c40efdf91906cdd0f9e72983896667f3cd151fc885e5b522ec9388371212",
+      "bytes": 8609
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/verify-08/broker/summary.json",
+      "digest": "sha256:203f65aa0a04b415500f65361454cdc7918a1d863a5f89cae592e6bacab7308d",
+      "bytes": 363
+    },
+    {
+      "path": "candidates/verify-08/repair137-verify-08.test.js.txt",
+      "digest": "sha256:474e84a17922aefc1ac06a89a44b80eb4a0c1068b74eecf33b251261206321f9",
+      "bytes": 5428
+    },
+    {
+      "path": "receipts/verify-08-setup.json",
+      "digest": "sha256:069fc0962a634455d20ba9a4c68c928e82547a984ba79f2a3dd250ba0a2b0339",
+      "bytes": 32012
+    },
+    {
+      "path": "receipts/verify-08-check.json",
+      "digest": "sha256:06e6a24b86dacbe91c2b5103211888c811acb69a2f3a2d7cd32e8cdff1f15be4",
+      "bytes": 26692
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+      "digest": "sha256:f08bbfb16f2973e73803498c144cdd7e8ae7fce07edb7afd893b212058e54166",
+      "bytes": 273924
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/prerelease-bundle.json",
+      "digest": "sha256:41c0c738dab533c77944c08f305864e8ec5b52dd9bc03e053970d57e921fd4d4",
+      "bytes": 3815
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/prerelease-provenance.json",
+      "digest": "sha256:457669a0dd785d0dbbf84cada514c2f3a15480246436594d73cd17c9a0ef3d10",
+      "bytes": 16237
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/package-lock.json",
+      "digest": "sha256:4e2f16af6d913496725763c116c6adb189a2f15c2be17c1ad8756fa2d5d06c07",
+      "bytes": 210566
+    },
+    {
+      "path": "raw/verify01-native-subset-acceptance-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+      "digest": "sha256:5df28773a22274bdbe9ad9218b5b346958e820a68ddbc371982ee65aa02e48ce",
+      "bytes": 259200
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/model-stream.ndjson",
+      "digest": "sha256:c4e1bdce022690aa4bbb13941872eb1b90118178872381e8549aacc5c6c7d52d",
+      "bytes": 2264408
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/summary.json",
+      "digest": "sha256:f736e9f7a4862cdd47377b55ceb48f1528c5686c671de5e83af1949a9931223a",
+      "bytes": 245117
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/policy.json",
+      "digest": "sha256:e9a07cb910f6b36f5aeb7504e68b9c5ef74211faa2a057d85507af1f9c0183cb",
+      "bytes": 927
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-1.dispatch.json",
+      "digest": "sha256:7d5f8d6da50cfb2dd7ee21c8f6737df97d4fd7ef3fa9d800fb98ee1aaa6f902d",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-1.effective.json",
+      "digest": "sha256:03aa5f64ed04b975bb0d0f9040db7b1738deb58c89cb59fade50dfeaf6c637eb",
+      "bytes": 16299
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-1.original.json",
+      "digest": "sha256:0ad3cf218045035ca948ff9a0c86168f2eddd2052f3939bf05fd10edc2d63fd6",
+      "bytes": 16241
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-1.receipt.json",
+      "digest": "sha256:4b968e67dcf451d30baa2005e84372ba4287f9000aa5f613c91302b2bee64982",
+      "bytes": 1518
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-10.dispatch.json",
+      "digest": "sha256:ea4da4f4becae844de59baf8a808e327ffec9f51309bd5b414dbc6d3035a0dc9",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-10.effective.json",
+      "digest": "sha256:77ff924df6fde8b0ff617c231554902a43db7ecc9d5639621d355d4f3775b69c",
+      "bytes": 104498
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-10.original.json",
+      "digest": "sha256:80dac849709cb6ce70ce4705103dc0a99ae27373c30e315328d8a89b99dbea26",
+      "bytes": 104440
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-10.receipt.json",
+      "digest": "sha256:d48f27db0aba917506ee8ab9fa1424178341b00ec8a11e4c9b415c33d2eee9fb",
+      "bytes": 1523
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-11.dispatch.json",
+      "digest": "sha256:cb31ebce6fc7d0ff26c7097f4a4d3cedec4fb683866dfe49a971bf2711dc953e",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-11.effective.json",
+      "digest": "sha256:19ee0b8ade4ae9e846f14dd18f9404f472820a1e7481175288ed7578eea35659",
+      "bytes": 90467
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-11.original.json",
+      "digest": "sha256:235610fd5ce2ce9947b1dcee7ff448caa453c6ada94b47d44613a5e726d0c39c",
+      "bytes": 90409
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-11.receipt.json",
+      "digest": "sha256:69f78b914a4b4684ab923487e04910bb9c78f7522d3dd918ac2bf5e4b90b0b9f",
+      "bytes": 1522
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-12.dispatch.json",
+      "digest": "sha256:541edcead3d9d1902272189f5dca60477620b727bb86a4da8ed5f19b3ad7134c",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-12.effective.json",
+      "digest": "sha256:0f2d0879064d884ee66950391ebdf09dc8870a5f8be3934e5d010ceaace3747c",
+      "bytes": 95985
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-12.original.json",
+      "digest": "sha256:f94b88548a645018ce2efe4043491c06078d7de1c05a23f784fac43fc90a87e4",
+      "bytes": 95927
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-12.receipt.json",
+      "digest": "sha256:4cdf9a38d0d82e35dd1e899a31339f84d2efb1519512be5e357750b2bbfc944b",
+      "bytes": 1534
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-13.dispatch.json",
+      "digest": "sha256:3f5c1b23cba03b2efbecba17e49327bff208bfb5768b0bf0b7d98b450cb55010",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-13.effective.json",
+      "digest": "sha256:175d73e45d2734a46123d2eaf051eb3959565bfb376b062f0d48617fb8de854a",
+      "bytes": 98914
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-13.original.json",
+      "digest": "sha256:10181a54e6d0488622f98b0323f91b0c6f10ee0624c52fa99a5c475ea009cfe6",
+      "bytes": 98856
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-13.receipt.json",
+      "digest": "sha256:7d74bd43f26d12a8b0421eba290b661ef4816b123db9bf75369baad82251423c",
+      "bytes": 1523
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-14.dispatch.json",
+      "digest": "sha256:c393e881dbad073ea32afe4a34cc13bbba7858caf57dc6599988ab687603ce01",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-14.effective.json",
+      "digest": "sha256:17de6b6541882a32774629f99f1b46e22814b8f5e9e013e1a771cdba61ca8202",
+      "bytes": 99024
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-14.original.json",
+      "digest": "sha256:adddeddaa6a7dc5ace550376b0931c155127aec56fdf1ae888a74e9b5a9ca6b4",
+      "bytes": 98966
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-14.receipt.json",
+      "digest": "sha256:1b2d8ea3fc5e522f412e1cabfa12db72be113f56d78cbdd2dbc4e72a9100ad54",
+      "bytes": 1522
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-15.dispatch.json",
+      "digest": "sha256:82c1f7cc6419b883d9f207d344b262ab4494dc0609c9503f9b1815fbc7c3af67",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-15.effective.json",
+      "digest": "sha256:308989f8f7726088e62af663c1e368ed4d013eb5909c1dc84206aaa085ec0558",
+      "bytes": 99435
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-15.original.json",
+      "digest": "sha256:21ed60e531c619a3b0f4202cca73428d33ed53a732d17303fbe4f8e9e733e576",
+      "bytes": 99377
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-15.receipt.json",
+      "digest": "sha256:5dbe432c6984aaec6a26205807e11f59ad34cdafbb8b96d6501c1c313e73fe70",
+      "bytes": 1522
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-16.dispatch.json",
+      "digest": "sha256:1ebfed65a9efe2ded1c4af1710b282243cc6eaa9305efb8b8284cebdbee975d9",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-16.effective.json",
+      "digest": "sha256:1b5509f7c0e4246b36c9509336dc8bf1d03250a66c8b9c69b4d76133a9e88e8b",
+      "bytes": 100191
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-16.original.json",
+      "digest": "sha256:54d4998926479f51fc9e7d747abb49fa1a75c5d7cc318e0e32402ad5c692a346",
+      "bytes": 100133
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-16.receipt.json",
+      "digest": "sha256:86ea378d2295c9b87e52452c63fa28653617b32f98ac83ae538b408e00797c50",
+      "bytes": 1525
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-17.dispatch.json",
+      "digest": "sha256:6ab20d3e5d30452ef888428d8ad01af01fc634e7f4320578f100b36b07009c77",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-17.effective.json",
+      "digest": "sha256:a0d4f9cb63f6a28476f4577c1d66b586ad046e0267be99a77274ca544babcd5d",
+      "bytes": 103142
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-17.original.json",
+      "digest": "sha256:4499c0a1e195912829923748191371c3de1a9301956efc6455d9dfff9fd0be5e",
+      "bytes": 103084
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-17.receipt.json",
+      "digest": "sha256:d4f0cb9e06aa3f40a5894590d8d97e33d2a6161105d25e008ac578f3d7feddee",
+      "bytes": 1532
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-18.dispatch.json",
+      "digest": "sha256:79eb5ddc3228e4e548a7b4530e45f112e6426ded3cb1d00d8f9fa784d40297eb",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-18.effective.json",
+      "digest": "sha256:c9e46d1124929aa4e4ee0913cd0db0deaa92e9ae9434a57b7e1f7a4309ef1ef7",
+      "bytes": 99967
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-18.original.json",
+      "digest": "sha256:080800b0adc49c8d51a2522d37c3a96778c9a809420c13d4cda6413af2e256b4",
+      "bytes": 99909
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-18.receipt.json",
+      "digest": "sha256:71c9951515287a111cfc0cc23a72ed90a7310ec9ecaf0d79abbd50916a049f87",
+      "bytes": 1521
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-19.dispatch.json",
+      "digest": "sha256:a94d8f785d9fd84f5d1592879956e37b2d8cc1a935da305e13260d118e8c60c8",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-19.effective.json",
+      "digest": "sha256:8fe34ec3cae8a6e18d699300e9f09c83091821bcc809c9e38e3821b707a3ea7b",
+      "bytes": 103521
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-19.original.json",
+      "digest": "sha256:dbdff71d28406eb93eb749c2f7746e59538e7f806cd02840e51cf0707fd2dd5b",
+      "bytes": 103463
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-19.receipt.json",
+      "digest": "sha256:c8be436949b42cfafd1c99c4928c68734bda36e054564e524342c771f442525b",
+      "bytes": 1529
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-2.dispatch.json",
+      "digest": "sha256:d3c659620a119ddd3b699aaf923243eb625b44639b7da172465623d547c5c81a",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-2.effective.json",
+      "digest": "sha256:e9e3a16a17d44a9de364e713e7e378eb825e4e66a72a089104b26a188e1ae3f7",
+      "bytes": 39069
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-2.original.json",
+      "digest": "sha256:476cf4f74b26e079b73347712d51fcede0507d884c3faff06a71eb5378659bd4",
+      "bytes": 39011
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-2.receipt.json",
+      "digest": "sha256:5100d0709b65803a8f2940c13938ef1c8cc2641feffbdf01cac42217d477c8ae",
+      "bytes": 1523
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-20.dispatch.json",
+      "digest": "sha256:131d4d90067af65c5b7317c0a9923b4fa669d4b2924b95880edd324532dad093",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-20.effective.json",
+      "digest": "sha256:fc22479b9cf91c35793d46dd5fb2c37aac2165390c329551ea07629f497b0242",
+      "bytes": 18004
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-20.original.json",
+      "digest": "sha256:1ba400437390d05a83138d4d5536acadd305139d608b1da10e83501ded85fa22",
+      "bytes": 17946
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-20.receipt.json",
+      "digest": "sha256:a8623893fdeee61308e8a7ae0689529cf531b8c0064a498c18a6e3fb9468f069",
+      "bytes": 1518
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-3.dispatch.json",
+      "digest": "sha256:2eeb514ee56bbfa88de3d9a976ae71c58c8c04b91339b174607a411453985a0d",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-3.effective.json",
+      "digest": "sha256:5df6d763926569f712d6088f3cb99c0229d6d4716df2bc81924fbd5f16c489be",
+      "bytes": 72857
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-3.original.json",
+      "digest": "sha256:12418cff862fb1004cc0a5399ecee3b06b803bd6974b9ae187be0f1c1d780be4",
+      "bytes": 72799
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-3.receipt.json",
+      "digest": "sha256:8a6c45928cf93290583a97e4ada62f4be3791f456f7e872127050f9448d69289",
+      "bytes": 1525
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-4.dispatch.json",
+      "digest": "sha256:bc28186d4c0a97332ac1bc9977280daf24df4f319602e5eaad056d18ba560f1d",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-4.effective.json",
+      "digest": "sha256:e4d0b751b8f0929d4fd6c295cd012d60c642fa2384252880387ceba630382de4",
+      "bytes": 98027
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-4.original.json",
+      "digest": "sha256:aac59e1210809691c6823a9cac981f1124d30aa7f526db08a76b069d3f9b9277",
+      "bytes": 97969
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-4.receipt.json",
+      "digest": "sha256:571115b0ef695965b1e23648903974ffa41dda8f275a1edaf58bc4f37d2aec48",
+      "bytes": 1523
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-5.dispatch.json",
+      "digest": "sha256:b1de875fff0b48eca40d5ab1b8450089158c476cb78b02b798213c7717675927",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-5.effective.json",
+      "digest": "sha256:7f19b767f216e3e2c0b78e804f3c2c8d8b652f82e0470204bba0f841fbeac777",
+      "bytes": 95745
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-5.original.json",
+      "digest": "sha256:e967a7c50be31e5db7aee8d16a238f972b496549e94f84052872615a1ee67e6c",
+      "bytes": 95687
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-5.receipt.json",
+      "digest": "sha256:918b1aed30d20cacf3702bc128cfec1e24026c677cde4222b55f491008bbb49f",
+      "bytes": 1522
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-6.dispatch.json",
+      "digest": "sha256:ed1d6af8c341d82e8baf3ab4b461d422805e5a5e24ff9ee5e23cf7392d9a295c",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-6.effective.json",
+      "digest": "sha256:cbb7af6ff935f14de978631f479ac943ed393daa2cc5e86919cf6afbf959c112",
+      "bytes": 95390
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-6.original.json",
+      "digest": "sha256:5ff6b490f94165c390949a044bc672a59b4d62749f315b7d7c81c44636bb967d",
+      "bytes": 95332
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-6.receipt.json",
+      "digest": "sha256:ff5da693b3fea3c24afb6a259735e50c99df7c435417092218f38bad6e34ced0",
+      "bytes": 1532
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-7.dispatch.json",
+      "digest": "sha256:35ee4ae78a2216729bfda9968fbc4306582fe280c667da4fa423a09e392dd726",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-7.effective.json",
+      "digest": "sha256:435188a1eb0d623688818cff913534c797a032df5f0110762ece825acf484283",
+      "bytes": 100834
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-7.original.json",
+      "digest": "sha256:5b21171ed2c7da11035a6e936603abdfe5db53375914398e4584a7c75f39ff03",
+      "bytes": 100776
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-7.receipt.json",
+      "digest": "sha256:115b73b411b8adb6431237578a3292375975db415b06883951bcdb76cc116457",
+      "bytes": 1524
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-8.dispatch.json",
+      "digest": "sha256:0f87512c6ff73f173aa5f4ecc526b21c6dfafc2106b7c90d97df00f647d233a0",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-8.effective.json",
+      "digest": "sha256:e829638feff232bc959cf4cb9ab32b8b9d15e4c4f4a3e8ec81de97b73ba0349b",
+      "bytes": 96365
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-8.original.json",
+      "digest": "sha256:a115fcc68eb3ee3850b8d698f8dbbfc0100a43a835da64ce8703a5036cd88d8d",
+      "bytes": 96307
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-8.receipt.json",
+      "digest": "sha256:453fff50a2cb6956adfd9217a92054fa670787b42e965df6276af474c57e8e1f",
+      "bytes": 1522
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-9.dispatch.json",
+      "digest": "sha256:3680ef9c524f5fe362b2889fc6a663524ede070eaefc1a1bbe48c6fb63c8fef3",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-9.effective.json",
+      "digest": "sha256:2929b3cf8d2fc39943a758be57deb0b1dab7afa11ef29c0412611022e560b5b8",
+      "bytes": 100161
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-9.original.json",
+      "digest": "sha256:32496b936f8a5cd9f76a738ad030fab173b919c8fee449e265f0eb1a7a07f8f9",
+      "bytes": 100103
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/request-9.receipt.json",
+      "digest": "sha256:3899e7286a55dafea7837f9912fee93c62a97408c63396be3b1ae05c82eec885",
+      "bytes": 1524
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-1.json",
+      "digest": "sha256:953a300a94b419b6c4ac338f3994a8a08aaba0266514a055725d79fc1e2a2d81",
+      "bytes": 13548
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-10.json",
+      "digest": "sha256:46a7d5d44cbb44bb7ad4434cbfb98a35d3873cff805666a7aebfe522de234c46",
+      "bytes": 12358
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-11.json",
+      "digest": "sha256:c9dd727dffed64dbd15018285ae459ab35bcf7490c8997fb21cd63e54dcf1d7c",
+      "bytes": 13264
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-12.json",
+      "digest": "sha256:d73b9f19f7a07b9cdcdf9c9912f89d0299acf60e5e0e0e30d13460ef1f0be861",
+      "bytes": 14443
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-13.json",
+      "digest": "sha256:7a42a4931eb5166a5aa6faf33c4467cd93bfa28117814e72a5bd6a9327a5d6d1",
+      "bytes": 15328
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-14.json",
+      "digest": "sha256:b06126ed45be48380954f3a28e6b73b87af91d6dc0ac8ee8cdd9b32436493968",
+      "bytes": 12738
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-15.json",
+      "digest": "sha256:22fbdf6e42dbae97ac8687cf936ee292552ec3dd4c1a969bc9defc886f1004c7",
+      "bytes": 12363
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-16.json",
+      "digest": "sha256:1590a4b86c1b036b56d720d51c5586765cba14eeedb898a1c740efefea6cdf50",
+      "bytes": 19050
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-17.json",
+      "digest": "sha256:64bf332e698650ec9ec0d0fcd7461e2bcb14a4260101aa741edcd621529efb5b",
+      "bytes": 12176
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-18.json",
+      "digest": "sha256:26880d8857ae6ea86923c048ca1f61c11f97254151ec054eb869c44c6e872d7f",
+      "bytes": 11991
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-19.json",
+      "digest": "sha256:44d3bf21eec8509bdb9c2a245ef5cace9b928eeb2bf6a7681ef9463244e990c8",
+      "bytes": 17962
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-2.json",
+      "digest": "sha256:5b89ba0e63e7ed949b092e9eb37e9350cba6759bef6c714206c9452025ed74ae",
+      "bytes": 33213
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-20.json",
+      "digest": "sha256:b620daf8af1690da15cd34db7058412c5cdc6a74e6eb00b53f4e8cc85140c939",
+      "bytes": 12739
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-3.json",
+      "digest": "sha256:c588acd4362fb63a863214ccb3d7ef14155d4afbffd4bfd1cd8905ef8e84d629",
+      "bytes": 25392
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-4.json",
+      "digest": "sha256:4a65a3024b02ae19c0c2936ddf55123921bb07a4ba66ae2363026b2619bdafb1",
+      "bytes": 14528
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-5.json",
+      "digest": "sha256:0118e1dfd553f5b3814a8beb0118fe36e6609b30ac37a18b56c1dc08f8a14bbf",
+      "bytes": 14462
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-6.json",
+      "digest": "sha256:277219ec7bf50ac5117c768b04766eb5e7b1e745d12bf99e33d15194b1faa0a3",
+      "bytes": 12743
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-7.json",
+      "digest": "sha256:b06510c1c1dfdb8dac0637003c5b20462a9ae58804ce78028e15a5b3b1eac662",
+      "bytes": 22048
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-8.json",
+      "digest": "sha256:8cee53c1ce71f5bd72c0e8307a5c513b8989104cbdb894089f641d582d6a5d14",
+      "bytes": 12624
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/response-9.json",
+      "digest": "sha256:61401b1923f4aa1d302f97221fe753fda80cd84f6e3a5505d1d51e6fe9306533",
+      "bytes": 21269
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-13/broker/summary.json",
+      "digest": "sha256:92d3ff7e4b2ff7521f2f7f0038096a74280b6a018b9ed837b777b6a4fd0728ca",
+      "bytes": 345
+    },
+    {
+      "path": "candidates/verify-13/repair137-verify-13.test.js.txt",
+      "digest": "sha256:892b872b61902cf6172a3a838a0039104cced46bfde693a46fd053c69e40d949",
+      "bytes": 10486
+    },
+    {
+      "path": "receipts/verify-13-setup.json",
+      "digest": "sha256:83483a1d405d919d3173143848ccb94afedbac387a9a60c692ef80c92aa8e53c",
+      "bytes": 16232
+    },
+    {
+      "path": "receipts/verify-13-check.json",
+      "digest": "sha256:980d1223f2b7c49b646d7e6684940897deac9d045190feb605ced04fd9be053a",
+      "bytes": 30415
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+      "digest": "sha256:a8540f5d255d759cd8a515555981164c26c2051bdd59847299322b81d32f4fdd",
+      "bytes": 596738
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/prerelease-bundle.json",
+      "digest": "sha256:41c0c738dab533c77944c08f305864e8ec5b52dd9bc03e053970d57e921fd4d4",
+      "bytes": 3815
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/prerelease-provenance.json",
+      "digest": "sha256:457669a0dd785d0dbbf84cada514c2f3a15480246436594d73cd17c9a0ef3d10",
+      "bytes": 16237
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/package-lock.json",
+      "digest": "sha256:b307f7db84e144309d72f14b30cd3fbe89292627a0a91e2b7f1059680dd51a3f",
+      "bytes": 210524
+    },
+    {
+      "path": "raw/verify01-native-subset-acceptance-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+      "digest": "sha256:3c545a3231b5195e6fc3fc1b711dce663ead156a3b34777976a8efaaa6787a5c",
+      "bytes": 581375
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/model-stream.ndjson",
+      "digest": "sha256:19d4dfc7e91574f8f2b1dd81df8739384498fd95058b9adf96ed88e2b8f0331a",
+      "bytes": 2415892
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/summary.json",
+      "digest": "sha256:9eaa8d333069b31614d87bd9a83a15b25e27e2199c4637500854456a47ad0a40",
+      "bytes": 553093
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/policy.json",
+      "digest": "sha256:b3dfee019b3ebcc375c70330db6a80b590f7043c3b5d2e08b17d8f586f6b0e39",
+      "bytes": 927
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-1.dispatch.json",
+      "digest": "sha256:e6df93379a1a111c987900dbb240b20fb97088e58d3ef245146ba6451a383b16",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-1.effective.json",
+      "digest": "sha256:9b18826651b253af4ec163bef568f329e50ae2c182fd07e7f5034eda2f359ced",
+      "bytes": 16300
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-1.original.json",
+      "digest": "sha256:068d92435c5611e79a5ad2764c65d376739d9f71f958ffd65b799005c1152eb3",
+      "bytes": 16242
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-1.receipt.json",
+      "digest": "sha256:95b6ab4e31867495f935b79f58315882b370da070492f49ef1750702e8a89994",
+      "bytes": 1518
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-10.dispatch.json",
+      "digest": "sha256:6e71905863aa7a1f529c83707c4e36f3ae01a71a710f85f47e494e07dade673b",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-10.effective.json",
+      "digest": "sha256:f71c9ed13851461c360cd07d8a66da9482f2e385601a5d18349b5c8d5f18c552",
+      "bytes": 39386
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-10.original.json",
+      "digest": "sha256:c50fe798c8f33e5ec3ba68b133abe6a7b70d25771b0e87531e84a2ee6d708544",
+      "bytes": 39328
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-10.receipt.json",
+      "digest": "sha256:94dad7aeafce14c91d8ead7932ca10e2a26383b90de72023b44890e1ed0b5eb6",
+      "bytes": 1516
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-11.dispatch.json",
+      "digest": "sha256:308e438b1b31bbaec441fb1a7c3b5eadb59a5365d913f1755141d0f323ca49ab",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-11.effective.json",
+      "digest": "sha256:6baa8ba58880e0b3ad30701c157d89e9833ace252c0eaeabb46a4a7f9e7a1072",
+      "bytes": 69846
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-11.original.json",
+      "digest": "sha256:1e7240f5d5ac9b3970e428389af1cd22ba1866d1b73de9342d3464cf309febab",
+      "bytes": 69788
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-11.receipt.json",
+      "digest": "sha256:7be23ac5f1f4b60d5938f062709dc79b7d402ed7a1306f1fb1a7cf59eac34546",
+      "bytes": 1523
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-12.dispatch.json",
+      "digest": "sha256:411121b7bf86d5094cf701350e4f1a5906eb51028f61c50a0927a5cb84ff152f",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-12.effective.json",
+      "digest": "sha256:efebd2a5c3bb23b9132319f3f0418ec74516773ac8709676436dba8ef95f8e88",
+      "bytes": 94500
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-12.original.json",
+      "digest": "sha256:de41e0cf1d695b6d5ebb6bd74ae823de3ffa4131f8d7778961044bf60553bdf5",
+      "bytes": 94442
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-12.receipt.json",
+      "digest": "sha256:873a4faf9face0be0a6a9694771998954e7d94adfaac956be33b586274beb891",
+      "bytes": 1534
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-13.dispatch.json",
+      "digest": "sha256:cf6be1d412ec67d9604d72a5531b203364b75fa1ea2e8aa21419b6dada37a961",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-13.effective.json",
+      "digest": "sha256:226a93c8dfcb35300917534f7b99cefebae0afc745d7ca8c78c5b588e0151df4",
+      "bytes": 86258
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-13.original.json",
+      "digest": "sha256:7f3d523068a2e922ad8d968ec6db1bce33cfaae57acf5e1f4cafcc1dd1fb8387",
+      "bytes": 86200
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-13.receipt.json",
+      "digest": "sha256:787d045acb6135dbfdb314fc55481ed65733df2aca5b8482e1e1f7b3d72995cd",
+      "bytes": 1524
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-14.dispatch.json",
+      "digest": "sha256:c22b414a40e4767328f25c4f6641921b7c253a5f40389d11ae0b7e1c8f7df6b9",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-14.effective.json",
+      "digest": "sha256:a03530eac903239ceb8438dd8d1ea4ddd8e62271dd6e134fe45e90d02508ea6e",
+      "bytes": 96377
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-14.original.json",
+      "digest": "sha256:901bef8c9e746260ce3e7b7a526f6b52ae54d437946dd3e1f2dfce3acbbde0ab",
+      "bytes": 96319
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-14.receipt.json",
+      "digest": "sha256:51d0127c4b623ffc7bdb0fdabcf31c2034b884e1aa52cccbd217c84bba1e21ad",
+      "bytes": 1522
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-15.dispatch.json",
+      "digest": "sha256:990b1b9ffc4341661019f850251c3cd3ce3348e1a835d07f6cffd5f6263cc710",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-15.effective.json",
+      "digest": "sha256:f1b8ca8c64593c7de4781cdb3be8bdc00c0875448c110413331a4ba4581f7037",
+      "bytes": 80031
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-15.original.json",
+      "digest": "sha256:02a2d8d3f34d4076069b4c0d681795725008dec39e3979522a90474f4424ce82",
+      "bytes": 79973
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-15.receipt.json",
+      "digest": "sha256:68f4b9240a9ce36853c0cb2c61d8f1d37756a1710e8b95222b7f4a7bd6ea9bde",
+      "bytes": 1533
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-16.dispatch.json",
+      "digest": "sha256:31efabd3530b174018be28a5203acb168357a4039ff07087402ab40adfdd1dc4",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-16.effective.json",
+      "digest": "sha256:0ffd81636f06914620cd4e138501336f0623792cbd2fd957588158491cc2065a",
+      "bytes": 94435
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-16.original.json",
+      "digest": "sha256:cacf166aa8c368589c52812915d9b6c53a5aad104dc2c1a21059d6c151623c1e",
+      "bytes": 94377
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-16.receipt.json",
+      "digest": "sha256:bc4c8ba9bff74bb99054888caa29a2535820870e5a3c1e8cdca3d2fce5d356ab",
+      "bytes": 1523
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-17.dispatch.json",
+      "digest": "sha256:a0b950e2320600434aa42acf6bf40479a8c752fed9a6b81e240253501c0c4f04",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-17.effective.json",
+      "digest": "sha256:97f65ac475ac350f2469deeb6708411f0e4bbfe5a03fb8c826ce19dcd95f4b2e",
+      "bytes": 87562
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-17.original.json",
+      "digest": "sha256:a98b8e6ded56336a0bd7c6203b96ebb0b312bd6dbf2e5e048d160f64abab420c",
+      "bytes": 87504
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-17.receipt.json",
+      "digest": "sha256:5ac132796c1dc5bee79140b9f2d462b53084de0225a426b83a618f95fee49e58",
+      "bytes": 1526
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-18.dispatch.json",
+      "digest": "sha256:2b078006372969da584739540ef56d9591c21c53b49489f3fe5b4550804bab46",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-18.effective.json",
+      "digest": "sha256:4b9d13f73fc4c960e997845b11a89798bf69cf9bd330bcb0295df6fb9c8527f5",
+      "bytes": 100795
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-18.original.json",
+      "digest": "sha256:81ae67bacd7ede8ef9f3a2cd9bed7a094bcd28b827a673da7e1a19bdc97bbbc4",
+      "bytes": 100737
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-18.receipt.json",
+      "digest": "sha256:81c3c4e5635a6bafa35a91a5ac8cca9e356f17c587bc174a53b55c605ad3fc9d",
+      "bytes": 1523
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-19.dispatch.json",
+      "digest": "sha256:b82a057cb36be5374ae3532cf2b2e293c8e6e01dba6093fecb529d02dc3486da",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-19.effective.json",
+      "digest": "sha256:829e0a5e31c933f6fc40772d10040ae7fa510e080a2614d9f70f25f00bcb443c",
+      "bytes": 103747
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-19.original.json",
+      "digest": "sha256:01da52914f6a97f1c0b7bddcd7060ff5d08dfa3762b7e85e20db46f7cac05079",
+      "bytes": 103689
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-19.receipt.json",
+      "digest": "sha256:04759ce4b9d402f4f6fd58ad324ab40e06027a24a51a68348c177fb31d2094a7",
+      "bytes": 1524
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-2.dispatch.json",
+      "digest": "sha256:9595c50c677afb3116c6938e0db54ecbf42362ba5830422275eb7857ee5ac4b5",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-2.effective.json",
+      "digest": "sha256:05e4c54eb107de6a15d15e481672851e8264f953f4051bdb56a4f186da9d1773",
+      "bytes": 40465
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-2.original.json",
+      "digest": "sha256:c2adfa0c88568cd4c7874afe9e0a5b06ff3d0064baf07ebd6d1daeb35f55af39",
+      "bytes": 40407
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-2.receipt.json",
+      "digest": "sha256:da35577b3356ef5d596a242486ac71490dc5ee84b662494857e186e188e3fbd6",
+      "bytes": 1518
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-20.dispatch.json",
+      "digest": "sha256:784de85db29685154e03c65ac1a9f07565fd4dedbc8b36a4a71ef0e63912b573",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-20.effective.json",
+      "digest": "sha256:535b7fd045db624f9e73a29eb68e9c7c8f59d011f92bdf431c412291a403b47a",
+      "bytes": 98988
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-20.original.json",
+      "digest": "sha256:0b4238c6320377a1f41629c110eedf54cc095ba26f1904a377e0e93a9e433d83",
+      "bytes": 98930
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-20.receipt.json",
+      "digest": "sha256:157e68170cc203060992278790c2cf0d1a5075bb8e23e5d3a789ac3f40275b35",
+      "bytes": 1516
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-21.dispatch.json",
+      "digest": "sha256:af2b5006de817a77b543e70cbd3be601a00dbec9139d9d41ae9fd6b3fa5279b7",
+      "bytes": 210
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-21.effective.json",
+      "digest": "sha256:94318fa56523f3a7a96a62b3939516f3226029edfc7d5e8ba4e2b92be2244979",
+      "bytes": 18005
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-21.original.json",
+      "digest": "sha256:4d4d00fa5728a577c40d1712f7c4019f8a31619b0d4372092bd3d25f9517d25e",
+      "bytes": 17947
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-21.receipt.json",
+      "digest": "sha256:a54aaf8c249b5e27227bff1e6af04bc361f46967cbfb02171b15683b29519f69",
+      "bytes": 1518
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-3.dispatch.json",
+      "digest": "sha256:c5b74e94075377a4cd2522d36c638078326ed68f0e7f63db968a5f453d66e8ef",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-3.effective.json",
+      "digest": "sha256:118d4333eb5b9c7c6fb389e1718e4100726ae90339825cb2576f58dcf8be66bf",
+      "bytes": 66248
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-3.original.json",
+      "digest": "sha256:275107a7e6200d17815d366df7b6c05ddfc87cb83db7fde33e595b2dfafbbb16",
+      "bytes": 66190
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-3.receipt.json",
+      "digest": "sha256:da16a2a90b3416608bc3a4f7d4e863254922c7860d93b762303c93be069ebdb9",
+      "bytes": 1520
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-4.dispatch.json",
+      "digest": "sha256:85e39e7fcfc81d7b5146da2a7d4882ef7c75eed8622a4a55856bdcae3886317b",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-4.effective.json",
+      "digest": "sha256:8f6d73996254963bc4897292144c333f05373c2516ffdf79f5f5287687c0d5b8",
+      "bytes": 98796
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-4.original.json",
+      "digest": "sha256:43713e60bd07ad9594302ad23754100b33784fbbd87bff6c4719abfba48ffdbc",
+      "bytes": 98738
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-4.receipt.json",
+      "digest": "sha256:a1f048437c0a29f13ea84e8cb8e8e31c807806b040209abdf32bc66770167422",
+      "bytes": 1520
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-5.dispatch.json",
+      "digest": "sha256:86e46481ae95535e4ca080c68e0cf997dcaeca7fd7eb93e92ee786fda7407874",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-5.effective.json",
+      "digest": "sha256:1e17de10493692f172109f4430c5995fab006a75aa141eba850f91b699d05ac9",
+      "bytes": 104295
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-5.original.json",
+      "digest": "sha256:efeb2dc5c5d6c36cf20a3fc0fb7792d40a575f8e1ca3967be2d79eb61752a2aa",
+      "bytes": 104237
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-5.receipt.json",
+      "digest": "sha256:f3b220c21f28960bb2633ca5d98ec92fa73fe207d97da1ce27d39cdeac9f5889",
+      "bytes": 1521
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-6.dispatch.json",
+      "digest": "sha256:4210a01fea30b92d6700e2a114471ff4e22afd77d1bece0454473b98844e4b1e",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-6.effective.json",
+      "digest": "sha256:552cfed1d896c28f82cf67f971ec715240eded769099ed06bf71356e0b4ec40e",
+      "bytes": 99860
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-6.original.json",
+      "digest": "sha256:fef4f5deff5c28066c1daf96d4cb538a50bc54b2728a01c2aeb0db01053c1c3d",
+      "bytes": 99802
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-6.receipt.json",
+      "digest": "sha256:154be61029a8da87543f6055aaca01224190f1ff9df7aeb2c961ab185ad8c2ec",
+      "bytes": 1521
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-7.dispatch.json",
+      "digest": "sha256:17209e6296fc3d1170666670c0eddccb405759d5be5057fa0aa7010f7ee50f06",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-7.effective.json",
+      "digest": "sha256:49e141254783dd0cfc0a4dc37f290c916c6eb3f4e8e8fef8afbd4385a1878c10",
+      "bytes": 104245
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-7.original.json",
+      "digest": "sha256:c79241a5990678612935dd8e89f1a438b62c9c997576e324522e0934976ccca6",
+      "bytes": 104187
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-7.receipt.json",
+      "digest": "sha256:26dcbfd856589b383e7249fba1cf7d3110eca0be93ae92a4aaa3a6e0fddf3ae2",
+      "bytes": 1521
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-8.dispatch.json",
+      "digest": "sha256:042a50a184606744e16c6ba489452a3c48c474b76af76e7a130c75228e36e70c",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-8.effective.json",
+      "digest": "sha256:44b73f0f3c34c892725c764d1d8e7b42ab3fee3d0d15b0eca4426fb984c3a17c",
+      "bytes": 104323
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-8.original.json",
+      "digest": "sha256:ad886bb308726d7b0f4a49cd6d6035bc432f9b8f6dac864474cc128aab682cf6",
+      "bytes": 104265
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-8.receipt.json",
+      "digest": "sha256:bd7750dce8ec2395ca896b97d3a72cd4394113d12f339250f583aba45ad6c0ef",
+      "bytes": 1521
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-9.dispatch.json",
+      "digest": "sha256:48cb65baaf3a4c2d4b72a1c44d93ad4c37efc3fb416223834fed6a9fdeaaaa47",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-9.effective.json",
+      "digest": "sha256:723ecbce2806e6616264470a5c91f5b687526c0d561bf5b3c67ebc4512cc1802",
+      "bytes": 26636
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-9.original.json",
+      "digest": "sha256:0c47be541969c24630ace46153fefd8462e1712b17b55d139f731409de5c6049",
+      "bytes": 26607
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/request-9.receipt.json",
+      "digest": "sha256:a248484cc5b87c6940e11b5376b052f40512dc22ff893de12a734e5cb1ae0237",
+      "bytes": 1511
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-1.json",
+      "digest": "sha256:bc0e33b5e3ef849578e55171d030dc293890a1dd506ae51f450fd86622a6e98b",
+      "bytes": 12742
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-10.json",
+      "digest": "sha256:192df9a4ab135b14ae824dc6ddf7d26bce8ab517f865bdca529c0e39a351cd89",
+      "bytes": 15738
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-11.json",
+      "digest": "sha256:ef72bab512ced490e12cc675336b0b8c29eb10905a5d705a8420167eb48bd7f4",
+      "bytes": 16005
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-12.json",
+      "digest": "sha256:c95b4479933e9f0a11b91b2b23a1bbfb161b5d3acd801885daca6a492f054221",
+      "bytes": 15992
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-13.json",
+      "digest": "sha256:17ab44bd6fa0e732c9852fe59ec55720f61a450235c848bc3a4bc5d4ed2fa927",
+      "bytes": 14248
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-14.json",
+      "digest": "sha256:d09b513539c3e1222323bbfbc0328612a147bdfe0dd111a59c5acad405052d64",
+      "bytes": 12124
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-15.json",
+      "digest": "sha256:2d6503cc9aed76d0d0f426b943fc0704b1aa62819d8b87b1ec65cde82e603777",
+      "bytes": 12953
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-16.json",
+      "digest": "sha256:dfa75868c3acc04dd5f0027a299093687f427ecea3e0d813f9e7ee2900b76a15",
+      "bytes": 14663
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-17.json",
+      "digest": "sha256:4f2b425b4af30d7f8aacd6a38c80cd2858e0d3e3e1884a019b01774aade7e58f",
+      "bytes": 25389
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-18.json",
+      "digest": "sha256:2f525289c206f2f99bb8602ea1ae62c88528eade7793f033b9eb11d34884de47",
+      "bytes": 16827
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-19.json",
+      "digest": "sha256:7f3e68c594a3b10d01cae1ee3eedbf36523ac90f5236f0d9a83924747791e530",
+      "bytes": 24562
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-2.json",
+      "digest": "sha256:7177c58ed52088a6cc9e34931d7f428cc11b88721f83dfbbac3e4be72b5064a6",
+      "bytes": 15923
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-20.json",
+      "digest": "sha256:a2e0dbe451e71cd06995308f249d7b22a52e4e533ad40042f0e7fe0ec93fa45a",
+      "bytes": 16584
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-21.json",
+      "digest": "sha256:717804dac97d8bf8c67a9c43ab56d0607b3f9cd5876426e9c375ad88de689f97",
+      "bytes": 12744
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-3.json",
+      "digest": "sha256:da9cc3ace2dcce497c834a4c4d85c6c8ff45b05224855690623616df949a8dbb",
+      "bytes": 13235
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-4.json",
+      "digest": "sha256:6090ab804775722cb79356a019bdbc78b059a78fc67efd039aa1a3cf51bae58d",
+      "bytes": 13200
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-5.json",
+      "digest": "sha256:fdfdb306b0ec6ea6ed130021d9f839b71077d901bf78770d39fb1bdbcb6c28d6",
+      "bytes": 16022
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-6.json",
+      "digest": "sha256:3ddf7e0cce730b7a8129642d454aeee582f0e2cd6150421382cb472785744475",
+      "bytes": 14935
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-7.json",
+      "digest": "sha256:d66cb07edd123c20e115154139e0be31817e44b22be51754a11daab1e222c1c3",
+      "bytes": 15972
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-8.json",
+      "digest": "sha256:cf9267fa184e4428cb9d8af180737ec3ea27cd97e1e200c38eb681ee3ef32aec",
+      "bytes": 15893
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/response-9.json",
+      "digest": "sha256:4fd55b87065013f488ddc39c0d2c503bc05dec85799853f0c59ac0a03bd32808",
+      "bytes": 10475
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-win32-cli-a531924f367e60b61834aa8369634d0e241697b3/verify-19/broker/summary.json",
+      "digest": "sha256:b20b36e1c1c3839324516741f4fcd99c27cbbaae1561ab38201a6c6c0abb4575",
+      "bytes": 343
+    },
+    {
+      "path": "candidates/verify-19/repair137-verify-19.test.js.txt",
+      "digest": "sha256:45e39f6da343968f06a3c8fe6f41ee371ed171596b6cb08fa255aa871356f2cb",
+      "bytes": 5053
+    },
+    {
+      "path": "receipts/verify-19-setup.json",
+      "digest": "sha256:170c076dc48215c72908cf35674a0cced0868c2170d77e1adc603c1079b6e1f5",
+      "bytes": 17611
+    },
+    {
+      "path": "receipts/verify-19-check.json",
+      "digest": "sha256:fa6584862d3b36f6b78bc5796c97201a125d1a78f7853b3d34e6a9cddead6693",
+      "bytes": 10378
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+      "digest": "sha256:d5b4d1ab5bd89b4288932d4a019e6a22b38a997d7ba28f17932c0f47ac63c80f",
+      "bytes": 596267
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/prerelease-bundle.json",
+      "digest": "sha256:41c0c738dab533c77944c08f305864e8ec5b52dd9bc03e053970d57e921fd4d4",
+      "bytes": 3815
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/prerelease-provenance.json",
+      "digest": "sha256:457669a0dd785d0dbbf84cada514c2f3a15480246436594d73cd17c9a0ef3d10",
+      "bytes": 16237
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/package-lock.json",
+      "digest": "sha256:8693e6157c172dae762ba4a5294eb59ee16bf7c2e5857ee2b3fa0d3c00b3dcbb",
+      "bytes": 210574
+    },
+    {
+      "path": "raw/verify01-native-subset-acceptance-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/summary.json",
+      "digest": "sha256:18a83509a112b5a33d8276ddaf974f789f2aaa21d2d8331042cc8e68ee5deeba",
+      "bytes": 579334
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/model-stream.ndjson",
+      "digest": "sha256:466737641859afc69e12046b1f795bc9d4483c8b01c9584d89eb45247392d1cb",
+      "bytes": 1937134
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/summary.json",
+      "digest": "sha256:2f7729bb6d5f22326007afb7253e413f77e5c363b247d52ec44f2dea3e527a65",
+      "bytes": 552577
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/policy.json",
+      "digest": "sha256:474cda77502a482c7413288dc82c02b86c78938c30463920507adddf3beac63b",
+      "bytes": 927
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-1.dispatch.json",
+      "digest": "sha256:242dfeef9984a2af8522a2baa6070560188208344dfe2d19dcdbf0a42f77b304",
+      "bytes": 208
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-1.effective.json",
+      "digest": "sha256:7e4f1d447cb7144f2020c284086667699c3480a6fea132b276ea925d7ff7e03d",
+      "bytes": 23755
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-1.original.json",
+      "digest": "sha256:8db77ca96bc659981f8dd18f7cfbef29e94d6f092755e694f8be66cade3b9d21",
+      "bytes": 23697
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-1.receipt.json",
+      "digest": "sha256:b9e8147d4279a0e6b78c6a8aadbf4e512dd8715dc3808f446d97e5ca80a115f1",
+      "bytes": 1517
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-10.dispatch.json",
+      "digest": "sha256:47b299a57f0e5ef32fd23771741404fa1b9e9b95df1634246c45e1dccab29b29",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-10.effective.json",
+      "digest": "sha256:3b763a48bacf4651734d9eb7148ef3a357b411273a95c790fd00428ab93ae06b",
+      "bytes": 69472
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-10.original.json",
+      "digest": "sha256:8d912803a7011a4064f8ba8ab97f3325a14bcbfeea45cc992bfb9512580ec9db",
+      "bytes": 69414
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-10.receipt.json",
+      "digest": "sha256:368a8771703aab8cfd01fb4731c9524626751af016f74efa4e1e5705b2b547c7",
+      "bytes": 1520
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-11.dispatch.json",
+      "digest": "sha256:703e80c4d13996eb6f90e1ae590df97c46d6eac46de645f89d08ba60ce9d0418",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-11.effective.json",
+      "digest": "sha256:e6c58d89f4b3ac1a9f83b5ded45fdad198275e25e3902f9db6473db030a25158",
+      "bytes": 99155
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-11.original.json",
+      "digest": "sha256:b45aa1b81e83a81cba4584cf29eba9943083a5c17ce33f375d40212e4ba0b2f1",
+      "bytes": 99097
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-11.receipt.json",
+      "digest": "sha256:008369fb77d7b6034fb654b4150e02b144d56035302b298c799727d06d090d2c",
+      "bytes": 1526
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-12.dispatch.json",
+      "digest": "sha256:b2b27e9784c41f703c891ce6fc3c23ccee21aec380939ca3e16babd159213a9e",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-12.effective.json",
+      "digest": "sha256:46d855774e3a55942e36a7b561819829b6f21f223e71149da1366c97c58d79b2",
+      "bytes": 84616
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-12.original.json",
+      "digest": "sha256:1a3a99b11560c3817d21bf58f7e94dd656f0cd9144329ba2f6f058bcc482873a",
+      "bytes": 84558
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-12.receipt.json",
+      "digest": "sha256:db620513afa8363c2af92c4f4aeeab637b97daa5667f2e242ab1f9a4a17e0a6e",
+      "bytes": 1532
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-13.dispatch.json",
+      "digest": "sha256:f3911f39779f347e1a06fe68721bc5dcf4f0af4b5181aa7b18f98ee376cf0e41",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-13.effective.json",
+      "digest": "sha256:65e2e897b2318e3945643d4d4f72544d16f7f4daff3ddf7ca708bf35a4fd1d93",
+      "bytes": 102817
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-13.original.json",
+      "digest": "sha256:e943b7bcb83fc433d84550d2c656a1e7bfd67fffff2965986c53ee6fb74a8c7e",
+      "bytes": 102759
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-13.receipt.json",
+      "digest": "sha256:a6212660241559d830d75e939e223d2a36cd15038eeeb2bc3151358427058fd6",
+      "bytes": 1521
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-14.dispatch.json",
+      "digest": "sha256:25fc68edd6edde0459593794df0f318e652c51df9cda958d937bc65ffed8b4f9",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-14.effective.json",
+      "digest": "sha256:e085dd14929d451f9e2c7e4c12b48c4d45ad7565f73b02389e8e2567a8e09441",
+      "bytes": 91590
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-14.original.json",
+      "digest": "sha256:527068e855d21c1fcb0180a0be77a6bcfe4e5472b416f1bc5a0dac5c0243836b",
+      "bytes": 91532
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-14.receipt.json",
+      "digest": "sha256:eff29db5b6008dbde0467a5c5b38e2060d4bfac744bc41daa8d2871e8a5f4958",
+      "bytes": 1521
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-15.dispatch.json",
+      "digest": "sha256:531b8e5181c446ed7ebc1901d245579bea0ab8370b264b11d6db4d6b37b97192",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-15.effective.json",
+      "digest": "sha256:af42b56140f344b9d23d71b04e6aefdc739bb303ec0b49c5faf53aa00e21684e",
+      "bytes": 94230
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-15.original.json",
+      "digest": "sha256:e85a44f5074e16911e5254baf2aad5dd8a192cf405d69c9ecedc82028269624f",
+      "bytes": 94172
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-15.receipt.json",
+      "digest": "sha256:63ab2ddad75719f8293fa1ce34e0985dbbab75e08c174bd10e633cc561e19bf9",
+      "bytes": 1533
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-16.dispatch.json",
+      "digest": "sha256:0a9bb57306790f73a1bcb17bcf7629cbdd33dd0b34428fb29288d4c7f4bf3c89",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-16.effective.json",
+      "digest": "sha256:9cede391b6acb2a249f8f7a84d2950b4244785e86f2febda656619e027872ab2",
+      "bytes": 96661
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-16.original.json",
+      "digest": "sha256:f4ae08ff41886d36fcfde622c40b926e04817f4bc42d2f9563586588e22c0914",
+      "bytes": 96603
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-16.receipt.json",
+      "digest": "sha256:7e0876e91784c74944e57c298c620db4a55c451106e534084ede9413ca0438d3",
+      "bytes": 1532
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-2.dispatch.json",
+      "digest": "sha256:b1de12736f8c5ef58a2bf57f66f01f976e78e0c161342ce09377ea78b0692daf",
+      "bytes": 208
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-2.effective.json",
+      "digest": "sha256:0b42dcdf69d1974ba34aab3f111aa22ac02d9be7fbdee6626e3b7f36626dda2b",
+      "bytes": 43830
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-2.original.json",
+      "digest": "sha256:94720a76ee8a8b774ea8eab8a75b27995fdf037f26d5dcedd0b96f6f8498e137",
+      "bytes": 43772
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-2.receipt.json",
+      "digest": "sha256:fa54e61efaf7f09c54cdf2c056ca0c8b5db3550e9ef845d3a2ecde2f5b95fea6",
+      "bytes": 1517
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-3.dispatch.json",
+      "digest": "sha256:95015a40ae06445129982a5fb553d0ae44846f82e6687e7e5e9fcc9f459ee36d",
+      "bytes": 208
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-3.effective.json",
+      "digest": "sha256:6c8cf2a61a61e48a70ec08dda063c53828b3928d973f01043144c66c16867616",
+      "bytes": 72060
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-3.original.json",
+      "digest": "sha256:761665d9e1ff4e6190a6a93e0e161dc017e89195651596075d019a3bbc6d3382",
+      "bytes": 72002
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-3.receipt.json",
+      "digest": "sha256:060fafca1886533f65ba57ba6d943f8140087d84f683753174a950eebe3055be",
+      "bytes": 1520
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-4.dispatch.json",
+      "digest": "sha256:63ebc328344166a3ba0ac7e505a1040abd7cb2674739142bc6bbe833dfebb72f",
+      "bytes": 208
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-4.effective.json",
+      "digest": "sha256:f68557f0affa9707ed82db000cb7f780d3fdf7544d249f55f33837aa6bc94af9",
+      "bytes": 90008
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-4.original.json",
+      "digest": "sha256:76a86123e57e278e6bbdd04b93b0e1d2c9a7081245d9d4bad4a74537c50e38d2",
+      "bytes": 89950
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-4.receipt.json",
+      "digest": "sha256:70475bb85b3dff381326dbbf659ffa31a18312a5b0fe3c12c4cf4b94bb05938e",
+      "bytes": 1523
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-5.dispatch.json",
+      "digest": "sha256:27831f3f575059f3597d0585bb6da531b02daaf834e35841997fff437b4351f2",
+      "bytes": 208
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-5.effective.json",
+      "digest": "sha256:e2a3a38887c5b3b4f91cd76287244dd4e8c62128716fd56a509cae40c86154db",
+      "bytes": 99768
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-5.original.json",
+      "digest": "sha256:a3df1d64a9c3a5b3687a730f3f1febdbae5eeae6dc12996bf532efbe4964b750",
+      "bytes": 99710
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-5.receipt.json",
+      "digest": "sha256:ef066bfae7525a56d293a61b21d8503f0aa6fec7716d8debd18f8e52ccd2c922",
+      "bytes": 1521
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-6.dispatch.json",
+      "digest": "sha256:c297763262ec76864d4efaca060f536cc811cdc3aa5454cb49404d47048cf69e",
+      "bytes": 208
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-6.effective.json",
+      "digest": "sha256:3058ddd54f4432136050ee0e0d53cb51d5929943926dfb4c07d1a409560ec98f",
+      "bytes": 98735
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-6.original.json",
+      "digest": "sha256:fd293aea5e2b7c122bf21c61264780070cd5e98faa1e55476155f43a48be6490",
+      "bytes": 98677
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-6.receipt.json",
+      "digest": "sha256:50486646d9505a43be8692d3de63a39e4e09b0a3dcb33467d8198fad7ffdaeb4",
+      "bytes": 1519
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-7.dispatch.json",
+      "digest": "sha256:a13f8537239f7894409d980f19d7ea3d70578a9c9312bd9714d6a3ecd9687213",
+      "bytes": 208
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-7.effective.json",
+      "digest": "sha256:b076ea275253b7fc2d314dd23b25efac5978e4fce433808ed8116d48a5a09cf8",
+      "bytes": 99096
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-7.original.json",
+      "digest": "sha256:b8afa9187e0c4f59c4bd817841968d7462ae660ef68562a2958f9d3e18eb0501",
+      "bytes": 99038
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-7.receipt.json",
+      "digest": "sha256:226379b49d974454a6e69778a2c009998aaf6a18bf2b9aa806643d48088b3746",
+      "bytes": 1521
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-8.dispatch.json",
+      "digest": "sha256:2939320cb983bf181a4b8f1251672f1bd7148f18821a3aeaba1097af8ec51852",
+      "bytes": 209
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-8.effective.json",
+      "digest": "sha256:a228ef0994f08389a44d56062619b46fa05bbfaf9a2f1c92413ead44556b871a",
+      "bytes": 26916
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-8.original.json",
+      "digest": "sha256:9516fa51000ddc5aa1279580e2a44559360698e92b4330159acc6c1bde4882d0",
+      "bytes": 26887
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-8.receipt.json",
+      "digest": "sha256:f66c0461594ee04616e1b9c15441da584bae98838180d4546bba1796a9dd8ca3",
+      "bytes": 1509
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-9.dispatch.json",
+      "digest": "sha256:4b8f7b8ae281d3bed0511cb064fbdf15255f5a3333541bcd42f1349c57b2e904",
+      "bytes": 208
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-9.effective.json",
+      "digest": "sha256:5c804fc0935a764de8c91dba8c18420efe16507c76a0adc4a046487dfc7ec93b",
+      "bytes": 41307
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-9.original.json",
+      "digest": "sha256:6946b54a83b319de505e441b8309490486d88fdabb69d158d5778d4befa16dfe",
+      "bytes": 41249
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/request-9.receipt.json",
+      "digest": "sha256:33de44d4691c67aef5b7ad011cba5662dbcd266a16b40756ccca086689327345",
+      "bytes": 1514
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/response-8.json",
+      "digest": "sha256:e80749569f5872260e2e769c7b4542c1fd355bb666eda9b6b7ad585271cad81f",
+      "bytes": 9198
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-a531924f367e60b61834aa8369634d0e241697b3/verify-36/broker/summary.json",
+      "digest": "sha256:1d9d88adf5829142eeebeae6343cd661b44879d344d289ade9aceac715c61c64",
+      "bytes": 345
+    },
+    {
+      "path": "candidates/verify-36/repair137-verify-36.test.js.txt",
+      "digest": "sha256:12f33f746aebb17246b592602bb99ba67cc4613b4e1a4ba8e8ef1a98d0508cc6",
+      "bytes": 3634
+    },
+    {
+      "path": "receipts/verify-36-setup.json",
+      "digest": "sha256:a54219eaa54ab1f6f8e402d87cc9b290e32b0763fd7d7edd1e1450e3d0d90777",
+      "bytes": 15511
+    },
+    {
+      "path": "receipts/verify-36-check.json",
+      "digest": "sha256:3ec6f8e9ea96bae826c8524c0e995e199d52d3cc2161c9da84b76619448475d1",
+      "bytes": 14046
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/model-stream.ndjson",
+      "digest": "sha256:dc4e0ed878c23e00568bfae7fb47e597a5a34f504a2a36bbd45754804a1f8415",
+      "bytes": 2347121
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/summary.json",
+      "digest": "sha256:bad46501aefcff5dadcd531a59e1e3fb2a53df037281c4edcd9064dcea3b9509",
+      "bytes": 346856
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/policy.json",
+      "digest": "sha256:9810057118b1599eaf2c8e59bbf483a6c3d64fd2ac5e7ba6142963e943a82a57",
+      "bytes": 941
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-1.dispatch.json",
+      "digest": "sha256:a7105d351e7deb6f5ba0d99b562f5b8e05bee18b63d4202eeef61be94065d884",
+      "bytes": 222
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-1.effective.json",
+      "digest": "sha256:42356646fc3725e095269d29bef92698763dbd0fa417b8a5cf6feaa905a2bdac",
+      "bytes": 23812
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-1.original.json",
+      "digest": "sha256:a683fb88962ee985433f213114f94172fa8bccf961d0bb6199d9d0a3bc54f787",
+      "bytes": 23754
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-1.receipt.json",
+      "digest": "sha256:f1602a52aaa2775c985de17a3514a04e12a3f6d3e2969529bf1a8384bd1dbb98",
+      "bytes": 1531
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-10.dispatch.json",
+      "digest": "sha256:654786fca73308aaa187d462bc614e258db2971f3c6704a2dfae66dafe943eec",
+      "bytes": 224
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-10.effective.json",
+      "digest": "sha256:756bd10135bca2ee30d65086db57b177ea6ac4439faf2df0e18d307634017052",
+      "bytes": 26043
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-10.original.json",
+      "digest": "sha256:be77d6231816449d11326c88ae838d319fec0372090459b78bdd40e058060ece",
+      "bytes": 26014
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-10.receipt.json",
+      "digest": "sha256:9d61de1c6a2ad5295c0f8522dae9dd4e961edd59fc787a2eac8a6bcd144c90e2",
+      "bytes": 1520
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-11.dispatch.json",
+      "digest": "sha256:2c160cc5e90334fce51969a599629bbf5b12b45232fda65b16e1cde47ddf68d6",
+      "bytes": 223
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-11.effective.json",
+      "digest": "sha256:87f32a3701717c97f36a64c58c182b8b5619576039960ef3f7ff463ef3108b1f",
+      "bytes": 58187
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-11.original.json",
+      "digest": "sha256:bad8715830e8b9a8c135c18119973dfd879cd64295875f219052c4896b177be0",
+      "bytes": 58129
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-11.receipt.json",
+      "digest": "sha256:7d81121fde33226ddd6aa5e165e3b619a9f02a4321479f007657f9a181c17e88",
+      "bytes": 1527
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-12.dispatch.json",
+      "digest": "sha256:7b518fb9d9dd8d53b8505d1ac0c6f05c185a232567dec467f92e52548adeefa1",
+      "bytes": 223
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-12.effective.json",
+      "digest": "sha256:f6f3beb0bc3daa3a24200dc2b1ee65578138a64889d942a5c6dcb83a0d97e6f5",
+      "bytes": 67555
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-12.original.json",
+      "digest": "sha256:8024ca2c6ed5e9dec18a4aee87b1b2c5d265c11622b802fae3ab488bbc92b844",
+      "bytes": 67497
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-12.receipt.json",
+      "digest": "sha256:2107c1e57a96ca095a12c35ca6dac81773bb9369270dd1878022656d7be88c1f",
+      "bytes": 1531
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-13.dispatch.json",
+      "digest": "sha256:7d5d5c2ecff732e5645bea41a86f2720497c28fe5831593b4b6a4191994fe98c",
+      "bytes": 223
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-13.effective.json",
+      "digest": "sha256:ccb14d09bb6432b334502df536844f41872524eb7bd6cf90f467bbf4aa1a74b1",
+      "bytes": 70625
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-13.original.json",
+      "digest": "sha256:58c7d7efac341ea23292d85fe3bf84a6b0fb6fe6842d946bd772f2d706632dd7",
+      "bytes": 70567
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-13.receipt.json",
+      "digest": "sha256:d8f9dfb6d3d08abe089a1f418eb8e8c4042f525e6c3a8f7bc7d5d33f6ec69ecb",
+      "bytes": 1535
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-14.dispatch.json",
+      "digest": "sha256:2ebb9e8f640d25521b42f1db49d6729479ed4d18030af84226e9a4c3aabd5f67",
+      "bytes": 223
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-14.effective.json",
+      "digest": "sha256:f31a2717faa98398b228307d7e667266b0a96ba9ba94b09fd31a24d098ff3d0c",
+      "bytes": 75662
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-14.original.json",
+      "digest": "sha256:9903786bc1345339e6909881b8f25ea48aeba3d84b466c5bc07e92af2c694f10",
+      "bytes": 75604
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-14.receipt.json",
+      "digest": "sha256:4c6c63295d1835ae874219022daaab96a7164eecbb4993f2297294effdc07d6e",
+      "bytes": 1537
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-15.dispatch.json",
+      "digest": "sha256:2c3bf104fa95e62620a766b17eff4987707c61f45c157ad2c313871d27d096ef",
+      "bytes": 223
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-15.effective.json",
+      "digest": "sha256:a307fba7066f9c2d83db9b2ce43b180a9ec16c70916eb3142e5b83b9b206a126",
+      "bytes": 89994
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-15.original.json",
+      "digest": "sha256:189f83550865922854140579853ee0ade900a99c702fa8211cdb30236ff0218c",
+      "bytes": 89936
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-15.receipt.json",
+      "digest": "sha256:d6a8b9b4e8054678407b150975bb6e7eb1c18ff1b2e0c5853303661f29840341",
+      "bytes": 1533
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-16.dispatch.json",
+      "digest": "sha256:28d37032d2fc521d9d84fb9102c24eda31057c4352b2e77618c6af0da9dd9402",
+      "bytes": 223
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-16.effective.json",
+      "digest": "sha256:706ca35276dde4b1fdb735f2aaa071e930481af2025b18514b39b0b6c6555b8e",
+      "bytes": 98592
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-16.original.json",
+      "digest": "sha256:536c15d91d22199b2a1ab8b201ca67d0b0fc9a1df08964886adcdf5d0a105be0",
+      "bytes": 98534
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-16.receipt.json",
+      "digest": "sha256:8d0e62cfad327b5353dc19a5f3e24c955750e8e7840db964c89f94e96ab4299f",
+      "bytes": 1544
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-17.dispatch.json",
+      "digest": "sha256:0fc06eaf3440f3ff01e194b343c30f40c33d5007b78eb2c59120640cd2489802",
+      "bytes": 223
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-17.effective.json",
+      "digest": "sha256:cc08246a2aedfa8068c26737d79a9d21756139bb4bb8464f9b4874d02ea3fb87",
+      "bytes": 101949
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-17.original.json",
+      "digest": "sha256:5e068ebd41db327de9eb6b63d17b2150e6e026569460716291dd6b5f117a91e8",
+      "bytes": 101891
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-17.receipt.json",
+      "digest": "sha256:8b7edd177adc66514295a0f13b7b765ce47c5dcd5d1d19cf2042f341250a6ff3",
+      "bytes": 1537
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-18.dispatch.json",
+      "digest": "sha256:277e27798c8535b53ce2c23cb46976ec6f2927f0153990b9c2133908bf3b2ae9",
+      "bytes": 223
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-18.effective.json",
+      "digest": "sha256:a89a8679dc0a511a396dab3d0223e39b5dee4b32f434e1c48b682aa57d9e1afb",
+      "bytes": 97187
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-18.original.json",
+      "digest": "sha256:cc95ec9deb72150a6ff304710460142ae5d8237c93c15641ef7de9f6b65eba29",
+      "bytes": 97129
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-18.receipt.json",
+      "digest": "sha256:b4ee4c5bffb08a406271700a22b8a17e9b889d442f4962c5a78862308940399e",
+      "bytes": 1545
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-19.dispatch.json",
+      "digest": "sha256:386d4b2e0a20733702f983c5e229795430106e02c2234194e6a059ff463b4dee",
+      "bytes": 223
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-19.effective.json",
+      "digest": "sha256:5fffb6d8651e002df0e85decd5a31615ccf09fcb39a9c151cc7cbd1f34029e01",
+      "bytes": 102914
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-19.original.json",
+      "digest": "sha256:225e746659a48d620cf8aba85bc1d60b23eb260be6f4ae663157420014a41b10",
+      "bytes": 102856
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-19.receipt.json",
+      "digest": "sha256:76f8da37da3f75a1c85befc3c0b47cf171f7912c1230780506c1ae78a28ef8df",
+      "bytes": 1536
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-2.dispatch.json",
+      "digest": "sha256:0cd84283b867bf41258e12ee4d8797a5c2488e39ac557e57e0a635f730f88455",
+      "bytes": 222
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-2.effective.json",
+      "digest": "sha256:5eb3d9862cd3f98300089095791ad28e376157c1d0b0261f876643af4d6a4fdb",
+      "bytes": 61595
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-2.original.json",
+      "digest": "sha256:c88d882e4e3236d8207e10e5a2c42f0d7b3eaf8b4c68928326f41817cdcc716d",
+      "bytes": 61537
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-2.receipt.json",
+      "digest": "sha256:32a4567b97b45d920419be8e8a6561a9740eb34cf2c098a5b437ba9297d911eb",
+      "bytes": 1531
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-20.dispatch.json",
+      "digest": "sha256:ab4d8d27f3da05c25a3c0438c7fe63325bfbede1ba6f25e2a88272d8c4218ae4",
+      "bytes": 223
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-20.effective.json",
+      "digest": "sha256:16fbfe5f297fde223925aaa7e25db122dbc051280d160818dcbf649288aa069f",
+      "bytes": 99711
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-20.original.json",
+      "digest": "sha256:a12e089a7bbd80ea0a9e73afaef6a3d0f494b1445d85e7e51ecc09ff7a65158c",
+      "bytes": 99653
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-20.receipt.json",
+      "digest": "sha256:f5fce1a20c17c9dd3f11aa9cdd9beec0d9413089e086386fb78e9801ae7206ae",
+      "bytes": 1530
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-21.dispatch.json",
+      "digest": "sha256:19016f90d1280b2e5d18021e383b5633d9978aaf120747686f826c6b38a64395",
+      "bytes": 223
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-21.effective.json",
+      "digest": "sha256:b42abd0feef68ae1a3de11e4a5383eb34b62d8759660815b64be6b7f939dbfc7",
+      "bytes": 98118
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-21.original.json",
+      "digest": "sha256:8fc2b59eca3d4e4ec7e17b17851109fdcb3d002303434e030adf57d7c89f7760",
+      "bytes": 98060
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-21.receipt.json",
+      "digest": "sha256:59f922290c5c9c4d50b92acb04efb78241f030081cbaad407276b9b661ca3c90",
+      "bytes": 1537
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-3.dispatch.json",
+      "digest": "sha256:11ff660a341083cd2a250a4074200322de9fb2fc93eae777443aed008fe6d21b",
+      "bytes": 222
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-3.effective.json",
+      "digest": "sha256:1a4ba2260711db9004949d1df0299eb139554d6b2d0d20daf95caca357969958",
+      "bytes": 75953
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-3.original.json",
+      "digest": "sha256:7c0c7fcc185cd6aad1a43aba44e7a0ac4642db202342205bc6cf990a46ddbbbe",
+      "bytes": 75895
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-3.receipt.json",
+      "digest": "sha256:a10890f2dedd6d8c6b43de0e3b917bbe0c54a34c14120e08bf85cbf094d5c9d0",
+      "bytes": 1542
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-4.dispatch.json",
+      "digest": "sha256:fb380d4422e7de43333713995df30074e533af6e30a69a83ea5336954df80cad",
+      "bytes": 222
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-4.effective.json",
+      "digest": "sha256:6750d0a20a9c519cf57c61f91dc7ad80379dd0104b4bcbe48d6c756c482506fd",
+      "bytes": 98661
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-4.original.json",
+      "digest": "sha256:2ce91d2eac18eaa46abbb270ffd2a6b647aabd3eae230994b7817e925130182f",
+      "bytes": 98603
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-4.receipt.json",
+      "digest": "sha256:ca98691b22f2354f8605994a5ca81b79e09473edd42e83fc87d18b22aab62fc9",
+      "bytes": 1544
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-5.dispatch.json",
+      "digest": "sha256:e134b2c8a8c1177039b5e365ad7e7c17d78115e38894657cd679c54e0a8641b1",
+      "bytes": 222
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-5.effective.json",
+      "digest": "sha256:0f6e1bd52cf9c6ed4cb9ff942fdc1f1f2223005fbf4fe00d36f4bacec59bede0",
+      "bytes": 99038
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-5.original.json",
+      "digest": "sha256:4d26dd981a4de6ff70c0567ae61e07b45bafb8d049710bdf343955da300cb7fb",
+      "bytes": 98980
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-5.receipt.json",
+      "digest": "sha256:5d5265382810c054cbba6b8400b28d5856cca2fbf47d4b84db9aae80abcebf9b",
+      "bytes": 1543
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-6.dispatch.json",
+      "digest": "sha256:7d8ca33dd7af191dadb5289853627300407fd12fb4f050c1de687c292943d782",
+      "bytes": 222
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-6.effective.json",
+      "digest": "sha256:be14b1fcc0fee3b3f2c4dd9e7eddce172c9fbd80a6ff1d94a0d2a474a4e26f9f",
+      "bytes": 99507
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-6.original.json",
+      "digest": "sha256:03f7cc773b15029236553b216082d8d411fe4d243190381f21d0d4f50ed71a91",
+      "bytes": 99449
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-6.receipt.json",
+      "digest": "sha256:5a53e19cb676ad8507ca1fc768814c28e71bbadb0d2988012b41513c9c720a38",
+      "bytes": 1533
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-7.dispatch.json",
+      "digest": "sha256:86ea19ba83a61a47c7f0f52657c1b6a141ed8a41ceae71460694f37465a06b18",
+      "bytes": 222
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-7.effective.json",
+      "digest": "sha256:62b7c85ad243b429ddf6bd3256e6f9497a654a287277b2510eac60e5d13742a0",
+      "bytes": 90401
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-7.original.json",
+      "digest": "sha256:46d9b62de4573967f49e06b95d403c3952fca60bfb3251a3ea746ad6c440cfaa",
+      "bytes": 90343
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-7.receipt.json",
+      "digest": "sha256:8cd3b81251d85ceb03e170154d8f552476c6dc35fc5c2e6bfb044c55c807586f",
+      "bytes": 1545
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-8.dispatch.json",
+      "digest": "sha256:ec42ad9b1c2a08c8d6f60fa93b79f7afe555f9fd4d3afa711ebaef1f206dcfb1",
+      "bytes": 222
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-8.effective.json",
+      "digest": "sha256:b361e6f27925efe298336f3b98093be66a071cae9e4fceb04b6d3be0da5b05e6",
+      "bytes": 94116
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-8.original.json",
+      "digest": "sha256:0b8536a17ebdc61bde6d7cfb7bdc51af80b12087fb883c128ac3983564826f58",
+      "bytes": 94058
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-8.receipt.json",
+      "digest": "sha256:0888782fe6737df6ba7196a4b66a205e99760715f183dd1ea2017595703f5ab0",
+      "bytes": 1533
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-9.dispatch.json",
+      "digest": "sha256:8c2b0e5a42952becec0b0a199342502b2c7c9bad91832fe98cb78ccdc013b3e0",
+      "bytes": 222
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-9.effective.json",
+      "digest": "sha256:2f95f986c63e761c9a6815164e899177a139fbcd78fd311b1c0cda1b3f2473c4",
+      "bytes": 100238
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-9.original.json",
+      "digest": "sha256:8c191f2f1d790d473976262d460e9ebacefa24fd9e9cacb806622e655ff5b051",
+      "bytes": 100180
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/request-9.receipt.json",
+      "digest": "sha256:f2a9bbcf8176cc530c2bb3b148fa812ac298f7122e9c59d03bb9a068614259bf",
+      "bytes": 1534
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/response-10.json",
+      "digest": "sha256:892a07761b482804abd3fbdc0a4088214ac412f3ebb20944ac260ba3143d8791",
+      "bytes": 8313
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-a531924f367e60b61834aa8369634d0e241697b3/first-run-darwin-vscode/broker/summary.json",
+      "digest": "sha256:23c4336c02420a147578627ae9973f50f2681247752b68a3f5bff79dad8cf692",
+      "bytes": 377
+    },
+    {
+      "path": "candidates/first-run-darwin-vscode/repair137-verify-08.test.js.txt",
+      "digest": "sha256:746fdb546926cdce710c40446552ad31055d21f14ff3b039e4d9661f4b74bf42",
+      "bytes": 5626
+    },
+    {
+      "path": "receipts/first-run-darwin-vscode-setup.json",
+      "digest": "sha256:bc18798693a1b59897f7042c5be2d2e858bca30591d170de8c665d0b53d9abfe",
+      "bytes": 32002
+    },
+    {
+      "path": "receipts/first-run-darwin-vscode-check.json",
+      "digest": "sha256:2a9ceec13fc0c9cee9fbacd190aaabd4552787d3b7c7b66525284734484d93f0",
+      "bytes": 24965
+    },
+    {
+      "path": "README.md",
+      "digest": "sha256:0f2e46a8b77ac1eb2616edc3bb22cfc5e92a2616762001276be415533f9c5c0e",
+      "bytes": 2405
+    }
+  ]
+}

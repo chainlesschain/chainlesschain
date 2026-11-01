@@ -1,43 +1,15 @@
-# 修复后源码五项复测：发布前置条件
+# CLI 0.166.137 release status
 
-第三轮候选引擎和被维护项目固定 `5f372b3aa673c30bcd03b4da9ce8907992cb3386`，包含最终源码表达式与敏感模板边界修复。[GitHub Actions三包构建](https://github.com/chainlesschain/chainlesschain/actions/runs/41286076748)已成功，原始[测试制品](https://github.com/chainlesschain/chainlesschain/actions/runs/41286076748/artifacts/13074779528)及16份安装源码清单已核验；尚未发布。新一轮的五项生成、独立验收和精确提交完整CLI CI/Strict Sandbox按用户要求全部在GitHub Actions执行，全部通过后直接按CLI→IDE顺序发布。原任务提示、模型、宿主、预算与行为变异不改；此前0/5与旧41/45不合并。
+The user now explicitly authorizes publication irrespective of the five task results: “不论5个任务是否成功都可以先发布”. This supersedes the earlier five-of-five release prerequisite; it does not change any test result. [Authorization and limits](publication-authorization.json).
 
-第二轮候选引擎与被维护项目固定 `b7498521795702515cf8c24b9842da6ae3bed5db`，执行/检查提交 `95567903c800001de9793c804580a1157808fcf3`，包含原任务压缩绑定修复。[三包构建](https://github.com/chainlesschain/chainlesschain/actions/runs/41275646986) **3/3 job成功**；实际生成并独立验收为 **0/5**，不能发布。[原始轨迹、候选、全部77次代理请求/响应/用量与独立回执](candidate-engine2-95567903c8/README.md)已按原字节归档。新发现合法JavaScript尾逗号被源码预览扫描器误判，发送前完整源码已变为Text omitted，模型反复分页直至保护/轮次耗尽。修复处理中，后续必须重建同源候选再验收；旧41/45不变。
+The latest repaired-engine generation and independent acceptance completed at **0/5** on execution commit `a531924f367e60b61834aa8369634d0e241697b3`, with engine/project `5f372b3aa673c30bcd03b4da9ce8907992cb3386`. All **99/99** physical requests have complete usage; unknown usage is zero. Linux and JetBrains candidate tests pass behavioral checks, but those model tasks do not terminate successfully. Historical **41/45** remains unchanged and separate. [Unmodified third-round evidence](candidate-engine3-a531924f36/README.md).
 
-新包原始摘要、SHA512、构建来源和13份关键CLI源码清单已核验。[项目投影](candidate2-project-projection-preflight.raw.json)含23430条目，旧答案/验收器0条、9份必要源码和基线逐字节一致；[实际选择器](candidate2-selector-preflight.raw.json)4组生成及4组只验收 **8/8**。携带新候选实际全局变量并使用workflow的隔离覆盖执行完整Node预检 **153/153**，没有网络/模型请求。[同源执行计划](candidate2-five-retest-plan.json)保持原提示、宿主、变异与预算。
+The release contains original-task retention through canonical compaction, source-expression projection under ruleset v9, focused read-delivery accounting, and the prepared IDE diagnostics persistence changes. Strict JSON, nested data, sensitive ancestors and budgets remain enforced. Local source-expression regressions passed 430/430 and mocked agent-to-OpenAI wire checks passed 2/2; these engineering results do not rescore the five tasks. [Source repair](source-expression-repair/README.md).
 
-用户已指定：在修复后的源码上重新生成并独立验收五个原失败样本，**5/5 全过才发布** CLI 0.166.137、Open VSX 0.37.174、JetBrains 0.4.190。先将修复提交主分支，发布仍须完整精确提交矩阵，顺序为 CLI → IDE。
+Remaining limits include late independent-review scheduling and omitted unproven partial source fragments. The independent-review budget follow-up is preserved separately and is not included in this release. No claim is made that all model task failures are fixed.
 
-新 cohort 将显式绑定修复后的项目提交；原任务提示、宿主分配、模型身份、预算和独立行为变异保持，交付文件使用新命名避免覆盖既有源码。原冻结 b2aa3aba082873570e85dce39b00754e5504ff37、原始候选与历史 **41/45** 不修改，新五项不能冒充旧冻结分数。执行 CLI 使用已经公开验证的 .136，IDE 使用 .173 / .189；这是针对修复后项目源码的重新交付，不是对尚未发布包的安装成功声明。新 .137 读取修复另外有109项回归及7项回退控制。
+CLI **0.166.137**, Open VSX **0.37.174** and JetBrains **0.4.190** are still pending publication. Complete final-commit CLI CI and Strict Sandbox remain mandatory before Actions OIDC publication. CLI registry readback must succeed before IDE tags are created. Microsoft Marketplace and PC/mobile are outside this release. The temporary OpenAI secret was deleted and absence verified.
 
-当前状态：五项重新生成已按四组启动，尚未收齐独立验收，尚未发布以上新版本。精确生成驱动为 `3e28f78b4eab09ac5311c3d7da553a0b008617ad`，被维护项目为 `52868c59d1c98131d6ce7e7ff177f55d53e509b0`。四组运行见 [派发回执](generation-dispatch.json)。整合现有 main 后12套回归 **216/216**、VS Code Node **36/36**、changelog **22/22**；公共IDE能力清单和JetBrains发布元数据检查通过。原始本机回归和源码审阅按字节保留，见 preflight-index.json。
+The final CI follow-up corrects two omission fixtures that used valid JavaScript trailing commas. The negative controls now use duplicate JSON keys, which remain forbidden, and an explicit positive control checks real source delivery. Read guards and production runtime code are unchanged by this follow-up.
 
-执行准备已完成：新身份与子集控制 **33/33**、独立验收器相关回归 **28/28**。实际归档含 23422 个条目，旧候选、原任务交付文件与验收器定义均已排除；五项所需的 9 份生产源码/基线文件与修复提交逐字节一致。原行为变异未修改。详见 [源码修订](project-revision.json)、[实际归档检查](project-projection-preflight.json)与[五项执行计划](five-retest-plan.json)。执行及检查驱动会另绑定准确提交；发布产品的运行时代码保持与修复项目提交相同。
-
-首次驱动预检发现修订参数进入旧测试环境，四组生成均未执行，模型请求0、评分样本0；该次临时凭据已清理。[原始回执](preflight-23690e4dda/README.md)。修正后的完整驱动预检 **144/144** 通过后启动了本次真实生成。
-
-本次 Linux 生成已成功，但独立验收的提供商身份检查仍只接受旧 cohort 名称，在执行候选前拒绝了 `repaired-source-followup`。现将检查绑定到操作者显式指定的修订、项目提交、计划摘要及包版本；未指定修订时仍拒绝新 cohort，不能由交付文件自行声明身份。直接执行实际 workflow 绑定代码的正反控制已通过，完整驱动预检现为 **145/145**。已生成候选保持原始字节，修正后只重跑独立验收，不重复模型生成。生成与验收使用各自精确的驱动提交，二者均绑定同一修复项目和生成摘要原始字节。
-
-精确提交 CI 另发现两处过期测试预期：完整预检列表漏列新增两套测试，压缩用量事件漏列新增错误分类。修复仅补齐精确预期，不改产品运行时代码；发布仍须最终提交的完整 CLI CI 与 Strict Sandbox 矩阵及新五项 **5/5** 独立验收。
-
-公共 .136 生成器这一轮已停止，临时 OpenAI secret 已在 `2026-11-01T02:31:29.322Z` 删除并核验不存在；用户本地配置未改。已收到的独立回执显示：verify-13 与 verify-19 的候选均可运行，但遗漏原有行为变异；verify-36 的候选23例通过并拒绝变异，但会话在第17次请求前超过既有256 KiB代理上限，缺少成功终止与重启证据，整体仍失败。VS Code两项正在独立验收。以上均不计作新5/5。
-
-该轮被维护项目使用修复源码，实际生成引擎仍是 .136，未运行 .137 的读取送达及独立复查实现。下一轮使用显式 `prerelease` 包集合：由同一修复提交构建 CLI .137、VS Code .174、JetBrains .190，绑定 GitHub 构建运行、制品、原始包摘要、安装 lock 和安装后的关键源码摘要；产品未发布，不声称公共可用。被维护项目与候选引擎来源必须一致，缺件或身份不符在模型调用前拒绝，公共包默认路径不变。
-
-候选测试显式使用32768 token规划窗口，以便较早触发既有压缩；原20轮、24次请求、8192输出和256 KiB代理上限不扩大。token窗口并非字节限制的证明，真实请求仍逐次受代理限制，保护上下文或压缩失败仍必须闭锁。新的包身份、安装校验和实际入口转发控制已通过，完整驱动预检 **152/152**；尚未派发候选包模型任务。
-
-公共生成器这轮最终为 **1/5**，仅 verify-08 通过，93次模型请求均有完整用量，未知用量0，token估算 $5.423231（实际账单未知）。[原始候选及独立回执](public-generator-3e28f78b4e/README.md)已归档，旧41/45不合并。首次VS Code任务的真实原因是20轮预算在复查末页时耗尽；测试内容通过行为检查，但没有成功终态。驱动现先保存真实失败终态并立即结束等待，保留正常UI和重启门槛，**15/15**相关Node控制通过，不再等外层超时后笼统归因IDE失败。
-
-修复引擎候选已由 `18455a2b95498043f5bb6364f63d5ce32d277303` [构建成功](https://github.com/chainlesschain/chainlesschain/actions/runs/41266284897)，全部3个构建job通过。[原始测试包](https://github.com/chainlesschain/chainlesschain/actions/runs/41266284897/artifacts/13068030321)包含 CLI .137、VS Code .174、JetBrains .190，尚未发布。下载后已校验完整包摘要、SHA512、源码清单和构建来源，见[包集合](../verify01-package-sets/2026-11-01-prerelease-137.json)、[原始bundle](candidate-bundle.raw.json)、[原始来源](candidate-provenance.raw.json)。共享安装在每个独立样本前重新检查真实源码及lock，不能仅由首次安装记录代表后续样本。
-
-候选引擎和被维护项目固定同一提交；新[项目修订](candidate-project-revision.json)和[五项计划](candidate-five-retest-plan.json)保留原提示、宿主、行为变异和请求预算。实际归档23426条目，旧答案和验收器0条，9份必要源码/基线逐字节一致；[投影预检](candidate-project-projection-preflight.raw.json)。实际workflow选择步骤的4组生成及4组只验收控制 **8/8** 通过，网络/模型请求0；[选择预检](candidate-selector-preflight.raw.json)。上下文参数及真实规划转发11项、模拟Responses压缩与闭锁3项通过，后者使用合成摘要，只是工程预检，不计作真实任务成功；[审计说明](candidate-preflight.raw.json)。
-
-候选引擎首次派发在Node预检被继承的候选包变量拦住，生成全部跳过，模型请求/候选/评分均0；临时key已删除并核验不存在。现仅在测试步骤清空操作者变量，真实选择、生成、验收仍使用显式候选身份，公共/候选错配仍拒绝。携带实际候选全局变量执行修复后的完整预检 **152/152**，原四组生成/只验收选择器 **8/8**。[零模型回执](preflight-b530989f37/README.md)。同期精确CI的安全producer文件摘要和Marketplace README标题已同步，相关安全行为 **29/29**、Marketplace **19/19** 通过；产品运行时代码及候选包F未改，发布仍须新的最终提交完整矩阵。
-
-上述F候选包已退出发布验收：新执行提交 `98dc65a2699e0fee43daf56941befcc0695e3738` 的Linux样本实际调用模型14次，全部用量完整、未知0，随后canonical compaction将54条消息压缩为11条并丢失当前原始用户任务，下一请求被任务身份守卫正确拒绝；不是OpenAI请求失败。独立行为覆盖也未通过，原候选未改。Windows在模型前遇到遗漏 `shell: bash` 导致的空manifest参数，两macOS组在Native仍排队时取消，均未调用模型；这是1个真实模型任务失败、4个样本未生成，不是完成的五项成绩。临时凭据已于 `2026-11-01T04:13:41.130Z` 删除并核验不存在；[完整原始轨迹、包证明、安装lock及回执](candidate-engine1-98dc65a269/README.md)。
-
-修复必须把入口捕获的原任务身份贯穿压缩快照、规划和提交验证，保持无任务、改写或新增伪复制的闭锁语义，不能从模型摘要重造任务。Windows shell修复已通过真实Bash/PowerShell参数展开对照，候选包相关Node **8/8**。下一次从修复后同一提交重建CLI/IDE候选及被维护项目，重新生成全部五项；当前仍未发布新版本。
-
-原任务绑定修复已通过六套本机回归 **69/69**，并通过旧入口去掉绑定后复现故障的正反控制；补充独立审查/循环上限 **18/18**。额外用量整套未完成，不计作整套通过。[原字节报告与审计](task-binding-repair/README.md)。本机工程检查不计入五项模型验收；需重建同源候选重新生成。
-
-源码表达式修复最终本机专项 **430/430**、真实agent到模拟OpenAI wire **2/2**（包含canonical compaction）通过，7文件按LF/SHA冻结；原始预览精确回放70/80，8个首次读取均保留，10个未证中段页仍闭锁，完整JetBrains文件可投影并验签。保留v8与严格JSON/敏感字段检查，新v9显式源码范围及独立有界词法工作预算；[最终原字节报告与边界说明](source-expression-repair/README.md)。完整驱动Node153/153。本机额外宽范围headless/changelog选择未完成不记成功；用户指定后续直接GitHub Actions。下一候选安装证明将验证16份关键源码；仍须新五项5/5及完整精确提交云端矩阵才发布。
+Earlier operator records and superseded release conditions are retained in [history](HISTORY-2026-11-01.md); each raw candidate round stays separate.

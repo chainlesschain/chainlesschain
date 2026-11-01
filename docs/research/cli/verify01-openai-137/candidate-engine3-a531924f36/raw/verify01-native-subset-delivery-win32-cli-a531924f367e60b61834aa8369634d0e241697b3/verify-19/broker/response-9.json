@@ -1,0 +1,102 @@
+{
+  "id": "resp_0aa256c8e9510342016ae6fce453e887d080048ef74b60a759",
+  "object": "response",
+  "created_at": 1793522916,
+  "status": "completed",
+  "access_programs": null,
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "completed_at": 1793522934,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 2048,
+  "max_tool_calls": null,
+  "model": "gpt-6.1-sol",
+  "moderation": null,
+  "output": [
+    {
+      "id": "rs_0aa256c8e9510342016ae6fce51f1887d093a5be8eaba346a3",
+      "type": "reasoning",
+      "content": [],
+      "encrypted_content": "gAAAAABq5vz2kPXF_8wWxCql-P1lAhXAbCQ6ym-p9vo6AcvzlcIAj9beWD_EEZ-n9kSSHl6TCMo_6Kg-beTqrKDHVm1QdkpXTe8Ia4vCMGT7Xo86kUmmK25VeAl0SiJ-SaD68TuQ_GkRcg5TODlkzq33dAHUlWT6RiZoxWqj1VjLASTLfdjEyh5YyrwEI9lBsxNnkzsi3ArVz29Wguh392n6x3D8ljwIG7e10gOQp3WaL9blTm1JNCTt9-8UTZPw2VgpkMF7i-e4NizJwBcnrLe-D3-_j7l0O5tXW9VAyHnLh1TLPRn5fJ0wPagUTPnms-_Z2HpNyMcE8oqwkC492lwp4u9pWF-7Aec778d30I2eQGjWT_H75XxUJL8lW0hnnPf30l3FPilB6gmtR0q-90US-ja9TzZ_LfoOVLNvqoAoGcL8AiMxymmCsjr2TLGkeSwSev6B16MGAIJUImIVMI6RDVq926GunW2ZZHtGKCzWA_e_rxICv2z2aCkhJ0-LgG2wLSeKfaQb6UQoaGfk431t481ce2ZVWsUFVwa5FCssROUl0PTAmJT7fixVturOFC7zhVCKCn2QQoXI0yxzrFfK1FxDdBlkxIDtz9DoLyxsYtSfAVMqEXKN9LdCEGSKu4_sadL7gsg34sXbb1_w5nfsoIZQK6ZZjkpUlJrnO4xw-XF9JR488wOITNThjvPccnG5MB3tVru3dGPMtM1T_wmRYn8aQlfUmsm3Ayha4kQdl61EfJ3tE4DRb-9npS-FIWZSCAgt3oWvMxLVTC5at9rtor1NHxVZF60PsoYYjWgMlTjYzA4hHij28QgLjy40OtQz-QIj5P9kJKnDcDILdp4jVszRW5G2MPZKZNW6eWyghWdf-zwdab_uEnlOCb0rkTaX9FEj3JnZBXUW5Rfdl82uOm6coAvJf2AT7Ev-_4TVAxYD1YroJpmwiJ0HK_1GZ005XF8M2hGC_RjzgAErs-w8VytlcEFrDUwLLu9YWx0c2CNo8AOuAPLNYUYeXVJtPj7-fb253T7YRO2M7yWPYd_LN3s6SujFq9fIBOfezUYNM4qOn-wZv5DKP4i1WgxkwRnRdS_38v-EiYga_raTsrezTxdrkFWDBefR_UzuQAcFdoBJCBUSowBG4bEzexubgcScHz7fr2rKZGbVNsB9fz0zbTW0-pdj5pE6DQRgyqxnVYa_fNsF-my1YGrCfwYzghynA_E8pFflAtPeaCCQxo0BgwaFX3m8o8cqYzJ2RCIY637sPbt3GqH7dbSamcHvY7D63qu4PkgBcfdZWfuQWXANSd3AITtxehkPgsSCuwoWbnmNLJPlOC3JbpGV3i5msAXUBZ4Axp5LPuM0moTFy6vvOo18OQCF8ICuHZ00HzH99Rx2txHh649RUhhK54YtJgTwdhe7yTLFnZnGMK5R2yRrpkbN697Wd89njXRRgodgvlcD92lK1RX5hndjCUJUK31Qo0ziCWimt6Lyd9YPUJibI_LEhGy8zC0iEQPiAThivpjKmseDb7ZFpxvSViUQixCMryiWY_bJKX9rp6EKsQGKSEYA849ZFfZILN1vvS9npjiaht00gYr_CGpgQKujxO8iNLr5YxVfiFxArjag4NLmCWSILIkqI_RCB3ZF2l09bDb0cEJzA7O12c17lrxTYzSXBowFqxoZrqd5PurN20AbpOyAI2lIYPoA86k-gDvA2XNqEyzl2MpXGZeJ3uYV5lDN3PZILpp-LjjK7pmZE8JZxL2h0vYZUXRPJs4Zje3s1ydemxskoEQ=",
+      "summary": []
+    },
+    {
+      "id": "msg_0aa256c8e9510342016ae6fce5d16887d088800ee8d9d33a08",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "{\"objective\":\"Add regression coverage for interactive headless approval cancellation: a canceled pending request must not execute, a late positive response for its old request ID must not authorize a subsequent identical command, and the new request must remain independently approvable.\",\"constraints\":[\"Do not assume an implementation defect; none has been demonstrated in the available history.\",\"Exercise the real cancellation, late-response, and subsequent-request acceptance flow.\",\"Use the same command and valid approval response formats so binding-format errors do not mask request-ID replay behavior.\",\"Preserve fail-closed behavior on timeout, input closure, and cancellation.\",\"Repository root: C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\cc-native-sBHITk\\\\77ba40fd-2e61-42c2-b898-cfc56ff86420\\\\workspace.\",\"Some file-read results were truncated or omitted; omitted content has not been inspected.\"],\"keyDecisions\":[\"Use packages/cli/__tests__/unit/headless-stream-approvals.test.js as the existing test location and reuse its minimal stream harness.\",\"Verify the actual cancellation protocol and pending-approval settlement behavior before writing the regression.\",\"Distinguish replay of an old approval ID from valid acceptance of the new request; avoid testing only an invalid binding.\"],\"changedFiles\":[],\"tests\":[\"No tests were run and no new assertions were written in the available history.\",\"Existing test found at packages/cli/__tests__/unit/headless-stream-approvals.test.js:281: \\\"does not execute the pending tool when cancellation races with a late positive verdict\\\". Search excerpts show a PassThrough input, AbortController, decisions array, and permissionConfirm context with toolCallId \\\"cancel-race\\\", tool \\\"run_shell\\\", args { command: \\\"echo fixed\\\" }, and riskLevel \\\"medium\\\". Its complete body has not been inspected.\",\"Existing parser assertions accept a legacy response {\\\"type\\\":\\\"approval\\\",\\\"id\\\":\\\"appr-1\\\",\\\"approve\\\":true,\\\"binding\\\":\\\"ab_deadbeef\\\"}, producing decision {kind:\\\"acceptOnce\\\"}, structured:false, invalidReason:null, and the binding string. Non-string binding values become null.\",\"Existing parser coverage includes \\\"validates structured decisions and fails closed on drift\\\" and an acceptForTurn response with permissions [{capability:\\\"tool:run_shell\\\",scope:\\\"npm test\\\"}].\",\"Existing harness injects bootstrap: async () => ({db:null}), getApprovalGate: async () => null, captured writeOut, no-op writeErr, agentLoop, and input: inputGen(); it invokes runAgentHeadlessStream with expandFileRefs:false and interactiveApprovals:true, allowing options/dependency overrides.\"],\"unresolvedSideEffects\":[\"No external side effects are evidenced in the available history; tool activity shown consists of file reads and searches.\"],\"checkpoints\":[\"packages/cli/src/runtime/headless-stream.js exports runAgentHeadlessStream at line 1659; permissionConfirm is wired as interactive ? interactiveConfirm : undefined near line 3998.\",\"Near lines 5705 onward, each turn creates currentAbort = new AbortController(); options.signal and currentAbort.signal are combined with AbortSignal.any when applicable. A comment identifies {\\\"type\\\":\\\"interrupt\\\"} as aborting the current turn, including the LLM fetch, while preserving the conversation/process for another message. The pump implementation and its approval cleanup still need inspection.\",\"Interactive approval setup near lines 2610 onward uses options.interactiveApprovals === true, pendingApprovals = new Map(), incrementing approvalSeq, and CC_APPROVAL_TIMEOUT_MS when positive, otherwise 120000 ms.\",\"settleApproval looks up pendingApprovals by ID and returns immediately if absent. Approving decision kinds are acceptOnce, acceptForTurn, and acceptForSession. The intervening binding/grant validation logic has not been fully inspected.\",\"Near lines 2690\u20132705, settlement deletes the pending ID, clears its timer, emits approval_resolved with approved, decision, via, and session_id, then resolves the pending promise to !invalidReason && approve.\",\"interactiveConfirm first checks approvalGrantLedger.allows(requiredPermission). Otherwise it allocates id `appr-${++approvalSeq}` and creates approvalBindingDigest using toolCallId:id, args:ctx.args or {command:ctx.command}, and policyDigest:ctx.rule || ctx.riskLevel || ctx.risk || null.\",\"The approval timeout settles with {kind:\\\"decline\\\",reason:\\\"Approval timed out\\\"} and via:\\\"timeout\\\".\",\"packages/cli/src/lib/permission-request.js defines normalizePermissionRequest to derive a canonical command/detail from args.command, quoted args.argv, and source/destination path aliases.\",\"A request to read the existing cancellation test around lines 281\u2013354 expanded to lines 261\u2013800 but returned \\\"Text omitted\\\" for 17495 characters; this is not evidence that the test body was read.\"],\"blockers\":[\"The exact cancellation handling and its settlement of pending approvals remain unverified; only the per-turn interrupt comment and portions of the settlement implementation were inspected.\",\"The complete existing cancellation-race test and the remainder of the harness need inspection before extending coverage.\"],\"nextSteps\":[\"Read the complete existing cancellation-race test in packages/cli/__tests__/unit/headless-stream-approvals.test.js, using a safe surrounding statement/container or sufficiently sized full-file read to avoid omitted content.\",\"Inspect the input pump's interrupt handling and every pendingApprovals cleanup/settleApproval call in packages/cli/src/runtime/headless-stream.js; verify whether cancellation is per-turn interrupt or whole-session abort for the intended regression.\",\"Inspect the remaining settlement validation and approval_request emission fields so test responses carry valid bindings and decisions.\",\"Add a regression that cancels a pending request, submits its late positive response, requests the identical command again, verifies the old ID cannot settle/authorize the new request, then accepts the new request using its own ID and valid binding.\",\"Run the focused approval test file with the repository's supported test command, record exact command and results, and only change runtime implementation if the regression demonstrates a defect.\"]}"
+        }
+      ],
+      "phase": "final_answer",
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+    "context": "all_turns",
+    "effort": "medium",
+    "mode": "standard",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "total_tokens": 0
+    },
+    "web_search": {
+      "num_requests": 0
+    }
+  },
+  "tools": [],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 6721,
+    "input_tokens_details": {
+      "cache_write_tokens": 6718,
+      "cached_tokens": 0
+    },
+    "output_tokens": 1256,
+    "output_tokens_details": {
+      "reasoning_tokens": 24
+    },
+    "total_tokens": 7977
+  },
+  "user": null,
+  "metadata": {}
+}

@@ -1,0 +1,6 @@
+"sampleId","group","status","requests","usageCompleteRequests","unknownUsageRequests","knownTokenOnlyEstimateUsd","actualBilledCostUsd","validationFailure"
+"verify-08","darwin-vscode","failed","21","21","0","0.6927655999999999","",""
+"verify-13","linux-cli","failed","20","20","0","0.6847624","",""
+"verify-19","win32-cli","failed","21","21","0","0.676314","",""
+"verify-36","darwin-jetbrains","failed","16","16","0","0.4932859","",""
+"first-run-darwin-vscode","darwin-vscode","failed","21","21","0","0.6401837999999999","",""

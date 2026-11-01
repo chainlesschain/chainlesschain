@@ -1,6 +1,6 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-Prepared CLI **0.166.137** / Open VSX **0.37.174** / JetBrains **0.4.190** remain unpublished. The user requires fresh generation on the repaired project source and independent acceptance of **all five previously failed samples** before publication; old frozen scores remain unchanged.
+Prepared CLI **0.166.137** / Open VSX **0.37.174** / JetBrains **0.4.190** await publication. The user explicitly waived five-task success as a release prerequisite; the latest result remains **0/5**, and historical **41/45** is unchanged. Complete final-commit CLI CI and Strict Sandbox remain required; verify the public CLI before IDE publication. [Status and limits](docs/research/cli/verify01-openai-137/README.md).
 
 ## Current public CLI: 0.166.136 (2026-11-01)
 

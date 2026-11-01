@@ -1,0 +1,134 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+const root = mkdtempSync(join(tmpdir(), "cc-fork-ownership-"));
+// This file is in __tests__, not __tests__/unit: ../src resolves to cli/src.
+vi.mock("../src/lib/paths.js", () => ({
+  getHomeDir: () => join(root, "home"),
+  getSessionStoreDir: () => join(root, "home", "sessions"),
+  getClaudeProjectStorageDir: () => null,
+  getStatePath: () => join(root, "home", "state"),
+  getMachineSecurityAnchorDir: () => join(root, "security"),
+}));
+const store = await import("../src/harness/jsonl-session-store.js");
+const { createSessionTranscriptBranchProjection, readSessionTranscriptHistory } =
+  await import("../src/lib/session-transcript-history.js");
+
+afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+function fork(parentSessionId, branchSessionId, count) {
+  const messages = store.readVerifiedMessages(parentSessionId).slice(0, count);
+  const head = store.findLatestEvent(parentSessionId, null).hash;
+  return store.withSessionAuthorityTransaction(parentSessionId, head, (tx) =>
+    tx.readProjection(() =>
+      createSessionTranscriptBranchProjection(parentSessionId, messages, (history) =>
+        store.createBranchSession({
+          parentSessionId,
+          branchSessionId,
+          parentTurnId: "selected",
+          messages,
+          history,
+        }),
+      ),
+    ),
+  );
+}
+
+// Deliberately ignore host/system notices, not conversation content. Assert
+// display provenance separately from the provider-facing context projection.
+function conversation(id) {
+  return readSessionTranscriptHistory(id).messages.filter(
+    (row) => row.role === "user" || row.role === "assistant",
+  );
+}
+function bodies(rows) {
+  return rows.map(({ role, text }) => ({ role, text }));
+}
+function context(id) {
+  return store.readVerifiedMessages(id)
+    .filter((message) => message.role === "user" || message.role === "assistant")
+    .map(({ role, content }) => ({ role, text: content }));
+}
+function pair(id, label) {
+  store.appendUserMessage(id, `${label}: question`);
+  store.appendAssistantMessage(id, `${label}: answer`);
+}
+function expectedPair(label) {
+  return [
+    { role: "user", text: `${label}: question` },
+    { role: "assistant", text: `${label}: answer` },
+  ];
+}
+
+describe("fork history ownership (independent regression)", () => {
+  it("restores two valid prefixes and keeps parent/sibling continuations out of each fork", () => {
+    const parent = "ownership-parent";
+    const left = "ownership-left";
+    const right = "ownership-right";
+    store.startSession(parent, { provider: "test", model: "test" });
+    pair(parent, "common");
+    pair(parent, "later ancestor");
+    const ancestor = conversation(parent);
+    expect(bodies(ancestor)).toEqual([
+      ...expectedPair("common"), ...expectedPair("later ancestor"),
+    ]);
+
+    // Same verified source and valid capability; only the retained prefix differs.
+    expect(fork(parent, left, 2).created).toBe(true);
+    expect(fork(parent, right, 4).created).toBe(true);
+    expect(bodies(conversation(left))).toEqual(expectedPair("common"));
+    expect(bodies(conversation(right))).toEqual([
+      ...expectedPair("common"), ...expectedPair("later ancestor"),
+    ]);
+    // Paired controls: vary one continuation owner at a time while both
+    // branches remain valid. An append is visible to its owner, never a sibling.
+    pair(parent, "parent after forks");
+    expect(bodies(conversation(left))).toEqual(expectedPair("common"));
+    expect(bodies(conversation(right))).toEqual([
+      ...expectedPair("common"), ...expectedPair("later ancestor"),
+    ]);
+    pair(left, "left only");
+    expect(bodies(conversation(left))).toEqual([
+      ...expectedPair("common"), ...expectedPair("left only"),
+    ]);
+    expect(bodies(conversation(right))).toEqual([
+      ...expectedPair("common"), ...expectedPair("later ancestor"),
+    ]);
+    pair(right, "right only");
+
+    const leftExpected = [...expectedPair("common"), ...expectedPair("left only")];
+    const rightExpected = [
+      ...expectedPair("common"), ...expectedPair("later ancestor"),
+      ...expectedPair("right only"),
+    ];
+    // Fresh production reads, not snapshots returned by branch creation.
+    const leftRows = conversation(left);
+    const rightRows = conversation(right);
+    expect(bodies(leftRows)).toEqual(leftExpected);
+    expect(bodies(rightRows)).toEqual(rightExpected);
+    expect(context(left)).toEqual(leftExpected);
+    expect(context(right)).toEqual(rightExpected);
+    expect(bodies(conversation(parent))).toEqual([
+      ...expectedPair("common"), ...expectedPair("later ancestor"),
+      ...expectedPair("parent after forks"),
+    ]);
+
+    // Matching text alone cannot establish ancestry. Inherited display rows
+    // must retain the independently captured source identity and event hash.
+    for (const [rows, count] of [[leftRows, 2], [rightRows, 4]]) {
+      expect(rows.slice(0, count)).toEqual(ancestor.slice(0, count));
+    }
+    const leftOwn = leftRows.slice(2);
+    const rightOwn = rightRows.slice(4);
+    for (const row of leftOwn) expect(row.id.startsWith(`${left}:`)).toBe(true);
+    for (const row of rightOwn) expect(row.id.startsWith(`${right}:`)).toBe(true);
+    const leftIds = new Set(leftOwn.map((row) => row.id));
+    const leftEvents = new Set(leftOwn.map((row) => row.eventId));
+    for (const row of rightOwn) {
+      expect(leftIds.has(row.id)).toBe(false);
+      expect(leftEvents.has(row.eventId)).toBe(false);
+    }
+  });
+});

@@ -1,0 +1,331 @@
+{
+  "id": "resp_03a1ff651a3c714a016ae6fc187f9487d184711a8b5109ac4b",
+  "object": "response",
+  "created_at": 1793522712,
+  "status": "completed",
+  "access_programs": null,
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "completed_at": 1793522715,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 8192,
+  "max_tool_calls": null,
+  "model": "gpt-6.1-sol",
+  "moderation": null,
+  "output": [
+    {
+      "id": "rs_03a1ff651a3c714a016ae6fc19740487d1acf4403ec2551897",
+      "type": "reasoning",
+      "content": [],
+      "encrypted_content": "gAAAAABq5vwbdnnjzEZiU8GaLtMezNqamRwxRAFFDeeXuq_3a3x7ZNiKDUYPkgQNtY0KHl_jdMvGbMYlD0LDJchuwI-PD4OpUTkfqndiTNbPhG2zBRyclLIHvOGi8eB76-KaRI9AYKPjDhdcafzcHDOEbHUvk_tjNbHJ8Pf6X6m2t-IVPPEZYn1u5MTFn63QNFDdDN36PnJzDdKQzolRM3BNZIoIf35d0oKcvCn3umjBRVO-7-7QXEUu4mSLL0a-418TlRXm8cLXyMPGo5bzEYG_pUXSGGonFN_Jxbd--wUHJzw08jqGtC4RgF6OeATM3aU0rZSX4RY3TAfHUBeB7qoR2PpEmxRilKGLCmAp038wm5SeYcnt-4fkwon0cTKpKdRFO_1tFZmw0S80q8R3t9QxdAphg5pnEV_XTFHihRBQhQGnM-KBAOW_eqlThDe6Sx2I4Be0Bufap6fgTPnl_GtG5O7rzcFvuZ1re90txCgyTTzob6Jhf1Gpd2DXJqHaV9yWYPLOBe4rTM4cffjTDmLaCDnpTuoKxM_nLgmh_xK7HeMZTpUgg8LnklfeasoJdKF27d41AbZPlUIMLPYu0pMrwBT2cFaff5a_mWQU2W0ohrCBMu0qgd6i8n1uitaboXByN9Z_1ZTuHIGGQ_RnDtKMwyUwsk6j_ZJ9Anb79uqMN8_a1eojhyKL3CR65aNVf14g4jfSCbIJ7GL1rNPtcxRe_HPKXJW1XDnajzf-MbqOE154PV97L0yVmNeYFQ5_ZzxwhPl7rX0KFFu41WYJCEN4Z3p84k1RCC5qxvt5kbbDO8QGpOkFdZyPND4hHAwJ5ASLb9yPdqRyShHlguB9yd3Y9ghG1jIx8vwhvqdQhT_rhlbq4XzdgjzGPFOZ9j8DMTMRVE-fjGRWTf4uEdiKmelYCqUAGynP9Za-fAYb5f9-FEJlF_DmCD2-qwmwAcK0nVRI59k2XyvRV9raO9cTZSD5TYEQbO55FMdyPIE6PR8frN2Lx1rRg6DwwcP10s3agNwA99BwCeyd6eiBaV6qQYY-08di8HRwd1d54Q3fVQ9MtN3N18ehTXEOHRYCQMQpjxp8YxxpWoujgoqytc1GwPaoKbihhGh7Ryoi31f0aQGJUPNGCIQloVsL5dwcDtkyFkZlisPzu0YEK8c9pVWcFfe7DOXpkUPiBLWGGvx4LMYWAq-HQFoxE97uVi4sxK2erM6hbTpb2g18_KnthocFwUiryTFUyH6naiRlC8D_9iRGFcLEHRHkJKy-RrVDYHq24LWls9vw7OqT9lk_tQDl-9xNdf-EdnCiyhYCgIEGi5xKuGlgwu99FCA1kUNiUFOYmnjl3UpAwL3wC2Ir9CL5U_N4jZu2zHoiUrXEtKoU7DmGlg9Y2-tvxHKnRUO4zkVk8pmM_1-WRUVD-6hiaH9XA5uwG31TVqx53tgLvIbGFydvZoCd6bwnJBXNmZ1IwyQ6yGqcX-wJesIr1rW6NSdoqpJMYdhY9uB1gZyLMymE2wInCwlI_-D3y9jQVKuw8AcRR-5oenB-FoeIeqDkGGLuqvhCp0sgUdhtDTXVUZn045PH9DUrjXXIcb5pagnDLZfg3wmoMI2jBPkGJPQoivtAdZQjskWUB3R0iqrV_7-MPG4_qXkPpHUERO92_jv2AXypAJYBibLdDvnjmUWBf83UorYqYxbUnMipDvURCpI5CxYF9qwzzP_0EVskAEB5xqeWif6ixz29-5Wjb7XdCBIm4X_u1ePaD_32vgmivgFP-NubJDZ76xNkFsidVfueyEjxo9K-uTYUCTPmvRTRWOjhtwlKjYOIYx1UV5X0dfAYNaoDp1otOkIDoXgMsoGQB0TcsM66_Yv31TIInHlsmH-SGzDMgtWFVuf8tyiEIIa_z4hTU1G5dJIrfnN9J_M7Akj1uYqxR4JEDtRqOsThOVdAyDvAuxtBTNbRpTLF4ZSVpuUuR-V2Vj-jwgltMq_bcZPY8Ad5x3DIHxg2sAHxxO_EUYXYyYNbiRRUO_7hn-k6upv6Fva6M9PVOt58QJ3h-cJFGCgiPgKHjFSOZjRheE6sgsVPqBhCUftJwokZDYnrh90Jt2SW_7xEnINY-IHSnwMir9Ou0a_vv-yHJKGa6vsQFbaOONSXzkY1SO_pRET_XexQKmNtDXKzLn7YO4wgqmHZfiGfGRhIVM7vZZz_JLB0rU5TVlO_54xdy1T1GuBWVjQXAxZSrdJV2-rEbss5wBYSYOtcI4X5qAw1sbOwP_RpS-zN27JQ3LIrpw4PGx6cMcHOfCE9jKe99Nw=",
+      "summary": []
+    },
+    {
+      "id": "fc_03a1ff651a3c714a016ae6fc1ac70087d1a37d29ce2cb2d7cc",
+      "type": "function_call",
+      "status": "completed",
+      "arguments": "{\"path\":\"packages/cli/src/lib/image-file-boundary.js\",\"offset\":1,\"limit\":170,\"column\":1,\"hashed\":false,\"raw\":false}",
+      "call_id": "call_Asz26TiWhJIFaDDOOcNMxQQh",
+      "name": "read_file"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+    "context": "all_turns",
+    "effort": "medium",
+    "mode": "standard",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "total_tokens": 0
+    },
+    "web_search": {
+      "num_requests": 0
+    }
+  },
+  "tools": [
+    {
+      "type": "function",
+      "description": "Read a file's content. Use search_files to locate relevant sections and offset+limit to read them. For large files, follow the returned nextRead cursor; range describes only the lines actually returned. Reuse unchanged content already in context instead of re-reading the same page. Jupyter notebooks (.ipynb) are rendered as a compact cell listing for notebook_edit \u2014 pass raw:true for underlying JSON.",
+      "name": "read_file",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "File path to read"
+          },
+          "offset": {
+            "type": "integer",
+            "description": "1-based line number to start reading from (omit to read from the top). Use with limit to page a large file."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of lines to return starting at offset (omit to read to end, subject to the size cap)."
+          },
+          "column": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "1-based character position within the first rendered line. Use the column from nextRead to continue an oversized single line without repeating its beginning."
+          },
+          "hashed": {
+            "type": "boolean",
+            "description": "Prefix each line with a 6-char content hash for edit_file_hashed anchoring"
+          },
+          "raw": {
+            "type": "boolean",
+            "description": "For .ipynb: return the raw notebook JSON instead of the rendered cell listing"
+          }
+        },
+        "required": [
+          "path",
+          "offset",
+          "limit",
+          "column",
+          "hashed",
+          "raw"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "Write content to a file (create or overwrite). For a large new file, write a small complete section first, then extend it with edit_file using a unique existing anchor. Aim for a few thousand characters of new content per call and wait for the result before continuing; each write_file call replaces the whole file.",
+      "name": "write_file",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Use exactly one listed canonical repo-relative path. Read tools may return absolute paths; those are not valid mutation arguments in this run. Do not use an absolute path, ./ prefix, .. segment or backslash. This schema is guidance; all execution-time permission and file-identity checks still apply.",
+            "enum": [
+              "packages/cli/__tests__/repair137-verify-13.test.js"
+            ]
+          },
+          "content": {
+            "type": "string",
+            "description": "File content"
+          }
+        },
+        "required": [
+          "path",
+          "content"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "Replace a string in a file. old_string must match EXACTLY ONE place \u2014 include enough surrounding context to make it unique, or the edit is rejected. To extend a file in small complete sections, use a unique existing anchor as old_string and retain that anchor plus the new section in new_string; do not resend the whole growing file. Wait for each edit result before continuing. Pass replace_all:true to change every occurrence instead.",
+      "name": "edit_file",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Use exactly one listed canonical repo-relative path. Read tools may return absolute paths; those are not valid mutation arguments in this run. Do not use an absolute path, ./ prefix, .. segment or backslash. This schema is guidance; all execution-time permission and file-identity checks still apply.",
+            "enum": [
+              "packages/cli/__tests__/repair137-verify-13.test.js"
+            ]
+          },
+          "old_string": {
+            "type": "string",
+            "description": "Exact string to replace; must be unique in the file unless replace_all is true"
+          },
+          "new_string": {
+            "type": "string",
+            "description": "Replacement string"
+          },
+          "replace_all": {
+            "type": "boolean",
+            "description": "Replace every occurrence of old_string instead of requiring a unique match (default false)"
+          }
+        },
+        "required": [
+          "path",
+          "old_string",
+          "new_string",
+          "replace_all"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "Replace a single line in a file, anchored by its content hash. Use this instead of edit_file for robust edits: each line of read_file output (with hashed:true) is tagged with a 6-char hash like 'a3Kp9Z| const x = ...'. Pass the hash as anchor_hash, the current line as expected_line, and the replacement as new_line. Rejects edits if the line drifted (hash mismatch) \u2014 retry by re-reading the file with hashed:true.",
+      "name": "edit_file_hashed",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Use exactly one listed canonical repo-relative path. Read tools may return absolute paths; those are not valid mutation arguments in this run. Do not use an absolute path, ./ prefix, .. segment or backslash. This schema is guidance; all execution-time permission and file-identity checks still apply.",
+            "enum": [
+              "packages/cli/__tests__/repair137-verify-13.test.js"
+            ]
+          },
+          "anchor_hash": {
+            "type": "string",
+            "description": "6-char base64url hash of the line to replace (from read_file with hashed:true)"
+          },
+          "expected_line": {
+            "type": "string",
+            "description": "Current content of the line \u2014 used as a second-layer check against hash collisions. Compared after .trim()."
+          },
+          "new_line": {
+            "type": "string",
+            "description": "Replacement line content (without the hash tag prefix). Preserve the original indentation."
+          }
+        },
+        "required": [
+          "path",
+          "anchor_hash",
+          "expected_line",
+          "new_line"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "Search for files by name pattern or content. For a long text file, pass path and pattern: returns matching line/column positions, nearby context, and nextRead arguments for read_file. This streams the file instead of loading it into model context. Continue capped results with nextOffset as offset. Omit path for the existing directory search.",
+      "name": "search_files",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string",
+            "description": "Glob pattern or search string"
+          },
+          "path": {
+            "type": "string",
+            "description": "One text file to search by literal keyword (takes precedence over directory/content_search)."
+          },
+          "regex": {
+            "type": "boolean",
+            "description": "Single-file search only: evaluate a regular expression in overlapping 64K text windows (default false). Prefer literals for exact coverage across window boundaries."
+          },
+          "caseSensitive": {
+            "type": "boolean",
+            "description": "Single-file search only: match case (default false)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Single-file search: zero-based character offset to continue from nextOffset (default 0)."
+          },
+          "maxMatches": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Single-file search: maximum matching excerpts (default 20)."
+          },
+          "contextChars": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000,
+            "description": "Single-file search: characters around each match (default 150)."
+          },
+          "directory": {
+            "type": "string",
+            "description": "Directory to search in (default: cwd)"
+          },
+          "content_search": {
+            "type": "boolean",
+            "description": "If true, search file contents instead of names"
+          }
+        },
+        "required": [
+          "pattern",
+          "path",
+          "regex",
+          "caseSensitive",
+          "offset",
+          "maxMatches",
+          "contextChars",
+          "directory",
+          "content_search"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "description": "List contents of a directory",
+      "name": "list_dir",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Directory path (default: cwd)"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "strict": true
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 17840,
+    "input_tokens_details": {
+      "cache_write_tokens": 15369,
+      "cached_tokens": 2394
+    },
+    "output_tokens": 108,
+    "output_tokens_details": {
+      "reasoning_tokens": 59
+    },
+    "total_tokens": 17948
+  },
+  "user": null,
+  "metadata": {}
+}

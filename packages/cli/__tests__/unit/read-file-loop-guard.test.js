@@ -42,10 +42,29 @@ function fixture() {
 }
 
 describe("ReadFileLoopGuard recovery", () => {
+  it("confirms delivered JavaScript trailing commas as visible source", () => {
+    const { guard, read } = fixture();
+    const source = "const values = [1, 2,];";
+    guard.observeVisibleMessages([]);
+    const page = read({ offset: 1, limit: 80 }, source);
+    const projected = safeHostToolResultForModel("read_file", page);
+    expect(projected.content).toBe(source);
+    expect(projected.contentOmitted).toBeUndefined();
+    guard.observeVisibleMessages([
+      { role: "tool", content: JSON.stringify(projected) },
+    ]);
+    const entry = [...guard.progress.values()][0];
+    expect(entry.confirmedSpans).toEqual([
+      [page.readSpan.start, page.readSpan.end],
+    ]);
+    expect(entry.undeliveredReads).toBe(0);
+    expect(entry.summary.reachedEnd).toBe(true);
+  });
+
   it("does not consume source coverage or successful rereads for omitted pages", () => {
     const { guard, read } = fixture();
     const source =
-      "const values = [\n  1,\n  2,\n];\nconst ready = true;\nuse(ready);";
+      'const values = [\n  1,\n  {"value": 1, "value": 2}\n];\nconst ready = true;\nuse(ready);';
     guard.observeVisibleMessages([]);
     for (let attempt = 0; attempt < 4; attempt++) {
       const page = read({ offset: 1, limit: 80 }, source);
@@ -111,7 +130,7 @@ describe("ReadFileLoopGuard recovery", () => {
 
   it("does not let delivery of unrelated old source erase omission limits", () => {
     const { guard, read } = fixture();
-    const source = "const ready = true;\nconst values = [1, 2,];";
+    const source = 'const ready = true;\nconst values = {"value": 1, "value": 2};';
     guard.observeVisibleMessages([]);
     const safe = read({ offset: 1, limit: 1 }, source);
     guard.observeVisibleMessages([
