@@ -388,6 +388,22 @@ export class ChainlessChainWSServer extends EventEmitter {
       );
     this.resolveEvolutionCompositionFactory =
       options.resolveEvolutionCompositionFactory || null;
+    // Standalone embedders use the same host-owned optional Evolution policy
+    // as cc ui. Explicit policy hooks/factories (including null) still win.
+    if (
+      options.prepareUiModelTurn === undefined &&
+      options.evolutionCompositionFactory === undefined &&
+      options.resolveEvolutionCompositionFactory === undefined
+    ) {
+      this.prepareUiModelTurn = async (context) => {
+        const { prepareConfiguredUiModelTurn } = await import(
+          "../../lib/evolution/optional-ui-model-turn.js"
+        );
+        return prepareConfiguredUiModelTurn(context, {
+          cwd: this.projectRoot,
+        });
+      };
+    }
     this.runtimeAdmissionDependencies =
       captureSkillRuntimeDependencies(options);
     this.skillOutcomeIndex =
