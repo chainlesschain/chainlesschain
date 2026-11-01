@@ -1,5 +1,7 @@
 # 修复后源码五项复测：发布前置条件
 
+第三轮候选引擎和被维护项目固定 `5f372b3aa673c30bcd03b4da9ce8907992cb3386`，包含最终源码表达式与敏感模板边界修复。[GitHub Actions三包构建](https://github.com/chainlesschain/chainlesschain/actions/runs/41286076748)已成功，原始[测试制品](https://github.com/chainlesschain/chainlesschain/actions/runs/41286076748/artifacts/13074779528)及16份安装源码清单已核验；尚未发布。新一轮的五项生成、独立验收和精确提交完整CLI CI/Strict Sandbox按用户要求全部在GitHub Actions执行，全部通过后直接按CLI→IDE顺序发布。原任务提示、模型、宿主、预算与行为变异不改；此前0/5与旧41/45不合并。
+
 第二轮候选引擎与被维护项目固定 `b7498521795702515cf8c24b9842da6ae3bed5db`，执行/检查提交 `95567903c800001de9793c804580a1157808fcf3`，包含原任务压缩绑定修复。[三包构建](https://github.com/chainlesschain/chainlesschain/actions/runs/41275646986) **3/3 job成功**；实际生成并独立验收为 **0/5**，不能发布。[原始轨迹、候选、全部77次代理请求/响应/用量与独立回执](candidate-engine2-95567903c8/README.md)已按原字节归档。新发现合法JavaScript尾逗号被源码预览扫描器误判，发送前完整源码已变为Text omitted，模型反复分页直至保护/轮次耗尽。修复处理中，后续必须重建同源候选再验收；旧41/45不变。
 
 新包原始摘要、SHA512、构建来源和13份关键CLI源码清单已核验。[项目投影](candidate2-project-projection-preflight.raw.json)含23430条目，旧答案/验收器0条、9份必要源码和基线逐字节一致；[实际选择器](candidate2-selector-preflight.raw.json)4组生成及4组只验收 **8/8**。携带新候选实际全局变量并使用workflow的隔离覆盖执行完整Node预检 **153/153**，没有网络/模型请求。[同源执行计划](candidate2-five-retest-plan.json)保持原提示、宿主、变异与预算。

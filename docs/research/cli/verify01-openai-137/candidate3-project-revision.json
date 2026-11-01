@@ -1,0 +1,21 @@
+{
+  "schema": "chainlesschain.verify01-project-revision/v1",
+  "cohortId": "repaired-source-followup-cli137-candidate3-source-expressions-five",
+  "parentProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "parentPlanDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "projectCommit": "5f372b3aa673c30bcd03b4da9ce8907992cb3386",
+  "selectedSampleIds": [
+    "verify-08",
+    "verify-13",
+    "verify-19",
+    "verify-36",
+    "first-run-darwin-vscode"
+  ],
+  "taskDeliverables": {
+    "verify-08": ["packages/cli/__tests__/repair137-verify-08.test.js"],
+    "verify-13": ["packages/cli/__tests__/repair137-verify-13.test.js"],
+    "verify-19": ["packages/cli/__tests__/repair137-verify-19.test.js"],
+    "verify-36": ["packages/cli/__tests__/repair137-verify-36.test.js"]
+  },
+  "reason": "User-required fresh five-task prepublication gate after repairing source-expression previews and task preservation. Rebuild CLI/IDE candidates and the maintained project from this exact source. Preserve original task prompts, host allocation, model, budgets, behavioral mutants and delivery paths. Generic runtime guidance uses bounded binary assertions; no previous candidate answers or task-specific repair feedback are included. All prior scores remain separate."
+}
