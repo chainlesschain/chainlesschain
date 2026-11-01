@@ -1,4 +1,8 @@
-# CLI 0.166.137 release status
+# CLI .137 repair evidence and .138 release follow-up
+
+Current target: **CLI 0.166.138 / SDK 0.2.17 / Open VSX 0.37.174 / JetBrains 0.4.190**. The .137 final source passed every required CLI CI and Strict Sandbox job, but its OIDC run stopped before CLI upload because an SDK test changed without a version bump. Keep the .137 tag immutable; SDK runtime output is unchanged. New exact-source matrices and SDK → CLI → IDE publication/readback remain required. [Failure and authorization records](../evidence/release138-preparation/previous-release-failure.json). No further model cohort is started; the user waived five-task success.
+
+The following records retain the .137 candidate and authorization scope.
 
 The user now explicitly authorizes publication irrespective of the five task results: “不论5个任务是否成功都可以先发布”. This supersedes the earlier five-of-five release prerequisite; it does not change any test result. [Authorization and limits](publication-authorization.json).
 

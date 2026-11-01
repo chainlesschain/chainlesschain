@@ -1,8 +1,8 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [0.4.190] - CLI .137 source-delivery pairing (candidate, 2026-11-01)
+## [0.4.190] - CLI .138 source-delivery pairing (candidate, 2026-11-01)
 
-- Recommend CLI 0.166.137 and pair with Open VSX 0.37.174 only after verified upstream publication. Kernel remains 0.1.11.
+- Recommend CLI 0.166.138 and pair with Open VSX 0.37.174 only after verified upstream publication. Kernel remains 0.1.11.
 - Carry CLI source-delivery coverage and terminal Responses compaction failure repairs. No independent JetBrains UI change is included.
 - Historical model acceptance remains 41/45; engineering and publication checks add no accepted model tasks. Marketplace upload and approval remain separate states.
 

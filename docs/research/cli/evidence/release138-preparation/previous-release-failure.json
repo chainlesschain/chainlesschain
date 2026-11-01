@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "failedVersion": "0.166.137",
+  "failedReleaseCommit": "cc17f961c71e999be29f1d21e7222ef60b8f0c7d",
+  "immutableTagRetained": "v-npm-0-166-137",
+  "runId": 41300658369,
+  "jobId": 124831722899,
+  "failedStep": "Verify published Agent SDK registry bytes and npm provenance",
+  "reason": "Agent SDK 0.2.16 tree differs from signed anchor fcb26822d6b4559e4904f984daa8e6bb7cc012b7 solely in __tests__/protocol-fixtures.test.ts; version must advance",
+  "cliUploadStarted": false,
+  "requiredRepair": {
+    "agentSdk": "0.2.17",
+    "cli": "0.166.138",
+    "openVsx": "0.37.174",
+    "jetbrains": "0.4.190"
+  },
+  "noProtectionBypassed": true,
+  "newExactSourceMatrixRequired": true,
+  "recordedAt": "2026-11-01T11:33:40.154Z"
+}

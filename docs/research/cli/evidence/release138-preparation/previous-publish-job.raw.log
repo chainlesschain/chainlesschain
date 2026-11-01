@@ -1,0 +1,1040 @@
+﻿2026-11-01T11:14:40.4653656Z Current runner version: '2.338.2'
+2026-11-01T11:14:40.4675231Z ##[group]Runner Image Provisioner
+2026-11-01T11:14:40.4676225Z Hosted Compute Agent
+2026-11-01T11:14:40.4676825Z Version: 20261021.618
+2026-11-01T11:14:40.4677436Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+2026-11-01T11:14:40.4678194Z Build Date: 2026-10-21T00:45:21Z
+2026-11-01T11:14:40.4678855Z Worker ID: {ec181192-e35a-463d-8ef5-9313b8068d67}
+2026-11-01T11:14:40.4679531Z Region: centralus
+2026-11-01T11:14:40.4680105Z Cloud: Azure
+2026-11-01T11:14:40.4680663Z ##[endgroup]
+2026-11-01T11:14:40.4682232Z ##[group]Operating System
+2026-11-01T11:14:40.4682832Z Ubuntu
+2026-11-01T11:14:40.4683329Z 26.04.1
+2026-11-01T11:14:40.4683872Z LTS
+2026-11-01T11:14:40.4684381Z ##[endgroup]
+2026-11-01T11:14:40.4684935Z ##[group]Runner Image
+2026-11-01T11:14:40.4685497Z Image: ubuntu-26.04
+2026-11-01T11:14:40.4686032Z Version: 20261025.179.1
+2026-11-01T11:14:40.4687218Z Included Software: https://github.com/actions/runner-images/blob/ubuntu26/20261025.179/images/ubuntu/Ubuntu2604-Readme.md
+2026-11-01T11:14:40.4688675Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu26%2F20261025.179
+2026-11-01T11:14:40.4689576Z ##[endgroup]
+2026-11-01T11:14:40.4690626Z ##[group]GITHUB_TOKEN Permissions
+2026-11-01T11:14:40.4692619Z Contents: read
+2026-11-01T11:14:40.4693213Z Metadata: read
+2026-11-01T11:14:40.4693779Z ##[endgroup]
+2026-11-01T11:14:40.4695743Z Secret source: Actions
+2026-11-01T11:14:40.4696643Z Cache mode: write
+2026-11-01T11:14:40.4697293Z Prepare workflow directory
+2026-11-01T11:14:40.5043472Z Prepare all required actions
+2026-11-01T11:14:40.5088625Z Getting action download info
+2026-11-01T11:14:40.7213617Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-11-01T11:14:40.8540663Z Download action repository 'actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-11-01T11:14:40.9541804Z Download action repository 'actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53' (SHA:018cc2cf5baa6db3ef3c5f8a56943fffe632ef53)
+2026-11-01T11:14:41.3745548Z Download action repository 'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-11-01T11:14:41.6106554Z Complete job name: publish
+2026-11-01T11:14:41.6945051Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-11-01T11:14:41.6945990Z with:
+2026-11-01T11:14:41.6946499Z   repository: chainlesschain/chainlesschain
+2026-11-01T11:14:41.6950279Z   token: ***
+2026-11-01T11:14:41.6950757Z   ssh-strict: true
+2026-11-01T11:14:41.6951483Z   ssh-user: git
+2026-11-01T11:14:41.6951987Z   persist-credentials: true
+2026-11-01T11:14:41.6952500Z   clean: true
+2026-11-01T11:14:41.6953035Z   sparse-checkout-cone-mode: true
+2026-11-01T11:14:41.6953622Z   fetch-depth: 1
+2026-11-01T11:14:41.6954417Z   fetch-tags: false
+2026-11-01T11:14:41.6954932Z   show-progress: true
+2026-11-01T11:14:41.6955435Z   lfs: false
+2026-11-01T11:14:41.6955957Z   submodules: false
+2026-11-01T11:14:41.6956452Z   set-safe-directory: true
+2026-11-01T11:14:41.6956995Z   allow-unsafe-pr-checkout: false
+2026-11-01T11:14:41.6957748Z ##[endgroup]
+2026-11-01T11:14:41.9019150Z Syncing repository: chainlesschain/chainlesschain
+2026-11-01T11:14:41.9021922Z ##[group]Getting Git version info
+2026-11-01T11:14:41.9023092Z Working directory is '/home/runner/work/chainlesschain/chainlesschain'
+2026-11-01T11:14:41.9024930Z [command]/usr/bin/git version
+2026-11-01T11:14:41.9038806Z git version 2.56.0
+2026-11-01T11:14:41.9056313Z ##[endgroup]
+2026-11-01T11:14:41.9068914Z Temporarily overriding HOME='/home/runner/work/_temp/173c20ed-fbdc-4677-9bc1-f14dea3a38fb' before making global git config changes
+2026-11-01T11:14:41.9071888Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-01T11:14:41.9073902Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-11-01T11:14:41.9136812Z Deleting the contents of '/home/runner/work/chainlesschain/chainlesschain'
+2026-11-01T11:14:41.9142880Z ##[group]Initializing the repository
+2026-11-01T11:14:41.9144305Z [command]/usr/bin/git init /home/runner/work/chainlesschain/chainlesschain
+2026-11-01T11:14:41.9280383Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-01T11:14:41.9282574Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-01T11:14:41.9283904Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-01T11:14:41.9285014Z hint: call:
+2026-11-01T11:14:41.9285785Z hint:
+2026-11-01T11:14:41.9286565Z hint: 	git config --global init.defaultBranch <name>
+2026-11-01T11:14:41.9287454Z hint:
+2026-11-01T11:14:41.9288319Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-01T11:14:41.9289729Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-01T11:14:41.9291106Z hint:
+2026-11-01T11:14:41.9291820Z hint: 	git branch -m <name>
+2026-11-01T11:14:41.9292565Z hint:
+2026-11-01T11:14:41.9293494Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-01T11:14:41.9295237Z Initialized empty Git repository in /home/runner/work/chainlesschain/chainlesschain/.git/
+2026-11-01T11:14:41.9306448Z [command]/usr/bin/git remote add origin https://github.com/chainlesschain/chainlesschain
+2026-11-01T11:14:41.9370118Z ##[endgroup]
+2026-11-01T11:14:41.9371598Z ##[group]Disabling automatic garbage collection
+2026-11-01T11:14:41.9373250Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-01T11:14:41.9401859Z ##[endgroup]
+2026-11-01T11:14:41.9403358Z ##[group]Setting up auth
+2026-11-01T11:14:41.9406151Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-01T11:14:41.9432537Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-01T11:14:41.9830441Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-01T11:14:41.9872661Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-01T11:14:42.0078876Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-01T11:14:42.0106175Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-01T11:14:42.0314888Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-01T11:14:42.0347716Z ##[endgroup]
+2026-11-01T11:14:42.0348905Z ##[group]Fetching the repository
+2026-11-01T11:14:42.0356682Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +cc17f961c71e999be29f1d21e7222ef60b8f0c7d:refs/tags/v-npm-0-166-137
+2026-11-01T11:14:57.9773420Z From https://github.com/chainlesschain/chainlesschain
+2026-11-01T11:14:57.9774185Z  * [new ref]           cc17f961c71e999be29f1d21e7222ef60b8f0c7d -> v-npm-0-166-137
+2026-11-01T11:14:57.9781637Z ##[endgroup]
+2026-11-01T11:14:57.9782887Z ##[group]Determining the checkout info
+2026-11-01T11:14:57.9783754Z ##[endgroup]
+2026-11-01T11:14:57.9786369Z [command]/usr/bin/git sparse-checkout disable
+2026-11-01T11:14:57.9833521Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-01T11:14:57.9858333Z ##[group]Checking out the ref
+2026-11-01T11:14:57.9862313Z [command]/usr/bin/git checkout --progress --force refs/tags/v-npm-0-166-137
+2026-11-01T11:14:59.1862129Z Updating files:  37% (14626/39269)
+2026-11-01T11:14:59.6886010Z Updating files:  38% (14923/39269)
+2026-11-01T11:15:00.0214102Z Updating files:  39% (15315/39269)
+2026-11-01T11:15:00.0733027Z Updating files:  39% (15606/39269)
+2026-11-01T11:15:00.1053643Z Updating files:  40% (15708/39269)
+2026-11-01T11:15:00.1255100Z Updating files:  41% (16101/39269)
+2026-11-01T11:15:00.1497675Z Updating files:  42% (16493/39269)
+2026-11-01T11:15:00.2226933Z Updating files:  43% (16886/39269)
+2026-11-01T11:15:00.2578676Z Updating files:  44% (17279/39269)
+2026-11-01T11:15:00.2831293Z Updating files:  45% (17672/39269)
+2026-11-01T11:15:00.2936821Z Updating files:  46% (18064/39269)
+2026-11-01T11:15:00.3139142Z Updating files:  47% (18457/39269)
+2026-11-01T11:15:00.3351313Z Updating files:  48% (18850/39269)
+2026-11-01T11:15:00.3531929Z Updating files:  49% (19242/39269)
+2026-11-01T11:15:00.4502670Z Updating files:  50% (19635/39269)
+2026-11-01T11:15:00.5117000Z Updating files:  51% (20028/39269)
+2026-11-01T11:15:00.5929924Z Updating files:  52% (20420/39269)
+2026-11-01T11:15:00.6096042Z Updating files:  53% (20813/39269)
+2026-11-01T11:15:00.6565658Z Updating files:  54% (21206/39269)
+2026-11-01T11:15:00.6920780Z Updating files:  55% (21598/39269)
+2026-11-01T11:15:00.7412674Z Updating files:  56% (21991/39269)
+2026-11-01T11:15:00.7731927Z Updating files:  57% (22384/39269)
+2026-11-01T11:15:00.7827571Z Updating files:  58% (22777/39269)
+2026-11-01T11:15:00.7930208Z Updating files:  59% (23169/39269)
+2026-11-01T11:15:00.8065998Z Updating files:  60% (23562/39269)
+2026-11-01T11:15:00.8157758Z Updating files:  61% (23955/39269)
+2026-11-01T11:15:00.8935115Z Updating files:  62% (24347/39269)
+2026-11-01T11:15:01.0388424Z Updating files:  63% (24740/39269)
+2026-11-01T11:15:01.0441583Z Updating files:  63% (25090/39269)
+2026-11-01T11:15:01.0687130Z Updating files:  64% (25133/39269)
+2026-11-01T11:15:01.0806249Z Updating files:  65% (25525/39269)
+2026-11-01T11:15:01.0923545Z Updating files:  66% (25918/39269)
+2026-11-01T11:15:01.1292655Z Updating files:  67% (26311/39269)
+2026-11-01T11:15:01.1623324Z Updating files:  68% (26703/39269)
+2026-11-01T11:15:01.1883893Z Updating files:  69% (27096/39269)
+2026-11-01T11:15:01.2168041Z Updating files:  70% (27489/39269)
+2026-11-01T11:15:01.2432465Z Updating files:  71% (27881/39269)
+2026-11-01T11:15:01.2863442Z Updating files:  72% (28274/39269)
+2026-11-01T11:15:01.3003528Z Updating files:  73% (28667/39269)
+2026-11-01T11:15:01.3560668Z Updating files:  74% (29060/39269)
+2026-11-01T11:15:01.4234278Z Updating files:  75% (29452/39269)
+2026-11-01T11:15:01.4667860Z Updating files:  76% (29845/39269)
+2026-11-01T11:15:01.4942628Z Updating files:  77% (30238/39269)
+2026-11-01T11:15:01.5258264Z Updating files:  78% (30630/39269)
+2026-11-01T11:15:01.5481472Z Updating files:  79% (31023/39269)
+2026-11-01T11:15:01.5767126Z Updating files:  80% (31416/39269)
+2026-11-01T11:15:01.6868225Z Updating files:  81% (31808/39269)
+2026-11-01T11:15:01.7200161Z Updating files:  82% (32201/39269)
+2026-11-01T11:15:01.7432618Z Updating files:  83% (32594/39269)
+2026-11-01T11:15:01.7715278Z Updating files:  84% (32986/39269)
+2026-11-01T11:15:01.8008081Z Updating files:  85% (33379/39269)
+2026-11-01T11:15:01.8237451Z Updating files:  86% (33772/39269)
+2026-11-01T11:15:01.8505317Z Updating files:  87% (34165/39269)
+2026-11-01T11:15:01.8764414Z Updating files:  88% (34557/39269)
+2026-11-01T11:15:01.9115379Z Updating files:  89% (34950/39269)
+2026-11-01T11:15:01.9538164Z Updating files:  90% (35343/39269)
+2026-11-01T11:15:01.9931910Z Updating files:  91% (35735/39269)
+2026-11-01T11:15:02.0208332Z Updating files:  92% (36128/39269)
+2026-11-01T11:15:02.0257582Z Updating files:  92% (36466/39269)
+2026-11-01T11:15:02.0533585Z Updating files:  93% (36521/39269)
+2026-11-01T11:15:02.0757560Z Updating files:  94% (36913/39269)
+2026-11-01T11:15:02.1006159Z Updating files:  95% (37306/39269)
+2026-11-01T11:15:02.1223718Z Updating files:  96% (37699/39269)
+2026-11-01T11:15:02.1500775Z Updating files:  97% (38091/39269)
+2026-11-01T11:15:02.1710454Z Updating files:  98% (38484/39269)
+2026-11-01T11:15:02.1944019Z Updating files:  99% (38877/39269)
+2026-11-01T11:15:02.1944849Z Updating files: 100% (39269/39269)
+2026-11-01T11:15:02.1945915Z Updating files: 100% (39269/39269), done.
+2026-11-01T11:15:02.2492274Z Note: switching to 'refs/tags/v-npm-0-166-137'.
+2026-11-01T11:15:02.2492632Z 
+2026-11-01T11:15:02.2492924Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-01T11:15:02.2493485Z changes and commit them, and you can discard any commits you make in this
+2026-11-01T11:15:02.2494050Z state without impacting any branches by switching back to a branch.
+2026-11-01T11:15:02.2494320Z 
+2026-11-01T11:15:02.2494562Z If you want to create a new branch to retain commits you create, you may
+2026-11-01T11:15:02.2495099Z do so (now or later) by using -c with the switch command. Example:
+2026-11-01T11:15:02.2495402Z 
+2026-11-01T11:15:02.2495540Z   git switch -c <new-branch-name>
+2026-11-01T11:15:02.2495777Z 
+2026-11-01T11:15:02.2495930Z Or undo this operation with:
+2026-11-01T11:15:02.2496129Z 
+2026-11-01T11:15:02.2496295Z   git switch -
+2026-11-01T11:15:02.2496438Z 
+2026-11-01T11:15:02.2496693Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-01T11:15:02.2497030Z 
+2026-11-01T11:15:02.2497296Z HEAD is now at cc17f961 chore(release): authorize CLI 137 with disclosed task limits
+2026-11-01T11:15:02.2566360Z ##[endgroup]
+2026-11-01T11:15:02.2616552Z [command]/usr/bin/git log -1 --format=%H
+2026-11-01T11:15:02.2640841Z cc17f961c71e999be29f1d21e7222ef60b8f0c7d
+2026-11-01T11:15:02.2976221Z ##[group]Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+2026-11-01T11:15:02.2976661Z with:
+2026-11-01T11:15:02.2976971Z   node-version: 22.14.0
+2026-11-01T11:15:02.2977297Z   always-auth: false
+2026-11-01T11:15:02.2977585Z   check-latest: false
+2026-11-01T11:15:02.2979779Z   token: ***
+2026-11-01T11:15:02.2980074Z   package-manager-cache: true
+2026-11-01T11:15:02.2980410Z ##[endgroup]
+2026-11-01T11:15:02.4389061Z Attempting to download 22.14.0...
+2026-11-01T11:15:02.4531540Z (node:2174) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-01T11:15:02.4532627Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-01T11:15:03.1453637Z Acquiring 22.14.0 - x64 from https://github.com/actions/node-versions/releases/download/22.14.0-13265982013/node-22.14.0-linux-x64.tar.gz
+2026-11-01T11:15:03.6453103Z Extracting ...
+2026-11-01T11:15:03.6554363Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/0eae39a6-5d3e-4372-9a20-b4642bce61a9 -f /home/runner/work/_temp/c38377f7-9796-4a7f-8da2-e0460df0f1a2
+2026-11-01T11:15:04.4043022Z Adding to the cache ...
+2026-11-01T11:15:07.6450037Z ##[group]Environment details
+2026-11-01T11:15:07.8523297Z node: v22.14.0
+2026-11-01T11:15:07.8523779Z npm: 10.9.2
+2026-11-01T11:15:07.8524298Z yarn: 1.22.22
+2026-11-01T11:15:07.8525095Z ##[endgroup]
+2026-11-01T11:15:07.8678043Z ##[group]Run npm install --global npm@11.18.0
+2026-11-01T11:15:07.8678582Z [36;1mnpm install --global npm@11.18.0[0m
+2026-11-01T11:15:07.8679041Z [36;1mnpm --version[0m
+2026-11-01T11:15:07.8705476Z shell: /usr/bin/bash -e {0}
+2026-11-01T11:15:07.8705876Z ##[endgroup]
+2026-11-01T11:15:11.3738491Z 
+2026-11-01T11:15:11.3747954Z removed 84 packages, and changed 105 packages in 3s
+2026-11-01T11:15:11.3748669Z 
+2026-11-01T11:15:11.3749051Z 15 packages are looking for funding
+2026-11-01T11:15:11.3749603Z   run `npm fund` for details
+2026-11-01T11:15:11.4607624Z 11.18.0
+2026-11-01T11:15:11.5355581Z ##[group]Run npm install --legacy-peer-deps
+2026-11-01T11:15:11.5356044Z [36;1mnpm install --legacy-peer-deps[0m
+2026-11-01T11:15:11.5356631Z [36;1mnpm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true[0m
+2026-11-01T11:15:11.5378260Z shell: /usr/bin/bash -e {0}
+2026-11-01T11:15:11.5378612Z ##[endgroup]
+2026-11-01T11:15:13.6838812Z npm warn skipping integrity check for git dependency ssh://git@github.com/electron/node-gyp.git
+2026-11-01T11:15:15.9835413Z npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+2026-11-01T11:15:16.8803278Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2026-11-01T11:15:17.4381871Z npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-11-01T11:15:17.7991683Z npm warn deprecated npmlog@6.0.2: This package is no longer supported.
+2026-11-01T11:15:18.4395000Z npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
+2026-11-01T11:15:18.4889979Z npm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.
+2026-11-01T11:15:19.2229988Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-11-01T11:15:19.5042694Z npm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-11-01T11:15:20.5509507Z npm warn deprecated vue-i18n@9.14.5: v9 and v10 no longer supported. please migrate to v11. about maintenance status, see https://vue-i18n.intlify.dev/guide/maintenance.html
+2026-11-01T11:15:20.6023641Z npm warn deprecated gauge@4.0.4: This package is no longer supported.
+2026-11-01T11:15:20.6918267Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-11-01T11:15:20.8696844Z npm warn deprecated fstream@1.0.12: This package is no longer supported.
+2026-11-01T11:15:21.2125848Z npm warn deprecated are-we-there-yet@3.0.1: This package is no longer supported.
+2026-11-01T11:15:21.2838944Z npm warn deprecated multiaddr@10.0.1: This module is deprecated, please upgrade to @multiformats/multiaddr
+2026-11-01T11:15:21.8809803Z npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-11-01T11:15:22.6536993Z npm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
+2026-11-01T11:15:23.6626629Z npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-11-01T11:15:23.9511957Z npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+2026-11-01T11:15:24.0765408Z npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+2026-11-01T11:15:25.7324656Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-01T11:15:25.7329508Z npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+2026-11-01T11:15:25.8578581Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-11-01T11:15:25.9375435Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-11-01T11:15:25.9382274Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-01T11:15:26.1442503Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-11-01T11:15:26.2153752Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-01T11:15:26.2612958Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-11-01T11:15:27.5184852Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-01T11:15:27.5726451Z npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+2026-11-01T11:15:27.7231801Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-01T11:15:27.8952970Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-01T11:15:28.1928542Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-01T11:15:30.2453150Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-01T11:15:30.2464373Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-01T11:15:33.9000113Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-11-01T11:15:35.0209946Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-11-01T11:15:35.8490582Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-01T11:15:36.3079037Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-01T11:15:36.3478806Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-01T11:15:42.6915987Z npm warn deprecated fluent-ffmpeg@2.1.3: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-11-01T11:15:46.6509200Z npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+2026-11-01T11:16:44.4559375Z 
+2026-11-01T11:16:44.4560531Z added 2538 packages, and audited 2554 packages in 2m
+2026-11-01T11:16:44.4561245Z 
+2026-11-01T11:16:44.4561568Z 482 packages are looking for funding
+2026-11-01T11:16:44.4562283Z   run `npm fund` for details
+2026-11-01T11:16:44.8094438Z 
+2026-11-01T11:16:44.8095695Z 146 vulnerabilities (8 low, 53 moderate, 84 high, 1 critical)
+2026-11-01T11:16:44.8096190Z 
+2026-11-01T11:16:44.8096476Z To address issues that do not require attention, run:
+2026-11-01T11:16:44.8096892Z   npm audit fix
+2026-11-01T11:16:44.8097051Z 
+2026-11-01T11:16:44.8097364Z To address all issues possible (including breaking changes), run:
+2026-11-01T11:16:44.8097873Z   npm audit fix --force
+2026-11-01T11:16:44.8098102Z 
+2026-11-01T11:16:44.8098308Z Some issues need review, and may require choosing
+2026-11-01T11:16:44.8098778Z a different dependency.
+2026-11-01T11:16:44.8098952Z 
+2026-11-01T11:16:44.8099350Z Run `npm audit` for details.
+2026-11-01T11:16:44.8127053Z npm warn allow-scripts 23 packages have install scripts not yet covered by allowScripts:
+2026-11-01T11:16:44.8128345Z npm warn allow-scripts   @ffmpeg-installer/linux-x64@4.1.0 (postinstall: chmod u+x ffmpeg)
+2026-11-01T11:16:44.8129206Z npm warn allow-scripts   @ffprobe-installer/linux-x64@5.2.0 (postinstall: chmod u+x ffprobe)
+2026-11-01T11:16:44.8129984Z npm warn allow-scripts   sharp@0.34.5 (install: node install/check.js || npm run build)
+2026-11-01T11:16:44.8131217Z npm warn allow-scripts   @ipshipyard/node-datachannel@0.26.6 (install: prebuild-install -r napi || (npm install --ignore-scripts --production=false && npm run _prebuild))
+2026-11-01T11:16:44.8132766Z npm warn allow-scripts   @parcel/watcher@2.6.0 (install: node scripts/build-from-source.js)
+2026-11-01T11:16:44.8133858Z npm warn allow-scripts   better-sqlite3@12.11.1 (install: prebuild-install || node-gyp rebuild --release)
+2026-11-01T11:16:44.8135265Z npm warn allow-scripts   better-sqlite3-multiple-ciphers@12.11.1 (install: prebuild-install || node-gyp rebuild --release)
+2026-11-01T11:16:44.8136597Z npm warn allow-scripts   canvas@3.2.3 (install: prebuild-install -r napi || node-gyp rebuild)
+2026-11-01T11:16:44.8137698Z npm warn allow-scripts   classic-level@1.4.1 (install: node-gyp-build)
+2026-11-01T11:16:44.8138989Z npm warn allow-scripts   core-js@3.49.0 (postinstall: node -e "try{require('./postinstall')}catch(e){}")
+2026-11-01T11:16:44.8140086Z npm warn allow-scripts   electron@39.8.10 (postinstall: node install.js)
+2026-11-01T11:16:44.8141385Z npm warn allow-scripts   electron-winstaller@5.4.4 (install: node ./script/select-7z-arch.js)
+2026-11-01T11:16:44.8142453Z npm warn allow-scripts   esbuild@0.28.1 (postinstall: node install.js)
+2026-11-01T11:16:44.8143534Z npm warn allow-scripts   koffi@2.16.3 (install: node src/cnoke/cnoke.js -P . -D src/koffi --prebuild)
+2026-11-01T11:16:44.8145370Z npm warn allow-scripts   node-datachannel@0.32.3 (install: prebuild-install -r napi || (npm install --ignore-scripts --production=false && npm run _prebuild))
+2026-11-01T11:16:44.8147187Z npm warn allow-scripts   node-pty@1.1.0 (install: node scripts/prebuild.js || node-gyp rebuild; postinstall: node scripts/post-install.js)
+2026-11-01T11:16:44.8148601Z npm warn allow-scripts   onnxruntime-node@1.21.0 (postinstall: node ./script/install)
+2026-11-01T11:16:44.8149575Z npm warn allow-scripts   pkcs11js@2.1.7 (install: node-gyp rebuild)
+2026-11-01T11:16:44.8150452Z npm warn allow-scripts   sharp@0.33.5 (install: node install/check)
+2026-11-01T11:16:44.8153276Z npm warn allow-scripts   tesseract.js@5.1.1 (postinstall: opencollective-postinstall || true)
+2026-11-01T11:16:44.8155079Z npm warn allow-scripts   vue-demi@0.14.10 (postinstall: node -e "try{require('./scripts/postinstall.js')}catch(e){}")
+2026-11-01T11:16:44.8155968Z npm warn allow-scripts   better-sqlite3@11.10.0 (install: prebuild-install || node-gyp rebuild --release)
+2026-11-01T11:16:44.8156827Z npm warn allow-scripts   better-sqlite3-multiple-ciphers@11.10.0 (install: prebuild-install || node-gyp rebuild --release)
+2026-11-01T11:16:44.8157457Z npm warn allow-scripts
+2026-11-01T11:16:44.8158130Z npm warn allow-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+2026-11-01T11:16:47.0320479Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-11-01T11:16:47.0362040Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-11-01T11:16:47.0406799Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-11-01T11:16:47.0420301Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-11-01T11:16:53.7045663Z 
+2026-11-01T11:16:53.7047238Z added 1 package, changed 1 package, and audited 2555 packages in 9s
+2026-11-01T11:16:53.7047830Z 
+2026-11-01T11:16:53.7048279Z 482 packages are looking for funding
+2026-11-01T11:16:53.7049237Z   run `npm fund` for details
+2026-11-01T11:16:54.0751734Z 
+2026-11-01T11:16:54.0752793Z 149 vulnerabilities (8 low, 53 moderate, 87 high, 1 critical)
+2026-11-01T11:16:54.0753256Z 
+2026-11-01T11:16:54.0753523Z To address issues that do not require attention, run:
+2026-11-01T11:16:54.0754060Z   npm audit fix
+2026-11-01T11:16:54.0754255Z 
+2026-11-01T11:16:54.0754515Z To address all issues possible (including breaking changes), run:
+2026-11-01T11:16:54.0754978Z   npm audit fix --force
+2026-11-01T11:16:54.0755219Z 
+2026-11-01T11:16:54.0755475Z Some issues need review, and may require choosing
+2026-11-01T11:16:54.0755871Z a different dependency.
+2026-11-01T11:16:54.0756019Z 
+2026-11-01T11:16:54.0756229Z Run `npm audit` for details.
+2026-11-01T11:16:54.0781181Z npm warn allow-scripts 23 packages have install scripts not yet covered by allowScripts:
+2026-11-01T11:16:54.0782383Z npm warn allow-scripts   @ffmpeg-installer/linux-x64@4.1.0 (postinstall: chmod u+x ffmpeg)
+2026-11-01T11:16:54.0783246Z npm warn allow-scripts   @ffprobe-installer/linux-x64@5.2.0 (postinstall: chmod u+x ffprobe)
+2026-11-01T11:16:54.0784049Z npm warn allow-scripts   sharp@0.34.5 (install: node install/check.js || npm run build)
+2026-11-01T11:16:54.0785070Z npm warn allow-scripts   @ipshipyard/node-datachannel@0.26.6 (install: prebuild-install -r napi || (npm install --ignore-scripts --production=false && npm run _prebuild))
+2026-11-01T11:16:54.0786015Z npm warn allow-scripts   @parcel/watcher@2.6.0 (install: node-gyp rebuild)
+2026-11-01T11:16:54.0786634Z npm warn allow-scripts   better-sqlite3@12.11.1 (install: node-gyp rebuild)
+2026-11-01T11:16:54.0787380Z npm warn allow-scripts   better-sqlite3-multiple-ciphers@12.11.1 (install: node-gyp rebuild)
+2026-11-01T11:16:54.0788047Z npm warn allow-scripts   canvas@3.2.3 (install: node-gyp rebuild)
+2026-11-01T11:16:54.0788616Z npm warn allow-scripts   classic-level@1.4.1 (install: node-gyp rebuild)
+2026-11-01T11:16:54.0789364Z npm warn allow-scripts   core-js@3.49.0 (postinstall: node -e "try{require('./postinstall')}catch(e){}")
+2026-11-01T11:16:54.0790035Z npm warn allow-scripts   electron@39.8.10 (postinstall: node install.js)
+2026-11-01T11:16:54.0790752Z npm warn allow-scripts   electron-winstaller@5.4.4 (install: node ./script/select-7z-arch.js)
+2026-11-01T11:16:54.0792067Z npm warn allow-scripts   esbuild@0.28.1 (postinstall: node install.js)
+2026-11-01T11:16:54.0793008Z npm warn allow-scripts   koffi@2.16.3 (install: node src/cnoke/cnoke.js -P . -D src/koffi --prebuild)
+2026-11-01T11:16:54.0794066Z npm warn allow-scripts   node-datachannel@0.32.3 (install: prebuild-install -r napi || (npm install --ignore-scripts --production=false && npm run _prebuild))
+2026-11-01T11:16:54.0794943Z npm warn allow-scripts   node-pty@1.1.0 (install: node-gyp rebuild)
+2026-11-01T11:16:54.0795844Z npm warn allow-scripts   onnxruntime-node@1.21.0 (postinstall: node ./script/install)
+2026-11-01T11:16:54.0796482Z npm warn allow-scripts   pkcs11js@2.1.7 (install: node-gyp rebuild)
+2026-11-01T11:16:54.0797073Z npm warn allow-scripts   sharp@0.33.5 (install: node install/check)
+2026-11-01T11:16:54.0797742Z npm warn allow-scripts   tesseract.js@5.1.1 (postinstall: opencollective-postinstall || true)
+2026-11-01T11:16:54.0798597Z npm warn allow-scripts   vue-demi@0.14.10 (postinstall: node -e "try{require('./scripts/postinstall.js')}catch(e){}")
+2026-11-01T11:16:54.0799319Z npm warn allow-scripts   better-sqlite3@11.10.0 (install: node-gyp rebuild)
+2026-11-01T11:16:54.0800109Z npm warn allow-scripts   better-sqlite3-multiple-ciphers@11.10.0 (install: node-gyp rebuild)
+2026-11-01T11:16:54.0800656Z npm warn allow-scripts
+2026-11-01T11:16:54.0802333Z npm warn allow-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+2026-11-01T11:16:54.1106876Z ##[group]Run actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+2026-11-01T11:16:54.1107414Z with:
+2026-11-01T11:16:54.1107799Z   name: chainlesschain-npm-cc17f961c71e999be29f1d21e7222ef60b8f0c7d
+2026-11-01T11:16:54.1108268Z   path: release-artifacts
+2026-11-01T11:16:54.1108609Z   merge-multiple: false
+2026-11-01T11:16:54.1108950Z   repository: chainlesschain/chainlesschain
+2026-11-01T11:16:54.1109313Z   run-id: 41300658369
+2026-11-01T11:16:54.1109598Z ##[endgroup]
+2026-11-01T11:16:54.2566361Z Downloading single artifact
+2026-11-01T11:16:54.2702466Z (node:2809) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-01T11:16:54.2703808Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-01T11:16:54.4240405Z Preparing to download the following artifacts:
+2026-11-01T11:16:54.4242592Z - chainlesschain-npm-cc17f961c71e999be29f1d21e7222ef60b8f0c7d (ID: 13080824605, Size: 9616971, Expected Digest: sha256:b48c28d8016a1c50091d502c7fe7a8a9adf499891ae07810f2d5af3e1be4c57f)
+2026-11-01T11:16:54.6013836Z Redirecting to blob download url: https://productionresultssa4.blob.core.windows.net/actions-results/0bdb0820-039e-8901-b797-ca27e64d5579/workflow-job-run-ddf3c2c7-c2c0-5301-a99d-1e4f08b0a494/artifacts/bd544f8f121a413fc2cb5fd3eb06964694c26e7d3a4ec00fcd7e2c95783321cc.zip
+2026-11-01T11:16:54.6015268Z Starting download of artifact to: /home/runner/work/chainlesschain/chainlesschain/release-artifacts
+2026-11-01T11:16:54.7936310Z (node:2809) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+2026-11-01T11:16:55.2232360Z SHA256 digest of downloaded artifact is b48c28d8016a1c50091d502c7fe7a8a9adf499891ae07810f2d5af3e1be4c57f
+2026-11-01T11:16:55.2233247Z Artifact download completed successfully.
+2026-11-01T11:16:55.2233727Z Total of 1 artifact(s) downloaded
+2026-11-01T11:16:55.2237547Z Download artifact has finished successfully
+2026-11-01T11:16:55.2352564Z ##[group]Run set -euo pipefail
+2026-11-01T11:16:55.2352961Z [36;1mset -euo pipefail[0m
+2026-11-01T11:16:55.2353569Z [36;1mTARBALL=$(find release-artifacts -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)[0m
+2026-11-01T11:16:55.2354117Z [36;1mtest -n "$TARBALL"[0m
+2026-11-01T11:16:55.2354536Z [36;1mnode packages/cli/scripts/npm-release-artifact.mjs verify \[0m
+2026-11-01T11:16:55.2355063Z [36;1m  "$TARBALL" release-artifacts/chainlesschain-release.json[0m
+2026-11-01T11:16:55.2378276Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-01T11:16:55.2378705Z ##[endgroup]
+2026-11-01T11:16:55.4923620Z verified c65b3623afe1150171c220765c0b515d56f00b914903c622bf504b09532d96c5  chainlesschain-0.166.137.tgz
+2026-11-01T11:16:55.5029448Z ##[group]Run VERSION=$(node -p "require('./packages/cli/package.json').version")
+2026-11-01T11:16:55.5030050Z [36;1mVERSION=$(node -p "require('./packages/cli/package.json').version")[0m
+2026-11-01T11:16:55.5030609Z [36;1mecho "VERSION=$VERSION" >> $GITHUB_OUTPUT[0m
+2026-11-01T11:16:55.5031209Z [36;1mecho "Publishing version: $VERSION"[0m
+2026-11-01T11:16:55.5052428Z shell: /usr/bin/bash -e {0}
+2026-11-01T11:16:55.5052866Z ##[endgroup]
+2026-11-01T11:16:55.5314962Z Publishing version: 0.166.137
+2026-11-01T11:16:55.5367366Z ##[group]Run echo "FLAGS=--provenance --access public" >> $GITHUB_OUTPUT
+2026-11-01T11:16:55.5367945Z [36;1mecho "FLAGS=--provenance --access public" >> $GITHUB_OUTPUT[0m
+2026-11-01T11:16:55.5368511Z [36;1mecho "Mode: LIVE PUBLISH"[0m
+2026-11-01T11:16:55.5385463Z shell: /usr/bin/bash -e {0}
+2026-11-01T11:16:55.5385943Z ##[endgroup]
+2026-11-01T11:16:55.5421890Z Mode: LIVE PUBLISH
+2026-11-01T11:16:55.5451501Z ##[group]Run set -euo pipefail
+2026-11-01T11:16:55.5451901Z [36;1mset -euo pipefail[0m
+2026-11-01T11:16:55.5452344Z [36;1mPKG_VER=$(node -p "require('./package.json').version")[0m
+2026-11-01T11:16:55.5452810Z [36;1mecho "target: @chainlesschain/agent-protocol@$PKG_VER"[0m
+2026-11-01T11:16:55.5453337Z [36;1mif npm view "@chainlesschain/agent-protocol@$PKG_VER" version >/dev/null 2>&1; then[0m
+2026-11-01T11:16:55.5453917Z [36;1m  echo "Exact version already published, skipping"[0m
+2026-11-01T11:16:55.5454366Z [36;1m  echo "published=false" >> "$GITHUB_OUTPUT"[0m
+2026-11-01T11:16:55.5455078Z [36;1melse[0m
+2026-11-01T11:16:55.5455394Z [36;1m  npm publish --provenance --access public[0m
+2026-11-01T11:16:55.5455811Z [36;1m  echo "published=true" >> "$GITHUB_OUTPUT"[0m
+2026-11-01T11:16:55.5456180Z [36;1mfi[0m
+2026-11-01T11:16:55.5471623Z shell: /usr/bin/bash -e {0}
+2026-11-01T11:16:55.5471960Z ##[endgroup]
+2026-11-01T11:16:55.5716310Z target: @chainlesschain/agent-protocol@0.1.12
+2026-11-01T11:16:56.2138801Z Exact version already published, skipping
+2026-11-01T11:16:56.2177494Z ##[group]Run set -euo pipefail
+2026-11-01T11:16:56.2178029Z [36;1mset -euo pipefail[0m
+2026-11-01T11:16:56.2178433Z [36;1mPACKAGE_NAME="@chainlesschain/agent-protocol"[0m
+2026-11-01T11:16:56.2179087Z [36;1mPACKAGE_VERSION=$(node -p "require('./packages/agent-protocol/package.json').version")[0m
+2026-11-01T11:16:56.2179601Z [36;1mCLI_VERSION="0.166.137"[0m
+2026-11-01T11:16:56.2180039Z [36;1mEXPECTED_REF="refs/tags/v-npm-${CLI_VERSION//./-}"[0m
+2026-11-01T11:16:56.2180454Z [36;1mPUBLISHED="false"[0m
+2026-11-01T11:16:56.2181210Z [36;1mPROVENANCE_OUTPUT="release-artifacts/agent-protocol-npm-provenance.json"[0m
+2026-11-01T11:16:56.2181777Z [36;1mREADBACK_ROOT=$(mktemp -d)[0m
+2026-11-01T11:16:56.2182177Z [36;1mtrap 'rm -rf "$READBACK_ROOT"' EXIT[0m
+2026-11-01T11:16:56.2182643Z [36;1m[0m
+2026-11-01T11:16:56.2182976Z [36;1mREGISTRY_TARBALL=""[0m
+2026-11-01T11:16:56.2183349Z [36;1mfor ATTEMPT in {1..30}; do[0m
+2026-11-01T11:16:56.2183966Z [36;1m  if npm pack "$PACKAGE_NAME@$PACKAGE_VERSION" --pack-destination "$READBACK_ROOT" \[0m
+2026-11-01T11:16:56.2184541Z [36;1m    >/dev/null 2>"$READBACK_ROOT/npm-pack.err"; then[0m
+2026-11-01T11:16:56.2185246Z [36;1m    REGISTRY_TARBALL=$(find "$READBACK_ROOT" -maxdepth 1 -name 'chainlesschain-agent-protocol-*.tgz' -type f -print -quit)[0m
+2026-11-01T11:16:56.2185859Z [36;1m    break[0m
+2026-11-01T11:16:56.2186200Z [36;1m  fi[0m
+2026-11-01T11:16:56.2186514Z [36;1m  if [ "$ATTEMPT" -eq 30 ]; then[0m
+2026-11-01T11:16:56.2187068Z [36;1m    echo "Registry did not expose $PACKAGE_NAME@$PACKAGE_VERSION after 30 attempts" >&2[0m
+2026-11-01T11:16:56.2187605Z [36;1m    cat "$READBACK_ROOT/npm-pack.err" >&2[0m
+2026-11-01T11:16:56.2187976Z [36;1m    exit 1[0m
+2026-11-01T11:16:56.2188346Z [36;1m  fi[0m
+2026-11-01T11:16:56.2188881Z [36;1m  echo "::notice::Registry has not exposed $PACKAGE_NAME@$PACKAGE_VERSION yet (attempt $ATTEMPT/30); retrying in 10 seconds"[0m
+2026-11-01T11:16:56.2189510Z [36;1m  sleep 10[0m
+2026-11-01T11:16:56.2189819Z [36;1mdone[0m
+2026-11-01T11:16:56.2190205Z [36;1mtest -n "$REGISTRY_TARBALL"[0m
+2026-11-01T11:16:56.2191208Z [36;1mPACKAGE_SHA512=$(node -e 'const c=require("node:crypto"),f=require("node:fs");process.stdout.write(c.createHash("sha512").update(f.readFileSync(process.argv[1])).digest("hex"))' "$REGISTRY_TARBALL")[0m
+2026-11-01T11:16:56.2192034Z [36;1m[0m
+2026-11-01T11:16:56.2192422Z [36;1mAUDIT_ROOT="$READBACK_ROOT/audit"[0m
+2026-11-01T11:16:56.2192800Z [36;1mmkdir -p "$AUDIT_ROOT"[0m
+2026-11-01T11:16:56.2193177Z [36;1m([0m
+2026-11-01T11:16:56.2193472Z [36;1m  cd "$AUDIT_ROOT"[0m
+2026-11-01T11:16:56.2193854Z [36;1m  npm init --yes >/dev/null[0m
+2026-11-01T11:16:56.2194368Z [36;1m  npm install --ignore-scripts --no-audit --no-fund "$PACKAGE_NAME@$PACKAGE_VERSION"[0m
+2026-11-01T11:16:56.2194861Z [36;1m)[0m
+2026-11-01T11:16:56.2195718Z [36;1mMAX_ATTEMPTS=30[0m
+2026-11-01T11:16:56.2196151Z [36;1mif [ "$PUBLISHED" = "false" ]; then MAX_ATTEMPTS=1; fi[0m
+2026-11-01T11:16:56.2196574Z [36;1mVERIFIED=false[0m
+2026-11-01T11:16:56.2196945Z [36;1mfor ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do[0m
+2026-11-01T11:16:56.2197377Z [36;1m  AUDIT_JSON="$AUDIT_ROOT/npm-signatures.json"[0m
+2026-11-01T11:16:56.2197885Z [36;1m  AUDIT_ERROR="$AUDIT_ROOT/npm-signatures.err"[0m
+2026-11-01T11:16:56.2198269Z [36;1m  if ([0m
+2026-11-01T11:16:56.2198574Z [36;1m    cd "$AUDIT_ROOT"[0m
+2026-11-01T11:16:56.2198999Z [36;1m    npm audit signatures --include-attestations --json \[0m
+2026-11-01T11:16:56.2199490Z [36;1m      > "$AUDIT_JSON" 2> "$AUDIT_ERROR"[0m
+2026-11-01T11:16:56.2199876Z [36;1m  ); then[0m
+2026-11-01T11:16:56.2200204Z [36;1m    if [ "$PUBLISHED" = "true" ]; then[0m
+2026-11-01T11:16:56.2200687Z [36;1m      if CC_NPM_PROVENANCE_OUTPUT="$PROVENANCE_OUTPUT" \[0m
+2026-11-01T11:16:56.2201526Z [36;1m        node packages/cli/scripts/verify-npm-release-provenance.mjs \[0m
+2026-11-01T11:16:56.2202320Z [36;1m          "$AUDIT_JSON" "$PACKAGE_VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$PACKAGE_SHA512" "$PACKAGE_NAME"; then[0m
+2026-11-01T11:16:56.2202900Z [36;1m        VERIFIED=true[0m
+2026-11-01T11:16:56.2203269Z [36;1m        break[0m
+2026-11-01T11:16:56.2203597Z [36;1m      fi[0m
+2026-11-01T11:16:56.2203957Z [36;1m    elif [ "$PUBLISHED" = "false" ]; then[0m
+2026-11-01T11:16:56.2204424Z [36;1m      if CC_NPM_PROVENANCE_OUTPUT="$PROVENANCE_OUTPUT" \[0m
+2026-11-01T11:16:56.2204940Z [36;1m        node packages/cli/scripts/verify-npm-release-provenance.mjs \[0m
+2026-11-01T11:16:56.2205560Z [36;1m          --trusted-anchor "$AUDIT_JSON" "$PACKAGE_VERSION" "$PACKAGE_SHA512" "$PACKAGE_NAME"; then[0m
+2026-11-01T11:16:56.2206088Z [36;1m        VERIFIED=true[0m
+2026-11-01T11:16:56.2206516Z [36;1m        break[0m
+2026-11-01T11:16:56.2206816Z [36;1m      fi[0m
+2026-11-01T11:16:56.2207116Z [36;1m    else[0m
+2026-11-01T11:16:56.2207521Z [36;1m      echo "Unexpected agent-protocol publish state: $PUBLISHED" >&2[0m
+2026-11-01T11:16:56.2208010Z [36;1m      exit 1[0m
+2026-11-01T11:16:56.2208436Z [36;1m    fi[0m
+2026-11-01T11:16:56.2208749Z [36;1m  fi[0m
+2026-11-01T11:16:56.2209134Z [36;1m  if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then[0m
+2026-11-01T11:16:56.2209759Z [36;1m    echo "npm did not expose valid signed provenance for $PACKAGE_NAME@$PACKAGE_VERSION after $MAX_ATTEMPTS attempt(s)" >&2[0m
+2026-11-01T11:16:56.2210401Z [36;1m    cat "$AUDIT_ERROR" >&2 || true[0m
+2026-11-01T11:16:56.2210907Z [36;1m    exit 1[0m
+2026-11-01T11:16:56.2211541Z [36;1m  fi[0m
+2026-11-01T11:16:56.2212155Z [36;1m  echo "::notice::Signed npm provenance is not ready for $PACKAGE_NAME@$PACKAGE_VERSION (attempt $ATTEMPT/$MAX_ATTEMPTS); retrying in 10 seconds"[0m
+2026-11-01T11:16:56.2212796Z [36;1m  sleep 10[0m
+2026-11-01T11:16:56.2213187Z [36;1mdone[0m
+2026-11-01T11:16:56.2213492Z [36;1mtest "$VERIFIED" = true[0m
+2026-11-01T11:16:56.2213882Z [36;1mif [ "$PUBLISHED" = "false" ]; then[0m
+2026-11-01T11:16:56.2214355Z [36;1m  node packages/cli/scripts/verify-npm-reused-package-tree.mjs \[0m
+2026-11-01T11:16:56.2214941Z [36;1m    "$PROVENANCE_OUTPUT" "$GITHUB_SHA" packages/agent-protocol[0m
+2026-11-01T11:16:56.2215412Z [36;1mfi[0m
+2026-11-01T11:16:56.2235275Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-01T11:16:56.2235735Z ##[endgroup]
+2026-11-01T11:16:57.6491276Z 
+2026-11-01T11:16:57.6492199Z added 1 package in 267ms
+2026-11-01T11:16:58.5830920Z Verified npm provenance for @chainlesschain/agent-protocol@0.1.12 from 3400318446dd837790d6b4c28c9a9251875ca6fc (run 36412680675, attempt 1)
+2026-11-01T11:17:00.6379508Z Verified unchanged packages/agent-protocol tree 99c0dd8ed86c71980c562d8d38f562ad66a5a68c against refs/tags/v-npm-0-166-78
+2026-11-01T11:17:00.6464152Z ##[group]Run PKG_VER=$(node -p "require('./package.json').version")
+2026-11-01T11:17:00.6464757Z [36;1mPKG_VER=$(node -p "require('./package.json').version")[0m
+2026-11-01T11:17:00.6465327Z [36;1mecho "target: @chainlesschain/core-env@$PKG_VER"[0m
+2026-11-01T11:17:00.6465849Z [36;1mif npm view "@chainlesschain/core-env@$PKG_VER" version >/dev/null 2>&1; then[0m
+2026-11-01T11:17:00.6466422Z [36;1m  echo "Exact version already published, skipping"[0m
+2026-11-01T11:17:00.6466805Z [36;1melse[0m
+2026-11-01T11:17:00.6467202Z [36;1m  npm publish --provenance --access public[0m
+2026-11-01T11:17:00.6467569Z [36;1mfi[0m
+2026-11-01T11:17:00.6487782Z shell: /usr/bin/bash -e {0}
+2026-11-01T11:17:00.6488257Z ##[endgroup]
+2026-11-01T11:17:00.6748366Z target: @chainlesschain/core-env@0.1.2
+2026-11-01T11:17:01.2123282Z Exact version already published, skipping
+2026-11-01T11:17:01.2157981Z ##[group]Run PKG_VER=$(node -p "require('./package.json').version")
+2026-11-01T11:17:01.2158574Z [36;1mPKG_VER=$(node -p "require('./package.json').version")[0m
+2026-11-01T11:17:01.2159081Z [36;1mecho "target: @chainlesschain/core-mtc@$PKG_VER"[0m
+2026-11-01T11:17:01.2159616Z [36;1mif npm view "@chainlesschain/core-mtc@$PKG_VER" version >/dev/null 2>&1; then[0m
+2026-11-01T11:17:01.2160206Z [36;1m  echo "Exact version already published, skipping"[0m
+2026-11-01T11:17:01.2160599Z [36;1melse[0m
+2026-11-01T11:17:01.2160948Z [36;1m  npm publish --provenance --access public[0m
+2026-11-01T11:17:01.2161969Z [36;1mfi[0m
+2026-11-01T11:17:01.2181454Z shell: /usr/bin/bash -e {0}
+2026-11-01T11:17:01.2181839Z ##[endgroup]
+2026-11-01T11:17:01.2444049Z target: @chainlesschain/core-mtc@0.2.3
+2026-11-01T11:17:01.8787780Z Exact version already published, skipping
+2026-11-01T11:17:01.8824189Z ##[group]Run PKG_VER=$(node -p "require('./package.json').version")
+2026-11-01T11:17:01.8824823Z [36;1mPKG_VER=$(node -p "require('./package.json').version")[0m
+2026-11-01T11:17:01.8825414Z [36;1mecho "target: @chainlesschain/core-multisig@$PKG_VER"[0m
+2026-11-01T11:17:01.8826404Z [36;1mif npm view "@chainlesschain/core-multisig@$PKG_VER" version >/dev/null 2>&1; then[0m
+2026-11-01T11:17:01.8826986Z [36;1m  echo "Exact version already published, skipping"[0m
+2026-11-01T11:17:01.8827369Z [36;1melse[0m
+2026-11-01T11:17:01.8827805Z [36;1m  npm publish --provenance --access public[0m
+2026-11-01T11:17:01.8828179Z [36;1mfi[0m
+2026-11-01T11:17:01.8848093Z shell: /usr/bin/bash -e {0}
+2026-11-01T11:17:01.8848516Z ##[endgroup]
+2026-11-01T11:17:01.9115369Z target: @chainlesschain/core-multisig@0.1.4
+2026-11-01T11:17:02.5596513Z Exact version already published, skipping
+2026-11-01T11:17:02.5630693Z ##[group]Run PKG_VER=$(node -p "require('./package.json').version")
+2026-11-01T11:17:02.5631674Z [36;1mPKG_VER=$(node -p "require('./package.json').version")[0m
+2026-11-01T11:17:02.5632210Z [36;1mecho "target: @chainlesschain/core-settlement@$PKG_VER"[0m
+2026-11-01T11:17:02.5632782Z [36;1mif npm view "@chainlesschain/core-settlement@$PKG_VER" version >/dev/null 2>&1; then[0m
+2026-11-01T11:17:02.5633394Z [36;1m  echo "Exact version already published, skipping"[0m
+2026-11-01T11:17:02.5633808Z [36;1melse[0m
+2026-11-01T11:17:02.5634173Z [36;1m  npm publish --provenance --access public[0m
+2026-11-01T11:17:02.5634557Z [36;1mfi[0m
+2026-11-01T11:17:02.5655124Z shell: /usr/bin/bash -e {0}
+2026-11-01T11:17:02.5655526Z ##[endgroup]
+2026-11-01T11:17:02.5921181Z target: @chainlesschain/core-settlement@0.1.2
+2026-11-01T11:17:03.2567620Z Exact version already published, skipping
+2026-11-01T11:17:03.2746050Z ##[group]Run PKG_VER=$(node -p "require('./package.json').version")
+2026-11-01T11:17:03.2746500Z [36;1mPKG_VER=$(node -p "require('./package.json').version")[0m
+2026-11-01T11:17:03.2746883Z [36;1mecho "target: @chainlesschain/shared-logger@$PKG_VER"[0m
+2026-11-01T11:17:03.2747344Z [36;1mif npm view "@chainlesschain/shared-logger@$PKG_VER" version >/dev/null 2>&1; then[0m
+2026-11-01T11:17:03.2747799Z [36;1m  echo "Exact version already published, skipping"[0m
+2026-11-01T11:17:03.2748099Z [36;1melse[0m
+2026-11-01T11:17:03.2748353Z [36;1m  npm publish --provenance --access public[0m
+2026-11-01T11:17:03.2748745Z [36;1mfi[0m
+2026-11-01T11:17:03.2768085Z shell: /usr/bin/bash -e {0}
+2026-11-01T11:17:03.2768338Z ##[endgroup]
+2026-11-01T11:17:03.3022978Z target: @chainlesschain/shared-logger@0.1.1
+2026-11-01T11:17:03.8219483Z Exact version already published, skipping
+2026-11-01T11:17:03.8251833Z ##[group]Run PKG_VER=$(node -p "require('./package.json').version")
+2026-11-01T11:17:03.8252308Z [36;1mPKG_VER=$(node -p "require('./package.json').version")[0m
+2026-11-01T11:17:03.8252693Z [36;1mecho "target: @chainlesschain/core-config@$PKG_VER"[0m
+2026-11-01T11:17:03.8253149Z [36;1mif npm view "@chainlesschain/core-config@$PKG_VER" version >/dev/null 2>&1; then[0m
+2026-11-01T11:17:03.8253600Z [36;1m  echo "Exact version already published, skipping"[0m
+2026-11-01T11:17:03.8253910Z [36;1melse[0m
+2026-11-01T11:17:03.8254155Z [36;1m  npm publish --provenance --access public[0m
+2026-11-01T11:17:03.8254437Z [36;1mfi[0m
+2026-11-01T11:17:03.8273205Z shell: /usr/bin/bash -e {0}
+2026-11-01T11:17:03.8273460Z ##[endgroup]
+2026-11-01T11:17:03.8522062Z target: @chainlesschain/core-config@0.1.2
+2026-11-01T11:17:04.5354971Z Exact version already published, skipping
+2026-11-01T11:17:04.5385473Z ##[group]Run set -euo pipefail
+2026-11-01T11:17:04.5385796Z [36;1mset -euo pipefail[0m
+2026-11-01T11:17:04.5386108Z [36;1mPKG_VER=$(node -p "require('./package.json').version")[0m
+2026-11-01T11:17:04.5386502Z [36;1mmkdir -p "$GITHUB_WORKSPACE/release-artifacts/children"[0m
+2026-11-01T11:17:04.5387004Z [36;1mnpm pack --ignore-scripts --pack-destination "$GITHUB_WORKSPACE/release-artifacts/children"[0m
+2026-11-01T11:17:04.5387674Z [36;1mCHILD_TARBALL="$GITHUB_WORKSPACE/release-artifacts/children/chainlesschain-core-db-$PKG_VER.tgz"[0m
+2026-11-01T11:17:04.5388168Z [36;1mtest -s "$CHILD_TARBALL"[0m
+2026-11-01T11:17:04.5388462Z [36;1mecho "target: @chainlesschain/core-db@$PKG_VER"[0m
+2026-11-01T11:17:04.5388877Z [36;1mif npm view "@chainlesschain/core-db@$PKG_VER" version >/dev/null 2>&1; then[0m
+2026-11-01T11:17:04.5389324Z [36;1m  echo "Exact version already published, skipping"[0m
+2026-11-01T11:17:04.5389618Z [36;1melse[0m
+2026-11-01T11:17:04.5389923Z [36;1m  npm publish "$CHILD_TARBALL" --provenance --access public[0m
+2026-11-01T11:17:04.5390236Z [36;1mfi[0m
+2026-11-01T11:17:04.5409168Z shell: /usr/bin/bash -e {0}
+2026-11-01T11:17:04.5409518Z ##[endgroup]
+2026-11-01T11:17:04.8988270Z npm notice
+2026-11-01T11:17:04.8991673Z npm notice 📦  @chainlesschain/core-db@0.1.5
+2026-11-01T11:17:04.8992181Z npm notice Tarball Contents
+2026-11-01T11:17:04.8994627Z npm notice 14.9kB lib/database-manager.js
+2026-11-01T11:17:04.8995165Z npm notice 5.2kB lib/database/index-optimizer.js
+2026-11-01T11:17:04.8995704Z npm notice 6.4kB lib/database/query-builder.js
+2026-11-01T11:17:04.8996211Z npm notice 6.1kB lib/database/sql-security.js
+2026-11-01T11:17:04.8996634Z npm notice 602B lib/index.js
+2026-11-01T11:17:04.8997054Z npm notice 440B lib/logger-adapter.js
+2026-11-01T11:17:04.8997460Z npm notice 1.1kB package.json
+2026-11-01T11:17:04.8997873Z npm notice Tarball Details
+2026-11-01T11:17:04.8998302Z npm notice name: @chainlesschain/core-db
+2026-11-01T11:17:04.8998733Z npm notice version: 0.1.5
+2026-11-01T11:17:04.8999172Z npm notice filename: chainlesschain-core-db-0.1.5.tgz
+2026-11-01T11:17:04.8999602Z npm notice package size: 10.3 kB
+2026-11-01T11:17:04.9000021Z npm notice unpacked size: 34.9 kB
+2026-11-01T11:17:04.9000554Z npm notice shasum: 96b5a0230ac2f00cea7ac4ec6a7ea631346d8caa
+2026-11-01T11:17:04.9001331Z npm notice integrity: sha512-3vjD+llIhaNAe[...]MWGre+OaNquiA==
+2026-11-01T11:17:04.9001831Z npm notice total files: 7
+2026-11-01T11:17:04.9002142Z npm notice
+2026-11-01T11:17:04.9003323Z chainlesschain-core-db-0.1.5.tgz
+2026-11-01T11:17:04.9044658Z target: @chainlesschain/core-db@0.1.5
+2026-11-01T11:17:05.5808538Z Exact version already published, skipping
+2026-11-01T11:17:05.5839300Z ##[group]Run PKG_VER=$(node -p "require('./package.json').version")
+2026-11-01T11:17:05.5839764Z [36;1mPKG_VER=$(node -p "require('./package.json').version")[0m
+2026-11-01T11:17:05.5840282Z [36;1mecho "target: @chainlesschain/core-infra@$PKG_VER"[0m
+2026-11-01T11:17:05.5840730Z [36;1mif npm view "@chainlesschain/core-infra@$PKG_VER" version >/dev/null 2>&1; then[0m
+2026-11-01T11:17:05.5841511Z [36;1m  echo "Exact version already published, skipping"[0m
+2026-11-01T11:17:05.5841818Z [36;1melse[0m
+2026-11-01T11:17:05.5842075Z [36;1m  npm publish --provenance --access public[0m
+2026-11-01T11:17:05.5842358Z [36;1mfi[0m
+2026-11-01T11:17:05.5861485Z shell: /usr/bin/bash -e {0}
+2026-11-01T11:17:05.5861750Z ##[endgroup]
+2026-11-01T11:17:05.6120317Z target: @chainlesschain/core-infra@0.1.1
+2026-11-01T11:17:06.2567219Z Exact version already published, skipping
+2026-11-01T11:17:06.2601846Z ##[group]Run set -euo pipefail
+2026-11-01T11:17:06.2602315Z [36;1mset -euo pipefail[0m
+2026-11-01T11:17:06.2602766Z [36;1mPKG_VER=$(node -p "require('./package.json').version")[0m
+2026-11-01T11:17:06.2603365Z [36;1mmkdir -p "$GITHUB_WORKSPACE/release-artifacts/children"[0m
+2026-11-01T11:17:06.2604142Z [36;1mnpm pack --ignore-scripts --pack-destination "$GITHUB_WORKSPACE/release-artifacts/children"[0m
+2026-11-01T11:17:06.2605116Z [36;1mCHILD_TARBALL="$GITHUB_WORKSPACE/release-artifacts/children/chainlesschain-session-core-$PKG_VER.tgz"[0m
+2026-11-01T11:17:06.2605894Z [36;1mtest -s "$CHILD_TARBALL"[0m
+2026-11-01T11:17:06.2606321Z [36;1mecho "target: @chainlesschain/session-core@$PKG_VER"[0m
+2026-11-01T11:17:06.2607004Z [36;1mif npm view "@chainlesschain/session-core@$PKG_VER" version >/dev/null 2>&1; then[0m
+2026-11-01T11:17:06.2607669Z [36;1m  echo "Exact version already published, skipping"[0m
+2026-11-01T11:17:06.2608256Z [36;1m  echo "published=false" >> "$GITHUB_OUTPUT"[0m
+2026-11-01T11:17:06.2608672Z [36;1melse[0m
+2026-11-01T11:17:06.2609097Z [36;1m  npm publish "$CHILD_TARBALL" --provenance --access public[0m
+2026-11-01T11:17:06.2609674Z [36;1m  echo "published=true" >> "$GITHUB_OUTPUT"[0m
+2026-11-01T11:17:06.2610100Z [36;1mfi[0m
+2026-11-01T11:17:06.2631997Z shell: /usr/bin/bash -e {0}
+2026-11-01T11:17:06.2632357Z ##[endgroup]
+2026-11-01T11:17:06.8219789Z npm notice
+2026-11-01T11:17:06.8224327Z npm notice 📦  @chainlesschain/session-core@0.3.24
+2026-11-01T11:17:06.8224871Z npm notice Tarball Contents
+2026-11-01T11:17:06.8238405Z npm notice 15.2kB README.md
+2026-11-01T11:17:06.8239024Z npm notice 3.6kB lib/agent-bundle-loader.js
+2026-11-01T11:17:06.8239555Z npm notice 5.3kB lib/agent-bundle-resolver.js
+2026-11-01T11:17:06.8240101Z npm notice 6.7kB lib/agent-bundle-schema.js
+2026-11-01T11:17:06.8240632Z npm notice 5.9kB lib/agent-definition.js
+2026-11-01T11:17:06.8241314Z npm notice 4.5kB lib/agent-group.js
+2026-11-01T11:17:06.8241882Z npm notice 17.4kB lib/approval-gate.js
+2026-11-01T11:17:06.8242393Z npm notice 6.0kB lib/audit-data-policy.js
+2026-11-01T11:17:06.8242832Z npm notice 3.4kB lib/beta-flags.js
+2026-11-01T11:17:06.8243352Z npm notice 15.5kB lib/business-object-contract.js
+2026-11-01T11:17:06.8243884Z npm notice 4.0kB lib/envelope-sse.js
+2026-11-01T11:17:06.8244370Z npm notice 9.1kB lib/evolution-run.js
+2026-11-01T11:17:06.8244857Z npm notice 43.5kB lib/evolvable-artifact.js
+2026-11-01T11:17:06.8245344Z npm notice 5.0kB lib/file-adapters.js
+2026-11-01T11:17:06.8245793Z npm notice 13.1kB lib/goal-contract.js
+2026-11-01T11:17:06.8246350Z npm notice 6.8kB lib/goal-draft-connection-contract.js
+2026-11-01T11:17:06.8246996Z npm notice 2.3kB lib/goal-draft-request-contract.js
+2026-11-01T11:17:06.8247555Z npm notice 4.5kB lib/goal-evidence-contract.js
+2026-11-01T11:17:06.8248112Z npm notice 3.1kB lib/goal-extension-proposal-contract.js
+2026-11-01T11:17:06.8248717Z npm notice 3.6kB lib/goal-notification-policy.js
+2026-11-01T11:17:06.8249213Z npm notice 2.9kB lib/goal-repository.js
+2026-11-01T11:17:06.8249683Z npm notice 16.4kB lib/goal-usage-ledger.js
+2026-11-01T11:17:06.8250210Z npm notice 693B lib/host-storage-environment.js
+2026-11-01T11:17:06.8250721Z npm notice 3.1kB lib/idle-parker.js
+2026-11-01T11:17:06.8251391Z npm notice 10.6kB lib/index.js
+2026-11-01T11:17:06.8252107Z npm notice 5.4kB lib/mcp-policy.js
+2026-11-01T11:17:06.8252583Z npm notice 5.3kB lib/memory-consolidator.js
+2026-11-01T11:17:06.8253081Z npm notice 7.9kB lib/memory-store.js
+2026-11-01T11:17:06.8253543Z npm notice 5.4kB lib/nostr-crypto.js
+2026-11-01T11:17:06.8254172Z npm notice 40.1kB lib/organization-project-approval-service.js
+2026-11-01T11:17:06.8254856Z npm notice 34.3kB lib/organization-project-authority.js
+2026-11-01T11:17:06.8255535Z npm notice 42.7kB lib/organization-project-goal-completion.js
+2026-11-01T11:17:06.8256237Z npm notice 50.6kB lib/organization-project-goal-memory.js
+2026-11-01T11:17:06.8256897Z npm notice 54.9kB lib/organization-project-goal-monitoring.js
+2026-11-01T11:17:06.8257771Z npm notice 30.1kB lib/organization-project-goal-service.js
+2026-11-01T11:17:06.8258462Z npm notice 36.2kB lib/organization-project-goal-workflow.js
+2026-11-01T11:17:06.8259169Z npm notice 18.1kB lib/organization-project-proposal-store.js
+2026-11-01T11:17:06.8259885Z npm notice 40.8kB lib/organization-project-risk-review-service.js
+2026-11-01T11:17:06.8260642Z npm notice 28.5kB lib/organization-project-transfer-service.js
+2026-11-01T11:17:06.8261585Z npm notice 26.1kB lib/organization-task-action-service.js
+2026-11-01T11:17:06.8262141Z npm notice 12.0kB lib/private-storage-windows-api.cjs
+2026-11-01T11:17:06.8262685Z npm notice 4.3kB lib/private-storage-windows-bridge.cjs
+2026-11-01T11:17:06.8263149Z npm notice 3.3kB lib/private-storage-windows-client.cjs
+2026-11-01T11:17:06.8263549Z npm notice 12.0kB lib/private-storage-windows-native.cjs
+2026-11-01T11:17:06.8263949Z npm notice 4.2kB lib/private-storage-windows-worker.cjs
+2026-11-01T11:17:06.8264304Z npm notice 54.4kB lib/private-storage.js
+2026-11-01T11:17:06.8264645Z npm notice 41.9kB lib/project-goal-completion.js
+2026-11-01T11:17:06.8265016Z npm notice 14.8kB lib/project-goal-draft-imports.js
+2026-11-01T11:17:06.8265406Z npm notice 7.6kB lib/project-goal-evidence-reader.js
+2026-11-01T11:17:06.8265808Z npm notice 7.5kB lib/project-goal-extension-conversion.js
+2026-11-01T11:17:06.8266215Z npm notice 13.4kB lib/project-goal-extension-queue.js
+2026-11-01T11:17:06.8266599Z npm notice 21.3kB lib/project-goal-external-drafts.js
+2026-11-01T11:17:06.8266953Z npm notice 44.1kB lib/project-goal-memory.js
+2026-11-01T11:17:06.8267294Z npm notice 46.5kB lib/project-goal-monitoring.js
+2026-11-01T11:17:06.8267666Z npm notice 25.0kB lib/project-goal-notifications.js
+2026-11-01T11:17:06.8268015Z npm notice 12.1kB lib/project-goal-service.js
+2026-11-01T11:17:06.8268355Z npm notice 38.6kB lib/project-goal-workflow.js
+2026-11-01T11:17:06.8268707Z npm notice 11.8kB lib/project-risk-evaluation.js
+2026-11-01T11:17:06.8269072Z npm notice 34.2kB lib/project-risk-review-service.js
+2026-11-01T11:17:06.8269410Z npm notice 11.8kB lib/quality-gate.js
+2026-11-01T11:17:06.8269742Z npm notice 1.5kB lib/read-only-native-database.js
+2026-11-01T11:17:06.8270089Z npm notice 3.8kB lib/restricted-audit-store.js
+2026-11-01T11:17:06.8270406Z npm notice 2.4kB lib/runtime-claims.js
+2026-11-01T11:17:06.8270708Z npm notice 6.2kB lib/sandbox-policy.js
+2026-11-01T11:17:06.8271440Z npm notice 6.8kB lib/scheduler-authority-resolver.js
+2026-11-01T11:17:06.8271996Z npm notice 13.0kB lib/scheduler-contract.js
+2026-11-01T11:17:06.8272463Z npm notice 27.3kB lib/scheduler-runtime.js
+2026-11-01T11:17:06.8273193Z npm notice 9.4kB lib/scheduler-service.js
+2026-11-01T11:17:06.8273774Z npm notice 4.5kB lib/scheduler-source-path.js
+2026-11-01T11:17:06.8274209Z npm notice 203.1kB lib/scheduler-store.js
+2026-11-01T11:17:06.8274573Z npm notice 6.9kB lib/service-envelope.js
+2026-11-01T11:17:06.8274885Z npm notice 5.3kB lib/session-handle.js
+2026-11-01T11:17:06.8275184Z npm notice 6.9kB lib/session-manager.js
+2026-11-01T11:17:06.8275505Z npm notice 6.7kB lib/shared-task-list.js
+2026-11-01T11:17:06.8275841Z npm notice 20.3kB lib/skill-invocation-receipt.js
+2026-11-01T11:17:06.8276173Z npm notice 4.9kB lib/stream-router.js
+2026-11-01T11:17:06.8276518Z npm notice 32.2kB lib/structured-evolution-memory.js
+2026-11-01T11:17:06.8277138Z npm notice 49.9kB lib/task-description-action-service.js
+2026-11-01T11:17:06.8277479Z npm notice 5.7kB lib/trace-store.js
+2026-11-01T11:17:06.8277764Z npm notice 5.6kB package.json
+2026-11-01T11:17:06.8278068Z npm notice Tarball Details
+2026-11-01T11:17:06.8278377Z npm notice name: @chainlesschain/session-core
+2026-11-01T11:17:06.8278665Z npm notice version: 0.3.24
+2026-11-01T11:17:06.8279030Z npm notice filename: chainlesschain-session-core-0.3.24.tgz
+2026-11-01T11:17:06.8279399Z npm notice package size: 317.8 kB
+2026-11-01T11:17:06.8279694Z npm notice unpacked size: 1.5 MB
+2026-11-01T11:17:06.8280065Z npm notice shasum: ee7834297b36f90cbe5b8952de6eb864e302e0bc
+2026-11-01T11:17:06.8280587Z npm notice integrity: sha512-9iKqdfl5FqlV/[...]XLYry3cgYX5LQ==
+2026-11-01T11:17:06.8280931Z npm notice total files: 80
+2026-11-01T11:17:06.8281378Z npm notice
+2026-11-01T11:17:06.8281695Z chainlesschain-session-core-0.3.24.tgz
+2026-11-01T11:17:06.8318515Z target: @chainlesschain/session-core@0.3.24
+2026-11-01T11:17:07.4963908Z Exact version already published, skipping
+2026-11-01T11:17:07.4996773Z ##[group]Run set -euo pipefail
+2026-11-01T11:17:07.4997168Z [36;1mset -euo pipefail[0m
+2026-11-01T11:17:07.4997466Z [36;1mPACKAGE_NAME="@chainlesschain/session-core"[0m
+2026-11-01T11:17:07.4997946Z [36;1mPACKAGE_VERSION=$(node -p "require('./packages/session-core/package.json').version")[0m
+2026-11-01T11:17:07.4998368Z [36;1mCLI_VERSION="0.166.137"[0m
+2026-11-01T11:17:07.4998678Z [36;1mEXPECTED_REF="refs/tags/v-npm-${CLI_VERSION//./-}"[0m
+2026-11-01T11:17:07.4998997Z [36;1mPUBLISHED="false"[0m
+2026-11-01T11:17:07.4999370Z [36;1mPROVENANCE_OUTPUT="release-artifacts/session-core-npm-provenance.json"[0m
+2026-11-01T11:17:07.4999778Z [36;1mREADBACK_ROOT=$(mktemp -d)[0m
+2026-11-01T11:17:07.5000062Z [36;1mtrap 'rm -rf "$READBACK_ROOT"' EXIT[0m
+2026-11-01T11:17:07.5000341Z [36;1m[0m
+2026-11-01T11:17:07.5000542Z [36;1mREGISTRY_TARBALL=""[0m
+2026-11-01T11:17:07.5000792Z [36;1mfor ATTEMPT in {1..30}; do[0m
+2026-11-01T11:17:07.5001734Z [36;1m  if npm pack "$PACKAGE_NAME@$PACKAGE_VERSION" --pack-destination "$READBACK_ROOT" \[0m
+2026-11-01T11:17:07.5002508Z [36;1m    >/dev/null 2>"$READBACK_ROOT/npm-pack.err"; then[0m
+2026-11-01T11:17:07.5003192Z [36;1m    REGISTRY_TARBALL=$(find "$READBACK_ROOT" -maxdepth 1 -name 'chainlesschain-session-core-*.tgz' -type f -print -quit)[0m
+2026-11-01T11:17:07.5003719Z [36;1m    break[0m
+2026-11-01T11:17:07.5003964Z [36;1m  fi[0m
+2026-11-01T11:17:07.5004184Z [36;1m  if [ "$ATTEMPT" -eq 30 ]; then[0m
+2026-11-01T11:17:07.5004616Z [36;1m    echo "Registry did not expose $PACKAGE_NAME@$PACKAGE_VERSION after 30 attempts" >&2[0m
+2026-11-01T11:17:07.5005050Z [36;1m    cat "$READBACK_ROOT/npm-pack.err" >&2[0m
+2026-11-01T11:17:07.5005329Z [36;1m    exit 1[0m
+2026-11-01T11:17:07.5005532Z [36;1m  fi[0m
+2026-11-01T11:17:07.5005975Z [36;1m  echo "::notice::Registry has not exposed $PACKAGE_NAME@$PACKAGE_VERSION yet (attempt $ATTEMPT/30); retrying in 10 seconds"[0m
+2026-11-01T11:17:07.5006478Z [36;1m  sleep 10[0m
+2026-11-01T11:17:07.5006683Z [36;1mdone[0m
+2026-11-01T11:17:07.5006895Z [36;1mtest -n "$REGISTRY_TARBALL"[0m
+2026-11-01T11:17:07.5007645Z [36;1mPACKAGE_SHA512=$(node -e 'const c=require("node:crypto"),f=require("node:fs");process.stdout.write(c.createHash("sha512").update(f.readFileSync(process.argv[1])).digest("hex"))' "$REGISTRY_TARBALL")[0m
+2026-11-01T11:17:07.5008345Z [36;1m[0m
+2026-11-01T11:17:07.5008559Z [36;1mAUDIT_ROOT="$READBACK_ROOT/audit"[0m
+2026-11-01T11:17:07.5008841Z [36;1mmkdir -p "$AUDIT_ROOT"[0m
+2026-11-01T11:17:07.5009078Z [36;1m([0m
+2026-11-01T11:17:07.5009285Z [36;1m  cd "$AUDIT_ROOT"[0m
+2026-11-01T11:17:07.5009530Z [36;1m  npm init --yes >/dev/null[0m
+2026-11-01T11:17:07.5009933Z [36;1m  npm install --ignore-scripts --no-audit --no-fund "$PACKAGE_NAME@$PACKAGE_VERSION"[0m
+2026-11-01T11:17:07.5010322Z [36;1m)[0m
+2026-11-01T11:17:07.5010525Z [36;1mMAX_ATTEMPTS=30[0m
+2026-11-01T11:17:07.5010814Z [36;1mif [ "$PUBLISHED" = "false" ]; then MAX_ATTEMPTS=1; fi[0m
+2026-11-01T11:17:07.5011495Z [36;1mVERIFIED=false[0m
+2026-11-01T11:17:07.5011761Z [36;1mfor ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do[0m
+2026-11-01T11:17:07.5012103Z [36;1m  AUDIT_JSON="$AUDIT_ROOT/npm-signatures.json"[0m
+2026-11-01T11:17:07.5012445Z [36;1m  AUDIT_ERROR="$AUDIT_ROOT/npm-signatures.err"[0m
+2026-11-01T11:17:07.5012736Z [36;1m  if ([0m
+2026-11-01T11:17:07.5012948Z [36;1m    cd "$AUDIT_ROOT"[0m
+2026-11-01T11:17:07.5013266Z [36;1m    npm audit signatures --include-attestations --json \[0m
+2026-11-01T11:17:07.5013611Z [36;1m      > "$AUDIT_JSON" 2> "$AUDIT_ERROR"[0m
+2026-11-01T11:17:07.5013881Z [36;1m  ); then[0m
+2026-11-01T11:17:07.5014122Z [36;1m    if [ "$PUBLISHED" = "true" ]; then[0m
+2026-11-01T11:17:07.5014463Z [36;1m      if CC_NPM_PROVENANCE_OUTPUT="$PROVENANCE_OUTPUT" \[0m
+2026-11-01T11:17:07.5014882Z [36;1m        node packages/cli/scripts/verify-npm-release-provenance.mjs \[0m
+2026-11-01T11:17:07.5015545Z [36;1m          "$AUDIT_JSON" "$PACKAGE_VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$PACKAGE_SHA512" "$PACKAGE_NAME"; then[0m
+2026-11-01T11:17:07.5016009Z [36;1m        VERIFIED=true[0m
+2026-11-01T11:17:07.5016247Z [36;1m        break[0m
+2026-11-01T11:17:07.5016460Z [36;1m      fi[0m
+2026-11-01T11:17:07.5016699Z [36;1m    elif [ "$PUBLISHED" = "false" ]; then[0m
+2026-11-01T11:17:07.5017056Z [36;1m      if CC_NPM_PROVENANCE_OUTPUT="$PROVENANCE_OUTPUT" \[0m
+2026-11-01T11:17:07.5017475Z [36;1m        node packages/cli/scripts/verify-npm-release-provenance.mjs \[0m
+2026-11-01T11:17:07.5018002Z [36;1m          --trusted-anchor "$AUDIT_JSON" "$PACKAGE_VERSION" "$PACKAGE_SHA512" "$PACKAGE_NAME"; then[0m
+2026-11-01T11:17:07.5018445Z [36;1m        VERIFIED=true[0m
+2026-11-01T11:17:07.5018686Z [36;1m        break[0m
+2026-11-01T11:17:07.5018895Z [36;1m      fi[0m
+2026-11-01T11:17:07.5019091Z [36;1m    else[0m
+2026-11-01T11:17:07.5019431Z [36;1m      echo "Unexpected session-core publish state: $PUBLISHED" >&2[0m
+2026-11-01T11:17:07.5019782Z [36;1m      exit 1[0m
+2026-11-01T11:17:07.5019991Z [36;1m    fi[0m
+2026-11-01T11:17:07.5020178Z [36;1m  fi[0m
+2026-11-01T11:17:07.5020410Z [36;1m  if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then[0m
+2026-11-01T11:17:07.5020933Z [36;1m    echo "npm did not expose valid signed provenance for $PACKAGE_NAME@$PACKAGE_VERSION after $MAX_ATTEMPTS attempt(s)" >&2[0m
+2026-11-01T11:17:07.5021858Z [36;1m    cat "$AUDIT_ERROR" >&2 || true[0m
+2026-11-01T11:17:07.5022113Z [36;1m    exit 1[0m
+2026-11-01T11:17:07.5022310Z [36;1m  fi[0m
+2026-11-01T11:17:07.5022802Z [36;1m  echo "::notice::Signed npm provenance is not ready for $PACKAGE_NAME@$PACKAGE_VERSION (attempt $ATTEMPT/$MAX_ATTEMPTS); retrying in 10 seconds"[0m
+2026-11-01T11:17:07.5023349Z [36;1m  sleep 10[0m
+2026-11-01T11:17:07.5023555Z [36;1mdone[0m
+2026-11-01T11:17:07.5023771Z [36;1mtest "$VERIFIED" = true[0m
+2026-11-01T11:17:07.5024036Z [36;1mif [ "$PUBLISHED" = "false" ]; then[0m
+2026-11-01T11:17:07.5024416Z [36;1m  node packages/cli/scripts/verify-npm-reused-package-tree.mjs \[0m
+2026-11-01T11:17:07.5024850Z [36;1m    "$PROVENANCE_OUTPUT" "$GITHUB_SHA" packages/session-core[0m
+2026-11-01T11:17:07.5025175Z [36;1mfi[0m
+2026-11-01T11:17:07.5044800Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-01T11:17:07.5045135Z ##[endgroup]
+2026-11-01T11:17:09.3690333Z 
+2026-11-01T11:17:10.1604547Z added 6 packages in 729ms
+2026-11-01T11:17:10.1605348Z Verified npm provenance for @chainlesschain/session-core@0.3.24 from 8096acf1ec0bc5e7b25810f5cc08128ba90aca3b (run 40251206428, attempt 1)
+2026-11-01T11:17:11.4963862Z Verified unchanged packages/session-core tree 0c3f0098dbe55a18cce0d7741f9e75ff5aa3356a against refs/tags/v-npm-0-166-123
+2026-11-01T11:17:11.5142179Z ##[group]Run PKG_VER=$(node -p "require('./package.json').version")
+2026-11-01T11:17:11.5142758Z [36;1mPKG_VER=$(node -p "require('./package.json').version")[0m
+2026-11-01T11:17:11.5143288Z [36;1mecho "target: @chainlesschain/context-memory-kernel@$PKG_VER"[0m
+2026-11-01T11:17:11.5144044Z [36;1mif npm view "@chainlesschain/context-memory-kernel@$PKG_VER" version >/dev/null 2>&1; then[0m
+2026-11-01T11:17:11.5144649Z [36;1m  echo "Exact version already published, skipping"[0m
+2026-11-01T11:17:11.5145074Z [36;1m  echo "published=false" >> "$GITHUB_OUTPUT"[0m
+2026-11-01T11:17:11.5145429Z [36;1melse[0m
+2026-11-01T11:17:11.5145729Z [36;1m  npm publish --provenance --access public[0m
+2026-11-01T11:17:11.5146158Z [36;1m  echo "published=true" >> "$GITHUB_OUTPUT"[0m
+2026-11-01T11:17:11.5146505Z [36;1mfi[0m
+2026-11-01T11:17:11.5165946Z shell: /usr/bin/bash -e {0}
+2026-11-01T11:17:11.5166225Z ##[endgroup]
+2026-11-01T11:17:11.5413908Z target: @chainlesschain/context-memory-kernel@0.1.11
+2026-11-01T11:17:12.2391243Z Exact version already published, skipping
+2026-11-01T11:17:12.2421670Z ##[group]Run set -euo pipefail
+2026-11-01T11:17:12.2422020Z [36;1mset -euo pipefail[0m
+2026-11-01T11:17:12.2422428Z [36;1mPACKAGE_NAME="@chainlesschain/context-memory-kernel"[0m
+2026-11-01T11:17:12.2423025Z [36;1mPACKAGE_VERSION=$(node -p "require('./packages/context-memory-kernel/package.json').version")[0m
+2026-11-01T11:17:12.2423453Z [36;1mCLI_VERSION="0.166.137"[0m
+2026-11-01T11:17:12.2423758Z [36;1mEXPECTED_REF="refs/tags/v-npm-${CLI_VERSION//./-}"[0m
+2026-11-01T11:17:12.2424064Z [36;1mPUBLISHED="false"[0m
+2026-11-01T11:17:12.2424454Z [36;1mPROVENANCE_OUTPUT="release-artifacts/context-memory-kernel-npm-provenance.json"[0m
+2026-11-01T11:17:12.2424881Z [36;1mREADBACK_ROOT=$(mktemp -d)[0m
+2026-11-01T11:17:12.2425160Z [36;1mtrap 'rm -rf "$READBACK_ROOT"' EXIT[0m
+2026-11-01T11:17:12.2425419Z [36;1m[0m
+2026-11-01T11:17:12.2425615Z [36;1mREGISTRY_TARBALL=""[0m
+2026-11-01T11:17:12.2425853Z [36;1mfor ATTEMPT in {1..30}; do[0m
+2026-11-01T11:17:12.2426271Z [36;1m  if npm pack "$PACKAGE_NAME@$PACKAGE_VERSION" --pack-destination "$READBACK_ROOT" \[0m
+2026-11-01T11:17:12.2426709Z [36;1m    >/dev/null 2>"$READBACK_ROOT/npm-pack.err"; then[0m
+2026-11-01T11:17:12.2427281Z [36;1m    REGISTRY_TARBALL=$(find "$READBACK_ROOT" -maxdepth 1 -name 'chainlesschain-context-memory-kernel-*.tgz' -type f -print -quit)[0m
+2026-11-01T11:17:12.2427809Z [36;1m    break[0m
+2026-11-01T11:17:12.2428010Z [36;1m  fi[0m
+2026-11-01T11:17:12.2428217Z [36;1m  if [ "$ATTEMPT" -eq 30 ]; then[0m
+2026-11-01T11:17:12.2428616Z [36;1m    echo "Registry did not expose $PACKAGE_NAME@$PACKAGE_VERSION after 30 attempts" >&2[0m
+2026-11-01T11:17:12.2429024Z [36;1m    cat "$READBACK_ROOT/npm-pack.err" >&2[0m
+2026-11-01T11:17:12.2429292Z [36;1m    exit 1[0m
+2026-11-01T11:17:12.2429490Z [36;1m  fi[0m
+2026-11-01T11:17:12.2429921Z [36;1m  echo "::notice::Registry has not exposed $PACKAGE_NAME@$PACKAGE_VERSION yet (attempt $ATTEMPT/30); retrying in 10 seconds"[0m
+2026-11-01T11:17:12.2430401Z [36;1m  sleep 10[0m
+2026-11-01T11:17:12.2430604Z [36;1mdone[0m
+2026-11-01T11:17:12.2430810Z [36;1mtest -n "$REGISTRY_TARBALL"[0m
+2026-11-01T11:17:12.2431744Z [36;1mPACKAGE_SHA512=$(node -e 'const c=require("node:crypto"),f=require("node:fs");process.stdout.write(c.createHash("sha512").update(f.readFileSync(process.argv[1])).digest("hex"))' "$REGISTRY_TARBALL")[0m
+2026-11-01T11:17:12.2432429Z [36;1m[0m
+2026-11-01T11:17:12.2432634Z [36;1mAUDIT_ROOT="$READBACK_ROOT/audit"[0m
+2026-11-01T11:17:12.2432908Z [36;1mmkdir -p "$AUDIT_ROOT"[0m
+2026-11-01T11:17:12.2433149Z [36;1m([0m
+2026-11-01T11:17:12.2433340Z [36;1m  cd "$AUDIT_ROOT"[0m
+2026-11-01T11:17:12.2433574Z [36;1m  npm init --yes >/dev/null[0m
+2026-11-01T11:17:12.2433961Z [36;1m  npm install --ignore-scripts --no-audit --no-fund "$PACKAGE_NAME@$PACKAGE_VERSION"[0m
+2026-11-01T11:17:12.2434343Z [36;1m)[0m
+2026-11-01T11:17:12.2434537Z [36;1mMAX_ATTEMPTS=30[0m
+2026-11-01T11:17:12.2434875Z [36;1mif [ "$PUBLISHED" = "false" ]; then MAX_ATTEMPTS=1; fi[0m
+2026-11-01T11:17:12.2435206Z [36;1mVERIFIED=false[0m
+2026-11-01T11:17:12.2435475Z [36;1mfor ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do[0m
+2026-11-01T11:17:12.2435807Z [36;1m  AUDIT_JSON="$AUDIT_ROOT/npm-signatures.json"[0m
+2026-11-01T11:17:12.2436263Z [36;1m  AUDIT_ERROR="$AUDIT_ROOT/npm-signatures.err"[0m
+2026-11-01T11:17:12.2436546Z [36;1m  if ([0m
+2026-11-01T11:17:12.2436760Z [36;1m    cd "$AUDIT_ROOT"[0m
+2026-11-01T11:17:12.2437072Z [36;1m    npm audit signatures --include-attestations --json \[0m
+2026-11-01T11:17:12.2437417Z [36;1m      > "$AUDIT_JSON" 2> "$AUDIT_ERROR"[0m
+2026-11-01T11:17:12.2437683Z [36;1m  ); then[0m
+2026-11-01T11:17:12.2437926Z [36;1m    if [ "$PUBLISHED" = "true" ]; then[0m
+2026-11-01T11:17:12.2438255Z [36;1m      if CC_NPM_PROVENANCE_OUTPUT="$PROVENANCE_OUTPUT" \[0m
+2026-11-01T11:17:12.2438675Z [36;1m        node packages/cli/scripts/verify-npm-release-provenance.mjs \[0m
+2026-11-01T11:17:12.2439324Z [36;1m          "$AUDIT_JSON" "$PACKAGE_VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$PACKAGE_SHA512" "$PACKAGE_NAME"; then[0m
+2026-11-01T11:17:12.2439777Z [36;1m        VERIFIED=true[0m
+2026-11-01T11:17:12.2440013Z [36;1m        break[0m
+2026-11-01T11:17:12.2440229Z [36;1m      fi[0m
+2026-11-01T11:17:12.2440469Z [36;1m    elif [ "$PUBLISHED" = "false" ]; then[0m
+2026-11-01T11:17:12.2440810Z [36;1m      if CC_NPM_PROVENANCE_OUTPUT="$PROVENANCE_OUTPUT" \[0m
+2026-11-01T11:17:12.2441552Z [36;1m        node packages/cli/scripts/verify-npm-release-provenance.mjs \[0m
+2026-11-01T11:17:12.2442082Z [36;1m          --trusted-anchor "$AUDIT_JSON" "$PACKAGE_VERSION" "$PACKAGE_SHA512" "$PACKAGE_NAME"; then[0m
+2026-11-01T11:17:12.2442523Z [36;1m        VERIFIED=true[0m
+2026-11-01T11:17:12.2442762Z [36;1m        break[0m
+2026-11-01T11:17:12.2442978Z [36;1m      fi[0m
+2026-11-01T11:17:12.2443183Z [36;1m    else[0m
+2026-11-01T11:17:12.2443524Z [36;1m      echo "Unexpected context-memory-kernel publish state: $PUBLISHED" >&2[0m
+2026-11-01T11:17:12.2443921Z [36;1m      exit 1[0m
+2026-11-01T11:17:12.2444137Z [36;1m    fi[0m
+2026-11-01T11:17:12.2444329Z [36;1m  fi[0m
+2026-11-01T11:17:12.2444563Z [36;1m  if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then[0m
+2026-11-01T11:17:12.2445099Z [36;1m    echo "npm did not expose valid signed provenance for $PACKAGE_NAME@$PACKAGE_VERSION after $MAX_ATTEMPTS attempt(s)" >&2[0m
+2026-11-01T11:17:12.2445631Z [36;1m    cat "$AUDIT_ERROR" >&2 || true[0m
+2026-11-01T11:17:12.2445896Z [36;1m    exit 1[0m
+2026-11-01T11:17:12.2446099Z [36;1m  fi[0m
+2026-11-01T11:17:12.2446608Z [36;1m  echo "::notice::Signed npm provenance is not ready for $PACKAGE_NAME@$PACKAGE_VERSION (attempt $ATTEMPT/$MAX_ATTEMPTS); retrying in 10 seconds"[0m
+2026-11-01T11:17:12.2447161Z [36;1m  sleep 10[0m
+2026-11-01T11:17:12.2447366Z [36;1mdone[0m
+2026-11-01T11:17:12.2447571Z [36;1mtest "$VERIFIED" = true[0m
+2026-11-01T11:17:12.2447840Z [36;1mif [ "$PUBLISHED" = "false" ]; then[0m
+2026-11-01T11:17:12.2448212Z [36;1m  node packages/cli/scripts/verify-npm-reused-package-tree.mjs \[0m
+2026-11-01T11:17:12.2448709Z [36;1m    "$PROVENANCE_OUTPUT" "$GITHUB_SHA" packages/context-memory-kernel[0m
+2026-11-01T11:17:12.2449063Z [36;1mfi[0m
+2026-11-01T11:17:12.2468503Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-01T11:17:12.2468838Z ##[endgroup]
+2026-11-01T11:17:13.6101421Z 
+2026-11-01T11:17:13.6102201Z added 1 package in 244ms
+2026-11-01T11:17:14.3177211Z Verified npm provenance for @chainlesschain/context-memory-kernel@0.1.11 from c9d0bab231850697df38f2d476c2dd974cbcb6c0 (run 40862685540, attempt 1)
+2026-11-01T11:17:15.3455090Z Verified unchanged packages/context-memory-kernel tree c566283d2ab7b501ab91674cd55e74d75cf81553 against refs/tags/v-npm-0-166-131
+2026-11-01T11:17:15.3527326Z ##[group]Run PKG_VER=$(node -p "require('./package.json').version")
+2026-11-01T11:17:15.3527775Z [36;1mPKG_VER=$(node -p "require('./package.json').version")[0m
+2026-11-01T11:17:15.3528167Z [36;1mecho "target: @chainlesschain/agent-sdk@$PKG_VER"[0m
+2026-11-01T11:17:15.3528612Z [36;1mif npm view "@chainlesschain/agent-sdk@$PKG_VER" version >/dev/null 2>&1; then[0m
+2026-11-01T11:17:15.3529055Z [36;1m  echo "Exact version already published, skipping"[0m
+2026-11-01T11:17:15.3529527Z [36;1m  echo "published=false" >> "$GITHUB_OUTPUT"[0m
+2026-11-01T11:17:15.3529807Z [36;1melse[0m
+2026-11-01T11:17:15.3530042Z [36;1m  npm install --no-audit --no-fund[0m
+2026-11-01T11:17:15.3530358Z [36;1m  npm publish --provenance --access public[0m
+2026-11-01T11:17:15.3530688Z [36;1m  echo "published=true" >> "$GITHUB_OUTPUT"[0m
+2026-11-01T11:17:15.3531135Z [36;1mfi[0m
+2026-11-01T11:17:15.3551220Z shell: /usr/bin/bash -e {0}
+2026-11-01T11:17:15.3551508Z ##[endgroup]
+2026-11-01T11:17:15.3798981Z target: @chainlesschain/agent-sdk@0.2.16
+2026-11-01T11:17:15.9876152Z Exact version already published, skipping
+2026-11-01T11:17:15.9915070Z ##[group]Run set -euo pipefail
+2026-11-01T11:17:15.9915594Z [36;1mset -euo pipefail[0m
+2026-11-01T11:17:15.9916015Z [36;1mSDK_NAME="@chainlesschain/agent-sdk"[0m
+2026-11-01T11:17:15.9916680Z [36;1mSDK_VERSION=$(node -p "require('./packages/agent-sdk/package.json').version")[0m
+2026-11-01T11:17:15.9917330Z [36;1mCLI_VERSION="0.166.137"[0m
+2026-11-01T11:17:15.9917806Z [36;1mEXPECTED_REF="refs/tags/v-npm-${CLI_VERSION//./-}"[0m
+2026-11-01T11:17:15.9918317Z [36;1mPUBLISHED="false"[0m
+2026-11-01T11:17:15.9918866Z [36;1mPROVENANCE_OUTPUT="release-artifacts/agent-sdk-npm-provenance.json"[0m
+2026-11-01T11:17:15.9919489Z [36;1mREADBACK_ROOT=$(mktemp -d)[0m
+2026-11-01T11:17:15.9919904Z [36;1mtrap 'rm -rf "$READBACK_ROOT"' EXIT[0m
+2026-11-01T11:17:15.9920318Z [36;1m[0m
+2026-11-01T11:17:15.9920610Z [36;1mREGISTRY_TARBALL=""[0m
+2026-11-01T11:17:15.9921216Z [36;1mfor ATTEMPT in {1..30}; do[0m
+2026-11-01T11:17:15.9921817Z [36;1m  if npm pack "$SDK_NAME@$SDK_VERSION" --pack-destination "$READBACK_ROOT" \[0m
+2026-11-01T11:17:15.9922455Z [36;1m    >/dev/null 2>"$READBACK_ROOT/npm-pack.err"; then[0m
+2026-11-01T11:17:15.9923309Z [36;1m    REGISTRY_TARBALL=$(find "$READBACK_ROOT" -maxdepth 1 -name 'chainlesschain-agent-sdk-*.tgz' -type f -print -quit)[0m
+2026-11-01T11:17:15.9924035Z [36;1m    break[0m
+2026-11-01T11:17:15.9924338Z [36;1m  fi[0m
+2026-11-01T11:17:15.9924624Z [36;1m  if [ "$ATTEMPT" -eq 30 ]; then[0m
+2026-11-01T11:17:15.9925173Z [36;1m    echo "Registry did not expose $SDK_NAME@$SDK_VERSION after 30 attempts" >&2[0m
+2026-11-01T11:17:15.9925775Z [36;1m    cat "$READBACK_ROOT/npm-pack.err" >&2[0m
+2026-11-01T11:17:15.9926158Z [36;1m    exit 1[0m
+2026-11-01T11:17:15.9926429Z [36;1m  fi[0m
+2026-11-01T11:17:15.9927049Z [36;1m  echo "::notice::Registry has not exposed $SDK_NAME@$SDK_VERSION yet (attempt $ATTEMPT/30); retrying in 10 seconds"[0m
+2026-11-01T11:17:15.9927789Z [36;1m  sleep 10[0m
+2026-11-01T11:17:15.9928098Z [36;1mdone[0m
+2026-11-01T11:17:15.9928450Z [36;1mtest -n "$REGISTRY_TARBALL"[0m
+2026-11-01T11:17:15.9929588Z [36;1mSDK_SHA512=$(node -e 'const c=require("node:crypto"),f=require("node:fs");process.stdout.write(c.createHash("sha512").update(f.readFileSync(process.argv[1])).digest("hex"))' "$REGISTRY_TARBALL")[0m
+2026-11-01T11:17:15.9930727Z [36;1m[0m
+2026-11-01T11:17:15.9931288Z [36;1mAUDIT_ROOT="$READBACK_ROOT/audit"[0m
+2026-11-01T11:17:15.9931725Z [36;1mmkdir -p "$AUDIT_ROOT"[0m
+2026-11-01T11:17:15.9932089Z [36;1m([0m
+2026-11-01T11:17:15.9932385Z [36;1m  cd "$AUDIT_ROOT"[0m
+2026-11-01T11:17:15.9932743Z [36;1m  npm init --yes >/dev/null[0m
+2026-11-01T11:17:15.9933296Z [36;1m  npm install --ignore-scripts --no-audit --no-fund "$SDK_NAME@$SDK_VERSION"[0m
+2026-11-01T11:17:15.9933867Z [36;1m)[0m
+2026-11-01T11:17:15.9934170Z [36;1mMAX_ATTEMPTS=30[0m
+2026-11-01T11:17:15.9934597Z [36;1mif [ "$PUBLISHED" = "false" ]; then MAX_ATTEMPTS=1; fi[0m
+2026-11-01T11:17:15.9935068Z [36;1mVERIFIED=false[0m
+2026-11-01T11:17:15.9935460Z [36;1mfor ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do[0m
+2026-11-01T11:17:15.9935972Z [36;1m  AUDIT_JSON="$AUDIT_ROOT/npm-signatures.json"[0m
+2026-11-01T11:17:15.9936501Z [36;1m  AUDIT_ERROR="$AUDIT_ROOT/npm-signatures.err"[0m
+2026-11-01T11:17:15.9936943Z [36;1m  if ([0m
+2026-11-01T11:17:15.9937248Z [36;1m    cd "$AUDIT_ROOT"[0m
+2026-11-01T11:17:15.9938026Z [36;1m    npm audit signatures --include-attestations --json \[0m
+2026-11-01T11:17:15.9938561Z [36;1m      > "$AUDIT_JSON" 2> "$AUDIT_ERROR"[0m
+2026-11-01T11:17:15.9938960Z [36;1m  ); then[0m
+2026-11-01T11:17:15.9939287Z [36;1m    if [ "$PUBLISHED" = "true" ]; then[0m
+2026-11-01T11:17:15.9939791Z [36;1m      if CC_NPM_PROVENANCE_OUTPUT="$PROVENANCE_OUTPUT" \[0m
+2026-11-01T11:17:15.9940438Z [36;1m        node packages/cli/scripts/verify-npm-release-provenance.mjs \[0m
+2026-11-01T11:17:15.9942065Z [36;1m          "$AUDIT_JSON" "$SDK_VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$SDK_SHA512" "$SDK_NAME"; then[0m
+2026-11-01T11:17:15.9942982Z [36;1m        VERIFIED=true[0m
+2026-11-01T11:17:15.9943331Z [36;1m        break[0m
+2026-11-01T11:17:15.9943671Z [36;1m      fi[0m
+2026-11-01T11:17:15.9944029Z [36;1m    elif [ "$PUBLISHED" = "false" ]; then[0m
+2026-11-01T11:17:15.9944579Z [36;1m      if CC_NPM_PROVENANCE_OUTPUT="$PROVENANCE_OUTPUT" \[0m
+2026-11-01T11:17:15.9945255Z [36;1m        node packages/cli/scripts/verify-npm-release-provenance.mjs \[0m
+2026-11-01T11:17:15.9946018Z [36;1m          --trusted-anchor "$AUDIT_JSON" "$SDK_VERSION" "$SDK_SHA512" "$SDK_NAME"; then[0m
+2026-11-01T11:17:15.9946625Z [36;1m        VERIFIED=true[0m
+2026-11-01T11:17:15.9946981Z [36;1m        break[0m
+2026-11-01T11:17:15.9947300Z [36;1m      fi[0m
+2026-11-01T11:17:15.9947590Z [36;1m    else[0m
+2026-11-01T11:17:15.9948040Z [36;1m      echo "Unexpected agent-sdk publish state: $PUBLISHED" >&2[0m
+2026-11-01T11:17:15.9948576Z [36;1m      exit 1[0m
+2026-11-01T11:17:15.9948883Z [36;1m    fi[0m
+2026-11-01T11:17:15.9949162Z [36;1m  fi[0m
+2026-11-01T11:17:15.9949625Z [36;1m  if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then[0m
+2026-11-01T11:17:15.9950479Z [36;1m    echo "npm did not expose valid signed provenance for $SDK_NAME@$SDK_VERSION after $MAX_ATTEMPTS attempt(s)" >&2[0m
+2026-11-01T11:17:15.9951572Z [36;1m    cat "$AUDIT_ERROR" >&2 || true[0m
+2026-11-01T11:17:15.9952078Z [36;1m    exit 1[0m
+2026-11-01T11:17:15.9952381Z [36;1m  fi[0m
+2026-11-01T11:17:15.9953164Z [36;1m  echo "::notice::Signed npm provenance is not ready for $SDK_NAME@$SDK_VERSION (attempt $ATTEMPT/$MAX_ATTEMPTS); retrying in 10 seconds"[0m
+2026-11-01T11:17:15.9954009Z [36;1m  sleep 10[0m
+2026-11-01T11:17:15.9954315Z [36;1mdone[0m
+2026-11-01T11:17:15.9954635Z [36;1mtest "$VERIFIED" = true[0m
+2026-11-01T11:17:15.9955052Z [36;1mif [ "$PUBLISHED" = "false" ]; then[0m
+2026-11-01T11:17:15.9955629Z [36;1m  node packages/cli/scripts/verify-npm-reused-package-tree.mjs \[0m
+2026-11-01T11:17:15.9956289Z [36;1m    "$PROVENANCE_OUTPUT" "$GITHUB_SHA" packages/agent-sdk[0m
+2026-11-01T11:17:15.9956760Z [36;1mfi[0m
+2026-11-01T11:17:15.9980377Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-01T11:17:15.9980715Z ##[endgroup]
+2026-11-01T11:17:17.4123347Z 
+2026-11-01T11:17:17.4124001Z added 1 package in 248ms
+2026-11-01T11:17:18.0789874Z Verified npm provenance for @chainlesschain/agent-sdk@0.2.16 from fcb26822d6b4559e4904f984daa8e6bb7cc012b7 (run 40186379527, attempt 1)
+2026-11-01T11:17:19.4176385Z npm package reuse error: packages/agent-sdk changed since signed npm provenance anchor refs/tags/v-npm-0-166-118; bump the package version before release
+2026-11-01T11:17:19.4240300Z ##[error]Process completed with exit code 1.
+2026-11-01T11:17:19.4370648Z Post job cleanup.
+2026-11-01T11:17:19.5194406Z [command]/usr/bin/git version
+2026-11-01T11:17:19.5239859Z git version 2.56.0
+2026-11-01T11:17:19.5278846Z Temporarily overriding HOME='/home/runner/work/_temp/c703b133-dd5b-4259-994e-92d9bfbc3df1' before making global git config changes
+2026-11-01T11:17:19.5280125Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-01T11:17:19.5285057Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-11-01T11:17:19.5319755Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-01T11:17:19.5349364Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-01T11:17:19.5648041Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-01T11:17:19.5672530Z http.https://github.com/.extraheader
+2026-11-01T11:17:19.5681111Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-01T11:17:19.5747045Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-01T11:17:19.6055686Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-01T11:17:19.6099666Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-01T11:17:19.6503906Z Cleaning up orphan processes
+2026-11-01T11:17:19.6785164Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

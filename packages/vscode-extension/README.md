@@ -6,7 +6,7 @@ MCP bridge.
 
 ## Release pairing
 
-Version **0.37.174** recommends CLI **`0.166.137`** and pairs with JetBrains **0.4.190**. This source prepares the next paired release: publish and verify the CLI first, then publish the IDEs after complete exact-source host gates. Restart the chat host after upgrading and verify the actual CLI with Doctor. The VS Code change preserves provider/compaction diagnostics and saved tool-result identity across reload.
+Version **0.37.174** recommends CLI **`0.166.138`** and pairs with JetBrains **0.4.190**. This source prepares the next paired release: publish and verify the CLI first, then publish the IDEs after complete exact-source host gates. Restart the chat host after upgrading and verify the actual CLI with Doctor. The VS Code change preserves provider/compaction diagnostics and saved tool-result identity across reload.
 
 Current verified public packages before this release are CLI **0.166.136**, Open VSX **0.37.173** and approved JetBrains **0.4.189**; the older IDEs still recommend CLI **0.166.135**. [Public evidence](../../docs/research/cli/evidence/release136-public/README.md).
 

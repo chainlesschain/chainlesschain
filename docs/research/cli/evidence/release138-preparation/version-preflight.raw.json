@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "baseline": "cc17f961c71e999be29f1d21e7222ef60b8f0c7d",
+  "registry": [
+    {
+      "name": "chainlesschain",
+      "version": "0.166.138",
+      "absent": true
+    },
+    {
+      "name": "@chainlesschain/agent-sdk",
+      "version": "0.2.17",
+      "absent": true
+    }
+  ],
+  "tags": [
+    {
+      "tag": "v-npm-0-166-138",
+      "absent": true
+    },
+    {
+      "tag": "ide-vscode-v0.37.174",
+      "absent": true
+    },
+    {
+      "tag": "ide-jetbrains-v0.4.190",
+      "absent": true
+    }
+  ],
+  "sdkRuntimeUnchanged": true,
+  "cliAgentRuntimeUnchanged": true,
+  "cliGeneratedChangelogChanged": true,
+  "publicationProtectionUnchanged": true,
+  "checkedAt": "2026-11-01T11:37:05.892Z"
+}

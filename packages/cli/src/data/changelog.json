@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.138",
+      "cliVersions": ["0.166.137", "0.166.138"],
+      "date": "2026-11-01",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.138: align Agent SDK source identity before OIDC publication (candidate, 2026-11-01)",
+          "body": "- Publish Agent SDK 0.2.17 before CLI, retaining signed npm provenance and complete package-tree reuse verification. SDK 0.2.16 had a protocol-fixture test update after its signed source anchor; its runtime output remains unchanged, but its version must advance.\n- Keep the failed immutable CLI 0.166.137 tag and its original evidence. It stopped before CLI upload; do not move the tag or bypass the upstream package check.\n- Carry the source-delivery and canonical-task compaction repairs from .137. Pair Open VSX 0.37.174 and JetBrains 0.4.190 with CLI 0.166.138 after verified public CLI readback.\n- The user explicitly waives five-task success as a publication prerequisite. The recorded .137 cohort remains 0/5 and historical 41/45 remains separate. No new model tasks or budget changes are included. Require complete new exact-commit CLI CI and Strict Sandbox before Actions OIDC publication."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.137",
       "cliVersions": ["0.166.137"],
       "date": "2026-11-01",

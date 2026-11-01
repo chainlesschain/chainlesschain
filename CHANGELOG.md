@@ -5,11 +5,18 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Public release scope: CLI **0.166.136** from `539e4da6ef89e5142a3f3bb90e2d6123c6afb15e` passed full exact-source CLI CI / Strict Sandbox, OIDC publication and independent public readback, with Context/Memory Kernel **0.1.11**. Open VSX **0.37.173** and JetBrains **0.4.189** are public; both retain CLI **0.166.135** recommendation metadata. JetBrains JAR payloads match its official build; ZIP container hashes differ. See [publication evidence](docs/research/cli/evidence/release136-public/README.md). CLI **0.166.137** below awaits its own exact-source release gates.
+> Public release scope: CLI **0.166.136** from `539e4da6ef89e5142a3f3bb90e2d6123c6afb15e` passed full exact-source CLI CI / Strict Sandbox, OIDC publication and independent public readback, with Context/Memory Kernel **0.1.11**. Open VSX **0.37.173** and JetBrains **0.4.189** are public; both retain CLI **0.166.135** recommendation metadata. JetBrains JAR payloads match its official build; ZIP container hashes differ. See [publication evidence](docs/research/cli/evidence/release136-public/README.md). CLI **0.166.137** stopped before upload on its SDK source-tree gate; CLI **0.166.138** below requires new exact-source release gates and Agent SDK **0.2.17**.
 >
 > `Unreleased` is a rolling source-development log retaining historical candidate labels, not a publication ledger. Historical OpenAI acceptance is **41/45** across versions; the focused image follow-up remains **0/1**. Engineering checks add no model task acceptance. Microsoft Marketplace is deferred; PC/mobile remain **v5.0.3.143**.
 
 ## [Unreleased]
+
+### Fixed - cc CLI 0.166.138: align Agent SDK source identity before OIDC publication (candidate, 2026-11-01)
+
+- Publish Agent SDK 0.2.17 before CLI, retaining signed npm provenance and complete package-tree reuse verification. SDK 0.2.16 had a protocol-fixture test update after its signed source anchor; its runtime output remains unchanged, but its version must advance.
+- Keep the failed immutable CLI 0.166.137 tag and its original evidence. It stopped before CLI upload; do not move the tag or bypass the upstream package check.
+- Carry the source-delivery and canonical-task compaction repairs from .137. Pair Open VSX 0.37.174 and JetBrains 0.4.190 with CLI 0.166.138 after verified public CLI readback.
+- The user explicitly waives five-task success as a publication prerequisite. The recorded .137 cohort remains 0/5 and historical 41/45 remains separate. No new model tasks or budget changes are included. Require complete new exact-commit CLI CI and Strict Sandbox before Actions OIDC publication.
 
 ### Fixed - cc CLI 0.166.137: confirm model-visible source before recording read coverage (candidate, 2026-11-01)
 

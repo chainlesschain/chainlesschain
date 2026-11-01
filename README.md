@@ -1,6 +1,6 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-下一版 CLI **0.166.137** / Open VSX **0.37.174** / JetBrains **0.4.190** 待发布。用户已明确允许不等待五项任务成功先发布；最新五项整体验收仍为 **0/5**，旧冻结 **41/45** 不变。发布仍须最终提交的完整 CLI CI 和 Strict Sandbox 通过，先验证 CLI 公开可用，再发布 IDE。[状态与限制](docs/research/cli/verify01-openai-137/README.md)。
+下一版 CLI **0.166.138** / Open VSX **0.37.174** / JetBrains **0.4.190** 待发布，上游 Agent SDK 升至 **0.2.17**。`.137` 发行因 SDK 目录测试变更未升版被来源保护拦住，标签保留、CLI 未上传。用户已允许不等待五项任务成功先发布；`.137` 候选最新整体验收仍为 **0/5**，旧 **41/45** 不变。新最终提交须完整 CLI CI / Strict Sandbox 通过，再按 SDK → CLI → IDE 顺序发布。[状态与限制](docs/research/cli/verify01-openai-137/README.md)。
 
 ## 当前公开 CLI：0.166.136（2026-11-01）
 
