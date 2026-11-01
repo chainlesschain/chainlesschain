@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "source": "9313bf8399a5782a29487098c8fcd9aa0cace0aa",
+  "generationSource": "3e28f78b4eab09ac5311c3d7da553a0b008617ad",
+  "projectSource": "52868c59d1c98131d6ce7e7ff177f55d53e509b0",
+  "comparisons": [
+    {
+      "from": "52868c59d1c98131d6ce7e7ff177f55d53e509b0",
+      "to": "9313bf8399a5782a29487098c8fcd9aa0cace0aa",
+      "paths": [
+        "packages/cli/src",
+        "packages/cli/package.json",
+        "package-lock.json",
+        "packages/vscode-extension/src",
+        "packages/vscode-extension/package.json",
+        "packages/jetbrains-plugin/src",
+        "packages/jetbrains-plugin/build.gradle.kts",
+        "packages/jetbrains-plugin/gradle.properties"
+      ],
+      "identical": true
+    },
+    {
+      "from": "3e28f78b4eab09ac5311c3d7da553a0b008617ad",
+      "to": "9313bf8399a5782a29487098c8fcd9aa0cace0aa",
+      "paths": [
+        "packages/cli/src",
+        "packages/cli/package.json",
+        "package-lock.json",
+        "packages/vscode-extension/src",
+        "packages/vscode-extension/package.json",
+        "packages/jetbrains-plugin/src",
+        "packages/jetbrains-plugin/build.gradle.kts",
+        "packages/jetbrains-plugin/gradle.properties"
+      ],
+      "identical": true
+    }
+  ],
+  "verifiedAt": "2026-11-01T02:08:51.224Z",
+  "differentCommitsNotConflated": true,
+  "releaseStillGatedOnFiveAndExactMatrices": true
+}

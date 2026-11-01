@@ -1,0 +1,21 @@
+{
+  "schema": "chainlesschain.verify01-project-revision/v1",
+  "cohortId": "repaired-source-followup-cli137-candidate-engine-five",
+  "parentProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "parentPlanDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "projectCommit": "18455a2b95498043f5bb6364f63d5ce32d277303",
+  "selectedSampleIds": [
+    "verify-08",
+    "verify-13",
+    "verify-19",
+    "verify-36",
+    "first-run-darwin-vscode"
+  ],
+  "taskDeliverables": {
+    "verify-08": ["packages/cli/__tests__/repair137-verify-08.test.js"],
+    "verify-13": ["packages/cli/__tests__/repair137-verify-13.test.js"],
+    "verify-19": ["packages/cli/__tests__/repair137-verify-19.test.js"],
+    "verify-36": ["packages/cli/__tests__/repair137-verify-36.test.js"]
+  },
+  "reason": "User-required prepublication gate using freshly built unreleased CLI and IDE candidates from this exact repaired source as both the execution engine and maintained project. Regenerate all original five samples independently without prior candidates or task-specific repair feedback; preserve original prompts, host allocation, turns, request and transport limits, and behavioral mutants. Use an explicit smaller planning window to respect the unchanged diagnostic transport cap. The earlier public .136-generator repaired-project cohort remains 1/5 and the frozen historical 41/45 is unchanged."
+}

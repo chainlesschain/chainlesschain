@@ -1,0 +1,178 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+// From __tests__ (not __tests__/unit): ../src resolves to packages/cli/src.
+import {
+  assessBackgroundLaunchProfileCompatibility,
+  buildArgvFromBackgroundLaunchProfile,
+  canonicalBackgroundLaunchProfileJson,
+  captureBackgroundLaunchProfile,
+  fingerprintBackgroundLaunchProfile,
+  normalizeBackgroundLaunchProfile,
+} from "../src/lib/background-launch-profile.js";
+
+let dir;
+let previousHome;
+beforeEach(() => {
+  dir = realpathSync.native(mkdtempSync(join(tmpdir(), "cc-launch-identity-")));
+  previousHome = process.env.CHAINLESSCHAIN_HOME;
+  process.env.CHAINLESSCHAIN_HOME = join(dir, "home");
+  mkdirSync(process.env.CHAINLESSCHAIN_HOME);
+});
+afterEach(() => {
+  if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+  else process.env.CHAINLESSCHAIN_HOME = previousHome;
+  rmSync(dir, { recursive: true, force: true });
+});
+
+const clone = (value) => JSON.parse(JSON.stringify(value));
+function capture(argv = ["agent"]) {
+  return captureBackgroundLaunchProfile({ argv, cwd: dir });
+}
+function saveAndLoad(profile) {
+  const file = join(dir, "saved-launch.json");
+  writeFileSync(file, JSON.stringify(profile));
+  return JSON.parse(readFileSync(file, "utf8"));
+}
+function assertFieldPair(group, field, accepted, rejected) {
+  const positive = capture();
+  positive[group][field] = accepted;
+  const loaded = saveAndLoad(positive);
+  expect(normalizeBackgroundLaunchProfile(loaded)[group][field]).toEqual(accepted);
+  expect(() => buildArgvFromBackgroundLaunchProfile(loaded)).not.toThrow();
+  const corrupted = clone(loaded);
+  corrupted[group][field] = rejected;
+  const negative = saveAndLoad(corrupted);
+  for (const boundary of [normalizeBackgroundLaunchProfile, buildArgvFromBackgroundLaunchProfile]) {
+    expect(() => boundary(negative)).toThrowError(
+      expect.objectContaining({
+        code: "BACKGROUND_LAUNCH_PROFILE_INVALID",
+        message: `Invalid background launch profile field: ${group}.${field}`,
+      }),
+    );
+  }
+  expect(loaded).toEqual(positive);
+}
+
+describe("saved background launch policy identity (independent regression)", () => {
+  it.each([{ allowed: null }, { allowed: [] }, { allowed: ["read_file"] }])("preserves allowlist identity through disk and resumed argv: $allowed", ({ allowed }) => {
+    const argv = ["agent", "--permission-mode", "plan", "--sandbox-mode", "strict",
+      "--disallowed-tools", "delete_file", "--max-turns", "1", "--max-budget-usd", "0.25",
+      "--fallback-model", "z-model", "--fallback-model", "a-model"];
+    if (allowed !== null) argv.push("--allowed-tools", allowed.join(","));
+    const original = capture(argv);
+    expect(original.tools).toEqual({ allowed, disallowed: ["delete_file"] });
+    expect(original.llm.fallbackModels).toEqual(["z-model", "a-model"]);
+    expect(original.permission.mode).toBe("plan");
+    expect(original.sandbox.mode).toBe("strict");
+    expect(original.budget.maxTurns).toBe(1);
+    expect(original.budget.maxCostUsd).toBe(0.25);
+    const loaded = saveAndLoad(original);
+    const resumed = capture(buildArgvFromBackgroundLaunchProfile(loaded));
+    expect(resumed).toEqual(original);
+    expect(canonicalBackgroundLaunchProfileJson(resumed)).toBe(canonicalBackgroundLaunchProfileJson(original));
+    expect(fingerprintBackgroundLaunchProfile(resumed)).toBe(fingerprintBackgroundLaunchProfile(original));
+    expect(assessBackgroundLaunchProfileCompatibility(original, resumed).compatible).toBe(true);
+    const drifted = clone(loaded);
+    drifted.tools.allowed = allowed === null ? [] : null;
+    expect(fingerprintBackgroundLaunchProfile(drifted)).not.toBe(fingerprintBackgroundLaunchProfile(original));
+    expect(assessBackgroundLaunchProfileCompatibility(original, drifted).compatible).toBe(false);
+    const reordered = clone(loaded);
+    reordered.llm.fallbackModels.reverse();
+    expect(fingerprintBackgroundLaunchProfile(reordered)).not.toBe(fingerprintBackgroundLaunchProfile(original));
+  });
+
+  it.each(["llm", "tools", "permission", "sandbox", "mcp", "plugins", "runtime", "budget"])(
+    "rejects a non-object or array policy group: %s", (group) => {
+      const positive = saveAndLoad(capture());
+      expect(() => normalizeBackgroundLaunchProfile(positive)).not.toThrow();
+      expect(() => buildArgvFromBackgroundLaunchProfile(positive)).not.toThrow();
+      for (const malformed of [[], "policy", 1, false]) {
+        const negative = clone(positive);
+        negative[group] = malformed;
+        for (const boundary of [normalizeBackgroundLaunchProfile, buildArgvFromBackgroundLaunchProfile]) {
+          expect(() => boundary(negative)).toThrowError(expect.objectContaining({
+            code: "BACKGROUND_LAUNCH_PROFILE_INVALID",
+            message: `Invalid background launch profile field: ${group}`,
+          }));
+        }
+      }
+    },
+  );
+
+  it("rejects an unsupported version before resume", () => {
+    const positive = saveAndLoad(capture());
+    expect(positive.version).toBe(1);
+    expect(() => buildArgvFromBackgroundLaunchProfile(positive)).not.toThrow();
+    const negative = { ...positive, version: 2 };
+    for (const boundary of [normalizeBackgroundLaunchProfile, buildArgvFromBackgroundLaunchProfile]) {
+      expect(() => boundary(negative)).toThrowError("Unsupported background launch profile version: 2");
+    }
+  });
+
+  it("preserves every boolean policy and rejects coercion of false, true, or null", () => {
+    const fields = {
+      permission: ["dangerousBypass", "unattended", "interactiveApprovals", "remoteControl"],
+      sandbox: ["enabled", "network"],
+      mcp: ["disabled", "strict", "project"],
+      plugins: ["disabled"],
+      runtime: ["safeMode", "bare", "managedCheckpoint", "noProjectMemory", "noFileRefs",
+        "noSlashMacros", "noRecallMemory", "noMcpAutoConnect", "autoRewake", "autoPin", "noStream", "noParkOnExit"],
+    };
+    for (const [group, keys] of Object.entries(fields)) {
+      for (const field of keys) {
+        assertFieldPair(group, field, false, "false");
+        assertFieldPair(group, field, true, "true");
+        assertFieldPair(group, field, false, null);
+      }
+    }
+  });
+
+  it("keeps each supported permission/sandbox mode and MCP tri-state, rejecting unknown values", () => {
+    for (const mode of ["manual", "auto", "dontAsk", "default", "plan", "acceptEdits", "bypassPermissions"])
+      assertFieldPair("permission", "mode", mode, "unknown-mode");
+    for (const mode of ["off", "workspace-write", "strict"])
+      assertFieldPair("sandbox", "mode", mode, "unknown-mode");
+    for (const field of ["ide", "pdh", "jetbrains"])
+      for (const state of ["auto", "enabled", "disabled"])
+        assertFieldPair("mcp", field, state, "unknown-state");
+  });
+
+  it("requires policy lists to be arrays of nonblank strings, not scalar or coerced entries", () => {
+    for (const [group, field] of [["tools", "allowed"], ["tools", "disallowed"], ["permission", "unattendedAllow"]]) {
+      // Each malformed list violates just one of the array/member-type/member-content checks.
+      assertFieldPair(group, field, ["read_file"], "read_file");
+      assertFieldPair(group, field, ["read_file"], [1]);
+      assertFieldPair(group, field, ["read_file"], ["   "]);
+      assertFieldPair(group, field, [], [""]);
+    }
+  });
+
+  it.each(["maxTurns", "thinkingTokens", "maxRewakes", "maxOuterTurns", "goalMaxTokens", "goalMaxTimeMs"])(
+    "enforces positive safe integer and integer syntax boundaries for budget.%s", (field) => {
+      assertFieldPair("budget", field, 1, 0);
+      assertFieldPair("budget", field, Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER + 1);
+      assertFieldPair("budget", field, 1, 1.5);
+      assertFieldPair("budget", field, 1, "1e0");
+      assertFieldPair("budget", field, 1, "1.0");
+      assertFieldPair("budget", field, 1, "");
+      assertFieldPair("budget", field, 1, -1);
+    },
+  );
+
+  it.each(["maxCostUsd", "goalMaxCostUsd"])(
+    "enforces positive finite decimal cost syntax for budget.%s", (field) => {
+      assertFieldPair("budget", field, Number.MIN_VALUE, 0);
+      assertFieldPair("budget", field, Number.MAX_VALUE, "1e309");
+      for (const rejected of [-1, "", "NaN", "Infinity", "0x10", true])
+        assertFieldPair("budget", field, 0.25, rejected);
+      for (const accepted of ["+0.25", ".25", "2.5e-1"]) {
+        const profile = saveAndLoad(capture());
+        profile.budget[field] = accepted;
+        expect(normalizeBackgroundLaunchProfile(profile).budget[field]).toBe(0.25);
+        expect(capture(buildArgvFromBackgroundLaunchProfile(profile)).budget[field]).toBe(0.25);
+      }
+    },
+  );
+});

@@ -1,0 +1,217 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+const root = mkdtempSync(join(tmpdir(), "cc-fork-history-08-"));
+// Only filesystem locations are substituted; authority, import and replay are real.
+vi.mock("../src/lib/paths.js", () => ({
+  getHomeDir: () => join(root, "home"),
+  getSessionStoreDir: () => join(root, "home", "sessions"),
+  getClaudeProjectStorageDir: () => null,
+  getStatePath: () => join(root, "home", "state"),
+  getMachineSecurityAnchorDir: () => join(root, "security"),
+}));
+// From __tests__, ../src resolves to packages/cli/src (not ../../src).
+const store = await import("../src/harness/jsonl-session-store.js");
+const {
+  createSessionTranscriptBranchProjection,
+  readSessionTranscriptHistory,
+} = await import("../src/lib/session-transcript-history.js");
+const {
+  branchContextDigest,
+  createBranchHistoryImport,
+  resolveSessionBranchHistory,
+  withSessionBranchHistory,
+} = await import("../src/lib/session-branch-history.js");
+
+afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+function branch(parentSessionId, branchSessionId, count) {
+  const messages = store.readVerifiedMessages(parentSessionId).slice(0, count);
+  const head = store.findLatestEvent(parentSessionId, null).hash;
+  return store.withSessionAuthorityTransaction(parentSessionId, head, (tx) =>
+    tx.readProjection(() =>
+      createSessionTranscriptBranchProjection(parentSessionId, messages, (history) =>
+        store.createBranchSession({
+          parentSessionId,
+          branchSessionId,
+          parentTurnId: "selected",
+          messages,
+          history,
+        }),
+      ),
+    ),
+  );
+}
+
+const pair = (question, answer) => [
+  { role: "user", content: question },
+  { role: "assistant", content: answer },
+];
+function appendPair(id, messages) {
+  store.appendUserMessage(id, messages[0].content);
+  store.appendAssistantMessage(id, messages[1].content);
+}
+function expectHistory(id, expected, forkSource = null) {
+  // Resume context includes durable lineage; display deliberately excludes systems.
+  const resumed = store.readVerifiedMessages(id);
+  expect(resumed.filter((message) => message.role !== "system")).toEqual(expected);
+  const systems = resumed.filter((message) => message.role === "system");
+  expect(systems.map(({ role, content }) => ({ role, content }))).toEqual(
+    forkSource ? [{ role: "system", content: `[Forked from session ${forkSource}]` }] : [],
+  );
+  if (forkSource) {
+    const lineage = store.readVerifiedEvents(id).filter((event) =>
+      event.type === "system" && event.data?._cc_fork_authority,
+    );
+    expect(lineage).toHaveLength(1);
+    expect(lineage[0].data._cc_fork_authority.sourceSessionId).toBe(forkSource);
+    expect(lineage[0].prevHash).toBe(lineage[0].data._cc_fork_authority.sourceHeadHash);
+  }
+  const page = readSessionTranscriptHistory(id, { limit: 100 });
+  expect(page.coverage.kind).toBe("from-origin");
+  expect(page.messages.map(({ role, text }) => ({ role, content: text }))).toEqual(expected);
+  expect(page.nextCursor).toBeNull();
+  for (const row of page.messages) expect(row.id.startsWith(`${id}:`)).toBe(true);
+  return page;
+}
+
+describe("fork history ownership regression", () => {
+  it("restores two different ancestor prefixes and private bodies after source deletion", () => {
+    const parent = "ownership-parent";
+    const left = "ownership-left";
+    const right = "ownership-right";
+    const common = pair("common question", "common answer");
+    // Equal text on different source events must not collapse their provenance.
+    const repeated = pair("common question", "common answer");
+    const tail = pair("parent-only tail", "parent-only answer");
+    store.startSession(parent, { provider: "test", model: "test" });
+    appendPair(parent, common);
+    appendPair(parent, repeated);
+    appendPair(parent, tail);
+    const source = readSessionTranscriptHistory(parent, { limit: 100 }).messages;
+    expect(source[0].eventId).not.toBe(source[2].eventId);
+    const parentEvents = store.readVerifiedEvents(parent);
+    expect(branch(parent, left, 2).created).toBe(true);
+    expect(branch(parent, right, 4).created).toBe(true);
+    expect(store.readVerifiedEvents(parent)).toEqual(parentEvents);
+
+    for (const [id, count] of [[left, 2], [right, 4]]) {
+      const imported = store.readVerifiedEvents(id)
+        .filter((event) => event.type === "session_history_message");
+      expect(imported.map(({ data }) => ({
+        role: data.role,
+        sourceEventId: data.sourceEventId,
+        sourceItemIndex: data.sourceItemIndex,
+      }))).toEqual(source.slice(0, count).map((row) => ({
+        role: row.role,
+        sourceEventId: row.eventId,
+        sourceItemIndex: row.itemIndex,
+      })));
+    }
+    const leftBody = pair("left-only question", "left-only answer");
+    const rightBody = pair("right-only question", "right-only answer");
+    appendPair(left, leftBody);
+    appendPair(right, rightBody);
+    appendPair(parent, pair("late parent question", "late parent answer"));
+    const leftExpected = [...common, ...leftBody];
+    const rightExpected = [...common, ...repeated, ...rightBody];
+    expectHistory(left, leftExpected);
+    expectHistory(right, rightExpected);
+
+    const leftFork = store.forkSession(left, { requestId: "ownership-fork" });
+    const rightFork = store.forkSession(right, { requestId: "ownership-fork" });
+    expect(typeof leftFork).toBe("string");
+    expect(typeof rightFork).toBe("string");
+    expect(leftFork).not.toBe(rightFork);
+    // Content appended after the selected fork revision belongs only to its source.
+    appendPair(left, pair("post-fork left", "post-fork left answer"));
+    appendPair(right, pair("post-fork right", "post-fork right answer"));
+    expectHistory(leftFork, leftExpected, left);
+    expectHistory(rightFork, rightExpected, right);
+    for (const id of [parent, left, right]) store.deleteJsonlSession(id);
+    expectHistory(leftFork, leftExpected, left);
+    expectHistory(rightFork, rightExpected, right);
+    appendPair(leftFork, pair("fork-left continuation", "fork-left reply"));
+    expectHistory(leftFork, [...leftExpected, ...pair("fork-left continuation", "fork-left reply")], left);
+    expectHistory(rightFork, rightExpected, right);
+  });
+
+  it.each(["parent", "context"])("binds a live capability to its %s", (condition) => {
+    const parent = `capability-${condition}`;
+    const messages = pair("selected question", "selected answer");
+    store.startSession(parent, {});
+    appendPair(parent, messages);
+    const head = store.findLatestEvent(parent, null).hash;
+    store.withSessionAuthorityTransaction(parent, head, (tx) =>
+      tx.readProjection(() => createSessionTranscriptBranchProjection(parent, messages, (capability) => {
+        const plan = resolveSessionBranchHistory(capability, parent, messages);
+        expect(plan.parentSessionId).toBe(parent);
+        // Same live capability and canonical context; only the named condition changes.
+        expect(() => resolveSessionBranchHistory(
+          capability,
+          condition === "parent" ? `${parent}-other` : parent,
+          condition === "context" ? pair("different question", "selected answer") : messages,
+        )).toThrow("Branch history capability is expired or does not match the branch");
+        expect(resolveSessionBranchHistory(capability, parent, messages)).toBe(plan);
+      })),
+    );
+  });
+
+  it.each(["range", "digest"])("rejects only the changed origin %s condition", (condition) => {
+    const parent = `origin-parent-${condition}`;
+    const child = `origin-child-${condition}`;
+    store.startSession(parent, {});
+    appendPair(parent, pair("origin question", "origin answer"));
+    expect(branch(parent, child, 2).created).toBe(true);
+    const events = store.readVerifiedEvents(child);
+    // The last origin is naturally at the accepted upper boundary (rows - 1).
+    const target = events.findLastIndex((event) => event.type === "session_history_origin");
+    const rows = events.filter((event) => event.type === "session_history_message").length;
+    expect(target).toBeGreaterThan(0);
+    expect(events[target].data.origin.last).toBe(rows - 1);
+    const valid = createBranchHistoryImport();
+    let accepted;
+    for (let index = 0; index < events.length; index++) {
+      const result = valid.accept(events[index]);
+      if (index === target) accepted = result;
+    }
+    expect(accepted.kind).toBe("origin");
+    expect(accepted.origin).toEqual(events[target].data.origin);
+    expect(() => valid.finish()).not.toThrow();
+
+    const changed = structuredClone(events[target]);
+    if (condition === "range") changed.data.origin.last = rows; // first rejected value
+    else {
+      const digest = changed.data.messageDigest;
+      changed.data.messageDigest = (digest[0] === "a" ? "b" : "a") + digest.slice(1);
+    }
+    const invalid = createBranchHistoryImport();
+    // Feed every prerequisite unchanged. Assert at the origin event itself, before
+    // completion's aggregate digest could mask a missing origin guard.
+    for (const event of events.slice(0, target)) invalid.accept(event);
+    expect(() => invalid.accept(changed)).toThrow(expect.objectContaining({
+      code: "SESSION_BRANCH_HISTORY_INVALID",
+    }));
+  });
+
+  it("expires the same capability on normal and exceptional consumer exit", () => {
+    const messages = pair("lifetime question", "lifetime answer");
+    const plan = { parentSessionId: "lifetime-parent", contextDigest: branchContextDigest(messages) };
+    for (const throws of [false, true]) {
+      let saved;
+      const marker = new Error("consumer failed");
+      const consume = () => withSessionBranchHistory(plan, (capability) => {
+        saved = capability;
+        expect(resolveSessionBranchHistory(capability, plan.parentSessionId, messages)).toBe(plan);
+        if (throws) throw marker;
+      });
+      if (throws) expect(consume).toThrow(marker);
+      else consume();
+      // Parent and context are unchanged, so this can only reject for lifetime.
+      expect(() => resolveSessionBranchHistory(saved, plan.parentSessionId, messages))
+        .toThrow("Branch history capability is expired or does not match the branch");
+    }
+  });
+});

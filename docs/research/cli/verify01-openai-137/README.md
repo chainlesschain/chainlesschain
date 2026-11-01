@@ -19,3 +19,9 @@
 该轮被维护项目使用修复源码，实际生成引擎仍是 .136，未运行 .137 的读取送达及独立复查实现。下一轮使用显式 `prerelease` 包集合：由同一修复提交构建 CLI .137、VS Code .174、JetBrains .190，绑定 GitHub 构建运行、制品、原始包摘要、安装 lock 和安装后的关键源码摘要；产品未发布，不声称公共可用。被维护项目与候选引擎来源必须一致，缺件或身份不符在模型调用前拒绝，公共包默认路径不变。
 
 候选测试显式使用32768 token规划窗口，以便较早触发既有压缩；原20轮、24次请求、8192输出和256 KiB代理上限不扩大。token窗口并非字节限制的证明，真实请求仍逐次受代理限制，保护上下文或压缩失败仍必须闭锁。新的包身份、安装校验和实际入口转发控制已通过，完整驱动预检 **152/152**；尚未派发候选包模型任务。
+
+公共生成器这轮最终为 **1/5**，仅 verify-08 通过，93次模型请求均有完整用量，未知用量0，token估算 $5.423231（实际账单未知）。[原始候选及独立回执](public-generator-3e28f78b4e/README.md)已归档，旧41/45不合并。首次VS Code任务的真实原因是20轮预算在复查末页时耗尽；测试内容通过行为检查，但没有成功终态。驱动现先保存真实失败终态并立即结束等待，保留正常UI和重启门槛，**15/15**相关Node控制通过，不再等外层超时后笼统归因IDE失败。
+
+修复引擎候选已由 `18455a2b95498043f5bb6364f63d5ce32d277303` [构建成功](https://github.com/chainlesschain/chainlesschain/actions/runs/41266284897)，全部3个构建job通过。[原始测试包](https://github.com/chainlesschain/chainlesschain/actions/runs/41266284897/artifacts/13068030321)包含 CLI .137、VS Code .174、JetBrains .190，尚未发布。下载后已校验完整包摘要、SHA512、源码清单和构建来源，见[包集合](../verify01-package-sets/2026-11-01-prerelease-137.json)、[原始bundle](candidate-bundle.raw.json)、[原始来源](candidate-provenance.raw.json)。共享安装在每个独立样本前重新检查真实源码及lock，不能仅由首次安装记录代表后续样本。
+
+候选引擎和被维护项目固定同一提交；新[项目修订](candidate-project-revision.json)和[五项计划](candidate-five-retest-plan.json)保留原提示、宿主、行为变异和请求预算。实际归档23426条目，旧答案和验收器0条，9份必要源码/基线逐字节一致；[投影预检](candidate-project-projection-preflight.raw.json)。实际workflow选择步骤的4组生成及4组只验收控制 **8/8** 通过，网络/模型请求0；[选择预检](candidate-selector-preflight.raw.json)。上下文参数及真实规划转发11项、模拟Responses压缩与闭锁3项通过，后者使用合成摘要，只是工程预检，不计作真实任务成功；[审计说明](candidate-preflight.raw.json)。

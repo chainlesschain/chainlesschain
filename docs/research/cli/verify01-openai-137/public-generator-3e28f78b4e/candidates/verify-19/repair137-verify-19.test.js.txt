@@ -1,0 +1,182 @@
+import { describe, expect, it } from "vitest";
+import { PassThrough } from "node:stream";
+// From __tests__ (not __tests__/unit), ../src resolves to packages/cli/src.
+import { runAgentHeadlessStream } from "../src/runtime/headless-stream.js";
+import { normalizePermissionRequest } from "../src/lib/permission-request.js";
+
+function deferred() {
+  let resolve;
+  const promise = new Promise((done) => { resolve = done; });
+  return { promise, resolve };
+}
+
+// Only the model/tool worker is supplied by the fixture. Registration, input
+// parsing, interrupt dispatch and approval settlement are production code.
+async function scenario({ cancelFirst, replay }) {
+  const input = new PassThrough();
+  const stop = new AbortController();
+  const firstRequest = deferred();
+  const secondRequest = deferred();
+  const firstFinished = deferred();
+  const secondFinished = deferred();
+  const requests = [];
+  const events = [];
+  const executed = [];
+  const decisions = [];
+  const workers = [];
+  let turn = 0;
+  const send = (event) => input.write(`${JSON.stringify(event)}\n`);
+  const request = normalizePermissionRequest({
+    tool: "run_shell",
+    args: { command: "echo approval-isolation" },
+  });
+
+  const running = runAgentHeadlessStream(
+    {
+      interactiveApprovals: true,
+      expandFileRefs: false,
+      settingsHooks: {},
+      signal: stop.signal,
+    },
+    {
+      bootstrap: async () => ({ db: null }),
+      getApprovalGate: async () => null,
+      input,
+      writeErr: () => {},
+      writeOut(line) {
+        const event = JSON.parse(line);
+        events.push(event);
+        if (event.type === "approval_request") {
+          requests.push(event);
+          (requests.length === 1 ? firstRequest : secondRequest).resolve(event);
+        }
+      },
+      agentLoop: async function* (_messages, options) {
+        const index = ++turn;
+        let onAbort;
+        const aborted = new Promise((_, reject) => {
+          onAbort = () => {
+            const error = new Error("fixture worker cancelled by host signal");
+            error.name = "AbortError";
+            reject(error);
+          };
+          options.signal.addEventListener("abort", onAbort, { once: true });
+          if (options.signal.aborted) onAbort();
+        });
+        try {
+          // Identical tool arguments deliberately exclude parameter drift as
+          // the reason a verdict for another request cannot authorize this one.
+          const accepted = await Promise.race([
+            options.permissionConfirm({
+              tool: request.tool,
+              args: request.args,
+              command: request.command,
+              riskLevel: "medium",
+            }),
+            aborted,
+          ]);
+          decisions.push({ index, accepted });
+          if (accepted) executed.push(index);
+          yield { type: "response-complete", content: accepted ? "executed" : "denied" };
+          yield { type: "run-ended", reason: "complete" };
+        } finally {
+          options.signal.removeEventListener("abort", onAbort);
+          workers.push({ index, aborted: options.signal.aborted });
+          (index === 1 ? firstFinished : secondFinished).resolve();
+        }
+      },
+    },
+  );
+
+  try {
+    send({ type: "user", text: "first request" });
+    const first = await firstRequest.promise;
+    if (cancelFirst) {
+      send({ type: "interrupt" });
+    } else {
+      // Positive control for the advertised binding and structured decision.
+      send({ type: "approval", id: first.id, binding: first.binding,
+        decision: { kind: "acceptOnce" }, approve: true });
+    }
+    // Complete the actual current worker, rather than merely signalling it.
+    await firstFinished.promise;
+    send({ type: "user", text: "second request" });
+    const second = await secondRequest.promise;
+
+    // Legacy boolean approval is intentionally admissible without a binding.
+    // Only the id changes between controls: using the old binding here could
+    // hide a broken request-id lookup behind the binding-mismatch guard.
+    send({ type: "approval", id: replay ? first.id : second.id, approve: true });
+    // Ordered input is the fence: a correct stale verdict leaves request two
+    // pending, so this explicit decline must settle it. No sleep/timeout/EOF
+    // is used to infer that the late verdict was consumed.
+    send({ type: "approval", id: second.id, approve: false });
+    await secondFinished.promise;
+    input.end();
+    await running;
+    return { requests, events, executed, decisions, workers };
+  } finally {
+    stop.abort();
+    input.destroy();
+    await running;
+  }
+}
+
+// Requirement matrix: each cancellation state has a current-id positive
+// control and an old-id negative control. Both use the same admissible legacy
+// verdict without a binding, so only request ownership can distinguish them.
+// The second request's resolution and worker decision must agree; an ignored
+// late verdict is fenced by an explicit denial, not inferred from a delay.
+describe("approval callbacks remain owned by their original request", () => {
+  for (const cancelFirst of [false, true]) {
+    for (const replay of [false, true]) {
+      it(`${cancelFirst ? "cancelled" : "accepted"} first request: ${replay ? "late old acceptance cannot authorize the new request" : "current acceptance authorizes only its own request"}`, async () => {
+        const result = await scenario({ cancelFirst, replay });
+        const [first, second] = result.requests;
+        expect(result.requests).toHaveLength(2);
+        expect(first).toMatchObject({ tool: "run_shell", command: "echo approval-isolation", risk: "medium" });
+        expect(second).toMatchObject({ tool: first.tool, command: first.command, risk: first.risk });
+        expect(typeof first.binding).toBe("string");
+        expect(first.binding.length).toBeGreaterThan(0);
+        expect(second.id).not.toBe(first.id);
+        expect(second.binding).not.toBe(first.binding);
+        expect(result.workers).toEqual([
+          { index: 1, aborted: cancelFirst },
+          { index: 2, aborted: false },
+        ]);
+        expect(result.decisions).toEqual([
+          ...(!cancelFirst ? [{ index: 1, accepted: true }] : []),
+          { index: 2, accepted: !replay },
+        ]);
+        expect(result.executed).toEqual([
+          ...(!cancelFirst ? [1] : []),
+          ...(!replay ? [2] : []),
+        ]);
+        if (!cancelFirst) {
+          expect(result.events.filter((event) =>
+            event.type === "approval_resolved" && event.id === first.id,
+          )).toEqual([
+            expect.objectContaining({
+              id: first.id,
+              approved: true,
+              via: "user-approve",
+              decision: { kind: "acceptOnce" },
+            }),
+          ]);
+        }
+        expect(result.events.filter((event) =>
+          event.type === "approval_resolved" && event.id === second.id,
+        )).toEqual([
+          expect.objectContaining({
+            id: second.id,
+            approved: !replay,
+            via: replay ? "user-deny" : "user-approve",
+            decision: replay
+              ? { kind: "decline", reason: "Legacy boolean denial" }
+              : { kind: "acceptOnce" },
+          }),
+        ]);
+      }, 10_000);
+    }
+  }
+});

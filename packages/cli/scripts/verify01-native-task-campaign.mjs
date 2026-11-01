@@ -98,6 +98,25 @@ export function loadNativePackageSet(versionsFile) {
   };
 }
 
+export function verifyNativePrereleaseInstall(
+  binding,
+  installDirectory,
+  record,
+) {
+  const lock = json(path.join(installDirectory, "package-lock.json"));
+  const candidateInstallation = verifyPrereleaseCliInstallation(
+    binding,
+    lock,
+    path.join(installDirectory, "node_modules/chainlesschain"),
+  );
+  return {
+    ...record,
+    passed: true,
+    locked: lock.packages["node_modules/chainlesschain"],
+    candidateInstallation,
+  };
+}
+
 export function validateNativeProjectSelection(binding, sampleIds) {
   if (!binding) return;
   assert.ok(
@@ -1112,6 +1131,14 @@ export async function runNativeCampaign(options) {
           independentProfile: true,
           evidence: "package-lock.json",
         };
+      if (candidatePackages) {
+        row.install = verifyNativePrereleaseInstall(
+          candidatePackages.binding,
+          install,
+          row.install,
+        );
+        if (!row.install.reusedHostInstallation) summary.install = row.install;
+      }
       broker = await providerProfile.createBroker({
         outputDir: path.join(sampleOutput, "broker"),
         key,

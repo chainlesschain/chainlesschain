@@ -1,0 +1,4 @@
+candidates/** -text
+receipts/** -text
+raw/** -text
+results.csv -text

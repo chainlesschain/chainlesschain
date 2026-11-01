@@ -13,7 +13,10 @@ import {
 } from "../scripts/verify01-prerelease-package-set.mjs";
 import { openAiNativeCliLauncher } from "../scripts/verify01-openai-transport-preload.mjs";
 import { assertNativePackageSet } from "../scripts/verify01-native-task-checker.mjs";
-import { loadNativePackageSet } from "../scripts/verify01-native-task-campaign.mjs";
+import {
+  loadNativePackageSet,
+  verifyNativePrereleaseInstall,
+} from "../scripts/verify01-native-task-campaign.mjs";
 
 const digest = (value) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -222,21 +225,42 @@ test("candidate installation verifies actual source and the npm tarball integrit
       },
     },
   };
+  const hostInstall = path.join(root, "host-install");
+  fs.mkdirSync(path.join(hostInstall, "node_modules"), { recursive: true });
+  fs.renameSync(
+    installed,
+    path.join(hostInstall, "node_modules/chainlesschain"),
+  );
+  const realInstalled = path.join(hostInstall, "node_modules/chainlesschain");
+  fs.writeFileSync(
+    path.join(hostInstall, "package-lock.json"),
+    JSON.stringify(lock),
+  );
+  const reused = verifyNativePrereleaseInstall(binding, hostInstall, {
+    reusedHostInstallation: true,
+    independentProfile: true,
+  });
+  assert.equal(reused.passed, true);
+  assert.deepEqual(reused.locked, lock.packages["node_modules/chainlesschain"]);
+  assert.equal(reused.candidateInstallation.sourceCommit, binding.sourceCommit);
   assert.equal(
-    verifyPrereleaseCliInstallation(binding, lock, installed).published,
+    verifyPrereleaseCliInstallation(binding, lock, realInstalled).published,
     false,
   );
   const changed = structuredClone(lock);
   changed.packages["node_modules/chainlesschain"].integrity = "substituted";
   assert.throws(() =>
-    verifyPrereleaseCliInstallation(binding, changed, installed),
+    verifyPrereleaseCliInstallation(binding, changed, realInstalled),
   );
   fs.appendFileSync(
-    path.join(installed, binding.cliSourceFiles[0].file),
+    path.join(realInstalled, binding.cliSourceFiles[0].file),
     "// substituted",
   );
   assert.throws(() =>
-    verifyPrereleaseCliInstallation(binding, lock, installed),
+    verifyPrereleaseCliInstallation(binding, lock, realInstalled),
+  );
+  assert.throws(() =>
+    verifyNativePrereleaseInstall(binding, hostInstall, reused),
   );
 });
 test("independent checker binds candidate package identity to every sample", (t) => {

@@ -75,3 +75,6 @@ docs/research/cli/verify01-openai-137/preflight-index.json
 # Preserve zero-model driver-preflight receipts.
 docs/research/cli/verify01-openai-137/preflight-*/**
 !docs/research/cli/verify01-openai-137/preflight-*/README.md
+
+# Preserve the complete public-generator cohort's original bytes and receipts.
+docs/research/cli/verify01-openai-137/public-generator-*/**

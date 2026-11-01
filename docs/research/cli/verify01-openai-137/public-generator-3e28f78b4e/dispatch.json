@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "scope": "fresh-repaired-source-five-before-release",
+  "source": "3e28f78b4eab09ac5311c3d7da553a0b008617ad",
+  "ref": "verify01-prepublish-cli137-3e28f78b4e",
+  "projectSource": "52868c59d1c98131d6ce7e7ff177f55d53e509b0",
+  "projectRevisionFile": "docs/research/cli/verify01-openai-137/project-revision.json",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-31-openai-136.json",
+  "packageSetDigest": "sha256:03ad9830988a12d19acd70de287b563710187e6092302ddce55b15b8b47cd03c",
+  "selectedSampleIds": [
+    "verify-08",
+    "verify-13",
+    "verify-19",
+    "verify-36",
+    "first-run-darwin-vscode"
+  ],
+  "reviewChanges": true,
+  "historicalFrozen": {
+    "project": "b2aa3aba082873570e85dce39b00754e5504ff37",
+    "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+    "accepted": 41,
+    "total": 45,
+    "changed": false
+  },
+  "oldFrozenScoresNotCombined": true,
+  "createdAt": "2026-11-01T01:51:00.135Z",
+  "taskSecretCreatedByThisSession": true,
+  "secretName": "OPENAI_API_KEY",
+  "secretConfiguredAt": "2026-11-01T01:46:08Z",
+  "dispatches": [
+    {
+      "group": "darwin-vscode",
+      "hosts": "macos",
+      "entries": "vscode",
+      "sampleIds": [
+        "verify-08",
+        "first-run-darwin-vscode"
+      ],
+      "submitted": true,
+      "runId": 41262768914,
+      "submissionStartedAt": "2026-11-01T01:51:00.137Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41262768914",
+      "status": "queued",
+      "acceptanceSubmissionStartedAt": "2026-11-01T02:32:20.949Z",
+      "acceptanceSubmitted": true,
+      "acceptanceRunId": 41265622471,
+      "acceptanceUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/41265622471"
+    },
+    {
+      "group": "linux-cli",
+      "hosts": "linux",
+      "entries": "cli",
+      "sampleIds": [
+        "verify-13"
+      ],
+      "submitted": true,
+      "runId": 41262792404,
+      "submissionStartedAt": "2026-11-01T01:51:13.088Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41262792404",
+      "status": "queued",
+      "acceptanceSubmissionStartedAt": "2026-11-01T02:11:08.860Z",
+      "acceptanceSubmitted": true,
+      "acceptanceRunId": 41264126265,
+      "acceptanceUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/41264126265"
+    },
+    {
+      "group": "win32-cli",
+      "hosts": "windows",
+      "entries": "cli",
+      "sampleIds": [
+        "verify-19"
+      ],
+      "submitted": true,
+      "runId": 41263223472,
+      "absentSubmissionAttempts": [
+        {
+          "submissionStartedAt": "2026-11-01T01:51:31.696Z",
+          "transportFailed": true,
+          "observations": [
+            {
+              "checkedAt": "2026-11-01T01:56:18.554Z",
+              "runIds": [
+                41262792404,
+                41262768914
+              ],
+              "unknown": []
+            },
+            {
+              "checkedAt": "2026-11-01T01:56:35.770Z",
+              "runIds": [
+                41262792404,
+                41262768914
+              ],
+              "unknown": []
+            }
+          ],
+          "reason": "No run after more than two minutes and two independent complete workflow run-list observations; retry now permitted"
+        }
+      ],
+      "submissionStartedAt": "2026-11-01T01:58:03.774Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41263223472",
+      "status": "queued",
+      "acceptanceSubmissionStartedAt": "2026-11-01T02:12:12.415Z",
+      "acceptanceSubmitted": true,
+      "acceptanceRunId": 41264206644,
+      "acceptanceUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/41264206644"
+    },
+    {
+      "group": "darwin-jetbrains",
+      "hosts": "macos",
+      "entries": "jetbrains",
+      "sampleIds": [
+        "verify-36"
+      ],
+      "submitted": true,
+      "runId": 41263237989,
+      "submissionStartedAt": "2026-11-01T01:58:11.720Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41263237989",
+      "status": "in_progress",
+      "acceptanceSubmissionStartedAt": "2026-11-01T02:12:33.183Z",
+      "acceptanceSubmitted": true,
+      "acceptanceRunId": 41264223842,
+      "acceptanceUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/41264223842"
+    }
+  ],
+  "allFourSubmitted": true,
+  "allDispatchesSubmitted": true,
+  "finishedDispatchAt": "2026-11-01T01:58:26.934Z",
+  "acceptanceSource": "9313bf8399a5782a29487098c8fcd9aa0cace0aa",
+  "acceptanceRef": "verify01-accept-cli137-9313bf8399",
+  "allAcceptanceSubmitted": true,
+  "taskSecretCleaned": true,
+  "taskSecretCleanupVerifiedAt": "2026-11-01T02:31:29.322Z"
+}

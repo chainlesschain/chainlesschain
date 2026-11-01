@@ -67,6 +67,68 @@ function terminalOf(records) {
   return terminals[0] || null;
 }
 
+function terminalOutcome(records) {
+  const terminal = terminalOf(records);
+  if (terminal) {
+    const event = terminal.event;
+    if (event.subtype === "success" && event.is_error === false)
+      return { status: "success", terminal };
+    if (event.is_error === true)
+      return {
+        status: "failure",
+        terminal,
+        reason:
+          event.subtype === "error_max_turns"
+            ? "CLI model task failed: error_max_turns (iteration budget exhausted)"
+            : "CLI model task failed: unsuccessful terminal result",
+      };
+    throw new Error("CLI terminal result has invalid success/error fields");
+  }
+  const exhausted = records.findIndex(
+    (record) =>
+      record.direction === "output" &&
+      ["iteration_budget_exhausted", "iteration-budget-exhausted"].includes(
+        record.event?.type,
+      ),
+  );
+  if (
+    exhausted >= 0 &&
+    records
+      .slice(exhausted + 1)
+      .some(
+        (record) =>
+          record.direction === "output" &&
+          record.event?.type === "system" &&
+          record.event?.subtype === "end",
+      )
+  )
+    return {
+      status: "failure",
+      terminal: null,
+      reason:
+        "CLI model task failed: iteration_budget_exhausted followed by system end without a result",
+    };
+  assert.ok(
+    records.at(-1)?.direction !== "exit",
+    "CLI exited without a terminal result",
+  );
+  return { status: "pending", terminal: null };
+}
+
+async function observeTerminalOutcome(records, { persistTerminal, render }) {
+  const outcome = terminalOutcome(records);
+  if (outcome.status === "pending") return null;
+  // Persist the actual observed event before any UI wait. Raw protocol bytes
+  // remain in the original capture; never synthesize a successful terminal.
+  if (outcome.terminal) await persistTerminal(outcome.terminal.event);
+  if (outcome.status === "failure") {
+    const error = new Error(outcome.reason);
+    error.code = "VERIFY01_MODEL_TERMINAL_FAILURE";
+    throw error;
+  }
+  return render(outcome.terminal.event);
+}
+
 /** Test-only Extension Host entry point. Runs the real installed panel and
  * its normal CLI; never creates a fixture peer or an observation. The outer
  * launcher reopens the SAME profile for restart, flushing VS Code storage.
@@ -314,39 +376,46 @@ async function run(context) {
     "actual terminal",
     () => readProtocol(protocolFile, { allowPartial: true }),
     (records) => {
-      const found = terminalOf(records);
-      assert.ok(
-        found || records.at(-1)?.direction !== "exit",
-        "CLI exited without a terminal result",
-      );
-      return Boolean(found);
+      return terminalOutcome(records).status !== "pending";
     },
   );
-  const terminal = terminalOf(completed).event;
+  const terminal = terminalOf(completed)?.event;
   const text =
-    typeof terminal.error === "string" ? terminal.error : terminal.result;
-  assert.ok(
-    typeof text === "string" && text.length > 0,
-    "terminal has no text to observe",
-  );
+    typeof terminal?.error === "string" ? terminal.error : terminal?.result;
   const terminalSuccess =
-    terminal.subtype === "success" && terminal.is_error === false;
+    terminal?.subtype === "success" && terminal.is_error === false;
   let rendered, closed;
   try {
-    rendered = await wait(
-      "rendered terminal",
-      snapshot,
-      (value) =>
-        selected(value)?.id === originalTab &&
-        Boolean(
-          resultRow(value, sessionId, text, { failure: !terminalSuccess }),
-        ),
-    );
-    ui("final-result", sessionId, { resultDigest: digest(Buffer.from(text)) });
-    save(path.join(config.captureDir, "terminal.json"), {
-      text,
-      event: terminal,
+    rendered = await observeTerminalOutcome(completed, {
+      persistTerminal: (event) =>
+        save(path.join(config.captureDir, "terminal.json"), { text, event }),
+      render: () => {
+        assert.ok(
+          typeof text === "string" && text.length > 0,
+          "terminal has no text to observe",
+        );
+        return wait(
+          "rendered terminal",
+          snapshot,
+          (value) =>
+            selected(value)?.id === originalTab &&
+            Boolean(
+              resultRow(value, sessionId, text, { failure: !terminalSuccess }),
+            ),
+        );
+      },
     });
+    ui("final-result", sessionId, { resultDigest: digest(Buffer.from(text)) });
+  } catch (error) {
+    if (error.code === "VERIFY01_MODEL_TERMINAL_FAILURE")
+      require("./failure-receipt.cjs").recordHostDriverFailure(error, {
+        resultFile: path.join(config.captureDir, `driver-${phase}`),
+        phase,
+        log: () => {},
+      });
+    // Preserve the model failure before cleanup; a later cleanup failure must
+    // not replace its first-write-wins receipt with a generic UI timeout.
+    throw error;
   } finally {
     const beforeEnd = await call({ action: "captureStatus" });
     if (!beforeEnd.files[0]?.exited)
@@ -402,4 +471,11 @@ async function run(context) {
   });
 }
 
-module.exports = { run, readProtocol, terminalOf, resultRow };
+module.exports = {
+  run,
+  readProtocol,
+  terminalOf,
+  resultRow,
+  terminalOutcome,
+  observeTerminalOutcome,
+};
