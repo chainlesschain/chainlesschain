@@ -19,7 +19,12 @@ import {
   inspectNativeScope,
   snapshotNativeTree,
   loadNativePackageSet,
+  validateNativeProjectSelection,
 } from "./verify01-native-task-campaign.mjs";
+import {
+  loadNativeProjectRevision,
+  nativeProjectArchivePaths,
+} from "./verify01-project-revision.mjs";
 import { runCaptured } from "./verify01-first-run-cli-diagnostic.mjs";
 import { verifyAgentTerminal } from "../src/lib/eval/stream-terminal.js";
 import { deriveLegacyWindowsTarTree } from "./verify01-legacy-windows-tar.mjs";
@@ -234,6 +239,7 @@ export async function checkNativeCampaign({
   imageId,
   sampleIds,
   versionsFile,
+  projectRevisionFile,
 }) {
   assert.equal(
     process.platform,
@@ -247,8 +253,21 @@ export async function checkNativeCampaign({
     output = path.resolve(outputDir);
   assert.ok(!fs.existsSync(output), "checker output must be new");
   const source = json(artifactFile(input, "summary.json"));
-  const plan = json(path.join(planDir, "plan.json")),
-    catalog = json(path.join(planDir, "tasks.json"));
+  const { plan, catalog, projectCommit, planDigest, revisionBinding } =
+    loadNativeProjectRevision({
+      revisionFile: projectRevisionFile,
+      plan: json(path.join(planDir, "plan.json")),
+      catalog: json(path.join(planDir, "tasks.json")),
+      bindings: json(path.join(planDir, "comparison-bindings.json")),
+      baseProjectCommit: DIAGNOSTIC.projectCommit,
+      basePlanDigest: DIAGNOSTIC.planDigest,
+    });
+  validateNativeProjectSelection(revisionBinding, sampleIds);
+  assert.deepEqual(
+    source.projectRevision ?? null,
+    revisionBinding,
+    "explicit source revision differs from delivery",
+  );
   assert.equal(
     source.schema,
     "chainlesschain.verify01-native-task-campaign/v1",
@@ -261,8 +280,8 @@ export async function checkNativeCampaign({
     }).trim(),
     checkerSourceSha,
   );
-  assert.equal(source.projectCommit, DIAGNOSTIC.projectCommit);
-  assert.equal(source.planDigest, DIAGNOSTIC.planDigest);
+  assert.equal(source.projectCommit, projectCommit);
+  assert.equal(source.planDigest, planDigest);
   const { versions, packageSetDigest } = assertNativePackageSet(
     source,
     versionsFile,
@@ -287,7 +306,12 @@ export async function checkNativeCampaign({
     fs.writeFileSync(dest, JSON.stringify(value, null, 2) + "\n");
   };
   const packRoot = path.join(output, "pack"),
-    pack = generateReviewPack({ outputDir: packRoot, planDir, imageId });
+    pack = generateReviewPack({
+      outputDir: packRoot,
+      planDir,
+      imageId,
+      projectRevisionFile,
+    });
   const review = json(path.join(packRoot, "review.json"));
   const scratch = fs.mkdtempSync(
     path.join(os.tmpdir(), "verify01-native-check-"),
@@ -295,7 +319,14 @@ export async function checkNativeCampaign({
   const archive = path.join(scratch, "project.tar");
   execFileSync(
     "git",
-    ["archive", "--format=tar", "--output", archive, DIAGNOSTIC.projectCommit],
+    [
+      "archive",
+      "--format=tar",
+      "--output",
+      archive,
+      projectCommit,
+      ...nativeProjectArchivePaths(revisionBinding),
+    ],
     { cwd: repository, timeout: 120000 },
   );
   const summary = {
@@ -304,6 +335,7 @@ export async function checkNativeCampaign({
     deliverySourceCommit: sourceSha,
     projectCommit: source.projectCommit,
     planDigest: source.planDigest,
+    ...(revisionBinding ? { projectRevision: revisionBinding } : {}),
     versions,
     ...packageBinding,
     group: source.group,
@@ -348,7 +380,9 @@ export async function checkNativeCampaign({
     fs.mkdirSync(workspace);
     try {
       assert.equal(native.executionSourceCommit, sourceSha);
-      assert.equal(native.projectCommit, DIAGNOSTIC.projectCommit);
+      assert.equal(native.projectCommit, projectCommit);
+      assert.equal(native.planDigest, planDigest);
+      assert.deepEqual(native.projectRevision ?? null, revisionBinding);
       assert.equal(native.taskId, sample.taskId);
       assert.equal(native.kind, sample.kind);
       assert.equal(native.stratum, sample.stratum);
@@ -515,6 +549,7 @@ if (
       "image-id": { type: "string" },
       samples: { type: "string" },
       "versions-file": { type: "string" },
+      "project-revision-file": { type: "string" },
     },
   });
   checkNativeCampaign({
@@ -525,6 +560,7 @@ if (
     imageId: values["image-id"],
     sampleIds: parseNativeSampleIds(values.samples),
     versionsFile: values["versions-file"],
+    projectRevisionFile: values["project-revision-file"],
   })
     .then((r) => {
       if (!r.passed) process.exitCode = 1;

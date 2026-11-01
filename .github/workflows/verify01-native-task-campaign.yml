@@ -46,6 +46,10 @@ on:
         description: "Optional comma-separated unfinished sample IDs; requires one host and one entry. Subset artifacts stay separate from full 36+9 rounds."
         type: string
         default: ""
+      project_revision_file:
+        description: "Optional committed repaired-source follow-up identity; old frozen scores remain unchanged"
+        type: string
+        default: ""
       fetch_diagnostics:
         description: "Passive fetch error capture for one host, CLI entry and explicit unfinished sample IDs only"
         type: boolean
@@ -73,6 +77,7 @@ env:
   NATIVE_PROVIDER: ${{ inputs.provider || 'volcengine' }}
   NATIVE_PACKAGE_SET: ${{ inputs.package_set || 'latest' }}
   NATIVE_PACKAGE_SET_FILE: ${{ inputs.package_set_file || 'docs/research/cli/verify01-package-sets/2026-10-18-latest.json' }}
+  NATIVE_PROJECT_REVISION_FILE: ${{ inputs.project_revision_file || '' }}
 
 jobs:
   validate:
@@ -100,6 +105,7 @@ jobs:
         run: >-
           node --test
           packages/cli/test-node/verify01-native-task-campaign.node-test.mjs
+          packages/cli/test-node/verify01-project-revision.node-test.mjs
           packages/cli/test-node/verify01-release-candidate-replay.node-test.mjs
           packages/cli/test-node/verify01-native-plugin-artifact.node-test.mjs
           packages/cli/test-node/verify01-native-subset.node-test.mjs
@@ -132,7 +138,9 @@ jobs:
         run: |
           node --input-type=module <<'NODE'
             import fs from "node:fs";
-            import {parseNativeSampleIds, selectNativeSamples} from "./packages/cli/scripts/verify01-native-task-campaign.mjs";
+            import {parseNativeSampleIds, selectNativeSamples, validateNativeProjectSelection} from "./packages/cli/scripts/verify01-native-task-campaign.mjs";
+            import {loadNativeProjectRevision} from "./packages/cli/scripts/verify01-project-revision.mjs";
+            import {DIAGNOSTIC} from "./packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs";
             import {validateNativePackageSetFile, assertUnfinishedNativeSamples} from "./packages/cli/scripts/verify01-native-retest-plan.mjs";
             import {nativeProviderCells} from "./packages/cli/scripts/verify01-native-round-matrix.mjs";
             import {nativeProviderProfile} from "./packages/cli/scripts/verify01-native-provider-profile.mjs";
@@ -143,12 +151,30 @@ jobs:
             if (!["latest", "frozen"].includes(packageSet)) throw new Error("unknown package set");
             if (!run && packageSet !== "latest") throw new Error("Further model execution must use latest public packages");
             const packageBinding = packageSet === "latest" ? validateNativePackageSetFile(process.env.NATIVE_PACKAGE_SET_FILE || undefined) : null;
+            const basePlanDir = "docs/research/cli/verify01-plan-2026-10-13-volcengine";
+            const project = loadNativeProjectRevision({
+              revisionFile: process.env.NATIVE_PROJECT_REVISION_FILE || undefined,
+              plan: JSON.parse(fs.readFileSync(`${basePlanDir}/plan.json`, "utf8")),
+              catalog: JSON.parse(fs.readFileSync(`${basePlanDir}/tasks.json`, "utf8")),
+              bindings: JSON.parse(fs.readFileSync(`${basePlanDir}/comparison-bindings.json`, "utf8")),
+              baseProjectCommit: DIAGNOSTIC.projectCommit, basePlanDigest: DIAGNOSTIC.planDigest,
+            });
+            validateNativeProjectSelection(project.revisionBinding, parseNativeSampleIds(process.env.SAMPLE_SELECTION));
+            if (project.revisionBinding && provider !== "openai") throw new Error("repaired-source follow-up requires the explicit OpenAI diagnostic cohort");
             if (provider === "openai") {
               if (packageSet !== "latest") throw new Error("OpenAI cohort requires the current public package set");
               const cli = JSON.parse(fs.readFileSync("packages/cli/package.json", "utf8")).version;
               const vscode = JSON.parse(fs.readFileSync("packages/vscode-extension/package.json", "utf8")).version;
               const jetbrains = fs.readFileSync("packages/jetbrains-plugin/src/main/resources/META-INF/plugin.xml", "utf8").match(/^\s*<version>([^<]+)<\/version>\s*$/m)?.[1];
-              for (const [name, version] of Object.entries({cli, vscode, jetbrains})) if (!version || packageBinding.versions[name] !== version) throw new Error("OpenAI cohort requires the exact current CLI and both IDE versions");
+              if (project.revisionBinding) {
+                const proof = JSON.parse(fs.readFileSync("docs/research/cli/evidence/release136-public/publication.json", "utf8"));
+                const publicPackages = {cli: proof.cli, vscode: proof.ide.vscode, jetbrains: proof.ide.jetbrains};
+                for (const [name, record] of Object.entries(publicPackages)) if (!["verified-public", "previously-verified-public"].includes(record.status) || packageBinding.versions[name] !== record.version) throw new Error("Repaired-source generation requires the independently verified public package pairing");
+                const response = await fetch("https://registry.npmjs.org/chainlesschain/latest", {signal: AbortSignal.timeout(30000), headers: {"cache-control":"no-cache"}});
+                if (!response.ok || (await response.json()).version !== packageBinding.versions.cli) throw new Error("Repaired-source generator CLI must still be the latest public npm release");
+              } else {
+                for (const [name, version] of Object.entries({cli, vscode, jetbrains})) if (!version || packageBinding.versions[name] !== version) throw new Error("OpenAI cohort requires the exact current CLI and both IDE versions");
+              }
               if (!run && !process.env.OPENAI_API_KEY?.trim()) throw new Error("Dedicated repository OPENAI_API_KEY is required; the Volcengine credential must not be reused");
               if (!run && Number(process.env.GITHUB_RUN_ATTEMPT || "1") !== 1) throw new Error("Reconcile the previous live attempt before a new OpenAI dispatch");
             }
@@ -272,6 +298,10 @@ jobs:
           package=()
           diagnostics=()
           review=()
+          revision=()
+          if [[ -n "$NATIVE_PROJECT_REVISION_FILE" ]]; then
+            revision=(--project-revision-file "$NATIVE_PROJECT_REVISION_FILE")
+          fi
           if [[ "$REVIEW_CHANGES" == "true" ]]; then
             review=(--review-changes)
           fi
@@ -290,7 +320,7 @@ jobs:
           "${display[@]}" node packages/cli/scripts/verify01-native-task-campaign.mjs \
             --entry "$NATIVE_ENTRY" --source-sha "$EXECUTION_SOURCE_SHA" \
             --provider "$NATIVE_PROVIDER" \
-            --confirm-live --output-dir "$RUNNER_TEMP/verify01-native-tasks" "${selection[@]}" "${package[@]}" "${diagnostics[@]}" "${review[@]}"
+            --confirm-live --output-dir "$RUNNER_TEMP/verify01-native-tasks" "${selection[@]}" "${package[@]}" "${diagnostics[@]}" "${review[@]}" "${revision[@]}"
       - name: Preserve all candidates, native traces, UI and broker failures
         timeout-minutes: 15
         if: always()
@@ -360,6 +390,10 @@ jobs:
         run: |
           selection=()
           package=()
+          revision=()
+          if [[ -n "$NATIVE_PROJECT_REVISION_FILE" ]]; then
+            revision=(--project-revision-file "$NATIVE_PROJECT_REVISION_FILE")
+          fi
           if [[ "$NATIVE_PACKAGE_SET" == "latest" ]]; then
             package=(--versions-file "$NATIVE_PACKAGE_SET_FILE")
           fi
@@ -370,7 +404,7 @@ jobs:
             --input-dir "$RUNNER_TEMP/native-delivery" \
             --output-dir "$RUNNER_TEMP/native-acceptance" \
             --source-sha "$EXECUTION_SOURCE_SHA" --checker-source-sha "$CHECKER_SOURCE_SHA" \
-            --image-id "$REVIEW_IMAGE_ID" "${selection[@]}" "${package[@]}"
+            --image-id "$REVIEW_IMAGE_ID" "${selection[@]}" "${package[@]}" "${revision[@]}"
       - name: Preserve independent checker receipts including failures
         if: always()
         uses: actions/upload-artifact@v6

@@ -139,7 +139,7 @@ test("workflow validates a single matching host and entry before subset dispatch
     "utf8",
   );
   const script = workflow.match(
-    /node --input-type=module <<'NODE'\n([\s\S]*?)\n          NODE/,
+    /node --input-type=module <<'NODE'\n([\s\S]*?)\n {10}NODE/,
   )?.[1];
   assert.ok(script, "workflow selector script is required");
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "native-subset-select-"));
@@ -214,4 +214,65 @@ test("workflow validates a single matching host and entry before subset dispatch
       0,
     );
   }
+});
+
+test("workflow permits public generators for an explicit repaired project but keeps default and cohort boundaries strict", (t) => {
+  const workflow = fs.readFileSync(
+    path.join(
+      repository,
+      ".github/workflows/verify01-native-task-campaign.yml",
+    ),
+    "utf8",
+  );
+  const script = workflow.match(
+    /node --input-type=module <<'NODE'\n([\s\S]*?)\n {10}NODE/,
+  )?.[1];
+  assert.ok(script);
+  const root = fs.mkdtempSync(
+    path.join(os.tmpdir(), "native-repaired-select-"),
+  );
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const output = path.join(root, "output.txt");
+  const env = {
+    ...process.env,
+    NATIVE_PROVIDER: "openai",
+    OPENAI_API_KEY: "fixture-only-not-a-live-key",
+    NATIVE_PACKAGE_SET_FILE:
+      "docs/research/cli/verify01-package-sets/2026-10-31-openai-136.json",
+    NATIVE_PROJECT_REVISION_FILE:
+      "docs/research/cli/verify01-openai-137/project-revision.json",
+    PACKAGE_SET_SELECTION: "latest",
+    GITHUB_OUTPUT: output,
+    HOST_SELECTION: "windows",
+    ENTRY_SELECTION: "cli",
+    SAMPLE_SELECTION: "verify-19",
+    DELIVERY_RUN: "",
+    DELIVERY_COMMIT: "",
+    GITHUB_RUN_ATTEMPT: "1",
+  };
+  const run = (override = {}, latest = "0.166.136") =>
+    spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        `globalThis.fetch = async (url) => {
+      if(url !== "https://registry.npmjs.org/chainlesschain/latest") throw new Error("Unexpected network request");
+      return {ok:true,json:async()=>({version:${JSON.stringify(latest)}})};
+    };\n${script}`,
+      ],
+      { cwd: repository, encoding: "utf8", env: { ...env, ...override } },
+    );
+  const valid = run();
+  assert.equal(valid.status, 0, valid.stderr);
+  const matrix = fs
+    .readFileSync(output, "utf8")
+    .split("\n")
+    .find((line) => line.startsWith("matrix="));
+  const rows = JSON.parse(matrix.slice("matrix=".length)).include;
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].group, "win32-cli");
+  assert.equal(run({ NATIVE_PROJECT_REVISION_FILE: "" }).status, 1);
+  assert.equal(run({ SAMPLE_SELECTION: "verify-20" }).status, 1);
+  assert.equal(run({}, "0.166.999").status, 1);
 });

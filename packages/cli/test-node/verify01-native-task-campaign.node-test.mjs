@@ -20,6 +20,7 @@ import {
   archiveExtractor,
   extractNativeArchive,
   loadNativePackageSet,
+  validateNativeProjectSelection,
   createNativeHostGuard,
 } from "../scripts/verify01-native-task-campaign.mjs";
 
@@ -84,6 +85,17 @@ test("package set selects exact complete versions and binds original manifest by
 });
 import { VERIFY01_REVIEW_SPECS } from "../scripts/verify01-review-specs.mjs";
 const require = createRequire(import.meta.url);
+test("a repaired-source cohort requires an explicit subset inside its new identity", () => {
+  const binding = {
+    selectedSampleIds: ["verify-08", "first-run-darwin-vscode"],
+  };
+  assert.doesNotThrow(() => validateNativeProjectSelection(null, undefined));
+  assert.doesNotThrow(() =>
+    validateNativeProjectSelection(binding, ["verify-08"]),
+  );
+  assert.throws(() => validateNativeProjectSelection(binding, undefined));
+  assert.throws(() => validateNativeProjectSelection(binding, ["verify-13"]));
+});
 const {
   validateConfig,
 } = require("../../vscode-extension/test/extension-host/verify01-run.cjs");

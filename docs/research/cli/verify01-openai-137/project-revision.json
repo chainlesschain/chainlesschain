@@ -1,0 +1,21 @@
+{
+  "schema": "chainlesschain.verify01-project-revision/v1",
+  "cohortId": "repaired-source-followup-cli137-five",
+  "parentProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "parentPlanDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "projectCommit": "52868c59d1c98131d6ce7e7ff177f55d53e509b0",
+  "selectedSampleIds": [
+    "verify-08",
+    "verify-13",
+    "verify-19",
+    "verify-36",
+    "first-run-darwin-vscode"
+  ],
+  "taskDeliverables": {
+    "verify-08": ["packages/cli/__tests__/repair137-verify-08.test.js"],
+    "verify-13": ["packages/cli/__tests__/repair137-verify-13.test.js"],
+    "verify-19": ["packages/cli/__tests__/repair137-verify-19.test.js"],
+    "verify-36": ["packages/cli/__tests__/repair137-verify-36.test.js"]
+  },
+  "reason": "User-required pre-publication gate: freshly regenerate the original five failed samples on the explicitly pinned repaired project source and independently accept all five before CLI and IDE publication. Preserve original task requirements, host allocation, budgets and behavioral evaluator rules; keep prior frozen candidates and scores unchanged."
+}

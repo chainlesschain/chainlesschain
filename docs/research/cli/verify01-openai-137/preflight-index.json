@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "scope": "merged-main-local-engineering-only",
+  "tests": 216,
+  "passed": 216,
+  "failed": 0,
+  "skipped": 0,
+  "modelRequests": 0,
+  "vscodeNodeTests": 36,
+  "changelogTests": 22,
+  "releaseCondition": "five-selected-samples-must-be-regenerated-on-repaired-source-and-independently-accepted-before-any-publication",
+  "publicBeforeRelease": {
+    "cli": "0.166.136",
+    "vscode": "0.37.173",
+    "jetbrains": "0.4.189"
+  },
+  "prepared": {
+    "cli": "0.166.137",
+    "vscode": "0.37.174",
+    "jetbrains": "0.4.190"
+  },
+  "files": [
+    {
+      "path": "preflight-regressions.raw.json",
+      "digest": "sha256:fc36ea1301e037d01704bf5692226f9c4f86437087e9e0b5e28e7c417a47bb2e",
+      "bytes": 98151
+    },
+    {
+      "path": "preflight-source-review.raw.json",
+      "digest": "sha256:018b4e98703ac24b7eed9d4367f9684953a783dd23c0443889c48ac848c2c5ae",
+      "bytes": 101276
+    }
+  ]
+}

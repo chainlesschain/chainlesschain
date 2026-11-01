@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "nodeSelectionBindingControls": 33,
+  "reviewRegressionTests": 28,
+  "reviewRegressionPassed": 28,
+  "reviewReportDigest": "sha256:26c00e4893445730eabe88664221360a7a63378bf249dd935be35c2e5388540f",
+  "projectionReportDigest": "sha256:de1b049bfd599c02b8a142ae089cfcf899ce3da20f171da571b22b4496e3b4ed",
+  "selectedTaskSourceAndBaselineFilesByteIdentical": 9,
+  "mutantsChanged": false,
+  "historicalCandidatesExposed": false,
+  "modelRequests": 0
+}

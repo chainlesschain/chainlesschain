@@ -1,0 +1,78 @@
+{
+  "schema": "chainlesschain.repaired-source-five-prepublication-plan/v1",
+  "createdAt": "2026-11-01T00:26:09.395Z",
+  "status": "prepared-not-dispatched",
+  "scope": "fresh-repaired-source-five-before-release",
+  "projectRevisionFile": "docs/research/cli/verify01-openai-137/project-revision.json",
+  "projectRevisionDigest": "sha256:5a02afde4ebdebf81198bf674c106063c51525e92a3b25d45aa0f8f1acff0532",
+  "projectSource": "52868c59d1c98131d6ce7e7ff177f55d53e509b0",
+  "selectedSampleIds": [
+    "verify-08",
+    "verify-13",
+    "verify-19",
+    "verify-36",
+    "first-run-darwin-vscode"
+  ],
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "api": "Responses",
+  "reviewChanges": true,
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-31-openai-136.json",
+  "packageSetDigest": "sha256:03ad9830988a12d19acd70de287b563710187e6092302ddce55b15b8b47cd03c",
+  "versions": {
+    "cli": "0.166.136",
+    "vscode": "0.37.173",
+    "jetbrains": "0.4.189",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "preparedReleaseVersions": {
+    "cli": "0.166.137",
+    "vscode": "0.37.174",
+    "jetbrains": "0.4.190"
+  },
+  "historicalFrozen": {
+    "project": "b2aa3aba082873570e85dce39b00754e5504ff37",
+    "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+    "accepted": 41,
+    "total": 45,
+    "changed": false
+  },
+  "repeatedPreviouslyAcceptedForExplicitNewSourceGate": ["verify-19"],
+  "oldFrozenScoresNotCombined": true,
+  "requiredAcceptance": {
+    "selectedSamples": 5,
+    "passed": 5,
+    "independentBehavioralMutants": 6,
+    "sourceScopeExact": true,
+    "hostEvidence": true,
+    "unknownUsageRequests": 0
+  },
+  "dispatches": [
+    {
+      "group": "darwin-vscode",
+      "hosts": "macos",
+      "entries": "vscode",
+      "sampleIds": ["verify-08", "first-run-darwin-vscode"]
+    },
+    {
+      "group": "linux-cli",
+      "hosts": "linux",
+      "entries": "cli",
+      "sampleIds": ["verify-13"]
+    },
+    {
+      "group": "win32-cli",
+      "hosts": "windows",
+      "entries": "cli",
+      "sampleIds": ["verify-19"]
+    },
+    {
+      "group": "darwin-jetbrains",
+      "hosts": "macos",
+      "entries": "jetbrains",
+      "sampleIds": ["verify-36"]
+    }
+  ],
+  "publicationBlockedUntil": "All five fresh deliveries pass independent Linux Docker acceptance, followed by complete exact-release-source CLI CI and Strict Sandbox gates. Publish CLI via OIDC, verify public bytes, then IDE extensions."
+}

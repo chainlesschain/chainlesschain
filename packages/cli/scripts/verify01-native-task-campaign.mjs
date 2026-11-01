@@ -22,6 +22,10 @@ import { openAiNativeCliLauncher } from "./verify01-openai-transport-preload.mjs
 import { VERIFY01_REVIEW_SPECS } from "./verify01-review-specs.mjs";
 import { requireUnscopedModelTransport } from "../src/lib/formal-budget-provider-scope.js";
 import { readNativePluginArtifact } from "./verify01-native-plugin-artifact.mjs";
+import {
+  loadNativeProjectRevision,
+  nativeProjectArchivePaths,
+} from "./verify01-project-revision.mjs";
 
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
 const planRoot = "docs/research/cli/verify01-plan-2026-10-13-volcengine";
@@ -88,6 +92,18 @@ export function loadNativePackageSet(versionsFile) {
     packageSetDigest: hash(bytes),
     bytes,
   };
+}
+
+export function validateNativeProjectSelection(binding, sampleIds) {
+  if (!binding) return;
+  assert.ok(
+    Array.isArray(sampleIds) && sampleIds.length > 0,
+    "repaired-source follow-up requires an explicit sample subset",
+  );
+  assert.ok(
+    sampleIds.every((id) => binding.selectedSampleIds.includes(id)),
+    "sample selection is outside the repaired-source cohort",
+  );
 }
 
 /** Git Bash may put GNU tar first, which parses C: as a remote archive host. */
@@ -177,15 +193,21 @@ export function selectNativeSamples(plan, platform, entry, sampleIds) {
   return ordered.filter((sample) => sampleIds.includes(sample.id));
 }
 
-export function nativeTaskPrompt(task, spec, sample) {
+export function nativeTaskPrompt(
+  task,
+  spec,
+  sample,
+  { repairedSource = false } = {},
+) {
   return `${task.prompt}\n\nThis is an unseeded native ${sample.stratum} execution, sample ${sample.id}, kind ${sample.kind}. No previous candidate or repair feedback is supplied. First-run and ordinary samples use independent profiles and workspaces.
 Read the frozen source and relevant existing tests before writing. Verify actual exported APIs, argument names, return fields and fixture construction. Read bounded slices and avoid repeated unchanged reads.
 Frozen source files: ${task.sourcePaths.join(", ")}
 Related existing tests: ${spec.baselineTests.join(", ")}
 Only these deliverables may be changed: ${task.expectedFiles.join(", ")}
 Use repository-relative mutation paths. Import paths are relative to the deliverable, not to an existing unit test directory: verify the resolved source path explicitly.
-${spec.doc ? "Write the requested substantive Markdown runbook with source-verified commands and honest interpretation of insufficient evidence." : "Replace the non-answer placeholder with complete independent Vitest regression tests. Use focused positive and negative behavioral controls, at most six cases. Do not import an existing suite or assert on source text."}
+${spec.doc ? "Write the requested substantive Markdown runbook with source-verified commands and honest interpretation of insufficient evidence." : `Replace the non-answer placeholder with complete independent Vitest regression tests. ${repairedSource ? "Use enough focused positive and negative controls for the selected independent conditions; keep the suite concise." : "Use focused positive and negative behavioral controls, at most six cases."} Do not import an existing suite or assert on source text.`}
 For each independent validation condition, construct an admissible positive control, then change only that condition for its negative control. Keep the other prerequisites valid so a different guard cannot cause the rejection. For stated limits, cover the accepted boundary and the first rejected value.
+Before finishing, audit your selected independent conditions against the actual source. Explain which positive/negative controls cover each condition and explicitly identify any uncovered condition; do not infer coverage from a rejection that another guard can cause.
 If an intended behavioral assertion exposes a defect in the frozen implementation, keep that assertion and explain the implementation defect in your final response; distinguish it from a test assumption or fixture error.
 Source and existing tests are read-only. Describe implementation defects in your final response instead of modifying source. Only six file tools are available; no shell, code execution, MCP or network tools. Do not inspect node_modules or paths outside the project.
 An independent checker runs baseline, candidate and behavioral coverage tests later in network-disabled Linux Docker. Native generation does not imply native test execution. Do not claim tests passed.
@@ -556,6 +578,7 @@ export async function runNativeCampaign(options) {
     confirmLive,
     sampleIds,
     versionsFile,
+    projectRevisionFile,
     fetchDiagnostics = false,
     reviewChanges = false,
     provider = DIAGNOSTIC.provider,
@@ -575,6 +598,11 @@ export async function runNativeCampaign(options) {
   } = loadNativePackageSet(versionsFile);
   const packageBinding = packageSetDigest ? { packageSetDigest } : {};
   assert.equal(confirmLive, true);
+  if (projectRevisionFile)
+    assert.match(
+      projectRevisionFile,
+      /^docs\/research\/cli\/verify01-openai-137\/[A-Za-z0-9._-]+\.json$/u,
+    );
   assert.ok(key?.trim());
   assert.match(sourceSha || "", /^[a-f0-9]{40}$/u);
   const git = (args) =>
@@ -597,12 +625,15 @@ export async function runNativeCampaign(options) {
     "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
     "packages/cli/scripts/verify01-openai-transport-preload.mjs",
     "packages/cli/scripts/verify01-review-specs.mjs",
+    "packages/cli/scripts/verify01-project-revision.mjs",
     "packages/cli/src/lib/eval/stream-terminal.js",
     "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
     `${planRoot}/plan.json`,
     `${planRoot}/tasks.json`,
+    `${planRoot}/comparison-bindings.json`,
     `${planRoot}/plan.sha256`,
   ];
+  if (projectRevisionFile) bindingFiles.push(projectRevisionFile);
   const fetchPreloadSource =
     "packages/cli/scripts/verify01-fetch-diagnostics-preload.cjs";
   if (fetchDiagnostics) bindingFiles.push(fetchPreloadSource);
@@ -658,16 +689,31 @@ export async function runNativeCampaign(options) {
     fs.writeFileSync(path.join(output, "package-set.json"), packageSetBytes, {
       flag: "wx",
     });
-  const plan = json(path.join(repository, planRoot, "plan.json")),
-    catalog = json(path.join(repository, planRoot, "tasks.json"));
-  assert.equal(plan.commitSha, DIAGNOSTIC.projectCommit);
-  assert.equal(catalog.projectCommit, DIAGNOSTIC.projectCommit);
+  const basePlan = json(path.join(repository, planRoot, "plan.json")),
+    baseCatalog = json(path.join(repository, planRoot, "tasks.json"));
+  assert.equal(basePlan.commitSha, DIAGNOSTIC.projectCommit);
+  assert.equal(baseCatalog.projectCommit, DIAGNOSTIC.projectCommit);
   assert.equal(
     fs
       .readFileSync(path.join(repository, planRoot, "plan.sha256"), "utf8")
       .trim(),
     DIAGNOSTIC.planDigest,
   );
+  const { plan, catalog, projectCommit, planDigest, revisionBinding } =
+    loadNativeProjectRevision({
+      revisionFile: projectRevisionFile,
+      plan: basePlan,
+      catalog: baseCatalog,
+      bindings: json(
+        path.join(repository, planRoot, "comparison-bindings.json"),
+      ),
+      baseProjectCommit: DIAGNOSTIC.projectCommit,
+      basePlanDigest: DIAGNOSTIC.planDigest,
+    });
+  validateNativeProjectSelection(revisionBinding, sampleIds);
+  const revisionMetadata = revisionBinding
+    ? { projectRevision: revisionBinding }
+    : {};
   const samples = selectNativeSamples(plan, process.platform, entry, sampleIds);
   const scratch = fs.realpathSync.native(
     fs.mkdtempSync(
@@ -685,13 +731,15 @@ export async function runNativeCampaign(options) {
     "--format=tar",
     "--output",
     archive,
-    DIAGNOSTIC.projectCommit,
+    projectCommit,
+    ...nativeProjectArchivePaths(revisionBinding),
   ]);
   const summary = {
     schema: "chainlesschain.verify01-native-task-campaign/v1",
     executionSourceCommit: sourceSha,
-    projectCommit: DIAGNOSTIC.projectCommit,
-    planDigest: DIAGNOSTIC.planDigest,
+    projectCommit,
+    planDigest,
+    ...revisionMetadata,
     frozenArchiveDigest: hash(fs.readFileSync(archive)),
     versions,
     modelTransport: {
@@ -726,14 +774,15 @@ export async function runNativeCampaign(options) {
     ],
   };
   Object.assign(summary, {
-    cohortKind:
-      providerProfile.provider === "openai"
+    cohortKind: revisionBinding
+      ? "repaired-source-followup"
+      : providerProfile.provider === "openai"
         ? "new-openai-provider-diagnostic"
         : "volcengine-native-diagnostic",
     executionIdentityDigest: hash(
       JSON.stringify({
         sourceSha,
-        taskPlanDigest: DIAGNOSTIC.planDigest,
+        taskPlanDigest: planDigest,
         versions,
         packageSetDigest: packageSetDigest || null,
         modelTransport: summary.modelTransport,
@@ -813,8 +862,9 @@ export async function runNativeCampaign(options) {
         completed: null,
       },
       executionSourceCommit: sourceSha,
-      projectCommit: DIAGNOSTIC.projectCommit,
-      planDigest: DIAGNOSTIC.planDigest,
+      projectCommit,
+      planDigest,
+      ...revisionMetadata,
       versions,
       ...packageBinding,
       ...(fetchDiagnostics
@@ -1086,6 +1136,7 @@ export async function runNativeCampaign(options) {
         task,
         VERIFY01_REVIEW_SPECS.find((spec) => spec.taskId === task.id),
         sample,
+        { repairedSource: revisionBinding !== null },
       );
       save(`${sample.id}/prompt.txt`, prompt);
       const args = {
@@ -1299,6 +1350,7 @@ if (
       "confirm-live": { type: "boolean" },
       samples: { type: "string" },
       "versions-file": { type: "string" },
+      "project-revision-file": { type: "string" },
       "fetch-diagnostics": { type: "boolean", default: false },
       "review-changes": { type: "boolean", default: false },
       provider: { type: "string", default: DIAGNOSTIC.provider },
@@ -1311,6 +1363,7 @@ if (
     confirmLive: values["confirm-live"],
     sampleIds: parseNativeSampleIds(values.samples),
     versionsFile: values["versions-file"],
+    projectRevisionFile: values["project-revision-file"],
     fetchDiagnostics: values["fetch-diagnostics"],
     reviewChanges: values["review-changes"],
     provider: values.provider,

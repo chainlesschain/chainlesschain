@@ -18,6 +18,7 @@ import {
   assertNativeReviewReady,
   readNativeReviewBundle,
 } from "./verify01-native-review-admission.mjs";
+import { loadNativeProjectRevision } from "./verify01-project-revision.mjs";
 
 const defaultPlan = fileURLToPath(
   new URL(
@@ -37,7 +38,12 @@ export function generateReviewPack({
   imageId,
   backend = "linux-docker",
   nativeAdmission,
+  projectRevisionFile,
 }) {
+  if (projectRevisionFile && backend !== "linux-docker")
+    throw new Error(
+      "repaired-source follow-up requires independent Linux Docker acceptance",
+    );
   if (!["linux-docker", "windows-native"].includes(backend))
     throw new Error(
       "unsupported review backend; explicit platform review is required",
@@ -67,6 +73,21 @@ export function generateReviewPack({
       .trim(),
   };
   validateVerify01Bundle(bundle);
+  const projected = loadNativeProjectRevision({
+    revisionFile: projectRevisionFile,
+    plan: bundle.plan,
+    catalog: bundle.catalog,
+    bindings: bundle.bindings,
+    baseProjectCommit: bundle.catalog.projectCommit,
+    basePlanDigest: bundle.expectedPlanDigest,
+  });
+  if (projected.revisionBinding) {
+    bundle.plan = projected.plan;
+    bundle.catalog = projected.catalog;
+    bundle.bindings = projected.bindings;
+    bundle.expectedPlanDigest = projected.planDigest;
+    validateVerify01Bundle(bundle);
+  }
   const repository = fileURLToPath(new URL("../../../", import.meta.url));
   const testSupport = [
     [
@@ -102,6 +123,9 @@ export function generateReviewPack({
     planDigest: bundle.expectedPlanDigest,
     catalogDigest: outcomeDigest(bundle.catalog),
     projectCommit: bundle.catalog.projectCommit,
+    ...(projected.revisionBinding
+      ? { projectRevision: projected.revisionBinding }
+      : {}),
     tasks: [],
   };
   for (const task of bundle.catalog.tasks) {
@@ -195,6 +219,7 @@ if (
       options: {
         "output-dir": { type: "string" },
         "plan-dir": { type: "string" },
+        "project-revision-file": { type: "string" },
         "image-id": { type: "string" },
         backend: { type: "string", default: "linux-docker" },
         capabilities: { type: "string" },
@@ -215,6 +240,7 @@ if (
           generateReviewPack({
             outputDir: values["output-dir"],
             planDir: values["plan-dir"],
+            projectRevisionFile: values["project-revision-file"],
             imageId: values["image-id"],
             backend: values.backend,
             nativeAdmission: {

@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "projectCommit": "52868c59d1c98131d6ce7e7ff177f55d53e509b0",
+  "revisionBinding": {
+    "schema": "chainlesschain.verify01-project-revision/v1",
+    "path": "docs/research/cli/verify01-openai-137/project-revision.json",
+    "digest": "sha256:5a02afde4ebdebf81198bf674c106063c51525e92a3b25d45aa0f8f1acff0532",
+    "cohortId": "repaired-source-followup-cli137-five",
+    "parentProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+    "parentPlanDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+    "projectCommit": "52868c59d1c98131d6ce7e7ff177f55d53e509b0",
+    "selectedSampleIds": [
+      "verify-08",
+      "verify-13",
+      "verify-19",
+      "verify-36",
+      "first-run-darwin-vscode"
+    ],
+    "formalSample": false,
+    "projectionPolicy": "chainlesschain.verify01-repaired-source-projection/v1",
+    "exclusionsDigest": "sha256:ed693174376d83aa411b73306a5b151a8d0f967a01a106e3f020c4ed8e676862",
+    "reason": "User-required pre-publication gate: freshly regenerate the original five failed samples on the explicitly pinned repaired project source and independently accept all five before CLI and IDE publication. Preserve original task requirements, host allocation, budgets and behavioral evaluator rules; keep prior frozen candidates and scores unchanged."
+  },
+  "projectPlanDigest": "sha256:81a6ea9cc28bfeefebc3ea72154a87e1e1328df8f139d867b75a4f182d67e94e",
+  "projectedArchiveDigest": "sha256:ba86ff70d76fefafa5f7533404fa552ff171c0f1b1d80a204f4ae0bdce12f614",
+  "archiveMembers": 23422,
+  "historicalAnswersAndEvaluatorsAbsent": true,
+  "sourceAndBaselinesByteIdentical": [
+    {
+      "path": "packages/cli/src/lib/session-branch-history.js",
+      "digest": "sha256:5ddd05dec04ecf8378904417f8c29b6b81475acdd24bfceb723aaa4a368e8857",
+      "bytes": 8425
+    },
+    {
+      "path": "packages/cli/__tests__/unit/session-branch.test.js",
+      "digest": "sha256:5021526b3171eca1645212f796144853b4a43a389592b2ea56c355213a8781d9",
+      "bytes": 7703
+    },
+    {
+      "path": "packages/cli/__tests__/unit/session-transcript-history.test.js",
+      "digest": "sha256:3ad2e774a3be6bb48c8d6e33b72697931273e056ecc2b09198ecb190e6831e7c",
+      "bytes": 43232
+    },
+    {
+      "path": "packages/cli/src/lib/image-file-boundary.js",
+      "digest": "sha256:4aa8ca526e5fb4b7b9b7563cca14cebd082292f3a01285b544228d851d69d709",
+      "bytes": 4915
+    },
+    {
+      "path": "packages/cli/__tests__/unit/image-file-boundary.test.js",
+      "digest": "sha256:5de46532b6d359aeace86c995519bc8cab54eebf608f8e8d13eb623ba7cdc96e",
+      "bytes": 5990
+    },
+    {
+      "path": "packages/cli/src/lib/permission-request.js",
+      "digest": "sha256:baa9a9cf9a0a0a08ecf1e8bf220c4bc7620b6acbe05ed5682c7dff9a2b09df4a",
+      "bytes": 1388
+    },
+    {
+      "path": "packages/cli/__tests__/unit/headless-stream-approvals.test.js",
+      "digest": "sha256:ebd9f63ae219985a7afaa3c25e629a18ec529b9f8b37eac0bba90b7cbd1b665c",
+      "bytes": 25320
+    },
+    {
+      "path": "packages/cli/src/lib/background-launch-profile.js",
+      "digest": "sha256:2dbfe63270bbe46ba0016eea483d4c0c7f065301aaa9adf728797b61fe466e9e",
+      "bytes": 39025
+    },
+    {
+      "path": "packages/cli/__tests__/unit/background-launch-profile.test.js",
+      "digest": "sha256:e5247be3e530c11d7398fe76ef896ac1bd1e3003813fabf509d86b04a64ee194",
+      "bytes": 11419
+    }
+  ],
+  "generatedReviewPack": {
+    "reviewDigest": "sha256:40333b8ee02b2c9a9ddcaa6eda783965b0f88d48bb82b1f74822c9971b48b2ca",
+    "tasks": 36,
+    "mutantsChanged": false,
+    "execution": "not-run-offline-structural-preflight"
+  },
+  "modelRequests": 0
+}
