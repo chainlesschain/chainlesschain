@@ -1,8 +1,20 @@
 # Agent Platform 发布与升级指南
 
-下一版 CLI **0.166.138** / Open VSX **0.37.174** / JetBrains **0.4.190** 待发布，上游 Agent SDK **0.2.17** 先行。`.137` 在 CLI 上传前因 SDK 目录测试变更未升版被来源保护拦住，原标签保留。用户已明确允许不等待五项任务成功先发布；`.137` 候选整体验收仍为 **0/5**、旧冻结 **41/45** 不变。新最终提交须通过完整三平台 CLI CI / Strict Sandbox，发布与回读顺序为 SDK → CLI → IDE。[执行记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/verify01-openai-137/README.md)。
+<!-- release138-current:start -->
 
-## CLI 0.166.136 已公开（2026-11-01）
+## CLI 0.166.138 已公开（2026-11-01）
+
+CLI **0.166.138** 与上游 Agent SDK **0.2.17** 已通过 GitHub Actions OIDC 发布。安装：`npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`，升级后重启 `cc ui` 与 IDE 聊天宿主，并运行 `cc --version`、`cc doctor`。Open VSX **0.37.174** 发布工作流成功，推荐 CLI **0.166.138**。JetBrains **0.4.191** 修复已合入 main，正式标签已触发发布，等待完整云端检查和 Marketplace 上传；0.4.190 因旧版 CLI 断言失败，未上传。两个新插件均推荐 CLI **0.166.138**。
+
+准确源码 `e42ea07b6da7ab2c3eb709002448b32d5fedf535` 通过完整三平台 CLI CI（75 项必需任务成功，1 项可选 PR 演练跳过）及 Strict Sandbox（6/6）。[正式 OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/41313099948)包含 SDK 与 CLI 的公开重新下载、不可变字节、安装启动及来源签名核验；完成这些步骤后才创建 IDE 发布标签。SDK 0.2.17 修正整棵源码树的版本/签名对应关系，运行时代码未改变。
+
+本版修复源码被省略后误记已读、压缩丢失原始任务等问题。最近 .137 五项模型整体验收仍为 **0/5**，.138 未开展新一轮模型测试，历史 **41/45** 与图像单项 **0/1** 分别保留。用户已允许先发布。后续独立复核调度、未被证明的局部源码片段、生成断言的正确性与完整性仍有未解决限制。Kernel **0.1.11**；Microsoft Marketplace 暂缓，PC/mobile 保持独立版本。
+
+[发行证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release138-public/README.md) · [Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/41316653600)。
+
+<!-- release138-current:end -->
+
+## 历史公开 CLI：0.166.136（2026-11-01）
 
 安装 `npm i -g chainlesschain@0.166.136 --registry https://registry.npmjs.org` 后重启 `cc ui` 与 IDE 聊天宿主。完整历史分叉和后台策略恢复已修复。来源 `539e4da6ef89e5142a3f3bb90e2d6123c6afb15e` 通过 CLI CI 76 项、Strict Sandbox 6 项、OIDC 发布与独立公开字节/签名回读。IDE 沿用 Open VSX 0.37.173 与 JetBrains 0.4.189 官方构建，推荐标记仍为 CLI 0.166.135；JetBrains 已审核公开，其全部 JAR 与正式构建逐字节一致，ZIP 容器哈希不同并单独记录。Kernel 0.1.11，PC/mobile 不属于此次发布。五项复测 1/5 通过，跨版本累计 41/45。三项冻结实现缺口在已发布 .136 上已复验；图像单项复测 0/1，仍漏仅元数据变化的对照。另修复源码省略后误记已读的问题，109 项工程回归通过；该读取修复尚未发布。工程结果不改写原冻结验收。
 

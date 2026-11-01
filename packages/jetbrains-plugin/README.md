@@ -1,6 +1,12 @@
 # ChainlessChain IDE Bridge (JetBrains)
 
-Prepared pairing: JetBrains **0.4.191** recommends published CLI **0.166.138**, with public Open VSX **0.37.174**. The .190 release stopped before upload because its upgrade-floor JUnit test retained CLI 0.166.135; the immutable tag is preserved. This candidate repairs that release test and requires complete exact-source IDE gates before upload. Current public JetBrains **0.4.189** has already been approved; its JAR payloads match the official build, with different ZIP container hashes.
+<!-- release138-current:start -->
+
+## Release pairing: 0.4.191
+
+JetBrains **0.4.191** is merged to main and its immutable release tag has triggered publication; full cloud checks and Marketplace upload are pending. The .190 candidate failed a stale CLI-version JUnit assertion before upload. It recommends published CLI **0.166.138** and pairs with public Open VSX **0.37.174**. CLI **0.166.138** and upstream SDK **0.2.17** passed official OIDC publication and public byte/provenance/startup checks before the IDE release tags were created. [Publication evidence](../../docs/research/cli/evidence/release138-public/README.md).
+
+<!-- release138-current:end -->
 
 ## Self-evolution switch
 
@@ -13,7 +19,7 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
-## Current public release: 0.4.189
+## Previous public release: 0.4.189
 
 Immutable tag `ide-jetbrains-v0.4.189` selects source `82aa6d703a8695721a7ccf0793a435853bc2bbf2`. Marketplace update 1208498 is approved, listed and visible. Both JAR payloads match its official Actions build; ZIP container hashes differ. It recommends CLI 0.166.135. [Verified public evidence](../../docs/research/cli/evidence/release136-public/README.md).
 

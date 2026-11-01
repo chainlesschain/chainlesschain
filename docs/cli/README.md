@@ -1,5 +1,13 @@
 # CLI 文档
 
+<!-- release138-current:start -->
+
+> 2026-11-01：CLI **0.166.138** 与上游 Agent SDK **0.2.17** 已通过 GitHub Actions OIDC 发布。安装：`npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`，升级后重启 `cc ui` 与 IDE 聊天宿主，并运行 `cc --version`、`cc doctor`。Open VSX **0.37.174** 发布工作流成功，推荐 CLI **0.166.138**。JetBrains **0.4.191** 修复已合入 main，正式标签已触发发布，等待完整云端检查和 Marketplace 上传；0.4.190 因旧版 CLI 断言失败，未上传。两个新插件均推荐 CLI **0.166.138**。
+
+准确发行源码 `e42ea07b6d` 的完整三平台 CLI CI / Strict Sandbox、OIDC 发布及公开包字节/签名/启动核验均通过。最近模型候选验收 **0/5** 与历史累计 **41/45** 单独保留；本次未复测已通过任务。见[发行证据](../research/cli/evidence/release138-public/README.md)与[自进化开关说明](./SELF_EVOLUTION_CONFIGURATION.md)。下方带日期的记录保留历史范围。
+
+<!-- release138-current:end -->
+
 > 2026-10-27：CLI **0.166.127** 已经 OIDC 公开发布，准确源码 `0377050191b6` 的三平台 CLI CI 与 Strict Sandbox 均已通过，公开归档字节、签名来源和十个直接子依赖已核验。安装：`npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`。共享自进化开关默认关闭，可重新开启；配套 IDE **0.37.165 / 0.4.182** 已公开上架并完成制品回读。见[配置说明](./SELF_EVOLUTION_CONFIGURATION.md)与[发布证据](../research/cli/evidence/release127-public/publication.json)。以下带日期的发布记录保留其历史范围。
 
 > 2026-10-26：公开 CLI **0.166.123**，安装 `npm i -g chainlesschain@0.166.123 --registry https://registry.npmjs.org`。修复模型设置串用、Windows 首字延迟和 Python 格式化字符串投影误判；Session Core **0.3.24** 已先行发布。现有 IDE 仍为 **0.37.161 / 0.4.178**，推荐标记仍为 `.121`。三平台发布门禁、公共包字节、签名来源和子依赖已核验，见[发布证据](../research/cli/evidence/release123-public/publication.json)。验收 **32/45**、**13** 项未完成及 **NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。

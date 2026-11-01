@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "releaseBaseline": "e42ea07b6da7ab2c3eb709002448b32d5fedf535",
+  "jdk": "17.0.17",
+  "runner": "Real cached JUnit 5.10.2 engine, existing CliVersionCheckTest; release workflow still requires JDK 21 full JUnit and IDE host gates",
+  "runtimeSourceUnchanged": true,
+  "rows": [
+    {
+      "label": "released-source-control",
+      "exitCode": 1,
+      "output": "RESULT tests=8 succeeded=7 failed=1 skipped=0\r\nrecommendedReleaseIsTheOfflineUpgradeFloor(): expected: <0.166.135> but was: <0.166.138>"
+    },
+    {
+      "label": "repaired-source",
+      "exitCode": 0,
+      "output": "RESULT tests=8 succeeded=8 failed=0 skipped=0"
+    }
+  ]
+}

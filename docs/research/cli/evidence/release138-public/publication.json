@@ -1,0 +1,124 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-01T16:53:38.572Z",
+  "source": "e42ea07b6da7ab2c3eb709002448b32d5fedf535",
+  "cli": {
+    "version": "0.166.138",
+    "status": "verified-public",
+    "method": "GitHub Actions OIDC Trusted Publishing",
+    "tag": "v-npm-0-166-138",
+    "runId": 41313099948,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41313099948",
+    "publicReadbackAuthority": "Completed exact-source Actions OIDC workflow with independent registry re-download, artifact SHA512, install/startup and signed provenance checks",
+    "publicReadbackEvidenceArtifact": "chainlesschain-npm-readback-e42ea07b6da7ab2c3eb709002448b32d5fedf535",
+    "artifactUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/41313099948#artifacts",
+    "publicRegistryBytesVerified": true,
+    "publicInstallAndStartupVerified": true,
+    "signedProvenanceVerified": true
+  },
+  "agentSdk": {
+    "version": "0.2.17",
+    "status": "verified-public-before-cli",
+    "runtimeOutputUnchanged": true,
+    "publicRegistryBytesVerified": true,
+    "signedProvenanceVerified": true,
+    "source": "e42ea07b6da7ab2c3eb709002448b32d5fedf535"
+  },
+  "ide": {
+    "vscode": {
+      "version": "0.37.174",
+      "source": "e42ea07b6da7ab2c3eb709002448b32d5fedf535",
+      "recommendedCliVersion": "0.166.138",
+      "status": "verified-public-by-official-release-workflow",
+      "tag": "ide-vscode-v0.37.174",
+      "runId": 41316653600,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41316653600",
+      "publishJobId": 124880421151,
+      "officialWorkflowConclusion": "success",
+      "publicVsixUrl": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.174/file/chainlesschain.chainlesschain-ide-0.37.174.vsix"
+    },
+    "jetbrains": {
+      "version": "0.4.191",
+      "source": "ef13d5238e2b3e4c4571e48e820d0eb31a3107b2",
+      "recommendedCliVersion": "0.166.138",
+      "status": "publication-in-progress",
+      "tag": "ide-jetbrains-v0.4.191",
+      "runId": 41327724484,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41327724484",
+      "mainMerged": true,
+      "tagVerified": true,
+      "previousFailedRelease": {
+        "version": "0.4.190",
+        "runId": 41320640806,
+        "jobId": 124896629334,
+        "cause": "JUnit expected CLI 0.166.135 instead of runtime 0.166.138",
+        "uploaded": false
+      },
+      "marketplaceUploaded": false,
+      "focusedLocalValidation": {
+        "junitTests": 8,
+        "junitPassed": 8,
+        "junitSkipped": 0,
+        "jdk": "17.0.17",
+        "metadataTestsPassed": 6,
+        "capabilityManifestInSync": true,
+        "fixtureContractCases": 16,
+        "fixtureReferencedTestFiles": 114,
+        "compilerEnvironmentDiagnostic": "Windows restricted execution reported AccessDeniedException while closing JARs after class generation. The generated classes executed all focused tests; full JDK 21 cloud gates remain authoritative."
+      }
+    }
+  },
+  "gateAuthority": {
+    "schema": 1,
+    "verifiedAt": "2026-11-01T13:49:07.917Z",
+    "repository": "chainlesschain/chainlesschain",
+    "sha": "e42ea07b6da7ab2c3eb709002448b32d5fedf535",
+    "gates": [
+      {
+        "workflow": "cli-ci.yml",
+        "name": "CLI CI",
+        "sha": "e42ea07b6da7ab2c3eb709002448b32d5fedf535",
+        "runId": 41303563843,
+        "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/41303563843",
+        "conclusion": "success",
+        "platforms": [
+          "linux",
+          "macos",
+          "windows"
+        ]
+      },
+      {
+        "workflow": "cli-strict-sandbox.yml",
+        "name": "CLI Strict Sandbox",
+        "sha": "e42ea07b6da7ab2c3eb709002448b32d5fedf535",
+        "runId": 41303563747,
+        "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/41303563747",
+        "conclusion": "success",
+        "platforms": [
+          "linux",
+          "macos",
+          "windows"
+        ]
+      }
+    ]
+  },
+  "userWaivedFiveTaskSuccess": true,
+  "modelAcceptance": {
+    "latest137Cohort": "0/5",
+    "modelTasksFor138": 0,
+    "historicalCumulative": "41/45",
+    "separateImageFollowup": "0/1",
+    "engineeringChecksAddNoAcceptance": true
+  },
+  "limits": [
+    "late independent-review scheduling",
+    "omitted unproven partial source fragments",
+    "incomplete or incorrect model-generated assertions"
+  ],
+  "scope": {
+    "microsoftMarketplace": "deferred",
+    "pcMobile": "independent",
+    "contextMemoryKernel": "0.1.11"
+  },
+  "extraStandaloneReadback": "Official completed OIDC workflow already independently verifies registry bytes, signatures and startup; no redundant standalone dispatch is required for upstream IDE publication."
+}

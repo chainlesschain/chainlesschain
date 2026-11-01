@@ -1,0 +1,12 @@
+{
+  "version": "0.4.190",
+  "runId": 41320640806,
+  "jobId": 124896629334,
+  "cause": "JUnit expected CLI 0.166.135 instead of runtime 0.166.138",
+  "uploaded": false,
+  "source": "e42ea07b6da7ab2c3eb709002448b32d5fedf535",
+  "immutableTagRetained": true,
+  "repairSource": "ef13d5238e2b3e4c4571e48e820d0eb31a3107b2",
+  "repairVersion": "0.4.191",
+  "repairMainMerged": true
+}

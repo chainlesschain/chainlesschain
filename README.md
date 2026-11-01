@@ -1,8 +1,16 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-下一版 CLI **0.166.138** / Open VSX **0.37.174** / JetBrains **0.4.190** 待发布，上游 Agent SDK 升至 **0.2.17**。`.137` 发行因 SDK 目录测试变更未升版被来源保护拦住，标签保留、CLI 未上传。用户已允许不等待五项任务成功先发布；`.137` 候选最新整体验收仍为 **0/5**，旧 **41/45** 不变。新最终提交须完整 CLI CI / Strict Sandbox 通过，再按 SDK → CLI → IDE 顺序发布。[状态与限制](docs/research/cli/verify01-openai-137/README.md)。
+<!-- release138-current:start -->
 
-## 当前公开 CLI：0.166.136（2026-11-01）
+## 当前公开 CLI：0.166.138（2026-11-01）
+
+CLI **0.166.138** 与上游 Agent SDK **0.2.17** 已通过 GitHub Actions OIDC 发布。安装：`npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`，升级后重启 `cc ui` 与 IDE 聊天宿主，并运行 `cc --version`、`cc doctor`。Open VSX **0.37.174** 发布工作流成功，推荐 CLI **0.166.138**。JetBrains **0.4.191** 修复已合入 main，正式标签已触发发布，等待完整云端检查和 Marketplace 上传；0.4.190 因旧版 CLI 断言失败，未上传。两个新插件均推荐 CLI **0.166.138**。
+
+发行提交 `e42ea07b6d` 已通过完整三平台 CLI CI（75 项必需任务，1 项可选 PR 演练跳过）与 Strict Sandbox（6/6），公开下载、启动、字节及来源签名核验已完成。本版包含源码实际交付后才记入读取覆盖、原始任务在上下文压缩中保留等修复。最新 .137 模型整体验收仍为 **0/5**，历史累计 **41/45** 不变；本次发布不增加任务通过数。[发行证据](docs/research/cli/evidence/release138-public/README.md)。
+
+<!-- release138-current:end -->
+
+## 历史公开 CLI：0.166.136（2026-11-01）
 
 CLI **0.166.136** 已完成完整精确提交测试、Actions OIDC 发布和独立公共包/签名回读，修复完整历史分叉与后台策略恢复。安装：`npm i -g chainlesschain@0.166.136 --registry https://registry.npmjs.org`，重启聊天宿主。IDE 测试配对仍为 Open VSX **0.37.173** / JetBrains **0.4.189** 官方构建；两者推荐标记仍为 CLI **0.166.135**，JetBrains 已审核公开，其全部 JAR 与正式构建逐字节一致（ZIP 容器哈希不同）。Kernel **0.1.11**；PC/mobile 维持独立版本。五项模型复测 **1/5** 通过（verify-19），跨版本累计 **41/45**。三项冻结实现缺口已在 .136 发布源码上复验；图像单项复测 0/1，仍缺仅元数据变化的对照；另修复源码被省略后误记已读的问题，109 项工程回归通过，读取修复尚未发布。[发行证据](docs/research/cli/evidence/release136-public/README.md)。
 

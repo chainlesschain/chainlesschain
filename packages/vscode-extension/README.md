@@ -4,11 +4,15 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming
 chat, inline assistance, governed review, sessions, automation, and a localhost
 MCP bridge.
 
-## Release pairing
+<!-- release138-current:start -->
 
-Version **0.37.174** recommends CLI **`0.166.138`** and pairs with JetBrains **0.4.190**. This source prepares the next paired release: publish and verify the CLI first, then publish the IDEs after complete exact-source host gates. Restart the chat host after upgrading and verify the actual CLI with Doctor. The VS Code change preserves provider/compaction diagnostics and saved tool-result identity across reload.
+## Current release pairing
 
-Current verified public packages before this release are CLI **0.166.136**, Open VSX **0.37.173** and approved JetBrains **0.4.189**; the older IDEs still recommend CLI **0.166.135**. [Public evidence](../../docs/research/cli/evidence/release136-public/README.md).
+CLI **0.166.138** and upstream Agent SDK **0.2.17** are published through GitHub Actions OIDC. Install `npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`, restart `cc ui` and IDE chat hosts, then run `cc --version` and `cc doctor`. Open VSX **0.37.174** publication succeeded. JetBrains **0.4.191** is merged to main and its immutable release tag has triggered publication; full cloud checks and Marketplace upload are pending. The .190 candidate failed a stale CLI-version JUnit assertion before upload. Both new IDE versions recommend CLI **0.166.138**.
+
+Version **0.37.174** preserves provider/compaction diagnostics and saved tool-result identity across reload. Its complete [tagged release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41316653600) passed. Install the [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.174/file/chainlesschain.chainlesschain-ide-0.37.174.vsix). [Publication evidence](../../docs/research/cli/evidence/release138-public/README.md).
+
+<!-- release138-current:end -->
 
 ## Self-evolution switch
 
@@ -16,7 +20,7 @@ Current verified public packages before this release are CLI **0.166.136**, Open
 
 Open **Skill 自进化配置** from the command palette to enable or disable self-evolution. It defaults to off and shares `evolution.enabled` in the CLI user `config.json` with `cc ui` and JetBrains. Enabling can initialize the local signed runtime; disabling keeps ordinary Agent use available and preserves deployment data. Stop and restart a running Agent session after switching. These controls require CLI 0.166.127 and the paired extension version below.
 
-## Current release
+## Previous public release: 0.37.173
 
 <!-- release173-status -->
 

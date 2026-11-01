@@ -1,22 +1,24 @@
 # chainlesschain CLI
 
-Publication authorization: the user explicitly permits this release irrespective of the five task results. Complete exact-commit CLI CI and Strict Sandbox remain required before Actions OIDC publication, followed by CLI registry verification and paired IDE releases. Latest model acceptance is 0/5; historical 41/45 is unchanged.
-
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-The .137 OIDC run stopped before CLI upload because an Agent SDK test changed without a version bump. SDK **0.2.17** restores source/provenance alignment; its runtime output is unchanged. Release uses a new immutable .138 tag, with the existing tree/provenance checks retained.
+<!-- release138-current:start -->
 
-## CLI 0.166.138 — prepared candidate, not yet published
+## CLI 0.166.138 — verified public release
 
-After verified publication, install with `npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`, restart the chat host, and verify `cc --version` / `cc doctor`. The current public installation command remains `npm i -g chainlesschain@0.166.136 --registry https://registry.npmjs.org`. The candidate preserves focused recovery when source content is omitted from a model request. Same-batch reservations remain synchronous; only exact source spans actually selected for the provider become historical coverage. Repeated delivery failures stop with an explicit limitation, and confirmed navigation does not advance or move backward on an unsuccessful read.
+CLI **0.166.138** and upstream Agent SDK **0.2.17** are published through GitHub Actions OIDC. Install `npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`, restart `cc ui` and IDE chat hosts, then run `cc --version` and `cc doctor`. Open VSX **0.37.174** publication succeeded. JetBrains **0.4.191** is merged to main and its immutable release tag has triggered publication; full cloud checks and Marketplace upload are pending. The .190 candidate failed a stale CLI-version JUnit assertion before upload. Both new IDE versions recommend CLI **0.166.138**.
 
-Canonical compaction also retains the original user task and owned resume sources across tool tails and persistent sessions, rejecting task loss, changes or new duplicates before commit. Its 69 focused local regressions pass; fresh same-source generation and independent acceptance have completed at 0/5; the user waived that result as a publication prerequisite.
+This release preserves recovery when source content was omitted from a model request and retains the original user task across canonical compaction, tool tails and persistent sessions. Only exact source spans selected for a provider count as historical read coverage. Repeated delivery failures stop with an explicit limitation.
 
-The recorded CLI .137 candidate round completed at **0/5**; CLI .138 has not started another model cohort. Source projection now preserves proven JavaScript source expressions while retaining strict standalone/decoded JSON and sensitive-field checks under ruleset v9. General coding guidance uses bounded assertions for large binary fixtures. Known remaining limits include late independent-review scheduling, omitted unproven partial source fragments, and incorrect or incomplete model-generated assertions. Two independently valid candidate suites still failed end-to-end task completion; their checks do not count as successful model tasks. [Raw results and publication authorization](../../docs/research/cli/verify01-openai-137/README.md).
+Exact release source `e42ea07b6da7ab2c3eb709002448b32d5fedf535` passed all 75 required CLI CI jobs (one optional PR dry-run skipped) and all 6 Strict Sandbox jobs across the configured Linux, Windows and macOS matrix. The official [OIDC workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41313099948) independently downloaded the public SDK/CLI, verified immutable package bytes and signed provenance, and installed/started the CLI before IDE release tags were created. SDK 0.2.17 aligns its full source tree with provenance; SDK runtime output is unchanged.
 
-Local validation: 109 related regressions pass; restoring the released .136 guard makes seven new controls fail. The prepared pairing is Open VSX **0.37.174** / JetBrains **0.4.190**, both recommending CLI **0.166.138**, released only after the CLI is verified public. Until then the older public IDEs remain compatible. VS Code also preserves provider diagnostics and saved tool identity across reload; no child-package update is required. Full exact-source CLI CI and CLI Strict Sandbox must pass before Actions OIDC publication. Historical model acceptance remains **41/45**; the focused image follow-up remains **0/1** and is not rescored by engineering checks. [Evidence](../../docs/research/cli/verify01-openai-136/read-delivery-repair/README.md).
+The latest recorded .137 model cohort remains **0/5** end-to-end; CLI .138 has not started another model cohort. Historical cumulative acceptance remains **41/45**, and the separate image follow-up remains **0/1**. The user waived five-task success as a publication prerequisite. Remaining limits include late independent-review scheduling, omitted unproven partial source fragments and incomplete or incorrect generated assertions. Engineering checks and publication add no model task acceptance. Kernel stays **0.1.11**; Microsoft Marketplace and PC/mobile are outside this release.
 
-## CLI 0.166.136 — verified public repair
+[Publication evidence](../../docs/research/cli/evidence/release138-public/README.md) · [Open VSX release](https://github.com/chainlesschain/chainlesschain/actions/runs/41316653600) · [Recorded model results](../../docs/research/cli/verify01-openai-137/README.md).
+
+<!-- release138-current:end -->
+
+## CLI 0.166.136 — previous public repair
 
 Install with `npm i -g chainlesschain@0.166.136 --registry https://registry.npmjs.org`, restart the chat host, then run `cc --version` and `cc doctor`. This release repairs full-history session forks and preserves independent plugin/MCP restrictions through background restore. Malformed policy values fail before normalization or customization loading.
 

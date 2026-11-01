@@ -1,8 +1,18 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-Prepared CLI **0.166.138** / Open VSX **0.37.174** / JetBrains **0.4.190** await publication, with Agent SDK **0.2.17** upstream. The immutable .137 release stopped before CLI upload because an SDK test changed without a version bump. The user waived five-task success; the recorded .137 cohort remains **0/5**, with historical **41/45** unchanged. Require complete final-commit CLI CI / Strict Sandbox, then publish and verify SDK → CLI → IDE. [Status and limits](docs/research/cli/verify01-openai-137/README.md).
+<!-- release138-current:start -->
 
-## Current public CLI: 0.166.136 (2026-11-01)
+## Current public CLI: 0.166.138 (2026-11-01)
+
+CLI **0.166.138** and upstream Agent SDK **0.2.17** are published through GitHub Actions OIDC. Install `npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`, restart `cc ui` and IDE chat hosts, then run `cc --version` and `cc doctor`. Open VSX **0.37.174** publication succeeded. JetBrains **0.4.191** is merged to main and its immutable release tag has triggered publication; full cloud checks and Marketplace upload are pending. The .190 candidate failed a stale CLI-version JUnit assertion before upload. Both new IDE versions recommend CLI **0.166.138**.
+
+Exact release source `e42ea07b6da7ab2c3eb709002448b32d5fedf535` passed all 75 required CLI CI jobs (one optional PR dry-run skipped) and all 6 Strict Sandbox jobs across the configured Linux, Windows and macOS matrix. The official [OIDC workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41313099948) independently downloaded the public SDK/CLI, verified immutable package bytes and signed provenance, and installed/started the CLI before IDE release tags were created. SDK 0.2.17 aligns its full source tree with provenance; SDK runtime output is unchanged.
+
+The latest recorded .137 model cohort remains **0/5** end-to-end; CLI .138 has not started another model cohort. Historical cumulative acceptance remains **41/45**, and the separate image follow-up remains **0/1**. The user waived five-task success as a publication prerequisite. Remaining limits include late independent-review scheduling, omitted unproven partial source fragments and incomplete or incorrect generated assertions. Engineering checks and publication add no model task acceptance. Kernel stays **0.1.11**; Microsoft Marketplace and PC/mobile are outside this release. [Publication evidence](docs/research/cli/evidence/release138-public/README.md).
+
+<!-- release138-current:end -->
+
+## Previous public CLI: 0.166.136 (2026-11-01)
 
 CLI **0.166.136** passed complete exact-source gates, Actions OIDC publication and independent public byte/provenance readback. It repairs full-history forks and background policy restoration. Install: `npm i -g chainlesschain@0.166.136 --registry https://registry.npmjs.org`, then restart the chat host. The test pairing remains Open VSX **0.37.173** / the verified JetBrains **0.4.189** Actions build; both retain CLI **0.166.135** recommendation metadata. JetBrains is now approved and public; both JAR payloads match the official build, with different ZIP container hashes. Kernel stays **0.1.11**; PC/mobile are separate. The five-failure retest accepted **1/5** (verify-19), cumulative **41/45**. Three frozen implementation defects are repaired in .136 and verified separately; the focused image follow-up accepted 0/1 and cumulative remains 41/45. A separate source-delivery tracking defect is repaired with 109 passing engineering regressions, pending publication. [Publication evidence](docs/research/cli/evidence/release136-public/README.md).
 
