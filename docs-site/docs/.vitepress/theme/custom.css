@@ -1,16 +1,18 @@
-/* Widen sidebar to prevent long Chinese text from being truncated */
+/* Keep both documentation sites readable with nested topic groups. */
 :root {
-  --vp-sidebar-width: 340px;
+  --vp-sidebar-width: 300px;
 }
 
-/* Ensure sidebar text wraps instead of being cut off */
 .VPSidebar .VPSidebarItem .text {
-  word-break: break-all;
-  overflow-wrap: break-word;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
 }
 
-/* Slightly smaller font for sidebar items to fit more text */
-.VPSidebar .VPSidebarItem.level-1 .text {
+.VPSidebar .VPSidebarItem.is-link > .item .text {
   font-size: 13px;
-  line-height: 1.4;
+}
+
+.VPSidebar .VPSidebarItem.collapsible > .item > .text {
+  font-weight: 600;
 }

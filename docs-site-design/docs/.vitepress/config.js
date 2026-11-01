@@ -55,18 +55,9 @@ export default defineConfig({
       {
         text: "模块设计",
         items: [
-          {
-            text: "核心模块 (01-08)",
-            link: "/modules/m01-knowledge-base",
-          },
-          {
-            text: "扩展模块 (09-16)",
-            link: "/modules/m09-browser-automation",
-          },
-          {
-            text: "演化图谱与企业增强 (17-28)",
-            link: "/modules/m17-evomap",
-          },
+          { text: "核心模块 (01-08)", link: "/modules/m01-knowledge-base" },
+          { text: "扩展模块 (09-16)", link: "/modules/m09-browser-automation" },
+          { text: "演化图谱与企业增强 (17-28)", link: "/modules/m17-evomap" },
           {
             text: "生产加固与AI (29-36)",
             link: "/modules/m29-production-hardening",
@@ -83,10 +74,7 @@ export default defineConfig({
             text: "v5.0.2 CLI技能包与AI模板 (60b, 71b, 72)",
             link: "/modules/m60b-cli-skill-packs",
           },
-          {
-            text: "v5.0.2.2 Web管理界面 (73)",
-            link: "/modules/m73-web-ui",
-          },
+          { text: "v5.0.2.2 Web管理界面 (73)", link: "/modules/m73-web-ui" },
           {
             text: "v5.0.2.4 AI编排层 (74)",
             link: "/modules/m74-orchestration-layer",
@@ -115,10 +103,7 @@ export default defineConfig({
             text: "v5.0.2.10 Runtime收口 (80-83) ⭐NEW",
             link: "/modules/m80-canonical-workflow",
           },
-          {
-            text: "v5.0.2.49 CLI 项目打包 ⭐NEW",
-            link: "/cc-pack-design",
-          },
+          { text: "v5.0.2.49 CLI 项目打包 ⭐NEW", link: "/cc-pack-design" },
           {
             text: "Agent Platform 平台化 (103) ⭐NEW",
             link: "/modules/m103-agent-sdk-platform",
@@ -263,891 +248,964 @@ export default defineConfig({
       },
     ],
 
+    // Group by topic; dated release notes belong in the collapsed history section.
     sidebar: {
       "/": [
         {
-          text: "系统总览",
+          text: "架构总览",
+          collapsed: false,
           items: [
             { text: "系统设计主文档", link: "/system-design-main" },
             { text: "安全机制设计", link: "/security-design" },
             { text: "数据同步方案", link: "/data-sync-design" },
             { text: "AI模型部署方案", link: "/ai-model-deploy" },
-            {
-              text: "IDE 任务记录与新会话交接 ⭐NEW",
-              link: "/ide-task-worklog-handoff",
-            },
             { text: "实施总结与附录", link: "/implementation-summary" },
           ],
         },
         {
+          text: "Agent 平台与运行时",
+          collapsed: true,
+          items: [
+            {
+              text: "当前运行时",
+              collapsed: true,
+              items: [
+                {
+                  text: "CLI Runtime 当前实现与源码候选",
+                  link: "/cli-runtime-current",
+                },
+              ],
+            },
+            {
+              text: "平台、协议与内核",
+              collapsed: true,
+              items: [
+                {
+                  text: "103 Agent SDK 平台化方案",
+                  link: "/modules/m103-agent-sdk-platform",
+                },
+                {
+                  text: "104 CC App Server 设计",
+                  link: "/modules/m104-cc-app-server",
+                },
+                {
+                  text: "105 Graph Kernel 设计",
+                  link: "/modules/m105-graph-kernel",
+                },
+                {
+                  text: "106 Agent Kernel 设计",
+                  link: "/modules/m106-agent-kernel",
+                },
+                {
+                  text: "107 单一协议 Schema 与自动代码生成",
+                  link: "/modules/m107-agent-protocol-codegen",
+                },
+                {
+                  text: "108 Context/Memory Kernel 设计",
+                  link: "/modules/m108-context-memory-kernel",
+                },
+                {
+                  text: "109 Desktop Cowork Skill 执行安全",
+                  link: "/modules/109_Desktop_Cowork_Skill_Execution_Security",
+                },
+                {
+                  text: "110 Agent Platform 发布与证据边界",
+                  link: "/modules/110-agent-platform-release-boundaries",
+                },
+              ],
+            },
+            {
+              text: "CLI 与编程工作流",
+              collapsed: true,
+              items: [
+                {
+                  text: "77 Agent 架构优化系统",
+                  link: "/modules/m77-agent-optimization",
+                },
+                {
+                  text: "78 CLI Agent Runtime 重构实施计划",
+                  link: "/modules/m78-cli-agent-runtime",
+                },
+                {
+                  text: "79 Coding Agent 系统",
+                  link: "/modules/m79-coding-agent",
+                },
+                {
+                  text: "80 规范工作流系统",
+                  link: "/modules/m80-canonical-workflow",
+                },
+                {
+                  text: "81 轻量多Agent编排系统",
+                  link: "/modules/m81-sub-runtime-pool",
+                },
+                {
+                  text: "82 CLI Runtime 收口路线图",
+                  link: "/modules/m82-cli-runtime-convergence",
+                },
+                {
+                  text: "83 工具描述规范统一",
+                  link: "/modules/m83-tool-descriptor-unification",
+                },
+                {
+                  text: "89 v5.0.2.9 六项优化设计说明",
+                  link: "/modules/m89-runtime-six-enhancements",
+                },
+                {
+                  text: "94 QualityGate 通用质量门控",
+                  link: "/modules/m94-quality-gate",
+                },
+                {
+                  text: "96 V2 规范层 Governance",
+                  link: "/modules/m96-v2-governance",
+                },
+              ],
+            },
+            {
+              text: "技能、学习与模型治理",
+              collapsed: true,
+              items: [
+                {
+                  text: "76 Skill Creator系统",
+                  link: "/modules/m76-skill-creator",
+                },
+                {
+                  text: "84 自主学习闭环系统",
+                  link: "/modules/m84-autonomous-learning-loop",
+                },
+                {
+                  text: "111 Record & Replay → Skill 设计 ✅",
+                  link: "/modules/111-record-replay-skill-design",
+                },
+                {
+                  text: "112 受治理的 Skill 自进化设计",
+                  link: "/modules/112-governed-skill-evolution-design",
+                },
+                {
+                  text: "113 Desktop 受治理模型入口",
+                  link: "/modules/113-governed-desktop-model-ingress-design",
+                },
+                {
+                  text: "114 Jev 类型化 Skill 决策层",
+                  link: "/modules/114-jev-decision-layer-design",
+                },
+              ],
+            },
+            {
+              text: "Cowork 协作",
+              collapsed: true,
+              items: [
+                {
+                  text: "86 Web Cowork日常任务协作系统",
+                  link: "/modules/m86-web-cowork",
+                },
+                {
+                  text: "87 Cowork Evolution N1-N7",
+                  link: "/modules/m87-cowork-evolution",
+                },
+              ],
+            },
+            {
+              text: "对标与演进计划",
+              collapsed: true,
+              items: [
+                {
+                  text: "85 Hermes Agent对标实施方案",
+                  link: "/modules/m85-hermes-agent-parity",
+                },
+                {
+                  text: "85b 文档代码差距补全",
+                  link: "/modules/m85b-doc-code-gap-fill",
+                },
+                {
+                  text: "88 OpenAgents对标补齐方案",
+                  link: "/modules/m88-open-agents-parity",
+                },
+                {
+                  text: "91 Managed Agents对标计划",
+                  link: "/modules/m91-managed-agents-parity",
+                },
+                {
+                  text: "92 Deep Agents Deploy 借鉴落地方案",
+                  link: "/modules/m92-deep-agents-deploy",
+                },
+              ],
+            },
+            {
+              text: "优化与实施方案",
+              collapsed: true,
+              items: [
+                {
+                  text: "Minimal Coding Agent 实施计划",
+                  link: "https://docs.chainlesschain.com/chainlesschain/minimal-coding-agent-plan",
+                },
+                {
+                  text: "Phase 1-7 优化计划（沙箱/LSP/插件/Team/远控/Hooks/评测）",
+                  link: "/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN",
+                },
+              ],
+            },
+          ],
+        },
+        {
+          text: "CLI、IDE 与创作工具",
+          collapsed: true,
+          items: [
+            {
+              text: "CLI 分发与扩展",
+              collapsed: true,
+              items: [
+                {
+                  text: "66 CLI分发系统",
+                  link: "/modules/m66-cli-distribution",
+                },
+                {
+                  text: "67 CLI高级功能补齐",
+                  link: "/modules/m67-cli-advanced",
+                },
+                {
+                  text: "68 CLI-Anything集成",
+                  link: "/modules/m68-cli-anything",
+                },
+                {
+                  text: "69 WebSocket服务器接口",
+                  link: "/modules/m69-websocket-server",
+                },
+                {
+                  text: "70 Agent智能增强系统",
+                  link: "/modules/m70-agent-intelligence",
+                },
+                {
+                  text: "71 子代理隔离系统",
+                  link: "/modules/m71-sub-agent-isolation",
+                },
+              ],
+            },
+            {
+              text: "IDE 与项目集成",
+              collapsed: true,
+              items: [
+                {
+                  text: "98 IDE 桥接对标方案",
+                  link: "/modules/m98-ide-bridge",
+                },
+                {
+                  text: "99 项目记忆与 init 对标方案",
+                  link: "/modules/m99-project-memory-init",
+                },
+                {
+                  text: "100 自定义斜杠命令与宏系统",
+                  link: "/modules/m100-slash-commands-macros",
+                },
+                {
+                  text: "101 个人数据 IDE 桥接方案",
+                  link: "/modules/m101-personal-data-ide-bridge",
+                },
+                {
+                  text: "102 Remote Session 方案",
+                  link: "/modules/m102-remote-session",
+                },
+              ],
+            },
+            {
+              text: "项目打包",
+              collapsed: true,
+              items: [
+                { text: "cc pack 打包指令设计", link: "/cc-pack-design" },
+                {
+                  text: "cc pack --project 项目模式",
+                  link: "/cc-pack-project-mode-design",
+                },
+              ],
+            },
+            {
+              text: "技能包与内容创作",
+              collapsed: true,
+              items: [
+                {
+                  text: "60b CLI指令技能包系统",
+                  link: "/modules/m60b-cli-skill-packs",
+                },
+                {
+                  text: "71b AI音视频创作模板",
+                  link: "/modules/m71b-ai-media-creator",
+                },
+                {
+                  text: "72 AI文档创作模板",
+                  link: "/modules/m72-ai-doc-creator",
+                },
+                {
+                  text: "90 AI视频生成 Volcengine Seedance",
+                  link: "/modules/m90-ai-video-generation-seedance",
+                },
+                {
+                  text: "93 CutClaw借鉴 视频剪辑Agent",
+                  link: "/modules/m93-cutclaw-video-editing-agent",
+                },
+              ],
+            },
+          ],
+        },
+        {
+          text: "知识与个人数据",
+          collapsed: true,
+          items: [
+            {
+              text: "架构与分析",
+              collapsed: true,
+              items: [
+                {
+                  text: "主架构（13-Phase 路线图）",
+                  link: "/Personal_Data_Hub_Architecture",
+                },
+                {
+                  text: "Python Sidecar 设计（fork sjqz）",
+                  link: "/Personal_Data_Hub_Python_Sidecar",
+                },
+                {
+                  text: "EntityResolver 设计（跨源消歧）",
+                  link: "/Personal_Data_Hub_EntityResolver",
+                },
+                {
+                  text: "Phase 14 移动端原生入口",
+                  link: "/Personal_Data_Hub_Phase_14_Mobile_Native_Entry",
+                },
+                {
+                  text: "Phase 14.3 双端流式同步进度 + 审计回查",
+                  link: "/Personal_Data_Hub_Phase_14_3_Sync_Audit_Streaming",
+                },
+                {
+                  text: "sjqz 对比分析（取舍依据）",
+                  link: "/Personal_Data_Hub_sjqz_Comparison",
+                },
+                {
+                  text: "Phase 11 Analysis Skills（5 内置分析） ✅",
+                  link: "/Personal_Data_Hub_Analysis_Skills",
+                },
+              ],
+            },
+            {
+              text: "数据适配器",
+              collapsed: true,
+              items: [
+                {
+                  text: "Adapter — Email (IMAP) ✅ 已上线",
+                  link: "/Adapter_Email_IMAP",
+                },
+                {
+                  text: "Adapter — 支付宝账单 ✅ 已上线",
+                  link: "/Adapter_Alipay_Bill",
+                },
+                {
+                  text: "Adapter — 系统数据（通讯录/通话/短信/WiFi）✅ Phase 4.5",
+                  link: "/Adapter_System_Data",
+                },
+                {
+                  text: "Adapter — Shopping 三件套（淘宝/京东/美团）✅ Phase 7",
+                  link: "/Adapter_Shopping_Cookie",
+                },
+                {
+                  text: "Adapter — Travel 四件套（高德/百度/携程/12306）✅ Phase 9",
+                  link: "/Adapter_Travel_LBS",
+                },
+                {
+                  text: "Adapter — AI 对话历史（9 家国产）✅ Phase 10.2 全 wired",
+                  link: "/Adapter_AIChat_History",
+                },
+                {
+                  text: "Adapter — 社交/即时通讯（7 家）✅ Phase 13",
+                  link: "/Adapter_Social_Messaging",
+                },
+                {
+                  text: "Adapter — 微信 SQLCipher 🚧 v0.5 frida-indep",
+                  link: "/Adapter_WeChat_SQLCipher",
+                },
+                {
+                  text: "微信 Frida Setup Runbook（rooted 用户）",
+                  link: "/Adapter_WeChat_SQLCipher_Frida_Setup",
+                },
+                {
+                  text: "Adapter — Social Cookie 模式（A8）",
+                  link: "/Adapter_Social_Cookie",
+                },
+              ],
+            },
+            {
+              text: "采集方案与验证",
+              collapsed: true,
+              items: [
+                {
+                  text: "E2E Runbook（真账号验收脚本）",
+                  link: "/Personal_Data_Hub_E2E_Runbook",
+                },
+                {
+                  text: "v0.1 → v1 Fixture Pin 协议（方法论）",
+                  link: "/Personal_Data_Hub_Fixture_Pin_Protocol",
+                },
+                {
+                  text: "PDH Social 多路径本机采集方案 (Mode A/B/C)",
+                  link: "/PDH_Social_Multipath_Local_Collection_Plan",
+                },
+                {
+                  text: "PDH Weibo DB Schema 探测",
+                  link: "/PDH_Weibo_DB_Schema_Probe",
+                },
+              ],
+            },
+            {
+              text: "Cookie 采集验收",
+              collapsed: true,
+              items: [
+                {
+                  text: "A8 Bilibili 真机 E2E 计划",
+                  link: "/A8_Bilibili_E2E_Plan",
+                },
+                { text: "A8 Weibo 真机 E2E 计划", link: "/A8_Weibo_E2E_Plan" },
+                {
+                  text: "A8 Douyin 真机 E2E 计划",
+                  link: "/A8_Douyin_E2E_Plan",
+                },
+                {
+                  text: "A8 Xiaohongshu 真机 E2E 计划",
+                  link: "/A8_Xhs_E2E_Plan",
+                },
+                {
+                  text: "A8 Toutiao 真机 E2E 计划",
+                  link: "/A8_Toutiao_E2E_Plan",
+                },
+                {
+                  text: "A8 Kuaishou 真机 E2E 计划",
+                  link: "/A8_Kuaishou_E2E_Plan",
+                },
+              ],
+            },
+            {
+              text: "真机采集验收",
+              collapsed: true,
+              items: [
+                {
+                  text: "PDH Bilibili C 路径 (PC ADB) 真机 E2E",
+                  link: "/PDH_Bilibili_C_Path_Real_Device_E2E",
+                },
+                {
+                  text: "PDH Bilibili Mode B (Android in-APK root) 真机 E2E",
+                  link: "/PDH_Bilibili_Mode_B_Real_Device_E2E",
+                },
+                {
+                  text: "PDH Weibo Mode B (Android in-APK root) 真机 E2E",
+                  link: "/PDH_Weibo_Mode_B_Real_Device_E2E",
+                },
+                {
+                  text: "PDH Weibo C 路径 真机 E2E",
+                  link: "/PDH_Weibo_Real_Device_E2E",
+                },
+                {
+                  text: "PDH Xiaohongshu C 路径 真机 E2E",
+                  link: "/PDH_Xhs_Real_Device_E2E",
+                },
+                {
+                  text: "PDH Douyin 真机 E2E",
+                  link: "/PDH_Douyin_Real_Device_E2E",
+                },
+                {
+                  text: "PDH Toutiao C 路径 真机 E2E",
+                  link: "/PDH_Toutiao_C_Path_Real_Device_E2E",
+                },
+                {
+                  text: "PDH Kuaishou C 路径 真机 E2E",
+                  link: "/PDH_Kuaishou_C_Path_Real_Device_E2E",
+                },
+                {
+                  text: "PDH Mode B Toutiao+Douyin 真机 E2E",
+                  link: "/PDH_Mode_B_Toutiao_Douyin_Real_Device_E2E",
+                },
+              ],
+            },
+            {
+              text: "知识与采集模块",
+              collapsed: true,
+              items: [
+                { text: "01 知识库管理", link: "/modules/m01-knowledge-base" },
+                {
+                  text: "48 层次化记忆2.0",
+                  link: "/modules/m48-hierarchical-memory",
+                },
+                { text: "59 企业知识图谱", link: "/modules/m59-enterprise-kg" },
+                {
+                  text: "101b QQNT Frida 采集方案",
+                  link: "/modules/m101b-qqnt-frida-collection",
+                },
+              ],
+            },
+          ],
+        },
+        {
+          text: "桌面、Web 与移动端",
+          collapsed: true,
+          items: [
+            {
+              text: "桌面与 Web 模块",
+              collapsed: true,
+              items: [
+                { text: "73 Web管理界面", link: "/modules/m73-web-ui" },
+                {
+                  text: "75 Vue3 Web管理面板 10模块+4主题",
+                  link: "/modules/m75-web-panel",
+                },
+                {
+                  text: "97 桌面版 UI · Claude-Desktop 重构",
+                  link: "/modules/m97-claude-desktop-refactor",
+                },
+              ],
+            },
+            {
+              text: "桌面架构与交互",
+              collapsed: true,
+              items: [
+                {
+                  text: "桌面版 UI 重构 (v6 Shell P0–P6)",
+                  link: "/desktop-ui-refactor",
+                },
+                {
+                  text: "工具卡 + TodoWrite 面板落地方案",
+                  link: "/claudebox-learning-plan",
+                },
+              ],
+            },
+            {
+              text: "移动端与远程控制",
+              collapsed: true,
+              items: [
+                { text: "Phase 3d 移动端同步", link: "/phase3d-mobile-sync" },
+                {
+                  text: "Android v1.0 重新定位 (L1+L2+L3)",
+                  link: "/android-repositioning",
+                },
+                {
+                  text: "Android Remote Operate Plan C (signaling forward)",
+                  link: "/Android_Remote_Operate_Plan_C",
+                },
+                {
+                  text: "Android Remote Terminal Plan A (PTY 远程操控)",
+                  link: "/Android_Remote_Terminal_Plan_A",
+                },
+                {
+                  text: "Android AI Chat × cc-exec Tool (Phase 0 MVP)",
+                  link: "/Android_AI_Chat_CC_Exec_Tool",
+                },
+                {
+                  text: "Android AI Chat × cc-exec — Phase 5.8 E2E SOP",
+                  link: "/Android_AI_Chat_CC_Exec_Phase_5_8_E2E_SOP",
+                },
+                {
+                  text: "Android AI Chat × cc-exec — Phase 5.8 Checklist",
+                  link: "/Android_AI_Chat_CC_Exec_Phase_5_8_Checklist",
+                },
+              ],
+            },
+            {
+              text: "浏览器与任务接力",
+              collapsed: true,
+              items: [
+                {
+                  text: "IDE 任务记录与新会话交接",
+                  link: "/ide-task-worklog-handoff",
+                },
+                { text: "浏览器扩展规划", link: "/BROWSER_EXTENSION_PLAN" },
+              ],
+            },
+          ],
+        },
+        {
+          text: "核心能力与基础设施",
+          collapsed: true,
+          items: [
+            {
+              text: "基础模块（02–16）",
+              collapsed: true,
+              items: [
+                {
+                  text: "02 去中心化社交",
+                  link: "/modules/m02-decentralized-social",
+                },
+                { text: "03 交易辅助", link: "/modules/m03-trading-assistant" },
+                {
+                  text: "04 项目管理",
+                  link: "/modules/m04-project-management",
+                },
+                { text: "05 企业版组织", link: "/modules/m05-enterprise-org" },
+                { text: "06 AI优化系统", link: "/modules/m06-ai-optimization" },
+                {
+                  text: "07 性能优化系统",
+                  link: "/modules/m07-performance-optimization",
+                },
+                { text: "08 MCP与配置系统", link: "/modules/m08-mcp-config" },
+                {
+                  text: "09 浏览器自动化",
+                  link: "/modules/m09-browser-automation",
+                },
+                {
+                  text: "10 远程控制系统",
+                  link: "/modules/m10-remote-control",
+                },
+                {
+                  text: "11 企业审计系统",
+                  link: "/modules/m11-enterprise-audit",
+                },
+                {
+                  text: "12 插件市场系统",
+                  link: "/modules/m12-plugin-marketplace",
+                },
+                { text: "13 多代理系统", link: "/modules/m13-multi-agent" },
+                {
+                  text: "14 SSO企业认证",
+                  link: "/modules/m14-sso-enterprise-auth",
+                },
+                { text: "15 MCP SDK系统", link: "/modules/m15-mcp-sdk" },
+                { text: "16 AI技能系统", link: "/modules/m16-ai-skills" },
+              ],
+            },
+            {
+              text: "企业、社交与自动化（17–28）",
+              collapsed: true,
+              items: [
+                {
+                  text: "17 IPFS去中心化存储",
+                  link: "/modules/m17b-ipfs-storage",
+                },
+                {
+                  text: "18 P2P实时协作系统",
+                  link: "/modules/m18b-p2p-realtime-collab",
+                },
+                {
+                  text: "19 自治Agent Runner",
+                  link: "/modules/m19b-agent-runner",
+                },
+                {
+                  text: "20 模型量化系统",
+                  link: "/modules/m20b-model-quantization",
+                },
+                { text: "21 i18n国际化", link: "/modules/m21b-i18n" },
+                {
+                  text: "22 性能自动调优",
+                  link: "/modules/m22b-performance-tuning",
+                },
+                {
+                  text: "23 企业组织管理",
+                  link: "/modules/m23b-enterprise-org-mgmt",
+                },
+                {
+                  text: "24 去中心化Agent网络",
+                  link: "/modules/m24-decentralized-agent-network",
+                },
+                {
+                  text: "25 自治运维系统",
+                  link: "/modules/m25b-autonomous-ops",
+                },
+                {
+                  text: "26 开发流水线编排",
+                  link: "/modules/m26b-dev-pipeline",
+                },
+                {
+                  text: "27 多模态协作",
+                  link: "/modules/m27b-multimodal-collab",
+                },
+                {
+                  text: "28 自然语言编程",
+                  link: "/modules/m28b-nl-programming",
+                },
+                { text: "17 演化图谱系统", link: "/modules/m17-evomap" },
+                { text: "18 社交AI系统", link: "/modules/m18-social-ai" },
+                { text: "19 合规分类系统", link: "/modules/m19-compliance" },
+                {
+                  text: "20 企业用户配置系统",
+                  link: "/modules/m20-enterprise-provisioning",
+                },
+                { text: "21 统一密钥系统", link: "/modules/m21-unified-key" },
+                {
+                  text: "22 内容推荐系统",
+                  link: "/modules/m22-content-recommendation",
+                },
+                {
+                  text: "23 去中心化桥接系统",
+                  link: "/modules/m23-nostr-bridge",
+                },
+                {
+                  text: "24 数据防泄漏系统",
+                  link: "/modules/m24b-dlp-prevention",
+                },
+                { text: "25 安全信息事件管理系统", link: "/modules/m25-siem" },
+                {
+                  text: "26 社区治理系统",
+                  link: "/modules/m26-community-governance",
+                },
+                {
+                  text: "27 即时通讯集成系统",
+                  link: "/modules/m27-matrix-integration",
+                },
+                {
+                  text: "28 基础设施编排系统",
+                  link: "/modules/m28-infra-orchestration",
+                },
+              ],
+            },
+            {
+              text: "生产加固与生态（29–42）",
+              collapsed: true,
+              items: [
+                {
+                  text: "29 生产强化",
+                  link: "/modules/m29-production-hardening",
+                },
+                {
+                  text: "30 联邦强化系统",
+                  link: "/modules/m30-federation-hardening",
+                },
+                {
+                  text: "31 压力测试系统",
+                  link: "/modules/m31-stress-testing",
+                },
+                {
+                  text: "32 信誉优化系统",
+                  link: "/modules/m32-reputation-optimizer",
+                },
+                {
+                  text: "33 跨组织SLA管理系统",
+                  link: "/modules/m33-cross-org-sla",
+                },
+                { text: "34 技术学习引擎", link: "/modules/m34-tech-learning" },
+                {
+                  text: "35 自主开发者系统",
+                  link: "/modules/m35-autonomous-developer",
+                },
+                {
+                  text: "36 协作治理系统",
+                  link: "/modules/m36-collaboration-governance",
+                },
+                {
+                  text: "37 技能市场系统",
+                  link: "/modules/m37-skill-marketplace",
+                },
+                {
+                  text: "38 去中心化推理网络",
+                  link: "/modules/m38-decentralized-inference",
+                },
+                {
+                  text: "39 信任安全系统",
+                  link: "/modules/m39-trust-security",
+                },
+                {
+                  text: "40 协议融合系统",
+                  link: "/modules/m40-protocol-fusion",
+                },
+                {
+                  text: "41 去中心化基础设施",
+                  link: "/modules/m41-decentralized-infra",
+                },
+                {
+                  text: "42 演化图谱高级联邦",
+                  link: "/modules/m42-evomap-federation",
+                },
+              ],
+            },
+            {
+              text: "架构与 Agent 基础（43–52）",
+              collapsed: true,
+              items: [
+                {
+                  text: "43 IPC域分割与懒加载",
+                  link: "/modules/m43-ipc-domain-split",
+                },
+                {
+                  text: "44 共享资源层与DI容器",
+                  link: "/modules/m44-di-container",
+                },
+                {
+                  text: "45 数据库演进与迁移框架",
+                  link: "/modules/m45-database-migration",
+                },
+                { text: "46 A2A协议引擎", link: "/modules/m46-a2a-protocol" },
+                {
+                  text: "47 自主工作流编排器",
+                  link: "/modules/m47-workflow-orchestrator",
+                },
+                {
+                  text: "49 多模态感知层",
+                  link: "/modules/m49-multimodal-perception",
+                },
+                {
+                  text: "50 Agent经济系统",
+                  link: "/modules/m50-agent-economy",
+                },
+                {
+                  text: "51 代码生成Agent 2.0",
+                  link: "/modules/m51-code-agent",
+                },
+                {
+                  text: "52 Agent安全沙箱2.0",
+                  link: "/modules/m52-agent-sandbox",
+                },
+              ],
+            },
+            {
+              text: "Web3 与企业平台（53–65）",
+              collapsed: true,
+              items: [
+                { text: "53 零知识证明引擎", link: "/modules/m53-zkp-engine" },
+                { text: "54 跨链互操作协议", link: "/modules/m54-cross-chain" },
+                { text: "55 去中心化身份2.0", link: "/modules/m55-did-v2" },
+                {
+                  text: "56 隐私计算框架",
+                  link: "/modules/m56-privacy-computing",
+                },
+                { text: "57 DAO治理2.0", link: "/modules/m57-dao-governance" },
+                { text: "58 低代码平台", link: "/modules/m58-low-code" },
+                { text: "60 BI智能分析", link: "/modules/m60-bi-analytics" },
+                {
+                  text: "61 工作流自动化引擎",
+                  link: "/modules/m61-workflow-automation",
+                },
+                {
+                  text: "62 多租户SaaS引擎",
+                  link: "/modules/m62-multi-tenant-saas",
+                },
+                {
+                  text: "63 统一应用运行时",
+                  link: "/modules/m63-unified-runtime",
+                },
+                {
+                  text: "64 智能插件生态2.0",
+                  link: "/modules/m64-plugin-ecosystem",
+                },
+                {
+                  text: "65 自进化AI系统",
+                  link: "/modules/m65-self-evolving-ai",
+                },
+              ],
+            },
+            {
+              text: "编排与社交扩展",
+              collapsed: true,
+              items: [
+                {
+                  text: "74 AI编排层系统",
+                  link: "/modules/m74-orchestration-layer",
+                },
+                {
+                  text: "95 社交协议生态补齐方案",
+                  link: "/modules/m95-social-protocol-parity",
+                },
+              ],
+            },
+            {
+              text: "Hooks 扩展",
+              collapsed: true,
+              items: [{ text: "Hooks扩展系统", link: "/HOOKS_SYSTEM_DESIGN" }],
+            },
+          ],
+        },
+        {
           text: "MTC 默克尔树证书",
+          collapsed: true,
           items: [
             { text: "落地方案", link: "/mtc-landing-plan" },
             { text: "数据格式 v1", link: "/mtc-data-format-v1" },
-            {
-              text: "联邦治理 v1 ⭐NEW",
-              link: "/mtc-federation-governance-v1",
-            },
-            { text: "跨链桥设计 v1 ⭐NEW", link: "/mtc-cross-chain-bridge-v1" },
+            { text: "联邦治理 v1", link: "/mtc-federation-governance-v1" },
+            { text: "跨链桥设计 v1", link: "/mtc-cross-chain-bridge-v1" },
             { text: "v0.2 评审清单", link: "/mtc-review-checklist" },
           ],
         },
         {
-          text: "个人数据中台 ⭐NEW 专题",
-          items: [
-            {
-              text: "主架构（13-Phase 路线图）⭐",
-              link: "/Personal_Data_Hub_Architecture",
-            },
-            {
-              text: "Python Sidecar 设计（fork sjqz）",
-              link: "/Personal_Data_Hub_Python_Sidecar",
-            },
-            {
-              text: "EntityResolver 设计（跨源消歧）",
-              link: "/Personal_Data_Hub_EntityResolver",
-            },
-            {
-              text: "Phase 14 移动端原生入口 ⭐NEW",
-              link: "/Personal_Data_Hub_Phase_14_Mobile_Native_Entry",
-            },
-            {
-              text: "Phase 14.3 双端流式同步进度 + 审计回查",
-              link: "/Personal_Data_Hub_Phase_14_3_Sync_Audit_Streaming",
-            },
-            {
-              text: "E2E Runbook（真账号验收脚本）",
-              link: "/Personal_Data_Hub_E2E_Runbook",
-            },
-            {
-              text: "sjqz 对比分析（取舍依据）",
-              link: "/Personal_Data_Hub_sjqz_Comparison",
-            },
-            {
-              text: "Phase 11 Analysis Skills（5 内置分析） ✅",
-              link: "/Personal_Data_Hub_Analysis_Skills",
-            },
-            {
-              text: "v0.1 → v1 Fixture Pin 协议（方法论）",
-              link: "/Personal_Data_Hub_Fixture_Pin_Protocol",
-            },
-            {
-              text: "Adapter — Email (IMAP) ✅ 已上线",
-              link: "/Adapter_Email_IMAP",
-            },
-            {
-              text: "Adapter — 支付宝账单 ✅ 已上线",
-              link: "/Adapter_Alipay_Bill",
-            },
-            {
-              text: "Adapter — 系统数据（通讯录/通话/短信/WiFi）✅ Phase 4.5",
-              link: "/Adapter_System_Data",
-            },
-            {
-              text: "Adapter — Shopping 三件套（淘宝/京东/美团）✅ Phase 7",
-              link: "/Adapter_Shopping_Cookie",
-            },
-            {
-              text: "Adapter — Travel 四件套（高德/百度/携程/12306）✅ Phase 9",
-              link: "/Adapter_Travel_LBS",
-            },
-            {
-              text: "Adapter — AI 对话历史（9 家国产）✅ Phase 10.2 全 wired",
-              link: "/Adapter_AIChat_History",
-            },
-            {
-              text: "Adapter — 社交/即时通讯（7 家）✅ Phase 13",
-              link: "/Adapter_Social_Messaging",
-            },
-            {
-              text: "Adapter — 微信 SQLCipher 🚧 v0.5 frida-indep",
-              link: "/Adapter_WeChat_SQLCipher",
-            },
-            {
-              text: "微信 Frida Setup Runbook（rooted 用户）",
-              link: "/Adapter_WeChat_SQLCipher_Frida_Setup",
-            },
-            {
-              text: "Adapter — Social Cookie 模式（A8）⭐NEW",
-              link: "/Adapter_Social_Cookie",
-            },
-            {
-              text: "A8 Bilibili 真机 E2E 计划 ⭐NEW",
-              link: "/A8_Bilibili_E2E_Plan",
-            },
-            {
-              text: "A8 Weibo 真机 E2E 计划 ⭐NEW",
-              link: "/A8_Weibo_E2E_Plan",
-            },
-            {
-              text: "A8 Douyin 真机 E2E 计划 ⭐NEW",
-              link: "/A8_Douyin_E2E_Plan",
-            },
-            {
-              text: "A8 Xiaohongshu 真机 E2E 计划 ⭐NEW",
-              link: "/A8_Xhs_E2E_Plan",
-            },
-            {
-              text: "A8 Toutiao 真机 E2E 计划 ⭐NEW",
-              link: "/A8_Toutiao_E2E_Plan",
-            },
-            {
-              text: "A8 Kuaishou 真机 E2E 计划 ⭐NEW",
-              link: "/A8_Kuaishou_E2E_Plan",
-            },
-            {
-              text: "PDH Social 多路径本机采集方案 (Mode A/B/C) ⭐NEW",
-              link: "/PDH_Social_Multipath_Local_Collection_Plan",
-            },
-            {
-              text: "PDH Bilibili C 路径 (PC ADB) 真机 E2E ⭐NEW",
-              link: "/PDH_Bilibili_C_Path_Real_Device_E2E",
-            },
-            {
-              text: "PDH Bilibili Mode B (Android in-APK root) 真机 E2E ⭐NEW",
-              link: "/PDH_Bilibili_Mode_B_Real_Device_E2E",
-            },
-            {
-              text: "PDH Weibo DB Schema 探测 ⭐NEW",
-              link: "/PDH_Weibo_DB_Schema_Probe",
-            },
-            {
-              text: "PDH Weibo Mode B (Android in-APK root) 真机 E2E ⭐NEW",
-              link: "/PDH_Weibo_Mode_B_Real_Device_E2E",
-            },
-            {
-              text: "PDH Weibo C 路径 真机 E2E ⭐NEW",
-              link: "/PDH_Weibo_Real_Device_E2E",
-            },
-            {
-              text: "PDH Xiaohongshu C 路径 真机 E2E ⭐NEW",
-              link: "/PDH_Xhs_Real_Device_E2E",
-            },
-            {
-              text: "PDH Douyin 真机 E2E ⭐NEW",
-              link: "/PDH_Douyin_Real_Device_E2E",
-            },
-            {
-              text: "PDH Toutiao C 路径 真机 E2E ⭐NEW",
-              link: "/PDH_Toutiao_C_Path_Real_Device_E2E",
-            },
-            {
-              text: "PDH Kuaishou C 路径 真机 E2E ⭐NEW",
-              link: "/PDH_Kuaishou_C_Path_Real_Device_E2E",
-            },
-            {
-              text: "PDH Mode B Toutiao+Douyin 真机 E2E ⭐NEW",
-              link: "/PDH_Mode_B_Toutiao_Douyin_Real_Device_E2E",
-            },
-          ],
-        },
-        {
-          text: "扩展系统设计",
-          items: [
-            { text: "Hooks扩展系统", link: "/HOOKS_SYSTEM_DESIGN" },
-            { text: "浏览器扩展规划", link: "/BROWSER_EXTENSION_PLAN" },
-            {
-              text: "Minimal Coding Agent 实施计划 ⭐NEW",
-              link: "https://docs.chainlesschain.com/chainlesschain/minimal-coding-agent-plan",
-            },
-            {
-              text: "桌面版 UI 重构 (v6 Shell P0–P6) ⭐NEW",
-              link: "/desktop-ui-refactor",
-            },
-            {
-              text: "Phase 3d 移动端同步 ⭐",
-              link: "/phase3d-mobile-sync",
-            },
-            {
-              text: "Android v1.0 重新定位 (L1+L2+L3) ⭐NEW",
-              link: "/android-repositioning",
-            },
-            {
-              text: "Android Remote Operate Plan C (signaling forward) ⭐",
-              link: "/Android_Remote_Operate_Plan_C",
-            },
-            {
-              text: "Android Remote Terminal Plan A (PTY 远程操控) ⭐NEW",
-              link: "/Android_Remote_Terminal_Plan_A",
-            },
-            {
-              text: "Android AI Chat × cc-exec Tool (Phase 0 MVP)",
-              link: "/Android_AI_Chat_CC_Exec_Tool",
-            },
-            {
-              text: "Android AI Chat × cc-exec — Phase 5.8 E2E SOP ⭐NEW",
-              link: "/Android_AI_Chat_CC_Exec_Phase_5_8_E2E_SOP",
-            },
-            {
-              text: "Android AI Chat × cc-exec — Phase 5.8 Checklist ⭐NEW",
-              link: "/Android_AI_Chat_CC_Exec_Phase_5_8_Checklist",
-            },
-          ],
-        },
-        {
-          text: "核心模块 (01-08)",
-          collapsed: false,
-          items: [
-            {
-              text: "01 知识库管理",
-              link: "/modules/m01-knowledge-base",
-            },
-            {
-              text: "02 去中心化社交",
-              link: "/modules/m02-decentralized-social",
-            },
-            {
-              text: "03 交易辅助",
-              link: "/modules/m03-trading-assistant",
-            },
-            {
-              text: "04 项目管理 ⭐",
-              link: "/modules/m04-project-management",
-            },
-            {
-              text: "05 企业版组织",
-              link: "/modules/m05-enterprise-org",
-            },
-            {
-              text: "06 AI优化系统",
-              link: "/modules/m06-ai-optimization",
-            },
-            {
-              text: "07 性能优化系统",
-              link: "/modules/m07-performance-optimization",
-            },
-            { text: "08 MCP与配置系统", link: "/modules/m08-mcp-config" },
-          ],
-        },
-        {
-          text: "扩展模块 (09-16)",
-          collapsed: false,
-          items: [
-            {
-              text: "09 浏览器自动化",
-              link: "/modules/m09-browser-automation",
-            },
-            {
-              text: "10 远程控制系统",
-              link: "/modules/m10-remote-control",
-            },
-            {
-              text: "11 企业审计系统",
-              link: "/modules/m11-enterprise-audit",
-            },
-            {
-              text: "12 插件市场系统",
-              link: "/modules/m12-plugin-marketplace",
-            },
-            { text: "13 多代理系统", link: "/modules/m13-multi-agent" },
-            {
-              text: "14 SSO企业认证",
-              link: "/modules/m14-sso-enterprise-auth",
-            },
-            { text: "15 MCP SDK系统", link: "/modules/m15-mcp-sdk" },
-            { text: "16 AI技能系统", link: "/modules/m16-ai-skills" },
-          ],
-        },
-        {
-          text: "v1.0.0 — 企业与基础增强 (17-23)",
+          text: "历史记录与归档",
           collapsed: true,
           items: [
             {
-              text: "17 IPFS去中心化存储 ⭐",
-              link: "/modules/m17b-ipfs-storage",
+              text: "运行时设计记录",
+              collapsed: true,
+              items: [
+                {
+                  text: "CLI .132 响应终态与当前任务保护",
+                  link: "/release-runtime-update-2026-10-30-132",
+                },
+                {
+                  text: "2026-10-29 CLI .131 独立验收与运行时设计",
+                  link: "/release-runtime-update-2026-10-29-131",
+                },
+                {
+                  text: "2026-10-29 CLI .130 Goal 与主线边界（历史）",
+                  link: "/release-runtime-update-2026-10-29-130",
+                },
+                {
+                  text: "2026-10-29 CLI .129 公开配对与源码范围（历史）",
+                  link: "/release-runtime-update-2026-10-29",
+                },
+                {
+                  text: "2026-10-28 Goal 证据与交付复查（历史）",
+                  link: "/release-runtime-update-2026-10-28",
+                },
+                {
+                  text: "2026-10-26 v6 文本投影（历史）",
+                  link: "/release-runtime-update-2026-10-26",
+                },
+                {
+                  text: "2026-10-23 Evolution 输入、图片预算与恢复（历史）",
+                  link: "/release-runtime-update-2026-10-23",
+                },
+                {
+                  text: "2026-10-20 目标互通与诊断预算边界",
+                  link: "/release-runtime-update-2026-10-20",
+                },
+                {
+                  text: "2026-10-17 会话预算与 IDE 恢复",
+                  link: "/release-runtime-update-2026-10-17",
+                },
+                {
+                  text: "2026-10-16 预算边界与模型分层",
+                  link: "/release-runtime-update-2026-10-16",
+                },
+                {
+                  text: "2026-10-15 上下文压缩与发行",
+                  link: "/release-runtime-update-2026-10-15",
+                },
+                {
+                  text: "2026-10-13 CLI / IDE 有界重试与发行",
+                  link: "/release-runtime-update-2026-10-13",
+                },
+                {
+                  text: "2026-10-10 CLI / IDE 与 Windows 取证",
+                  link: "/release-runtime-update-2026-10-10",
+                },
+                {
+                  text: "2026-10-08 组织目标与运行时保护",
+                  link: "/governance-runtime-update-2026-10-08",
+                },
+                {
+                  text: "2026-10-08 发行历史核对",
+                  link: "/release-runtime-update-2026-10-08-latest",
+                },
+                {
+                  text: "2026-10-07 持久目标与 RRSI 设计",
+                  link: "/project-goals-rrsi-update-2026-10-07",
+                },
+                {
+                  text: "2026-10-06 数据与受控动作设计",
+                  link: "/data-actions-update-2026-10-06",
+                },
+                {
+                  text: "2026-10-05 CLI/IDE 运行时设计",
+                  link: "/agent-runtime-update-2026-10-05",
+                },
+                {
+                  text: "2026-09-26 运行时与评测证据",
+                  link: "/agent-runtime-update-2026-09-26",
+                },
+              ],
             },
             {
-              text: "18 P2P实时协作系统 ⭐",
-              link: "/modules/m18b-p2p-realtime-collab",
-            },
-            {
-              text: "19 自治Agent Runner ⭐",
-              link: "/modules/m19b-agent-runner",
-            },
-            {
-              text: "20 模型量化系统 ⭐",
-              link: "/modules/m20b-model-quantization",
-            },
-            { text: "21 i18n国际化 ⭐", link: "/modules/m21b-i18n" },
-            {
-              text: "22 性能自动调优 ⭐",
-              link: "/modules/m22b-performance-tuning",
-            },
-            {
-              text: "23 企业组织管理 ⭐",
-              link: "/modules/m23b-enterprise-org-mgmt",
-            },
-          ],
-        },
-        {
-          text: "v1.1.0 — 全栈智能化 (24-28)",
-          collapsed: true,
-          items: [
-            {
-              text: "24 去中心化Agent网络 ⭐",
-              link: "/modules/m24-decentralized-agent-network",
-            },
-            {
-              text: "25 自治运维系统 ⭐",
-              link: "/modules/m25b-autonomous-ops",
-            },
-            {
-              text: "26 开发流水线编排 ⭐",
-              link: "/modules/m26b-dev-pipeline",
-            },
-            {
-              text: "27 多模态协作 ⭐",
-              link: "/modules/m27b-multimodal-collab",
-            },
-            {
-              text: "28 自然语言编程 ⭐",
-              link: "/modules/m28b-nl-programming",
-            },
-          ],
-        },
-        {
-          text: "Phase 41-45 — 演化图谱与企业增强",
-          collapsed: true,
-          items: [
-            { text: "17 演化图谱系统", link: "/modules/m17-evomap" },
-            { text: "18 社交AI系统", link: "/modules/m18-social-ai" },
-            { text: "19 合规分类系统", link: "/modules/m19-compliance" },
-            {
-              text: "20 企业用户配置系统",
-              link: "/modules/m20-enterprise-provisioning",
-            },
-            { text: "21 统一密钥系统", link: "/modules/m21-unified-key" },
-          ],
-        },
-        {
-          text: "Phase 48-56 — 安全与社交扩展",
-          collapsed: true,
-          items: [
-            {
-              text: "22 内容推荐系统",
-              link: "/modules/m22-content-recommendation",
-            },
-            {
-              text: "23 去中心化桥接系统",
-              link: "/modules/m23-nostr-bridge",
-            },
-            {
-              text: "24 数据防泄漏系统",
-              link: "/modules/m24b-dlp-prevention",
-            },
-            {
-              text: "25 安全信息事件管理系统",
-              link: "/modules/m25-siem",
-            },
-            {
-              text: "26 社区治理系统",
-              link: "/modules/m26-community-governance",
-            },
-            {
-              text: "27 即时通讯集成系统",
-              link: "/modules/m27-matrix-integration",
-            },
-            {
-              text: "28 基础设施编排系统",
-              link: "/modules/m28-infra-orchestration",
+              text: "原始完整文档",
+              collapsed: true,
+              items: [{ text: "原始完整文档", link: "/system-design-full" }],
             },
           ],
-        },
-        {
-          text: "Phase 57-61 — v2.0 生产加固",
-          collapsed: true,
-          items: [
-            {
-              text: "29 生产强化",
-              link: "/modules/m29-production-hardening",
-            },
-            {
-              text: "30 联邦强化系统",
-              link: "/modules/m30-federation-hardening",
-            },
-            {
-              text: "31 压力测试系统",
-              link: "/modules/m31-stress-testing",
-            },
-            {
-              text: "32 信誉优化系统",
-              link: "/modules/m32-reputation-optimizer",
-            },
-            {
-              text: "33 跨组织SLA管理系统",
-              link: "/modules/m33-cross-org-sla",
-            },
-          ],
-        },
-        {
-          text: "Phase 62-64 — v3.0 自主AI开发",
-          collapsed: true,
-          items: [
-            {
-              text: "34 技术学习引擎",
-              link: "/modules/m34-tech-learning",
-            },
-            {
-              text: "35 自主开发者系统",
-              link: "/modules/m35-autonomous-developer",
-            },
-            {
-              text: "36 协作治理系统",
-              link: "/modules/m36-collaboration-governance",
-            },
-          ],
-        },
-        {
-          text: "Phase 65-71 — v3.1-v3.2 市场与安全生态",
-          collapsed: true,
-          items: [
-            {
-              text: "37 技能市场系统",
-              link: "/modules/m37-skill-marketplace",
-            },
-            {
-              text: "38 去中心化推理网络",
-              link: "/modules/m38-decentralized-inference",
-            },
-            {
-              text: "39 信任安全系统",
-              link: "/modules/m39-trust-security",
-            },
-          ],
-        },
-        {
-          text: "Phase 72-77 — v3.3-v3.4 协议融合与演化图谱",
-          collapsed: true,
-          items: [
-            {
-              text: "40 协议融合系统",
-              link: "/modules/m40-protocol-fusion",
-            },
-            {
-              text: "41 去中心化基础设施",
-              link: "/modules/m41-decentralized-infra",
-            },
-            {
-              text: "42 演化图谱高级联邦",
-              link: "/modules/m42-evomap-federation",
-            },
-          ],
-        },
-        {
-          text: "v5.0.0 Milestone 1 — 架构重构基座 (43-45)",
-          collapsed: true,
-          items: [
-            {
-              text: "43 IPC域分割与懒加载",
-              link: "/modules/m43-ipc-domain-split",
-            },
-            {
-              text: "44 共享资源层与DI容器",
-              link: "/modules/m44-di-container",
-            },
-            {
-              text: "45 数据库演进与迁移框架",
-              link: "/modules/m45-database-migration",
-            },
-          ],
-        },
-        {
-          text: "v5.0.0 Milestone 2 — AI Agent 2.0 (46-52)",
-          collapsed: true,
-          items: [
-            {
-              text: "46 A2A协议引擎",
-              link: "/modules/m46-a2a-protocol",
-            },
-            {
-              text: "47 自主工作流编排器",
-              link: "/modules/m47-workflow-orchestrator",
-            },
-            {
-              text: "48 层次化记忆2.0",
-              link: "/modules/m48-hierarchical-memory",
-            },
-            {
-              text: "49 多模态感知层",
-              link: "/modules/m49-multimodal-perception",
-            },
-            {
-              text: "50 Agent经济系统",
-              link: "/modules/m50-agent-economy",
-            },
-            {
-              text: "51 代码生成Agent 2.0",
-              link: "/modules/m51-code-agent",
-            },
-            {
-              text: "52 Agent安全沙箱2.0",
-              link: "/modules/m52-agent-sandbox",
-            },
-          ],
-        },
-        {
-          text: "v5.0.0 Milestone 3 — Web3深化 (53-57)",
-          collapsed: true,
-          items: [
-            {
-              text: "53 零知识证明引擎",
-              link: "/modules/m53-zkp-engine",
-            },
-            {
-              text: "54 跨链互操作协议",
-              link: "/modules/m54-cross-chain",
-            },
-            {
-              text: "55 去中心化身份2.0",
-              link: "/modules/m55-did-v2",
-            },
-            {
-              text: "56 隐私计算框架",
-              link: "/modules/m56-privacy-computing",
-            },
-            {
-              text: "57 DAO治理2.0",
-              link: "/modules/m57-dao-governance",
-            },
-          ],
-        },
-        {
-          text: "v5.0.0 Milestone 4 — 企业级平台 (58-62)",
-          collapsed: true,
-          items: [
-            { text: "58 低代码平台", link: "/modules/m58-low-code" },
-            {
-              text: "59 企业知识图谱",
-              link: "/modules/m59-enterprise-kg",
-            },
-            {
-              text: "60 BI智能分析",
-              link: "/modules/m60-bi-analytics",
-            },
-            {
-              text: "61 工作流自动化引擎",
-              link: "/modules/m61-workflow-automation",
-            },
-            {
-              text: "62 多租户SaaS引擎",
-              link: "/modules/m62-multi-tenant-saas",
-            },
-          ],
-        },
-        {
-          text: "v5.0.0 Milestone 5 — 生态融合 (63-65)",
-          collapsed: true,
-          items: [
-            {
-              text: "63 统一应用运行时",
-              link: "/modules/m63-unified-runtime",
-            },
-            {
-              text: "64 智能插件生态2.0",
-              link: "/modules/m64-plugin-ecosystem",
-            },
-            {
-              text: "65 自进化AI系统",
-              link: "/modules/m65-self-evolving-ai",
-            },
-          ],
-        },
-        {
-          text: "v5.0.1 CLI 分发与高级功能 (66-71)",
-          collapsed: false,
-          items: [
-            {
-              text: "66 CLI分发系统",
-              link: "/modules/m66-cli-distribution",
-            },
-            {
-              text: "67 CLI高级功能补齐 ⭐",
-              link: "/modules/m67-cli-advanced",
-            },
-            {
-              text: "68 CLI-Anything集成 ⭐",
-              link: "/modules/m68-cli-anything",
-            },
-            {
-              text: "69 WebSocket服务器接口 ⭐",
-              link: "/modules/m69-websocket-server",
-            },
-            {
-              text: "70 Agent智能增强系统 ⭐",
-              link: "/modules/m70-agent-intelligence",
-            },
-            {
-              text: "71 子代理隔离系统 ⭐",
-              link: "/modules/m71-sub-agent-isolation",
-            },
-          ],
-        },
-        {
-          text: "v5.0.2 CLI技能包与AI模板 (60b, 71b, 72)",
-          collapsed: false,
-          items: [
-            {
-              text: "60b CLI指令技能包系统 ⭐",
-              link: "/modules/m60b-cli-skill-packs",
-            },
-            {
-              text: "71b AI音视频创作模板 ⭐",
-              link: "/modules/m71b-ai-media-creator",
-            },
-            {
-              text: "72 AI文档创作模板 ⭐",
-              link: "/modules/m72-ai-doc-creator",
-            },
-          ],
-        },
-        {
-          text: "v5.0.2.49 CLI 项目打包 ⭐NEW",
-          collapsed: false,
-          items: [
-            {
-              text: "cc pack 打包指令设计 ⭐NEW",
-              link: "/cc-pack-design",
-            },
-            {
-              text: "cc pack --project 项目模式 ⭐NEW",
-              link: "/cc-pack-project-mode-design",
-            },
-          ],
-        },
-        {
-          text: "CLI 对标 Claude Code 优化计划 ⭐NEW",
-          collapsed: false,
-          items: [
-            {
-              text: "Phase 1-7 优化计划（沙箱/LSP/插件/Team/远控/Hooks/评测）",
-              link: "/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN",
-            },
-          ],
-        },
-        {
-          text: "ClaudeBox 学习方案",
-          collapsed: true,
-          items: [
-            {
-              text: "工具卡 + TodoWrite 面板落地方案",
-              link: "/claudebox-learning-plan",
-            },
-          ],
-        },
-        {
-          text: "v5.0.2.2 Web管理界面 (73)",
-          collapsed: false,
-          items: [
-            {
-              text: "73 Web管理界面",
-              link: "/modules/m73-web-ui",
-            },
-          ],
-        },
-        {
-          text: "v5.0.2.4 AI编排层 (74)",
-          collapsed: false,
-          items: [
-            {
-              text: "74 AI编排层系统",
-              link: "/modules/m74-orchestration-layer",
-            },
-          ],
-        },
-        {
-          text: "v5.0.2.8 Web管理面板 10模块+4主题 (75) ⭐NEW",
-          collapsed: false,
-          items: [
-            {
-              text: "75 Vue3 Web管理面板 10模块+4主题 ⭐NEW",
-              link: "/modules/m75-web-panel",
-            },
-          ],
-        },
-        {
-          text: "v5.0.2.7 Skill Creator (76)",
-          collapsed: false,
-          items: [
-            {
-              text: "76 Skill Creator系统",
-              link: "/modules/m76-skill-creator",
-            },
-          ],
-        },
-        {
-          text: "当前 Agent / CLI / IDE 主线 (77-106)",
-          collapsed: false,
-          items: [
-            {
-              text: "77 Agent 架构优化系统",
-              link: "/modules/m77-agent-optimization",
-            },
-            {
-              text: "78 CLI Agent Runtime 重构实施计划",
-              link: "/modules/m78-cli-agent-runtime",
-            },
-            {
-              text: "CLI Runtime 当前实现与源码候选 ⭐NEW",
-              link: "/cli-runtime-current",
-            },
-            {
-              text: "79 Coding Agent 系统",
-              link: "/modules/m79-coding-agent",
-            },
-            {
-              text: "80 规范工作流系统",
-              link: "/modules/m80-canonical-workflow",
-            },
-            {
-              text: "81 轻量多Agent编排系统",
-              link: "/modules/m81-sub-runtime-pool",
-            },
-            {
-              text: "82 CLI Runtime 收口路线图",
-              link: "/modules/m82-cli-runtime-convergence",
-            },
-            {
-              text: "83 工具描述规范统一",
-              link: "/modules/m83-tool-descriptor-unification",
-            },
-            {
-              text: "84 自主学习闭环系统",
-              link: "/modules/m84-autonomous-learning-loop",
-            },
-            {
-              text: "85 Hermes Agent对标实施方案",
-              link: "/modules/m85-hermes-agent-parity",
-            },
-            {
-              text: "85b 文档代码差距补全",
-              link: "/modules/m85b-doc-code-gap-fill",
-            },
-            {
-              text: "86 Web Cowork日常任务协作系统",
-              link: "/modules/m86-web-cowork",
-            },
-            {
-              text: "87 Cowork Evolution N1-N7",
-              link: "/modules/m87-cowork-evolution",
-            },
-            {
-              text: "88 OpenAgents对标补齐方案",
-              link: "/modules/m88-open-agents-parity",
-            },
-            {
-              text: "89 v5.0.2.9 六项优化设计说明",
-              link: "/modules/m89-runtime-six-enhancements",
-            },
-            {
-              text: "90 AI视频生成 Volcengine Seedance",
-              link: "/modules/m90-ai-video-generation-seedance",
-            },
-            {
-              text: "91 Managed Agents对标计划",
-              link: "/modules/m91-managed-agents-parity",
-            },
-            {
-              text: "92 Deep Agents Deploy 借鉴落地方案",
-              link: "/modules/m92-deep-agents-deploy",
-            },
-            {
-              text: "93 CutClaw借鉴 视频剪辑Agent",
-              link: "/modules/m93-cutclaw-video-editing-agent",
-            },
-            {
-              text: "94 QualityGate 通用质量门控",
-              link: "/modules/m94-quality-gate",
-            },
-            {
-              text: "95 社交协议生态补齐方案 ⭐NEW",
-              link: "/modules/m95-social-protocol-parity",
-            },
-            {
-              text: "96 V2 规范层 Governance ⭐NEW",
-              link: "/modules/m96-v2-governance",
-            },
-            {
-              text: "97 桌面版 UI · Claude-Desktop 重构 ⭐NEW",
-              link: "/modules/m97-claude-desktop-refactor",
-            },
-            {
-              text: "98 IDE 桥接对标方案 ⭐NEW",
-              link: "/modules/m98-ide-bridge",
-            },
-            {
-              text: "99 项目记忆与 init 对标方案 ⭐NEW",
-              link: "/modules/m99-project-memory-init",
-            },
-            {
-              text: "100 自定义斜杠命令与宏系统 ⭐NEW",
-              link: "/modules/m100-slash-commands-macros",
-            },
-            {
-              text: "101 个人数据 IDE 桥接方案 ⭐NEW",
-              link: "/modules/m101-personal-data-ide-bridge",
-            },
-            {
-              text: "101b QQNT Frida 采集方案 ⭐NEW",
-              link: "/modules/m101b-qqnt-frida-collection",
-            },
-            {
-              text: "102 Remote Session 方案 ⭐NEW",
-              link: "/modules/m102-remote-session",
-            },
-            {
-              text: "103 Agent SDK 平台化方案 ⭐NEW",
-              link: "/modules/m103-agent-sdk-platform",
-            },
-            {
-              text: "104 CC App Server 设计 ⭐NEW",
-              link: "/modules/m104-cc-app-server",
-            },
-            {
-              text: "105 Graph Kernel 设计 ⭐NEW",
-              link: "/modules/m105-graph-kernel",
-            },
-            {
-              text: "106 Agent Kernel 设计 ⭐NEW",
-              link: "/modules/m106-agent-kernel",
-            },
-            {
-              text: "107 单一协议 Schema 与自动代码生成 ⭐NEW",
-              link: "/modules/m107-agent-protocol-codegen",
-            },
-            {
-              text: "108 Context/Memory Kernel 设计 ⭐NEW",
-              link: "/modules/m108-context-memory-kernel",
-            },
-            {
-              text: "109 Desktop Cowork Skill 执行安全 ⭐NEW",
-              link: "/modules/109_Desktop_Cowork_Skill_Execution_Security",
-            },
-            {
-              text: "110 Agent Platform 发布与证据边界 ⭐NEW",
-              link: "/modules/110-agent-platform-release-boundaries",
-            },
-            {
-              text: "111 Record & Replay → Skill 设计 ✅",
-              link: "/modules/111-record-replay-skill-design",
-            },
-            {
-              text: "112 受治理的 Skill 自进化设计 ⭐NEW",
-              link: "/modules/112-governed-skill-evolution-design",
-            },
-            {
-              text: "113 Desktop 受治理模型入口 ⭐NEW",
-              link: "/modules/113-governed-desktop-model-ingress-design",
-            },
-            {
-              text: "114 Jev 类型化 Skill 决策层 ⭐NEW",
-              link: "/modules/114-jev-decision-layer-design",
-            },
-          ],
-        },
-        {
-          text: "归档",
-          collapsed: true,
-          items: [{ text: "原始完整文档", link: "/system-design-full" }],
         },
       ],
     },
