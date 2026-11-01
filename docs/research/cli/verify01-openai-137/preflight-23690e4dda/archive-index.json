@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "source": "23690e4ddafa3bd2c4d899e091b76589b5a51287",
+  "stage": "driver-preflight-before-generation",
+  "modelRequests": 0,
+  "candidatesGenerated": 0,
+  "scoredSamples": 0,
+  "credentialsRemoved": true,
+  "correctedDriverTests": 144,
+  "correctedDriverPassed": 144,
+  "files": [
+    {
+      "path": "dispatch.raw.json",
+      "digest": "sha256:2c9934e01e2bbe534dee1a974ce1f1484571eeee6a3424cbaca80236294c44c3",
+      "bytes": 2871
+    },
+    {
+      "path": "status.raw.json",
+      "digest": "sha256:9bb1db029a3487abcaca0b238077fc70e345283fd5080b6bba4cf5a7cafddc07",
+      "bytes": 2368
+    },
+    {
+      "path": "secret-cleanup.raw.json",
+      "digest": "sha256:af308b08f83a78bba34da8c5857f45d8617d3a11e523a05d6c8987a1760fd445",
+      "bytes": 1625
+    },
+    {
+      "path": "corrected-driver-preflight.raw.tap",
+      "digest": "sha256:df4dd79f905cc6cab6bb4aee705a7eea6f9fffc4376d2fbb3adb3aa2a2d4463f",
+      "bytes": 32079
+    }
+  ]
+}

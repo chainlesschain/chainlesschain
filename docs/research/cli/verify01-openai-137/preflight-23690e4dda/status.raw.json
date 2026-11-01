@@ -1,0 +1,100 @@
+{
+  "checkedAt": "2026-11-01T00:43:53.435Z",
+  "source": "23690e4ddafa3bd2c4d899e091b76589b5a51287",
+  "scope": "fresh-repaired-source-five-before-release",
+  "runs": [
+    {
+      "group": "darwin-vscode",
+      "samples": [
+        "verify-08",
+        "first-run-darwin-vscode"
+      ],
+      "runId": 41257662961,
+      "status": "completed",
+      "conclusion": "failure",
+      "counts": {
+        "failure": 1,
+        "skipped": 2
+      },
+      "active": [],
+      "failures": [
+        {
+          "id": 124704177473,
+          "name": "validate",
+          "step": "Validate exact sample selection, candidate binding and host controls",
+          "conclusion": "failure"
+        }
+      ],
+      "allGenerationCompleted": true
+    },
+    {
+      "group": "linux-cli",
+      "samples": [
+        "verify-13"
+      ],
+      "runId": 41257698029,
+      "status": "completed",
+      "conclusion": "failure",
+      "counts": {
+        "failure": 1,
+        "skipped": 2
+      },
+      "active": [],
+      "failures": [
+        {
+          "id": 124704285069,
+          "name": "validate",
+          "step": "Validate exact sample selection, candidate binding and host controls",
+          "conclusion": "failure"
+        }
+      ],
+      "allGenerationCompleted": true
+    },
+    {
+      "group": "win32-cli",
+      "samples": [
+        "verify-19"
+      ],
+      "runId": 41257727689,
+      "status": "completed",
+      "conclusion": "failure",
+      "counts": {
+        "failure": 1,
+        "skipped": 2
+      },
+      "active": [],
+      "failures": [
+        {
+          "id": 124704376365,
+          "name": "validate",
+          "step": "Validate exact sample selection, candidate binding and host controls",
+          "conclusion": "failure"
+        }
+      ],
+      "allGenerationCompleted": true
+    },
+    {
+      "group": "darwin-jetbrains",
+      "samples": [
+        "verify-36"
+      ],
+      "runId": 41257738216,
+      "status": "completed",
+      "conclusion": "failure",
+      "counts": {
+        "failure": 1,
+        "skipped": 2
+      },
+      "active": [],
+      "failures": [
+        {
+          "id": 124704407819,
+          "name": "validate",
+          "step": "Validate exact sample selection, candidate binding and host controls",
+          "conclusion": "failure"
+        }
+      ],
+      "allGenerationCompleted": true
+    }
+  ]
+}

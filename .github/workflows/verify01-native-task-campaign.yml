@@ -77,7 +77,6 @@ env:
   NATIVE_PROVIDER: ${{ inputs.provider || 'volcengine' }}
   NATIVE_PACKAGE_SET: ${{ inputs.package_set || 'latest' }}
   NATIVE_PACKAGE_SET_FILE: ${{ inputs.package_set_file || 'docs/research/cli/verify01-package-sets/2026-10-18-latest.json' }}
-  NATIVE_PROJECT_REVISION_FILE: ${{ inputs.project_revision_file || '' }}
 
 jobs:
   validate:
@@ -134,6 +133,7 @@ jobs:
           SAMPLE_SELECTION: ${{ inputs.sample_ids }}
           PACKAGE_SET_SELECTION: ${{ inputs.package_set || 'latest' }}
           FETCH_DIAGNOSTICS: ${{ inputs.fetch_diagnostics && 'true' || 'false' }}
+          NATIVE_PROJECT_REVISION_FILE: ${{ inputs.project_revision_file || '' }}
           OPENAI_API_KEY: ${{ inputs.provider == 'openai' && secrets.OPENAI_API_KEY || '' }}
         run: |
           node --input-type=module <<'NODE'
@@ -292,6 +292,7 @@ jobs:
           NATIVE_SAMPLES: ${{ matrix.sample_ids || inputs.sample_ids }}
           FETCH_DIAGNOSTICS: ${{ inputs.fetch_diagnostics && 'true' || 'false' }}
           REVIEW_CHANGES: ${{ inputs.review_changes && 'true' || 'false' }}
+          NATIVE_PROJECT_REVISION_FILE: ${{ inputs.project_revision_file || '' }}
         run: |
           display=()
           selection=()
@@ -386,6 +387,7 @@ jobs:
           EXECUTION_SOURCE_SHA: ${{ inputs.accept_existing_commit || github.sha }}
           CHECKER_SOURCE_SHA: ${{ github.sha }}
           NATIVE_SAMPLES: ${{ matrix.sample_ids || inputs.sample_ids }}
+          NATIVE_PROJECT_REVISION_FILE: ${{ inputs.project_revision_file || '' }}
         shell: bash
         run: |
           selection=()

@@ -71,3 +71,7 @@ docs/research/cli/verify01-openai-136/read-delivery-repair/**
 # Preserve repaired-source follow-up raw preflight evidence.
 docs/research/cli/verify01-openai-137/*.raw.json
 docs/research/cli/verify01-openai-137/preflight-index.json
+
+# Preserve zero-model driver-preflight receipts.
+docs/research/cli/verify01-openai-137/preflight-*/**
+!docs/research/cli/verify01-openai-137/preflight-*/README.md
