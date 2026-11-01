@@ -8,9 +8,11 @@ MCP bridge.
 
 ## Current release pairing
 
-CLI **0.166.138** and upstream Agent SDK **0.2.17** are published through GitHub Actions OIDC. Install `npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`, restart `cc ui` and IDE chat hosts, then run `cc --version` and `cc doctor`. Open VSX **0.37.174** publication succeeded. JetBrains **0.4.191** is merged to main and its immutable release tag has triggered publication; full cloud checks and Marketplace upload are pending. The .190 candidate failed a stale CLI-version JUnit assertion before upload. Both new IDE versions recommend CLI **0.166.138**.
+CLI **0.166.138** and upstream Agent SDK **0.2.17** are published through GitHub Actions OIDC. Install `npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`, restart `cc ui` and IDE chat hosts, then run `cc --version` and `cc doctor`. Open VSX **0.37.174** publication succeeded. JetBrains **0.4.191** is uploaded and awaiting Marketplace approval/listing. Both new IDE versions recommend CLI **0.166.138**.
 
 Version **0.37.174** preserves provider/compaction diagnostics and saved tool-result identity across reload. Its complete [tagged release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41316653600) passed. Install the [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.174/file/chainlesschain.chainlesschain-ide-0.37.174.vsix). [Publication evidence](../../docs/research/cli/evidence/release138-public/README.md).
+
+Main also contains the later standalone WebSocket host-model-policy repair (`2e97ce3d79`), awaiting its own fully validated CLI release. The published CLI 0.166.138 remains bound to its verified release source.
 
 <!-- release138-current:end -->
 

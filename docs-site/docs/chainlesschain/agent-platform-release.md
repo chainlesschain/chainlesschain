@@ -4,13 +4,15 @@
 
 ## CLI 0.166.138 已公开（2026-11-01）
 
-CLI **0.166.138** 与上游 Agent SDK **0.2.17** 已通过 GitHub Actions OIDC 发布。安装：`npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`，升级后重启 `cc ui` 与 IDE 聊天宿主，并运行 `cc --version`、`cc doctor`。Open VSX **0.37.174** 发布工作流成功，推荐 CLI **0.166.138**。JetBrains **0.4.191** 修复已合入 main，正式标签已触发发布，等待完整云端检查和 Marketplace 上传；0.4.190 因旧版 CLI 断言失败，未上传。两个新插件均推荐 CLI **0.166.138**。
+CLI **0.166.138** 与上游 Agent SDK **0.2.17** 已通过 GitHub Actions OIDC 发布。安装：`npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`，升级后重启 `cc ui` 与 IDE 聊天宿主，并运行 `cc --version`、`cc doctor`。Open VSX **0.37.174** 发布工作流成功，推荐 CLI **0.166.138**。JetBrains **0.4.191** 已上传 Marketplace，等待人工审核/公开上架。两个新插件均推荐 CLI **0.166.138**。
 
 准确源码 `e42ea07b6da7ab2c3eb709002448b32d5fedf535` 通过完整三平台 CLI CI（75 项必需任务成功，1 项可选 PR 演练跳过）及 Strict Sandbox（6/6）。[正式 OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/41313099948)包含 SDK 与 CLI 的公开重新下载、不可变字节、安装启动及来源签名核验；完成这些步骤后才创建 IDE 发布标签。SDK 0.2.17 修正整棵源码树的版本/签名对应关系，运行时代码未改变。
 
 本版修复源码被省略后误记已读、压缩丢失原始任务等问题。最近 .137 五项模型整体验收仍为 **0/5**，.138 未开展新一轮模型测试，历史 **41/45** 与图像单项 **0/1** 分别保留。用户已允许先发布。后续独立复核调度、未被证明的局部源码片段、生成断言的正确性与完整性仍有未解决限制。Kernel **0.1.11**；Microsoft Marketplace 暂缓，PC/mobile 保持独立版本。
 
 [发行证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release138-public/README.md) · [Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/41316653600)。
+
+主分支另有后续合入的独立 WebSocket 模型策略修复（`2e97ce3d79`），仍待下一版 CLI 通过完整验证后发行。本次已公开的 CLI 0.166.138 仍绑定其原始已验证发行源码。
 
 <!-- release138-current:end -->
 

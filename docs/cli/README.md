@@ -2,9 +2,11 @@
 
 <!-- release138-current:start -->
 
-> 2026-11-01：CLI **0.166.138** 与上游 Agent SDK **0.2.17** 已通过 GitHub Actions OIDC 发布。安装：`npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`，升级后重启 `cc ui` 与 IDE 聊天宿主，并运行 `cc --version`、`cc doctor`。Open VSX **0.37.174** 发布工作流成功，推荐 CLI **0.166.138**。JetBrains **0.4.191** 修复已合入 main，正式标签已触发发布，等待完整云端检查和 Marketplace 上传；0.4.190 因旧版 CLI 断言失败，未上传。两个新插件均推荐 CLI **0.166.138**。
+> 2026-11-01：CLI **0.166.138** 与上游 Agent SDK **0.2.17** 已通过 GitHub Actions OIDC 发布。安装：`npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`，升级后重启 `cc ui` 与 IDE 聊天宿主，并运行 `cc --version`、`cc doctor`。Open VSX **0.37.174** 发布工作流成功，推荐 CLI **0.166.138**。JetBrains **0.4.191** 已上传 Marketplace，等待人工审核/公开上架。两个新插件均推荐 CLI **0.166.138**。
 
 准确发行源码 `e42ea07b6d` 的完整三平台 CLI CI / Strict Sandbox、OIDC 发布及公开包字节/签名/启动核验均通过。最近模型候选验收 **0/5** 与历史累计 **41/45** 单独保留；本次未复测已通过任务。见[发行证据](../research/cli/evidence/release138-public/README.md)与[自进化开关说明](./SELF_EVOLUTION_CONFIGURATION.md)。下方带日期的记录保留历史范围。
+
+主分支另有后续合入的独立 WebSocket 模型策略修复（`2e97ce3d79`），仍待下一版 CLI 通过完整验证后发行。本次已公开的 CLI 0.166.138 仍绑定其原始已验证发行源码。
 
 <!-- release138-current:end -->
 

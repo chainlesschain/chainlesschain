@@ -1,0 +1,27 @@
+{
+  "schema": "chainlesschain.official-actions-completion-web-proof/v1",
+  "source": "ef13d5238e2b3e4c4571e48e820d0eb31a3107b2",
+  "sourceBinding": "Successfully created immutable .191 tag via atomic Git push; official run page identifies the same tag and ef13d52 commit",
+  "runId": 41327724484,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41327724484",
+  "tag": "ide-jetbrains-v0.4.191",
+  "status": "completed",
+  "conclusion": "success",
+  "hostMatrixCompleted": 6,
+  "browserOsCompleted": 3,
+  "marketplaceUploadSucceeded": true,
+  "marketplaceStatus": "pending-manual-approval-or-listing",
+  "buildJobId": 124919269573,
+  "observedAt": "2026-11-01T17:35:03.131Z",
+  "authority": "Official GitHub Actions completed-run page; exact-source workflow contract must independently establish that full host/JUnit/build/compatibility/publish steps are mandatory",
+  "evidenceLines": [
+    "pushed ef13d52",
+    "ide-jetbrains-v0.4.191",
+    "Status Success",
+    "3 jobs completed",
+    "6 jobs completed",
+    "JetBrains plugin (build + publish) 7m 40s JetBrains plugin (build + publish)",
+    "JetBrains Marketplace (post-publish verification) 2m 21s JetBrains Marketplace (post-publish verification)",
+    "JetBrains Marketplace (post-publish verification) JetBrains Marketplace upload succeeded; version 0.4.191 is pending manual approval/listing. [Button: Show more] [Button: Show less]"
+  ]
+}

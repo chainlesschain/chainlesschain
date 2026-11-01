@@ -6,7 +6,7 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## CLI 0.166.138 — verified public release
 
-CLI **0.166.138** and upstream Agent SDK **0.2.17** are published through GitHub Actions OIDC. Install `npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`, restart `cc ui` and IDE chat hosts, then run `cc --version` and `cc doctor`. Open VSX **0.37.174** publication succeeded. JetBrains **0.4.191** is merged to main and its immutable release tag has triggered publication; full cloud checks and Marketplace upload are pending. The .190 candidate failed a stale CLI-version JUnit assertion before upload. Both new IDE versions recommend CLI **0.166.138**.
+CLI **0.166.138** and upstream Agent SDK **0.2.17** are published through GitHub Actions OIDC. Install `npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`, restart `cc ui` and IDE chat hosts, then run `cc --version` and `cc doctor`. Open VSX **0.37.174** publication succeeded. JetBrains **0.4.191** is uploaded and awaiting Marketplace approval/listing. Both new IDE versions recommend CLI **0.166.138**.
 
 This release preserves recovery when source content was omitted from a model request and retains the original user task across canonical compaction, tool tails and persistent sessions. Only exact source spans selected for a provider count as historical read coverage. Repeated delivery failures stop with an explicit limitation.
 
@@ -15,6 +15,8 @@ Exact release source `e42ea07b6da7ab2c3eb709002448b32d5fedf535` passed all 75 re
 The latest recorded .137 model cohort remains **0/5** end-to-end; CLI .138 has not started another model cohort. Historical cumulative acceptance remains **41/45**, and the separate image follow-up remains **0/1**. The user waived five-task success as a publication prerequisite. Remaining limits include late independent-review scheduling, omitted unproven partial source fragments and incomplete or incorrect generated assertions. Engineering checks and publication add no model task acceptance. Kernel stays **0.1.11**; Microsoft Marketplace and PC/mobile are outside this release.
 
 [Publication evidence](../../docs/research/cli/evidence/release138-public/README.md) · [Open VSX release](https://github.com/chainlesschain/chainlesschain/actions/runs/41316653600) · [Recorded model results](../../docs/research/cli/verify01-openai-137/README.md).
+
+Main also contains the later standalone WebSocket host-model-policy repair (`2e97ce3d79`), awaiting its own fully validated CLI release. The published CLI 0.166.138 remains bound to its verified release source.
 
 <!-- release138-current:end -->
 

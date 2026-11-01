@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "source": "ef13d5238e2b3e4c4571e48e820d0eb31a3107b2",
+  "workflowPath": ".github/workflows/ide-extensions.yml",
+  "workflowSha256": "ff43eb19b6328ca94aad5ccca6f81e5427c9ad8e9a82513a72ee6ecc48857531",
+  "requiredDependencies": [
+    "capability-manifest",
+    "jetbrains-host-matrix",
+    "browser-evidence-aggregate"
+  ],
+  "mandatoryReleaseSteps": [
+    "Pure-logic smoke (smokeTest)",
+    "Unit tests (JUnit)",
+    "Build plugin",
+    "Verify plugin structure and project configuration",
+    "Verify plugin compatibility",
+    "Require published CLI before JetBrains release",
+    "Publish to JetBrains Marketplace"
+  ],
+  "continueOnError": false,
+  "tagPublishConditionSatisfied": true,
+  "authority": "Actual successful official Actions run plus mandatory exact-source workflow; no local result replaces the Actions release gate"
+}

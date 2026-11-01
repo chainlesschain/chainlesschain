@@ -4,9 +4,11 @@
 
 ## 当前公开 CLI：0.166.138（2026-11-01）
 
-CLI **0.166.138** 与上游 Agent SDK **0.2.17** 已通过 GitHub Actions OIDC 发布。安装：`npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`，升级后重启 `cc ui` 与 IDE 聊天宿主，并运行 `cc --version`、`cc doctor`。Open VSX **0.37.174** 发布工作流成功，推荐 CLI **0.166.138**。JetBrains **0.4.191** 修复已合入 main，正式标签已触发发布，等待完整云端检查和 Marketplace 上传；0.4.190 因旧版 CLI 断言失败，未上传。两个新插件均推荐 CLI **0.166.138**。
+CLI **0.166.138** 与上游 Agent SDK **0.2.17** 已通过 GitHub Actions OIDC 发布。安装：`npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`，升级后重启 `cc ui` 与 IDE 聊天宿主，并运行 `cc --version`、`cc doctor`。Open VSX **0.37.174** 发布工作流成功，推荐 CLI **0.166.138**。JetBrains **0.4.191** 已上传 Marketplace，等待人工审核/公开上架。两个新插件均推荐 CLI **0.166.138**。
 
 发行提交 `e42ea07b6d` 已通过完整三平台 CLI CI（75 项必需任务，1 项可选 PR 演练跳过）与 Strict Sandbox（6/6），公开下载、启动、字节及来源签名核验已完成。本版包含源码实际交付后才记入读取覆盖、原始任务在上下文压缩中保留等修复。最新 .137 模型整体验收仍为 **0/5**，历史累计 **41/45** 不变；本次发布不增加任务通过数。[发行证据](docs/research/cli/evidence/release138-public/README.md)。
+
+主分支另有后续合入的独立 WebSocket 模型策略修复（`2e97ce3d79`），仍待下一版 CLI 通过完整验证后发行。本次已公开的 CLI 0.166.138 仍绑定其原始已验证发行源码。
 
 <!-- release138-current:end -->
 

@@ -4,7 +4,9 @@
 
 ## Release pairing: 0.4.191
 
-JetBrains **0.4.191** is merged to main and its immutable release tag has triggered publication; full cloud checks and Marketplace upload are pending. The .190 candidate failed a stale CLI-version JUnit assertion before upload. It recommends published CLI **0.166.138** and pairs with public Open VSX **0.37.174**. CLI **0.166.138** and upstream SDK **0.2.17** passed official OIDC publication and public byte/provenance/startup checks before the IDE release tags were created. [Publication evidence](../../docs/research/cli/evidence/release138-public/README.md).
+JetBrains **0.4.191** is uploaded and awaiting Marketplace approval/listing. It recommends published CLI **0.166.138** and pairs with public Open VSX **0.37.174**. CLI **0.166.138** and upstream SDK **0.2.17** passed official OIDC publication and public byte/provenance/startup checks before the IDE release tags were created. [Publication evidence](../../docs/research/cli/evidence/release138-public/README.md).
+
+Main also contains the later standalone WebSocket host-model-policy repair (`2e97ce3d79`), awaiting its own fully validated CLI release. The published CLI 0.166.138 remains bound to its verified release source.
 
 <!-- release138-current:end -->
 

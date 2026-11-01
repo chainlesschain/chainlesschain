@@ -7,7 +7,7 @@ Release source: `e42ea07b6da7ab2c3eb709002448b32d5fedf535`. The user explicitly 
 | Agent SDK | 0.2.17 | Public bytes and signed provenance verified before CLI | [Official OIDC run](https://github.com/chainlesschain/chainlesschain/actions/runs/41313099948) |
 | CLI | 0.166.138 | Public registry bytes, clean installation/startup and signed provenance verified | [Official OIDC run](https://github.com/chainlesschain/chainlesschain/actions/runs/41313099948) |
 | Open VSX | 0.37.174 | Tagged publication workflow succeeded, including public VSIX verification | [Tagged run](https://github.com/chainlesschain/chainlesschain/actions/runs/41316653600) |
-| JetBrains | 0.4.191 | publication in progress; upload not yet confirmed | [Tagged run](https://github.com/chainlesschain/chainlesschain/actions/runs/41327724484) |
+| JetBrains | 0.4.191 | uploaded; awaiting Marketplace approval/listing | [Tagged run](https://github.com/chainlesschain/chainlesschain/actions/runs/41327724484) |
 
 Install `npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`, restart the chat host, then run `cc --version` and `cc doctor`. Both new IDE versions recommend CLI 0.166.138. Microsoft Marketplace remains deferred; PC/mobile remain independent. Kernel stays 0.1.11.
 
@@ -20,3 +20,5 @@ The latest recorded .137 cohort remains **0/5** end-to-end; .138 ran **no new mo
 [Machine-readable publication status](./publication.json).
 
 JetBrains .191 uses its own exact source `ef13d5238e2b3e4c4571e48e820d0eb31a3107b2`, merged to main and bound to immutable tag `ide-jetbrains-v0.4.191`. Its source differs from the CLI release only in five JetBrains files. The earlier [.190 workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41320640806) failed JUnit before upload because the test retained CLI 0.166.135 while runtime metadata recommended 0.166.138. The original tag is preserved. The repair verifies fallback, equal and newer upgrade targets using the configured recommendation, while independent release-metadata checks bind that recommendation to Gradle properties. [Failure record](./jetbrains190-failure.json) · [Focused JUnit control](./jetbrains191-focused-junit.json). Local JDK 17 reported a restricted-filesystem JAR-close diagnostic after compiling classes; actual focused JUnit execution was 8/8, original control 7/8. Full JDK 21 cloud JUnit and all IDE host gates are authoritative for publication.
+
+Concurrent main changes are preserved: commit [`2e97ce3d79`](https://github.com/chainlesschain/chainlesschain/commit/2e97ce3d797bfdc03aba59834734da2a916b8774) applies host-model policy to standalone WebSocket model turns. It follows the published CLI source and awaits its own exact-source CLI CI / Strict Sandbox and OIDC release. It is not included in CLI 0.166.138.

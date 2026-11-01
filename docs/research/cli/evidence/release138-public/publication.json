@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "checkedAt": "2026-11-01T16:53:38.572Z",
+  "checkedAt": "2026-11-01T17:35:33.304Z",
   "source": "e42ea07b6da7ab2c3eb709002448b32d5fedf535",
   "cli": {
     "version": "0.166.138",
@@ -41,7 +41,7 @@
       "version": "0.4.191",
       "source": "ef13d5238e2b3e4c4571e48e820d0eb31a3107b2",
       "recommendedCliVersion": "0.166.138",
-      "status": "publication-in-progress",
+      "status": "uploaded-pending-review",
       "tag": "ide-jetbrains-v0.4.191",
       "runId": 41327724484,
       "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41327724484",
@@ -54,7 +54,7 @@
         "cause": "JUnit expected CLI 0.166.135 instead of runtime 0.166.138",
         "uploaded": false
       },
-      "marketplaceUploaded": false,
+      "marketplaceUploaded": true,
       "focusedLocalValidation": {
         "junitTests": 8,
         "junitPassed": 8,
@@ -65,6 +65,13 @@
         "fixtureContractCases": 16,
         "fixtureReferencedTestFiles": 114,
         "compilerEnvironmentDiagnostic": "Windows restricted execution reported AccessDeniedException while closing JARs after class generation. The generated classes executed all focused tests; full JDK 21 cloud gates remain authoritative."
+      },
+      "releaseAuthority": {
+        "type": "official-completed-Actions-web-observation-with-exact-source-contract",
+        "observationFile": "jetbrains191-official-completed-web-proof.json",
+        "workflowContractFile": "jetbrains191-workflow-contract.json",
+        "runConcludedSuccess": true,
+        "marketplaceReview": "pending-manual-approval-or-listing"
       }
     }
   },
@@ -120,5 +127,13 @@
     "pcMobile": "independent",
     "contextMemoryKernel": "0.1.11"
   },
-  "extraStandaloneReadback": "Official completed OIDC workflow already independently verifies registry bytes, signatures and startup; no redundant standalone dispatch is required for upstream IDE publication."
+  "extraStandaloneReadback": "Official completed OIDC workflow already independently verifies registry bytes, signatures and startup; no redundant standalone dispatch is required for upstream IDE publication.",
+  "unreleasedMainChanges": [
+    {
+      "commit": "2e97ce3d797bfdc03aba59834734da2a916b8774",
+      "scope": "Standalone WebSocket model turns use the host-owned optional Evolution policy",
+      "status": "merged-to-main-after-release-source; awaiting separately validated CLI publication",
+      "includedInCli166138": false
+    }
+  ]
 }
