@@ -1,0 +1,18 @@
+/* Keep both documentation sites readable with nested topic groups. */
+:root {
+  --vp-sidebar-width: 300px;
+}
+
+.VPSidebar .VPSidebarItem .text {
+  word-break: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+
+.VPSidebar .VPSidebarItem.is-link > .item .text {
+  font-size: 13px;
+}
+
+.VPSidebar .VPSidebarItem.collapsible > .item > .text {
+  font-weight: 600;
+}
