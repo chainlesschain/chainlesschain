@@ -1,0 +1,31 @@
+{
+  "id": 41343651198,
+  "source": "c472d664ebfe8ca6ebd198cbd894d606a9b16195",
+  "status": "completed",
+  "conclusion": "success",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41343651198",
+  "updatedAt": "2026-11-01T19:55:58Z",
+  "jobs": [
+    {
+      "id": 124958769272,
+      "name": "validate",
+      "status": "completed",
+      "conclusion": "success",
+      "failedStep": null
+    },
+    {
+      "id": 124958977746,
+      "name": "Native linux-cli (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "failedStep": null
+    },
+    {
+      "id": 124959892081,
+      "name": "Linux acceptance of linux-cli deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "failedStep": null
+    }
+  ]
+}

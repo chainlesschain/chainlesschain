@@ -1,0 +1,253 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  MAX_INPUT_IMAGE_BYTES,
+  MAX_INPUT_IMAGE_PIXELS,
+  readBoundedImage,
+} from "../src/lib/image-file-boundary.js";
+
+// This file is in __tests__, so ../src resolves to packages/cli/src.
+// A real 1x1 PNG; admission is header-only, so dimension tests need no decode.
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",
+  "base64",
+);
+const BYTE_LIMIT = 20 * 1024 * 1024;
+const roots = [];
+afterEach(() => {
+  for (const root of roots.splice(0)) {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+function fixture(bytes = PNG, size = bytes.length) {
+  const root = fs.mkdtempSync(join(tmpdir(), "same-handle-"));
+  roots.push(root);
+  const file = join(root, "input.png");
+  fs.writeFileSync(file, bytes);
+  if (size !== bytes.length) fs.truncateSync(file, size);
+  const io = {
+    ...fs,
+    openSync: vi.fn((...args) => fs.openSync(...args)),
+    fstatSync: vi.fn((...args) => fs.fstatSync(...args)),
+    readSync: vi.fn((...args) => fs.readSync(...args)),
+    closeSync: vi.fn((...args) => fs.closeSync(...args)),
+  };
+  return {
+    file,
+    io,
+    read: (remainingBytes = BYTE_LIMIT, mediaType = "image/png") =>
+      readBoundedImage(file, mediaType, remainingBytes, io),
+  };
+}
+
+function expectClosed(f) {
+  expect(f.io.openSync).toHaveBeenCalledTimes(1);
+  const fd = f.io.openSync.mock.results[0].value;
+  expect(f.io.closeSync).toHaveBeenCalledTimes(1);
+  expect(f.io.closeSync).toHaveBeenCalledWith(fd);
+  for (const [usedFd] of [
+    ...f.io.fstatSync.mock.calls,
+    ...f.io.readSync.mock.calls,
+  ]) {
+    expect(usedFd).toBe(fd);
+  }
+  // Verify the real descriptor is closed, not just that a spy was invoked.
+  expect(() => fs.fstatSync(fd)).toThrow(expect.objectContaining({ code: "EBADF" }));
+}
+
+function expectBytes(actual, expected) {
+  expect(Buffer.isBuffer(actual)).toBe(true);
+  expect(actual.length).toBe(expected.length);
+  expect(actual.equals(expected)).toBe(true);
+}
+
+function pngWithDimensions(width, height) {
+  const bytes = Buffer.from(PNG);
+  bytes.writeUInt32BE(width, 16);
+  bytes.writeUInt32BE(height, 20);
+  return bytes;
+}
+
+describe("independent same-handle image admission regressions", () => {
+  it("reads a small PNG with short positional reads and closes its only handle", () => {
+    const f = fixture();
+    f.io.readSync.mockImplementation((fd, data, offset, length, position) =>
+      fs.readSync(fd, data, offset, Math.min(length, 7), position),
+    );
+    expectBytes(f.read(), PNG);
+    expect(f.io.fstatSync).toHaveBeenCalledTimes(2);
+    expect(f.io.readSync.mock.calls.length).toBeGreaterThan(2);
+    expect(f.io.readSync.mock.calls.filter((call) => call[4] === 0)).toHaveLength(2);
+    expectClosed(f);
+  });
+
+  it("rejects an invalid replacement installed before opening, with size and budget unchanged", () => {
+    for (const replace of [false, true]) {
+      const f = fixture();
+      const replacement = Buffer.from(PNG);
+      if (replace) replacement[0] = 0; // only invalidate the PNG signature
+      // Install a different inode before production opens the pathname. Both
+      // controls have identical length, dimensions, media expectation and budget.
+      const staged = `${f.file}.replacement`;
+      fs.writeFileSync(staged, replacement);
+      fs.renameSync(staged, f.file);
+      if (replace) {
+        expect(() => f.read()).toThrow(/Unsupported or malformed image header/);
+        expect(f.io.fstatSync).toHaveBeenCalledTimes(1);
+        expect(f.io.readSync).toHaveBeenCalledTimes(1);
+        expect(f.io.readSync.mock.results[0].value).toBe(PNG.length);
+      } else {
+        expectBytes(f.read(), PNG);
+        expect(f.io.fstatSync).toHaveBeenCalledTimes(2);
+      }
+      expectClosed(f);
+    }
+  });
+
+  it("keeps the admitted inode when its pathname is replaced before the first read", () => {
+    for (const replace of [false, true]) {
+      const f = fixture();
+      f.io.openSync.mockImplementation((...args) => {
+        const fd = fs.openSync(...args);
+        if (replace) {
+          fs.renameSync(f.file, `${f.file}.pinned`);
+          fs.writeFileSync(f.file, "not an image");
+        }
+        return fd;
+      });
+      expectBytes(f.read(), PNG);
+      if (replace) {
+        expect(fs.readFileSync(f.file, "utf8")).toBe("not an image");
+        expectBytes(fs.readFileSync(`${f.file}.pinned`), PNG);
+      }
+      expectClosed(f);
+    }
+  });
+
+  it("accepts exactly 20 MiB and rejects the next byte before any read", () => {
+    expect(MAX_INPUT_IMAGE_BYTES).toBe(BYTE_LIMIT);
+    for (const size of [BYTE_LIMIT, BYTE_LIMIT + 1]) {
+      const f = fixture(PNG, size); // sparse padding, valid small-pixel header
+      if (size === BYTE_LIMIT) {
+        const actual = f.read(BYTE_LIMIT + 1);
+        expect(actual.length).toBe(BYTE_LIMIT);
+        expect(actual.subarray(0, PNG.length).equals(PNG)).toBe(true);
+        expect(actual.subarray(PNG.length).equals(Buffer.alloc(size - PNG.length))).toBe(true);
+      } else {
+        // Budget is sufficient: only the per-file upper bound can reject.
+        expect(() => f.read(BYTE_LIMIT + 1)).toThrow(/Image must contain 1 byte to 20 MiB/);
+        expect(f.io.readSync).not.toHaveBeenCalled();
+      }
+      expectClosed(f);
+    }
+  });
+
+  it("accepts exactly the remaining budget and rejects one byte beyond it", () => {
+    for (const remaining of [PNG.length, PNG.length - 1]) {
+      const f = fixture();
+      if (remaining === PNG.length) {
+        expectBytes(f.read(remaining), PNG);
+      } else {
+        expect(() => f.read(remaining)).toThrow(/Total image attachments exceed 20 MiB/);
+        expect(f.io.readSync).not.toHaveBeenCalled();
+      }
+      expectClosed(f);
+    }
+  });
+
+  // Each final consistency predicate gets its own stable positive control.
+  // Reads use real descriptors. Project unrelated stat fields to the initial
+  // snapshot so filesystem timestamp/size side effects cannot mask the guard.
+  it.each(["short body", "extra byte", "header replacement", "size", "mtimeMs", "ctimeMs"])(
+    "rejects only the isolated final consistency change: %s",
+    (condition) => {
+      // Keep a tail beyond the inspected 1 MiB so truncating the body does
+      // not also change the compared header prefix.
+      const headerLimit = 1024 * 1024;
+      const original = Buffer.alloc(headerLimit + 8);
+      PNG.copy(original);
+      for (const attack of [false, true]) {
+        const f = fixture(original);
+        let initial;
+        const stats = [];
+        f.io.fstatSync.mockImplementation((fd) => {
+          const real = fs.fstatSync(fd);
+          initial ??= real;
+          const projected = {
+            isFile: () => real.isFile(),
+            size: initial.size,
+            mtimeMs: initial.mtimeMs,
+            ctimeMs: initial.ctimeMs,
+          };
+          if (attack && stats.length === 1 && ["size", "mtimeMs", "ctimeMs"].includes(condition)) {
+            projected[condition] += 1;
+          }
+          stats.push(projected);
+          return projected;
+        });
+        let headerRead = false;
+        f.io.readSync.mockImplementation((...args) => {
+          const count = fs.readSync(...args);
+          if (!headerRead) {
+            headerRead = true;
+            // The complete valid header has now been admitted, but the full
+            // body read has not started. Change only the selected predicate.
+            expect(count).toBe(headerLimit);
+            if (attack && condition === "short body") {
+              fs.truncateSync(f.file, original.length - 1);
+            } else if (attack && condition === "extra byte") {
+              fs.appendFileSync(f.file, Buffer.from([0]));
+            } else if (attack && condition === "header replacement") {
+              const replacement = Buffer.from(original);
+              replacement[32] ^= 1; // CRC byte, not signature/type/dimensions
+              fs.writeFileSync(f.file, replacement);
+            }
+          }
+          return count;
+        });
+        if (attack) {
+          expect(() => f.read()).toThrow(/Image changed while being read; select it again/);
+        } else {
+          expectBytes(f.read(), original);
+        }
+        expect(stats).toHaveLength(2); // reached the intended final boundary
+        for (const key of ["size", "mtimeMs", "ctimeMs"]) {
+          expect(stats[1][key] - stats[0][key]).toBe(attack && condition === key ? 1 : 0);
+        }
+        const bodyCount = f.io.readSync.mock.results.slice(1)
+          .reduce((sum, result) => sum + result.value, 0);
+        const expectedCount = original.length + (attack && condition === "extra byte" ? 1 : 0)
+          - (attack && condition === "short body" ? 1 : 0);
+        expect(bodyCount).toBe(expectedCount);
+        const bodyBuffer = f.io.readSync.mock.calls[1][1];
+        expect(bodyBuffer.subarray(0, headerLimit).equals(original.subarray(0, headerLimit)))
+          .toBe(!(attack && condition === "header replacement"));
+        // The sentinel allocation/read is at most the admitted length + 1,
+        // even if more bytes become available between the two passes.
+        for (const [, buffer, , length] of f.io.readSync.mock.calls) {
+          expect(buffer.length).toBeLessThanOrEqual(original.length + 1);
+          expect(length).toBeLessThanOrEqual(original.length + 1);
+        }
+        expectClosed(f);
+      }
+    },
+  );
+
+  it("accepts 40 million pixels and rejects the first excess pixel", () => {
+    expect(MAX_INPUT_IMAGE_PIXELS).toBe(40_000_000);
+    for (const width of [40_000_000, 40_000_001]) {
+      const bytes = pngWithDimensions(width, 1);
+      const f = fixture(bytes);
+      if (width === 40_000_000) {
+        expectBytes(f.read(), bytes);
+      } else {
+        expect(() => f.read()).toThrow(/dimensions must be positive and at most 40 megapixels/);
+        expect(f.io.fstatSync).toHaveBeenCalledTimes(1);
+      }
+      expectClosed(f);
+    }
+  });
+});

@@ -1,0 +1,172 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+const root = mkdtempSync(join(tmpdir(), "cc-fork-ownership-"));
+// This file is in __tests__, not __tests__/unit: ../src resolves to
+// packages/cli/src (../../src would resolve outside the CLI package).
+vi.mock("../src/lib/paths.js", () => ({
+  getHomeDir: () => join(root, "home"),
+  getSessionStoreDir: () => join(root, "home", "sessions"),
+  getClaudeProjectStorageDir: () => null,
+  getStatePath: () => join(root, "home", "state"),
+  getMachineSecurityAnchorDir: () => join(root, "security"),
+}));
+const store = await import("../src/harness/jsonl-session-store.js");
+const {
+  createSessionTranscriptBranchProjection,
+  readSessionTranscriptHistory,
+} = await import("../src/lib/session-transcript-history.js");
+const { resolveSessionBranchHistory } =
+  await import("../src/lib/session-branch-history.js");
+
+afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+function withHistory(parentSessionId, messages, consume) {
+  const head = store.findLatestEvent(parentSessionId, null).hash;
+  return store.withSessionAuthorityTransaction(parentSessionId, head, (tx) =>
+    tx.readProjection(() =>
+      createSessionTranscriptBranchProjection(parentSessionId, messages, consume),
+    ),
+  );
+}
+
+function fork(parentSessionId, branchSessionId, messages) {
+  return withHistory(parentSessionId, messages, (history) => {
+    expect(history).toBeTruthy();
+    return store.createBranchSession({
+      parentSessionId,
+      branchSessionId,
+      parentTurnId: "selected-turn",
+      messages,
+      history,
+    });
+  });
+}
+
+function conversation(sessionId) {
+  return store.readVerifiedMessages(sessionId)
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .map(({ role, content }) => ({ role, content }));
+}
+
+function transcript(sessionId) {
+  return readSessionTranscriptHistory(sessionId).messages
+    .map(({ role, text }) => ({ role, content: text }));
+}
+
+function pair(sessionId, question, answer) {
+  store.appendUserMessage(sessionId, question);
+  store.appendAssistantMessage(sessionId, answer);
+}
+
+const ancestor = [
+  { role: "user", content: "shared question" },
+  { role: "assistant", content: "shared answer" },
+];
+
+// Exact equality is also the negative control: neither the parent's excluded
+// suffix nor the sibling's independently appended body may appear in either view.
+describe("fork history ownership (independent regression)", () => {
+  it("restores the selected ancestor into two siblings without sharing later bodies", () => {
+    const parent = "ownership-parent";
+    store.startSession(parent, { provider: "test", model: "test" });
+    pair(parent, "shared question", "shared answer");
+    const selected = store.readVerifiedMessages(parent);
+    const originalRows = readSessionTranscriptHistory(parent).messages;
+    pair(parent, "excluded parent question", "excluded parent answer");
+
+    for (const child of ["ownership-left", "ownership-right"]) {
+      expect(fork(parent, child, selected)).toMatchObject({
+        branchSessionId: child, created: true,
+      });
+      expect(conversation(child)).toEqual(ancestor);
+      expect(transcript(child)).toEqual(ancestor);
+    }
+    pair("ownership-left", "left question", "left answer");
+    pair(parent, "later parent question", "later parent answer");
+    pair("ownership-right", "right question", "right answer");
+
+    for (const [child, label] of [
+      ["ownership-left", "left"], ["ownership-right", "right"],
+    ]) {
+      const expected = [...ancestor,
+        { role: "user", content: `${label} question` },
+        { role: "assistant", content: `${label} answer` },
+      ];
+      expect(conversation(child)).toEqual(expected);
+      expect(transcript(child)).toEqual(expected);
+      const rows = readSessionTranscriptHistory(child).messages;
+      // Imported rows have branch-local display IDs; provenance is recorded
+      // separately in the archive and must point to the selected source events.
+      expect(rows.slice(0, 2).map((row) => row.id)).not.toEqual(
+        originalRows.map((row) => row.id),
+      );
+      const sourceEvents = store.readVerifiedEvents(parent).filter((event) =>
+        ["user_message", "assistant_message"].includes(event.type),
+      ).slice(0, 2);
+      const archive = store.readVerifiedEvents(child).filter((event) =>
+        event.type === "session_history_message",
+      );
+      expect(archive.map((event) => event.data.sourceEventId)).toEqual(
+        sourceEvents.map((event) => event.hash),
+      );
+      expect(rows.slice(2).map((row) => row.id)).not.toEqual(
+        originalRows.map((row) => row.id),
+      );
+    }
+    expect(transcript(parent)).toEqual([...ancestor,
+      { role: "user", content: "excluded parent question" },
+      { role: "assistant", content: "excluded parent answer" },
+      { role: "user", content: "later parent question" },
+      { role: "assistant", content: "later parent answer" },
+    ]);
+  });
+
+  it("binds a live capability independently to parent identity and canonical context", () => {
+    const parent = "binding-parent";
+    const other = "binding-other";
+    for (const id of [parent, other]) {
+      store.startSession(id, { provider: "test", model: "test" });
+      pair(id, "shared question", "shared answer");
+    }
+    const messages = store.readVerifiedMessages(parent);
+    withHistory(parent, messages, (history) => {
+      const plan = resolveSessionBranchHistory(history, parent, messages);
+      expect(plan).toBeTruthy();
+      // Same live capability and same context: only parent identity differs.
+      expect(() => resolveSessionBranchHistory(history, other, messages))
+        .toThrow("does not match");
+      // Same live capability and same parent: only canonical content differs.
+      const changed = messages.map((message, index) => index === 0
+        ? { ...message, content: "different question" } : message);
+      expect(() => resolveSessionBranchHistory(history, parent, changed))
+        .toThrow("does not match");
+      expect(resolveSessionBranchHistory(history, parent, messages)).toBe(plan);
+    });
+  });
+
+  it("accepts a capability while scoped, then rejects that same capability after scope exit", () => {
+    const parent = "expiry-parent";
+    store.startSession(parent, { provider: "test", model: "test" });
+    pair(parent, "shared question", "shared answer");
+    const messages = store.readVerifiedMessages(parent);
+    let captured;
+    withHistory(parent, messages, (history) => {
+      captured = history;
+      expect(resolveSessionBranchHistory(history, parent, messages)).toBeTruthy();
+      expect(store.createBranchSession({
+        parentSessionId: parent, branchSessionId: "expiry-live", messages, history,
+      })).toMatchObject({ created: true });
+    });
+    expect(() => resolveSessionBranchHistory(captured, parent, messages))
+      .toThrow("expired");
+    expect(() => store.createBranchSession({
+      parentSessionId: parent, branchSessionId: "expiry-dead", messages,
+      history: captured,
+    })).toThrow("expired");
+    expect(store.sessionExists("expiry-dead")).toBe(false);
+    expect(transcript("expiry-live")).toEqual(ancestor);
+  });
+});

@@ -1,0 +1,117 @@
+{
+  "source": "c472d664ebfe8ca6ebd198cbd894d606a9b16195",
+  "collectorSource": "c33562ccb6d84b8088aea34a978ee9b52fc918f6",
+  "credentialShapeScanPassed": true,
+  "files": [
+    {
+      "path": "runs/41343643669.json",
+      "digest": "sha256:5e58e8f631440b935c9414a6346a4614746953d5783d5138b27bcceb4bbf860b",
+      "bytes": 923
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-c472d664ebfe8ca6ebd198cbd894d606a9b16195/summary.json",
+      "digest": "sha256:4fe2c80e91ce5c79a2859e6ec95a0dcf51e2c5db4582c5862e1a05bb2d98402d",
+      "bytes": 893829
+    },
+    {
+      "path": "candidates/first-run-darwin-vscode/repair137-verify-08.test.js.txt",
+      "digest": "sha256:7a45d73c8ba7b0e83a1763f63848e9c143e6439a193bdd8343f407cc68acfead",
+      "bytes": 7393
+    },
+    {
+      "path": "candidates/verify-08/repair137-verify-08.test.js.txt",
+      "digest": "sha256:831cc94e67db92ba7c83fed0f5c8207225a2e2f1739102ee1aec8b52dcdd6b57",
+      "bytes": 7301
+    },
+    {
+      "path": "raw/verify01-native-subset-acceptance-darwin-vscode-c472d664ebfe8ca6ebd198cbd894d606a9b16195/summary.json",
+      "digest": "sha256:ed5a8dcea6bf511202d05e09e38f073c96c98f0633098d0e15de2f205638db9a",
+      "bytes": 880932
+    },
+    {
+      "path": "receipts/first-run-darwin-vscode-setup.json",
+      "digest": "sha256:da4077c6a8b391c85abad4fd590d61bd1cd5a96fba54da0d8876477ab3d4fba1",
+      "bytes": 32024
+    },
+    {
+      "path": "receipts/first-run-darwin-vscode-check.json",
+      "digest": "sha256:13ac5763cb80a0b24538946a392305293eb2371fce2b63f7578a6c04b48c6dc1",
+      "bytes": 30368
+    },
+    {
+      "path": "receipts/verify-08-setup.json",
+      "digest": "sha256:424aed9341e663708d648e6a4a6d3f1cb55a9dde6d1b2f142058aed95bbcfd6d",
+      "bytes": 32013
+    },
+    {
+      "path": "receipts/verify-08-check.json",
+      "digest": "sha256:2821fb171255d3ef70bd8cb7ed1f184a431e28af80aae9ed0736c5d7d558f900",
+      "bytes": 28947
+    },
+    {
+      "path": "runs/41343651198.json",
+      "digest": "sha256:e216ba3579c894ca16a15ba86c135defe16413cb5b056c594020e0640f9b3c21",
+      "bytes": 782
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-linux-cli-c472d664ebfe8ca6ebd198cbd894d606a9b16195/summary.json",
+      "digest": "sha256:97e48a1a62f3f850058c3d479fb3852ca345c71a36b12f7f1c5416d00dd6725b",
+      "bytes": 199875
+    },
+    {
+      "path": "candidates/verify-13/repair137-verify-13.test.js.txt",
+      "digest": "sha256:f51bbb251dcd4eef52f265ba3b435484bc44136792eb82ba58eac0328c943e9d",
+      "bytes": 10102
+    },
+    {
+      "path": "raw/verify01-native-subset-acceptance-linux-cli-c472d664ebfe8ca6ebd198cbd894d606a9b16195/summary.json",
+      "digest": "sha256:3bb86461e1d1eeddcaae07941fda3d116c0d9a4250f5c20e3eff987982dbaed3",
+      "bytes": 190296
+    },
+    {
+      "path": "receipts/verify-13-setup.json",
+      "digest": "sha256:0b8d959c9fabf96d49939a1215612342facff0106574fb50b6d9a540c1e2073d",
+      "bytes": 16235
+    },
+    {
+      "path": "receipts/verify-13-check.json",
+      "digest": "sha256:5d35d1acb74231a2b9116b0da9b766ef74827edc2d8c817d8a2796904db55ddd",
+      "bytes": 28218
+    },
+    {
+      "path": "runs/41343658414.json",
+      "digest": "sha256:3d8938878ceadd34b06864e900a67cb68439b72b8803b112066ea198965efd1d",
+      "bytes": 949
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-c472d664ebfe8ca6ebd198cbd894d606a9b16195/summary.json",
+      "digest": "sha256:4136837a53532826d8ee2089d1174c1b3827ba54d7f40ca8c9814265dda721a4",
+      "bytes": 533277
+    },
+    {
+      "path": "candidates/verify-36/repair137-verify-36.test.js.txt",
+      "digest": "sha256:a63e8eb8a98cff2c9aa704ff9cd62c8e30ad0a144a27c6d916c2a8215988f93a",
+      "bytes": 6069
+    },
+    {
+      "path": "raw/verify01-native-subset-acceptance-darwin-jetbrains-verify-36-c472d664ebfe8ca6ebd198cbd894d606a9b16195/summary.json",
+      "digest": "sha256:d9dc271ad7bf68893f1780eea33e7ac9b7280b0ca0ae42e2edcad07e1353fd14",
+      "bytes": 521681
+    },
+    {
+      "path": "receipts/verify-36-setup.json",
+      "digest": "sha256:61b0e97c2bfe715bd43fc678a437571878a62316d776f8df9aa04d57b59dc5be",
+      "bytes": 15511
+    },
+    {
+      "path": "receipts/verify-36-check.json",
+      "digest": "sha256:def0b670370d4f508328f9f0ad1b2a905fa6f7cbd166b4c2fb69a30a460e3c42",
+      "bytes": 32288
+    },
+    {
+      "path": "results.json",
+      "digest": "sha256:87c87c01e400b276358728865415bde556a765f391684ee27031ade21055846f",
+      "bytes": 25072
+    }
+  ]
+}

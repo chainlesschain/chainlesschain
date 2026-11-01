@@ -1,0 +1,154 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { ContextMemoryKernel } from "@chainlesschain/context-memory-kernel";
+
+const root = mkdtempSync(join(tmpdir(), "cc-fork-ownership-"));
+// This file is in __tests__, not __tests__/unit: ../src resolves to cli/src.
+vi.mock("../src/lib/paths.js", () => ({
+  getHomeDir: () => join(root, "home"),
+  getSessionStoreDir: () => join(root, "home", "sessions"),
+  getClaudeProjectStorageDir: () => null,
+  getStatePath: () => join(root, "home", "state"),
+  getMachineSecurityAnchorDir: () => join(root, "security"),
+}));
+const store = await import("../src/harness/jsonl-session-store.js");
+const { readSessionTranscriptHistory, createSessionTranscriptBranchProjection } =
+  await import("../src/lib/session-transcript-history.js");
+const { JsonlSessionContextPort } =
+  await import("../src/lib/context-memory-kernel/jsonl-session-context-port.js");
+
+afterAll(() => rmSync(root, { recursive: true, force: true }));
+const page = (id) => readSessionTranscriptHistory(id, { limit: 100 });
+const bodies = (id) => page(id).messages.map(({ role, text }) => ({ role, text }));
+
+function project(parentSessionId, messages, consume) {
+  const head = store.findLatestEvent(parentSessionId, null).hash;
+  return store.withSessionAuthorityTransaction(parentSessionId, head, (tx) =>
+    tx.readProjection(() =>
+      createSessionTranscriptBranchProjection(parentSessionId, messages, consume),
+    ),
+  );
+}
+function branch(parentSessionId, branchSessionId, messages) {
+  return project(parentSessionId, messages, (history) => {
+    expect(history).toBeTruthy();
+    return store.createBranchSession({
+      parentSessionId, branchSessionId, parentTurnId: "selected", messages, history,
+    });
+  });
+}
+async function compact(sessionId) {
+  const kernel = new ContextMemoryKernel({
+    sessionPort: new JsonlSessionContextPort({ sessionId }),
+  });
+  const result = await kernel.compactContext({
+    operationId: "ownership-compact",
+    sessionId,
+    modelWindowTokens: 450,
+    reservedOutputTokens: 20,
+    safetyMarginTokens: 10,
+    recoveryReserveTokens: 10,
+    sink: "provider.local",
+    scopeAdmissions: [{ scope: "session", scopeId: sessionId }],
+    policyVersion: "test",
+    modelProfile: "test",
+    now: "2026-09-27T00:00:00.000Z",
+  });
+  expect(result.status).toBe("committed");
+}
+
+describe("fork history belongs to the selected branch", () => {
+  it.each(["parent", "context", "expired", "forged"])(
+    "rejects only the changed %s history binding before creating a session",
+    (condition) => {
+      const parent = `binding-${condition}`;
+      const other = `${parent}-other`;
+      const messages = [{ role: "user", content: "valid ancestor" }];
+      for (const id of [parent, other]) {
+        store.startSession(id, { provider: "test", model: "test" });
+        store.appendUserMessage(id, "valid ancestor");
+      }
+      let captured;
+      const target = `${parent}-negative`;
+      const reject = (history) => {
+        const parentSessionId = condition === "parent" ? other : parent;
+        const input = condition === "context"
+          ? [{ role: "user", content: "different valid body" }]
+          : messages;
+        expect(() => store.createBranchSession({
+          branchSessionId: target, parentSessionId, messages: input, history,
+        })).toThrow("Branch history capability is expired or does not match the branch");
+      };
+      project(parent, messages, (history) => {
+        expect(history).toBeTruthy();
+        captured = history;
+        // Same boundary, same valid prerequisites, before changing one binding.
+        expect(store.createBranchSession({
+          branchSessionId: `${parent}-positive`, parentSessionId: parent,
+          messages, history,
+        }).created).toBe(true);
+        expect(bodies(`${parent}-positive`)).toEqual([
+          { role: "user", text: "valid ancestor" },
+        ]);
+        if (condition === "parent" || condition === "context") reject(history);
+        if (condition === "forged") reject({ ...history });
+      });
+      if (condition === "expired") reject(captured);
+      // A failed binding must not reserve the deterministic target or leave
+      // partial history: a fresh valid projection must create it successfully.
+      expect(branch(parent, target, messages).created).toBe(true);
+      expect(bodies(target)).toEqual([{ role: "user", text: "valid ancestor" }]);
+    },
+  );
+  it("restores archived ancestors into two siblings without sharing later bodies", async () => {
+    const parent = "ownership-parent";
+    store.startSession(parent, { provider: "test", model: "test" });
+    const ancestors = [];
+    for (let i = 0; i < 6; i++) {
+      const question = `question-${i}: ${"x".repeat(90)}`;
+      const answer = `answer-${i}: ${"y".repeat(90)}`;
+      store.appendUserMessage(parent, question);
+      store.appendAssistantMessage(parent, answer);
+      ancestors.push({ role: "user", text: question }, { role: "assistant", text: answer });
+    }
+    store.appendUserMessage(parent, "unselected parent turn");
+    const original = page(parent);
+    expect(bodies(parent)).toEqual([...ancestors, { role: "user", text: "unselected parent turn" }]);
+    await compact(parent);
+    const active = store.readVerifiedMessages(parent);
+    // Prove the fixture actually needs archived history, not merely a full copy.
+    expect(active.length).toBeGreaterThan(1);
+    expect(active.length).toBeLessThan(ancestors.length + 1);
+    const selected = active.slice(0, -1);
+    const parentEvents = store.readVerifiedEvents(parent);
+    for (const child of ["ownership-left", "ownership-right"]) {
+      expect(branch(parent, child, selected).created).toBe(true);
+      expect(bodies(child)).toEqual(ancestors);
+      expect(page(child).coverage.kind).toBe("from-origin");
+      expect(store.readVerifiedMessages(child)).toEqual(selected);
+      expect(page(child).messages[0].id).not.toBe(original.messages[0].id);
+    }
+    expect(store.readVerifiedEvents(parent)).toEqual(parentEvents);
+    const leftBefore = page("ownership-left");
+    const rightBefore = page("ownership-right");
+    expect(leftBefore.messages.map((m) => m.id)).not.toEqual(rightBefore.messages.map((m) => m.id));
+    store.appendUserMessage("ownership-left", "left question");
+    store.appendAssistantMessage("ownership-left", "left answer");
+    store.appendUserMessage("ownership-right", "right question");
+    store.appendAssistantMessage("ownership-right", "right answer");
+    store.appendUserMessage(parent, "parent after forks");
+    const expectedLeft = [...ancestors, { role: "user", text: "left question" }, { role: "assistant", text: "left answer" }];
+    const expectedRight = [...ancestors, { role: "user", text: "right question" }, { role: "assistant", text: "right answer" }];
+    expect(bodies("ownership-left")).toEqual(expectedLeft);
+    expect(bodies("ownership-right")).toEqual(expectedRight);
+    expect(bodies(parent)).toEqual([...ancestors,
+      { role: "user", text: "unselected parent turn" },
+      { role: "user", text: "parent after forks" },
+    ]);
+    store.deleteJsonlSession(parent);
+    expect(bodies("ownership-left")).toEqual(expectedLeft);
+    expect(bodies("ownership-right")).toEqual(expectedRight);
+  });
+});

@@ -1,0 +1,138 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+// From __tests__, ../src resolves to packages/cli/src (not ../../src).
+import {
+  BACKGROUND_LAUNCH_PROFILE_VERSION,
+  buildArgvFromBackgroundLaunchProfile,
+  canonicalBackgroundLaunchProfileJson,
+  captureBackgroundLaunchProfile,
+  fingerprintBackgroundLaunchProfile,
+  normalizeBackgroundLaunchProfile,
+} from "../src/lib/background-launch-profile.js";
+
+let cwd;
+let oldHome;
+beforeEach(() => {
+  cwd = realpathSync.native(mkdtempSync(join(tmpdir(), "launch-identity-36-")));
+  oldHome = process.env.CHAINLESSCHAIN_HOME;
+  process.env.CHAINLESSCHAIN_HOME = join(cwd, "home");
+  mkdirSync(process.env.CHAINLESSCHAIN_HOME);
+});
+afterEach(() => {
+  if (oldHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+  else process.env.CHAINLESSCHAIN_HOME = oldHome;
+  rmSync(cwd, { recursive: true, force: true });
+});
+
+function fixture() {
+  return {
+    version: BACKGROUND_LAUNCH_PROFILE_VERSION,
+    workspace: { cwd },
+    tools: { allowed: [], disallowed: ["run_shell"] },
+    permission: { mode: "manual", unattendedAllow: ["read_file"] },
+    sandbox: { enabled: true, mode: "strict", network: false },
+    mcp: { ide: "disabled", pdh: "auto", jetbrains: "enabled" },
+    budget: { maxTurns: 1, maxCostUsd: 0.25 },
+  };
+}
+function persisted(value) {
+  const path = join(cwd, "launch.json");
+  writeFileSync(path, JSON.stringify(value));
+  return JSON.parse(readFileSync(path, "utf8"));
+}
+function rejectsField(value, field) {
+  const restored = persisted(value);
+  for (const boundary of [normalizeBackgroundLaunchProfile, buildArgvFromBackgroundLaunchProfile,
+    canonicalBackgroundLaunchProfileJson, fingerprintBackgroundLaunchProfile]) {
+    expect(() => boundary(restored)).toThrowError(expect.objectContaining({
+      code: "BACKGROUND_LAUNCH_PROFILE_INVALID",
+      message: `Invalid background launch profile field: ${field}`,
+    }));
+  }
+}
+
+const boundaries = [normalizeBackgroundLaunchProfile, buildArgvFromBackgroundLaunchProfile,
+  canonicalBackgroundLaunchProfileJson, fingerprintBackgroundLaunchProfile];
+function accepts(value) {
+  const restored = persisted(value);
+  for (const boundary of boundaries) expect(() => boundary(restored)).not.toThrow();
+}
+
+describe("persisted background launch policy identity (independent regression)", () => {
+  it.each([
+    ["tools", "allowed", ["read_file"], "read_file"],
+    ["tools", "allowed", ["read_file"], [""]],
+    ["tools", "allowed", ["read_file"], [1]],
+    ["tools", "disallowed", ["run_shell"], "run_shell"],
+    ["permission", "unattendedAllow", ["read_file"], [" "]],
+    ["permission", "mode", "manual", "unknown"],
+    ["sandbox", "mode", "strict", "unknown"],
+    ["sandbox", "network", false, "false"],
+    ["permission", "dangerousBypass", false, "false"],
+    ["mcp", "ide", "disabled", "unknown"],
+    ["mcp", "pdh", "auto", "unknown"],
+    ["mcp", "jetbrains", "enabled", "unknown"],
+  ])("rejects only the altered %s.%s condition (%j -> %j)", (group, field, good, bad) => {
+    const input = fixture();
+    input[group][field] = good;
+    accepts(input);
+    input[group][field] = bad;
+    rejectsField(input, `${group}.${field}`);
+  });
+
+  it.each(["maxTurns", "thinkingTokens", "maxRewakes", "maxOuterTurns", "goalMaxTokens", "goalMaxTimeMs"])(
+    "enforces positive safe-integer boundaries for budget.%s", (field) => {
+      const input = fixture();
+      for (const [good, bad] of [[1, 0], [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER + 1],
+        ["+1", "1.5"], ["1", "1junk"], [1, -1]]) {
+        input.budget[field] = good;
+        accepts(input);
+        expect(normalizeBackgroundLaunchProfile(persisted(input)).budget[field]).toBe(Number(good));
+        input.budget[field] = bad;
+        rejectsField(input, `budget.${field}`);
+      }
+    },
+  );
+
+  it.each(["maxCostUsd", "goalMaxCostUsd"])("enforces positive finite costs for budget.%s", (field) => {
+    const input = fixture();
+    for (const [good, bad] of [[Number.MIN_VALUE, 0], ["1e308", "1e309"],
+      [".25", "0x10"], ["+2e-1", "2usd"], [1, -1]]) {
+      input.budget[field] = good;
+      accepts(input);
+      expect(normalizeBackgroundLaunchProfile(persisted(input)).budget[field]).toBe(Number(good));
+      input.budget[field] = bad;
+      rejectsField(input, `budget.${field}`);
+    }
+  });
+  it.each([[null], [[]], [["read_file"]]])("preserves the distinct allowed-tools policy %j through disk and argv", (allowed) => {
+    const input = fixture();
+    input.tools.allowed = allowed;
+    const before = normalizeBackgroundLaunchProfile(input);
+    const restored = normalizeBackgroundLaunchProfile(persisted(before));
+    expect(restored).toEqual(before);
+    expect(restored.tools.allowed).toEqual(allowed);
+    const argv = buildArgvFromBackgroundLaunchProfile(restored);
+    const index = argv.indexOf("--allowed-tools");
+    if (allowed === null) expect(index).toBe(-1);
+    else {
+      expect(index).toBeGreaterThan(-1);
+      expect(argv[index + 1]).toBe(allowed.join(","));
+    }
+    const recaptured = captureBackgroundLaunchProfile({ argv, cwd });
+    expect(recaptured.tools).toEqual(before.tools);
+    expect(recaptured.permission).toEqual(before.permission);
+    expect(recaptured.sandbox).toEqual(before.sandbox);
+    expect(recaptured.budget).toEqual(before.budget);
+    expect(recaptured.mcp).toEqual(before.mcp);
+    expect(canonicalBackgroundLaunchProfileJson(restored)).toBe(canonicalBackgroundLaunchProfileJson(before));
+    expect(fingerprintBackgroundLaunchProfile(restored)).toBe(fingerprintBackgroundLaunchProfile(before));
+    for (const other of [null, [], ["read_file"]]) {
+      if (JSON.stringify(other) === JSON.stringify(allowed)) continue;
+      expect(fingerprintBackgroundLaunchProfile({ ...before, tools: { ...before.tools, allowed: other } }))
+        .not.toBe(fingerprintBackgroundLaunchProfile(before));
+    }
+  });
+});
