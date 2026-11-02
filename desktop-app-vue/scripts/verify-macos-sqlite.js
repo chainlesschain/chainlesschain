@@ -13,21 +13,45 @@ function findMacApp(appOutDir) {
   return path.join(appOutDir, apps[0].name);
 }
 
-function verifyMacApp(app, { verifyBinary } = {}) {
+function readMacArchitectures(app) {
+  const binDir = path.join(app, "Contents", "MacOS");
+  const binaries = fs
+    .readdirSync(binDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile());
+  assert.equal(binaries.length, 1, `Expected one Mac executable in ${binDir}`);
+  return execFileSync("lipo", [path.join(binDir, binaries[0].name), "-archs"], {
+    encoding: "utf8",
+  })
+    .trim()
+    .split(/\s+/);
+}
+
+function verifyMacApp(
+  app,
+  { verifyBinary, readArchitectures = readMacArchitectures } = {},
+) {
   const resources = path.join(app, "Contents", "Resources");
   assert.ok(fs.existsSync(resources), `Missing Mac resources: ${resources}`);
+  const architectures = readArchitectures(app);
+  assert.ok(
+    architectures.length > 0 &&
+      architectures.every((arch) => ["x86_64", "arm64"].includes(arch)),
+    "Unsupported Mac executable architecture",
+  );
   const check =
     verifyBinary ||
-    ((file) => {
-      execFileSync("lipo", [file, "-verify_arch", "x86_64", "arm64"]);
+    ((file, expected) => {
+      execFileSync("lipo", [file, "-verify_arch", ...expected]);
     });
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "cc-mac-sqlite-"));
   let count = 0;
   const verify = (file, identity) => {
     try {
-      check(file);
+      check(file, architectures);
       count += 1;
-      console.log(`[mac-sqlite] universal binding: ${identity}`);
+      console.log(
+        `[mac-sqlite] compatible ${architectures.join("+")} binding: ${identity}`,
+      );
     } catch (error) {
       throw new Error(
         `Invalid packaged SQLite binding ${identity}: ${error.message}`,

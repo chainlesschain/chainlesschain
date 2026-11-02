@@ -29,6 +29,7 @@ function app(name = "ChainlessChain.app") {
 const verifyBinary = (file) => {
   expect(fs.readFileSync(file, "utf8")).toBe("universal");
 };
+const inspection = { verifyBinary, readArchitectures: () => ["x86_64"] };
 
 describe("packaged Mac SQLite verification", () => {
   it("finds the actual Mac resources instead of a Windows resources directory", () => {
@@ -44,7 +45,7 @@ describe("packaged Mac SQLite verification", () => {
       stage,
       path.join(bundle, "Contents/Resources/app.asar"),
     );
-    expect(verifyMacApp(bundle, { verifyBinary })).toBe(1);
+    expect(verifyMacApp(bundle, inspection)).toBe(1);
   });
 
   it("reads unpacked ASAR bindings and CLI extra resources", async () => {
@@ -62,17 +63,15 @@ describe("packaged Mac SQLite verification", () => {
         .unpacked,
     ).toBe(true);
     write(path.join(resources, "packages/cli", binding), "universal");
-    expect(verifyMacApp(bundle, { verifyBinary })).toBeGreaterThanOrEqual(2);
+    expect(verifyMacApp(bundle, inspection)).toBeGreaterThanOrEqual(2);
   });
 
   it("rejects an app without SQLite independently of another valid app", () => {
     const valid = app();
     const empty = app("Empty.app");
     write(path.join(valid, "Contents/Resources/app", binding), "universal");
-    expect(verifyMacApp(valid, { verifyBinary })).toBe(1);
-    expect(() => verifyMacApp(empty, { verifyBinary })).toThrow(
-      "No SQLite bindings",
-    );
+    expect(verifyMacApp(valid, inspection)).toBe(1);
+    expect(() => verifyMacApp(empty, inspection)).toThrow("No SQLite bindings");
   });
 
   it("rejects a bad archived binding even when a loose binding is valid", async () => {
@@ -82,8 +81,35 @@ describe("packaged Mac SQLite verification", () => {
     const resources = path.join(bundle, "Contents/Resources");
     await asar.createPackage(stage, path.join(resources, "app.asar"));
     write(path.join(resources, "packages/cli", binding), "universal");
-    expect(() => verifyMacApp(bundle, { verifyBinary })).toThrow(
+    expect(() => verifyMacApp(bundle, inspection)).toThrow(
       "Invalid packaged SQLite binding",
     );
+  });
+
+  it("validates a single-architecture binding against its app's actual CPU", () => {
+    const bundle = app();
+    write(path.join(bundle, "Contents/Resources/app", binding), "arm64");
+    expect(
+      verifyMacApp(bundle, {
+        readArchitectures: () => ["arm64"],
+        verifyBinary(file, expected) {
+          expect(expected).toEqual(["arm64"]);
+          expect(fs.readFileSync(file, "utf8")).toBe(expected[0]);
+        },
+      }),
+    ).toBe(1);
+  });
+
+  it("rejects a binding for the other app architecture", () => {
+    const bundle = app();
+    write(path.join(bundle, "Contents/Resources/app", binding), "arm64");
+    expect(() =>
+      verifyMacApp(bundle, {
+        readArchitectures: () => ["x86_64"],
+        verifyBinary(file, expected) {
+          expect(fs.readFileSync(file, "utf8")).toBe(expected[0]);
+        },
+      }),
+    ).toThrow("Invalid packaged SQLite binding");
   });
 });

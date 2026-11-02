@@ -424,6 +424,7 @@ jobs:
         run: >-
           npx vitest run
           tests/unit/scripts/verify-macos-sqlite.test.js
+          tests/unit/scripts/stage-macos-sqlite.test.js
           tests/unit/scripts/asar-surgery.test.js
 
       - name: Rebuild bs3mc native bindings for Electron ABI (macOS)
@@ -444,25 +445,34 @@ jobs:
           ELECTRON_VER=$(node -p "require(require.resolve('electron/package.json', { paths: [require('node:path').resolve('desktop-app-vue')] })).version")
           NATIVE_STAGE=$(mktemp -d "$RUNNER_TEMP/product144-sqlite.XXXXXX")
           trap 'rm -rf "$NATIVE_STAGE"' EXIT
-          for arch in x64 arm64; do
-            (cd desktop-app-vue && npx --yes @electron/rebuild@^4 \
-              --version "$ELECTRON_VER" --arch "$arch" \
-              --only better-sqlite3-multiple-ciphers,better-sqlite3 --force)
-            for pkg in better-sqlite3-multiple-ciphers better-sqlite3; do
-              cp "desktop-app-vue/node_modules/$pkg/build/Release/better_sqlite3.node" \
-                "$NATIVE_STAGE/$pkg-$arch.node"
+          # The root and standalone desktop lockfiles contain different SQLite
+          # versions. Rebuild each version, then stage only matching payloads.
+          for scope in . desktop-app-vue; do
+            for arch in x64 arm64; do
+              (cd "$scope" && npx --yes @electron/rebuild@^4 \
+                --version "$ELECTRON_VER" --arch "$arch" \
+                --only better-sqlite3-multiple-ciphers,better-sqlite3 --force)
+              for pkg in better-sqlite3-multiple-ciphers better-sqlite3; do
+                version=$(node -p "require('./$scope/node_modules/$pkg/package.json').version")
+                cp "$scope/node_modules/$pkg/build/Release/better_sqlite3.node" \
+                  "$NATIVE_STAGE/$pkg-$version-$arch.node"
+              done
             done
           done
           for pkg in better-sqlite3-multiple-ciphers better-sqlite3; do
-            REBUILT="desktop-app-vue/node_modules/$pkg/build/Release/better_sqlite3.node"
-            lipo -create "$NATIVE_STAGE/$pkg-x64.node" "$NATIVE_STAGE/$pkg-arm64.node" -output "$REBUILT"
-            lipo "$REBUILT" -verify_arch x86_64 arm64
-            lipo -info "$REBUILT"
-            while IFS= read -r target; do
-              cp -f "$REBUILT" "$target"
-              lipo "$target" -verify_arch x86_64 arm64
-            done < <(find packages -path "*/$pkg/build/Release/better_sqlite3.node" -type f)
+            versions=$(node -p "[...new Set([require('./node_modules/$pkg/package.json').version,require('./desktop-app-vue/node_modules/$pkg/package.json').version])].join(' ')")
+            for version in $versions; do
+              REBUILT="$NATIVE_STAGE/$pkg-$version-universal.node"
+              lipo -create "$NATIVE_STAGE/$pkg-$version-x64.node" "$NATIVE_STAGE/$pkg-$version-arm64.node" -output "$REBUILT"
+              lipo "$REBUILT" -verify_arch x86_64 arm64
+              lipo -info "$REBUILT"
+            done
           done
+          node desktop-app-vue/scripts/stage-macos-sqlite.js "$NATIVE_STAGE"
+          ELECTRON_PATH=$(node -p "require(require.resolve('electron', {paths:[require('node:path').resolve('desktop-app-vue')]}))")
+          ELECTRON_RUN_AS_NODE=1 "$ELECTRON_PATH" -e 'const assert=require("node:assert/strict"); for(const p of process.argv.slice(1)){const DB=require(p);const db=new DB(":memory:");try{assert.equal(db.prepare("SELECT 1 AS n").get().n,1)}finally{db.close()}console.log("Electron SQLite smoke passed: "+p)}' \
+            "$PWD/node_modules/better-sqlite3" "$PWD/node_modules/better-sqlite3-multiple-ciphers" \
+            "$PWD/desktop-app-vue/node_modules/better-sqlite3" "$PWD/desktop-app-vue/node_modules/better-sqlite3-multiple-ciphers"
 
       - name: Merge hoisted modules into nested (preserve non-hoistable deps)
         run: |
