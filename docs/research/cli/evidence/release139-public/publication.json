@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-02T11:56:26.152Z",
+  "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "cli": {
+    "version": "0.166.139",
+    "status": "verified-public",
+    "method": "GitHub Actions OIDC Trusted Publishing",
+    "tag": "v-npm-0-166-139",
+    "runId": 41431711290,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41431711290",
+    "publicRegistryBytesVerified": true,
+    "publicInstallAndStartupVerified": true,
+    "signedProvenanceVerified": true,
+    "sha256": "dd1fea339b5b8e4d869c5f9dacf037e92474fb8b2ec268b80856767124782116",
+    "sha512": "5f47eb046858bdd34bc67cf8a18b6aa34eef26f147a62f7dcb26759f5abbc48f36c7abfa044c7f8cfcb8db461f64889d2a5246f87485e527901b7f22770496d7"
+  },
+  "agentSdk": {
+    "version": "0.2.17",
+    "status": "verified-public-before-cli",
+    "sourceTreeReuseVerified": true
+  },
+  "kernel": {
+    "version": "0.1.11",
+    "status": "unchanged-and-verified-public"
+  },
+  "idePairing": {
+    "vscode": {
+      "version": "0.37.175",
+      "tag": "ide-vscode-v0.37.175",
+      "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+      "recommendedCliVersion": "0.166.139",
+      "status": "verified-public",
+      "runId": 41434982503,
+      "publicReceipt": "open-vsx.json"
+    },
+    "jetbrains": {
+      "version": "0.4.192",
+      "tag": "ide-jetbrains-v0.4.192",
+      "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+      "recommendedCliVersion": "0.166.139",
+      "status": "uploaded-pending-publication",
+      "runId": 41434982670,
+      "publicAvailabilityVerified": false
+    },
+    "availability": "requires separate version-specific marketplace readback"
+  },
+  "modelAcceptance": {
+    "cli138": "2/4",
+    "historical": "41/45",
+    "cli137": "0/5",
+    "cli139": null,
+    "newModelAcceptanceClaimed": false
+  },
+  "productRelease": {
+    "currentPublic": "v5.0.3.143",
+    "nextCandidate": "v5.0.3.144",
+    "order": "verified children -> CLI -> IDE -> mobile/PC"
+  }
+}

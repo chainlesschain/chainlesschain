@@ -1,20 +1,22 @@
 # Agent Platform 发布与升级指南
 
-<!-- release139-candidate:start -->
+<!-- release139-current:start -->
 
-## CLI 0.166.139 / IDE repair candidate
+## 当前公开 CLI：0.166.139（2026-11-02）
 
-The next package set is CLI **0.166.139**, Open VSX **0.37.175** and JetBrains **0.4.192**, with unchanged upstream SDK **0.2.17** and Kernel **0.1.11**. These versions are release candidates until their exact-source GitHub Actions gates and public readbacks succeed. After publication, install `npm i -g chainlesschain@0.166.139 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, and check `cc --version` and `cc doctor`.
+CLI **0.166.139** 已通过 [GitHub Actions OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/41431711290)，准确源码为 `eec8b97b6040d19004670bfead0bec1b8a27b71b`。同一提交的 CLI CI **76/76**、Strict Sandbox **6/6** 覆盖全部配置平台并通过；公开 npm 归档字节、来源签名和安装启动均已核验。安装：`npm i -g chainlesschain@0.166.139 --registry https://registry.npmjs.org`，升级后重启 CLI 与 IDE 聊天宿主，再运行 `cc --version`、`cc doctor`。
 
-The repair reserves author, fresh independent review and final reporting work within the original total request budget. Partial JavaScript reads recover complete surrounding statements from the same file snapshot within the existing output limit; focused reads do not silently switch to unrelated ranges. The previously merged standalone WebSocket host-model-policy repair is included in this candidate.
+配套 Open VSX **0.37.175** 已公开且回读验证通过。JetBrains **0.4.192** 已由[正式工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/41434982670)成功上传，但 Marketplace 尚未公开该版本。两款配套插件均推荐 CLI **0.166.139**。上游 Agent SDK **0.2.17**、Kernel **0.1.11** 保持不变。移动端与 PC 候选 **v5.0.3.144** 将在两款 IDE 公开验证后发行；目前公开客户端仍为 **v5.0.3.143**，Microsoft Marketplace 继续暂缓。
 
-CLI .138 acceptance remains **2/4**: verify-13 and first-run-darwin-vscode passed; verify-08 and verify-36 failed on author-stage iteration exhaustion despite passing candidate checks. Only those two failures will be regenerated with this new package set. CLI .136 verify-19 remains a separate historical pass; historical **41/45** and .137 **0/5** are unchanged. Review stays enabled, with 20 model turns, 24 physical requests per case and the 32768-token planning context. Engineering checks do not establish model-task success. JetBrains may be tested using the official pending-review ZIP without waiting for Marketplace approval. Microsoft Marketplace and PC/mobile are outside this release.
+此版在原有总预算内预留作者、独立复核和最终报告的工作，并从同一文件快照恢复完整 JavaScript 语句，保留聚焦读取的原始范围；同时包含独立 WebSocket 模型策略修复。CLI .138 的独立复验仍为 **2/4**，历史累计 **41/45**、.137 **0/5** 分别保留；本次工程验证和发布没有新增模型任务验收成绩。
 
-<!-- release139-candidate:end -->
+[发行证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release139-public/publication.json) · [准确源码门禁](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release139-public/gates.json) · [Open VSX 公开核验](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release139-public/open-vsx.json)。
+
+<!-- release139-current:end -->
 
 <!-- release138-current:start -->
 
-## CLI 0.166.138 已公开（2026-11-02 核对）
+## 上一公开版本 CLI 0.166.138（2026-11-02 核对）
 
 CLI **0.166.138** 与上游 Agent SDK **0.2.17** 已通过 GitHub Actions OIDC 发布。安装：`npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`，升级后重启 `cc ui` 与 IDE 聊天宿主，并运行 `cc --version`、`cc doctor`。Open VSX **0.37.174** 发布工作流成功，推荐 CLI **0.166.138**。JetBrains **0.4.191** 已获 Marketplace 批准并公开列出（update `1209507`）；公开 ZIP 与正式构建的负载一致性仍待核验。两个新插件均推荐 CLI **0.166.138**。
 

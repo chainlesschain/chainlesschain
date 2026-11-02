@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-02T11:56:26.151Z",
+  "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "recommendedCliVersion": "0.166.139",
+  "tag": "ide-vscode-v0.37.175",
+  "runId": 41434982503,
+  "workflow": "https://github.com/chainlesschain/chainlesschain/actions/runs/41434982503",
+  "receipt": {
+    "channel": "open-vsx",
+    "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide",
+    "status": "ready",
+    "version": "0.37.175",
+    "latest": "0.37.175",
+    "downloadable": true,
+    "listed": true
+  }
+}

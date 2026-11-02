@@ -1,20 +1,22 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-<!-- release139-candidate:start -->
+<!-- release139-current:start -->
 
-## CLI 0.166.139 / IDE repair candidate
+## Current public CLI: 0.166.139 (2026-11-02)
 
-The next package set is CLI **0.166.139**, Open VSX **0.37.175** and JetBrains **0.4.192**, with unchanged upstream SDK **0.2.17** and Kernel **0.1.11**. These versions are release candidates until their exact-source GitHub Actions gates and public readbacks succeed. After publication, install `npm i -g chainlesschain@0.166.139 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, and check `cc --version` and `cc doctor`.
+CLI **0.166.139** is published through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/41431711290) from exact source `eec8b97b6040d19004670bfead0bec1b8a27b71b`. All **76/76 CLI CI** and **6/6 Strict Sandbox** jobs passed across every configured platform. Public npm archive bytes, signed provenance, and install/startup checks passed. Install `npm i -g chainlesschain@0.166.139 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, then run `cc --version` and `cc doctor`.
 
-The repair reserves author, fresh independent review and final reporting work within the original total request budget. Partial JavaScript reads recover complete surrounding statements from the same file snapshot within the existing output limit; focused reads do not silently switch to unrelated ranges. The previously merged standalone WebSocket host-model-policy repair is included in this candidate.
+Paired Open VSX **0.37.175** is public and its registry readback passed. JetBrains **0.4.192** was successfully uploaded by its [official workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41434982670), but Marketplace has not exposed this version yet. Both paired plugins recommend CLI **0.166.139**. Agent SDK **0.2.17** and Kernel **0.1.11** are unchanged. Mobile/PC candidate **v5.0.3.144** follows verified IDE releases; currently published clients remain **v5.0.3.143**. Microsoft Marketplace remains deferred.
 
-CLI .138 acceptance remains **2/4**: verify-13 and first-run-darwin-vscode passed; verify-08 and verify-36 failed on author-stage iteration exhaustion despite passing candidate checks. Only those two failures will be regenerated with this new package set. CLI .136 verify-19 remains a separate historical pass; historical **41/45** and .137 **0/5** are unchanged. Review stays enabled, with 20 model turns, 24 physical requests per case and the 32768-token planning context. Engineering checks do not establish model-task success. JetBrains may be tested using the official pending-review ZIP without waiting for Marketplace approval. Microsoft Marketplace and PC/mobile are outside this release.
+This release reserves author, fresh independent review and final reporting work within the original total budget, recovers complete JavaScript statements from the same file snapshot, preserves focused read ranges, and includes the standalone WebSocket host-model-policy repair. CLI .138 acceptance remains a separate **2/4** result; historical **41/45** and .137 **0/5** retain their scopes. These engineering checks and publication establish no new model-task acceptance.
 
-<!-- release139-candidate:end -->
+[Publication evidence](docs/research/cli/evidence/release139-public/publication.json) · [Exact-source gates](docs/research/cli/evidence/release139-public/gates.json) · [Open VSX public readback](docs/research/cli/evidence/release139-public/open-vsx.json).
+
+<!-- release139-current:end -->
 
 <!-- release138-current:start -->
 
-## Current public CLI: 0.166.138 (reviewed 2026-11-02)
+## Previous public CLI: 0.166.138 (reviewed 2026-11-02)
 
 CLI **0.166.138** and upstream Agent SDK **0.2.17** are published through GitHub Actions OIDC. Install `npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`, restart `cc ui` and IDE chat hosts, then run `cc --version` and `cc doctor`. Open VSX **0.37.174** publication succeeded. JetBrains **0.4.191** is approved and publicly listed in Marketplace (update `1209507`); public ZIP payload comparison with the official build remains pending. Both new IDE versions recommend CLI **0.166.138**.
 
