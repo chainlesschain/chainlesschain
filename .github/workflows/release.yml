@@ -425,6 +425,7 @@ jobs:
           npx vitest run
           tests/unit/scripts/verify-macos-sqlite.test.js
           tests/unit/scripts/stage-macos-sqlite.test.js
+          tests/unit/scripts/patch-macos-sqlite.test.js
           tests/unit/scripts/asar-surgery.test.js
 
       - name: Rebuild bs3mc native bindings for Electron ABI (macOS)
@@ -447,7 +448,7 @@ jobs:
           trap 'rm -rf "$NATIVE_STAGE"' EXIT
           # The root and standalone desktop lockfiles contain different SQLite
           # versions. Rebuild each version, then stage only matching payloads.
-          for scope in . desktop-app-vue; do
+          for scope in . desktop-app-vue packages/core-db; do
             BUILD_PROJECT="$NATIVE_STAGE/build-$scope"
             # Hoisted root dependencies are not declared by the aggregate root
             # package, so rebuild's normal dependency scan skips them. Give the
@@ -455,12 +456,16 @@ jobs:
             node - "$BUILD_PROJECT" "$PWD/$scope" <<'NODE'
           const fs = require('node:fs');
           const path = require('node:path');
+          const { patchMacSqlite } = require('./desktop-app-vue/scripts/patch-macos-sqlite');
           const [project, source] = process.argv.slice(2);
           const dependencies = {};
           fs.mkdirSync(path.join(project, 'node_modules'), { recursive: true });
           for (const name of ['better-sqlite3', 'better-sqlite3-multiple-ciphers']) {
             const modulePath = path.join(source, 'node_modules', name);
             dependencies[name] = require(path.join(modulePath, 'package.json')).version;
+            // V8 in Electron 39 removed Context::GetIsolate. Keep core-db's
+            // published 11.10.0 API/SQLite version and backport this initializer.
+            console.log('V8 compatibility patches:', name, patchMacSqlite(modulePath));
             fs.symlinkSync(modulePath, path.join(project, 'node_modules', name), 'dir');
           }
           fs.writeFileSync(path.join(project, 'package.json'), JSON.stringify({name:'product144-native-build',version:'1.0.0',private:true,dependencies}));
@@ -481,7 +486,7 @@ jobs:
             done
           done
           for pkg in better-sqlite3-multiple-ciphers better-sqlite3; do
-            versions=$(node -p "[...new Set([require('./node_modules/$pkg/package.json').version,require('./desktop-app-vue/node_modules/$pkg/package.json').version])].join(' ')")
+            versions=$(node -p "[...new Set([require('./node_modules/$pkg/package.json').version,require('./desktop-app-vue/node_modules/$pkg/package.json').version,require('./packages/core-db/node_modules/$pkg/package.json').version])].join(' ')")
             for version in $versions; do
               REBUILT="$NATIVE_STAGE/$pkg-$version-universal.node"
               lipo -create "$NATIVE_STAGE/$pkg-$version-x64.node" "$NATIVE_STAGE/$pkg-$version-arm64.node" -output "$REBUILT"
@@ -493,7 +498,8 @@ jobs:
           ELECTRON_PATH=$(node -p "require(require.resolve('electron', {paths:[require('node:path').resolve('desktop-app-vue')]}))")
           ELECTRON_RUN_AS_NODE=1 "$ELECTRON_PATH" -e 'const assert=require("node:assert/strict"); for(const p of process.argv.slice(1)){const DB=require(p);const db=new DB(":memory:");try{assert.equal(db.prepare("SELECT 1 AS n").get().n,1)}finally{db.close()}console.log("Electron SQLite smoke passed: "+p)}' \
             "$PWD/node_modules/better-sqlite3" "$PWD/node_modules/better-sqlite3-multiple-ciphers" \
-            "$PWD/desktop-app-vue/node_modules/better-sqlite3" "$PWD/desktop-app-vue/node_modules/better-sqlite3-multiple-ciphers"
+            "$PWD/desktop-app-vue/node_modules/better-sqlite3" "$PWD/desktop-app-vue/node_modules/better-sqlite3-multiple-ciphers" \
+            "$PWD/packages/core-db/node_modules/better-sqlite3" "$PWD/packages/core-db/node_modules/better-sqlite3-multiple-ciphers"
 
       - name: Merge hoisted modules into nested (preserve non-hoistable deps)
         run: |
