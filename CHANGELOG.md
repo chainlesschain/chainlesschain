@@ -11,10 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed - desktop/mobile v5.0.3.144 (candidate, 2026-11-02)
+### Changed - desktop/mobile v5.0.3.144 (2026-11-02)
 
 - Align the product version to `v5.0.3.144`, desktop packages to `5.0.3-alpha.144`, Android to versionName `5.0.3.144` / versionCode `503144`, and iOS to marketing version `5.0.3` / build `144`.
-- Consume CLI `0.166.139` only after its complete exact-source CLI CI / Strict Sandbox gates, Actions OIDC publication, and public archive/provenance verification. Open VSX `0.37.175` and JetBrains `0.4.192` must be publicly verified before the mobile/PC release starts. SDK `0.2.17` and Kernel `0.1.11` remain unchanged.
+- Consume CLI `0.166.139` only after its complete exact-source CLI CI / Strict Sandbox gates, Actions OIDC publication, and public archive/provenance verification. Open VSX `0.37.175` must be publicly verified. For this product144 release, the user authorized publication after the official JetBrains `0.4.192` upload is verified, without waiting for Marketplace review; its exact tag, source and successful upload step remain mandatory. SDK `0.2.17` and Kernel `0.1.11` remain unchanged.
 - Refresh the Android embedded CLI through the reviewed published-package hydration and immutable internal-binaries rollover, retaining the existing Android Node/native binding policy and forcing bootstrap re-extraction for the new archive.
 - Require the complete Windows, macOS Intel/ARM, Linux, Android APK/AAB, and signed iOS IPA asset set and checksum/update-metadata verification before publishing the product release. Release engineering checks do not add model-task acceptance; CLI .138 remains a separate 2/4 result.
 

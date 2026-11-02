@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "checkedAt": "2026-11-02T11:58:38.028Z",
+  "checkedAt": "2026-11-02T13:07:02.465Z",
   "productVersion": "v5.0.3.144",
-  "status": "prepared-awaiting-public-jetbrains",
+  "status": "preparing-release-with-authorized-review-exception",
   "cli": {
     "version": "0.166.139",
     "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
@@ -32,22 +32,43 @@
     "sha256": "e8760302604b8f257429a68aaac172158d04dbf798e4e54b1e7252e84806af8f",
     "bytes": 98930492,
     "verified": true,
-    "newBinariesVersion": "20261102-1"
+    "newBinariesVersion": "20261102-2"
   },
   "requiredRollover": {
     "workflow": "internal-binaries-rollover.yml",
-    "status": "not-started-upstream-IDE-publication-required",
+    "status": "prepared-corrected-metadata-publisher",
     "inputs": {
       "from_version": "20261028-1",
-      "new_version": "20261102-1",
+      "new_version": "20261102-2",
       "bundle_run_id": "41435036901",
       "cc_cli_sha256": "e8760302604b8f257429a68aaac172158d04dbf798e4e54b1e7252e84806af8f"
-    }
+    },
+    "runId": null
   },
   "requiredClientRelease": {
     "tag": "v5.0.3.144",
     "workflow": "release.yml",
-    "status": "not-started-upstream-IDE-publication-required"
+    "status": "awaiting-client-CI-and-binary-rollover"
   },
-  "versionSync": "passed for desktop, Android and iOS"
+  "versionSync": "passed for desktop, Android and iOS",
+  "authorization": {
+    "scope": "product v5.0.3.144 with CLI0.166.139 and JetBrains0.4.192",
+    "instruction": "User authorized clients to publish before Marketplace review completes",
+    "uploadAuthority": {
+      "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+      "tag": "ide-jetbrains-v0.4.192",
+      "runId": 41434982670,
+      "attempt": 1,
+      "jobId": 125252303764,
+      "uploadVerified": true
+    }
+  },
+  "rolloverHistory": [
+    {
+      "version": "20261102-1",
+      "runId": 41447827985,
+      "status": "superseded-before-client-release",
+      "reason": "Inherited metadata and SHA256SUMS were stale; CLI archive bytes were correct"
+    }
+  ]
 }
