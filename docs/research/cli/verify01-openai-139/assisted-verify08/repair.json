@@ -1,0 +1,32 @@
+{
+  "schema": "chainlesschain.verify01-assisted-candidate-repair/v1",
+  "sampleId": "verify-08",
+  "assisted": true,
+  "originalNativePassed": false,
+  "countedAsNativeGeneration": false,
+  "modelRequests": 0,
+  "projectSource": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "originalRunId": 41445382222,
+  "originalAcceptanceArtifactId": 13142857312,
+  "originalAcceptanceArtifactDigest": "sha256:a0bab0886ab33256567e8acb47a407d9bbe1c2b27f0be552afc6fcb3d904a386",
+  "originalCandidateDigest": "sha256:4e0edfb68886024c88d5486fcbd53b915b3c18c46328b855a6bf132b5af78c16",
+  "candidateFile": "repair137-verify-08.test.js.txt",
+  "candidateDigest": "sha256:39215a590ef7b8850184d6de58652d8e87412e29f20eefb293f8e9cc62f4a431",
+  "targetFile": "packages/cli/__tests__/repair137-verify-08.test.js",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operators": {
+    "setup": {
+      "file": "original-setup.mjs.gz",
+      "digest": "sha256:41b07b56d85c745fdccef5d0454941a8abca834bedd6781ecde54cb6b65086b3",
+      "compressedDigest": "sha256:ad17c45c055d7a074bfb64673120e9b010c8aa353cb009343ef0cfdb423ce7a4"
+    },
+    "check": {
+      "file": "original-check.mjs.gz",
+      "digest": "sha256:f6ca61f585d17bcad2dddc37b939d094868988e60bee05e68de78cb843afea06",
+      "compressedDigest": "sha256:0eac5b8f093121d02e5e4577d86d58c3ac13727107b75679756fc85e3a2f8bd9"
+    }
+  },
+  "cause": "Generated full parent/child row equality contradicts session-scoped display identity; persisted ancestry provenance is separate.",
+  "repair": "Check ancestor role/text and authenticated source provenance, distinct child display identity, retain branch isolation, and add valid/wrong-parent/wrong-context/forged/expired capability controls.",
+  "independentReview": "Astra static review found no semantic blocker; unchanged original Docker evaluator remains authoritative."
+}

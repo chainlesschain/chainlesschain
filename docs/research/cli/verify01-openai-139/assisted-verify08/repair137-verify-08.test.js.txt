@@ -1,0 +1,145 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+const root = mkdtempSync(join(tmpdir(), "cc-fork-ownership-"));
+// This file is in __tests__, not __tests__/unit: ../src resolves to cli/src.
+vi.mock("../src/lib/paths.js", () => ({
+  getHomeDir: () => join(root, "home"),
+  getSessionStoreDir: () => join(root, "home", "sessions"),
+  getClaudeProjectStorageDir: () => null,
+  getStatePath: () => join(root, "home", "state"),
+  getMachineSecurityAnchorDir: () => join(root, "security"),
+}));
+const store = await import("../src/harness/jsonl-session-store.js");
+const {
+  readSessionTranscriptHistory,
+  createSessionTranscriptBranchProjection,
+} = await import("../src/lib/session-transcript-history.js");
+const { BRANCH_HISTORY_MESSAGE, resolveSessionBranchHistory } =
+  await import("../src/lib/session-branch-history.js");
+
+afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+function seed(id) {
+  store.startSession(id, { provider: "test", model: "test" });
+  store.appendUserMessage(id, "ancestor question");
+  store.appendAssistantMessage(id, "ancestor answer");
+  store.appendUserMessage(id, "excluded parent question");
+  store.appendAssistantMessage(id, "excluded parent answer");
+}
+
+function withHistory(parentSessionId, consume) {
+  const messages = store.readVerifiedMessages(parentSessionId).slice(0, 2);
+  const head = store.findLatestEvent(parentSessionId, null).hash;
+  return store.withSessionAuthorityTransaction(parentSessionId, head, (tx) =>
+    tx.readProjection(() =>
+      createSessionTranscriptBranchProjection(parentSessionId, messages,
+        (history) => consume(history, messages)),
+    ),
+  );
+}
+
+function fork(parentSessionId, branchSessionId) {
+  return withHistory(parentSessionId, (history, messages) =>
+    store.createBranchSession({ parentSessionId, branchSessionId,
+      parentTurnId: "selected", messages, history }),
+  );
+}
+
+const texts = (page) => page.messages.map((row) => row.text);
+
+describe("fork history ownership regression", () => {
+  it("restores both siblings with the same valid ancestors but independent bodies", () => {
+    const parent = "ownership-parent";
+    const left = "ownership-left";
+    const right = "ownership-right";
+    seed(parent);
+    const original = readSessionTranscriptHistory(parent);
+    const ancestors = original.messages.slice(0, 2);
+    expect(texts(original)).toEqual([
+      "ancestor question", "ancestor answer",
+      "excluded parent question", "excluded parent answer",
+    ]);
+    expect(fork(parent, left).created).toBe(true);
+    store.appendUserMessage(left, "left-only question");
+    store.appendAssistantMessage(left, "left-only answer");
+    expect(fork(parent, right).created).toBe(true);
+    store.appendUserMessage(right, "right-only question");
+    store.appendAssistantMessage(right, "right-only answer");
+    store.appendUserMessage(parent, "parent after both forks");
+
+    // Re-read persisted histories, rather than comparing in-memory input messages.
+    for (const [id, own, foreign] of [
+      [left, "left", "right"], [right, "right", "left"],
+    ]) {
+      const page = readSessionTranscriptHistory(id);
+      expect(page.totalMessages).toBe(4);
+      // Imported rows belong to the child; original identities are stored
+      // separately in the authenticated branch-history events.
+      expect(page.messages.slice(0, 2).map(({ role, text }) => ({ role, text })))
+        .toEqual(ancestors.map(({ role, text }) => ({ role, text })));
+      const imported = store.readVerifiedEvents(id)
+        .filter((event) => event.type === BRANCH_HISTORY_MESSAGE);
+      expect(imported.map(({ data }) => ({
+        sourceEventId: data.sourceEventId,
+        sourceItemIndex: data.sourceItemIndex,
+      }))).toEqual(ancestors.map((row) => ({
+        sourceEventId: row.eventId,
+        sourceItemIndex: row.itemIndex,
+      })));
+      page.messages.slice(0, 2).forEach((row, index) => {
+        expect(row.id).toBe(`${id}:${row.eventId}:${row.itemIndex}`);
+        expect(row.id).not.toBe(ancestors[index].id);
+        expect(row.eventId).not.toBe(ancestors[index].eventId);
+      });
+      expect(texts(page)).toEqual([
+        "ancestor question", "ancestor answer", `${own}-only question`, `${own}-only answer`,
+      ]);
+      expect(texts(page)).not.toContain(`${foreign}-only question`);
+      expect(texts(page)).not.toContain("excluded parent question");
+      expect(texts(page)).not.toContain("parent after both forks");
+      expect(store.readVerifiedMessages(id).map((message) => message.content)).toEqual([
+        "ancestor question", "ancestor answer", `${own}-only question`, `${own}-only answer`,
+      ]);
+    }
+    expect(readSessionTranscriptHistory(parent).messages.slice(0, 4)).toEqual(original.messages);
+    expect(texts(readSessionTranscriptHistory(parent))).toEqual([
+      ...texts(original), "parent after both forks",
+    ]);
+  });
+
+  it("binds a valid history capability to its parent and context", () => {
+    const parent = "capability-parent";
+    seed(parent);
+    withHistory(parent, (history, messages) => {
+      expect(resolveSessionBranchHistory(history, parent, messages))
+        .toMatchObject({ parentSessionId: parent });
+      expect(() => resolveSessionBranchHistory(
+        history, "different-parent", messages,
+      )).toThrow(/capability/);
+      expect(() => resolveSessionBranchHistory(
+        history, parent, [{ ...messages[0], content: "changed context" }, messages[1]],
+      )).toThrow(/capability/);
+      expect(resolveSessionBranchHistory(null, parent, messages)).toBeNull();
+    });
+  });
+
+  it("rejects forged and expired history capabilities", () => {
+    const parent = "expired-capability-parent";
+    seed(parent);
+    let expired;
+    let context;
+    withHistory(parent, (history, messages) => {
+      expired = history;
+      context = messages;
+      expect(() => resolveSessionBranchHistory({}, parent, messages))
+        .toThrow(/capability/);
+      expect(resolveSessionBranchHistory(history, parent, messages))
+        .toMatchObject({ parentSessionId: parent });
+    });
+    expect(() => resolveSessionBranchHistory(expired, parent, context))
+      .toThrow(/capability/);
+  });
+});
