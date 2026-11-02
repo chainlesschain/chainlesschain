@@ -1,0 +1,181 @@
+{
+  "schema": "chainlesschain.verify01-assisted-integration/v1",
+  "recordedAt": "2026-11-02T15:16:32.458Z",
+  "headBeforeChanges": "daab4e1d2c67de775e51dd8cd952d34189f7fa16",
+  "scope": "modified-worktree-before-commit",
+  "platform": "win32",
+  "node": "v22.22.2",
+  "vitest": "4.1.10",
+  "modelRequests": 0,
+  "newNativeAcceptanceClaimed": false,
+  "native139": "0/2",
+  "assisted139": "2/2",
+  "previousInstalled": ["04", "07", "09", "10", "13"],
+  "installedNow": ["04", "07", "08", "09", "10", "13", "36"],
+  "candidates": [
+    {
+      "sampleId": "verify-08",
+      "candidate": {
+        "path": "docs/research/cli/verify01-openai-139/assisted-verify08/repair137-verify-08.test.js.txt",
+        "sha256": "sha256:39215a590ef7b8850184d6de58652d8e87412e29f20eefb293f8e9cc62f4a431"
+      },
+      "installed": {
+        "path": "packages/cli/__tests__/verify-08.test.js",
+        "sha256": "sha256:70f17e745d5c319f1781431fc2e8ddb29748d11cce4239a6edd47c40deaee7f9"
+      },
+      "acceptance": {
+        "path": "docs/research/cli/verify01-openai-139/assisted-verify08/acceptance/result.json",
+        "sha256": "sha256:b482fc6d685d49708c18e329ed7dbc42e2398181f9964f2aad6e45b3c08d4fdd"
+      },
+      "operators": {
+        "setup": {
+          "path": "docs/research/cli/verify01-openai-139/assisted-verify08/original-setup.mjs.gz",
+          "sha256": "sha256:ad17c45c055d7a074bfb64673120e9b010c8aa353cb009343ef0cfdb423ce7a4"
+        },
+        "check": {
+          "path": "docs/research/cli/verify01-openai-139/assisted-verify08/original-check.mjs.gz",
+          "sha256": "sha256:0eac5b8f093121d02e5e4577d86d58c3ac13727107b75679756fc85e3a2f8bd9"
+        }
+      },
+      "receipts": {
+        "setup": {
+          "path": "docs/research/cli/verify01-openai-139/assisted-verify08/acceptance/receipts/setup.json",
+          "sha256": "sha256:32e921258b7ef2336be6317be8b8fefa07208ffb9043b4dd000e46c99d199617"
+        },
+        "check": {
+          "path": "docs/research/cli/verify01-openai-139/assisted-verify08/acceptance/receipts/check.json",
+          "sha256": "sha256:3f6d8f5d942fbbb93446aa2277ab2dbbdbae06dd9d63cf948beb491d5985de5f"
+        }
+      },
+      "formattingOnly": true
+    },
+    {
+      "sampleId": "verify-36",
+      "candidate": {
+        "path": "docs/research/cli/verify01-openai-139/assisted-verify36/repair137-verify-36.test.js.txt",
+        "sha256": "sha256:b5dfa042e3652a4b806e0b39cb8093b69c32a12a98b6203ea41501c464e1a623"
+      },
+      "installed": {
+        "path": "packages/cli/__tests__/verify-36.test.js",
+        "sha256": "sha256:3cb6ade06618331df7ddf481a7334c2367c07444fb3e0474a5f594858dcf73e1"
+      },
+      "acceptance": {
+        "path": "docs/research/cli/verify01-openai-139/assisted-verify36/acceptance/result.json",
+        "sha256": "sha256:9f662bdfc19a1e912ecf689e770af0bec6caca05b4843b3a2b25bc5ee3569d23"
+      },
+      "operators": {
+        "setup": {
+          "path": "docs/research/cli/verify01-openai-139/assisted-verify36/original-setup.mjs.gz",
+          "sha256": "sha256:9d48cd8fb9b93dc4cad63cae1e7ed08315a307e1d6c4d9f09d13b936c7796559"
+        },
+        "check": {
+          "path": "docs/research/cli/verify01-openai-139/assisted-verify36/original-check.mjs.gz",
+          "sha256": "sha256:e5c6fbe694a836ee53cc27911520cc81c5d8f9661b46221f89ad5e59a3b82364"
+        }
+      },
+      "receipts": {
+        "setup": {
+          "path": "docs/research/cli/verify01-openai-139/assisted-verify36/acceptance/receipts/setup.json",
+          "sha256": "sha256:14b3d7c5325e612a8f641eca4598dab7f8077548fd53db2b539232883665aaab"
+        },
+        "check": {
+          "path": "docs/research/cli/verify01-openai-139/assisted-verify36/acceptance/receipts/check.json",
+          "sha256": "sha256:2966fb2e1167c1702f5fa4adc03b414f8dc9b5c397f3dd8e2c82f405449bfc73"
+        }
+      },
+      "formattingOnly": true
+    }
+  ],
+  "regression": {
+    "files": 10,
+    "total": 84,
+    "passed": 84,
+    "failed": 0,
+    "pending": 0,
+    "report": {
+      "path": "docs/research/cli/evidence/assisted0836-integration-2026-11-02/regression.json.gz",
+      "sha256": "sha256:324540def0665ead5a5df06517ba277ed9bf2b665ca3052439b5d349b4403c03"
+    },
+    "uncompressedSha256": "sha256:c04105ac0e2efa89f631ddbe303e12dc6f62f549a587e7b4bdef02081a0ec364"
+  },
+  "sourceBindings": [
+    {
+      "path": "packages/cli/__tests__/verify-04.test.js",
+      "sha256": "sha256:1a76cc91a7f57b4f62750f88fb09b5b2ba333b855ddbb62cc154541a3704c824"
+    },
+    {
+      "path": "packages/cli/__tests__/verify-07.test.js",
+      "sha256": "sha256:c3c3313a5d2f58c3af3339a8674b246e617acf99d4eccf182379763159ce8402"
+    },
+    {
+      "path": "packages/cli/__tests__/verify-08.test.js",
+      "sha256": "sha256:70f17e745d5c319f1781431fc2e8ddb29748d11cce4239a6edd47c40deaee7f9"
+    },
+    {
+      "path": "packages/cli/__tests__/verify-09.test.js",
+      "sha256": "sha256:f202a78d3e33d5dc72557d127083e97cbf09723e7b3f1c2c7048ebfa48375887"
+    },
+    {
+      "path": "packages/cli/__tests__/verify-10.test.js",
+      "sha256": "sha256:489596052d138ec496256861ded5d4ba262f2017a0fc78d6534c5eaa57ca0899"
+    },
+    {
+      "path": "packages/cli/__tests__/verify-13.test.js",
+      "sha256": "sha256:d3f9b17c232c04353a9ee4029cfbe074f115c9900097b4fd6e88b5e36aaa3023"
+    },
+    {
+      "path": "packages/cli/__tests__/verify-36.test.js",
+      "sha256": "sha256:3cb6ade06618331df7ddf481a7334c2367c07444fb3e0474a5f594858dcf73e1"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/background-launch-policy-roundtrip-regression.test.js",
+      "sha256": "sha256:ae5ee6b43bf7e10a139ae630c88e65ada20f91b806b55962e2b60b4c2181b4bf"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/release-workflow-contract.test.js",
+      "sha256": "sha256:6a52a98e08bbdeb865de3dad41835d4bea6ec8e7fbb3541ab48aeeba53562c45"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/session-branch-ownership-regression.test.js",
+      "sha256": "sha256:52c45ae0121b9c97257fac5adaeb303e0a9415d8b26bd76160cde2b71600cf97"
+    },
+    {
+      "path": ".github/workflows/cli-ci.yml",
+      "sha256": "sha256:2a5aab379a2651f9f3bb7349db7f258f57f96fc5afb609b7304b01ee745ab357"
+    },
+    {
+      "path": "packages/cli/vitest.config.js",
+      "sha256": "sha256:a1b30cb7d677348dd9c9a625373c7532b6c333436a357b633237bd911b1f3770"
+    },
+    {
+      "path": "packages/cli/src/harness/jsonl-session-store.js",
+      "sha256": "sha256:f0f3322c126f2249e47dcc0afced010394f4c30a50e50a94970e926b17ee5146"
+    },
+    {
+      "path": "packages/cli/src/lib/session-branch-history.js",
+      "sha256": "sha256:5ddd05dec04ecf8378904417f8c29b6b81475acdd24bfceb723aaa4a368e8857"
+    },
+    {
+      "path": "packages/cli/src/lib/session-transcript-history.js",
+      "sha256": "sha256:117b2b9822bb8a88df33aa8f2b55067cc43309738cee1877eaa28f14c289910b"
+    },
+    {
+      "path": "packages/cli/src/lib/session-history-origins.js",
+      "sha256": "sha256:795b79e64a596b4fbb2bad2d3678dbcb6fd41826fa5f90c8fc1c3767ee799cab"
+    },
+    {
+      "path": "packages/cli/src/lib/background-launch-profile.js",
+      "sha256": "sha256:2dbfe63270bbe46ba0016eea483d4c0c7f065301aaa9adf728797b61fe466e9e"
+    }
+  ],
+  "ci": {
+    "job": "verify-cli",
+    "platforms": ["ubuntu-latest", "windows-latest", "macos-latest"],
+    "exactSourceMatrix": "not-run-for-these-worktree-changes"
+  },
+  "limitations": [
+    "Original Docker mutations were not rerun for the formatted installation.",
+    "Original assisted Docker receipts and current local regression have separate source identities.",
+    "No new release or model task execution."
+  ]
+}
