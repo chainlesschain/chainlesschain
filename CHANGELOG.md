@@ -5,7 +5,7 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Public release scope: CLI **0.166.138** and Agent SDK **0.2.17** from `e42ea07b6da7ab2c3eb709002448b32d5fedf535` passed complete exact-source CLI CI / Strict Sandbox and official OIDC publication with public byte, startup and signed-provenance readback. Open VSX **0.37.174** publication succeeded; JetBrains **0.4.191** is uploaded and awaiting Marketplace approval/listing. Both new IDEs recommend CLI **0.166.138**. Kernel stays **0.1.11**. See [publication evidence](docs/research/cli/evidence/release138-public/README.md). Immutable CLI .137 stopped before upload on the SDK source-tree gate; its tag is retained.
+> Public release scope: CLI **0.166.139** from `eec8b97b6040d19004670bfead0bec1b8a27b71b` passed all **76/76 CLI CI** and **6/6 Strict Sandbox** jobs and [Actions OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/41431711290). Public archive bytes, signed provenance, and install/startup checks passed. Paired Open VSX **0.37.175** is public and verified; JetBrains **0.4.192** was uploaded successfully and awaits public Marketplace availability. SDK **0.2.17** and Kernel **0.1.11** are unchanged. See [publication evidence](docs/research/cli/evidence/release139-public/publication.json).
 >
 > `Unreleased` is a rolling source-development log retaining historical candidate labels, not a publication ledger. Historical OpenAI acceptance is **41/45** across versions; the focused image follow-up remains **0/1**. Engineering checks add no model task acceptance. Microsoft Marketplace is deferred; PC/mobile remain **v5.0.3.143**.
 
@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refresh the Android embedded CLI through the reviewed published-package hydration and immutable internal-binaries rollover, retaining the existing Android Node/native binding policy and forcing bootstrap re-extraction for the new archive.
 - Require the complete Windows, macOS Intel/ARM, Linux, Android APK/AAB, and signed iOS IPA asset set and checksum/update-metadata verification before publishing the product release. Release engineering checks do not add model-task acceptance; CLI .138 remains a separate 2/4 result.
 
-### Fixed - cc CLI 0.166.139: complete author work and independent review within one budget (candidate, 2026-11-02)
+### Fixed - cc CLI 0.166.139: complete author work and independent review within one budget (released, 2026-11-02)
 
 - Reserve fresh independent inspection, repair, read-back and final reporting inside the original model-turn limit, including when the author continues calling tools. Unknown usage and insufficient remaining review capacity fail explicitly; last-turn tool calls cannot become a successful terminal result.
 - Recover complete surrounding JavaScript statements from the same file snapshot when a partial page cannot be projected. Preserve the original requested range and actual returned range, the existing JSON/source validation, provider delivery accounting and output metadata headroom.
