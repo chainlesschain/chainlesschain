@@ -419,6 +419,13 @@ jobs:
           # hoist back to root.
           bash "$GITHUB_WORKSPACE/.github/scripts/ci-install-cli-production-deps.sh"
 
+      - name: Test Mac resource and ASAR native inspection before packaging
+        working-directory: desktop-app-vue
+        run: >-
+          npx vitest run
+          tests/unit/scripts/verify-macos-sqlite.test.js
+          tests/unit/scripts/asar-surgery.test.js
+
       - name: Rebuild bs3mc native bindings for Electron ABI (macOS)
         # See Windows job for full rationale. Strategy here: rebuild
         # desktop-app-vue's bs3mc via @electron/rebuild (prebuild-install
@@ -575,15 +582,11 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
       - name: Verify SQLite architectures in packaged Mac apps
+        working-directory: desktop-app-vue
         shell: bash
         run: |
           set -euo pipefail
-          count=0
-          while IFS= read -r binding; do
-            lipo "$binding" -verify_arch x86_64 arm64
-            count=$((count + 1))
-          done < <(find desktop-app-vue/out/build -name better_sqlite3.node -type f)
-          test "$count" -ge 4
+          node scripts/verify-macos-sqlite.js out/build/mac/*.app out/build/mac-arm64/*.app
 
       - name: Verify differential-update artifacts (macOS)
         working-directory: desktop-app-vue
