@@ -449,11 +449,11 @@ jobs:
           for pkg in better-sqlite3-multiple-ciphers better-sqlite3; do
             REBUILT="desktop-app-vue/node_modules/$pkg/build/Release/better_sqlite3.node"
             lipo -create "$NATIVE_STAGE/$pkg-x64.node" "$NATIVE_STAGE/$pkg-arm64.node" -output "$REBUILT"
-            lipo -verify_arch x86_64 arm64 "$REBUILT"
+            lipo "$REBUILT" -verify_arch x86_64 arm64
             lipo -info "$REBUILT"
             while IFS= read -r target; do
               cp -f "$REBUILT" "$target"
-              lipo -verify_arch x86_64 arm64 "$target"
+              lipo "$target" -verify_arch x86_64 arm64
             done < <(find packages -path "*/$pkg/build/Release/better_sqlite3.node" -type f)
           done
 
@@ -580,7 +580,7 @@ jobs:
           set -euo pipefail
           count=0
           while IFS= read -r binding; do
-            lipo -verify_arch x86_64 arm64 "$binding"
+            lipo "$binding" -verify_arch x86_64 arm64
             count=$((count + 1))
           done < <(find desktop-app-vue/out/build -name better_sqlite3.node -type f)
           test "$count" -ge 4
