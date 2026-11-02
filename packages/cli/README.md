@@ -4,19 +4,19 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 <!-- release139-candidate:start -->
 
-## CLI 0.166.139 / IDE repair candidate
+## CLI 0.166.139 / IDE repair release
 
-The next package set is CLI **0.166.139**, Open VSX **0.37.175** and JetBrains **0.4.192**, with unchanged upstream SDK **0.2.17** and Kernel **0.1.11**. These versions are release candidates until their exact-source GitHub Actions gates and public readbacks succeed. After publication, install `npm i -g chainlesschain@0.166.139 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, and check `cc --version` and `cc doctor`.
+This package is CLI **0.166.139**, paired with Open VSX **0.37.175** and JetBrains **0.4.192**, with unchanged upstream SDK **0.2.17** and Kernel **0.1.11**. Production publication uses GitHub Actions OIDC after the exact-source CLI CI and Strict Sandbox matrices pass on every configured platform. Install `npm i -g chainlesschain@0.166.139 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, and check `cc --version` and `cc doctor`. IDE plugins publish after the public CLI package is verified; mobile and PC clients follow verified IDE releases on their separate product version track.
 
-The repair reserves author, fresh independent review and final reporting work within the original total request budget. Partial JavaScript reads recover complete surrounding statements from the same file snapshot within the existing output limit; focused reads do not silently switch to unrelated ranges. The previously merged standalone WebSocket host-model-policy repair is included in this candidate.
+The repair reserves author, fresh independent review and final reporting work within the original total request budget. Partial JavaScript reads recover complete surrounding statements from the same file snapshot within the existing output limit; focused reads do not silently switch to unrelated ranges. This release includes the standalone WebSocket host-model-policy repair.
 
-CLI .138 acceptance remains **2/4**: verify-13 and first-run-darwin-vscode passed; verify-08 and verify-36 failed on author-stage iteration exhaustion despite passing candidate checks. Only those two failures will be regenerated with this new package set. CLI .136 verify-19 remains a separate historical pass; historical **41/45** and .137 **0/5** are unchanged. Review stays enabled, with 20 model turns, 24 physical requests per case and the 32768-token planning context. Engineering checks do not establish model-task success. JetBrains may be tested using the official pending-review ZIP without waiting for Marketplace approval. Microsoft Marketplace and PC/mobile are outside this release.
+CLI .138 acceptance remains **2/4**: verify-13 and first-run-darwin-vscode passed; verify-08 and verify-36 failed on author-stage iteration exhaustion despite passing candidate checks. CLI .139 engineering checks do not establish new model-task acceptance or rescore those results. CLI .136 verify-19 remains a separate historical pass; historical **41/45** and .137 **0/5** are unchanged. Review stays enabled, with 20 model turns, 24 physical requests per diagnostic case and the 32768-token planning context. JetBrains uploads may await Marketplace approval; an official pending-review ZIP is distinct from a public listing. Microsoft Marketplace remains deferred.
 
 <!-- release139-candidate:end -->
 
 <!-- release138-current:start -->
 
-## CLI 0.166.138 — verified public release
+## CLI 0.166.138 — previous verified public release
 
 CLI **0.166.138** and upstream Agent SDK **0.2.17** are published through GitHub Actions OIDC. Install `npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`, restart `cc ui` and IDE chat hosts, then run `cc --version` and `cc doctor`. Open VSX **0.37.174** publication succeeded. JetBrains **0.4.191** is approved and publicly listed in Marketplace (update `1209507`); public ZIP payload comparison with the official build remains pending. Both new IDE versions recommend CLI **0.166.138**.
 

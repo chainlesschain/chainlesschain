@@ -373,7 +373,7 @@ jobs:
           CC_FIXTURE_DEPENDENCY_ROOT="$CLI_INSTALLED_ROOT" node --test scripts/__tests__/isolated-cli-fixture-storage.test.mjs
           # Source-only test authorities import the checkout's deployment
           # loader, secure-fs and plugin scopes. Give them shared storage and
-          # the exact semver dependency from the installed candidate;
+          # the exact semver/acorn dependencies from the installed candidate;
           # runtime constructors still load from CLI_INSTALLED_ROOT below.
           mkdir -p packages/cli/node_modules/@chainlesschain/session-core
           cp packages/session-core/package.json packages/cli/node_modules/@chainlesschain/session-core/
@@ -383,7 +383,9 @@ jobs:
           import { createRequire } from 'node:module';
           import { dirname, join } from 'node:path';
           const installedRequire = createRequire(join(process.env.CLI_INSTALLED_ROOT, 'package.json'));
-          cpSync(dirname(installedRequire.resolve('semver/package.json')), 'packages/cli/node_modules/semver', { recursive: true });
+          for (const dependency of ['semver', 'acorn']) {
+            cpSync(dirname(installedRequire.resolve(`${dependency}/package.json`)), `packages/cli/node_modules/${dependency}`, { recursive: true });
+          }
           NODE
           node packages/cli/scripts/pr-recovery-smoke.mjs "$CLI_INSTALLED_ROOT"
 

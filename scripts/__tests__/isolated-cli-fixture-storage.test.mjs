@@ -27,8 +27,8 @@ test("isolated CLI test consumers load with the exact shared storage package", (
       },
     );
   }
-  // The bridge's broker also imports semver. Use the real dependency from the
-  // installed candidate in CI (or the local CLI for repository tests), so the
+  // The bridge and evidence parser import semver and acorn. Use the actual
+  // dependencies from the installed candidate in CI (or the local CLI), so
   // negative probes specifically diagnose the missing storage package.
   const dependencyRequire = createRequire(
     path.join(
@@ -36,11 +36,13 @@ test("isolated CLI test consumers load with the exact shared storage package", (
       "package.json",
     ),
   );
-  fs.cpSync(
-    path.dirname(dependencyRequire.resolve("semver/package.json")),
-    path.join(cli, "node_modules/semver"),
-    { recursive: true },
-  );
+  for (const dependency of ["semver", "acorn"]) {
+    fs.cpSync(
+      path.dirname(dependencyRequire.resolve(`${dependency}/package.json`)),
+      path.join(cli, "node_modules", dependency),
+      { recursive: true },
+    );
+  }
   const consumers = [
     [
       "__tests__/fixtures/agent-evolution-test-deployment.js",
@@ -141,11 +143,13 @@ test("installed composition uses its own native filesystem with source-only test
           recursive: true,
         },
       );
-    fs.cpSync(
-      path.dirname(dependencyRequire.resolve("semver/package.json")),
-      path.join(directory, "node_modules/semver"),
-      { recursive: true },
-    );
+    for (const dependency of ["semver", "acorn"]) {
+      fs.cpSync(
+        path.dirname(dependencyRequire.resolve(`${dependency}/package.json`)),
+        path.join(directory, "node_modules", dependency),
+        { recursive: true },
+      );
+    }
   }
   const fixtureRelative =
     "__tests__/fixtures/agent-evolution-test-deployment.js";
