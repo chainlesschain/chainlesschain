@@ -5,6 +5,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -24,12 +25,18 @@ import javax.inject.Singleton
  * 等到 enabled toggle off→on 或 endpoint URL 改时由 [restart] 重置。
  */
 @Singleton
-class TurnEphemeralRefresher @Inject constructor(
+class TurnEphemeralRefresher internal constructor(
     private val preferences: TurnServerPreferences,
     private val client: TurnEphemeralCredentialsClient,
     private val iceConfig: IceServerConfig,
+    private val scope: CoroutineScope,
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    @Inject
+    constructor(
+        preferences: TurnServerPreferences,
+        client: TurnEphemeralCredentialsClient,
+        iceConfig: IceServerConfig,
+    ) : this(preferences, client, iceConfig, CoroutineScope(SupervisorJob() + Dispatchers.IO))
 
     @Volatile private var refreshJob: Job? = null
     @Volatile private var lastFetched: TurnEphemeralCredentials? = null
@@ -71,7 +78,9 @@ class TurnEphemeralRefresher @Inject constructor(
 
     private suspend fun refreshLoop(url: String) {
         var consecutiveFails = 0
-        while (refreshJob?.isActive == true) {
+        // launch may execute before start() assigns refreshJob. The running
+        // coroutine owns its cancellation state independently of that handle.
+        while (currentCoroutineContext().isActive) {
             try {
                 val creds = client.fetch(url)
                 applyToIceConfig(creds)
