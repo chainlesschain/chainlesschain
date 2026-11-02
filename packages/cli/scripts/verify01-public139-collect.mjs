@@ -5,12 +5,15 @@ import os from "node:os";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { public139RoundDirectory } from "./verify01-public139-dispatch.mjs";
+
+const roundOption = process.argv.indexOf("--round-directory");
+const directory = public139RoundDirectory(
+  roundOption === -1 ? undefined : process.argv[roundOption + 1],
+);
 
 const dispatch = JSON.parse(
-  fs.readFileSync(
-    "docs/research/cli/verify01-openai-139/dispatch.json",
-    "utf8",
-  ),
+  fs.readFileSync(`${directory}/dispatch.json`, "utf8"),
 );
 assert.equal(dispatch.allSubmitted, true);
 assert.deepEqual(dispatch.selectedSampleIds, ["verify-08", "verify-36"]);
@@ -18,9 +21,8 @@ assert.equal(dispatch.provider, "openai");
 const source = dispatch.source;
 assert.match(source, /^[a-f0-9]{40}$/u);
 const repo = "chainlesschain/chainlesschain";
-const output = `docs/research/cli/verify01-openai-139/public-${source.slice(0, 10)}`;
-const retryPath =
-  "docs/research/cli/verify01-openai-139/jetbrains-capacity-retry.json";
+const output = `${directory}/public-${source.slice(0, 10)}`;
+const retryPath = `${directory}/jetbrains-capacity-retry.json`;
 const capacityRetry = fs.existsSync(retryPath)
   ? JSON.parse(fs.readFileSync(retryPath, "utf8"))
   : null;

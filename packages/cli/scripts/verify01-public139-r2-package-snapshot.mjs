@@ -222,6 +222,9 @@ const jetPublicProof = {
   officialSha256: sha(jetBytes),
   payloadIdentical: true,
 };
+fs.mkdirSync("docs/research/cli/verify01-openai-139-r2-20261103", {
+  recursive: true,
+});
 fs.writeFileSync(
   "docs/research/cli/verify01-openai-139-r2-20261103/jetbrains-public.json",
   JSON.stringify(jetPublicProof, null, 2) + "\n",

@@ -20,13 +20,30 @@ const budgets = {
   contextWindowTokens: 32768,
   largerThanPriorRound: false,
 };
+export function public139RoundDirectory(
+  value = "docs/research/cli/verify01-openai-139",
+) {
+  assert.ok(
+    [
+      "docs/research/cli/verify01-openai-139",
+      "docs/research/cli/verify01-openai-139-r2-20261103",
+    ].includes(value),
+    "Unknown public139 round directory",
+  );
+  return value;
+}
+function refPrefix(directory) {
+  return public139RoundDirectory(directory).endsWith("-r2-20261103")
+    ? "verify01-native139-r2-"
+    : "verify01-public139-run-";
+}
 export function assertAuthorizedPublic139Dispatch(
   plan,
-  { source, ref, credentialPresent, runAttempt },
+  { source, ref, credentialPresent, runAttempt, roundDirectory },
 ) {
   assert.match(source, /^[a-f0-9]{40}$/u);
   assert.ok(
-    ref.startsWith("verify01-public139-run-") &&
+    ref.startsWith(refPrefix(roundDirectory)) &&
       ref.includes(source.slice(0, 10)),
   );
   assert.equal(
@@ -75,8 +92,11 @@ export function assertAuthorizedPublic139Dispatch(
 }
 
 async function main() {
+  const roundOption = process.argv.indexOf("--round-directory");
   const root = process.cwd(),
-    directory = "docs/research/cli/verify01-openai-139",
+    directory = public139RoundDirectory(
+      roundOption === -1 ? undefined : process.argv[roundOption + 1],
+    ),
     file = path.join(directory, "dispatch.json");
   const read = (f) => JSON.parse(fs.readFileSync(f, "utf8"));
   const hash = (f) =>
@@ -87,8 +107,7 @@ async function main() {
     execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
   const dry = process.argv.includes("--check-only");
   const ref =
-    process.env.GITHUB_REF_NAME ||
-    "verify01-public139-run-" + source.slice(0, 10);
+    process.env.GITHUB_REF_NAME || refPrefix(directory) + source.slice(0, 10);
   const state = {
     schema: 1,
     credentialConfigured: process.env.OPENAI_CREDENTIAL_PRESENT === "true",
@@ -126,6 +145,7 @@ async function main() {
   assertAuthorizedPublic139Dispatch(plan, {
     source,
     ref,
+    roundDirectory: directory,
     credentialPresent: dry || process.env.OPENAI_CREDENTIAL_PRESENT === "true",
     runAttempt: Number(process.env.GITHUB_RUN_ATTEMPT || "1"),
   });
