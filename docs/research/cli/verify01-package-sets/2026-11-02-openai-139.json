@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.native-package-set/v1",
-  "resolvedAt": "2026-11-02T12:11:06.202Z",
+  "resolvedAt": "2026-11-02T12:16:19.010Z",
   "versions": {
     "cli": "0.166.139",
     "vscode": "0.37.175",

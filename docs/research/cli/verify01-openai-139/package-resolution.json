@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "checkedAt": "2026-11-02T12:11:06.211Z",
-  "executionSource": "752ea472248bc1d88f4258f8e4013fa49f9e1fd2",
+  "checkedAt": "2026-11-02T12:16:19.019Z",
+  "executionSource": "605d1da3ba9846c274962e28a355164c0e1dc63d",
   "manifestPath": "docs/research/cli/verify01-package-sets/2026-11-02-openai-139.json",
-  "manifestDigest": "sha256:a48b24ac633edc21459013a3b378897ce74cb47c2ae796096e6189d3eaa36ea6",
+  "manifestDigest": "sha256:c0375fdebd091e42e73cb238ea7bef4e13cf74a696069ac06988ea8d344d2ea7",
   "versions": {
     "cli": "0.166.139",
     "vscode": "0.37.175",
