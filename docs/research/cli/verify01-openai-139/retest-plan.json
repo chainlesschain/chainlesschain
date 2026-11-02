@@ -1,0 +1,124 @@
+{
+  "schema": "chainlesschain.published-engine-unfinished-retest/v1",
+  "createdAt": "2026-11-02",
+  "status": "prepared-after-zero-model-request-infrastructure-fix",
+  "scope": "two-historically-unfinished-after-publication",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "api": "Responses",
+  "formalSample": false,
+  "reviewChanges": true,
+  "projectSource": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "projectRevisionFile": "docs/research/cli/verify01-openai-137/public139-project-revision.json",
+  "projectRevisionDigest": "sha256:d5f452d3d70c783f1b386d802da4bca6c70e587d9e519e6a5ff7b0ad09d147f7",
+  "packageSelection": "latest",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-02-openai-139.json",
+  "packageSetDigest": "sha256:c0375fdebd091e42e73cb238ea7bef4e13cf74a696069ac06988ea8d344d2ea7",
+  "packageResolutionPath": "docs/research/cli/verify01-openai-139/package-resolution.json",
+  "packageResolutionDigest": "sha256:df89a364ae0a55e4a911d9f808e1318a25d3e0ea197ee3f51cccaae9fe7bda27",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "distribution": "mixed-public-and-official-artifact",
+  "selectedSampleIds": [
+    "verify-08",
+    "verify-36"
+  ],
+  "skippedSamples": [
+    {
+      "sampleId": "verify-19",
+      "reason": "User requested no repeat of previously accepted tasks",
+      "acceptedEvidence": "docs/research/cli/verify01-openai-136/retest-five-23e26368c8/results.json",
+      "acceptedEvidenceDigest": "sha256:62a0fdf5ed2a1377151ebdd8e77368c9d301b5ae0d600257d5c96253b2df950b",
+      "acceptedCliVersion": "0.166.136",
+      "latestReviewEnabledFailureRetained": true,
+      "countedAsCli139Acceptance": false
+    },
+    {
+      "sampleId": "verify-13",
+      "reason": "Already accepted at CLI138; rerun only the two remaining unsuccessful tasks",
+      "acceptedEvidence": "docs/research/cli/verify01-openai-138/public-c472d664eb/results.json",
+      "acceptedEvidenceDigest": "sha256:87c87c01e400b276358728865415bde556a765f391684ee27031ade21055846f",
+      "acceptedCliVersion": "0.166.138",
+      "countedAsCli139Acceptance": false
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "reason": "Already accepted at CLI138; rerun only the two remaining unsuccessful tasks",
+      "acceptedEvidence": "docs/research/cli/verify01-openai-138/public-c472d664eb/results.json",
+      "acceptedEvidenceDigest": "sha256:87c87c01e400b276358728865415bde556a765f391684ee27031ade21055846f",
+      "acceptedCliVersion": "0.166.138",
+      "countedAsCli139Acceptance": false
+    }
+  ],
+  "requestBudgets": {
+    "modelTurns": 20,
+    "physicalRequests": 24,
+    "outputTokens": 8192,
+    "requestBodyBytes": 262144,
+    "requestTimeoutMs": 180000,
+    "contextWindowTokens": 32768,
+    "largerThanPriorRound": false
+  },
+  "maximumPhysicalRequestsAcrossSelectedSamples": 48,
+  "historicalFrozen": {
+    "accepted": 41,
+    "total": 45,
+    "changed": false
+  },
+  "priorRepairedEngine": {
+    "path": "docs/research/cli/verify01-openai-137/candidate-engine3-a531924f36/results.json",
+    "digest": "sha256:b558e039764cf22fd006546f1af24e948e6e535ce610a9798c9f1802cefb09b9",
+    "accepted": 0,
+    "total": 5,
+    "reviewChanges": true,
+    "notCombined": true
+  },
+  "independentAcceptance": {
+    "freshGeneration": true,
+    "separateLinuxDocker": true,
+    "originalBehavioralMutants": true,
+    "sourceScopeExact": true,
+    "requireNormalGenerationTermination": true,
+    "requireCompleteUsage": true
+  },
+  "dispatches": [
+    {
+      "group": "darwin-vscode",
+      "hosts": "macos",
+      "entries": "vscode",
+      "sampleIds": [
+        "verify-08"
+      ]
+    },
+    {
+      "group": "darwin-jetbrains",
+      "hosts": "macos",
+      "entries": "jetbrains",
+      "sampleIds": [
+        "verify-36"
+      ]
+    }
+  ],
+  "marketplaceApprovalRequired": false,
+  "modelRequestsStarted": 0,
+  "priorPublic138": {
+    "accepted": 2,
+    "total": 4,
+    "path": "docs/research/cli/verify01-openai-138/public-c472d664eb/results.json",
+    "changed": false
+  },
+  "priorInfrastructureAttempt": {
+    "source": "605d1da3ba9846c274962e28a355164c0e1dc63d",
+    "vscodeRunId": 41443770821,
+    "jetbrainsRunId": 41443782209,
+    "vscodeModelRequests": 0,
+    "vscodeFailure": "Project revision path rejected before broker creation",
+    "jetbrainsCancellationRequestedWhileQueued": true,
+    "paidRetry": false
+  }
+}

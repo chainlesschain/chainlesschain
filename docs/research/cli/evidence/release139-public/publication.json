@@ -31,6 +31,7 @@
       "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
       "recommendedCliVersion": "0.166.139",
       "status": "verified-public",
+      "officialWorkflowConclusion": "success",
       "runId": 41434982503,
       "publicReceipt": "open-vsx.json"
     },
@@ -40,6 +41,8 @@
       "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
       "recommendedCliVersion": "0.166.139",
       "status": "uploaded-pending-publication",
+      "marketplaceUploaded": true,
+      "marketplaceListingClaimed": false,
       "runId": 41434982670,
       "publicAvailabilityVerified": false
     },
@@ -50,11 +53,19 @@
     "historical": "41/45",
     "cli137": "0/5",
     "cli139": null,
-    "newModelAcceptanceClaimed": false
+    "newModelAcceptanceClaimed": false,
+    "newModelTasks": 0,
+    "prior138": "2/4",
+    "remainingSampleIds": [
+      "verify-08",
+      "verify-36"
+    ],
+    "historicalScoresUnchanged": true
   },
   "productRelease": {
     "currentPublic": "v5.0.3.143",
     "nextCandidate": "v5.0.3.144",
     "order": "verified children -> CLI -> IDE -> mobile/PC"
-  }
+  },
+  "note": "Official publish workflows completed successfully. Package preflight independently verifies original public bytes. JetBrains uses the official release ZIP; public marketplace approval is not asserted by this record."
 }

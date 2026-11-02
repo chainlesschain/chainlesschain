@@ -1,0 +1,63 @@
+{
+  "schema": "chainlesschain.native-package-set/v1",
+  "resolvedAt": "2026-11-02T12:16:19.010Z",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "releaseSourceCommit": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "releaseSourceCommits": {
+    "cli": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+    "openVsx": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+    "jetbrains": "eec8b97b6040d19004670bfead0bec1b8a27b71b"
+  },
+  "publicGeneratorProof": {
+    "path": "docs/research/cli/evidence/release139-public/publication.json",
+    "digest": "sha256:2ac36ba2d888d7d62a2648c848982ab402cfac0afc8eaebcc62214ff57ebb7d5"
+  },
+  "diagnosticExecution": {
+    "contextWindowTokens": 32768
+  },
+  "origin": {
+    "cli": {
+      "url": "https://registry.npmjs.org/chainlesschain/0.166.139",
+      "integrity": "5f47eb046858bdd34bc67cf8a18b6aa34eef26f147a62f7dcb26759f5abbc48f36c7abfa044c7f8cfcb8db461f64889d2a5246f87485e527901b7f22770496d7",
+      "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.139.tgz"
+    },
+    "vscode": {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.175",
+      "download": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.175/file/chainlesschain.chainlesschain-ide-0.37.175.vsix"
+    },
+    "jetbrains": {
+      "distribution": "github-actions-artifact",
+      "repository": "chainlesschain/chainlesschain",
+      "sourceCommit": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+      "runId": 41434982670,
+      "artifactId": 13136934549,
+      "artifactName": "chainlesschain-ide-jetbrains-1",
+      "artifactDigest": "sha256:b55a4681a2c4417fc62f18f8645c7b033cb252fc2b976da38581b9548551dce3",
+      "tag": "ide-jetbrains-v0.4.192",
+      "file": "chainlesschain-ide-bridge-0.4.192.zip",
+      "workflow": ".github/workflows/ide-extensions.yml",
+      "marketplaceStatus": "uploaded-awaiting-approval"
+    }
+  },
+  "publicArtifacts": {
+    "cli": {
+      "digest": "sha256:dd1fea339b5b8e4d869c5f9dacf037e92474fb8b2ec268b80856767124782116",
+      "bytes": 9537877
+    },
+    "vscode": {
+      "digest": "sha256:bb963c617a4cfcffa89ed5ac46bc327be137b5f7bef24ba1283964d893ff69ea",
+      "bytes": 749066
+    },
+    "jetbrains": {
+      "digest": "sha256:6877397281524ef1e296cd0f95ac8c6e43c71bb958a7edc3b3091c7306b75628",
+      "bytes": 1555867
+    }
+  },
+  "authorization": "User authorizes GitHub Actions retesting of verify-08 and verify-36 using the newly published CLI and IDE plugins. Use the original official JetBrains release ZIP and preserve prior accepted samples, budgets and independent acceptance. No model call in this preflight."
+}
