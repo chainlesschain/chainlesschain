@@ -1,0 +1,64 @@
+{
+  "schema": "chainlesschain.verify01-assisted-candidate-result/v1",
+  "sampleId": "verify-36",
+  "assisted": true,
+  "countedAsNativeGeneration": false,
+  "originalNativePassed": false,
+  "modelRequests": 0,
+  "originalRunId": 41448844116,
+  "executionSource": "d8edb674e04c0da2821b49ca3c2e55867cf589a2",
+  "projectSource": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "manifestDigest": "sha256:637c3b22f8a0aed6a81ddb65f23d4018b8ca72112adcab73fc6b51eeb5abb238",
+  "candidateDigest": "sha256:b5dfa042e3652a4b806e0b39cb8093b69c32a12a98b6203ea41501c464e1a623",
+  "archiveDigest": "sha256:483f679f90301a00a336781b4f6044f590cb70da17b37783d07339e5d2b1a89c",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "stages": {
+    "setup": {
+      "pass": true,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "receipt": "verify-36-setup-81abb3cf-98ab-499f-a855-0f0039662641.json",
+      "receiptDigest": "sha256:14b3d7c5325e612a8f641eca4598dab7f8077548fd53db2b539232883665aaab",
+      "operatorDigest": "sha256:0635e99fbba83dd6666f0aa8325d9b42260de9c48580c02a79386c35860c0312",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 12,
+          "passed": 12,
+          "failed": 0
+        }
+      ],
+      "mutations": []
+    },
+    "check": {
+      "pass": true,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "receipt": "verify-36-check-e56b3be4-166e-4e71-8d66-c490b10ad971.json",
+      "receiptDigest": "sha256:2966fb2e1167c1702f5fa4adc03b414f8dc9b5c397f3dd8e2c82f405449bfc73",
+      "operatorDigest": "sha256:8da734b1abd78a3006c90e738136301444eaa611f51991a80d545615b64c2ce5",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 12,
+          "passed": 12,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 17,
+          "passed": 17,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "restore-more-permissive-mode",
+          "sourceSha256": "5fde36e42eba32cacb70b29b9bc80ceb250c656af337c83bab29bc734539044d",
+          "total": 17,
+          "passed": 16,
+          "failed": 1
+        }
+      ]
+    }
+  },
+  "passed": true
+}

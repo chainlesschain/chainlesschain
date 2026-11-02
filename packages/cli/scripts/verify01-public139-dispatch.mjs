@@ -5,7 +5,10 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { loadPublicGeneratorProof } from "./verify01-public-generator-binding.mjs";
+import {
+  loadPublicGeneratorProof,
+  verifyPublicGeneratorPairing,
+} from "./verify01-public-generator-binding.mjs";
 
 const ids = ["verify-08", "verify-36"];
 const budgets = {
@@ -132,12 +135,32 @@ async function main() {
   assert.equal(resolution.jetbrainsOriginalOfficialArtifact, true);
   assert.equal(resolution.manifestDigest, plan.packageSetDigest);
   const manifest = read(plan.packageSetPath);
-  loadPublicGeneratorProof(manifest, { repositoryRoot: root });
+  let publicationProofSource = null;
+  if (dry && fs.existsSync(file)) {
+    // Completed plans retain their exact publication evidence even when main
+    // later enriches the public release record. This path cannot dispatch.
+    const recorded = read(file);
+    assert.equal(recorded.allSubmitted, true);
+    assert.equal(recorded.packageSetDigest, plan.packageSetDigest);
+    assert.match(recorded.source, /^[a-f0-9]{40}$/u);
+    const proof = execFileSync("git", [
+      "show", `${recorded.source}:${manifest.publicGeneratorProof.path}`,
+    ]);
+    assert.equal(
+      "sha256:" + createHash("sha256").update(proof).digest("hex"),
+      manifest.publicGeneratorProof.digest,
+    );
+    verifyPublicGeneratorPairing(manifest, JSON.parse(proof.toString("utf8")));
+    publicationProofSource = recorded.source;
+  } else {
+    loadPublicGeneratorProof(manifest, { repositoryRoot: root });
+  }
   assert.equal(manifest.releaseSourceCommits.cli, plan.projectSource);
   if (dry) {
     console.log(
       JSON.stringify({
         authorizedScopeValidated: true,
+        publicationProofSource,
         samples: ids,
         workflowDispatches: 2,
         maximumPhysicalRequests: 48,

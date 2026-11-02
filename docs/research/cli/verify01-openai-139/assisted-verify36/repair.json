@@ -1,0 +1,30 @@
+{
+  "schema": "chainlesschain.verify01-assisted-candidate-repair/v1",
+  "sampleId": "verify-36",
+  "assisted": true,
+  "originalNativePassed": false,
+  "countedAsNativeGeneration": false,
+  "modelRequests": 0,
+  "projectSource": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "originalRunId": 41448844116,
+  "originalCandidateDigest": "sha256:4e4db6f8c880112c2150c60d7127f1aab84ae5e458b27b0cc077f4189871564b",
+  "candidateFile": "repair137-verify-36.test.js.txt",
+  "candidateDigest": "sha256:b5dfa042e3652a4b806e0b39cb8093b69c32a12a98b6203ea41501c464e1a623",
+  "targetFile": "packages/cli/__tests__/repair137-verify-36.test.js",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operators": {
+    "setup": {
+      "file": "original-setup.mjs.gz",
+      "digest": "sha256:0635e99fbba83dd6666f0aa8325d9b42260de9c48580c02a79386c35860c0312",
+      "compressedDigest": "sha256:9d48cd8fb9b93dc4cad63cae1e7ed08315a307e1d6c4d9f09d13b936c7796559"
+    },
+    "check": {
+      "file": "original-check.mjs.gz",
+      "digest": "sha256:8da734b1abd78a3006c90e738136301444eaa611f51991a80d545615b64c2ce5",
+      "compressedDigest": "sha256:e5c6fbe694a836ee53cc27911520cc81c5d8f9661b46221f89ad5e59a3b82364"
+    }
+  },
+  "cause": "Generated budget rejection cases incorrectly treat null as invalid; persisted null or missing budgets intentionally mean unset. Original argv self-comparison does not detect identically weakened restored permission modes.",
+  "repair": "Retain non-null invalid cases and round-trip policy assertions; add explicit null/missing positive controls and absent budget flags, concrete expected permission/sandbox/tool/budget argv values, and unset-versus-bounded fingerprint distinction.",
+  "independentReview": "Static API review supports the repair; unchanged original Docker evaluator and behavioral mutant remain authoritative. Runtime validation pending."
+}

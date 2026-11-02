@@ -14,8 +14,29 @@ const source = dispatch.source;
 assert.match(source, /^[a-f0-9]{40}$/u);
 const repo = "chainlesschain/chainlesschain";
 const output = `docs/research/cli/verify01-openai-139/public-${source.slice(0, 10)}`;
+const retryPath = "docs/research/cli/verify01-openai-139/jetbrains-capacity-retry.json";
+const capacityRetry = fs.existsSync(retryPath)
+  ? JSON.parse(fs.readFileSync(retryPath, "utf8"))
+  : null;
+if (capacityRetry) {
+  assert.equal(capacityRetry.source, source);
+  assert.equal(capacityRetry.oldRunId, 41445393011);
+  assert.equal(capacityRetry.priorModelRequestsStarted, 0);
+  assert.equal(capacityRetry.oldGenerationJob.conclusion, "cancelled");
+  assert.equal(capacityRetry.oldGenerationJob.runner_name, "");
+  assert.deepEqual(capacityRetry.oldGenerationJob.steps, []);
+  assert.deepEqual(capacityRetry.selectedSampleIds, ["verify-36"]);
+  assert.equal(capacityRetry.hostUnchanged, true);
+  assert.equal(capacityRetry.modelAndBudgetsUnchanged, true);
+  assert.equal(capacityRetry.maximumAdditionalPhysicalRequests, 24);
+  assert.equal(capacityRetry.submitted, true);
+  assert.ok(Number.isSafeInteger(capacityRetry.runId));
+  assert.ok(capacityRetry.annotations.some(a =>
+    a.message === "The job was not acquired by Runner of type hosted even after multiple attempts"));
+}
 const selections = dispatch.dispatches.map(d => ({
-  id: d.runId,
+  id: d.entries === "jetbrains" && capacityRetry ? capacityRetry.runId : d.runId,
+  originalRunId: d.runId,
   group: d.entries === "jetbrains" ? `${d.group}-${d.sampleIds[0]}` : d.group,
   samples: d.sampleIds,
 }));
@@ -65,6 +86,7 @@ for (const selection of selections) {
   const jobs = api(`/actions/runs/${selection.id}/jobs?per_page=100`).jobs;
   const runRecord = {
     id: run.id,
+    originalRunId: selection.originalRunId,
     source: run.head_sha,
     status: run.status,
     conclusion: run.conclusion,
@@ -217,6 +239,13 @@ const report = {
   historical45Unchanged: true,
   previous137r3Unchanged: "0/5",
   previous138Unchanged: "2/4",
+  infrastructureRetry: capacityRetry ? {
+    oldRunId: capacityRetry.oldRunId,
+    runId: capacityRetry.runId,
+    priorModelRequestsStarted: 0,
+    hostUnchanged: true,
+    modelAndBudgetsUnchanged: true,
+  } : null,
   physicalRequestsStarted: sumIfComplete("physicalRequestsStarted"),
   usageCompleteRequests: sumIfComplete("usageCompleteRequests"),
   knownTokenOnlyEstimateUsd: sumIfComplete("knownTokenOnlyEstimateUsd"),

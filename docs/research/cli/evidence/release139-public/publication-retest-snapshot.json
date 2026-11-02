@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "cli": {
+    "version": "0.166.139",
+    "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+    "status": "verified-public",
+    "method": "GitHub Actions OIDC Trusted Publishing",
+    "tag": "v-npm-0-166-139",
+    "runId": 41431711290,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41431711290"
+  },
+  "ide": {
+    "vscode": {
+      "version": "0.37.175",
+      "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+      "status": "verified-public-by-official-release-workflow",
+      "officialWorkflowConclusion": "success",
+      "recommendedCliVersion": "0.166.139",
+      "tag": "ide-vscode-v0.37.175",
+      "runId": 41434982503
+    },
+    "jetbrains": {
+      "version": "0.4.192",
+      "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+      "status": "uploaded-pending-review",
+      "marketplaceUploaded": true,
+      "recommendedCliVersion": "0.166.139",
+      "tag": "ide-jetbrains-v0.4.192",
+      "runId": 41434982670,
+      "marketplaceListingClaimed": false
+    }
+  },
+  "modelAcceptance": {
+    "newModelTasks": 0,
+    "prior138": "2/4",
+    "remainingSampleIds": [
+      "verify-08",
+      "verify-36"
+    ],
+    "historicalScoresUnchanged": true
+  },
+  "note": "Official publish workflows completed successfully. Package preflight independently verifies original public bytes. JetBrains uses the official release ZIP; public marketplace approval is not asserted by this record."
+}

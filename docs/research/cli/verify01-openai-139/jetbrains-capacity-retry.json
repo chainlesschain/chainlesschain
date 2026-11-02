@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "reason": "GitHub hosted macOS arm64 capacity failure before runner assignment",
+  "source": "24a6e3857f53419de142e01375c79e4fcb326a12",
+  "ref": "verify01-public139-run-24a6e3857f",
+  "oldRunId": 41445393011,
+  "oldGenerationJob": {
+    "id": 125277464158,
+    "run_id": 41445393011,
+    "workflow_name": "VERIFY01 Native 36 Plus 9 Task Campaign",
+    "head_branch": "verify01-public139-run-24a6e3857f",
+    "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/41445393011",
+    "run_attempt": 1,
+    "node_id": "CR_kwDOQgDM2s8AAAAdKx5mXg",
+    "head_sha": "24a6e3857f53419de142e01375c79e4fcb326a12",
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/125277464158",
+    "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41445393011/job/125277464158",
+    "status": "completed",
+    "conclusion": "cancelled",
+    "created_at": "2026-11-02T12:32:14Z",
+    "started_at": "2026-11-02T12:32:14Z",
+    "completed_at": "2026-11-02T12:49:34Z",
+    "name": "Native darwin-jetbrains-verify-36 (selected samples)",
+    "steps": [],
+    "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/125277464158",
+    "labels": [
+      "macos-15"
+    ],
+    "runner_id": 0,
+    "runner_name": "",
+    "runner_group_id": 0,
+    "runner_group_name": ""
+  },
+  "annotations": [
+    {
+      "path": ".github",
+      "blob_href": "https://github.com/chainlesschain/chainlesschain/blob/24a6e3857f53419de142e01375c79e4fcb326a12/.github",
+      "start_line": 1,
+      "start_column": null,
+      "end_line": 1,
+      "end_column": null,
+      "annotation_level": "failure",
+      "title": "",
+      "message": "The job was not acquired by Runner of type hosted even after multiple attempts",
+      "raw_details": ""
+    },
+    {
+      "path": ".github",
+      "blob_href": "https://github.com/chainlesschain/chainlesschain/blob/24a6e3857f53419de142e01375c79e4fcb326a12/.github",
+      "start_line": 1,
+      "start_column": null,
+      "end_line": 1,
+      "end_column": null,
+      "annotation_level": "notice",
+      "title": "",
+      "message": "Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.",
+      "raw_details": ""
+    },
+    {
+      "path": ".github",
+      "blob_href": "https://github.com/chainlesschain/chainlesschain/blob/24a6e3857f53419de142e01375c79e4fcb326a12/.github",
+      "start_line": 1,
+      "start_column": null,
+      "end_line": 1,
+      "end_column": null,
+      "annotation_level": "notice",
+      "title": "",
+      "message": "Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.",
+      "raw_details": ""
+    },
+    {
+      "path": ".github",
+      "blob_href": "https://github.com/chainlesschain/chainlesschain/blob/24a6e3857f53419de142e01375c79e4fcb326a12/.github",
+      "start_line": 1,
+      "start_column": null,
+      "end_line": 1,
+      "end_column": null,
+      "annotation_level": "notice",
+      "title": "",
+      "message": "Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.",
+      "raw_details": ""
+    }
+  ],
+  "priorModelRequestsStarted": 0,
+  "maximumAdditionalPhysicalRequests": 24,
+  "selectedSampleIds": [
+    "verify-36"
+  ],
+  "hostUnchanged": true,
+  "modelAndBudgetsUnchanged": true,
+  "submissionStartedAt": "2026-11-02T12:57:05.691Z",
+  "submitted": true,
+  "runId": 41448844116,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41448844116"
+}
