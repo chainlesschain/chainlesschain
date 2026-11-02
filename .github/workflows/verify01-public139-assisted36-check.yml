@@ -1,0 +1,32 @@
+name: VERIFY01 public 139 assisted launch policy check
+
+on:
+  push:
+    tags: [verify01-public139-assisted36-*]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Pull the original independent acceptance image
+        run: docker pull node:22.12.0-bookworm
+      - name: Check repaired launch policy candidate with original evaluator
+        run: node packages/cli/scripts/verify01-public139-assisted-check.mjs verify-36
+      - name: Preserve assisted result and original evaluator receipts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: verify01-public139-assisted-verify36-${{ github.sha }}
+          path: ${{ runner.temp }}/verify01-public139-assisted-verify36/
+          if-no-files-found: error

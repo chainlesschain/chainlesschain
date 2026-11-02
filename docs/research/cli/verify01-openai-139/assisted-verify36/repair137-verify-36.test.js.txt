@@ -1,0 +1,163 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+// This file is directly in __tests__: ../src resolves to packages/cli/src.
+import {
+  captureBackgroundLaunchProfile,
+  normalizeBackgroundLaunchProfile,
+  canonicalBackgroundLaunchProfileJson,
+  fingerprintBackgroundLaunchProfile,
+  buildArgvFromBackgroundLaunchProfile,
+} from "../src/lib/background-launch-profile.js";
+
+let dir;
+let previousHome;
+beforeEach(() => {
+  dir = realpathSync.native(mkdtempSync(join(tmpdir(), "cc-profile-identity-")));
+  previousHome = process.env.CHAINLESSCHAIN_HOME;
+  process.env.CHAINLESSCHAIN_HOME = join(dir, "home");
+  mkdirSync(process.env.CHAINLESSCHAIN_HOME, { recursive: true });
+});
+afterEach(() => {
+  if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+  else process.env.CHAINLESSCHAIN_HOME = previousHome;
+  rmSync(dir, { recursive: true, force: true });
+});
+
+function fixture() {
+  return captureBackgroundLaunchProfile({
+    argv: ["agent"],
+    cwd: dir,
+    governance: {
+      permissionMode: "manual",
+      resourceBudget: { maxTurns: 12, maxCostUsd: 4.5 },
+    },
+  });
+}
+function changed(profile, group, field, value) {
+  return { ...profile, [group]: { ...profile[group], [field]: value } };
+}
+function restore(profile) {
+  const file = join(dir, "launch.json");
+  writeFileSync(file, JSON.stringify(profile));
+  return JSON.parse(readFileSync(file, "utf8"));
+}
+const budgetFlags = {
+  maxTurns: "--max-turns", thinkingTokens: "--thinking-budget",
+  maxRewakes: "--max-rewakes", maxOuterTurns: "--max-outer-turns",
+  goalMaxTokens: "--goal-max-tokens", goalMaxTimeMs: "--goal-max-time",
+  maxCostUsd: "--max-budget-usd", goalMaxCostUsd: "--goal-max-cost",
+};
+function assertArgvValue(argv, flag, value) {
+  expect(argv.filter((argument) => argument === flag)).toHaveLength(1);
+  expect(argv[argv.indexOf(flag) + 1]).toBe(String(value));
+}
+function assertRejected(profile, field) {
+  // Each API is a real boundary: none may quietly normalize away bad policy.
+  for (const operation of [normalizeBackgroundLaunchProfile,
+    canonicalBackgroundLaunchProfileJson, fingerprintBackgroundLaunchProfile,
+    buildArgvFromBackgroundLaunchProfile]) {
+    expect(() => operation(profile)).toThrow(`Invalid background launch profile field: ${field}`);
+  }
+}
+
+describe("persisted launch policy identity (independent regression)", () => {
+  it.each([
+    "maxTurns", "thinkingTokens", "maxRewakes", "maxOuterTurns",
+    "goalMaxTokens", "goalMaxTimeMs", "maxCostUsd", "goalMaxCostUsd",
+  ])("retains and validates budget.%s independently", (field) => {
+    const valid = fixture();
+    const cost = field.toLowerCase().includes("cost");
+    for (const good of cost ? [Number.MIN_VALUE, 0.125, "1e-3"] : [1, Number.MAX_SAFE_INTEGER, "12"]) {
+      const candidate = changed(valid, "budget", field, good);
+      expect(normalizeBackgroundLaunchProfile(restore(candidate)).budget[field]).toBe(Number(good));
+      assertArgvValue(buildArgvFromBackgroundLaunchProfile(restore(candidate)),
+        budgetFlags[field], Number(good));
+    }
+    // Null and missing budgets mean unset, not malformed positive limits.
+    for (const unset of [null, undefined]) {
+      const candidate = restore(changed(valid, "budget", field, unset));
+      expect(normalizeBackgroundLaunchProfile(candidate).budget[field]).toBeNull();
+      expect(buildArgvFromBackgroundLaunchProfile(candidate)).not.toContain(budgetFlags[field]);
+      expect(() => canonicalBackgroundLaunchProfileJson(candidate)).not.toThrow();
+      expect(() => fingerprintBackgroundLaunchProfile(candidate)).not.toThrow();
+      const bounded = changed(valid, "budget", field, 1);
+      expect(fingerprintBackgroundLaunchProfile(candidate))
+        .not.toBe(fingerprintBackgroundLaunchProfile(bounded));
+    }
+    // Zero is the first integer below the accepted lower boundary; the first
+    // unsafe integer follows MAX_SAFE_INTEGER. Cost budgets have no finite max.
+    for (const bad of cost
+      ? [0, -1, "NaN", "Infinity", "1e309", "1usd", true]
+      : [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, "NaN", "Infinity", "1e2", true]) {
+      assertRejected(restore(changed(valid, "budget", field, bad)), `budget.${field}`);
+    }
+  });
+
+  it("preserves explicit deny-all, permission, sandbox and every budget on disk round-trip", () => {
+    const profile = fixture();
+    profile.tools.allowed = [];
+    profile.tools.disallowed = ["Bash"];
+    profile.permission.mode = "manual";
+    profile.permission.unattendedAllow = [];
+    profile.sandbox.mode = "strict";
+    profile.budget = {
+      maxTurns: 3, maxCostUsd: 0.25, thinkingTokens: 7,
+      maxRewakes: 2, maxOuterTurns: 4, goalMaxTokens: 9,
+      goalMaxCostUsd: 0.125, goalMaxTimeMs: 1000,
+    };
+    const restored = normalizeBackgroundLaunchProfile(restore(profile));
+    expect(restored.tools.allowed).toEqual([]);
+    expect(restored.tools.disallowed).toEqual(["Bash"]);
+    expect(restored.permission.mode).toBe("manual");
+    expect(restored.permission.unattendedAllow).toEqual([]);
+    expect(restored.sandbox.mode).toBe("strict");
+    expect(restored.budget).toEqual(profile.budget);
+    expect(restored).toEqual(profile);
+    expect(canonicalBackgroundLaunchProfileJson(restored)).toBe(canonicalBackgroundLaunchProfileJson(profile));
+    expect(fingerprintBackgroundLaunchProfile(restored)).toBe(fingerprintBackgroundLaunchProfile(profile));
+    expect(buildArgvFromBackgroundLaunchProfile(restored)).toEqual(buildArgvFromBackgroundLaunchProfile(profile));
+    const argv = buildArgvFromBackgroundLaunchProfile(restored);
+    assertArgvValue(argv, "--permission-mode", "manual");
+    assertArgvValue(argv, "--sandbox-mode", "strict");
+    assertArgvValue(argv, "--allowed-tools", "");
+    assertArgvValue(argv, "--disallowed-tools", "Bash");
+    expect(argv).not.toContain("--allow-dangerous-bypass");
+    for (const [field, value] of Object.entries(profile.budget)) {
+      assertArgvValue(argv, budgetFlags[field], value);
+    }
+    // Stable hashes alone would not detect a policy field being discarded.
+    for (const [group, field, value] of [
+      ["tools", "allowed", null], ["permission", "mode", "auto"],
+      ["sandbox", "mode", "off"], ["budget", "maxTurns", 4],
+    ]) {
+      expect(fingerprintBackgroundLaunchProfile(changed(restored, group, field, value)))
+        .not.toBe(fingerprintBackgroundLaunchProfile(restored));
+    }
+  });
+
+  it.each([
+    ["permission", "mode", "manual", "unknown"],
+    ["sandbox", "mode", "strict", "unknown"],
+    ["mcp", "ide", "auto", "unknown"],
+    ["mcp", "pdh", "enabled", "unknown"],
+    ["mcp", "jetbrains", "disabled", "unknown"],
+  ])("rejects an invalid %s.%s without falling back", (group, field, good, bad) => {
+    const valid = changed(fixture(), group, field, good);
+    expect(normalizeBackgroundLaunchProfile(restore(valid))[group][field]).toBe(good);
+    assertRejected(restore(changed(valid, group, field, bad)), `${group}.${field}`);
+  });
+
+  it.each([
+    ["tools", "allowed"], ["tools", "disallowed"],
+    ["permission", "unattendedAllow"],
+  ])("validates %s.%s container and entries independently", (group, field) => {
+    const valid = changed(fixture(), group, field, ["Read"]);
+    expect(normalizeBackgroundLaunchProfile(restore(valid))[group][field]).toEqual(["Read"]);
+    expect(normalizeBackgroundLaunchProfile(changed(valid, group, field, []))[group][field]).toEqual([]);
+    for (const bad of ["Read", ["Read", " "], ["Read", 1]]) {
+      assertRejected(restore(changed(valid, group, field, bad)), `${group}.${field}`);
+    }
+  });
+});
