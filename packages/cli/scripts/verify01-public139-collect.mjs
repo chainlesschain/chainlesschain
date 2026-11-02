@@ -174,7 +174,8 @@ for (const selection of selections) {
       sampleId: delivery.sampleId,
       runId: selection.id,
       group: selection.group,
-      generationPassed: delivery.generationPassed,
+      originalGenerationPassed: delivery.generationPassed ?? null,
+      generationPassed: acceptance.generationPassed ?? null,
       accepted: acceptance.passed,
       candidateAcceptancePassed: acceptance.candidateAcceptancePassed,
       host: delivery.host,
@@ -183,8 +184,8 @@ for (const selection of selections) {
       modelError: delivery.model?.errorResult,
       modelPass: delivery.model?.pass,
       sourceScopePassed: delivery.sourceScopePassed,
-      brokerStatus: delivery.brokerStatus,
-      broker: delivery.broker,
+      brokerStatus: delivery.brokerStatus ?? null,
+      broker: delivery.broker ?? null,
       observedUsage: delivery.model?.observedUsage,
       setup: stage(acceptance.setup),
       check: stage(acceptance.check),
@@ -194,12 +195,19 @@ for (const selection of selections) {
 }
 assert.equal(rows.length, 2);
 assert.equal(new Set(rows.map((r) => r.sampleId)).size, 2);
+const sumIfComplete = (field) =>
+  rows.every((row) => Number.isFinite(row.broker?.[field]))
+    ? rows.reduce((total, row) => total + row.broker[field], 0)
+    : null;
 const report = {
   schema: 1,
   source,
   projectSource: "eec8b97b6040d19004670bfead0bec1b8a27b71b",
   packageDigest,
-  collectorSource: process.env.GITHUB_SHA ?? null,
+  collectorSource: execFileSync("git", ["rev-parse", "HEAD"], {
+    encoding: "utf8",
+  }).trim(),
+  collectorTriggerSource: process.env.GITHUB_SHA ?? null,
   complete: true,
   expected: 2,
   accepted: rows.filter((r) => r.accepted).length,
@@ -209,18 +217,9 @@ const report = {
   historical45Unchanged: true,
   previous137r3Unchanged: "0/5",
   previous138Unchanged: "2/4",
-  physicalRequestsStarted: rows.reduce(
-    (n, r) => n + r.broker.physicalRequestsStarted,
-    0,
-  ),
-  usageCompleteRequests: rows.reduce(
-    (n, r) => n + r.broker.usageCompleteRequests,
-    0,
-  ),
-  knownTokenOnlyEstimateUsd: rows.reduce(
-    (n, r) => n + r.broker.knownTokenOnlyEstimateUsd,
-    0,
-  ),
+  physicalRequestsStarted: sumIfComplete("physicalRequestsStarted"),
+  usageCompleteRequests: sumIfComplete("usageCompleteRequests"),
+  knownTokenOnlyEstimateUsd: sumIfComplete("knownTokenOnlyEstimateUsd"),
   actualBilledCostUsd: null,
   runs,
   artifacts,
@@ -243,7 +242,7 @@ console.log(
       accepted: r.accepted,
       generationPassed: r.generationPassed,
       candidateAcceptancePassed: r.candidateAcceptancePassed,
-      requests: r.broker.physicalRequestsStarted,
+      requests: r.broker?.physicalRequestsStarted ?? null,
     })),
   }),
 );
