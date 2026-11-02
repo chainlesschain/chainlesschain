@@ -448,12 +448,33 @@ jobs:
           # The root and standalone desktop lockfiles contain different SQLite
           # versions. Rebuild each version, then stage only matching payloads.
           for scope in . desktop-app-vue; do
+            BUILD_PROJECT="$NATIVE_STAGE/build-$scope"
+            # Hoisted root dependencies are not declared by the aggregate root
+            # package, so rebuild's normal dependency scan skips them. Give the
+            # installed modules an explicit standalone production dependency set.
+            node - "$BUILD_PROJECT" "$PWD/$scope" <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const [project, source] = process.argv.slice(2);
+          const dependencies = {};
+          fs.mkdirSync(path.join(project, 'node_modules'), { recursive: true });
+          for (const name of ['better-sqlite3', 'better-sqlite3-multiple-ciphers']) {
+            const modulePath = path.join(source, 'node_modules', name);
+            dependencies[name] = require(path.join(modulePath, 'package.json')).version;
+            fs.symlinkSync(modulePath, path.join(project, 'node_modules', name), 'dir');
+          }
+          fs.writeFileSync(path.join(project, 'package.json'), JSON.stringify({name:'product144-native-build',version:'1.0.0',private:true,dependencies}));
+          console.log('Explicit native build inputs:', dependencies);
+          NODE
             for arch in x64 arm64; do
-              (cd "$scope" && npx --yes @electron/rebuild@^4 \
+              (cd "$BUILD_PROJECT" && npx --yes @electron/rebuild@^4 \
                 --version "$ELECTRON_VER" --arch "$arch" \
                 --only better-sqlite3-multiple-ciphers,better-sqlite3 --force)
               for pkg in better-sqlite3-multiple-ciphers better-sqlite3; do
                 version=$(node -p "require('./$scope/node_modules/$pkg/package.json').version")
+                target_arch="$arch"
+                [ "$arch" != x64 ] || target_arch=x86_64
+                lipo "$scope/node_modules/$pkg/build/Release/better_sqlite3.node" -verify_arch "$target_arch"
                 cp "$scope/node_modules/$pkg/build/Release/better_sqlite3.node" \
                   "$NATIVE_STAGE/$pkg-$version-$arch.node"
               done
