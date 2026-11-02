@@ -6,7 +6,7 @@
 
 CLI **0.166.139** 已通过 [GitHub Actions OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/41431711290)，准确源码为 `eec8b97b6040d19004670bfead0bec1b8a27b71b`。同一提交的 CLI CI **76/76**、Strict Sandbox **6/6** 覆盖全部配置平台并通过；公开 npm 归档字节、来源签名和安装启动均已核验。安装：`npm i -g chainlesschain@0.166.139 --registry https://registry.npmjs.org`，升级后重启 CLI 与 IDE 聊天宿主，再运行 `cc --version`、`cc doctor`。
 
-配套 Open VSX **0.37.175** 已公开且回读验证通过。JetBrains **0.4.192** 已由[正式工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/41434982670)成功上传，但 Marketplace 尚未公开该版本。两款配套插件均推荐 CLI **0.166.139**。上游 Agent SDK **0.2.17**、Kernel **0.1.11** 保持不变。移动端与 PC 候选 **v5.0.3.144** 将在两款 IDE 公开验证后发行；目前公开客户端仍为 **v5.0.3.143**，Microsoft Marketplace 继续暂缓。
+配套 Open VSX **0.37.175** 已公开且回读验证通过。JetBrains **0.4.192** 已由[正式工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/41434982670)成功上传，但 Marketplace 尚未公开该版本。两款配套插件均推荐 CLI **0.166.139**。上游 Agent SDK **0.2.17**、Kernel **0.1.11** 保持不变。移动端与 PC 本次发行目标为 **v5.0.3.144**；用户已授权在核验 JetBrains 正式上传后先发客户端，无须等待商店审核，其余发布验证照常执行。Microsoft Marketplace 继续暂缓。
 
 此版在原有总预算内预留作者、独立复核和最终报告的工作，并从同一文件快照恢复完整 JavaScript 语句，保留聚焦读取的原始范围；同时包含独立 WebSocket 模型策略修复。CLI .138 的独立复验仍为 **2/4**，历史累计 **41/45**、.137 **0/5** 分别保留；本次工程验证和发布没有新增模型任务验收成绩。
 

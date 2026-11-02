@@ -2,8 +2,8 @@ name: Internal Binaries Rollover
 
 # Assembles a NEW `internal-binaries-android-v<new_version>` GitHub Release
 # server-side: copies all assets from the previous internal-binaries release,
-# replaces cc-cli.tgz with the freshly built one from a node-runtime-bundle.yml
-# run artifact, sha256-verifies everything, then publishes.
+# replaces cc-cli.tgz and its metadata from a verified CLI bundle producer,
+# regenerates checksums, sha256-verifies everything, then publishes.
 #
 # Why this exists: internal-binaries releases are IMMUTABLE (clobber-upload
 # returns HTTP 422), so refreshing cc-cli.tgz requires creating a new dated
@@ -29,7 +29,7 @@ on:
         required: true
         type: string
       bundle_run_id:
-        description: "node-runtime-bundle.yml run id whose cc-cli-tgz artifact replaces cc-cli.tgz"
+        description: "Verified CLI bundle producer run id with a cc-cli-tgz artifact and matching metadata"
         required: true
         type: string
       cc_cli_sha256:
@@ -49,9 +49,14 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       FROM_TAG: internal-binaries-android-v${{ inputs.from_version }}
       NEW_TAG: internal-binaries-android-v${{ inputs.new_version }}
+      EXPECTED_CLI_SHA256: ${{ inputs.cc_cli_sha256 }}
     steps:
       - name: Checkout (manifest for sha verification)
         uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.14.0"
 
       - name: Guard — new tag must not exist yet
         run: |
@@ -60,6 +65,9 @@ jobs:
             echo "::error::Release $NEW_TAG already exists (immutable tag namespace — pick a new version)"
             exit 1
           fi
+
+      - name: Test fresh metadata and checksum replacement
+        run: node --test .github/scripts/prepare-android-rollover-metadata.test.mjs
 
       # NB: download OUTSIDE the checkout — the repo root already has an
       # assets/ directory; downloading into it sweeps repo files (favicon,
@@ -79,6 +87,12 @@ jobs:
           gh run download "${{ inputs.bundle_run_id }}" --repo "$GITHUB_REPOSITORY" \
             --name cc-cli-tgz --dir "$RUNNER_TEMP/cc-cli-artifact"
           mv "$RUNNER_TEMP/cc-cli-artifact/cc-cli.tgz" "$RUNNER_TEMP/ib-assets/cc-cli.tgz"
+
+      - name: Replace producer metadata and regenerate complete checksums
+        run: >-
+          node .github/scripts/prepare-android-rollover-metadata.mjs
+          "$RUNNER_TEMP/ib-assets" "$RUNNER_TEMP/cc-cli-artifact"
+          "$EXPECTED_CLI_SHA256"
 
       - name: Verify sha256 of every asset
         run: |
@@ -107,13 +121,15 @@ jobs:
           EXPECTED=$(ls "$RUNNER_TEMP/ib-assets" | wc -l)
           gh release create "$NEW_TAG" --repo "$GITHUB_REPOSITORY" \
             --draft \
+            --latest=false \
+            --target "$GITHUB_SHA" \
             --title "$NEW_TAG" \
-            --notes "Internal Android binaries (gradle downloadBootstrapBinaries / downloadFridaBinaries). cc-cli.tgz rebuilt from node-runtime-bundle.yml run ${{ inputs.bundle_run_id }}; all other assets copied verbatim from $FROM_TAG (sha256-verified against binaries-manifest.txt). Not for end users."
+            --notes "Internal Android binaries (gradle downloadBootstrapBinaries / downloadFridaBinaries). cc-cli.tgz and matching metadata from CLI bundle producer run ${{ inputs.bundle_run_id }}; native assets copied verbatim from $FROM_TAG (sha256-verified against binaries-manifest.txt). Complete SHA256SUMS regenerated. Not for end users."
           gh release upload "$NEW_TAG" --repo "$GITHUB_REPOSITORY" "$RUNNER_TEMP"/ib-assets/*
           COUNT=$(gh release view "$NEW_TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets | length')
           if [ "$COUNT" -ne "$EXPECTED" ]; then
             echo "::error::asset count mismatch after upload: $COUNT != $EXPECTED (draft left in place for retry)"
             exit 1
           fi
-          gh release edit "$NEW_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+          gh release edit "$NEW_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest=false
           echo "Published $NEW_TAG with $COUNT assets" >> "$GITHUB_STEP_SUMMARY"

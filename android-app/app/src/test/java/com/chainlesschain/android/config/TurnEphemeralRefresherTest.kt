@@ -7,6 +7,9 @@ import io.mockk.mockk
 import io.mockk.unmockkAll
 import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
@@ -102,6 +105,32 @@ class TurnEphemeralRefresherTest {
         // Final assertion (no try/catch) — if 30s timeout 用尽仍 0 calls，真错。
         verify(atLeast = 1) { iceConfig.addTurnServer("turn:a:3478", "u", "p") }
         verify(atLeast = 1) { iceConfig.addTurnServer("turn:b:3478", "u", "p") }
+    }
+
+    @Test
+    fun `immediate coroutine launch fetches before job handle assignment`() {
+        every { preferences.ephemeralEnabled } returns MutableStateFlow(true)
+        every { preferences.ephemeralEndpointUrl } returns MutableStateFlow("https://x.example.com/creds")
+        coEvery { client.fetch(any()) } returns TurnEphemeralCredentials(
+            username = "u",
+            password = "p",
+            ttlSeconds = 3600,
+            uris = listOf("turn:a:3478"),
+            fetchedAtMs = System.currentTimeMillis(),
+        )
+        // Unconfined executes launch inline until the first suspension,
+        // deterministically exercising the startup race seen in CI.
+        refresher = TurnEphemeralRefresher(
+            preferences, client, iceConfig,
+            CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
+        )
+
+        refresher.start()
+
+        verify(exactly = 1) { iceConfig.addTurnServer("turn:a:3478", "u", "p") }
+        assertEquals("u", refresher.current()?.username)
+        refresher.stop()
+        assertNull(refresher.current())
     }
 
     @Test

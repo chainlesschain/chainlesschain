@@ -1613,9 +1613,13 @@ jobs:
           assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), sourceSha);
           NODE
 
+      - name: Test scoped JetBrains upload authorization
+        run: node --test scripts/__tests__/verify-product-jetbrains-upload.test.mjs
+
       - name: Require public paired IDE releases before mobile and PC builds
         shell: bash
         env:
+          GITHUB_TOKEN: ${{ github.token }}
           CC_MARKETPLACE_VERIFY_ATTEMPTS: "1"
           CC_OPEN_VSX_LISTING_VERIFY_ATTEMPTS: "1"
         run: |
@@ -1624,6 +1628,7 @@ jobs:
           const fs = require('node:fs');
           const assert = require('node:assert/strict');
           const { execFileSync } = require('node:child_process');
+          const productVersion = require('./package.json').productVersion;
           const cliVersion = require('./packages/cli/package.json').version;
           const vscode = require('./packages/vscode-extension/package.json');
           const pluginXml = fs.readFileSync('packages/jetbrains-plugin/src/main/resources/META-INF/plugin.xml', 'utf8');
@@ -1649,7 +1654,11 @@ jobs:
             ['open-vsx', vscode.version, 'product-release-open-vsx.json'],
             ['jetbrains', jetbrainsVersion, 'product-release-jetbrains.json'],
           ]) {
-            const receipt = execFileSync(process.execPath, ['scripts/verify-ide-marketplace.mjs', channel, version], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
+            const authorizedUpload = productVersion === 'v5.0.3.144' && channel === 'jetbrains' && version === '0.4.192' && cliVersion === '0.166.139';
+            const verifier = authorizedUpload
+              ? ['scripts/verify-product-jetbrains-upload.mjs', version]
+              : ['scripts/verify-ide-marketplace.mjs', channel, version];
+            const receipt = execFileSync(process.execPath, verifier, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
             fs.writeFileSync(output, receipt);
           }
           NODE
