@@ -198,6 +198,14 @@ describe("independent review request reservation", () => {
     expect(r.authorCalls).toBe(16);
     expect(r.reviewCalls).toBe(4);
     expect(
+      r.events.some(
+        (event) =>
+          event.type === "iteration-warning" &&
+          event.message ===
+            "Reviewing changed files against the task before finishing.",
+      ),
+    ).toBe(true);
+    expect(
       r.requests.filter((x) => x.reviewing).map((x) => x.consumed),
     ).toEqual([17, 18, 19, 20]);
     expect(r.requests[0].messages.at(-1).content).toContain(

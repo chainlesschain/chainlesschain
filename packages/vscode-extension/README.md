@@ -4,9 +4,11 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming
 chat, inline assistance, governed review, sessions, automation, and a localhost
 MCP bridge.
 
+## Next release candidate
+
 <!-- release139-candidate:start -->
 
-## CLI 0.166.139 / IDE repair candidate
+Source candidate **0.37.175** recommends CLI **0.166.139**. The extension has not been published; publish only after verified upstream CLI publication and complete exact-source IDE gates.
 
 The next package set is CLI **0.166.139**, Open VSX **0.37.175** and JetBrains **0.4.192**, with unchanged upstream SDK **0.2.17** and Kernel **0.1.11**. These versions are release candidates until their exact-source GitHub Actions gates and public readbacks succeed. After publication, install `npm i -g chainlesschain@0.166.139 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, and check `cc --version` and `cc doctor`.
 
@@ -18,13 +20,27 @@ CLI .138 acceptance remains **2/4**: verify-13 and first-run-darwin-vscode passe
 
 <!-- release138-current:start -->
 
-## Current release pairing
+## Current release
+
+<!-- release174-status -->
+
+Open VSX version **0.37.174** pairs with public CLI `0.166.138`.
 
 CLI **0.166.138** and upstream Agent SDK **0.2.17** are published through GitHub Actions OIDC. Install `npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`, restart `cc ui` and IDE chat hosts, then run `cc --version` and `cc doctor`. Open VSX **0.37.174** publication succeeded. JetBrains **0.4.191** is uploaded and awaiting Marketplace approval/listing. Both new IDE versions recommend CLI **0.166.138**.
 
 Version **0.37.174** preserves provider/compaction diagnostics and saved tool-result identity across reload. Its complete [tagged release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41316653600) passed. Install the [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.174/file/chainlesschain.chainlesschain-ide-0.37.174.vsix). [Publication evidence](../../docs/research/cli/evidence/release138-public/README.md).
 
 Main also contains the later standalone WebSocket host-model-policy repair (`2e97ce3d79`), awaiting its own fully validated CLI release. The published CLI 0.166.138 remains bound to its verified release source.
+
+Immutable tag `ide-vscode-v0.37.174` identifies this public extension release. The versioned download is `chainlesschain-ide-0.37.174.vsix`; its official workflow and publication evidence are linked above. Using `@0.166.138` selects this verified pairing. CLI `0.166.138` is the recommended public CLI for this extension.
+
+| Component                 | Current public status                                               |
+| ------------------------- | ------------------------------------------------------------------- |
+| VS Code extension         | **0.37.174**; public through the verified official release workflow |
+| Recommended CLI           | **`chainlesschain@0.166.138`**; verified public package             |
+| Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI      |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                 |
+| Distribution              | Open VSX and versioned VSIX; Microsoft Marketplace deferred         |
 
 <!-- release138-current:end -->
 

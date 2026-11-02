@@ -15705,8 +15705,7 @@ export async function* agentLoop(messages, options) {
       beginChangeReview();
       yield {
         type: "iteration-warning",
-        message:
-          "Reserved requests are now assigned to independent change review within the existing budget.",
+        message: "Reviewing changed files against the task before finishing.",
       };
     }
     if (remoteReadLoopGuard.stalled && !remoteReadLoopGuard.synthesisRequired) {
