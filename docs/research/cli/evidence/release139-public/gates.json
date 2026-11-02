@@ -1,0 +1,436 @@
+{
+  "schema": 1,
+  "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "checkedAt": "2026-11-02T11:21:06.046Z",
+  "platforms": ["linux", "windows", "macos"],
+  "gates": [
+    {
+      "name": "CLI CI",
+      "runId": 41416433836,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41416433836",
+      "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Scoped documentation check / Detect and validate scoped documentation",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Native campaign preflight (macos-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build and audit reviewed runtime sources before test fan-out",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Native campaign preflight (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Native campaign preflight (windows-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "PDH native release tests (windows-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "PDH native release tests (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "PDH native release tests (macos-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "linux-subreaper / Linux packaged subreaper (x64)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 1/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 3/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 1/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 2/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 4/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 1/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 2/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 3/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 2/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 3/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 4/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 1/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 4/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 1/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 2/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 2/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 3/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 3/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 1/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 2/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 4/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 5/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 4/4)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 1/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 3/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 4/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 6/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 2/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 7/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 7/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 8/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 4/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 5/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 1/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 8/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 6/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 3/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 4/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 2/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 1/16)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 6/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 5/16)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 4/16)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 5/8)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 14/16)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 9/16)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 6/16)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 11/16)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 10/16)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 12/16)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 3/16)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 2/16)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 7/16)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 8/16)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 13/16)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 15/16)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 16/16)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "dry-run-publish",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "pack-linux-dryrun",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "verify-cli (macos-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "verify-cli (windows-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "verify-cli (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Test-only PM exploration recovery three-OS aggregate",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "CLI Strict Sandbox",
+      "runId": 41416453707,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41416453707",
+      "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Scoped documentation check / Detect and validate scoped documentation",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "strict native boundary (windows-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "macOS latest native capability",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "strict native boundary (macos-15)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "strict native boundary (ubuntu-24.04)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "strict native boundary (ubuntu-24.04-arm)",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ]
+}
