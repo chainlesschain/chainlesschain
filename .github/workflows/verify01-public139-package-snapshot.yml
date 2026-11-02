@@ -50,5 +50,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -- docs/research/cli/verify01-package-sets/2026-11-02-openai-139.json docs/research/cli/verify01-openai-139/package-resolution.json
           git diff --cached --check
-          git commit -m 'test(verify01): bind public 139 four-case package identity [skip ci]'
+          git commit -m 'test(verify01): bind public 139 two-case package identity [skip ci]'
           git push origin HEAD:refs/heads/feature/openai139-two-retest
