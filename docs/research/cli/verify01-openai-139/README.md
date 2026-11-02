@@ -15,6 +15,8 @@
 
 本轮使用发行源码 `eec8b97b6040d19004670bfead0bec1b8a27b71b`；[执行项目绑定](../verify01-openai-137/public139-project-revision.json)保留原题、交付路径及操作系统。该文件放在驱动允许的既有修订目录中。包校验核对 npm 原始字节、Open VSX 与官方 VSIX 内容、官方 JetBrains ZIP 及工作流身份。JetBrains 使用官方发布构件，不据此宣称商店审核状态。
 
+主线随后补充了公开发行状态，合并时保留主线最新发布记录。实测时的[发布证明快照](../evidence/release139-public/publication-retest-snapshot.json)及执行提交 `24a6e3857f` 保留原字节；已完成计划的只读预检从该不可变执行提交核对原证明，不将后来的发布文档变化混入实测身份。
+
 模型仍为 OpenAI / gpt-6.1-sol / Responses，`review_changes=true`，每项 20 轮、24 个物理请求、8192 输出 tokens、262144 请求 bytes、180000ms 请求超时、32768 tokens 规划上下文；两项最多 48 个物理请求。重新生成后独立执行 Linux Docker 基线、候选及行为变异验收，要求正常模型终态和完整用量，不修改既有验收标准。
 
 GitHub Actions [包校验 41442467393](https://github.com/chainlesschain/chainlesschain/actions/runs/41442467393)已通过，原始版本与字节见[校验回执](package-resolution.json)。[复测计划](retest-plan.json)固定两项范围、证据摘要及原预算。临时仓库 `OPENAI_API_KEY` 已在全部生成任务结束后删除，并验证不存在，见[清理回执](secret-cleanup.json)；本机凭据文件未改动。原生任务共 42/42 个物理请求用量完整，token 费用估算 $1.2735909，实际账单未知。[只读收集 41451690807](https://github.com/chainlesschain/chainlesschain/actions/runs/41451690807)已通过，四个原始 ZIP 的摘要及本地归档 13/13 文件已核对，见[原生结果](public-24a6e3857f/results.json)。工程检查与[离线源码回放](offline-source-replay.json)不计入真实模型任务通过数。
