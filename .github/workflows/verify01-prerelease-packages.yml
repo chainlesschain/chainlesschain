@@ -52,15 +52,15 @@ jobs:
           mkdir -p release-candidates
           npm pack --workspace=packages/cli --pack-destination release-candidates
           CC_RELEASE_VERSION=$(node -p "require('./packages/cli/package.json').version") node packages/cli/scripts/npm-release-artifact.mjs create \
-            release-candidates/chainlesschain-$(node -p "require('./packages/cli/package.json').version").tgz \
+            "release-candidates/chainlesschain-$(node -p "require('./packages/cli/package.json').version").tgz" \
             release-candidates/cli-payload.json
       - name: Package VS Code candidate
         working-directory: packages/vscode-extension
         run: |
           npm run check:agent-sdk
           node scripts/sync-elicitation-schema.mjs --check
-          npx --yes @vscode/vsce@3.9.2 package --no-dependencies --out ../../release-candidates/chainlesschain-ide-$(node -p "require('./package.json').version").vsix
-          node scripts/verify-vsix.mjs ../../release-candidates/chainlesschain-ide-$(node -p "require('./package.json').version").vsix
+          npx --yes @vscode/vsce@3.9.2 package --no-dependencies --out "../../release-candidates/chainlesschain-ide-$(node -p "require('./package.json').version").vsix"
+          node scripts/verify-vsix.mjs "../../release-candidates/chainlesschain-ide-$(node -p "require('./package.json').version").vsix"
       - name: Prepare pinned Gradle wrapper
         run: >-
           node scripts/lib/verify01-gradle-bootstrap.mjs
