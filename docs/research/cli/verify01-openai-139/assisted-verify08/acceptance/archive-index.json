@@ -1,0 +1,23 @@
+{
+  "sampleId": "verify-08",
+  "executionSource": "efe5f997406214dca420281e69986c2702cf7c7c",
+  "assisted": true,
+  "nativeFailureRetained": true,
+  "files": [
+    {
+      "path": "result.json",
+      "digest": "sha256:b482fc6d685d49708c18e329ed7dbc42e2398181f9964f2aad6e45b3c08d4fdd",
+      "bytes": 2324
+    },
+    {
+      "path": "receipts/setup.json",
+      "digest": "sha256:32e921258b7ef2336be6317be8b8fefa07208ffb9043b4dd000e46c99d199617",
+      "bytes": 32027
+    },
+    {
+      "path": "receipts/check.json",
+      "digest": "sha256:3f6d8f5d942fbbb93446aa2277ab2dbbdbae06dd9d63cf948beb491d5985de5f",
+      "bytes": 28499
+    }
+  ]
+}
