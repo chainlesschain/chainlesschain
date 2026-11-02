@@ -1,0 +1,32 @@
+{
+  "id": 41448844116,
+  "originalRunId": 41445393011,
+  "source": "24a6e3857f53419de142e01375c79e4fcb326a12",
+  "status": "completed",
+  "conclusion": "failure",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41448844116",
+  "updatedAt": "2026-11-02T13:11:14Z",
+  "jobs": [
+    {
+      "id": 125288682843,
+      "name": "validate",
+      "status": "completed",
+      "conclusion": "success",
+      "failedStep": null
+    },
+    {
+      "id": 125289121247,
+      "name": "Native darwin-jetbrains-verify-36 (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "failedStep": null
+    },
+    {
+      "id": 125294208141,
+      "name": "Linux acceptance of darwin-jetbrains-verify-36 deliveries",
+      "status": "completed",
+      "conclusion": "failure",
+      "failedStep": "Check source and candidate binding then execute baseline and behavioral controls"
+    }
+  ]
+}

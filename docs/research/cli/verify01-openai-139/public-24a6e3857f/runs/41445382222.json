@@ -1,0 +1,32 @@
+{
+  "id": 41445382222,
+  "originalRunId": 41445382222,
+  "source": "24a6e3857f53419de142e01375c79e4fcb326a12",
+  "status": "completed",
+  "conclusion": "failure",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41445382222",
+  "updatedAt": "2026-11-02T12:46:26Z",
+  "jobs": [
+    {
+      "id": 125277061010,
+      "name": "validate",
+      "status": "completed",
+      "conclusion": "success",
+      "failedStep": null
+    },
+    {
+      "id": 125277433595,
+      "name": "Native darwin-vscode (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "failedStep": null
+    },
+    {
+      "id": 125282615057,
+      "name": "Linux acceptance of darwin-vscode deliveries",
+      "status": "completed",
+      "conclusion": "failure",
+      "failedStep": "Check source and candidate binding then execute baseline and behavioral controls"
+    }
+  ]
+}
