@@ -43,7 +43,7 @@ VS Code `0.37.127` 候选按有界文本节点追加流式正文，并保留用�
 
 Windows 实际 VS Code **1.132.0** 的安装旅程已测量 10K / 100K / 200K 文本、选区和滚动行为，并分别记录完成时的 Markdown、代码按钮与跟随布局耗时。JetBrains 的 `8460b786a8` 实际 ZIP 在 Windows / IntelliJ **2024.2** 中完成原生 transcript 测量、canonical recovery 和重启；该批新增探针仅用于测试，没有进入插件包或改变 JetBrains 发布版本。
 
-原始样本、准确提交及独立回读见 [CLI / IDE 差距实施记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide-gap-implementation-2026-09-27.md) 的 IDE-STREAM 与 JetBrains 原生 transcript 段落。VS Code 测量保留 `performanceGate=false`，JetBrains 为 `sloStatus=not-evaluated`；目标硬件、其余宿主及结束长任务仍待验收。JetBrains EDT Timer / 可见区域 paint 与 Chromium 帧间隔不是同一指标，不能直接排名或据此承诺固定性能。
+原始样本、准确提交及独立回读见 [CLI / IDE 差距实施记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/cli-ide-gap-implementation-2026-09-27.md) 的 IDE-STREAM 与 JetBrains 原生 transcript 段落。VS Code 测量保留 `performanceGate=false`，JetBrains 为 `sloStatus=not-evaluated`；目标硬件、其余宿主及结束长任务仍待验收。JetBrains EDT Timer / 可见区域 paint 与 Chromium 帧间隔不是同一指标，不能直接排名或据此承诺固定性能。
 
 ### 2026-08-26 增量设计：宿主信任的授权决定与内容隔离投影
 

@@ -82,7 +82,7 @@ Goal 的工具证据、文件摘要和模型结论分别核对。取消、未知
 
 - [公开发行回执](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release130-public/publication.json)
 - [CLI README](https://github.com/chainlesschain/chainlesschain/blob/main/packages/cli/README.md)
-- [当前任务表](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide-codex-claude-gap-review-2026-10-27.md)
+- [当前任务表](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/cli-ide-codex-claude-gap-review-2026-10-27.md)
 
 ## 相关文档
 

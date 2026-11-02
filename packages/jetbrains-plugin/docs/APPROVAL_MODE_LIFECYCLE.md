@@ -64,4 +64,4 @@ Run local checks with JDK 21 from `packages/jetbrains-plugin`:
 ```
 
 Current validation and outstanding acceptance conditions are recorded in the
-[implementation ledger](../../../docs/research/cli-ide-gap-implementation-2026-09-27.md).
+[implementation ledger](../../../docs/research/cli-ide/cli-ide-gap-implementation-2026-09-27.md).

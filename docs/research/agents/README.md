@@ -12,3 +12,7 @@
 - [Dots / Muse / Mods 实施进度](./dots-muse-mods-implementation-progress-2026-10-07.md)：目标/调度、CLI/两端 IDE 只读桥、文件采纳及独立在线待审提议、持久授权/撤权和未知结果查询的源码、验证及剩余边界。
 - [ChainlessChain RRSI 实施方案](./rrsi-implementation-plan-2026-10-07.md)：在既有 RSI 上增加泛化、成本、噪声和修改历史约束，包含六批交付、等预算对照及晋级验收。
 - [RRSI 实施进度](./rrsi-implementation-progress-2026-10-07.md)：记录五池合同、耐久历史、受限来源登记及索引／产物／manifest／witness／journal 状态边界、原 source／manifest 目录能力及旧状态兼容的本地验证（至第 37 节）；真实对照与生产晋级仍未闭环。
+
+## 部署参考
+
+- [Deep Agents Deploy 落地速查](./DEEP_AGENTS_DEPLOY_QUICK_REF_ZH.md)

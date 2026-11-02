@@ -4,25 +4,30 @@
 
 报告按研究对象分类。阅读时结合文内评估日期、代码基线和后续实施记录判断结论适用范围。
 
+根目录保留分类索引；跨 CLI / IDE 的计划、实施、验收和发布记录统一收录于 [CLI / IDE 联合实施与验证](./cli-ide/README.md)。
+
 最新对照：[2026-09-27 CLI 分析](./cli/cli-claude-code-codex-gap-analysis-2026-09-27.md) · [2026-09-27 IDE 分析](./ide/ide-claude-code-codex-gap-analysis-2026-09-27.md)。两份报告依据当前源码复核，并保留已完成事项与待验收边界。
 
-后续进度：[CLI / IDE 共享实施状态](./cli-ide-gap-implementation-2026-09-27.md)，逐项区分局部实现、本地验证与真实环境验收。
+后续进度：[CLI / IDE 共享实施状态](./cli-ide/cli-ide-gap-implementation-2026-09-27.md)，逐项区分局部实现、本地验证与真实环境验收。
 
-当前实施：[10 月 15 日计划](./cli-ide-codex-claude-implementation-plan-2026-10-15.md) · [10 月 26 日保存输入删除与恢复续做](./cli-ide-recovery-progress-2026-10-26.md) · [10 月 23 日 CLI / 双 IDE 输入交付与草稿恢复](./cli-ide-recovery-progress-2026-10-23.md)。
+当前实施：[10 月 15 日计划](./cli-ide/cli-ide-codex-claude-implementation-plan-2026-10-15.md) · [10 月 26 日保存输入删除与恢复续做](./cli-ide/cli-ide-recovery-progress-2026-10-26.md) · [10 月 23 日 CLI / 双 IDE 输入交付与草稿恢复](./cli-ide/cli-ide-recovery-progress-2026-10-23.md)。
 
-| 分类                                                  | 内容                                               |
-| ----------------------------------------------------- | -------------------------------------------------- |
-| [CLI](./cli/README.md)                                | Claude Code CLI 对照、增量差距和优化方向           |
-| [IDE](./ide/README.md)                                | IDE 插件、宿主能力与协作体验对照                   |
-| [Agent 与自进化](./agents/README.md)                  | Claude Code / Codex 综合差距、开源架构和自进化分析 |
-| [RSI Agent 研究与实施](../reports/rsiagent/README.md) | 同一系列的差距分析、项目经验与批次交付             |
+| 分类                                                                      | 内容                                               |
+| ------------------------------------------------------------------------- | -------------------------------------------------- |
+| [CLI](./cli/README.md)                                                    | Claude Code CLI 对照、增量差距和优化方向           |
+| [IDE](./ide/README.md)                                                    | IDE 插件、宿主能力与协作体验对照                   |
+| [CLI / IDE 联合实施与验证](./cli-ide/README.md)                           | 共享计划、功能实施进度、验收复测、发布与文档同步   |
+| [Agent 与自进化](./agents/README.md)                                      | Claude Code / Codex 综合差距、开源架构和自进化分析 |
+| [浏览器自动化](./browser/README.md)                                       | OpenClaw 浏览器控制分析与集成方案                  |
+| [Palantir](./palantir/chainlesschain-palantir-gap-analysis-2026-10-06.md) | 平台能力差距、优化建议与实施进度                   |
+| [RSI Agent 研究与实施](../reports/rsiagent/README.md)                     | 同一系列的差距分析、项目经验与批次交付             |
 
 ## 其他研究
 
 - [ChainlessChain 对照 Palantir 的能力差距与优化建议](./palantir/chainlesschain-palantir-gap-analysis-2026-10-06.md)：结合官方平台文档、12 个相关 GitHub 仓库及当前源码，区分局部复现、架构建议与真实业务验收。
 - [Palantir 对照改进实施进度](./palantir/palantir-gap-implementation-progress-2026-10-06.md)：任务进度表、本地验证与后续批次。
-- [Deep Agents Deploy 落地速查](./DEEP_AGENTS_DEPLOY_QUICK_REF_ZH.md)
-- [OpenClaw 浏览器控制分析](./OPENCLAW_BROWSER_CONTROL_ANALYSIS.md)
+- [Deep Agents Deploy 落地速查](./agents/DEEP_AGENTS_DEPLOY_QUICK_REF_ZH.md)
+- [OpenClaw 浏览器控制分析](./browser/OPENCLAW_BROWSER_CONTROL_ANALYSIS.md)
 
 ## 相关记录
 

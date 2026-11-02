@@ -48,6 +48,6 @@ Memory 的 Linux 1K / 10K / 100K 五场景各 100 次结果已核验一致，100
 ## 相关文档
 
 - [用户升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-29.html)
-- [当前差距与任务表](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide-codex-claude-gap-review-2026-10-27.md)
-- [公开配对同步记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide-public-docs129-progress-2026-10-29.md)
+- [当前差距与任务表](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/cli-ide-codex-claude-gap-review-2026-10-27.md)
+- [公开配对同步记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/cli-ide-public-docs129-progress-2026-10-29.md)
 - [CLI .128 设计（历史）](./release-runtime-update-2026-10-28.md)

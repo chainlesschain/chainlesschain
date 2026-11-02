@@ -1,0 +1,543 @@
+# ChainlessChain 对照最新 Claude Code / Codex 的差距与优化建议
+
+核对日期：2026-10-27。源码基线：`6589d0fa332f38f1565b74c0e075f9e9be1c4cfe`。
+
+## 当前增量状态（2026-10-30）
+
+**CLI 0.166.132 已公开并完成独立回读；准确源码 `772fcdbda85bcf91df95bfced5b476dcf4c74614` 的三系统四组门禁全部完成。Open VSX .170 已正式发行并通过公开 VSIX 与官方候选字节核验，推荐 CLI .132；JetBrains .187 已正式发行、批准公开并通过官方候选 payload 核验，完整三包公开配对及 manifest 验证均已完成。** 自动验收仍为 **34/45**，`.132` 首项原生复测已完成但未通过；已安装辅助交付现为 **5 项**，不与自动验收相加。
+
+| 当前范围                    | 已核实结果                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | 限制与下一步                                                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 文档 / README / 三站部署    | 更新、三站构建及一次实际部署已完成；源码 B `458d92e6c837074cf119512bf2b40cde4b95f7a2`，部署标识 `20261030-031009-458d92e6c8-docs`。最终公网 **2,969 新文件哈希 / 13 页字节**均匹配，三站元数据均绑定 B                                                                                                                                                                                                                                                                                                 | [部署进度](./cli-ide-sites132-progress-2026-10-30.md)及[原始归档](../cli/evidence/sites132-2026-10-30/review.json)。服务器 4,245 条校验含历史保留；前三次只读回读失败记录保留，不计作多次部署；发行源码 772fc、证据提交 A 与文档部署 B 分别记账                                                                                                                                        |
+| .132 原生首项复测           | 新资金检查通过后已实际派发 [41001761937](https://github.com/chainlesschain/chainlesschain/actions/runs/41001761937)，19/19 物理用量完整；绝对路径写入被拒后没有有效测试交付，独立基线 39/39                                                                                                                                                                                                                                                                                                            | [失败、严格回收与修复进度](./cli-ide-native132-first-run-progress-2026-10-30.md)。累计自动 **34/45**、辅助 **5 项**；后续同类付费测试等待修复和新版本，原 hold 保留                                                                                                                                                                                                                   |
+| .133 schema ??              | CLI **0.166.133** / Open VSX **0.37.171** / JetBrains **0.4.188** ?????E ?????????F ? Ubuntu/macOS unit shard 3 ? **10,524 ? / 1 ??**???????? .133 ??                                                                                                                                                                                                                                                                                                                                                  | ??????? 94 ???? parity ??????? **5 ?? 48/48????**??????????????[.133 ????](./cli-ide-release133-progress-2026-10-30.md)???? **34/45**                                                                                                                                                                                                                                                 |
+| 772fc 三系统四组门禁        | [CLI CI 40974832577](https://github.com/chainlesschain/chainlesschain/actions/runs/40974832577)：**75 成功 / 1 预期跳过，共 76 作业**；[Strict 40974832539](https://github.com/chainlesschain/chainlesschain/actions/runs/40974832539)：**6/6**；[Kernel 40975283113](https://github.com/chainlesschain/chainlesschain/actions/runs/40975283113)：**3/3**；[IDE 验证 40975327144](https://github.com/chainlesschain/chainlesschain/actions/runs/40975327144)：**18 成功 / 1 预期跳过**，均为 attempt 1 | CLI / Strict 来自准确源码 main push，Kernel / IDE 来自不可变验证标签的原手动验证请求；旧候选绿色结果未移用，验证 IDE workflow 不冒充正式发行                                                                                                                                                                                                                                          |
+| CLI .132 public             | [OIDC 40985169005](https://github.com/chainlesschain/chainlesschain/actions/runs/40985169005) attempt 1：**5 成功 / 2 预期跳过**；[独立公开回读 40986625203](https://github.com/chainlesschain/chainlesschain/actions/runs/40986625203) attempt 1 成功，制品 **12947676175**；13 个上游公开子包、10 个直接依赖、官方与公开 tarball 字节及 signed provenance 均已核验                                                                                                                                   | Kernel 仍为 **0.1.11**；来源及摘要见[.132 发行进度](./cli-ide-release132-progress-2026-10-30.md)。CLI 公开不增加真实任务验收数                                                                                                                                                                                                                                                        |
+| Open VSX / JetBrains public | [VS Code 40987417858](https://github.com/chainlesschain/chainlesschain/actions/runs/40987417858) attempt 1 已成功，回执 **VERIFIED_PUBLIC_VSCODE_ONLY**，官方 artifact **12947916372** 与公开 VSIX **744,187 bytes** 一致；[JetBrains 40987418150](https://github.com/chainlesschain/chainlesschain/actions/runs/40987418150) attempt 1 已 **19 作业成功**，回执 **VERIFIED_JETBRAINS_PUBLIC_PAYLOAD**                                                                                                 | Open VSX **.170** 与 JetBrains **.187** 均已公开，推荐 CLI **.132**；JetBrains artifact **12948179434**、update **1206433** 已批准、列出、未隐藏且官方候选 payload 一致。完整三包 verifier **VERIFIED_PUBLIC_ARTIFACTS**；发行成功未新增原生任务通过数                                                                                                                                |
+| 自动与已安装辅助验收        | 自动 **34/45**；verify-04 / 07 / 09 / 10 / 13 已安装，共 **5 项**辅助交付；`.132` 首项已执行且未通过                                                                                                                                                                                                                                                                                                                                                                                                   | 旧 journal、失败、`.129` held 及未知派发不重放边界保留。新版本真实续测使用新 plan/source，原 broker 403、Memory 冷 SLO 尚未解决                                                                                                                                                                                                                                                       |
+| verify-04 / 13 已安装       | 两项已安装，仅Prettier格式化；已安装辅助现为 **5项**。本轮8ab3提交前工作区实际 **8文件63/63、零跳过**，CLI CI三系统定向步骤已纳入五项                                                                                                                                                                                                                                                                                                                                                                  | [安装进度](./cli-ide-assisted-0413-install-progress-2026-10-30.md)与[离线归档](../cli/evidence/assisted0413-integration-2026-10-30/review.json)。原冻结Docker两项通过、原04兼容27/28失败与新04适配28/28及两原变异分开保存；新04不借用原Docker身份，[D 源码 CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/40999261980)已实际运行；.133 修复需自己的准确源码门禁 |
+
+CLI 原始回读及离线 assembly 位于 `.work/release132-public-readback-ops-20261030/`，同目录 `public-vscode/readback.json` 为 Open VSX .170 的真实公开回执；VSIX SHA-256 为 `15b6a7de1bbe8954e08885e26d4e68d4600dc8077c2683371aa8058c87326093`；04 / 13 的冻结证明及新适配分别位于 `.work/assisted-next132-main-followup-20261030/` 与其 `compatibility-adaptation-20261030/`。完整三包公开证据已实际组装及去重归档，见[本次发行回执](../cli/evidence/release132-public/publication.json)与[已验证 package-set manifest](../cli/verify01-package-sets/2026-10-30-review-132.json)；实际 evidence/docs 提交分别记录，不预填未来 SHA。Microsoft Marketplace 暂缓；PC/mobile **v5.0.3.143** 仍为独立既有公开版本，本次尚无新客户端发行。
+
+JetBrains 首次 Marketplace 未出现目标版本，`public-jetbrains/` 保留 `UNIQUE_PUBLIC_VERSION_REQUIRED` 历史失败；随后新的 `public-jetbrains-approved/readback.json` 严格成功，未覆盖原观察。完整 manifest SHA-256 为 `0a99e24344b13e428ca245155f03b65c5bdf8ce48fc8dcf8af3c5f9055f52bbb`，完整公开回读摘要为 `d5ae94085305943e9d7f683e00f7f797c6ad13d3ed039b66a66b7c76d4dac35a`。native132 新计划 draft 已准备，摘要 `e8af54c37e8e06f6dca294039ed64359838cc6092d4d4a6636ba25c7babdb785`；首项已严格收集但未通过，自动 **34/45** 与原已安装辅助现为 **5 项**。
+
+### 历史修复与已安装辅助回归
+
+verify-07 / 09 / 10 的修复测试已实际安装到 `packages/cli/__tests__/`，安装时仅做 Prettier 格式化。安装时的工作区独立回归 **6 文件 70/70**（transcript 40、origins 12、index 2、新增 16）通过；三项辅助回归已纳入主分支。这批本机回归不证明冻结 b2aa 依赖闭包与当前 main 相同；后续 772fc 的完整云端门禁已在上表独立列出。见[安装、当前源码回归与旧门禁回执](../cli/evidence/native131-assisted-integration-2026-10-30/review.json)。
+
+| 范围                           | 当前结果                                                                                                                                                                                                                                                                                                                  | 边界与下一步                                                                                                                                                                                                                                                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 辅助交付 verify-07 / 09 / 10   | 原独立 Docker 检查器分别通过 [40916508225](https://github.com/chainlesschain/chainlesschain/actions/runs/40916508225)、[40916174023](https://github.com/chainlesschain/chainlesschain/actions/runs/40916174023)、[40907857461](https://github.com/chainlesschain/chainlesschain/actions/runs/40907857461)；三份测试已安装 | [verify-09 对照](./cli-ide-assisted-install-progress-2026-10-30.md)、[verify-10 对照](./cli-ide-assisted-verify10-progress-2026-10-30.md)保留原失败和精确变异；不补算自动成功                                                                                                                                              |
+| 原 source44 三次原生运行       | 已严格收集，全部失败；用量回执分别齐全 10/10、3/3、14/14                                                                                                                                                                                                                                                                  | 原运行 `40897500088`、`40905249327`、`40909552042` 和原 ledger 不改写；用量齐全不等于任务通过                                                                                                                                                                                                                              |
+| 当前安装回归与三系统接线       | 本机 70/70；CLI CI 三系统 `verify-cli` 已增加三个新增文件的定向步骤                                                                                                                                                                                                                                                       | 安装时结果仅为 `modified-worktree-before-commit`；后续 772fc 三系统四门禁及 CLI .132 公开回读已完成，分别见上表                                                                                                                                                                                                            |
+| 旧 source44 的 CLI CI / Strict | 两个 macOS 作业未获得 hosted runner，容量等待后取消；完整矩阵未完成                                                                                                                                                                                                                                                       | 不能把部分平台成功当作完整发行门禁，也不移用到新源码                                                                                                                                                                                                                                                                       |
+| 后续真实重测与预算             | 旧观测的预算准入被阻止；用户提供最新余额并授权继续，追加证据限定下版本的新 plan/source                                                                                                                                                                                                                                    | 不迁移旧 journal，不在此公开资金细节；先完成产品修复和新发行，再用新版本真实重测                                                                                                                                                                                                                                           |
+| 40753 原生前置（历史失败）     | CLI CI **70 作业成功 / 1 预期跳过 / 2 失败**，失败为 Windows verify-cli 与连带 PM 汇总；Windows 前置 **108/110、2 失败、0 跳过**。两条测试修复后，Node **22.12.0 / 22.22.2** 各完整 **110/110、0 跳过**；workflow contract **26/26**                                                                                      | 旧 Strict 6/6、Kernel 3/3、IDE 18 成功 / 1 跳过仅属 40753；完整 12 文件前置到三系统，后续 772fc CLI **76 jobs** 已完整完成。保留 20s / 30s 和原隔离断言，PS 唯一云端根因未完全确定；见[原始回执与字节证据](../cli/evidence/release132-native-preflight-2026-10-30/review.json)，原准备时门禁待运行；后续 772fc 四门禁已完成 |
+| abbe 夹具 CI（历史）           | Ubuntu integration8 唯一 `ephemeral-worktree-lifecycle` 失败；仅两个 fixture 修复后实际 integration **1/1**（内部五场景）通过，正负控通过                                                                                                                                                                                 | abbe 已 **SUPERSEDED_BEFORE_PUBLICATION**；缺少云端 completion，不断言唯一根因；该历史记录不替代后续 772fc 四组完整门禁，见[本轮夹具修复与证据](./cli-ide-release132-progress-2026-10-30.md)                                                                                                                               |
+| .132 输出截断 / termination    | 已集成 length、canonical pending hint、content_filter、显式不完整终态拒绝及中央真实 task 绑定；7f 历史本机 **18 文件 452/452（无跳过）+ 2 文件 6/6 真实 CLI** 通过；abbe 实际运行时 **18 文件 456/456 + 3 文件 10/10 真实 CLI，均无跳过** 已通过                                                                          | 08 因合法 resume 误拒绝、7f 因 readContext 重复 user 回归先后在发布前 superseded；旧 CI 保留，无发行标签或发布。772fc 已以自己的准确源码通过全门禁并公开 CLI；83+3、417+5、452+6 仅历史，456+10 仍只属 abbe 实际执行。原 broker 403/usage 边界及 Memory 冷 SLO 仍未解决                                                    |
+
+最终任务绑定覆盖普通工具、恢复、thinking、review，以完整 role/content/metadata 重定位并兼容重复 Continue；hermetic 旧合同保留，缺失真实 task 明确失败。该改动限于三个 CLI 宿主文件，Kernel .11、协议和默认通用 adapter 未改。Open VSX README 原严格合同修复 **19/19** 通过；完整证据见[.132 准备记录](./cli-ide-release132-progress-2026-10-30.md)与[历史准备归档](../cli/evidence/release132-preparation-2026-10-30/review.json)。准确源码四门禁及 CLI 公开回读已完成；Open VSX 与 JetBrains 均已公开核验，之后按新 plan/source 开展相应真实重测；Microsoft Marketplace 暂缓。
+
+新增恢复兼容修复已集成：原厂 `createResumeRoleProjection` 通过私有 WeakMap 的完整来源映射保留合法角色归并；普通任意回调、伪造字段和 substring 匹配不获得信任，canonical 认证历史不改。所有 recall await 后重验任务绑定并重定位索引，防止异步期间内容替换或错绑。非裸 metadata 合并无法证明保全时仍明确拒绝，hermetic、硬预算、完整 usage 与默认 Kernel 合同不变。7f 历史 **452+6** 回执见[恢复与异步边界验证](../cli/evidence/release132-resume-validation-2026-10-30/review.json)。
+
+准确源码 `7f8ef64b4bd8b429f97d2e121c440143ed7ddf3b` 的 [CLI CI 40937542966](https://github.com/chainlesschain/chainlesschain/actions/runs/40937542966) 在 Ubuntu / Windows E2E shard 4 各 **4 失败、147 通过**，均为同四条 `compaction-memory-restart` 用例。Strict **6/6**、Kernel **3/3** 通过仅属于 7f；其余 CLI / IDE 作业主动取消以释放 runner，未完成完整矩阵。根因是宿主 `readContext` 无 tool 分支合成相同 user，导致唯一任务匹配歧义；canonical 仍保留原 user，Kernel 未丢任务。工作区最小修复按准确 index 将同一完整 user 对象移到 `readContext` 之后，不复制 content、不丢 metadata、不造无 user fallback，matcher / Kernel / authority / budget 不变。原普通 / stream × supersede / delete 独立重启 E2E **4/4**、新增四条窄回归后的 host-continuation **16/16** 已实际通过；abbe 实际运行时组合 **18 文件 456/456 + 3 文件 10/10 真实 CLI，均无跳过** 已通过；真实 CLI 为 output-limit 5、resume 1、compaction-memory-restart 4，来源审计 **82 候选零问题**，4 项静态检查通过。见[readContext 原失败与最终组合归档](../cli/evidence/release132-read-context-validation-2026-10-30/review.json)。后续准确发行源码已固定为 772fc，四门禁及 CLI 公开事实见上表；该 456+10 组合未在 772fc 重跑。
+
+abbe 的 CLI CI [40947344227 / Ubuntu integration8](https://github.com/chainlesschain/chainlesschain/actions/runs/40947344227/job/123710924819) 为 **24 文件 / 182 测试通过、1 文件 / 1 测试失败，另 4 项平台跳过**；`atAbort undefined` 的云端原始 completion 缺失。独立复现确认夹具存在空文件读取与异常结果误记通过两项缺陷；修复使用完整 pending 写入后 `linkSync` 无覆盖发布，并严格验证取消原错误及正常 completed，原四项 `atAbort` 和超时不变。产品代码及原 24 个 sourceBindings 字节不变，**456+10 不作为新 fixture 源码完整重跑**。abbe Strict **6/6**、Kernel **3/3**、IDE **18 作业成功及 1 项预期跳过**、双平台原 compaction E2E 通过不移用；旧 CLI 剩余作业已取消。该阶段要求新 SHA 独立完成四组门禁，后续 772fc 已完成；Kernel / IDE 的验证来自不可变标签原手动请求，Open VSX 与 JetBrains 后续均已正式发行并公开核验。[14 项夹具证据与组件字节核对](../cli/evidence/release132-worktree-fixture-validation-2026-10-30/review.json)已归档验证。
+
+本轮只修改两条 Windows 测试、CLI workflow 及对应契约。已按原 24 个 sourceBindings 重新核对组件字节，**abbe 的 456+10 没有重新执行**；ci-gate-integrity 55/55 仅有 root 工具输出，未伪造原始日志。错误 root cwd 收集到私有旧副本的调用不计官方验证。这批本机通过不充当后续源码云端证据，失败的 40753 仍不获发行资格；772fc 自己的完整云端门禁及 CLI 发行结果已另列；Microsoft 暂缓，原 broker 403 与 Memory 冷 SLO 边界保留。
+
+当前公开 CLI 已更新为 **0.166.132**，Kernel **0.1.11** 不变；Open VSX **.170** 与 JetBrains **.187** 均已公开核验，完整三包配对及 manifest 验证已完成。下方 10 月 29 日的 `.131 / .169 / .186` 配对、候选与未发布陈述均按各自观察时点保留，不作为新的当前状态。
+
+## 历史任务完成情况（2026-10-29）
+
+本节的任务 / 发行证据于 **2026-10-29** 更新，补入当日第十三、十四批 Goal 修复、第十五批续测及派发核对、第十六批 Memory 磁盘与取消测量、第十七批独立 Goal 验收、第十八批 Memory 解析复用与完整采样准备、第十九批 Terra API 能力与缓存计费修复、第二十批公开配对文档同步、第二十一批三站构建 / 部署回读、第二十二批上游故障候选映射、第二十三批 .130 候选分支合并、第二十四批 Memory 子包发行准备、第二十五批 Skills 下载取消修复、第二十六批 Memory 完整本机采样与诊断、第二十七批 MCP 子任务发现隔离、第二十八批 MCP 晚连接目录与前台子任务取消、第二十九批压缩前后项目规则 / 文件 Memory 刷新、第三十批调度器租约测试修复、第三十一批 Memory 目录身份修复与热查询复测、第三十二批原派发审计与脱敏响应回执、第三十三批 Codex 独立冷扫描与恢复实测，以及 Memory 三系统完整磁盘采样的结果；具体观察时间见各回执。下文各批记录和第 1—7 节保留原核对日期。状态中的“已完成”仅指该行限定范围；源码实现、公开发行、独立产物验收、完整原生旅程分别计数，不据本表计算整项工程完成率。历史测试次数不跨批累加，也不作为当前 HEAD 重跑结果。
+
+CLI **0.166.131** 与 Kernel **0.1.11** 已按依赖顺序公开，准确发行源码为 `c9d0bab231850697df38f2d476c2dd974cbcb6c0`。OIDC 40862685540 attempt 2 和独立回读 40866417524 完整成功，公开 CLI 与不可变制品、签名来源以及本次冷读取 / Web Panel 修复字节均已核对。Open VSX **0.37.169** 已公开且与官方候选逐字节一致，JetBrains **0.4.186** 已批准公开且全部官方 ZIP payload 成员一致；三包公开配对与离线回读均通过；Microsoft 暂缓。下表将已随 `.131` 发行的实现单独标明，专项性能 / 语义 / IDE 与真实任务验收仍分别计算，累计仍为 **34/45**。见[当前公开发行回执](../cli/evidence/release131-public/publication.json)。
+
+最新文档同步：设计权威源、用户文档、官网中英文及 README 已按公开 .131 配对和 Git 更新；准确文档提交 `14e8bce45c` 的三站完整构建、服务器部署及公网回读完成，共 663 / 291 / 20 个 HTML、11 个代表页面字节和全部 2960 条新文件摘要匹配。云端快照 40883943577 三项全部通过。原站点备份保留，真实任务仍 **34/45**。见[本次三站记录](./cli-ide-sites131-progress-2026-10-29.md)。
+
+最新原生续测：公开 .131 的 verify-10 已唯一绑定运行 `40886343743`，但前置验证的一条脆弱测试失败，生成与验收均 skipped、没有 runner 或步骤，未启动模型任务。已改为真实 main / execute / resolve 行为测试，两版 Node 完整前置套件各 110/110，并将该套件补入 CLI CI。原失败及 IN_PROGRESS ledger 保留；经固定证书校验，准备同版本、同约束的新接续计划，尚未派发。累计仍 **34/45**。见[本批前置修复与接续](./cli-ide-native-preflight131-progress-2026-10-29.md)。
+
+第四十六批补充：旧 98c4 的 CLI CI 最终被三系统产物审计拦住，不能发布。已复现干净 checkout 缺失被忽略产物及开发构建嵌入随机路径两个根因；改用生产构建并在 CI 扇出前构建审计，保留全部原门禁。两次独立 Windows 构建 256 文件完全一致，82 候选审计零问题；新准确提交仍须完整三系统 CI，通过即先发布。真实任务仍为 **34/45**。见[第四十六批记录](./cli-ide-web-panel-production131-progress-2026-10-29.md)。
+
+第四十五批补充：已定位原 .131 Ubuntu CI 的冷会话 RSS 超标（100.254 MiB ≥ 100 MiB），将未使用的 Evolution 配置导入移到支持命令检查之后；修复已直接提交推送 main `98c4be4a76`。两版 Node 各 7 文件 / 130 项通过，真实子进程导入拒绝回归有效；准确干净提交原 8 MiB 恢复夹具的 20 次冷进程最高 RSS 63.820 MiB、p95 717.790ms。原阈值不变；7a5d 原失败和标签保留，新源码已有 CLI / Strict / Kernel / IDE 四个 handle，完整矩阵仍待验收，未发布。累计仍 34/45，Microsoft 暂缓，未知派发不重放。见[冷会话内存修复与新门禁](./cli-ide-session-cold-rss131-progress-2026-10-29.md)。
+
+第四十四批补充：对 .131 冻结运行时完成 1K / 10K / 100K 各 100 次冷、热查询，共 600 次全部匹配全量参考结果；本机类别列表热 p95 为 73.745 / 76.412 / 178.866ms，低于 200ms，100K 冷 p95 为 2258.233ms，完整 SLO 仍未达到。两种缓存模式、三档各 100 次 Stop 共 600/600 取消，每次锁释放、各组前后 authority manifest 字节不变。Astra 只读审查后的 lazy 原型遗漏拒绝条件已独立复现，两个原型均未合入。固定源码 Strict 6/6、Kernel 三系统 3/3 已通过，CLI CI 与 IDE 尚未完成，仍不发布；累计 34/45。见[100 次采样与原型复查](./cli-ide-memory-slo131-progress-2026-10-29.md)。
+
+第四十三批收尾：源码 `7a5d38d151` 已推送 main，固定验证引用 `ci-cli131-7a5d38d151d4` 已建立；CLI CI 40825996255、Strict 40826001600、Kernel 40826006659、IDE 40826012460 均绑定此 SHA。四项完整门禁尚未完成；同 SHA 的两项重复 main push 验证已取消，保留固定引用全矩阵。旧 e7ab .131 journal 标记发布前 superseded，不复用其门禁，不创建发行标签。见[固定验证回执](../cli/evidence/cli-memory-executable-restart-2026-10-29/immutable-validation.json)。
+
+第四十三批补充：真实 CLI 可执行程序的四条压缩 / 独立进程恢复旅程在 Node 22.12、22.22 各 4/4 通过，1672 份来源前后摘要稳定。普通 headless 正常退出，流式 writer 在结算成功并等待输入时实际终止；独立 mutator 完成 supersede / delete 后，新 CLI 进程只召回当前许可记忆，并读取更新后的规则及导入文件 Memory。原压缩回执和历史事件前缀不变，三次本地协议请求各结算一次；未用强制压缩或注入运行时适配器。模型服务为隔离的本机协议夹具，不能增加真实任务 / 费用验收数。新测试纳入既有三系统 E2E 分片；新准确提交仍须自己的完整门禁，34/45 和原未知派发状态保留。见[真实 CLI 独立进程恢复记录](./cli-ide-cli-memory-restart-progress-2026-10-29.md)。
+
+第四十二批收尾：修复与证据已随 `e7ab05ceb3` 合并推送 main；已合并分支本地 / 远端均删除，保留 worktree 文件，本地仅余 main。准确源码 CLI CI 40822738893、Strict 40822738898、Kernel 40822738878、IDE 40822931865 当前均未完成发行准入；单独 .131 journal 绑定该 SHA，未发布。见[收尾回执](../cli/evidence/compaction-live-host-2026-10-29/merge-and-gates.json)。
+
+第四十二批补充：合并非持久会话压缩修复，并补齐 headless / stream / hermetic 与 SubAgentContext 宿主标记。真实适配器原先提交压缩后丢失基础规则，下一次刷新失败；现在保留宿主原对象，复制和序列化消息不获得身份，基础上下文仍计入预算。16 文件 231 项、Node 22.12 关键 43 项及原生恢复 29 项通过；三个真实本机入口各完成两次 canonical 压缩。旧用量夹具的预算拒绝和修正过程保留，未放宽运行时门槛。来源审计 82 候选零问题，CLI pack 为 1844 文件；新候选尚未发布，累计仍 34/45。见[非持久会话基础规则修复](./cli-ide-compaction-live-host-progress-2026-10-29.md)。
+
+第四十一批补充：后续运行时改用未发布 `.131 / .169 / .186` 候选，CLI 依赖 Kernel `.11`；公开渠道查询确认当前未出现这些新版本。元数据、README 和离线 changelog 已对齐，CLI 49 项、IDE 合同 15 项、JBR 21 实际编译后的 8 项 JUnit 通过；pack 清单及 82 候选来源审计通过。没有发布或创建发布标签，准确新提交仍须自己的三系统门禁，原 .130 公开事实与 34/45 保留。见[新候选准备](./cli-ide-release131-preparation-progress-2026-10-29.md)。
+
+第四十批补充：官网数据及中英文入口、用户新升级页、设计权威源与侧栏已同步到 `.130 / .168 / .185`；旧 `.129` 页面和历史发行对象保留。重新读取 npm / Open VSX latest，与第三十七批制品证据一致；三个 Astro 模板及用户文档结构检查通过；准确 787 文档源码三站本地构建完成，661 / 290 / 20 HTML 已上线，9 页公网字节及全部 2951 条新文件摘要匹配本地输出。云端快照单独仍排队。新代码 `0d67a7d43b` 已推送，已合并分支本地 / 远端已删除，四项主要代码 CI 仍排队。见[三站同步记录](./cli-ide-sites130-progress-2026-10-29.md)。
+
+第三十九批补充：真实复现隔离子任务结束后后台消费者仍存活、临时 checkout 被删除导致 ENOENT；现由宿主 async scope 在派发前拒绝无所有者的后台 shell / 子任务、延后调度及隔离技能 child。148 项定向回归通过，新增两文件在 Node 22.12 为 13/13；真实 foreground 取消期间保留 checkout，实际退出后清理。任意自 detach 后代和全崩溃恢复仍未完成。见[临时 worktree 生命周期记录](./cli-ide-worktree-lifetime-progress-2026-10-29.md)。
+
+第三十八批补充：新增三个真实进程旅程，writer 在已持久压缩 / 用量意图后被实际终止，独立 mutator 与 reader 核对 supersede / delete 后当前召回、原压缩回执幂等与未提交语义用量待核对。Node 22.12 / 22.22 原生完整套件各 29/29 通过，零跳过；这是 canonical 适配器恢复，完整 CLI / 双 IDE 与全部崩溃窗口仍未完成。见[独立进程恢复记录](./cli-ide-memory-process-restart-progress-2026-10-29.md)。
+
+第三十七批更正：公开配对已独立回读为 **CLI `.130` / Open VSX `.168` / JetBrains `.185`**，准确发行源码是 `f3015e7996`，CLI 仍固定 Kernel `0.1.10`。Goal 预算共享和工作区证据绑定已包含在该公开包；独立 `verify:`、Kernel `0.1.11`、后续 Memory / Terra 改动仍未发布。此前将失败 e7 原型状态沿用为当前公开状态，现据制品字节、来源与六项工作流更正；e7 原失败和独立验证标签保留，其 `.130` 版本已被占用，停止重试该发行路径。主线身份实现保留，另纳入十条 Windows 组合负例，两版 Node 各 51 项通过。见[公开回读与合并记录](./cli-ide-release130-reconcile-progress-2026-10-29.md)。
+
+第三十六批补充：精确 e7 的审计失败已在隔离、干净 clone 上复现，只有两个过期登记；主分支的四个新资产与三个过期来源共七项，经独立源码审查后准确登记，原审计命令 82 个候选、零问题通过，19 项回归通过。原 e7 失败及标签保留，主分支通过不附着到旧 SHA，付费限制不扩大。见[第三十六批记录](./cli-ide-egress-review-progress-2026-10-29.md)。
+
+第三十五批补充：Memory recall 新增查询前后 revision 守卫和异步语义候选 Stop；两个 CLI 入口完成四条结构化 Memory 压缩 / 恢复本机旅程。673 源码的 Memory CI 为 Linux / macOS 成功、Windows 失败，已补 BigInt 与受限设备投影兼容，准确新源码 CI 待回读。固定 e7 的 CLI CI 第 2 轮仍失败，原租约分片成功后又被三系统源码身份审计挡住，继续不发布。见[第三十五批记录](./cli-ide-memory-recovery-progress-2026-10-29.md)。
+
+第三十四批补充：Memory 默认磁盘读取改为合并索引，补齐文件 / 目录身份复查并减少规范化分配；完整性能目标仍未达到。固定 e7 源码的 CLI CI 首轮已结束，保留 Windows 租约失败并仅重试同源码失败作业。详见本节新增行及[第三十四批记录](./cli-ide-memory-bundle-progress-2026-10-29.md)。
+
+**本轮范围调整（2026-10-29）：用户明确要求 Microsoft 渠道先不做。** Microsoft Marketplace 标为暂缓，不计入本轮待完成项或阻塞条件；Open VSX、JetBrains、现有安装路径与其余优化 / 验收继续推进。历史未发布事实保留，暂缓不表示已完成。
+
+### 优化任务总表
+
+| 对应章节   | 任务                                       | 当前完成情况                                                                      | 已有验证 / 证据                                                                                                                                                                                                                       | 尚未完成的验收                                                                                                                                            |
+| ---------- | ------------------------------------------ | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 4.1        | 36+9 真实任务交付                          | **部分完成：34/45**；普通 27/36，首次入口 7/9；剩余 11 项产物                     | [.128 严格账本](../cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028.json)：继承 32 项，本轮新增产物 2 项、端到端 1 项                                                             | 剩余项逐项独立验收；`verify-06` 原生恢复旅程另计，见下表                                                                                                  |
+| 4.2        | Goal 判定引用真实工具证据                  | **限定实现已完成，已随 .128 发布**                                                | [首批实施](./cli-ide-goal-completion-progress-2026-10-27.md)：拒绝缺失、过期、失败或未结束的观察；相关本地回归 203 项                                                                                                                 | 独立 checker 与真实任务误报率验收；工作区 / 产物绑定见下一行                                                                                              |
+| 4.2 / 4.3  | Goal 检查证据绑定工作区与产物版本          | **限定范围实现已完成，已随 .130 发布**                                            | [第十四批](./cli-ide-goal-workspace-progress-2026-10-29.md)本地 240 项；[第三十七批](./cli-ide-release130-reconcile-progress-2026-10-29.md)确认公开包三个 Goal 文件与 f301 原始字节匹配，准确源码三系统 CLI CI / Strict 通过          | 独立质量 checker、真实任务误报率与跨入口旅程；Git 忽略项 / 外部环境不由源码摘要覆盖                                                                       |
+| 4.2 / 4.3  | 显式独立 Goal 验收 `verify:`               | **固定负例与实现已完成，已随 .131 公开；真实任务误报率待验收**                    | [第十七批记录](./cli-ide-goal-verification-progress-2026-10-29.md)：先冻结验收定义，再执行外部检查；要求本次调用的完整断言回执；12 个套件、266 项通过                                                                                 | `model:` 保留原语义；真实任务误报率、跨平台进程树清理及双 IDE 恢复仍待验收；不能把固定负例通过当作全局误报率为零                                          |
+| 4.2 / 4.11 | Goal 模型评审共用运行预算与取消信号        | **限定实现已完成，已随 .130 发布**                                                | [第十三批](./cli-ide-goal-budget-progress-2026-10-29.md)本地 224 项；[第三十七批](./cli-ide-release130-reconcile-progress-2026-10-29.md)确认预算实现祖先及公开包字节，准确 f301 的完整发行门禁通过                                    | 真实模型与账单验收；正式付费 / native 准入限制保留                                                                                                        |
+| 4.3        | Goal 检查点写失败可见、停止自动续跑        | **限定实现已完成，已随 .128 发布**                                                | 同一[实施记录](./cli-ide-goal-completion-progress-2026-10-27.md)：保存阶段、失败阻断、显式核对后恢复、预算继承                                                                                                                        | 完整崩溃窗口及 CLI / 双 IDE 恢复一致性旅程                                                                                                                |
+| 4.4        | 首次配置三态与全局变更提示                 | **实现及三系统无模型宿主复查完成**                                                | [配置实现](./cli-ide-llm-configuration-progress-2026-10-27.md)；[宿主回读](../cli/evidence/remaining-tasks-2026-10-28/host-success-40635239599/verification.json) 7/7 作业、JetBrains 每系统 8 项身份旅程                              | 真实账号首次任务、升级及真人可访问性旅程继续单独验收                                                                                                      |
+| 4.4        | CLI / 双 IDE 共享模型推荐与连接协议        | **实现完成，已随 .128 发布**                                                      | [共享目录与协议](./cli-ide-llm-onboarding-progress-2026-10-27.md)：保留旧配置及网关别名，Responses 探测复用协议适配器                                                                                                                 | 账号 / 端点实际可用性和完整模型能力更新                                                                                                                   |
+| 4.4        | 会话内模型切换与多任务隔离                 | **实现与本地回归完成**                                                            | [会话隔离](./cli-ide-session-model-progress-2026-10-27.md)：VS Code 327 项、CLI 扩展回归 115 项、JetBrains 42 项                                                                                                                      | 真实 IDE 中 A 切换、B 继续执行及重启恢复的双任务旅程                                                                                                      |
+| 4.5        | 模型能力、API、价格与上游变化闭环          | **Terra 静态合同及计费修复完成，整体部分完成**                                    | [第十九批记录](./cli-ide-terra-model-progress-2026-10-29.md)：目录 `2026-10-29`；Responses、922K 输入限制、30 分钟 / 12 小时写入计费及预算链路；352 项本地测试通过，准确提交 Ubuntu 合同门禁已回读                                    | 完整跨平台发行门禁、真实账号 / 端点 / 账单；官方能力变化自动抽取与地区 / 退役审查；尚未发布本批改动                                                       |
+| 4.6        | Codex 统一兼容清单和多版本三系统探针       | **限定协议验证完成**                                                              | [CI 回读](../cli/evidence/codex-ci-2026-10-28/run-40623725845/verification.json)：21/21 作业，`.160` / `.164` × 三系统的真实进程与本地模拟 provider                                                                                    | 默认 rollout 扫描及旧 `created_at` 分页边界、真实模型任务；实验允许列表和生产准入未扩大                                                                   |
+| 4.6        | Codex 扫描分页与冷索引恢复                 | **探针扩展完成；两版冷升序缺陷未解决**                                            | [第三十三批](./cli-ide-codex-scan-progress-2026-10-29.md)：5 套件、95 项本地回归；准确 921 源码的两版 Windows 数据库旅程通过，独立冷升序均 1/2 且错误终止，冷降序及后续已知线程恢复通过；严格模式保持失败                             | 不能把全量读取后的恢复替代首次发现完整性；上游缺陷、三系统严格扫描及真实模型旅程仍待完成                                                                  |
+| 4.7        | MCP 中文检索、候选排序与规模基线           | **实现及离线验证完成，已随 .128 发布**                                            | [检索记录](./cli-ide-mcp-search-progress-2026-10-27.md)：206 项回归，200 / 1000 / 5000 工具基线                                                                                                                                       | 真实任务误调用率、跨语言召回和费用收益                                                                                                                    |
+| 4.7        | MCP 紧凑目录按需展开                       | **实现及离线验证完成，显式启用**                                                  | [紧凑目录记录](./cli-ide-mcp-compact-catalog-progress-2026-10-27.md)：295 项回归；默认仍为 `stubs`                                                                                                                                    | 固定真实任务 A/B、provider usage、费用及关键约束保留率                                                                                                    |
+| 4.7        | Skills 检索与正文按需加载                  | **实现及离线验证完成，已随 .128 发布**                                            | [Skills 记录](./cli-ide-skill-search-progress-2026-10-27.md)：252 项回归，50 / 200 / 500 技能目录                                                                                                                                     | 实际技能任务、明确调用不丢失及费用验收                                                                                                                    |
+| 4.7 / 5    | MCP 子任务发现、晚连接与缓存隔离           | **实现及本地传输回归完成，已随 .131 公开**                                        | [第二十八批记录](./cli-ide-mcp-live-catalog-progress-2026-10-29.md)：20 个套件、407 项通过，含新增 40 项；真实本机 HTTP 晚握手、派发前撤销、前台子任务取消及配置身份绑定；4 项负例识别修复缺失                                        | 真实模型、双 IDE、跨平台重连 / 生命周期及资源订阅的完整动态继承；已公开 f301 的 .130 不含本批                                                             |
+| 4.8        | Memory 查询索引、磁盘与 Stop               | **本地测量与取消修复完成；查询 SLO 未达标**                                       | [第十六批记录](./cli-ide-memory-store-progress-2026-10-29.md)：259 项回归通过、1 项平台跳过；264 次磁盘对照、修复后 66/66 次取消及 33 轮八进程混合读写删通过                                                                          | 100K 热 p95 仍为 1910ms、冷 p95 1809ms；继续优化完整 SLO、三系统与真实 IDE 验收，子包及下游尚未发行此修复                                                 |
+| 4.8        | Memory 权威解析复用与 100 次采样           | **三系统磁盘、本机查询 / Stop / 300 轮混合测量全部回读完成；默认本机 SLO 未达标** | [第二十六批记录](./cli-ide-memory-full-progress-2026-10-29.md)：三系统 4500 次磁盘、本机 1800 次查询、600 次 Stop、1200 次混合读取及 1800 次记录变更核验；默认热查询主要受重复目录校验影响                                            | 本机默认 100K 热 / 冷 837 / 2701ms 仍超标；性能优化、真实 IDE、跨平台混合进程与完整恢复继续验收                                                           |
+| 4.8        | Memory 目录身份及重复元数据读取            | **身份修复已随 .131 公开；性能以本版后续完整采样为准**                            | [第三十一批记录](./cli-ide-memory-directory-progress-2026-10-29.md)：6 个套件、65 项通过、2 项平台跳过；前后各 300 次默认热查询，100K p95 521.519 → 516.937ms，原目录替换负例保留                                                     | 继续解决主要 I/O 开销；冷 / 重建 / Stop / 混合性能与跨平台、真实 IDE 旅程未按本批源码重跑；已公开 f301 的 .130 不含本批                                   |
+| 4.8        | Memory 合并索引、身份复查与规范化分配      | **实现与本地回归完成，已随 .131 公开；完整 SLO 未通过**                           | [第三十四批](./cli-ide-memory-bundle-progress-2026-10-29.md)：CLI 110 项、子包 130 项、原生恢复 26 项通过；2 项 POSIX 跳过；实际 e7 互操作、损坏 / 路径替换负例保留，默认仍逐次校验磁盘 bundle 全部 frame                             | 最终短测每组 11 次，100K 热 / 冷 p95 为 274.514 / 2162.657ms；100 次完整场景、跨平台混合进程及真实 IDE 未按本批源码验收；已公开 f301 的 .130 不含本批     |
+| 4.8        | .131 默认列表查询与 Stop 各场景 100 次采样 | **本机热目标通过；100K 冷与完整 SLO 未通过**                                      | [第四十四批](./cli-ide-memory-slo131-progress-2026-10-29.md)：类别列表 limit 20，600 次冷 / 热结果逐次匹配全量参考；100K 热 / 冷 p95 178.866 / 2258.233ms；另 600/600 Stop、锁释放及组前后 manifest 字节核对                          | 当前仅 Windows / Node 22.22.2；本机重建 / 损坏每场景 100 次已另行归档（见下行）；混合及跨平台、真实 IDE、语义 recall 仍待验收；未改默认磁盘验证           |
+| 4.8        | .131 本机索引重建与损坏恢复各场景 100 次   | **本机 600/600 正确性通过；整体 SLO 仍未完成**                                    | [重建与损坏恢复归档](./cli-ide-memory-recovery131-progress-2026-10-29.md)：1K / 10K / 100K × 两场景各 100 次；100K p95 23522.737 / 21330.307ms；16 个相关源码字节与 98c4、c9d0 一致                                                   | 原测量来源 98c4、Windows 本地；不等于 c9d0 完整新测量、跨平台 / 混合 / IDE 或语义验收，不增加 34/45                                                       |
+| 4.8        | .131 本机混合读写补测                      | **未完成，10K worker 超时；未重跑或放宽上限**                                     | [失败记录](../cli/evidence/memory-recovery131-2026-10-29/mixed-failed-attempt.json)：1K 100轮结束，10K 最后90轮进度后触发120秒上限，exit1，100K未开始；源码稳定                                                                        | 无完整300轮回执，不能宣称混合正确性或性能达标，不增加34/45                                                                                                |
+| 4.8 / 5    | Memory recall 版本、语义 Stop 与结构化恢复 | **限定修复已随 .131 公开；完整语义 / 恢复仍部分完成**                             | [第三十五批](./cli-ide-memory-recovery-progress-2026-10-29.md)：CLI 173 项、Kernel 135 项、原生 26 项；两个入口四条实际压缩 / 同进程恢复，磁盘并发更新在模型发送前拒绝；Windows 身份受控修复两版 Node 各 128 通过、1 跳过             | 673 的 Memory CI 为 Unix 两系统通过、Windows 失败；新源码准确 CI、独立进程恢复、真实语义质量、双 IDE 及完整 SLO 仍待验收；旧 REPL 启动注入 / 历史文本未改 |
+| 4.8 / 5    | Memory 独立进程压缩与恢复                  | **限定本机旅程通过，已随 .131 公开；整体部分完成**                                | [第三十八批](./cli-ide-memory-process-restart-progress-2026-10-29.md)：两版 Node 完整套件各 29/29；writer 实际终止后独立进程 supersede / purge / 恢复，压缩不重放、当前 revision 与 scope / sink 核验                                 | 准确新提交三系统 CI、其他 CLI / REPL 崩溃窗口、双 IDE 及跨平台恢复、真实语义质量与完整 SLO                                                                |
+| 4.8 / 5    | 真实 CLI 可执行程序压缩与独立重启          | **四条本机旅程通过，已随 .131 公开；整体部分完成**                                | [第四十三批](./cli-ide-cli-memory-restart-progress-2026-10-29.md)：Node 22.12 / 22.22 各 4/4；实际 argv / bootstrap / HTTP / 工具 / canonical / JSONL，普通及流式入口 × supersede / delete；实际终止空闲流式 writer，用量与压缩不重放 | 完整三系统 E2E、真实语义模型及账单、交互 REPL / 双 IDE、未结算调用及其他崩溃窗口、完整 SLO、不增加 34/45                                                  |
+| 4.9        | 当前状态与发行证据同步                     | **.131 文档 / 官网 / README、三站构建 / 部署 / 公网回读完成**                     | [本轮记录](./cli-ide-sites131-progress-2026-10-29.md)：准确 14e8bce45c，663 / 291 / 20 HTML；11 页字节与全部 2960 条新文件摘要匹配；新研究引用与 npm 使用链接已修复                                                                   | 云端快照 40883943577 三项全部通过；真实任务仍 34/45，完整 Memory SLO、真实语义和双 IDE 验收继续单独推进                                                   |
+| 4.9 / 4.1  | .131 冷会话内存门禁修复                    | **已随 .131 公开；准确三系统完整门禁通过**                                        | [第四十五批](./cli-ide-session-cold-rss131-progress-2026-10-29.md)：各 130 项通过，真实加载隔离负例；小夹具 20 次最高 RSS 80.602 → 62.750 MiB，原 8 MiB 夹具准确 98c4 最高 63.820 MiB                                                 | 使用公开 .131 继续真实任务；旧失败保留，未放宽 100 MiB 门槛，不增加真实任务完成数                                                                         |
+| 4.9 / 4.11 | .131 干净生产构建与产物审计                | **准确三系统审计及公开四项产物字节核对通过，已发行**                              | [第四十六批](./cli-ide-web-panel-production131-progress-2026-10-29.md)：256 文件两次构建一致，82 候选零问题，74 / 25 / 4 项回归及 8 组检查通过                                                                                        | [公开字节和签名核验](../cli/evidence/release131-public/cli.json)通过；后续产物变化仍须重新审查，paidReady 保留 false                                       |
+| 4.9        | Microsoft Marketplace                      | **按用户要求暂缓，本轮不做**                                                      | [.128 回执](../cli/evidence/release128-public/publication.json)保留该渠道未发布事实                                                                                                                                                    | 本轮不配置凭据、不发布、不将此渠道列为阻塞；保留 Open VSX / VSIX 路径                                                                                     |
+| 4.9        | 现有安装路径与真人可访问性                 | **未完成完整验收**                                                                | Open VSX / JetBrains 公开制品及限定宿主检查已有证据                                                                                                                                                                                   | 干净 profile 安装、升级、重启恢复；真人键盘 / 读屏器检查                                                                                                  |
+| 4.10       | 核心执行文件按状态与能力边界拆分           | **未完成专项验收**                                                                | 已提取[Goal 证据模块](../../../packages/cli/src/lib/goal-check-evidence.js)等局部实现                                                                                                                                                    | 按实际功能继续整理；验证跨入口状态 / 事件一致性及独立故障定位收益                                                                                         |
+| 4.9 / 4.11 | 发行源码身份审计与来源登记                 | **c9d0 三系统完整审计及公开产物核对通过；旧失败保留**                             | [第三十六批](./cli-ide-egress-review-progress-2026-10-29.md)：准确 e7 干净 clone 复现两项 STALE；主线七项独立审查后，82 候选零问题、19 项回归通过；扫描和付费限制保留                                                                 | e7 / 98c4 的原失败不改写；动态 SDK / 任意 MCP / 后代与费用闭环不由静态来源登记证明                                                                        |
+| 4.11       | 正式付费与 native 生产准入                 | **未完成，限制保留**                                                              | `NOT_PAID_READY` / `NOT_ADMITTED` / `HOLD`；[任务续测记录](./cli-ide-task-completion-progress-2026-10-28.md)保留历史责任与未知账单                                                                                                    | 按平台 × provider × 入口 × 进程完成预算、取消、崩溃、回滚及恢复闭环；`HOLD` 不作为必须消除的缺陷                                                          |
+| 4.8 / 5    | 压缩前后项目规则与文件 Memory 刷新         | **实现及限定本地回归完成，已随 .131 公开**                                        | [第二十九批](./cli-ide-compaction-context-progress-2026-10-29.md)：17 个套件、550 项通过，含新增 22 项；两个 CLI 入口实际 canonical 保存 / 恢复、失败回退、文件删除与 PreCompact 更新；8 项负例识别修复缺失                           | 结构化 Memory recall、真实模型语义摘要、完整交互 REPL / 双 IDE 与跨平台旅程；已公开 f301 的 .130 不含本批                                                 |
+| 4.8 / 5    | 非持久会话压缩保留宿主基础规则             | **已合并并随 .131 公开；限定本地旅程通过**                                        | [第四十二批](./cli-ide-compaction-live-host-progress-2026-10-29.md)：16 文件 231 项；Node 22.12 关键 43 项、原生恢复 29 项；三个入口各两次真实 canonical 压缩，子代理构造器与复制身份负例通过；保留预算 / 用量夹具原失败              | 准确新提交三系统 CI、真实模型语义摘要、完整 REPL / 双 IDE 及跨平台恢复；已有持久会话 CAS、预算、用量和付费限制保留                                        |
+| 5          | 上游故障映射回归                           | **取消、MCP 发现 / 晚连接及项目文件压缩刷新完成限定回归；整体部分覆盖**           | [第二十九批](./cli-ide-compaction-context-progress-2026-10-29.md)相关 550 项通过，并补齐流式入口遗漏的 MCP 目录传递；历史各批分别保留，不累加为当前 HEAD 测试数                                                                       | 原生信号 / IDE Stop、完整跨入口压缩、结构化 Memory、后台后代及重启副作用继续验收                                                                          |
+| 5          | 临时 worktree 与异步消费者生命周期         | **真实缺陷已修复并随 .131 公开；限定本地验收完成**                                | [第三十九批](./cli-ide-worktree-lifetime-progress-2026-10-29.md)：原 external-cwd 真实消费者 ENOENT 及 EBUSY 对照保留；7 文件 148 项通过，Node 22.12 新增 13 项通过；派发前限制和取消期间目录保留                                     | 新准确提交三系统 CI、任意自行 detach / daemon 后代、完整 CLI / 双 IDE 与崩溃窗口；不是 OS lease 或立即终止保证                                            |
+| 4.1        | 过期公开包轮次的安全续测                   | **原派发记录审计及后续回执改进完成；首项仍未知**                                  | [第三十二批](./cli-ide-native-dispatch-receipt-progress-2026-10-29.md)：核对原工具返回及跨源码时间窗，未恢复 HTTP 状态；新脱敏回执 29/29 回归通过，原 context / intent / request 字节未变                                             | `verify-11` 仍 unresolved，继续只读核对；其余 10 项未派发，累计仍为 34/45；新回执不能倒填旧响应                                                           |
+
+### 真实任务逐项进度
+
+下表列出原剩余 13 项在 `.128` 固定复测计划中的状态，取自上述严格账本。已收集 **11/13** 项生成与验收记录，其中 **2** 项产物合格、**1** 项端到端通过；**9** 项尝试未合格、**2** 项尚无本轮派发记录。未派发不代表历史上从未运行。跨版本累计仍为 **34/45**，不能把“已尝试”计为“已完成”。
+
+| 任务                         | 宿主 / 入口         | 原生生成 | 独立产物验收 | 本轮状态 / 下一步                                                  | 运行证据                                                                                 |
+| ---------------------------- | ------------------- | -------- | ------------ | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `first-run-linux-cli`        | Linux / CLI         | 通过     | **通过**     | **端到端完成**，保留合格证据                                       | [40632820075](https://github.com/chainlesschain/chainlesschain/actions/runs/40632820075) |
+| `verify-06`                  | Linux / JetBrains   | 未完成   | **通过**     | 连接前失败；原生恢复未完成，已合格产物不重复生成；末条原空用量保留 | [40634447041](https://github.com/chainlesschain/chainlesschain/actions/runs/40634447041) |
+| `verify-04`                  | Linux / CLI         | 通过     | 未通过       | 候选 5/6，断言与冻结源码行为不符                                   | [40596685261](https://github.com/chainlesschain/chainlesschain/actions/runs/40596685261) |
+| `verify-07`                  | macOS / CLI         | 未完成   | 未通过       | `DIAGNOSTIC_OUTPUT_TRUNCATED`                                      | [40669282131](https://github.com/chainlesschain/chainlesschain/actions/runs/40669282131) |
+| `verify-08`                  | macOS / VS Code     | 未完成   | 未通过       | 输出截断；初始 UI / 重启旅程未通过                                 | [40679324170](https://github.com/chainlesschain/chainlesschain/actions/runs/40679324170) |
+| `verify-09`                  | macOS / JetBrains   | 通过     | 未通过       | 候选未识别受控行为变异                                             | [40591672216](https://github.com/chainlesschain/chainlesschain/actions/runs/40591672216) |
+| `verify-10`                  | Windows / CLI       | 通过     | 未通过       | 验收器要求实际执行候选用例；当前仅记录基线 2/2                     | [40698529675](https://github.com/chainlesschain/chainlesschain/actions/runs/40698529675) |
+| `verify-11`                  | Windows / VS Code   | 未派发   | 未执行       | `PENDING_DISPATCH`；先核对既有派发及预算记录                       | —                                                                                        |
+| `verify-13`                  | Linux / CLI         | 通过     | 未通过       | 负例同时触发其他条件，未识别目标行为变异                           | [40598143646](https://github.com/chainlesschain/chainlesschain/actions/runs/40598143646) |
+| `verify-19`                  | Windows / CLI       | 未完成   | 未通过       | `DIAGNOSTIC_OUTPUT_TRUNCATED`                                      | [40703801996](https://github.com/chainlesschain/chainlesschain/actions/runs/40703801996) |
+| `verify-30`                  | Windows / JetBrains | 未派发   | 未执行       | `PENDING_DISPATCH`；先核对既有派发及预算记录                       | —                                                                                        |
+| `first-run-darwin-cli`       | macOS / CLI         | 未完成   | 未通过       | `iteration-budget-exhausted`，不能增加回合后沿用原验收口径         | [40671134872](https://github.com/chainlesschain/chainlesschain/actions/runs/40671134872) |
+| `first-run-darwin-jetbrains` | macOS / JetBrains   | 通过     | 未通过       | 基线 11/11；候选阶段失败，未进入行为变异检查                       | [40683786074](https://github.com/chainlesschain/chainlesschain/actions/runs/40683786074) |
+
+`.129` 续测补充：已在共享资金记录上核对旧轮次责任，并对 `verify-11` 尝试一次工作流派发；返回失败，远端暂未查询到对应运行，状态为 **`REQUEST_UNRESOLVED`**。保留原始 intent / request，不自动重发，`verify-30` 尚未提交。详见[派发证据](../cli/evidence/native-retest129-2026-10-29/dispatch-status.json)。上表继续保留 `.128` 的原始结果，累计仍为 **34/45**。
+
+### 新版本续测优先顺序
+
+按用户最新要求，优先完成 .131 发行，再固定使用公开新版本先易后难续测。新轮次不得沿用旧包执行，也不得把源码修复或离线回归计为新增合格任务。以下为 Astra 对冻结定义及归档的只读复核；不是通过数预估，不修改原验收器或给作者泄露隐藏验收反馈。
+
+| 顺序       | 任务                        | 已定位的原失败                                                 | 执行条件与验收边界                                                         |
+| ---------- | --------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 1          | verify-10 / Windows CLI     | 候选导入路径多上一级，模块找不到，实际零条候选测试；仅基线 2/2 | 用新公开 CLI 重新原生生成；正确导入后仍须独立测试及行为变异检查            |
+| 2          | verify-04 / Linux CLI       | 候选 5/6；对非法输入后费用桶状态的假设与冻结实现不符           | 保持逐请求计费合同及六例上限，不把 5/6 当作完成度或保证通过                |
+| 3，备选    | verify-13 / Linux CLI       | 候选 6/6，但负例同时破坏图片头或长度，未独立识别身份检查缺失   | 需要正确隔离目标条件，难度高于前两项                                       |
+| 后续       | 其他七项                    | IDE 行为变异、截断、回合耗尽或尚无新轮次尝试                   | CLI 题先完成；IDE 题待对应公开配对与原生旅程，各样本逐一收集用量及独立验收 |
+| 保持待核对 | verify-11 / Windows VS Code | .129 原派发 REQUEST_UNRESOLVED                                 | 保留原 intent / request 和共享责任，不借新包清除未知或重放原请求           |
+
+当前 native 生成只开放六种文件工具，未传 --goal-condition；新 verify: checker 不会自动进入这套任务。新版本的独立上下文复查可能改善错误导入与源码假设，效果须由真实任务实测证明。历史 98c4 的 Strict / Kernel 成功仅属于旧源码，后续 CLI CI 最终失败；当前发行候选已换为 c9d0，四组门禁重新运行，见本节后的当前发行记录及[最新发布门禁观察](../cli/evidence/session-cold-rss131-2026-10-29/release-priority-observation.json)。
+
+已准备新版本单样本续测材料，并按既有延续授权重新核对共享责任：历史预留、额外 .129 未决预留、独立新样本预留、延迟计费及观察后已知支出分别保留。原聚合覆盖结果仍为不足，既有单样本延续授权检查通过；未豁免新增 .129 责任，未增加资金授权、未派发请求。新包公开和新计划提交已完成；实际派发前仍须刷新同一会计窗口和活跃运行清单。详见[脱敏准备回执](../cli/evidence/session-cold-rss131-2026-10-29/easy-first-preparation.json)，金额仅存本地。
+
+### 历史发行与门禁进度（2026-10-29）
+
+本段按 2026-10-29 的历史观察保留：当日公开发行来自主分支准确提交 `c9d0bab231850697df38f2d476c2dd974cbcb6c0`，验证标签 `ci-cli131-c9d0bab23185`。CLI CI [40848165518](https://github.com/chainlesschain/chainlesschain/actions/runs/40848165518)、Strict [40848165540](https://github.com/chainlesschain/chainlesschain/actions/runs/40848165540)、Kernel [40848165418](https://github.com/chainlesschain/chainlesschain/actions/runs/40848165418)、IDE [40848239212](https://github.com/chainlesschain/chainlesschain/actions/runs/40848239212) 现已完整成功，原始作业与摘要见[最终门禁回执](../cli/evidence/web-panel-production131-2026-10-29/c9d0-passed-gates.json)。OIDC [40862685540](https://github.com/chainlesschain/chainlesschain/actions/runs/40862685540) attempt 2 已成功，CLI / Kernel 及两 IDE 公开制品、来源和签名回读通过，详见[当前公开回执](../cli/evidence/release131-public/publication.json)。旧 98c4 的 CLI CI 最终失败并已标记为发行前被替代，原标签和结果保留；旧源码的其他绿色结果不转移到新源码。按用户要求，新候选完整门禁通过后先发行，再用公开包继续任务；Microsoft 暂缓，真实任务累计仍为 **34/45**。
+
+| 项目                                            | 已核实状态                                                                                                                                                     | 完成边界 / 后续                                                                                                                                                                                                                                                                  |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 子 npm 包                                       | 当前 `.131` 的 Kernel `0.1.11` 已先行公开并核验，CLI 固定依赖；其余直接依赖沿用已核验公开版本                                                                  | 见[发布跟踪](./cli-ide-release129-progress-2026-10-28.md)，遵循子包 → CLI → IDE → 客户端顺序                                                                                                                                                                                     |
+| CLI `.128` / IDE `.166`、`.183`                 | **公开归档与配对已核验**                                                                                                                                       | [.128 回执](../cli/evidence/release128-public/publication.json)；可作为已完成的公开配对基线                                                                                                                                                                                       |
+| CLI `.129`                                      | **npm 已公开，公开归档与 CI 发布 / provenance 回执一致**；准确提交 `fd8a21637ab188dae0c777442d312ae85d420a9b` 的 CLI CI、Strict Sandbox 三系统及 OIDC 发布成功 | [本次公开回读](../cli/evidence/gap-status-2026-10-29/cli-public-readback.json)：字节数、SHA-256、SHA-512、registry integrity 与来源提交均匹配；本次未执行全新安装，IDE 新配对仍单独跟踪                                                                                           |
+| VS Code `.167` / JetBrains `.184`               | **Open VSX / JetBrains 已公开，配对 CLI `.129` 已回读**；JetBrains 已批准、列出且未隐藏                                                                        | [第十五批包核对](./cli-ide-native-retest129-progress-2026-10-29.md)：CLI 与 IDE 分别绑定真实发行提交；公开包不等于新增任务通过                                                                                                                                                   |
+| Microsoft Marketplace                           | **暂缓，本轮不做；仍未发布**                                                                                                                                   | 用户 2026-10-29 明确调整范围，不阻塞本轮其余交付                                                                                                                                                                                                                                 |
+| PC / 移动客户端 `v5.0.3.143`                    | **已公开**                                                                                                                                                     | [.128 产品回执](../cli/evidence/release128-public/product-publication.json)；不代表全部产品功能验收，`.129` 跟踪未包含新客户端发行                                                                                                                                                |
+| CLI `.130` / Open VSX `.168` / JetBrains `.185` | **已公开并重新独立核验**；发行源码 f301，CLI CI 72/72 和 Strict 三系统成功，JetBrains 批准 / 列出 / 未隐藏                                                     | [原始发布回执](../cli/evidence/release130-public/publication.json)及[第三十七批新回读](./cli-ide-release130-reconcile-progress-2026-10-29.md)；CLI 使用 Kernel 0.1.10。历史 e7 是另一个失败原型，版本已占用，不能重发 .130；后续 main 改动须新版本、新源码及自己的完整门禁        |
+| `.131 / .169 / .186` 新版发行                   | **CLI / Kernel / 两 IDE 全部已公开核验；续测计划准备完成**                                                                                                     | [公开回执](../cli/evidence/release131-public/publication.json)：OIDC40862685540 attempt2、独立回读40866417524、OpenVSX40866847689、JetBrains40866846685全成功。首次 verify-10 前置验证失败且生成未启动；原记录保留，同版接续计划已准备，仍先 verify-10 再 verify-04，不增加 34/45 |
+
+下一步继续只读核对不确定的任务派发与预算，再推进剩余验收；同时推进独立 Goal checker 的真实任务验收、真实 IDE 双任务旅程及 Memory 查询 SLO。Memory 已补齐每场景 100 次的本机采样及三系统磁盘回读，默认本机查询目标仍未达到；真实 IDE、跨平台混合进程及恢复继续验收。新的结果继续补入本节，并保留原始失败与已合格产物。
+
+## 实施批次记录
+
+最新文档同步：设计权威源、用户文档、官网中英文及 README 已按公开 .131 配对和 Git 更新；准确文档提交 `14e8bce45c` 的三站完整构建、服务器部署及公网回读完成，共 663 / 291 / 20 个 HTML、11 个代表页面字节和全部 2960 条新文件摘要匹配。云端快照 40883943577 三项全部通过。原站点备份保留，真实任务仍 **34/45**。见[本次三站记录](./cli-ide-sites131-progress-2026-10-29.md)。
+
+第四十五批更新（2026-10-29）：已定位原 .131 Ubuntu CI 的冷会话 RSS 超标（100.254 MiB ≥ 100 MiB），将未使用的 Evolution 配置导入移到支持命令检查之后；修复已直接提交推送 main `98c4be4a76`。两版 Node 各 7 文件 / 130 项通过，真实子进程导入拒绝回归有效；准确干净提交原 8 MiB 恢复夹具的 20 次冷进程最高 RSS 63.820 MiB、p95 717.790ms。原阈值不变；7a5d 原失败和标签保留，新源码已有 CLI / Strict / Kernel / IDE 四个 handle，完整矩阵仍待验收，未发布。累计仍 34/45，Microsoft 暂缓，未知派发不重放。见[冷会话内存修复与新门禁](./cli-ide-session-cold-rss131-progress-2026-10-29.md)。
+
+第四十四批更新（2026-10-29）：对 .131 冻结运行时完成 1K / 10K / 100K 各 100 次冷、热查询，共 600 次全部匹配全量参考结果；本机类别列表热 p95 为 73.745 / 76.412 / 178.866ms，低于 200ms，100K 冷 p95 为 2258.233ms，完整 SLO 仍未达到。两种缓存模式、三档各 100 次 Stop 共 600/600 取消，每次锁释放、各组前后 authority manifest 字节不变。Astra 只读审查后的 lazy 原型遗漏拒绝条件已独立复现，两个原型均未合入。固定源码 Strict 6/6、Kernel 三系统 3/3 已通过，CLI CI 与 IDE 尚未完成，仍不发布；累计 34/45。见[100 次采样与原型复查](./cli-ide-memory-slo131-progress-2026-10-29.md)。
+
+第四十三批更新（2026-10-29）：真实 CLI 可执行程序的四条压缩 / 独立进程恢复旅程在 Node 22.12、22.22 各 4/4 通过，1672 份来源前后摘要稳定。普通 headless 正常退出，流式 writer 在结算成功并等待输入时实际终止；独立 mutator 完成 supersede / delete 后，新 CLI 进程只召回当前许可记忆，并读取更新后的规则及导入文件 Memory。原压缩回执和历史事件前缀不变，三次本地协议请求各结算一次；未用强制压缩或注入运行时适配器。模型服务为隔离的本机协议夹具，不能增加真实任务 / 费用验收数。新测试纳入既有三系统 E2E 分片；新准确提交仍须自己的完整门禁，34/45 和原未知派发状态保留。见[真实 CLI 独立进程恢复记录](./cli-ide-cli-memory-restart-progress-2026-10-29.md)。
+
+第四十二批更新（2026-10-29）：合并非持久会话压缩修复，并补齐 headless / stream / hermetic 与 SubAgentContext 宿主标记。真实适配器原先提交压缩后丢失基础规则，下一次刷新失败；现在保留宿主原对象，复制和序列化消息不获得身份，基础上下文仍计入预算。16 文件 231 项、Node 22.12 关键 43 项及原生恢复 29 项通过；三个真实本机入口各完成两次 canonical 压缩。旧用量夹具的预算拒绝和修正过程保留，未放宽运行时门槛。来源审计 82 候选零问题，CLI pack 为 1844 文件；新候选尚未发布，累计仍 34/45。见[非持久会话基础规则修复](./cli-ide-compaction-live-host-progress-2026-10-29.md)。
+
+第四十一批更新（2026-10-29）：后续运行时改用未发布 `.131 / .169 / .186` 候选，CLI 依赖 Kernel `.11`；公开渠道查询确认当前未出现这些新版本。元数据、README 和离线 changelog 已对齐，CLI 49 项、IDE 合同 15 项、JBR 21 实际编译后的 8 项 JUnit 通过；pack 清单及 82 候选来源审计通过。没有发布或创建发布标签，准确新提交仍须自己的三系统门禁，原 .130 公开事实与 34/45 保留。见[新候选准备](./cli-ide-release131-preparation-progress-2026-10-29.md)。
+
+第四十批更新（2026-10-29）：官网数据及中英文入口、用户新升级页、设计权威源与侧栏已同步到 `.130 / .168 / .185`；旧 `.129` 页面和历史发行对象保留。重新读取 npm / Open VSX latest，与第三十七批制品证据一致；三个 Astro 模板及用户文档结构检查通过；准确 787 文档源码三站本地构建完成，661 / 290 / 20 HTML 已上线，9 页公网字节及全部 2951 条新文件摘要匹配本地输出。云端快照单独仍排队。新代码 `0d67a7d43b` 已推送，已合并分支本地 / 远端已删除，四项主要代码 CI 仍排队。见[三站同步记录](./cli-ide-sites130-progress-2026-10-29.md)。
+
+第三十九批更新（2026-10-29）：真实复现隔离子任务结束后后台消费者仍存活、临时 checkout 被删除导致 ENOENT；现由宿主 async scope 在派发前拒绝无所有者的后台 shell / 子任务、延后调度及隔离技能 child。148 项定向回归通过，新增两文件在 Node 22.12 为 13/13；真实 foreground 取消期间保留 checkout，实际退出后清理。任意自 detach 后代和全崩溃恢复仍未完成。见[临时 worktree 生命周期记录](./cli-ide-worktree-lifetime-progress-2026-10-29.md)。
+
+第三十八批更新（2026-10-29）：新增三个真实进程旅程，writer 在已持久压缩 / 用量意图后被实际终止，独立 mutator 与 reader 核对 supersede / delete 后当前召回、原压缩回执幂等与未提交语义用量待核对。Node 22.12 / 22.22 原生完整套件各 29/29 通过，零跳过；这是 canonical 适配器恢复，完整 CLI / 双 IDE 与全部崩溃窗口仍未完成。见[独立进程恢复记录](./cli-ide-memory-process-restart-progress-2026-10-29.md)。
+
+第三十七批更新（2026-10-29）：公开配对已独立回读为 **CLI `.130` / Open VSX `.168` / JetBrains `.185`**，准确发行源码是 `f3015e7996`，CLI 仍固定 Kernel `0.1.10`。Goal 预算共享和工作区证据绑定已包含在该公开包；独立 `verify:`、Kernel `0.1.11`、后续 Memory / Terra 改动仍未发布。此前将失败 e7 原型状态沿用为当前公开状态，现据制品字节、来源与六项工作流更正；e7 原失败和独立验证标签保留，其 `.130` 版本已被占用，停止重试该发行路径。主线身份实现保留，另纳入十条 Windows 组合负例，两版 Node 各 51 项通过。见[公开回读与合并记录](./cli-ide-release130-reconcile-progress-2026-10-29.md)。
+
+第三十六批更新（2026-10-29）：在隔离、干净的准确 e7 clone 用原 Node 22.12 审计复现 llm 命令及连接探针两项 STALE；主分支另有四个新资产和 Agent Core 待登记，合计七项。Astra 独立审查真实出口与委托成本后，主分支仅更新准确摘要及理由，保留扫描与付费限制；原完整审计 82 个候选零问题、19 项回归通过。旧 e7 仍不能发布，新的源码必须重新完成准确提交的三系统门禁，见[来源登记与审计记录](./cli-ide-egress-review-progress-2026-10-29.md)。
+
+第三十五批更新（2026-10-29）：recall 在前后 revision 不等时拒绝旧记录与新版本混配；异步语义候选源等待可被 Stop 中断，迟到结果不能继续模型调用。CLI 14 文件 173 项、Kernel 135 项、原生恢复 26 项通过；两种 CLI 各覆盖 supersede / delete 后真实 canonical 压缩和同进程 resume，不冒充独立进程重启。另回读 673 源码的 Unix 五场景短测及 Windows 身份失败，Astra 协助补 BigInt / 已有受限设备桥接，两版 Node 各 128 通过、1 跳过；新准确源码 CI 待回读。固定 e7 的原失败分片已通过，但三个 verify-cli 审计仍失败，未发布。见[Memory 版本、取消与身份记录](./cli-ide-memory-recovery-progress-2026-10-29.md)。
+
+第三十四批更新（2026-10-29）：默认 `validate-disk` 通过单个派生 bundle 验证全部查询 frame，减少文件打开；借用缓冲、内部已验证字节去重哈希及规范化分配优化保留完整摘要 / 类型检查。Astra 复查发现损坏与路径替换组合、空结果目录重定向两个缺口，确定性负例修复后通过。CLI 110 项、子包 130 项、原生恢复 26 项通过，2 项 POSIX 跳过；冷 / 热三档各 11 次，100K 热 / 冷 p95 为 274.514 / 2162.657ms，仍未达标。原失败、各阶段来源与固定 e7 CI 同源码重试回执分别保留，见[合并读取与规范化记录](./cli-ide-memory-bundle-progress-2026-10-29.md)。
+
+第三十三批更新（2026-10-29）：扩展 Codex 原生历史探针，默认数据库合同与显式严格扫描分别记账。5 个套件、95 项本地回归通过；准确 `92142ea61b` 上 `.160 / .164` 的数据库恢复与已有索引扫描通过，但独立冷升序首次仅返回 1/2 并错误声明终止。完整读取后的索引和已知线程恢复通过，严格模式仍非零退出；原默认 / created_at 遗漏及一次关闭超时保留，不把后续恢复冒充首次发现完成。见[独立冷扫描与恢复记录](./cli-ide-codex-scan-progress-2026-10-29.md)。
+
+第三十二批更新（2026-10-29）：核对本线程原派发进程返回及不限源码 / 分支的时间窗运行，仍不能确认历史请求结果；实际只读恢复后原 3 个日志 JSON 字节不变。改进后续派发回执，仅保存脱敏诊断标量，未知结果继续阻止重发；新增 6 项，完整 29 项回归通过。`verify-11` 仍未知，其余 10 项未派发，不增加真实产物通过数，见[派发审计与响应回执](./cli-ide-native-dispatch-receipt-progress-2026-10-29.md)。
+
+第三十一批更新（2026-10-29）：在保留全部祖先遍历及 Windows native 校验顺序的前提下，复用一次已比较的 shard 元数据，修复目录替换在比较后被误采纳为基准的问题。原代码真实替换负例失败，6 个套件、65 项回归通过、2 项平台跳过；前后各三档 100 次热查询完成，全部结果相同。100K 热 p95 仅从 521.519 降至 516.937ms，主要性能瓶颈仍未解决；不改默认磁盘校验模式、不宣称 SLO 达标，见[目录身份与热查询复测](./cli-ide-memory-directory-progress-2026-10-29.md)。
+
+第三十批更新（2026-10-29）：固定 e7 源码的 CLI CI 出现一项 Windows 调度器崩溃恢复测试失败。Astra 协助确认旧 checkpoint 截止未反映 SQLite 续租，新增稳定负例，并将两个 crash 用例改为在进程退出后等待持久租约实际截止；原恢复与不重放断言保留，完整 11 项本地测试通过。生产调度器实现未修改，历史 CI 缺少最新截止值，不能声称直接还原当时续租。保留原失败和活跃作业，未重发矩阵或移动候选，见[门禁失败与测试修复](./cli-ide-release130-ci-recovery-2026-10-29.md)。
+
+第二十九批更新（2026-10-29）：修复非交互 / 流式宿主项目指令目录错误，压缩前后重新读取项目规则与导入文件 Memory，刷新失败停止后续请求；交互 REPL 在压缩及下一次用户回合前刷新注册的宿主基础消息。17 个套件、550 项本地回归全部通过，包含两个入口的实际 canonical 保存 / 恢复和 22 项新增测试；8 项负例识别修复缺失。同时补齐上一批流式宿主遗漏的 MCP 目录传递。结构化 Memory、真实模型与完整双 IDE 旅程仍未验收；`.130` 继续固定 e7 源码，Kernel 与 Strict 三系统完整通过，CLI CI 尚未完成。见[压缩上下文及门禁记录](./cli-ide-compaction-context-progress-2026-10-29.md)。
+
+第二十八批更新（2026-10-29）：完成宿主可信 MCP 目录发布、运行中父子任务刷新、同名连接配置绑定及派发前撤销；修复前台子任务未继承父取消信号。20 个套件、407 项本地回归通过，新增 25 项单元及 15 项运行测试，含 6 项真实本机 HTTP MCP；模型为注入夹具，4 项反例均识别修复缺失。`.130` 继续固定 `e7a6f2585d`，独立验证标签避免后续 main 推送取消门禁；Kernel 与原 Strict 完整通过，CLI CI 尚未完成。本批不并入该固定发行源码，见[晚连接及门禁记录](./cli-ide-mcp-live-catalog-progress-2026-10-29.md)。
+
+第二十七批更新（2026-10-29）：修复指定服务器继承时丢失 `tool_search`，并隔离父子及兄弟任务的发现状态；9 个套件、192 项本地回归通过。父目录撤销能使已继承 schema 失效，旧源码反例保留。迟到连接的运行中目录更新尚未实现；新 main 推送取消旧 CLI 门禁后，`.130` 候选改为本批准确源码 `e7a6f2585d`，新三系统门禁已自动启动；旧部分通过结果不复用。见[MCP 子任务发现记录](./cli-ide-subagent-mcp-progress-2026-10-29.md)。
+
+第二十六批更新（2026-10-29）：原 Memory 长测正常退出，1K / 10K / 100K 各 100 轮八进程混合读写删完成。重新核对 1200 次读取版本、重放 1800 次记录变更及最终记录摘要，保留事件字节回读的边界；补充默认查询 CPU 诊断，不改缓存默认值或损坏校验。见[完整本机采样记录](./cli-ide-memory-full-progress-2026-10-29.md)。
+
+第二十五批更新（2026-10-29）：为 governed Skills 安装补充从 CLI handler 到下载端口的取消信号；拒绝迟到结果继续落盘，保留已开始提交的确认与恢复。完整相关 2 个套件、61 项通过，其中新增 14 项取消回归；4 项受控负例均按预期失败。纳入 `.130` 候选后按新提交重新核对发布门禁，不沿用上一提交的部分矩阵。见[下载取消及边界记录](./cli-ide-skill-download-progress-2026-10-29.md)。
+
+第二十四批更新（2026-10-29）：Memory 子包准备 `0.1.11`，CLI、根 workspace 与桌面端锁文件同步，子包 README 修正公开版本并补充取消边界。3 项取消合同、inventory 和打包预览通过；仍须完成准确源码的三系统门禁及子包 → CLI → IDE 的 OIDC 发布与公开回读。见[子包准备记录](./cli-ide-memory-child-release-progress-2026-10-29.md)。
+
+第二十三批更新（2026-10-29）：审查并合并 .130 候选分支的三个独有提交，解决 README 冲突并保留现有公开发行回执；57 项定向检查及工作流语法通过。明确 Memory 子包版本及最终准确源码门禁仍是发布前置项，不把合并视为已发行。见[合并与前置核对](./cli-ide-release130-merge-progress-2026-10-29.md)。
+
+第二十二批更新（2026-10-29）：三站已从同一准确提交构建并部署，公网回读完成；Memory 原三系统矩阵共 4500 次磁盘样本已核验，本机 Windows 超标结果及未结束采样保留。新增 4 项 MCP 资源取消传输回归，逐项标明六类候选覆盖范围。见[本批映射](./cli-ide-upstream-regression-progress-2026-10-29.md)。
+
+第二十一批更新（2026-10-29）：官网当前配对和中英文功能说明、设计权威源与导航已同步；保留公开版与主分支 Goal / Memory / Terra 的区别。上一批准确源码用户站构建通过，产出 658 个 HTML；新增只读手动三站构建及带来源摘要的归档，准备在远端构建，避免与本机 Memory 长测竞争。线上部署仍待完成。见[官网与设计站记录](./cli-ide-sites129-progress-2026-10-29.md)。
+
+第二十批更新（2026-10-29）：已公开的 `.129 / .167 / .184` 配对从候选说明移入当前发行，根 / CLI / 双 IDE README、用户文档与安装命令同步；文档结构与 Overview 检查通过。回读准确提交的 Terra Ubuntu 合同门禁，并保存 Memory 10K 五场景各 100 次快照；热 / 冷 p95 仍未达标，100K 与跨平台长测继续运行。网站构建与部署未作为源码编辑的已完成结果。见[公开配对同步记录](./cli-ide-public-docs129-progress-2026-10-29.md)。
+
+第十九批更新（2026-10-29）：核对官方模型、价格、迁移及缓存文档，加入 Terra 精确 API profile；修复缓存写入被按普通输入计费，以及连接测试最终回执丢失 TTL / 档位证据的问题。343 项 Vitest 与 9 项 Node 测试通过，默认推荐未更换；目标账号、真实账单及上游能力网页自动抽取仍未验收，未发布本批改动。见[Terra 能力与缓存计费记录](./cli-ide-terra-model-progress-2026-10-29.md)。
+
+第十六批更新（2026-10-29）：Memory 查询改用持锁至异步回调结束的 authority 锁，分片间让出事件循环并传递宿主取消信号，减少 Windows 重复祖先路径解析。259 项本地回归通过、1 项平台跳过；三档共 264 次完整磁盘前后对照、修复后 66 次 Stop、33 轮八进程混合读写删测量完成。Stop 本地目标通过，热查询 SLO 三档仍未达到，100K 冷查询也未达到；未据此扩大正式准入或公开发行。见[Memory 磁盘与取消记录](./cli-ide-memory-store-progress-2026-10-29.md)。
+
+实施更新：Goal 完成判定与检查点恢复的首批源码修复已进入提交 `67c085115b`，203 项相关本地回归通过，见[实施与验证记录](./cli-ide-goal-completion-progress-2026-10-27.md)。下文保留核对时的差距基线；源码改动、公开发行和正式任务验收分别更新。
+
+第二批更新：双 IDE 首次配置检测新增“已配置 / 未配置 / 无法读取”三态，处理迟到检测结果并明确全局连接变更影响范围，见[配置体验实施记录](./cli-ide-llm-configuration-progress-2026-10-27.md)。会话级模型隔离仍继续跟踪。
+
+第三批更新：CLI 与双 IDE 的新连接推荐接入同一目录，保留已有模型、网关别名和提供商身份；官方 OpenAI 连接测试按能力 profile 复用 Responses 适配器。见[共享推荐与协议实施记录](./cli-ide-llm-onboarding-progress-2026-10-27.md)。下文第 4.4、4.5 节保留核对时的基线，完整模型更新及 IDE 验收尚未完成。
+
+第四批更新：双 IDE 新增会话内 `/model` 选择与恢复默认，保留独立任务、标签恢复及当前进程的上下文查询；完整 VS Code 单元测试 327 项、CLI 扩展回归 115 项、JetBrains 定向测试 42 项通过。见[会话模型隔离实施记录](./cli-ide-session-model-progress-2026-10-27.md)。真实 IDE 双任务旅程及跨平台验收继续跟踪。
+
+第五批更新：MCP 工具搜索新增中文分词、词覆盖排序及有界前 K 个候选，补充 200 / 1000 / 5000 工具的离线检索、延迟和目录 token 基线；最终 10 个套件、206 项回归通过。见[MCP 检索实施记录](./cli-ide-mcp-search-progress-2026-10-27.md)。本批仍保留逐工具 stub，不将合成召回或估算 token 解释为真实任务与费用收益。
+
+第六批更新：新增显式启用的 MCP 紧凑请求投影，初始展示搜索入口及固定加载项，发现后提供选中 schema；宿主保留原执行目录。18 个套件、295 项回归通过，见[紧凑目录实施记录](./cli-ide-mcp-compact-catalog-progress-2026-10-27.md)。固定样本减少的是 MCP 定义估算，真实任务及费用收益继续独立验证。
+
+第七批更新：Skills 描述检索新增中文词边界、全角归一化及名称拆词，修复单字误匹配和 camelCase 名称漏召回；50 / 200 / 500 技能目录保留分页外召回和正文按需加载，17 个套件、252 项回归通过。见[Skills 检索实施记录](./cli-ide-skill-search-progress-2026-10-27.md)。固定样本不代替实际技能任务与费用验收。
+
+第八批更新：Memory 根据候选数量按需合并索引位置，减少窄分类查询中无关的宽列表展开；7 个套件去重后 61 项通过、1 项平台测试跳过。见[Memory 索引实施记录](./cli-ide-memory-posting-progress-2026-10-27.md)及 1K / 10K / 100K 哈希分片局部测量；完整磁盘查询 SLO 继续单独跟踪。
+
+第九批更新（2026-10-28）：外部 Codex 的实验允许列表、CI 矩阵、schema / turn 探针版本和支持说明接入同一兼容清单；适配器补充清单状态及禁止重复提交的故障诊断。5 个套件、64 项本地回归通过，工作流通过 actionlint，见[Codex 兼容实施记录](./cli-ide-codex-compatibility-progress-2026-10-28.md)及[生成的支持范围](../../cli/CODEX_APP_SERVER_SUPPORT.generated.md)。实验模块仍默认关闭，`.160` 探针不等于允许列表或生产准入；三系统实跑及新版本兼容验收尚未完成。
+
+第十批更新（2026-10-28）：新增 Codex `0.164.0` 原始 schema 和按版本选择的探针，CI 扩为 `.160` / `.164` × 三系统；补充关闭进程后恢复设置、线程 / turn 分页及已完成请求不重放的旅程。准确源码提交 `949ab64b758b24155c0382c9dd34185b1110df84` 上，两个版本均通过 Windows 真实进程验证，6 个套件、84 项本地回归通过。见[多版本恢复实施记录](./cli-ide-codex-history-progress-2026-10-28.md)。模型服务为隔离的本地模拟服务；Linux / macOS 与正式模型任务未验收，实验允许列表和生产准入保持原范围。
+
+第十一批更新（2026-10-28）：[草稿 PR #504](https://github.com/chainlesschain/chainlesschain/pull/504) 的 Codex 兼容 CI 已在准确提交 `26e481c909561c6ff60b6d05c55613a787388e68` 上 **21 / 21** 作业通过，并完成六个原生进程单元的制品回读。恢复旅程显式使用数据库 `recency_at` 路径，`.160` / `.164` 在 Linux、Windows、macOS 均覆盖同秒创建的两线程；默认扫描及旧版 `created_at` 分页保留已观测的遗漏限制。另修复 VS Code README 当前发行状态块缺失，本地 Codex 回归 85 项、VS Code 完整单元测试 327 项通过。VERIFY01 的三个 JetBrains 首次配置宿主旅程仍失败，PR 保持草稿；见[CI 与分页边界记录](./cli-ide-codex-ci-progress-2026-10-28.md)。
+
+第十二批更新（2026-10-28）：JetBrains 身份夹具与配置三态合同不一致，且 Gradle 在最终 IDE 启动时重新注入了配置目录覆盖；两阶段修补已提交，保留生产逻辑与 UI 断言，准确源码三系统宿主复查 **7/7 作业通过**，制品已回读。公开 `.128` 的 `first-run-linux-cli` 已端到端通过；`verify-06` 产物通过独立验收，但连接失败导致原生旅程未完成。严格账本累计产物 **34/45**（普通 **27/36**、首次入口 **7/9**），剩余 **11** 项产物，不能解释为完整原生通过率。原预留条件不足时曾停止派发；用户明确确认继续后，已按可用额度逐项恢复执行，并将已证明未发送的请求单独分类、保留原始空用量。见[任务续测与宿主修复记录](./cli-ide-task-completion-progress-2026-10-28.md)。
+
+第十三批更新（2026-10-29）：默认 `--goal-condition` 评审及 `--goal-assess` 共用作者运行的回合预算、费用统计和取消信号，输出最多 2048 token；评审用量写入账本后汇入运行及 Goal 状态，未知用量、取消和持久化失败停止后续调用。Windows 本地 **9 个套件、224 项通过**，源码出口审查 **78 个候选、0 个未分类**；ESLint 因本地缺少依赖未启动。见[Goal 预算实施与验证记录](./cli-ide-goal-budget-progress-2026-10-29.md)。本次未调用真实模型、未发布新包；工作区摘要绑定、独立 checker、三系统发行门禁和正式准入继续验收。真实任务产物仍为 **34/45**。
+
+第十四批更新（2026-10-29）：默认 Goal 模型评审的 `read_file` / `run_shell` 观察分别绑定产物字节或明确的源码范围，工具执行和模型评审前后均核对；外部改写、删除、工作区替换或读取不完整不能继续支持成功判定。evaluated Goal checkpoint 保存本次判定及引用摘要。Windows **10 个套件、240 项通过**；1,701 个源码 / 脚本文件的出口审查通过，另记录 1,000 文件捕获开销。见[工作区证据实施记录](./cli-ide-goal-workspace-progress-2026-10-29.md)。摘要不替代独立质量验收；Git 忽略项、外部环境、恶意文件系统替换及最终核对之后的变化不在源码摘要证明范围内。本批未发布包，真实任务仍为 **34/45**。
+
+第十五批更新（2026-10-29）：完成 `.128` 未完整轮次的严格证据继承及 `.129` 公开包回读，原账本仍为 `IN_PROGRESS`。新计划仅含 11 项未合格任务；完整工作流派发前检查 110 项通过，其中包含 44 项轮次校验。修正安全映射的旧测试摘要后，指定安全测试 29 项、统一审计 15 项本地通过。`verify-11` 单次派发结果待核对；补充分支前进后仍可只读恢复的修复，23 项派发器测试通过。见[续测准备与验证记录](./cli-ide-native-retest129-progress-2026-10-29.md)。累计仍为 **34/45**。
+
+承接 [2026-10-15 实施计划](./cli-ide-codex-claude-implementation-plan-2026-10-15.md)，结合后续恢复记录、10 月 27 日发行回执、当前源代码及本次实际读取的官方资料重新判断。范围以 CLI、共享 Agent Runtime、VS Code、JetBrains 为主；客户端发行只用于核对交付状态，不据此评价移动端与桌面端的全部产品能力。
+
+**核心判断：项目已有较完整的功能基础，下一阶段最有价值的投入是提升任务验收可信度、跨入口恢复一致性、首次使用体验和单位任务成本。** 单纯增加 Agent、Skills、MCP 或模型数量，收益已经小于把现有能力接成稳定的用户流程。
+
+本文将“代码已实现”“发布已核验”“真实任务已验收”分别处理。没有执行新的付费模型任务、跨产品同题实测或完整系统回归，因此不提供主观成熟度百分比，也不把竞品修复直接认定为本项目漏洞。文中的量化目标均为建议验收标准，除明确标注外，不是当前实测结果。
+
+## 1. 先更新比较基线
+
+### 1.1 本项目核对基线（2026-10-27；当前状态见顶部表格）
+
+以仓库保存的 [10 月 27 日发布回执](../cli/evidence/release127-public/publication.json)为准：
+
+| 项目                         | 当前状态                                   | 解释                                                                                               |
+| ---------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| CLI                          | `0.166.127` 已公开                         | 发行源码为 `0377050191b61894ccfa9566394560c3d1425fbe`，已有对应三系统 CLI CI / Strict Sandbox 记录 |
+| VS Code 插件                 | Open VSX `0.37.165` 已公开                 | 推荐 CLI `0.166.127`，公开归档已有核验                                                             |
+| JetBrains 插件               | `0.4.182` 已公开                           | 推荐 CLI `0.166.127`，公开包与候选 payload 已核验                                                  |
+| PC / 移动客户端发行          | `v5.0.3.142` 已公开                        | 仅说明此次发行制品已交付，不代表所有端到端功能完成验收                                             |
+| Microsoft Marketplace        | 尚未发布                                   | 回执原因为该渠道发布凭据未配置；Open VSX 可用不等于 Microsoft 商店已上架                           |
+| 36+9 任务交付                | 跨版本累计 `32/45`                         | 普通任务 `26/36`，首次任务 `6/9`；剩余 `13` 项                                                     |
+| 正式付费 / native / 自动晋升 | `NOT_PAID_READY` / `NOT_ADMITTED` / `HOLD` | 三者是不同范围的状态，不能互相替代                                                                 |
+
+重要修正：10 月 26 日记录中的“新增修复尚未发布”已经被后续发行事实超过。VS Code 保存输入删除时保留附件、排队后复查草稿身份等修复已进入公开发行，不能再作为待实现或待发布能力。
+
+`32/45` 是跨版本累计合格交付，不是 `.127` 的单版本通过率，也不是与 Claude Code / Codex 同题比较的胜率。原冻结正式评测的 `NOT_RUN` 与后续独立任务 campaign 使用不同证据口径，不能概括为“完全没有实测”。详见 [剩余任务清单及口径](../cli/evidence/recovery-2026-10-23/remaining-36-plus-9.json)。
+
+以上发行事实来自仓库内回执，本次没有重新下载全部公开包或重跑 GitHub Actions。
+
+### 1.2 本次核实的上游增量
+
+| 对象                  | 本次可核实的最新信息                                           | 对本项目有用的方向                                               |
+| --------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Codex CLI             | 官方更新页最新 CLI 条目为 `0.164.0`，日期为 2026-10-23         | 配置与权限快捷操作、可复用提示、压缩失败恢复、恢复时保留会话设置 |
+| Codex App Server      | 文档明确支持持久目标、历史分页、运行中追加输入、独立读取与恢复 | 对齐任务身份、恢复顺序和中断语义，并更新版本兼容证据             |
+| OpenAI 模型           | 10 月 26 日公布 GPT-6.1 Terra 在 Work / Codex 的可用性         | 模型目录需要及时审查；产品可用不能直接推导为本项目 API 端点可用  |
+| Claude Code           | 官方 CHANGELOG 首项为 `2.1.311`                                | 最新修复继续集中于取消、压缩、子代理、MCP、后台恢复和 IDE 细节   |
+| Claude MCP / 最佳实践 | 强调按需工具发现、长任务管理，以及可执行检查                   | 衡量检索命中与任务质量，让完成判断依赖实际结果                   |
+
+来源：[Codex 更新记录](https://learn.chatgpt.com/docs/changelog)、[App Server](https://learn.chatgpt.com/docs/app-server)、[模型说明](https://learn.chatgpt.com/docs/models)、[Claude Code CHANGELOG](https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md)、[Claude MCP](https://code.claude.com/docs/en/mcp)、[Claude 最佳实践](https://code.claude.com/docs/en/best-practices)。
+
+版本边界：这里的“最新”指核对当日官方页面能够确认的版本，不保证所有分发渠道同时更新。Codex 更新页因体积超过浏览工具限制，改用 HTTP 实际读取正文，确认上述条目；Claude 版本来自实际打开的官方原始日志。旧计划中的 Claude `2.1.299`、仓库 Codex `0.160.0` 探针不再代表当前上游最新版本。
+
+## 2. 已有能力应继续复用
+
+以下能力已有实现，下一步应补组合行为、收益与公开制品验收：
+
+- **任务与恢复：** Goal 条件引擎、workflow、输入接受回执、历史分页、压缩、重试、草稿及恢复。
+- **IDE：** Doctor、严格 CLI 身份识别、120 秒初始化上界、流式显示、Plan / Diff / Review、Sessions Workbench。
+- **上下文：** Skills 描述与正文分阶段加载、MCP 工具搜索与发现缓存、上下文来源记录。
+- **Memory：** 二级查询索引、过滤下推、稳定游标、重建与显式缓存模式。
+- **模型与发布：** GPT-6.1 Sol、Claude Sonnet / Haiku 5.5 等精确 profile，档位和计费合同，上游审查工作流，准确提交的跨系统发行门禁。
+- **平台执行：** 已有平台沙箱与预算 authority 实现；需要区分具体实现存在和完整生产准入通过。
+
+项目在多 provider、本地模型、双 IDE 和共享 runtime 方面有值得保留的基础。是否在这些方面优于竞品，需要同题实测，不能仅根据模块数量作结论。
+
+## 3. 优先级总览
+
+下表保留 2026-10-27 核对基线；源码实施进展见顶部各批记录及对应章节补充，公开发行和任务验收单独核对。
+
+| 优先级    | 差距                   | 当前最具体的问题                                              | 优化目标                         |
+| --------- | ---------------------- | ------------------------------------------------------------- | -------------------------------- |
+| P1        | 真实任务交付           | 剩余 13 项没有当前发行组合的结案证据                          | 证明用户拿到的产物合格、可恢复   |
+| P1        | 完成判定与检查点       | 默认模型 judge 主要读取助手自述；Goal snapshot 写入可静默失败 | 完成有证据，恢复有可靠状态       |
+| P1        | 首次配置与多会话体验   | 双 IDE 默认模型与共享目录脱节；部分配置变更会停止全部会话     | 入口一致，影响范围清楚           |
+| P1        | 模型与上游更新         | 目录停留在 10-15；现有审查主要发现版本变化                    | 能力、协议、价格与可用性分别更新 |
+| P1        | 外部 Codex 兼容        | 默认允许列表、CI 探针、最新发行三个版本范围不同               | 用户可见的支持范围与验证证据一致 |
+| P1        | MCP 与上下文效率       | 延迟后仍发送全部工具 stub；节省主要是估算                     | 降低真实任务成本且不损害质量     |
+| P1        | 状态与发行渠道         | 研究文档状态落后，Microsoft 商店仍未覆盖                      | 当前状态唯一可信，安装路径完整   |
+| P2        | Memory 交互性能        | 索引验证和跨分片读取仍有较高成本                              | 减少热查询延迟与事件循环阻塞     |
+| P2        | 核心代码维护           | 超大执行文件承担过多接线                                      | 减少跨入口状态与错误处理分叉     |
+| 条件性 P0 | 正式付费与受控执行承诺 | 对应预算 / native 准入仍关闭                                  | 先完成明确范围的验证，再扩大承诺 |
+
+P0 仅是正式付费评测及相应支持声明的前置条件，不是所有产品优化的共同阻塞项。状态文案、配置体验、检索实现、无模型故障注入及性能基线可以独立推进。
+
+## 4. 具体差距与验收建议
+
+### 4.1 真实任务合格交付（原基线剩余 13 项；当前剩余 11 项产物）
+
+**2026-10-27 核对基线。** 当时发布回执为 `newLiveModelTaskAcceptance:false`。历史剩余清单中 13 项全部标记 `currentRuntimeRetested:false`，分为 **7 项没有完成交付、6 项候选产物未通过独立验收**。后续已执行 `.128` 复测，当前结果以顶部逐项表格和严格账本为准，不能继续将这 13 项统称为未复测。
+
+历史失败原因包括 broker 未派发、输出截断、流未完成、用量未知超时、Windows 启动超时、错误 API 断言、异步生命周期顺序错误，以及生成的测试未能识别故意引入的错误行为。它们是复测入口，不能据此断言相同问题仍存在于 `.127`。
+
+**建议。** 保留已合格的 32 项及其原始证据，优先结案剩余项；同时建立当前公开版本组合的回归结果。把“成功发起模型请求”“生成了内容”“产物通过检查”“恢复后仍可使用”分别计数。对超时且用量未知的任务，先核对既有结果和账本。
+
+**验收。** 每项绑定源码、公开包、OS / IDE、模型端点、输入、原始输出和独立 checker；固定 36 个普通任务 + 9 个首次入口 = 45 项，分别报告 36、9、45 三个分母。报告单版本任务通过率、人工接管次数、任务费用、首次成功时间和恢复成功率；跨版本累计覆盖单独展示。任何 Claude / Codex 横向比较另建同题、同条件实验。
+
+证据：[最新验收状态](../cli/evidence/release127-public/publication.json)、[13 项剩余清单](../cli/evidence/recovery-2026-10-23/remaining-36-plus-9.json)。
+
+### 4.2 完成判定：从助手自述转为产物与检查证据
+
+**实施进展（2026-10-29）。** [首批修复](./cli-ide-goal-completion-progress-2026-10-27.md)已让默认评审引用当前轮次的真实工具观察；[第十三批修复](./cli-ide-goal-budget-progress-2026-10-29.md)补齐共享预算、用量汇总和取消处理；[第十四批修复](./cli-ide-goal-workspace-progress-2026-10-29.md)加入有明确覆盖范围的工作区 / 产物摘要绑定和模型返回后的复核。[第十七批修复](./cli-ide-goal-verification-progress-2026-10-29.md)增加显式 `verify:` 独立检查：作者执行前冻结主机选定的定义，执行全部必需检查，并核对本次调用的断言回执。四类指定负例在本地夹具中均未误报完成；默认 `model:` 路径、真实任务误报率及跨入口验收仍单独跟踪，下述事实保留原核对基线。
+
+**事实。** `headless-runner.js` 的 `_defaultGoalJudge` 使用同一模型进行额外评价，只将最终助手回复的前 **2000 字符**放入提示，禁用工具；传入的工具调用信息没有进入该 judge 的判断材料。项目已有确定性条件检查，因此问题在默认自然语言判定路径的证据不足。
+
+额外调用一次模型不等于独立验证工作区。模型说“测试通过”与实际退出码、产物内容、当前代码是否对应，需要由 runtime 区分。
+
+**建议。** 默认工程任务优先使用现有确定性检查；形成与当前代码版本绑定的证据包，包含执行命令、退出码、测试摘要、产物摘要和关键失败。模型评价用于解释语义条件，缺少证据时返回待核验。
+
+**验收。** “助手声称成功但测试失败”“关键结果超过 2000 字符”“引用旧代码的测试结果”“产物缺失”均不能标为完成；固定负例中的误报完成为 0。另行统计确定性验收覆盖率和人工复核率。
+
+证据：[默认 judge 实现](../../../packages/cli/src/runtime/headless-runner.js)约 3368 行；[现有 Goal 条件引擎](../../../packages/cli/src/lib/goal-condition-engine.js)。
+
+### 4.3 恢复持久性：让检查点写失败成为可见状态
+
+**事实。** `persistGoalSnapshot()` 对 `appendEvent` 错误捕获后继续运行；评价后会调用它，再继续或结束执行。这存在显示进度与可恢复进度不一致的静态风险。本次未故障注入，不能宣称已复现重复执行或预算重置。
+
+**建议。** 将 Goal 检查点接入已有持久化失败处理；当可靠状态未保存时，明确显示恢复受限，并阻止依赖该检查点的自动续跑。统一 CLI、VS Code、JetBrains 对运行、停止、失败、完成、待核对状态的投影。
+
+**验收。** 覆盖磁盘满、写失败、写入后进程退出、终态前退出、重启同时收到新输入。恢复后无静默进度倒退、无重复终态、无隐式重新提交副作用；展示可恢复的最后状态及下一步动作。
+
+证据：[Goal snapshot 写入与外层循环](../../../packages/cli/src/runtime/headless-runner.js)约 3422、4100 行；[RUN-03 后续范围](./cli-ide-recovery-progress-2026-10-26.md)。
+
+### 4.4 IDE 首次配置与多会话：共享能力还没有完全进入用户入口
+
+**事实。** VS Code 与 JetBrains 的 provider 预设仍将 Anthropic 默认模型设为 `claude-sonnet-4-6`、OpenAI 设为 `gpt-4o`，共享目录已有更新的精确 profile。这是推荐来源分散的问题，不能简单断言旧模型不可用。
+
+VS Code 更新连接配置时，`_reloadLlmConfig()` 会停止各聊天中的存活进程，以避免继续使用旧配置；提示却主要表达“下一条消息生效”。部分配置读取失败路径也仍可能被解释为“未配置”。
+
+**建议。** 新配置从共享能力目录获得推荐项，再按账号、端点和协议验证选择；保留用户已有模型及网关别名。区分会话级模型选择和全局凭据 / 端点变更，展示受影响任务。将配置状态明确分成“已配置、未配置、无法读取”。
+
+**验收。** CLI 与双 IDE 新建配置的模型、协议、能力和费用说明一致；升级不静默换模。A 会话切换模型不意外停止 B 会话；全局凭据撤销仍按明确策略生效。自定义配置目录、损坏文件及读取失败时显示诊断，不要求用户无依据地重填配置。
+
+证据：[VS Code 预设与读取](../../../packages/vscode-extension/src/llm-config.js)约 65、261 行；[JetBrains 预设](../../../packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/LlmConfig.java)约 50 行；[配置重载](../../../packages/vscode-extension/src/chat/chat-view.js)约 2807 行。
+
+### 4.5 模型更新：补能力变化闭环，不只追版本号
+
+**实施进展（2026-10-29）。** [第十九批](./cli-ide-terra-model-progress-2026-10-29.md)已核实 Terra 官方 API 合同，并加入精确 profile、输入上限、reasoning / 档位及缓存 TTL 计费。目录版本为 `2026-10-29`；352 项本地回归通过，官方端点与自定义网关的静态路由分别覆盖。真实目标账号、账单与官方能力字段变化的自动闭环仍未完成，不能把文档核对视为运行时可用性证明。
+
+**核对基线（2026-10-27）。** 当时 `MODEL_CAPABILITY_CATALOG_VERSION` 为 `2026-10-15`，未包含 Terra 精确条目。本地纯函数探针显示，未识别的 Terra 名称落入 provider 默认上下文及通用协议分支，价格未知。这说明当时没有经过精确能力审核，不证明该模型在目标 API 上不可用。
+
+已有每周 `Model Catalog Review`，能够抓取上游版本并提示漂移；能力和价格核对主要依赖本地维护的基准，没有直接形成官方能力字段变化到运行时验证的闭环。
+
+**建议。** 分别记录产品可用、API 可用、账户可用、运行时已验证；对模型协议、上下文、缓存、reasoning、服务档位、价格、地区和退役建立有来源的差异报告。未知型号显式展示未核验状态，保留自定义接入能力。Terra 先核实 API 合同与目标端点，再决定是否加入精确 profile。
+
+**验收。** 变化可追溯来源日期、发现时间和处理状态；官方端点与自定义网关分别验证；配置、请求、usage、预算、Eval 与 UI 一致。未知价格不能显示为免费，产品订阅权益不能充当 API 权限证明。
+
+证据：[模型目录](../../../packages/cli/src/lib/model-context-catalog.js)、[能力解析](../../../packages/cli/src/lib/model-capabilities.js)、[审查逻辑](../../../packages/cli/src/lib/model-catalog-review.js)、[现有审查工作流](../../../.github/workflows/model-catalog-review.yml)。官方依据：[当前模型说明](https://learn.chatgpt.com/docs/models)。
+
+### 4.6 外部 Codex：区分默认支持、协议探针和生产准入
+
+**实施进展（2026-10-28）。** 允许列表、CI 矩阵和探针版本已由[统一兼容清单](../../../packages/cli/src/lib/codex-app-server-support.js)生成，支持说明带有漂移检查。生产入口继续走 `codex exec --json`，App Server 是独立的默认关闭实验模块。适配器的 `support` 只表示清单声明；`protocol`、`fallbackReason` 和 `fallbackSuppressed` 分别描述实际协议、提前回退和防重复提交状态。自定义探针允许列表标为 `override`，不会改变清单或生产准入。详见[本批验证与剩余验收](./cli-ide-codex-compatibility-progress-2026-10-28.md)。
+
+**第十批补充。** `.164` 已加入探针配置，并保存该版本生成器未经修改的 schema；`.160` 和 `.164` 的 Windows 原生进程均在同一准确源码提交上通过事件交错、取消、断流、重启恢复和历史游标分页。恢复读取未触发模型请求，继续执行保留原线程上下文，两个线程互不混入。该结果仅覆盖本地模拟 provider 的 Windows 协议旅程；完整三系统门禁及真实模型任务仍待验证。详见[回执与复现命令](./cli-ide-codex-history-progress-2026-10-28.md)。
+
+**第十一批补充。** 三系统运行发现原先串行创建线程的本地样本没有覆盖默认游标的碰撞边界。当前恢复旅程并发创建线程，显式使用 `useStateDbOnly:true`、`sortKey:recency_at`，报告具体查询路径及同秒样本状态。该查询路径已通过 `.160` / `.164` × 三系统的准确源码 CI 及制品回读；默认 rollout 扫描及旧版 `created_at` 数据库分页保留未验收状态。允许列表及生产准入未扩大，完整结果见[实施记录](./cli-ide-codex-ci-progress-2026-10-28.md)。
+
+**核对基线（2026-10-27）。** 当时存在三个不同范围：
+
+| 范围                                    | 核对值                                     |
+| --------------------------------------- | ------------------------------------------ |
+| 默认 App Server compatibility allowlist | `0.149.0`、`0.150.0`、`0.150.1`、`0.154.0` |
+| CI schema / 真进程探针                  | `0.160.0`                                  |
+| 本次官方最新 CLI 条目                   | `0.164.0`                                  |
+
+因此“已有 `.160` 探针”不等于默认生产适配已经支持 `.160`，更不等于支持 `.164`。严格允许列表本身是合理边界，差距在支持证据更新与用户可见状态。
+
+**建议。** 用统一兼容清单分别表达测试覆盖、默认启用、生产准入及 fallback 原因。对目标新版本验证 schema、事件交错、取消、断流、恢复和历史分页；验证后更新相应范围，不直接放宽版本匹配。
+
+**验收。** 三系统固定版本探针和身份核验通过；用户能知道实际走 App Server 还是 `exec --json`。已接受任务遇到协议问题时，不能由 fallback 再启动一次任务；项目已有相关防重复机制，应继续覆盖。
+
+证据：[默认允许列表](../../../packages/cli/src/lib/codex-app-server-adapter.js)第 5 行附近；[兼容工作流](../../../.github/workflows/codex-app-server-compatibility.yml)约 76 行。对照：[App Server 官方合同](https://learn.chatgpt.com/docs/app-server)。
+
+### 4.7 MCP 与上下文：同时衡量目录规模、检索质量和真实费用
+
+**事实。** MCP 延迟逻辑将完整 schema 换成 stub，但仍将每个工具的 stub 放进工具列表，目录成本继续随工具数量线性增长。搜索按空格、逗号分词，对名称与描述做 `includes` 加权；中文、同义词和跨语言查询的效果需要单独测量。
+
+上下文 ledger 明确标记 `currentRequestVerified:false`、`billingVerified:false`；现有 benchmark 也标记未测 provider usage、未完成质量评估。已有目录节省数字不能直接解读为同等幅度的真实费用下降。
+
+**建议。** 在 provider 支持的路径上使用紧凑的 server / namespace 目录，按查询展开候选 schema；复用项目已有检索组件，补中文分词、别名和必要的语义召回。在最终请求组装位置统一记录实际注入来源，分别计算估算、真实 usage、缓存、压缩和重试成本。
+
+**验收。** 在 200 / 1000 / 5000 工具下测首请求 token、Recall@5、误调用率与搜索次数；用固定真实任务做 A/B，报告总费用、请求数、通过率和人工接管。上下文下降时关键约束保留率不退步，权限撤销和旧 schema 失效行为保持一致。明确技能调用不能因目录裁剪丢失。
+
+证据：[MCP 延迟与搜索](../../../packages/cli/src/runtime/mcp-tool-search.js)约 286、458 行；[上下文 ledger](../../../packages/cli/src/lib/context-source-ledger.js)约 134 行；[现有 benchmark](../../../packages/cli/scripts/implementation-plan-context-benchmark.mjs)。对照：[Claude MCP 工具发现](https://code.claude.com/docs/en/mcp)。
+
+### 4.8 Memory 性能：已有索引，继续减少无关读取与同步工作
+
+**事实。** Memory 默认仍走 `validate-disk`；读取索引会读取字节并校验摘要，分页路径遍历分片，并在锁内执行部分操作。已有 `verified-memory` 显式缓存模式，不应再次立项“增加缓存”。
+
+原计划记录的 100K 样本中，显式缓存热查询 p95 约 **854ms**、冷查询约 **2216ms**、重建约 **15.5s**，只有五次采样。这是历史特定环境数据，不能当成本次 HEAD 的性能结果或可靠 SLO。
+
+**建议。** 先固定硬件和数据集，增加分片过滤信息，减少无关分片读取，将适合的 I/O 与重建移出交互关键路径，缩小锁内工作；继续绑定 authority / generation，保留损坏检测。
+
+**验收。** 每种场景至少 100 次采样，覆盖 1K / 10K / 100K、冷 / 热 / 重建、并发写删和损坏恢复。可先评估热查询 p95 <200ms、冷查询 p95 <1s 的目标可行性；同时报告事件循环延迟、内存与 Stop 响应，确保查询结果与全量扫描一致。
+
+证据：[分片 Memory 实现](../../../packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js)约 173、661、781 行；[原计划的性能记录](./cli-ide-codex-claude-implementation-plan-2026-10-15.md)。
+
+### 4.9 发布状态与渠道：把当前事实从历史叙述中提取出来
+
+**实施进展（2026-10-29）。** [第二十批](./cli-ide-public-docs129-progress-2026-10-29.md)依据公开回执更新根 / CLI / 双 IDE README 和主要用户文档，统一当前 `.129 / .167 / .184` 的安装、来源及验收边界；网站构建与部署另行验收。Microsoft 渠道按用户要求暂缓，保留版本化 VSIX 安装路径。
+
+**当前执行范围（2026-10-29）。** 按用户要求，Microsoft Marketplace 暂缓，本轮不配置或发布该渠道，也不以其未发布阻塞其他任务。下文相关事实保留作历史记录；本轮渠道工作聚焦 Open VSX、JetBrains 及现有安装路径。
+
+**实施进展（2026-10-28）。** 三系统兼容工作期间，IDE CI 检出 VS Code README 缺少当前公开 `.166 / .128` 的状态标记及配对元数据。已按现存发行回执补齐结构、保留历史记录，并通过完整单元测试及不可变候选 CI。该修复不构成新发行，Microsoft Marketplace 仍按原状态跟踪。见[第十一批记录](./cli-ide-codex-ci-progress-2026-10-28.md)。
+
+**事实。** 主计划顶部、10 月 26 日记录与 10 月 27 日公开回执存在时间差；发行过程中也出现过旧版本断言、README 配对和 Marketplace 元数据不一致导致的失败。现有门禁正确挡住了这些问题，说明上游元数据来源仍值得统一。
+
+Microsoft Marketplace 仍未发布，原版 VS Code 商店安装与后续升级体验尚缺该渠道证明。键盘和读屏器的真人旅程也不能由单元测试替代。
+
+**建议。** 从统一机器状态生成当前版本、推荐配对、支持边界与剩余验收摘要；历史记录保留日期，不让历史状态继续占据“当前状态”位置。本轮完善 Open VSX / VSIX 与 JetBrains 的公开回读和安装说明；Microsoft 渠道配置及公开回读暂缓。
+
+**验收。** 主计划当前摘要、根 README、CLI README、双 IDE README 的当前版本和推荐关系一致；干净 profile 在本轮支持的 Open VSX / VSIX、JetBrains 路径完成发现、安装、CLI 识别、首次任务、升级、重启恢复；真人键盘 / 读屏器检查单独记载。Microsoft 商店旅程不计入本轮完成条件。
+
+该渠道的凭据配置仅涉及 VS Code Marketplace。npm 继续采用现有 GitHub Actions OIDC Trusted Publishing，保持子 npm 包 → CLI → IDE → 客户端的发行顺序与准确提交门禁。
+
+证据：[最新发布回执及失败尝试](../cli/evidence/release127-public/publication.json)、[VS Code 当前 README](../../../packages/vscode-extension/README.md)、[10 月 26 日历史记录](./cli-ide-recovery-progress-2026-10-26.md)。
+
+### 4.10 核心代码维护：按状态与能力边界逐步拆分
+
+**事实。** 当前 `agent-core.js` 约 1.76 万行、`agent-repl.js` 约 1.07 万行、`headless-runner.js` 约 4700 行。文件规模不直接证明缺陷，但完成判断、usage、恢复、权限和上下文在多入口接线，增加了组合验证与修改成本。
+
+**建议。** 围绕会话状态、完成验收、provider 调用、上下文组装提取可独立验证的模块，维持共享事件合同。随实际功能修复逐步整理，保留入口之间有意设计的差异，避免另建平行 runtime。
+
+**验收。** 同一任务跨入口的状态与事件可比较；修改影响范围缩小；故障用例可在独立模块运行。以回归定位与行为一致性衡量收益，不以拆出的文件数量验收。
+
+证据：[Agent Core](../../../packages/cli/src/runtime/agent-core.js)、[Agent REPL](../../../packages/cli/src/repl/agent-repl.js)、[Headless Runner](../../../packages/cli/src/runtime/headless-runner.js)。
+
+### 4.11 正式付费与 native：按明确范围逐步完成准入
+
+**事实。** 最新公开回执与 readiness 仍保留付费和完整 native 的限制。项目已有预算 authority、受守护传输和多平台沙箱；缺口包括未覆盖出口与宿主集成，以及相应范围的生产验证。
+
+**建议。** 用“平台 × provider × 入口 × 进程类型”定义承诺范围，先完成一个目标生产宿主的闭环，再扩展。压缩、重试、worker、后代进程的请求都应有可追溯的预算记录；未知用量保留未决状态。
+
+**验收。** 请求预留与结算一致；并发、取消、崩溃、回滚与恢复不会造成重复额度或失真账本。只有对应出口与宿主组合通过后，才调整该范围的 readiness。历史共享预算不能因复测而重置。
+
+`HOLD` 是自动晋升的治理状态，本身不是应当消除的竞品差距；应按既有复核条件处理。
+
+证据：[预算 readiness](../../../packages/cli/src/lib/formal-budget-transport.js)、[平台沙箱](../../../packages/cli/src/lib/process-execution-broker/platform-sandbox.js)、[最新状态](../cli/evidence/release127-public/publication.json)。
+
+## 5. 将上游修复转成项目回归候选
+
+以下来自本次官方更新，值得映射到现有路径后测试；未复现前不作为本项目已确认缺陷：
+
+| 回归候选                               | 本项目需要验证的结果                         |
+| -------------------------------------- | -------------------------------------------- |
+| MCP 资源读取或技能下载迟迟未返回时取消 | 取消及时生效，子任务退出状态可解释           |
+| 压缩失败或摘要不完整                   | 原有效上下文继续可用，失败摘要不成为恢复依据 |
+| 压缩前刚修改项目规则或 Memory          | 后续使用正确版本的约束，不重新读入旧内容     |
+| 子代理启动后 MCP 才完成连接            | 工具目录按既有能力与权限规则刷新             |
+| 子代理结束但其后台后代仍在工作         | worktree 生命周期覆盖实际使用者              |
+| 重启后恢复会话设置与后台技能           | 保留会话配置，完成过的副作用不因恢复再次执行 |
+
+来源：[Claude Code 更新](https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md)、[Codex 更新](https://learn.chatgpt.com/docs/changelog)。
+
+可列入后续体验候选的还有可复用提示、配置快捷操作、终端图片预览和 MCP 服务端长任务。应先盘点已有对应实现，再按用户频率排序；本次不把它们直接列为缺失功能。原生 computer use、云端任务和跨设备控制需要独立需求与评测，不适合挤占当前任务交付与恢复优化。
+
+## 6. 建议执行顺序
+
+1. **统一当前状态。** 更新版本、配对、支持边界与剩余验收入口，消除已发布能力仍被标为待办的问题。
+2. **强化任务完成与恢复。** 修正默认 judge 的证据输入，处理 Goal 检查点失败，落实跨入口故障回归。
+3. **改善实际入口。** 对齐模型推荐与能力目录，区分会话配置和全局配置，完善 Open VSX / VSIX、JetBrains 安装与真人操作旅程；Microsoft 渠道按用户要求暂缓。
+4. **刷新兼容与能力证据。** 分别更新模型 API 合同、上游字段变化审查、Codex 默认支持和探针覆盖。
+5. **验证效率收益。** 优化 MCP 检索与目录规模，建立最终请求归因，再依据固定任务 A/B 和 Memory 基线决定默认策略。
+6. **结案真实任务。** 在所需预算与宿主条件满足后继续处理当前剩余 11 项未合格产物，以及另列的原生恢复缺口；将当前版本结果与历史累计覆盖分开发布。
+
+这些工作可并行推进；涉及付费模型的步骤受其对应预算条件约束。每轮交付应同时回答：用户成功完成了什么、如何验证、失败如何恢复、花费是否可解释、哪些范围仍未验证。
+
+## 7. 初次核对范围（2026-10-27）
+
+- 实际读取最新官方页面及 Claude 原始 CHANGELOG；复核旧计划及后续记录。
+- 检查当前源码、模型目录、IDE 配置、完成验收、MCP 搜索、Memory 路径、兼容工作流与发行回执。
+- 运行本地纯函数探针核对模型 profile 回退和 Codex 默认版本匹配；统计剩余任务类别。
+- 本次仅新增本报告；未修改产品代码、触发发布、执行付费请求或将历史测试冒充为本次运行结果。

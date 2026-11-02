@@ -1225,9 +1225,9 @@ npx.cmd --no-install vitest run __tests__/unit/session-branch-ownership-regressi
 [check-first-run-darwin-vscode]: ./verify01-openai-135/retest-six-99b93fc209/receipts/first-run-darwin-vscode-check.json
 [accepted32]: ./evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json
 [round128]: ./evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028.json
-[volc131]: ../cli-ide-native-retest131-progress-2026-10-29.md
-[volc132]: ../cli-ide-native132-first-run-progress-2026-10-30.md
-[assisted5]: ../cli-ide-assisted-0413-install-progress-2026-10-30.md
+[volc131]: ../cli-ide/cli-ide-native-retest131-progress-2026-10-29.md
+[volc132]: ../cli-ide/cli-ide-native132-first-run-progress-2026-10-30.md
+[assisted5]: ../cli-ide/cli-ide-assisted-0413-install-progress-2026-10-30.md
 [readiness]: ./verify01-plan-2026-10-13-volcengine/execution-readiness.json
 [openai136]: ./verify01-openai-136/retest-five-23e26368c8/REPORT.md
 [openai136-image]: ./verify01-openai-136/retest-image-cc568f4821/REPORT.md

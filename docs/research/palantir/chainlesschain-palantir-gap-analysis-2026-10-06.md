@@ -16,7 +16,7 @@
 
 - 本地源码：`main@c630b646589a9923711992a8d358cd9f83bd4f9c`，审计开始时工作区干净。
 - 本地 CLI 源码版本：`0.166.89`。源码候选、公开安装包和已验收能力分别判断。
-- 用户指定参考：[CLI 分析](../cli/cli-claude-code-codex-gap-analysis-2026-10-05.md)、[IDE 分析](../ide/ide-claude-code-codex-gap-analysis-2026-10-05.md)。同时读取[后续实施状态](../cli-ide-gap-implementation-2026-10-05.md)和[续做验证记录](../cli-ide-gap-validation-2026-10-05.md)，避免重新立项已修复问题。
+- 用户指定参考：[CLI 分析](../cli/cli-claude-code-codex-gap-analysis-2026-10-05.md)、[IDE 分析](../ide/ide-claude-code-codex-gap-analysis-2026-10-05.md)。同时读取[后续实施状态](../cli-ide/cli-ide-gap-implementation-2026-10-05.md)和[续做验证记录](../cli-ide/cli-ide-gap-validation-2026-10-05.md)，避免重新立项已修复问题。
 - Palantir 平台范围：Foundry、Ontology、AIP、Workshop、Apollo。Gotham 的专门业务能力不作为本项目默认建设目标。
 - GitHub 范围：[Palantir 组织](https://github.com/palantir)中的 12 个相关仓库。筛选参考语言、用途和维护状态；并非对组织所有仓库的完整审计。
 - 重点源码阅读：`osdk-ts` 的业务操作定义与调用实现，以及 `dialogue` 的重试与并发限制实现。其余仓库阅读 README 相关段落和元数据。
@@ -32,7 +32,7 @@
 | 历史证据 | 引用仓库绑定既定 SHA 和环境的回执，本次未重跑                |
 | 官方声明 | Palantir 文档或开源代码说明的能力，未在其真实租户中比较测试  |
 
-两份参考报告正文保留了原审计快照。后续模型目录、Memory 查询索引、IDE Doctor 与冷启动等已有实现，不再按原缺项重开。`6196cd065d` 的 Docker review pack 已有 36/36 题、42 个反例通过的归档；这属于工程验证。正式 36 项真实任务与 9 次首次安装仍为 `NOT_RUN`，不能据此宣布真实任务完成率或产品优劣。[续做验证记录](../cli-ide-gap-validation-2026-10-05.md)
+两份参考报告正文保留了原审计快照。后续模型目录、Memory 查询索引、IDE Doctor 与冷启动等已有实现，不再按原缺项重开。`6196cd065d` 的 Docker review pack 已有 36/36 题、42 个反例通过的归档；这属于工程验证。正式 36 项真实任务与 9 次首次安装仍为 `NOT_RUN`，不能据此宣布真实任务完成率或产品优劣。[续做验证记录](../cli-ide/cli-ide-gap-validation-2026-10-05.md)
 
 本次执行了四组局部探针，没有修改产品代码，没有调用付费模型、Palantir 实例或真实连接器，也没有重跑产品测试和发布流程。
 
