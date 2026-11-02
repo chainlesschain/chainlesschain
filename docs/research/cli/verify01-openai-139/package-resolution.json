@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-02T12:11:06.211Z",
+  "executionSource": "752ea472248bc1d88f4258f8e4013fa49f9e1fd2",
+  "manifestPath": "docs/research/cli/verify01-package-sets/2026-11-02-openai-139.json",
+  "manifestDigest": "sha256:a48b24ac633edc21459013a3b378897ce74cb47c2ae796096e6189d3eaa36ea6",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "sourceCommits": {
+    "cli": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+    "openVsx": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+    "jetbrains": "eec8b97b6040d19004670bfead0bec1b8a27b71b"
+  },
+  "distribution": "mixed-public-and-official-artifact",
+  "cliMatchesOfficialNpmReadback": true,
+  "vscodeMatchesOfficialPayload": true,
+  "vscodeArchiveByteIdentical": true,
+  "jetbrainsOriginalOfficialArtifact": true,
+  "marketplaceApprovalClaimed": false,
+  "modelRequests": 0,
+  "artifacts": {
+    "npm": {
+      "id": 13135761465,
+      "node_id": "MDg6QXJ0aWZhY3QxMzEzNTc2MTQ2NQ==",
+      "name": "chainlesschain-npm-readback-eec8b97b6040d19004670bfead0bec1b8a27b71b",
+      "size_in_bytes": 334615,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13135761465",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13135761465/zip",
+      "expired": false,
+      "digest": "sha256:6f6d9f8f69d064d4e3f78171bb8e1fe5edfab0ec20c872d45416585180ece1d9",
+      "created_at": "2026-11-02T11:01:35Z",
+      "updated_at": "2026-11-02T11:01:35Z",
+      "expires_at": "2027-01-31T10:48:16Z",
+      "workflow_run": {
+        "id": 41431711290,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "v-npm-0-166-139",
+        "head_sha": "eec8b97b6040d19004670bfead0bec1b8a27b71b"
+      }
+    },
+    "vscode": {
+      "id": 13136590253,
+      "node_id": "MDg6QXJ0aWZhY3QxMzEzNjU5MDI1Mw==",
+      "name": "chainlesschain-ide-vscode-candidate",
+      "size_in_bytes": 732198,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13136590253",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13136590253/zip",
+      "expired": false,
+      "digest": "sha256:00e082a89fe34ae9c25545913c98b6c6b40925ca568e4ca98455a8760439d9e6",
+      "created_at": "2026-11-02T11:14:09Z",
+      "updated_at": "2026-11-02T11:14:09Z",
+      "expires_at": "2027-01-31T11:12:48Z",
+      "workflow_run": {
+        "id": 41434982503,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "ide-vscode-v0.37.175",
+        "head_sha": "eec8b97b6040d19004670bfead0bec1b8a27b71b"
+      }
+    },
+    "jetbrains": {
+      "id": 13136934549,
+      "node_id": "MDg6QXJ0aWZhY3QxMzEzNjkzNDU0OQ==",
+      "name": "chainlesschain-ide-jetbrains-1",
+      "size_in_bytes": 1556094,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13136934549",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13136934549/zip",
+      "expired": false,
+      "digest": "sha256:b55a4681a2c4417fc62f18f8645c7b033cb252fc2b976da38581b9548551dce3",
+      "created_at": "2026-11-02T11:41:23Z",
+      "updated_at": "2026-11-02T11:41:23Z",
+      "expires_at": "2027-01-31T11:12:48Z",
+      "workflow_run": {
+        "id": 41434982670,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "ide-jetbrains-v0.4.192",
+        "head_sha": "eec8b97b6040d19004670bfead0bec1b8a27b71b"
+      }
+    }
+  }
+}
