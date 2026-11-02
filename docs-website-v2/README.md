@@ -1,16 +1,16 @@
 # ChainlessChain 官方网站
 
-`www.chainlesschain.com` 的 Astro 源码。2026-10-29 已核验公开版本：CLI **0.166.131** / Kernel **0.1.11**、Open VSX **0.37.169**、JetBrains **0.4.186**；两个 IDE 均推荐 CLI `.131`，来源 `c9d0bab231`。移动与 PC 产品保持独立 **v5.0.3.143**，Microsoft Marketplace 暂缓。
+`www.chainlesschain.com` 的 Astro 源码。2026-11-02 核对：CLI **0.166.138** / Agent SDK **0.2.17**、Open VSX **0.37.174** 已公开核验；JetBrains **0.4.191** 已获 Marketplace 批准并公开列出（update `1209507`）；公开 ZIP 与正式构建的负载一致性仍待核验。 两个新插件推荐 CLI .138。四项公开包复验 **2/4**、前轮 .137 **0/5**、历史 **41/45** 单列。PC / 移动端继续独立 **v5.0.3.143**。
 
 ## 内容来源
 
 - `src/data/release-status.json`：经过发行门禁及公共回读的版本、源码与验收边界。
 - `src/data/release-sizes.json`：原生产品下载文件大小缓存。
-- `src/components/SourceUpdate.astro`：中英文版本、输入预算及恢复说明。
+- `src/components/SourceUpdate.astro`：中英文版本、源码交付、任务保留与复验边界。
 - `src/pages/`：官网中英文页面。
 - `../docs/design/`：设计文档权威源；两个 VitePress 站点通过同步脚本复制。
 
-更新公开版本前，核对 `../docs/research/cli/evidence/release131-public/publication.json` 等对应发行回执。保留 CLI、IDE、原生产品的独立源码与版本，历史真实模型验收统计继续注明所属轮次。
+更新公开版本前，核对 `../docs/research/cli/evidence/release138-public/README.md` 等对应发行回执。保留 CLI、IDE、原生产品的独立源码与版本，历史真实模型验收统计继续注明所属轮次。
 
 ## 本地构建
 

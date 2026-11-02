@@ -10,7 +10,7 @@ const VSCODE_CLI_VERSION = releaseStatus.openVsxRecommendedCliVersion;
 const JETBRAINS_CLI_VERSION = releaseStatus.jetBrainsRecommendedCliVersion;
 const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsDisplayZh;
 const JETBRAINS_CANDIDATE = releaseStatus.jetBrainsCandidateVersion;
-const JETBRAINS_PENDING = ["pending-review", "pending-approval", "published-unverified"].includes(
+const JETBRAINS_PENDING = ["pending-review", "pending-approval", "published-unverified", "uploaded_public_listing_pending"].includes(
   releaseStatus.jetBrainsPublicationStatus,
 );
 const CLI_RELEASE_COMMIT = releaseStatus.cliReleaseCommit.slice(0, 10);
@@ -109,14 +109,14 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
         <p class="mt-3 text-sm text-muted">
           Open VSX {VSCODE_VERSION} 已公开，推荐 CLI {
             releaseStatus.openVsxRecommendedCliVersion
-          }；操作期间延后周期刷新，并按面板丢弃过期投影。已核验公开 JetBrains {
+          }；操作期间延后周期刷新，并按面板丢弃过期投影。商店已批准 JetBrains {
             JETBRAINS_VERSION
           } 推荐 CLI {releaseStatus.jetBrainsRecommendedCliVersion}。
           {
             JETBRAINS_PENDING && (
               <>
                 候选 {JETBRAINS_CANDIDATE}{" "}
-                已通过宿主门禁，已上传，公开上架与下载待核验。
+                已通过正式发布工作流并上传，推荐 CLI {releaseStatus.jetBrainsCandidateRecommendedCliVersion}，公开上架与下载待核验。
               </>
             )
           }
@@ -133,7 +133,7 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
           权限写入前撤销旧 Shell
           许可；恢复规则不恢复旧许可，跨进程即时通知仍待闭合。 JetBrains{" "}
           {JETBRAINS_VERSION}{" "}
-          保留审批卡片布局和宿主诊断；候选 .162 增加检查点菜单交接与状态失效检查。升级公开版本后重启
+          保留审批卡片布局和宿主诊断；当前 {JETBRAINS_CANDIDATE} 已获商店批准，公开 ZIP 负载核验待完成。升级后重启
           IDE 并运行 Doctor。公开 VS Code {VSCODE_VERSION} 推荐 CLI{" "}
           {releaseStatus.openVsxRecommendedCliVersion}
           ，已继承初始化超时回收和模式选择器。JetBrains 在写入桥接 token 前验证 Windows

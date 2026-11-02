@@ -1,13 +1,15 @@
 # CLI 0.166.138 / IDE publication evidence
 
+2026-11-02 follow-up: Marketplace now lists **approved JetBrains 0.4.191**, update **1209507**. Independent public ZIP payload comparison remains pending. The dated publication snapshot and original pending-review test artifact identity below are retained. [Current listing observation](./jetbrains191-marketplace-listing-2026-11-02.json).
+
 Release source: `e42ea07b6da7ab2c3eb709002448b32d5fedf535`. The user explicitly waived five-task success before publication; exact-source release gates and registry verification remain required.
 
-| Component | Version | Verified state | Authority |
-| --- | --- | --- | --- |
-| Agent SDK | 0.2.17 | Public bytes and signed provenance verified before CLI | [Official OIDC run](https://github.com/chainlesschain/chainlesschain/actions/runs/41313099948) |
-| CLI | 0.166.138 | Public registry bytes, clean installation/startup and signed provenance verified | [Official OIDC run](https://github.com/chainlesschain/chainlesschain/actions/runs/41313099948) |
-| Open VSX | 0.37.174 | Tagged publication workflow succeeded, including public VSIX verification | [Tagged run](https://github.com/chainlesschain/chainlesschain/actions/runs/41316653600) |
-| JetBrains | 0.4.191 | uploaded; awaiting Marketplace approval/listing | [Tagged run](https://github.com/chainlesschain/chainlesschain/actions/runs/41327724484) |
+| Component | Version   | Verified state                                                                   | Authority                                                                                      |
+| --------- | --------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Agent SDK | 0.2.17    | Public bytes and signed provenance verified before CLI                           | [Official OIDC run](https://github.com/chainlesschain/chainlesschain/actions/runs/41313099948) |
+| CLI       | 0.166.138 | Public registry bytes, clean installation/startup and signed provenance verified | [Official OIDC run](https://github.com/chainlesschain/chainlesschain/actions/runs/41313099948) |
+| Open VSX  | 0.37.174  | Tagged publication workflow succeeded, including public VSIX verification        | [Tagged run](https://github.com/chainlesschain/chainlesschain/actions/runs/41316653600)        |
+| JetBrains | 0.4.191   | uploaded; awaiting Marketplace approval/listing                                  | [Tagged run](https://github.com/chainlesschain/chainlesschain/actions/runs/41327724484)        |
 
 Install `npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`, restart the chat host, then run `cc --version` and `cc doctor`. Both new IDE versions recommend CLI 0.166.138. Microsoft Marketplace remains deferred; PC/mobile remain independent. Kernel stays 0.1.11.
 
@@ -15,7 +17,7 @@ The exact source passed [CLI CI](https://github.com/chainlesschain/chainlesschai
 
 [Official public proof](./cli-official-public-proof.json) records the completed OIDC workflow and successful SDK/CLI registry/provenance/readback steps. Its uploaded `chainlesschain-npm-readback-e42ea07b6da7ab2c3eb709002448b32d5fedf535` artifact contains the public readback receipts. The cached publish-job status predates final cleanup; the overall run and all required publication/readback steps are successful. This is the official independent registry readback, performed within the OIDC workflow, and does not depend on a second standalone dispatch. Immutable .137 stopped before CLI upload at the SDK source-tree guard; its tag was retained. SDK 0.2.17 repairs whole-tree source alignment without changing its generated runtime bytes.
 
-The latest recorded .137 cohort remains **0/5** end-to-end; .138 ran **no new model cohort**. Historical cumulative acceptance remains **41/45**; the separate focused image follow-up remains **0/1**. Independent candidate engineering checks are not counted as successful model tasks. Remaining review-scheduling, partial-source and generated-assertion limitations are preserved. [Original model results](../../verify01-openai-137/README.md).
+At publication, the latest recorded .137 cohort was **0/5** end-to-end and .138 had run **no new model cohort**. That publication-time snapshot is retained in `publication.json`. The subsequent public .138 four-sample retest completed on 2026-11-02 with **2/4** accepted: first-run VS Code and verify-13 passed, while verify-08 and verify-36 exhausted 20/20 author turns before review despite passing independent candidate tests. Usage was complete for 80/80 physical requests. Historical cumulative acceptance remains **41/45**, and the separate image follow-up remains **0/1**; these scopes are not combined into a full .138 success rate. [Current public retest](../../verify01-openai-138/README.md) · [Previous .137 results](../../verify01-openai-137/README.md).
 
 [Machine-readable publication status](./publication.json).
 

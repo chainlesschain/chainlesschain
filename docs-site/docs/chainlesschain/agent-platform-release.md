@@ -2,13 +2,13 @@
 
 <!-- release138-current:start -->
 
-## CLI 0.166.138 已公开（2026-11-01）
+## CLI 0.166.138 已公开（2026-11-02 核对）
 
-CLI **0.166.138** 与上游 Agent SDK **0.2.17** 已通过 GitHub Actions OIDC 发布。安装：`npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`，升级后重启 `cc ui` 与 IDE 聊天宿主，并运行 `cc --version`、`cc doctor`。Open VSX **0.37.174** 发布工作流成功，推荐 CLI **0.166.138**。JetBrains **0.4.191** 已上传 Marketplace，等待人工审核/公开上架。两个新插件均推荐 CLI **0.166.138**。
+CLI **0.166.138** 与上游 Agent SDK **0.2.17** 已通过 GitHub Actions OIDC 发布。安装：`npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`，升级后重启 `cc ui` 与 IDE 聊天宿主，并运行 `cc --version`、`cc doctor`。Open VSX **0.37.174** 发布工作流成功，推荐 CLI **0.166.138**。JetBrains **0.4.191** 已获 Marketplace 批准并公开列出（update `1209507`）；公开 ZIP 与正式构建的负载一致性仍待核验。两个新插件均推荐 CLI **0.166.138**。
 
 准确源码 `e42ea07b6da7ab2c3eb709002448b32d5fedf535` 通过完整三平台 CLI CI（75 项必需任务成功，1 项可选 PR 演练跳过）及 Strict Sandbox（6/6）。[正式 OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/41313099948)包含 SDK 与 CLI 的公开重新下载、不可变字节、安装启动及来源签名核验；完成这些步骤后才创建 IDE 发布标签。SDK 0.2.17 修正整棵源码树的版本/签名对应关系，运行时代码未改变。
 
-本版修复源码被省略后误记已读、压缩丢失原始任务等问题。最近 .137 五项模型整体验收仍为 **0/5**，.138 未开展新一轮模型测试，历史 **41/45** 与图像单项 **0/1** 分别保留。用户已允许先发布。后续独立复核调度、未被证明的局部源码片段、生成断言的正确性与完整性仍有未解决限制。Kernel **0.1.11**；Microsoft Marketplace 暂缓，PC/mobile 保持独立版本。
+本版修复源码被省略后误记已读、压缩丢失原始任务等问题。公开 .138 四项复验 **2/4** 通过：首次 VS Code 运行与 verify-13 通过；verify-08、verify-36 虽通过独立候选测试，但作者阶段耗尽 **20/20** 轮，未进入独立审阅，仍失败。**80/80** 个物理请求用量完整，已通过项后续跳过。前轮 .137 **0/5**、历史 **41/45** 与图像单项 **0/1** 分别保留，不混算为本版完整成功率。Kernel **0.1.11**；Microsoft Marketplace 暂缓，PC/mobile 保持独立 **v5.0.3.143**。[本版升级指南](./cli-ide-update-2026-11-02-138) · [原始复验记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/verify01-openai-138/README.md)。
 
 [发行证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release138-public/README.md) · [Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/41316653600)。
 
