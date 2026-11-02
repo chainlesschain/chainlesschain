@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.published-engine-unfinished-retest/v1",
   "createdAt": "2026-11-02",
-  "status": "prepared-credential-location-provided",
+  "status": "prepared-after-zero-model-request-infrastructure-fix",
   "scope": "two-historically-unfinished-after-publication",
   "provider": "openai",
   "model": "gpt-6.1-sol",
@@ -9,13 +9,13 @@
   "formalSample": false,
   "reviewChanges": true,
   "projectSource": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
-  "projectRevisionFile": "docs/research/cli/verify01-openai-139/project-revision.json",
+  "projectRevisionFile": "docs/research/cli/verify01-openai-137/public139-project-revision.json",
   "projectRevisionDigest": "sha256:d5f452d3d70c783f1b386d802da4bca6c70e587d9e519e6a5ff7b0ad09d147f7",
   "packageSelection": "latest",
   "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-02-openai-139.json",
-  "packageSetDigest": "sha256:a48b24ac633edc21459013a3b378897ce74cb47c2ae796096e6189d3eaa36ea6",
+  "packageSetDigest": "sha256:c0375fdebd091e42e73cb238ea7bef4e13cf74a696069ac06988ea8d344d2ea7",
   "packageResolutionPath": "docs/research/cli/verify01-openai-139/package-resolution.json",
-  "packageResolutionDigest": "sha256:1b4238baa487b670859f261d5e18337440a7616ac714141adff8657ff7c681a4",
+  "packageResolutionDigest": "sha256:df89a364ae0a55e4a911d9f808e1318a25d3e0ea197ee3f51cccaae9fe7bda27",
   "versions": {
     "cli": "0.166.139",
     "vscode": "0.37.175",
@@ -111,5 +111,14 @@
     "total": 4,
     "path": "docs/research/cli/verify01-openai-138/public-c472d664eb/results.json",
     "changed": false
+  },
+  "priorInfrastructureAttempt": {
+    "source": "605d1da3ba9846c274962e28a355164c0e1dc63d",
+    "vscodeRunId": 41443770821,
+    "jetbrainsRunId": 41443782209,
+    "vscodeModelRequests": 0,
+    "vscodeFailure": "Project revision path rejected before broker creation",
+    "jetbrainsCancellationRequestedWhileQueued": true,
+    "paidRetry": false
   }
 }

@@ -31,6 +31,7 @@ test("rejects absent credentials, retries, wrong source references and changed t
   for (const change of [
     { selectedSampleIds: [...plan.selectedSampleIds, "verify-19"] },
     { reviewChanges: false },
+    { projectRevisionFile: "docs/research/cli/verify01-openai-139/project-revision.json" },
     { maximumPhysicalRequestsAcrossSelectedSamples: 96 },
     { versions: { ...plan.versions, cli: "0.166.138" } },
     { requestBudgets: { ...plan.requestBudgets, modelTurns: 40 } },

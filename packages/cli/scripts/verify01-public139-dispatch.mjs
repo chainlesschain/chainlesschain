@@ -37,6 +37,11 @@ export function assertAuthorizedPublic139Dispatch(
     "Repository OpenAI credential is missing; no model dispatch allowed",
   );
   assert.deepEqual(plan.selectedSampleIds, ids);
+  assert.match(
+    plan.projectRevisionFile,
+    /^docs\/research\/cli\/verify01-openai-137\/[A-Za-z0-9._-]+\.json$/u,
+    "Revision path must satisfy the native campaign entry contract",
+  );
   assert.equal(plan.provider, "openai");
   assert.equal(plan.model, "gpt-6.1-sol");
   assert.equal(plan.reviewChanges, true);
