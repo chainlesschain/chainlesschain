@@ -6,7 +6,12 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 
-const dispatch = JSON.parse(fs.readFileSync("docs/research/cli/verify01-openai-139/dispatch.json", "utf8"));
+const dispatch = JSON.parse(
+  fs.readFileSync(
+    "docs/research/cli/verify01-openai-139/dispatch.json",
+    "utf8",
+  ),
+);
 assert.equal(dispatch.allSubmitted, true);
 assert.deepEqual(dispatch.selectedSampleIds, ["verify-08", "verify-36"]);
 assert.equal(dispatch.provider, "openai");
@@ -14,7 +19,8 @@ const source = dispatch.source;
 assert.match(source, /^[a-f0-9]{40}$/u);
 const repo = "chainlesschain/chainlesschain";
 const output = `docs/research/cli/verify01-openai-139/public-${source.slice(0, 10)}`;
-const retryPath = "docs/research/cli/verify01-openai-139/jetbrains-capacity-retry.json";
+const retryPath =
+  "docs/research/cli/verify01-openai-139/jetbrains-capacity-retry.json";
 const capacityRetry = fs.existsSync(retryPath)
   ? JSON.parse(fs.readFileSync(retryPath, "utf8"))
   : null;
@@ -31,17 +37,23 @@ if (capacityRetry) {
   assert.equal(capacityRetry.maximumAdditionalPhysicalRequests, 24);
   assert.equal(capacityRetry.submitted, true);
   assert.ok(Number.isSafeInteger(capacityRetry.runId));
-  assert.ok(capacityRetry.annotations.some(a =>
-    a.message === "The job was not acquired by Runner of type hosted even after multiple attempts"));
+  assert.ok(
+    capacityRetry.annotations.some(
+      (a) =>
+        a.message ===
+        "The job was not acquired by Runner of type hosted even after multiple attempts",
+    ),
+  );
 }
-const selections = dispatch.dispatches.map(d => ({
-  id: d.entries === "jetbrains" && capacityRetry ? capacityRetry.runId : d.runId,
+const selections = dispatch.dispatches.map((d) => ({
+  id:
+    d.entries === "jetbrains" && capacityRetry ? capacityRetry.runId : d.runId,
   originalRunId: d.runId,
   group: d.entries === "jetbrains" ? `${d.group}-${d.sampleIds[0]}` : d.group,
   samples: d.sampleIds,
 }));
 assert.equal(selections.length, 2);
-assert.equal(new Set(selections.map(s => s.id)).size, 2);
+assert.equal(new Set(selections.map((s) => s.id)).size, 2);
 const hash = (bytes) =>
   "sha256:" + createHash("sha256").update(bytes).digest("hex");
 const request = (route) =>
@@ -239,13 +251,15 @@ const report = {
   historical45Unchanged: true,
   previous137r3Unchanged: "0/5",
   previous138Unchanged: "2/4",
-  infrastructureRetry: capacityRetry ? {
-    oldRunId: capacityRetry.oldRunId,
-    runId: capacityRetry.runId,
-    priorModelRequestsStarted: 0,
-    hostUnchanged: true,
-    modelAndBudgetsUnchanged: true,
-  } : null,
+  infrastructureRetry: capacityRetry
+    ? {
+        oldRunId: capacityRetry.oldRunId,
+        runId: capacityRetry.runId,
+        priorModelRequestsStarted: 0,
+        hostUnchanged: true,
+        modelAndBudgetsUnchanged: true,
+      }
+    : null,
   physicalRequestsStarted: sumIfComplete("physicalRequestsStarted"),
   usageCompleteRequests: sumIfComplete("usageCompleteRequests"),
   knownTokenOnlyEstimateUsd: sumIfComplete("knownTokenOnlyEstimateUsd"),

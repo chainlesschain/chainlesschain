@@ -119,7 +119,10 @@ async function main() {
   };
   const save = () =>
     fs.writeFileSync(file, JSON.stringify(state, null, 2) + "\n");
-  assert.ok(dry || !fs.existsSync(file), "Existing dispatch journal must be reconciled, never overwritten");
+  assert.ok(
+    dry || !fs.existsSync(file),
+    "Existing dispatch journal must be reconciled, never overwritten",
+  );
   assertAuthorizedPublic139Dispatch(plan, {
     source,
     ref,
@@ -144,7 +147,8 @@ async function main() {
     assert.equal(recorded.packageSetDigest, plan.packageSetDigest);
     assert.match(recorded.source, /^[a-f0-9]{40}$/u);
     const proof = execFileSync("git", [
-      "show", `${recorded.source}:${manifest.publicGeneratorProof.path}`,
+      "show",
+      `${recorded.source}:${manifest.publicGeneratorProof.path}`,
     ]);
     assert.equal(
       "sha256:" + createHash("sha256").update(proof).digest("hex"),
