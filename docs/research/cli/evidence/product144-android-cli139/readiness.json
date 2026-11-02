@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "checkedAt": "2026-11-02T13:07:02.465Z",
+  "checkedAt": "2026-11-02T13:19:38.090Z",
   "productVersion": "v5.0.3.144",
-  "status": "preparing-release-with-authorized-review-exception",
+  "status": "ready-for-client-ci",
   "cli": {
     "version": "0.166.139",
     "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
@@ -36,19 +36,19 @@
   },
   "requiredRollover": {
     "workflow": "internal-binaries-rollover.yml",
-    "status": "prepared-corrected-metadata-publisher",
+    "status": "verified-public",
     "inputs": {
       "from_version": "20261028-1",
       "new_version": "20261102-2",
       "bundle_run_id": "41435036901",
       "cc_cli_sha256": "e8760302604b8f257429a68aaac172158d04dbf798e4e54b1e7252e84806af8f"
     },
-    "runId": null
+    "runId": 41451089241
   },
   "requiredClientRelease": {
     "tag": "v5.0.3.144",
     "workflow": "release.yml",
-    "status": "awaiting-client-CI-and-binary-rollover"
+    "status": "awaiting-client-ci"
   },
   "versionSync": "passed for desktop, Android and iOS",
   "authorization": {
