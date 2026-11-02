@@ -20,3 +20,7 @@ GitHub Actions [包校验 41442467393](https://github.com/chainlesschain/chainle
 - [verify-36 / macOS JetBrains / 41445393011](https://github.com/chainlesschain/chainlesschain/actions/runs/41445393011)
 
 配置、证据及结果跟踪见[草稿 PR #516](https://github.com/chainlesschain/chainlesschain/pull/516)。相关配置、来源绑定与包身份检查共 19 项通过；工程回归不替代真实任务验收。
+
+verify-08 已完成：生成正常结束，21/21 个物理请求用量完整，费用估算 $0.6038099，实际账单未知。独立基线 59/59 通过，候选 0/1 通过，第 78 行错误地要求分支祖先显示行与父会话完整对象相等。显示 ID 依据当前会话与持久事件构建，原始来源由 `sourceEventId` / `sourceItemIndex` 单独保存；既有基线也明确要求父子显示 ID 不相同。Astra 独立核对确认该失败是生成断言错误，不构成产品缺陷证据。候选早期失败，后续断言与行为变异未执行。
+
+verify-36 的 41445393011 未获得 macOS runner：官方注释为 `The job was not acquired by Runner of type hosted even after multiple attempts`，同时提示 macOS ARM64 容量不足。生成作业 `runner_name` 为空、步骤为空，模型请求为 0。已按原配置仅补跑此项，[41448844116](https://github.com/chainlesschain/chainlesschain/actions/runs/41448844116)，原始官方注释与一次性补跑记录见[回执](jetbrains-capacity-retry.json)。保留 macOS 15 ARM64，不替换为 Intel。
