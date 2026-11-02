@@ -109,14 +109,16 @@ describe("headless change-review integration with real file tools", () => {
     };
   }
 
-  it("does not append review when usage is missing with only a USD cap", async () => {
+  it("fails closed without appending review when usage is missing with only a USD cap", async () => {
     const { result, chatFn, events } = await run(
       [write(), reply("Unverified completion", null)],
       { maxCostUsd: 100 },
     );
     expect(chatFn).toHaveBeenCalledTimes(2);
-    expect(result.result).toBe("Unverified completion");
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result).toContain("unknown provider usage");
     expect(events.filter((event) => event.type === "result")).toHaveLength(1);
+    expect(events.find((event) => event.type === "result").is_error).toBe(true);
   });
 
   it("stops before review when the completed response reaches the cost cap", async () => {

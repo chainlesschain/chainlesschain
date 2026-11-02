@@ -77,7 +77,12 @@ import {
   CODING_TASK_QUALITY_GUIDANCE,
   CODING_CHANGE_REVIEW_PROMPT,
 } from "../lib/coding-task-guidance.js";
-import { CodingChangeReviewContext } from "../lib/coding-change-review-context.js";
+import {
+  CodingChangeReviewContext,
+  changeReviewBudgetNotice,
+  changeReviewBudgetInsufficientError,
+  canReserveChangeReview,
+} from "../lib/coding-change-review-context.js";
 import { RemoteReadLoopGuard } from "../lib/remote-read-loop-guard.js";
 import {
   isPrActionRequest,
@@ -15608,6 +15613,37 @@ export async function* agentLoop(messages, options) {
   toolContext.readFileLoopGuard = readFileLoopGuard;
   let lastTaskProgressIntervention = null;
 
+  // Both an author completion and the reserved review window enter the same
+  // phase. Neither path manufactures an author response or adds request budget.
+  const beginChangeReview = (draft = null) => {
+    throwIfAborted(signal);
+    if (budget.remaining() < 2)
+      throw changeReviewBudgetInsufficientError(budget.remaining());
+    if (independentReviewSetupError) throw independentReviewSetupError;
+    changeReviewState.requested = true;
+    const reviewPrompt = markRuntimeOnlySessionMessage({
+      role: "user",
+      content: CODING_CHANGE_REVIEW_PROMPT,
+    });
+    if (draft)
+      appendMessages(
+        markRuntimeOnlySessionMessage({
+          role: "assistant",
+          content: draft.content || "",
+        }),
+      );
+    appendMessages(reviewPrompt);
+    if (independentReviewContext) {
+      independentReviewContext.activate(reviewPrompt);
+      changeReviewState.independentReviewPending = true;
+      readFileLoopGuard = new ReadFileLoopGuard();
+      remoteReadLoopGuard = new RemoteReadLoopGuard();
+      taskProgressTracker = new TaskProgressTracker();
+      toolContext.readFileLoopGuard = readFileLoopGuard;
+      lastTaskProgressIntervention = null;
+    }
+  };
+
   while (budget.hasRemaining()) {
     if (loopMcpCatalog) {
       currentMcpSnapshot = readMcpToolCatalog(loopMcpCatalog);
@@ -15654,6 +15690,25 @@ export async function* agentLoop(messages, options) {
       return;
     }
     readFileLoopGuard.finishBatch();
+    if (
+      canReserveChangeReview({
+        enabled: options.reviewChanges,
+        changed: hasFileContentChanges,
+        requested: changeReviewState.requested,
+        usageKnown: changeReviewState.usageKnown,
+        pendingMutations: pendingSubtreeMutations.size,
+        pendingChildren: backgroundSubAgents.size,
+        remaining: budget.remaining(),
+        limit: budget.limit,
+      })
+    ) {
+      beginChangeReview();
+      yield {
+        type: "iteration-warning",
+        message:
+          "Reserved requests are now assigned to independent change review within the existing budget.",
+      };
+    }
     if (remoteReadLoopGuard.stalled && !remoteReadLoopGuard.synthesisRequired) {
       await _awaitBackgroundUsageSettlement(
         backgroundSubAgents,
@@ -16585,7 +16640,10 @@ export async function* agentLoop(messages, options) {
             `Execution budget: this request plus ${furtherRequests} further model requests. ` +
             "For requested changes, reserve requests for implementation, focused validation, and repair or an accurate unfinished-work report. " +
             "Reading or an existing passing baseline does not deliver requested changes. " +
-            "For research or monitoring, use the remaining requests for evidence and the requested answer; do not create files just to show activity.",
+            "For research or monitoring, use the remaining requests for evidence and the requested answer; do not create files just to show activity." +
+            (options.reviewChanges === true
+              ? changeReviewBudgetNotice(budget, changeReviewState.requested)
+              : ""),
         },
       ];
       contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
@@ -16988,7 +17046,7 @@ export async function* agentLoop(messages, options) {
     }
     throwIfAborted(signal);
     if (
-      independentReviewContext?.active &&
+      options.reviewChanges === true &&
       changeReviewState.usageKnown === false
     ) {
       const error = new Error(
@@ -17247,42 +17305,14 @@ export async function* agentLoop(messages, options) {
         };
         return;
       }
-      // Opt-in review uses the same loop, tools, usage settlement and budget.
-      // Never emit a provisional completion or turn this self-check into an
-      // acceptance verdict. Failed/deferred writes do not arm the review.
+      // Author completion is provisional until the independent review phase.
       if (
         options.reviewChanges === true &&
         hasFileContentChanges &&
         !changeReviewState.requested &&
-        changeReviewState.usageKnown !== false &&
-        budget.hasRemaining()
+        changeReviewState.usageKnown !== false
       ) {
-        throwIfAborted(signal);
-        if (independentReviewSetupError) throw independentReviewSetupError;
-        changeReviewState.requested = true;
-        const reviewPrompt = markRuntimeOnlySessionMessage({
-          role: "user",
-          content: CODING_CHANGE_REVIEW_PROMPT,
-        });
-        appendMessages(
-          markRuntimeOnlySessionMessage({
-            role: "assistant",
-            content: msg.content || "",
-          }),
-          reviewPrompt,
-        );
-        if (independentReviewContext) {
-          independentReviewContext.activate(reviewPrompt);
-          changeReviewState.independentReviewPending = true;
-          // These are phase-local discovery hints, not permission or spend
-          // authorities. Fresh inspection must not inherit author assertions,
-          // old visible file pages, or a pause caused by author exploration.
-          readFileLoopGuard = new ReadFileLoopGuard();
-          remoteReadLoopGuard = new RemoteReadLoopGuard();
-          taskProgressTracker = new TaskProgressTracker();
-          toolContext.readFileLoopGuard = readFileLoopGuard;
-          lastTaskProgressIntervention = null;
-        }
+        beginChangeReview(msg);
         yield {
           type: "iteration-warning",
           message: "Reviewing changed files against the task before finishing.",
