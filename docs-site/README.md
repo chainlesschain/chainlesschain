@@ -1,12 +1,12 @@
 # ChainlessChain 文档网站
 
-## 当前文档（2026-10-29，CLI .131）
+## 当前文档（2026-11-02，CLI .138）
 
-公开配对为 CLI **0.166.131** / Kernel **0.1.11** / Open VSX **0.37.169** / JetBrains **0.4.186**，生产来源 `c9d0bab231`，公开制品、签名及官方候选比对已通过。PC / 移动端保持独立 **v5.0.3.143**，Microsoft Marketplace 暂缓。真实任务累计 **34/45**，新计划尚未派发；完整 Memory SLO、语义质量与付费/native准入仍单独核对。
+CLI **0.166.138** / SDK **0.2.17** 与 Open VSX **0.37.174** 已公开核验；JetBrains **0.4.191** 已获 Marketplace 批准并公开列出（update `1209507`）；公开 ZIP 与正式构建的负载一致性仍待核验。 两个 IDE 推荐 CLI .138。公开 .138 四项复验 **2/4**，前轮 .137 **0/5**、历史 **41/45** 分别保留。PC / 移动端 **v5.0.3.143** 独立发行，Microsoft Marketplace 暂缓。
 
-- [本版升级步骤](docs/chainlesschain/cli-ide-update-2026-10-29-131.md)
-- [公开发行回执](../docs/research/cli/evidence/release131-public/publication.json)
-- [设计权威源](../docs/design/release-runtime-update-2026-10-29-131.md)
+- [本版升级步骤](docs/chainlesschain/cli-ide-update-2026-11-02-138.md)
+- [发行回执](../docs/research/cli/evidence/release138-public/README.md)
+- [设计权威源](../docs/design/release-runtime-update-2026-11-02-138.md)
 
 下方带日期的内容保留历史范围。
 

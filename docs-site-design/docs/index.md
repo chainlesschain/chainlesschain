@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "CLI 0.166.128 / Open VSX 0.37.166 / JetBrains 0.4.183 已公开；Goal 证据、可选复查与五平台 v5.0.3.143"
+  tagline: "CLI 0.166.138 / Open VSX 0.37.174 已公开；JetBrains 0.4.191 商店已批准上架；源码交付与原始任务保留"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,9 +21,9 @@ hero:
 
 features:
   - icon: 🛡️
-    title: Goal 证据与可选交付复查
-    details: "自然语言 Goal 使用本轮成功工具证据，持久化错误明确暴露；交付复查默认关闭，沿用原权限与预算。IDE .166/.183 均已公开并推荐 .128。"
-    link: /release-runtime-update-2026-10-28
+    title: 源码交付与原始任务保留
+    details: "CLI .138 在源码实际送入模型后确认读取覆盖，并在压缩中保留原始任务；主分支独立 WebSocket 策略修复尚未发行。"
+    link: /release-runtime-update-2026-11-02-138
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
     details: 历史产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；当前 .143 独立发行，记忆不自动注入模型。
@@ -42,7 +42,7 @@ features:
 
   - icon: 🏗️
     title: Agent Platform 0.166.128 与验收边界
-    details: 精确发行提交通过三平台门禁并验证公共制品；跨版本累计32/45，13项未完成，本轮未新增模型验收。NOT_PAID_READY、NOT_ADMITTED、HOLD 保留，原生产品独立验收。
+    details: CLI .138 精确提交三平台门禁与公开包核验通过；本轮四项复验 2/4、前轮 .137 0/5、历史累计 41/45 分别保留。NOT_PAID_READY、NOT_ADMITTED、HOLD 保留。
     link: /cli-runtime-current
   - icon: 📝
     title: IDE 任务记录与新会话交接
@@ -81,11 +81,11 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-## 2026-10-28 当前代码与公开发行
+## 2026-11-02 当前代码与公开发行
 
-> 2026-10-28：CLI **0.166.128**、Open VSX **0.37.166**、JetBrains **0.4.183** 均已公开，两个 IDE 推荐 `.128`。本版加入 Goal 工具证据与检查点约束、可选交付复查、会话模型覆盖和发现优化，并延续 .127 的可选自进化与完整有界恢复摘要。原生产品 **v5.0.3.143** 从独立源 `036d2b8be2` 发行，五平台构建与 22 个公开资产已核验。本轮没有新增模型任务验收，累计 **32/45**、**13** 项未完成，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+2026-11-02 核对：CLI **0.166.138** / Agent SDK **0.2.17** 已公开；Open VSX **0.37.174** 正式发布与公开 VSIX 核验通过，JetBrains **0.4.191** 商店已批准上架，公开包负载核验待完成，两个新 IDE 推荐 CLI .138。发行源 `e42ea07b6d` 的三系统 CLI CI / Strict Sandbox、OIDC 与公共包核验通过。公开 .138 四项复验 **2/4**，verify-08、verify-36 因作者阶段 20/20 轮耗尽仍失败；前轮 .137 **0/5**、历史累计 **41/45** 各自保留。主分支 `2e97ce3d79` 的独立 WebSocket 模型策略修复尚未发布。PC / mobile **v5.0.3.143** 独立，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
-[最新设计](/release-runtime-update-2026-10-28) · [升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-28.html) · [发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/publication.json)
+[最新设计](/release-runtime-update-2026-11-02-138) · [升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-02-138.html) · [发行证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release138-public/README.md) · [复验记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/verify01-openai-138/README.md)
 
 ### 按任务查阅当前参考
 
@@ -114,7 +114,7 @@ CLI .108 在会话恢复与压缩时保留完整工具轮次，提供有界重�
 
 已公开的 Open VSX 0.37.153 与 JetBrains Marketplace 0.4.170 均推荐已公开 CLI 0.166.108。三个渠道均通过精确提交发行门与公开制品回读验证。
 
-当前安装见[CLI / IDE 升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-20.html)。下方带日期内容保留原始历史范围。
+当前安装见[CLI / IDE 升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-02-138.html)。下方带日期内容保留原始历史范围。
 
 > 2026-10-17 核对：CLI **0.166.104**、Open VSX **0.37.149** 与 JetBrains **0.4.166** 已公开，均配对 CLI `.104`。CLI 与 VS Code 发行提交 `93792f6520`，JetBrains `4c3e5cfd56`。Kernel **0.1.10**、PDH **0.4.65** 与产品 **v5.0.3.140** 保持独立版本。预算仍 **NOT_PAID_READY**；正式 36+9 **NOT_RUN**、完整 native review **NOT_ADMITTED**、自动晋升 **HOLD**。详见[本轮设计](/release-runtime-update-2026-10-17)。
 

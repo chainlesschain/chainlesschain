@@ -1,0 +1,17 @@
+{
+  "schema": "chainlesschain.marketplace-listing-observation/v1",
+  "recordedAt": "2026-11-02T02:05:24.524562+00:00",
+  "authority": "Direct public HTTPS API response observed during this documentation task",
+  "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=5",
+  "version": "0.4.191",
+  "updateId": 1209507,
+  "approve": true,
+  "sourceCommit": "ef13d5238e2b3e4c4571e48e820d0eb31a3107b2",
+  "recommendedCliVersion": "0.166.138",
+  "officialBuildRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/41327724484",
+  "publicZipUrl": "https://plugins.jetbrains.com/plugin/download?updateId=1209507",
+  "publicPayloadVerified": false,
+  "publicPayloadVerificationStatus": "Pending; independent download attempts encountered network restrictions and automatic permission-review timeouts. Approval/listing is verified separately from payload identity.",
+  "modelRequests": 0,
+  "historicalPublicationReceiptUnchanged": true
+}

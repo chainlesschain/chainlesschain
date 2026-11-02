@@ -10,13 +10,13 @@ const jetBrainsPending = [
 ].includes(releaseStatus.jetBrainsPublicationStatus);
 const items = english
   ? [
-      ["Keep the current task when output stops", "An output limit or provider filter no longer counts as completion. The current task stays available so you can see why it stopped and decide what to do next."],
-      ["Do not run incomplete tool requests", "Tools from a truncated or filtered response are not executed. After truncation, at most one fresh plan is allowed only when complete usage is recorded and budget remains; filtering does not trigger a retry."],
+      ["Confirm source delivery to the model", "Read coverage is confirmed only for source spans selected into the model request. Omitted source remains recoverable; repeated delivery failures report an explicit limitation."],
+      ["Keep the original task through compaction", "Context compaction, tool tails and persistent sessions retain the original user task. The public four-sample retest accepted 2/4; two author max-turn failures remain."],
       ["Separate product downloads", `Kernel ${releaseStatus.contextMemoryKernelVersion} stays unchanged. PC/mobile ${releaseStatus.productVersion} remain independent releases; the IDE updates recommend the paired CLI without a separate UI change.`],
     ]
   : [
-      ["输出中断后保留当前任务", "达到输出上限或被服务商过滤时，不再误报任务完成。当前任务会保留，方便查看停止原因并决定下一步。"],
-      ["不执行不完整的工具请求", "截断或过滤响应中的工具不会执行。输出截断后，只有用量完整入账且预算仍足够时，才允许至多一次重新规划；过滤不会触发重试。"],
+      ["确认源码实际交付模型", "源码片段实际选入模型请求后才确认读取覆盖；被省略的内容仍可恢复，重复交付失败给出明确限制。"],
+      ["压缩后保留原始任务", "上下文压缩、工具尾部和持久会话保留原始用户任务。公开包四项复验 2/4 通过，两项作者轮次耗尽仍失败。"],
       ["客户端继续独立升级", `Kernel ${releaseStatus.contextMemoryKernelVersion} 不变，PC / 移动端 ${releaseStatus.productVersion} 继续独立发行；本轮 IDE 更新推荐配套 CLI，没有单独的界面改动。`],
     ];
 ---
@@ -31,14 +31,14 @@ const items = english
     </h2>
     <p class="mt-4 text-muted leading-relaxed max-w-4xl">
       {english
-        ? `CLI ${releaseStatus.recommendedCliVersion}, Open VSX ${releaseStatus.openVsxVersion} and JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} are publicly verified. Both IDEs recommend CLI ${releaseStatus.recommendedCliVersion}. Context Memory Kernel ${releaseStatus.contextMemoryKernelVersion}, Session Core ${releaseStatus.sessionCoreVersion} and Personal Data Hub ${releaseStatus.personalDataHubVersion} are publicly available dependencies. Native product ${releaseStatus.productVersion} remains a separate download.`
-        : `CLI ${releaseStatus.recommendedCliVersion}、Open VSX ${releaseStatus.openVsxVersion} 与 JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} 均已公开核验，两个 IDE 均推荐 CLI ${releaseStatus.recommendedCliVersion}。Context Memory Kernel ${releaseStatus.contextMemoryKernelVersion}、Session Core ${releaseStatus.sessionCoreVersion} 和 Personal Data Hub ${releaseStatus.personalDataHubVersion} 依赖均已公开；原生产品 ${releaseStatus.productVersion} 继续独立下载升级。`}
+        ? `CLI ${releaseStatus.recommendedCliVersion} and Agent SDK ${releaseStatus.agentSdkVersion} are public with verified bytes and provenance. Open VSX ${releaseStatus.openVsxVersion} recommends this CLI. Marketplace lists approved JetBrains ${releaseStatus.jetBrainsMarketplaceVersion}, recommending CLI ${releaseStatus.jetBrainsRecommendedCliVersion}; public ZIP payload verification remains pending. Native product ${releaseStatus.productVersion} remains a separate download.`
+        : `CLI ${releaseStatus.recommendedCliVersion} 与 Agent SDK ${releaseStatus.agentSdkVersion} 已公开并完成字节与来源签名核验；Open VSX ${releaseStatus.openVsxVersion} 推荐该 CLI。Marketplace 已批准并列出 JetBrains ${releaseStatus.jetBrainsMarketplaceVersion}，推荐 CLI ${releaseStatus.jetBrainsRecommendedCliVersion}；公开 ZIP 负载核验待完成。原生产品 ${releaseStatus.productVersion} 继续独立下载升级。`}
     </p>
     {jetBrainsPending && (
       <p class="mt-3 text-sm text-muted">
         {english
-          ? `The newer JetBrains ${releaseStatus.jetBrainsCandidateVersion} upload awaits public listing and download verification.`
-          : `较新的 JetBrains ${releaseStatus.jetBrainsCandidateVersion} 已上传，公开上架与下载仍待核验。`}
+          ? `JetBrains ${releaseStatus.jetBrainsCandidateVersion} passed its official release workflow and was uploaded; public listing/download verification remains pending. This build recommends CLI ${releaseStatus.jetBrainsCandidateRecommendedCliVersion} and can be sideloaded from official Actions artifacts.`
+          : `JetBrains ${releaseStatus.jetBrainsCandidateVersion} 已通过正式发布工作流并上传，公开上架与下载仍待核验。该构建推荐 CLI ${releaseStatus.jetBrainsCandidateRecommendedCliVersion}，可从正式 Actions 制品手动侧载。`}
       </p>
     )}
     <div class="mt-8 grid gap-6 md:grid-cols-3">
@@ -51,17 +51,18 @@ const items = english
     </div>
     <p class="mt-6 text-sm text-muted">
       {english
-        ? `Automatic task acceptance remains ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}, with ${releaseStatus.remainingUnaccepted} unaccepted. Three separately assisted regression deliveries are not automatic task successes. Local tests and publication add no accepted automatic tasks. Full Memory performance targets, semantic quality and dual-IDE acceptance remain incomplete.`
-        : `自动任务验收仍为 ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}，剩余 ${releaseStatus.remainingUnaccepted} 项；另有 3 项人工辅助回归交付，不能计为自动任务成功；本地测试和发行也不增加自动成功数。完整 Memory 性能目标、真实语义和双 IDE 验收尚未全部完成。`}
+        ? `Public .138 retest: 2/4 accepted. verify-08 and verify-36 passed candidate tests but exhausted 20/20 author turns before review. All 80/80 physical requests have complete usage records. Historical ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}, previous .137 0/5 and the image follow-up 0/1 retain separate scopes. Accepted samples are skipped in later retests; engineering checks and publication add no model acceptance.`
+        : `公开 .138 四项复验 2/4：verify-08、verify-36 的候选测试通过，但作者阶段 20/20 轮耗尽，未进入审阅，仍失败。80/80 个物理请求用量完整。历史 ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}、前轮 .137 的 0/5 与图像专项 0/1 分别保留；已通过项后续跳过，工程检查与发布不增加模型通过数。`}
     </p>
     <p class="mt-3 text-sm text-muted">
       {english
-        ? `This product fix does not change the original evaluation broker or repair its historical failures. Compact MCP catalogs remain opt-in. Microsoft Marketplace is deferred; stock VS Code can install the versioned Open VSX VSIX.`
-        : `本次产品修复不改变原评测 broker，也不把历史失败变成成功；紧凑 MCP 目录仍默认关闭。Microsoft Marketplace 暂缓，官方 VS Code 可安装 Open VSX 的版本化 VSIX。`}
+        ? `Main-only standalone WebSocket host-model-policy repair 2e97ce3d79 is not in public CLI .138. NOT_PAID_READY / NOT_ADMITTED / HOLD remain. Microsoft Marketplace is deferred; stock VS Code can install the versioned Open VSX VSIX.`
+        : `主分支独立 WebSocket 宿主模型策略修复 2e97ce3d79 尚未进入公开 CLI .138。NOT_PAID_READY / NOT_ADMITTED / HOLD 保留。Microsoft Marketplace 暂缓，官方 VS Code 可安装 Open VSX 的版本化 VSIX。`}
     </p>
     <div class="mt-6 flex flex-wrap gap-4">
       <a class="btn-ghost" href={`https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${releaseStatus.openVsxVersion}/file/chainlesschain.chainlesschain-ide-${releaseStatus.openVsxVersion}.vsix`}>{english ? "Download VSIX" : "下载 VSIX"} {releaseStatus.openVsxVersion} ↗</a>
-      <a class="btn-ghost" href={`https://plugins.jetbrains.com/plugin/download?updateId=${releaseStatus.jetBrainsUpdateId}`}>{english ? "Download JetBrains ZIP" : "下载 JetBrains ZIP"} {releaseStatus.jetBrainsMarketplaceVersion} ↗</a>
+      <a class="btn-ghost" href="https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge/versions">{english ? "JetBrains public versions" : "JetBrains 公开版本"} ↗</a>
+      {jetBrainsPending && <a class="btn-ghost" href="https://github.com/chainlesschain/chainlesschain/actions/runs/41327724484#artifacts">{english ? "Official pending-review build" : "官方待审构建"} {releaseStatus.jetBrainsCandidateVersion} ↗</a>}
       <a class="btn-ghost" href={releaseStatus.upgradeGuide}>{english ? "Upgrade guide ↗" : "升级指南 ↗"}</a>
       <a class="btn-ghost" href={releaseStatus.evolutionConfigurationGuide}>{english ? "Self-evolution settings ↗" : "自进化开关配置 ↗"}</a>
       <a class="btn-ghost" href={releaseStatus.recoveryGuide}>{english ? "Image budgets and recovery ↗" : "图片预算与恢复 ↗"}</a>

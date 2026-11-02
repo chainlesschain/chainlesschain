@@ -1428,6 +1428,10 @@ export default defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: "CLI .138 / IDE .174 与 .191 升级",
+                  link: "/chainlesschain/cli-ide-update-2026-11-02-138",
+                },
+                {
                   text: "CLI .132 / IDE .170 与 .187 升级",
                   link: "/chainlesschain/cli-ide-update-2026-10-30-132",
                 },
@@ -1481,6 +1485,10 @@ export default defineConfig({
               text: "运行时设计记录",
               collapsed: true,
               items: [
+                {
+                  text: "CLI .138 源码交付、任务保留与复验",
+                  link: "/design/release-runtime-update-2026-11-02-138",
+                },
                 {
                   text: "CLI .132 响应终态与当前任务保护",
                   link: "/design/release-runtime-update-2026-10-30-132",
@@ -2426,6 +2434,10 @@ export default defineConfig({
               text: "运行时设计记录",
               collapsed: true,
               items: [
+                {
+                  text: "CLI .138 源码交付、任务保留与复验",
+                  link: "/design/release-runtime-update-2026-11-02-138",
+                },
                 {
                   text: "CLI .132 响应终态与当前任务保护",
                   link: "/design/release-runtime-update-2026-10-30-132",

@@ -1,5 +1,7 @@
 # 服务入口（serve）：WebSocket Gateway 与 CC App Server
 
+> 2026-11-02 版本边界：公开 CLI **0.166.138** 尚未包含主分支 `2e97ce3d79` 的独立 WebSocket 宿主模型策略修复。该修复在未显式传入模型准备钩子/factory 时按项目配置准备模型请求，显式钩子（含 `null`）优先；仍待下一版完整门禁与 OIDC 发行。见[当前升级指南](./cli-ide-update-2026-11-02-138)。
+
 > 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.21`（精确发布 SHA `1ff70b7856`）。`chainlesschain serve` 默认启动既有 WebSocket Gateway；`--app-server` 默认启动 stdio JSON-RPC，显式加 `--app-server-websocket` 才启动独立的实验 App Server WebSocket。两个 WS 协议面不可混用，App Server 详见[独立指南](./cli-app-server.md)。
 
 ## 概述
