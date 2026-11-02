@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "runId": 41546976889,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41546976889",
+  "source": "eeffcfee337aa7dac01eb0a3474c3b9a3e7fa702",
+  "artifactId": 13187844005,
+  "artifactDigest": "sha256:abc23816cc1922e2171cfdf5af27a5599c75a2f229d7ac945ce0a66e2af136eb",
+  "zipDigestVerified": true,
+  "originalFileBytesPreserved": true,
+  "files": [
+    {
+      "path": "docs/research/cli/verify01-package-sets/2026-11-03-openai-139-r2.json",
+      "digest": "sha256:2fe5d5536c4e8e273388dfc71e7fced77bc06f5a8db3da79028340e2f8eec61e"
+    },
+    {
+      "path": "docs/research/cli/verify01-openai-139-r2-20261103/package-resolution.json",
+      "digest": "sha256:d5c696e97179c52d9ef4a40756bd3f67fc5f7aff1b290ff2dd6fb673856e9f2c"
+    },
+    {
+      "path": "docs/research/cli/verify01-openai-139-r2-20261103/jetbrains-public.json",
+      "digest": "sha256:7ed7e317c80f09e1650acec6d5c3486b639ca0790ce22ef5c7b441f7f328fc2b"
+    }
+  ],
+  "modelRequests": 0
+}

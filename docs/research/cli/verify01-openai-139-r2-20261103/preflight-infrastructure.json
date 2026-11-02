@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "kind": "zero-model-package-preflight-infrastructure-correction",
+  "originalRunId": 41546736770,
+  "originalSource": "52df7e97259f6e2206256708a48bb5131217d5ae",
+  "originalConclusion": "cancelled",
+  "reason": "New evidence directory must exist in a clean checkout before writing public JetBrains proof; corrected before any model dispatch.",
+  "replacementRunId": 41546976889,
+  "replacementSource": "eeffcfee337aa7dac01eb0a3474c3b9a3e7fa702",
+  "modelRequests": 0,
+  "originalArtifactsUnchanged": true
+}
