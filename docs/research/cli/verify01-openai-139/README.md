@@ -11,3 +11,12 @@
 GitHub Actions [包校验 41442467393](https://github.com/chainlesschain/chainlesschain/actions/runs/41442467393)已通过，原始版本与字节见[校验回执](package-resolution.json)。[复测计划](retest-plan.json)固定两项范围、证据摘要及原预算。用户已提供本机测试凭据文件路径，将临时配置仓库 `OPENAI_API_KEY`，任务结束后清理；凭据内容不写入证据。模型任务派发及结果另行记录。工程检查与[离线源码回放](offline-source-replay.json)均不计入真实模型任务通过数。
 
 首次基础设施尝试的[回执](infrastructure-dispatch-605d1da3ba.json)保留：VS Code 运行 41443770821 在创建 broker 前因修订文件路径不满足旧目录限制而退出，模型请求为 0；JetBrains 运行 41443782209 在仍排队时申请取消。已将配置移至兼容路径，并为派发预检增加同一限制，未修改模型或验收器。
+
+两次首次尝试的原始生成日志均已核对，均出现创建 broker 前的同一修订路径断言，[独立归档](infrastructure-first-attempt/audit.json)确认模型请求为 0。JetBrains 的最终工作流结论为取消，保留其实际退出状态。
+
+修正后的派发工作流 [41445266749](https://github.com/chainlesschain/chainlesschain/actions/runs/41445266749)成功，执行源码固定为 `24a6e3857f53419de142e01375c79e4fcb326a12`，两项[回执](dispatch.json)均已保存。真实任务运行如下，最终验收完成前不增加通过数：
+
+- [verify-08 / macOS VS Code / 41445382222](https://github.com/chainlesschain/chainlesschain/actions/runs/41445382222)
+- [verify-36 / macOS JetBrains / 41445393011](https://github.com/chainlesschain/chainlesschain/actions/runs/41445393011)
+
+配置、证据及结果跟踪见[草稿 PR #516](https://github.com/chainlesschain/chainlesschain/pull/516)。相关配置、来源绑定与包身份检查共 19 项通过；工程回归不替代真实任务验收。

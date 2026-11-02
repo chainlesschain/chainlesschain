@@ -1,0 +1,24 @@
+{
+  "source": "605d1da3ba9846c274962e28a355164c0e1dc63d",
+  "records": [
+    {
+      "runId": 41443770821,
+      "modelRequestsStarted": 0,
+      "revisionAssertionObserved": true,
+      "logDigest": "sha256:2c56430cc0cc45bd0d08f44047066f8ecb6182d3727219448447930954e45b20",
+      "compressedDigest": "sha256:199e10bee6d1d50ad7a645b3667389f5c5aab25dbc67769ec5aa6d914ab264c9",
+      "basis": "Synchronous revision-path assertion before key validation, installation and broker creation"
+    },
+    {
+      "runId": 41443782209,
+      "modelRequestsStarted": 0,
+      "revisionAssertionObserved": true,
+      "logDigest": "sha256:3deee5b27d86d0384cd29d91f4573e6a779e688621d80784c60f7debd06fbd4a",
+      "compressedDigest": "sha256:9d10c7f5a4383a7276f43aa87c8520f3f217c49baaa09410072cf2ec23ceedcf",
+      "basis": "Synchronous revision-path assertion before key validation, installation and broker creation"
+    }
+  ],
+  "modelRequestsStarted": 0,
+  "modelTasksAccepted": 0,
+  "existingResultsChanged": false
+}

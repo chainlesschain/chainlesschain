@@ -1,0 +1,417 @@
+{
+  "total_count": 3,
+  "jobs": [
+    {
+      "id": 125271790609,
+      "run_id": 41443782209,
+      "workflow_name": "VERIFY01 Native 36 Plus 9 Task Campaign",
+      "head_branch": "verify01-public139-run-605d1da3ba",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/41443782209",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAdKsfUEQ",
+      "head_sha": "605d1da3ba9846c274962e28a355164c0e1dc63d",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/125271790609",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41443782209/job/125271790609",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-02T12:19:45Z",
+      "started_at": "2026-11-02T12:19:48Z",
+      "completed_at": "2026-11-02T12:20:28Z",
+      "name": "validate",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-02T12:19:48Z",
+          "completed_at": "2026-11-02T12:19:49Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-02T12:19:49Z",
+          "completed_at": "2026-11-02T12:20:09Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-02T12:20:09Z",
+          "completed_at": "2026-11-02T12:20:15Z"
+        },
+        {
+          "name": "Prepare operator workspace dependency",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-02T12:20:15Z",
+          "completed_at": "2026-11-02T12:20:19Z"
+        },
+        {
+          "name": "Validate exact sample selection, candidate binding and host controls",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-02T12:20:19Z",
+          "completed_at": "2026-11-02T12:20:26Z"
+        },
+        {
+          "name": "Select requested native hosts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-02T12:20:26Z",
+          "completed_at": "2026-11-02T12:20:26Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-02T12:20:26Z",
+          "completed_at": "2026-11-02T12:20:26Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-02T12:20:26Z",
+          "completed_at": "2026-11-02T12:20:26Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-02T12:20:26Z",
+          "completed_at": "2026-11-02T12:20:26Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/125271790609",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000438978,
+      "runner_name": "GitHub Actions 1000438978",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 125272121157,
+      "run_id": 41443782209,
+      "workflow_name": "VERIFY01 Native 36 Plus 9 Task Campaign",
+      "head_branch": "verify01-public139-run-605d1da3ba",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/41443782209",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAdKszfRQ",
+      "head_sha": "605d1da3ba9846c274962e28a355164c0e1dc63d",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/125272121157",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41443782209/job/125272121157",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "created_at": "2026-11-02T12:20:28Z",
+      "started_at": "2026-11-02T12:25:42Z",
+      "completed_at": "2026-11-02T12:28:33Z",
+      "name": "Native darwin-jetbrains-verify-36 (selected samples)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-02T12:25:43Z",
+          "completed_at": "2026-11-02T12:25:45Z"
+        },
+        {
+          "name": "Preserve source byte identity on Windows",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-02T12:25:45Z",
+          "completed_at": "2026-11-02T12:25:46Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-02T12:25:46Z",
+          "completed_at": "2026-11-02T12:28:14Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-02T12:28:14Z",
+          "completed_at": "2026-11-02T12:28:21Z"
+        },
+        {
+          "name": "Prepare operator workspace dependency",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-02T12:28:21Z",
+          "completed_at": "2026-11-02T12:28:23Z"
+        },
+        {
+          "name": "Run actions/setup-python@v6",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-11-02T12:28:23Z",
+          "completed_at": "2026-11-02T12:28:23Z"
+        },
+        {
+          "name": "Verify Unicode frozen archive extraction before model execution",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-11-02T12:28:23Z",
+          "completed_at": "2026-11-02T12:28:23Z"
+        },
+        {
+          "name": "Run actions/setup-java@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-02T12:28:23Z",
+          "completed_at": "2026-11-02T12:28:23Z"
+        },
+        {
+          "name": "Prepare exact VS Code host and local UI driver dependencies",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-11-02T12:28:23Z",
+          "completed_at": "2026-11-02T12:28:23Z"
+        },
+        {
+          "name": "Install Linux virtual display",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-11-02T12:28:23Z",
+          "completed_at": "2026-11-02T12:28:23Z"
+        },
+        {
+          "name": "Prepare JetBrains Gradle wrapper",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-02T12:28:23Z",
+          "completed_at": "2026-11-02T12:28:23Z"
+        },
+        {
+          "name": "Bootstrap exact Gradle",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-02T12:28:23Z",
+          "completed_at": "2026-11-02T12:28:27Z"
+        },
+        {
+          "name": "Download exact tested JetBrains build when explicitly selected",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-02T12:28:27Z",
+          "completed_at": "2026-11-02T12:28:28Z"
+        },
+        {
+          "name": "Download and verify explicitly selected prerelease CLI and IDE packages",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 14,
+          "started_at": "2026-11-02T12:28:28Z",
+          "completed_at": "2026-11-02T12:28:28Z"
+        },
+        {
+          "name": "Run original project tasks through installed native entry",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 15,
+          "started_at": "2026-11-02T12:28:28Z",
+          "completed_at": "2026-11-02T12:28:29Z"
+        },
+        {
+          "name": "Preserve all candidates, native traces, UI and broker failures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-11-02T12:28:29Z",
+          "completed_at": "2026-11-02T12:28:29Z"
+        },
+        {
+          "name": "Post Run actions/setup-java@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-11-02T12:28:29Z",
+          "completed_at": "2026-11-02T12:28:29Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 31,
+          "started_at": "2026-11-02T12:28:29Z",
+          "completed_at": "2026-11-02T12:28:29Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 32,
+          "started_at": "2026-11-02T12:28:29Z",
+          "completed_at": "2026-11-02T12:28:30Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 33,
+          "started_at": "2026-11-02T12:28:30Z",
+          "completed_at": "2026-11-02T12:28:32Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/125272121157",
+      "labels": [
+        "macos-15"
+      ],
+      "runner_id": 1000438982,
+      "runner_name": "GitHub Actions 1000438982",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 125275786378,
+      "run_id": 41443782209,
+      "workflow_name": "VERIFY01 Native 36 Plus 9 Task Campaign",
+      "head_branch": "verify01-public139-run-605d1da3ba",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/41443782209",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAdKwTMig",
+      "head_sha": "605d1da3ba9846c274962e28a355164c0e1dc63d",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/125275786378",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41443782209/job/125275786378",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-02T12:28:34Z",
+      "started_at": "2026-11-02T12:28:36Z",
+      "completed_at": "2026-11-02T12:30:42Z",
+      "name": "Linux acceptance of darwin-jetbrains-verify-36 deliveries",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-02T12:28:37Z",
+          "completed_at": "2026-11-02T12:28:39Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-02T12:28:39Z",
+          "completed_at": "2026-11-02T12:30:29Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-02T12:30:29Z",
+          "completed_at": "2026-11-02T12:30:34Z"
+        },
+        {
+          "name": "Prepare operator workspace dependency",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-02T12:30:34Z",
+          "completed_at": "2026-11-02T12:30:39Z"
+        },
+        {
+          "name": "Run actions/download-artifact@v7",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 5,
+          "started_at": "2026-11-02T12:30:39Z",
+          "completed_at": "2026-11-02T12:30:39Z"
+        },
+        {
+          "name": "Bind OpenAI delivery identity before acceptance",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-11-02T12:30:39Z",
+          "completed_at": "2026-11-02T12:30:39Z"
+        },
+        {
+          "name": "Pin independent Linux checker image",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-11-02T12:30:39Z",
+          "completed_at": "2026-11-02T12:30:39Z"
+        },
+        {
+          "name": "Check source and candidate binding then execute baseline and behavioral controls",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-11-02T12:30:39Z",
+          "completed_at": "2026-11-02T12:30:39Z"
+        },
+        {
+          "name": "Preserve independent checker receipts including failures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-02T12:30:39Z",
+          "completed_at": "2026-11-02T12:30:40Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 17,
+          "started_at": "2026-11-02T12:30:40Z",
+          "completed_at": "2026-11-02T12:30:40Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-11-02T12:30:40Z",
+          "completed_at": "2026-11-02T12:30:40Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-11-02T12:30:40Z",
+          "completed_at": "2026-11-02T12:30:40Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/125275786378",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000438983,
+      "runner_name": "GitHub Actions 1000438983",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}
