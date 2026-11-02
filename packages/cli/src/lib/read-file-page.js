@@ -1,3 +1,5 @@
+import { recoverCompleteSourceRead } from "./source-read-recovery.js";
+
 /** Build a bounded read result with a cursor describing what was actually read. */
 export function buildReadFilePage(
   rendered,
@@ -61,7 +63,7 @@ export function buildReadFilePage(
   const charEnd = truncated
     ? charStart + count
     : lines.slice(0, end).reduce((n, line) => n + line.length + 1, 0);
-  return {
+  const page = {
     path: filePath,
     ...(fileVersion ? { fileVersion } : {}),
     ...(offset || limit || column > 1 || truncated
@@ -96,6 +98,7 @@ export function buildReadFilePage(
     hashed: args.hashed === true,
     content,
   };
+  return recoverCompleteSourceRead(page, rendered, args, maxChars);
 }
 
 /** A bounded navigation index, not a substitute for reading the cited lines. */

@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.139: complete author work and independent review within one budget (candidate, 2026-11-02)
+
+- Reserve fresh independent inspection, repair, read-back and final reporting inside the original model-turn limit, including when the author continues calling tools. Unknown usage and insufficient remaining review capacity fail explicitly; last-turn tool calls cannot become a successful terminal result.
+- Recover complete surrounding JavaScript statements from the same file snapshot when a partial page cannot be projected. Preserve the original requested range and actual returned range, the existing JSON/source validation, provider delivery accounting and output metadata headroom.
+- Preserve focused explicit read ranges instead of silently substituting an unrelated unread section. Broad truncated scans retain bounded cursor progress.
+- Pair CLI 0.166.139 with Open VSX 0.37.175 and JetBrains 0.4.192 after complete exact-source release gates and verified upstream publication. SDK 0.2.17 and Kernel 0.1.11 remain unchanged and must pass upstream reuse checks.
+- Retest only verify-08 and verify-36 with the new package set, keeping independent review and the original budget. Prior CLI .138 result remains 2/4; previously accepted samples are not repeated. These engineering repairs do not claim new real-model success.
+
 ### Fixed - cc CLI 0.166.138: align Agent SDK source identity before OIDC publication (candidate, 2026-11-01)
 
 - Publish Agent SDK 0.2.17 before CLI, retaining signed npm provenance and complete package-tree reuse verification. SDK 0.2.16 had a protocol-fixture test update after its signed source anchor; its runtime output remains unchanged, but its version must advance.

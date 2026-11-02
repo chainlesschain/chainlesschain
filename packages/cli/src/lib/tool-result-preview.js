@@ -33,7 +33,7 @@ const PREVIEW_HINT =
   "Tool output truncated. Narrow the request: filter/count locally, select fields, search_files, or read_file with offset/limit. Omitted text is not full-output evidence.";
 
 /** Check only host-created excerpts; original uncut tool text still reaches ingress. */
-function completeExcerpt(text, tool) {
+export function canProjectHostToolExcerpt(text, tool) {
   const scan = createEvidenceJsonTextBoundary((message) => new Error(message), {
     ...EVIDENCE_JSON_POLICY,
     sourceLiteralPolicy: "explicit-source-containers-v1",
@@ -239,7 +239,8 @@ export function safeHostToolResultForModel(tool, result) {
   let safe = result;
   for (const field of fields) {
     const text = result[field];
-    if (typeof text !== "string" || completeExcerpt(text, tool)) continue;
+    if (typeof text !== "string" || canProjectHostToolExcerpt(text, tool))
+      continue;
     if (safe === result) safe = { ...result };
     safe[field] =
       tool === "read_file"
@@ -268,7 +269,10 @@ export function boundedCommandOutput(output, max, tool = "run_code") {
       output,
       Math.max(1, Math.floor(max / 2)),
     );
-    if (JSON.stringify(preview).length <= max && completeExcerpt(preview, tool))
+    if (
+      JSON.stringify(preview).length <= max &&
+      canProjectHostToolExcerpt(preview, tool)
+    )
       return preview;
   } else if (!/[{}\[\]"']/u.test(output)) {
     let low = 0;

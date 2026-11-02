@@ -267,11 +267,9 @@ export class ReadFileLoopGuard {
     const covered = entry.spans.some(
       ([start, end]) => start <= span.start && end >= span.end,
     );
-    let targeted =
-      Number(args.offset) > 0 &&
-      Number(args.limit) > 0 &&
-      Number(args.limit) <= 200 &&
-      !page.truncated;
+    const explicitRange =
+      Number(args.offset) > 0 && Number(args.limit) > 0 && !page.truncated;
+    let targeted = explicitRange;
     const coveredPrefix = entry.spans.some(
       ([start, end]) => start <= span.start && end > span.start,
     );
@@ -327,7 +325,7 @@ export class ReadFileLoopGuard {
         if (restoring) page.readRecovery.fileVersion = fileVersion;
       } else {
         const unread = entry.spans[0]?.[0] === 0 ? entry.spans[0][1] : 0;
-        if (unread < span.total) {
+        if (unread < span.total && !explicitRange) {
           const requestedRange = page.range;
           page = continuePage(unread);
           if (page.error || !page.readSpan) return page;
@@ -340,7 +338,12 @@ export class ReadFileLoopGuard {
         } else {
           const confirmedEnd =
             entry.confirmedSpans[0]?.[0] === 0 ? entry.confirmedSpans[0][1] : 0;
-          if (this.visiblePages !== null && confirmedEnd < span.total) {
+          if (
+            this.visiblePages !== null &&
+            !entry.confirmedSpans.some(
+              ([start, end]) => start <= span.start && end >= span.end,
+            )
+          ) {
             return {
               path: filePath,
               fileVersion,
@@ -358,7 +361,7 @@ export class ReadFileLoopGuard {
             hashed: args.hashed === true,
             alreadyRead: true,
             contentOmitted: true,
-            reachedEnd: true,
+            reachedEnd: confirmedEnd >= span.total,
             readProgress: { newContent: false },
             readRecovery: { action: "use-findings" },
             ...(entry.summary?.outline
@@ -366,12 +369,12 @@ export class ReadFileLoopGuard {
               : {}),
             recoveryRead: {
               path: filePath,
-              offset: 1,
+              offset: explicitRange ? page.range.startLine : 1,
               limit: 80,
               ...(args.hashed === true ? { hashed: true } : {}),
               ...(args.raw === true ? { raw: true } : {}),
             },
-            hint: "The unchanged file was read earlier, but historical coverage does not mean its source is visible now. Use any source excerpts actually present in this request. For missing details, use search_files or read_file with a specific offset and limit (at most 80 lines); recoveryRead is a bounded starting range, not permission to restart a full scan. Reading the file is not task completion.",
+            hint: "This requested range was read earlier, but historical coverage does not mean its source is visible now. The runtime has not substituted an unrelated file range. Use source actually present in this request; recover missing details with a focused search or the bounded recoveryRead. Reading the file is not task completion.",
           };
         }
       }

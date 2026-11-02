@@ -1066,7 +1066,7 @@ describe("read_file offset/limit line ranges", () => {
     },
   );
 
-  it("continues when the model follows the next page after recovery guidance", async () => {
+  it("continues when the model follows an explicit next page without range substitution", async () => {
     let calls = 0;
     const events = [];
     for await (const event of agentLoop(
@@ -1079,7 +1079,7 @@ describe("read_file offset/limit line ranges", () => {
           calls++;
           return {
             message:
-              calls === 5
+              calls === 4
                 ? { role: "assistant", content: "completed" }
                 : {
                     role: "assistant",
@@ -1091,7 +1091,7 @@ describe("read_file offset/limit line ranges", () => {
                           name: "read_file",
                           arguments: JSON.stringify({
                             path: "f.txt",
-                            offset: calls === 4 ? 6 : 1,
+                            offset: calls === 3 ? 6 : 1,
                             limit: 5,
                           }),
                         },

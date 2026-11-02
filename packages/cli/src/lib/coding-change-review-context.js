@@ -140,6 +140,57 @@ function pendingCalls(messages) {
  * unmarked system messages must already be trusted host instructions.
  * This journal neither replaces durable history nor grants any authority.
  */
+export function changeReviewRequestReserve(limit) {
+  // Inspection, repair, read-back and a terminal account share the original
+  // budget. Tiny runs retain at least one author request, never extra credit.
+  return Number.isFinite(limit) ? Math.min(4, Math.max(0, limit - 1)) : 4;
+}
+
+export function changeReviewBudgetNotice(budget, reviewing) {
+  const available = budget.remaining() + 1;
+  if (reviewing)
+    return available === 1
+      ? " Independent change review: this is the final model request. Give a concise terminal account based on observations already obtained. Report unresolved requirements as incomplete. A tool call now cannot receive another model response and will not count as completion."
+      : " Independent change review is active. Inspect current files, repair concrete requirement gaps, then read back the repair. Reserve the final request for a concise terminal account of results and limitations; further exploration cannot extend this budget.";
+  const reserve = changeReviewRequestReserve(budget.limit);
+  const authorRequests = Math.max(0, available - reserve);
+  return (
+    ` Author allocation: ${authorRequests} requests remain before the ${reserve}-request independent change-review reserve (including this request when positive). Write the deliverable early; author completion is provisional. Review needs fresh inspection and a terminal response and does not receive extra requests. ` +
+    (authorRequests === 0
+      ? "The preferred author allocation is exhausted; further inspection without a delivered change may leave insufficient budget for review."
+      : "The runtime will hand changed files to independent review when the reserve is reached.")
+  );
+}
+
+export function changeReviewBudgetInsufficientError(remaining) {
+  const error = new Error(
+    `Independent change review requires at least two remaining model requests for fresh inspection and a terminal response; only ${remaining} remain. The task has not completed independent review.`,
+  );
+  error.code = "CC_CHANGE_REVIEW_BUDGET_INSUFFICIENT";
+  return error;
+}
+
+export function canReserveChangeReview({
+  enabled,
+  changed,
+  requested,
+  usageKnown,
+  pendingMutations,
+  pendingChildren,
+  remaining,
+  limit,
+}) {
+  return (
+    enabled === true &&
+    changed === true &&
+    !requested &&
+    usageKnown !== false &&
+    pendingMutations === 0 &&
+    pendingChildren === 0 &&
+    remaining <= changeReviewRequestReserve(limit)
+  );
+}
+
 export class CodingChangeReviewContext {
   #initial;
   #journal = [];

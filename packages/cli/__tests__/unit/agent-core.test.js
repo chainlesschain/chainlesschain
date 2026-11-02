@@ -417,25 +417,20 @@ describe("opt-in change review in the real file-tool loop", () => {
 
   it("preserves the exhausted request budget", async () => {
     const budget = new IterationBudget({ limit: 2 });
-    const result = await runScript([write(), text("Unverified")], {
-      iterationBudget: budget,
-    });
-    expect(result.requests).toHaveLength(2);
-    expect(budget.consumed).toBe(2);
+    await expect(
+      runScript([write(), text("Unverified")], {
+        iterationBudget: budget,
+      }),
+    ).rejects.toMatchObject({ code: "CC_CHANGE_REVIEW_BUDGET_INSUFFICIENT" });
+    expect(budget.consumed).toBe(1);
   });
 
-  it("does not add a review request after missing usage, even with only a cost cap", async () => {
-    const result = await runScript(
-      [{ ...write(), usage: null }, text("Unverified")],
-      { maxCostUsd: 1 },
-    );
-    expect(result.requests).toHaveLength(2);
-    expect(
-      result.events.some((event) => event.type === "model-usage-unknown"),
-    ).toBe(true);
-    expect(
-      result.events.filter((event) => event.type === "response-complete"),
-    ).toEqual([{ type: "response-complete", content: "Unverified" }]);
+  it("fails closed before author effects after missing usage, even with only a cost cap", async () => {
+    await expect(
+      runScript([{ ...write(), usage: null }, text("Unverified")], {
+        maxCostUsd: 1,
+      }),
+    ).rejects.toMatchObject({ code: "CC_CHANGE_REVIEW_USAGE_UNKNOWN" });
   });
 
   it("cannot bypass session admission for the review request", async () => {

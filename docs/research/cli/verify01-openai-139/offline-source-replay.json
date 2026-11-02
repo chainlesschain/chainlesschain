@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "kind": "offline-regression-replay",
+  "originalExecutionSource": "c472d664ebfe8ca6ebd198cbd894d606a9b16195",
+  "originalCliVersion": "0.166.138",
+  "sampleId": "verify-08",
+  "matchingOriginalFileVersion": true,
+  "originalRange": {
+    "startLine": 1,
+    "endLine": 120,
+    "totalLines": 163
+  },
+  "originalContentOmitted": true,
+  "repairedRange": {
+    "startLine": 1,
+    "endLine": 162,
+    "totalLines": 163
+  },
+  "repairedContentOmitted": false,
+  "action": "complete-source-container",
+  "outputLimitChars": 50000,
+  "withinOriginalOutputLimit": true,
+  "paidRequests": 0,
+  "taskAcceptanceClaimed": false
+}

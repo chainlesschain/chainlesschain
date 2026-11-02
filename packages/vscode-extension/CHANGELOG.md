@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.175] - CLI author/review completion repair (candidate, 2026-11-02)
+
+- Recommend CLI 0.166.139 and pair with JetBrains 0.4.192 after verified upstream publication.
+- Carry bounded complete-source recovery and shared author/review request scheduling through the installed CLI.
+- No new model-task acceptance is claimed by packaging or engineering tests.
+
 ## [0.37.174] - CLI .138 and durable diagnostic recovery (candidate, 2026-11-01)
 
 - Recommend CLI 0.166.138 and pair with JetBrains 0.4.190 only after verified upstream publication. Kernel remains 0.1.11.

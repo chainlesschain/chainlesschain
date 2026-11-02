@@ -10,14 +10,14 @@ const document = Array.from(
   { length: 40 },
   (_, i) => `line ${i + 1}: ${"x".repeat(50)}`,
 ).join("\n");
-function fixture() {
+function fixture({ maxChars = 2600 } = {}) {
   const guard = new ReadFileLoopGuard();
   const read = (args = {}, content = document, version = "v1") => {
     const request = { path: "/work/report.md", ...args };
     const info = {
       filePath: request.path,
       fileVersion: version,
-      maxChars: 2600,
+      maxChars,
     };
     const page = (options) => buildReadFilePage(content, options, info);
     return guard.read(request, info, page, (charOffset) => {
@@ -130,7 +130,8 @@ describe("ReadFileLoopGuard recovery", () => {
 
   it("does not let delivery of unrelated old source erase omission limits", () => {
     const { guard, read } = fixture();
-    const source = 'const ready = true;\nconst values = {"value": 1, "value": 2};';
+    const source =
+      'const ready = true;\nconst values = {"value": 1, "value": 2};';
     guard.observeVisibleMessages([]);
     const safe = read({ offset: 1, limit: 1 }, source);
     guard.observeVisibleMessages([
@@ -536,7 +537,7 @@ describe("ReadFileLoopGuard recovery", () => {
     expect(guard.stalled).toBe(false);
   });
 
-  it("allows distinct targeted reviews but recovers repeated bounded reads", () => {
+  it("allows distinct targeted reviews without substituting an unrelated unread range", () => {
     const { batch } = fixture();
     const first = batch({ offset: 1, limit: 5 });
     expect(batch({ offset: 1, limit: 5 }).content).toBe(first.content);
@@ -546,8 +547,24 @@ describe("ReadFileLoopGuard recovery", () => {
       "targeted-review",
     );
     const resumed = batch({ offset: 2, limit: 2 });
-    expect(resumed.readRecovery.action).toBe("continued");
-    expect(resumed.readSpan.start).toBe(first.readSpan.end);
+    expect(resumed.readRecovery.action).toBe("use-findings");
+    expect(resumed.range).toMatchObject({ startLine: 2, endLine: 3 });
+    expect(resumed.reachedEnd).toBe(false);
+    expect(resumed.contentOmitted).toBe(true);
+    expect(resumed.recoveryRead.offset).toBe(2);
+  });
+
+  it("honors a complete explicit 240-line range after another section was read", () => {
+    const { batch } = fixture({ maxChars: 8000 });
+    const source = Array.from({ length: 1200 }, (_, i) => `${i + 1}`).join(
+      "\n",
+    );
+    const first = batch({ offset: 1, limit: 240 }, source);
+    const next = batch({ offset: 200, limit: 240 }, source);
+    expect(first.range).toMatchObject({ startLine: 1, endLine: 240 });
+    expect(next.range).toMatchObject({ startLine: 200, endLine: 439 });
+    expect(next.content).toBe(source.split("\n").slice(199, 439).join("\n"));
+    expect(next.readRecovery?.action).not.toBe("continued");
   });
 
   it("does not mistake tail coverage for a full read and fills the missing prefix", () => {
