@@ -1,0 +1,102 @@
+{
+  "schema": 1,
+  "archivedAt": "2026-11-03T14:09:10.343800+00:00",
+  "interimOnly": true,
+  "historicalCumulativeAccepted": 34,
+  "historicalCumulativeTotal": 45,
+  "rounds": [
+    {
+      "round": "initial",
+      "runId": 41630636517,
+      "checkedAt": "2026-11-03T14:08:55.470239+00:00",
+      "workflowStatus": "queued",
+      "generationCompleted": 38,
+      "generationSucceeded": 34,
+      "generationFailed": 4,
+      "generationPending": 7,
+      "total": 45,
+      "acceptanceJobs": {},
+      "active": [
+        {
+          "id": 125919744373,
+          "name": "Native darwin-vscode-verify-26 (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125922131453,
+          "name": "Native darwin-vscode-verify-35 (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        }
+      ],
+      "failed": [
+        {
+          "id": 125904750412,
+          "name": "Native win32-jetbrains-verify-30 (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125908928849,
+          "name": "Native linux-cli-verify-31 (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125909284882,
+          "name": "Native linux-vscode-first-run-linux-vscode (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125912505214,
+          "name": "Native linux-jetbrains-first-run-linux-jetbrains (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        }
+      ]
+    },
+    {
+      "round": "corrected",
+      "runId": 41638188839,
+      "checkedAt": "2026-11-03T14:08:35.858148+00:00",
+      "workflowStatus": "queued",
+      "generationCompleted": 31,
+      "generationSucceeded": 26,
+      "generationFailed": 5,
+      "generationPending": 14,
+      "total": 45,
+      "acceptanceJobs": {},
+      "active": [
+        {
+          "id": 125945316316,
+          "name": "Native linux-jetbrains-verify-15 (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        }
+      ],
+      "failed": [
+        {
+          "id": 125926776532,
+          "name": "Native win32-cli-verify-19 (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125926776699,
+          "name": "Native win32-vscode-verify-11 (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125934046772,
+          "name": "Native linux-cli-first-run-linux-cli (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125945146259,
+          "name": "Native linux-jetbrains-first-run-linux-jetbrains (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125949754360,
+          "name": "Native darwin-cli-first-run-darwin-cli (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        }
+      ]
+    }
+  ],
+  "interpretation": "Generation success is not independent acceptance. These partial counts must not be used as final full-round scores or subtract historical successful sample IDs."
+}
