@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-03T20:54:05.425Z",
+  "frozenCommit": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+  "externalModelRequests": 0,
+  "frozenGuardDigest": "sha256:72e264b28402a50be78f29da29e7e5ac7117020b7b5c0c7b9fc1046440b4d616",
+  "frozenPreviewDigest": "sha256:f19f3bab0394f82fc6872a9c69aa5d9749627d7ba1466bc9166b90bf330fb7fe",
+  "sourceDigests": {
+    "packages/cli/src/lib/tool-result-preview.js": "sha256:7b1421c74a00a4f869b502a7aebe0380ed90a1bc13a8ca1390688c06a38cc16c",
+    "packages/cli/src/lib/read-file-loop-guard.js": "sha256:334fd1844dec51b9640a6e6a460c3858c465911af27ef3351be3de66737a10e9",
+    "packages/cli/src/lib/evolution/evidence-json-text.js": "sha256:2023b1958e107fb27314b0518e73970e5ae0bab94fba4da72e7b1dcd197820d2"
+  },
+  "guardCases": {
+    "frozen": {
+      "exhausted": {
+        "hintOffered": true,
+        "prescribedReadAlsoOmitted": true,
+        "directsToSearch": false
+      },
+      "repeated": {
+        "firstRecoveryReturnedSource": true,
+        "exhaustedHintOffered": true,
+        "exhaustedPrescribedReadAlsoOmitted": true
+      }
+    },
+    "current": {
+      "exhausted": {
+        "hintOffered": false,
+        "prescribedReadAlsoOmitted": null,
+        "directsToSearch": true
+      },
+      "repeated": {
+        "firstRecoveryReturnedSource": true,
+        "exhaustedHintOffered": false,
+        "exhaustedPrescribedReadAlsoOmitted": null
+      }
+    }
+  },
+  "candidates": [
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "digest": "sha256:be8064e89ed4aa40f87c8911edfa8908c2eca126736505cc99fe74a5b354f256",
+      "chars": 5629,
+      "frozenHostProjectable": false,
+      "repairedHostProjectable": true,
+      "candidateChanged": false,
+      "taskAcceptanceEstablished": false
+    },
+    {
+      "sampleId": "verify-08",
+      "digest": "sha256:2921bcd3dba62e35d7e4e0f819d798eb86134c4749d37835645c6ca76ee74e12",
+      "chars": 3617,
+      "frozenHostProjectable": false,
+      "repairedHostProjectable": true,
+      "candidateChanged": false,
+      "taskAcceptanceEstablished": false
+    }
+  ],
+  "scope": "Isolated source-bound local class and host-projection replay; not a live task retest or release gate."
+}

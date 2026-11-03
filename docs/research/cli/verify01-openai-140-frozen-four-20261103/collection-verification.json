@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-03T16:29:47.356183+00:00",
+  "source": "802c51a9f20568d06268b12c0326087eca697278",
+  "artifactsVerified": 6,
+  "filesVerified": 22,
+  "allRecordedFileDigestsMatch": true,
+  "normalGenerations": 4,
+  "accepted": 2,
+  "failed": 2,
+  "physicalRequestsStarted": 81,
+  "usageCompleteRequests": 81,
+  "actualBilledCostUsd": null,
+  "additionalModelRequests": 0,
+  "temporarySecretAbsentVerified": true
+}

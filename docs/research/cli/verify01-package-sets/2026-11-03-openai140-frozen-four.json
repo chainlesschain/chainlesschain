@@ -1,0 +1,63 @@
+{
+  "schema": "chainlesschain.native-package-set/v1",
+  "resolvedAt": "2026-11-03T11:45:03.216Z",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "releaseSourceCommit": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+  "releaseSourceCommits": {
+    "cli": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+    "openVsx": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+    "jetbrains": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d"
+  },
+  "publicGeneratorProof": {
+    "path": "docs/research/cli/evidence/release140-public/publication.json",
+    "digest": "sha256:e9e27a885388fdd2c1e16d3a044a2abc7cc6a9c417c222a61332fbaa0be6d345"
+  },
+  "diagnosticExecution": {
+    "contextWindowTokens": 32768
+  },
+  "origin": {
+    "cli": {
+      "url": "https://registry.npmjs.org/chainlesschain/0.166.140",
+      "integrity": "5a0d4962efdce90b91d31a1597f1b45f0d25c29cdfdd43d85147f319fa02096cc2d0bafea94580f20fbb861e45690f6321ce9e27dd1817c9424a9d3e3d86153d",
+      "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz"
+    },
+    "vscode": {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.176",
+      "download": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.176/file/chainlesschain.chainlesschain-ide-0.37.176.vsix"
+    },
+    "jetbrains": {
+      "distribution": "github-actions-artifact",
+      "repository": "chainlesschain/chainlesschain",
+      "sourceCommit": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+      "runId": 41614441190,
+      "artifactId": 13226403499,
+      "artifactName": "chainlesschain-ide-jetbrains-2",
+      "artifactDigest": "sha256:aa34c991d8016b836b06c366ff340377a2a91071bc439e0a28caf80a083afe11",
+      "tag": "ide-jetbrains-v0.4.193",
+      "file": "chainlesschain-ide-bridge-0.4.193.zip",
+      "workflow": ".github/workflows/ide-extensions.yml",
+      "marketplaceStatus": "uploaded-awaiting-approval"
+    }
+  },
+  "publicArtifacts": {
+    "cli": {
+      "digest": "sha256:99e673b86c98795482b541c11d4187471d9babdd599f1c94f0ea37db9698faa9",
+      "bytes": 9540330
+    },
+    "vscode": {
+      "digest": "sha256:38c22fc843876c2cbc67d28af19ed21f917a2499705075ca492388e8162f0807",
+      "bytes": 749356
+    },
+    "jetbrains": {
+      "digest": "sha256:02835c272e2ab701724fa99845a7eb8968a5a757ab8d6655bbf10ce52a02aa75",
+      "bytes": 1555501
+    }
+  },
+  "authorization": "User requests only the four historical unfinished OpenAI samples, using the latest released repaired CLI and IDE packages. Freeze release140 repaired project source and exact package bytes before execution, retain original prompts, budgets, independent acceptance and previous results. No other sample is authorized by this round."
+}

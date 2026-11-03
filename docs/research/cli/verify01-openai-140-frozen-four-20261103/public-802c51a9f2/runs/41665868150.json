@@ -1,0 +1,39 @@
+{
+  "id": 41665868150,
+  "originalRunId": 41665868150,
+  "source": "802c51a9f20568d06268b12c0326087eca697278",
+  "status": "completed",
+  "conclusion": "success",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41665868150",
+  "updatedAt": "2026-11-03T15:52:15Z",
+  "jobs": [
+    {
+      "id": 126020884422,
+      "name": "validate",
+      "status": "completed",
+      "conclusion": "success",
+      "failedStep": null
+    },
+    {
+      "id": 126022483643,
+      "name": "Native linux-cli (selected samples)",
+      "status": "completed",
+      "conclusion": "success",
+      "failedStep": null
+    },
+    {
+      "id": 126025571878,
+      "name": "Linux acceptance of linux-cli deliveries",
+      "status": "completed",
+      "conclusion": "success",
+      "failedStep": null
+    },
+    {
+      "id": 126029554888,
+      "name": "collect_fresh_volcengine",
+      "status": "completed",
+      "conclusion": "skipped",
+      "failedStep": null
+    }
+  ]
+}
