@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-03T13:40:25.615914+00:00",
+  "workflowContracts": {
+    "files": 29,
+    "passed": 197,
+    "failed": 0,
+    "skipped": 0,
+    "rawLog": "contracts.tap.txt",
+    "digest": "sha256:9868076a60877b4e301f0919ac31a697df624663d356fb49cfbe77b4099c7ee8"
+  },
+  "supplementalActualEvidenceBindingChecks": {
+    "passed": 4,
+    "failed": 0
+  },
+  "networkInventory": {
+    "candidates": 88,
+    "unclassified": 0,
+    "sourceReviewPassed": true,
+    "parseErrors": 0,
+    "formalPaidAdmission": false
+  },
+  "preparationModelGenerationRequests": 0,
+  "baselineCompleteReportAvailable": false,
+  "note": "No live recovery dispatch is authorized by these offline results alone; the controller requires the completed45-sample source-bound baseline report and exact derived failure queue."
+}

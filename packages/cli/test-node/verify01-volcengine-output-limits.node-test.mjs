@@ -29,7 +29,7 @@ const options = {
   parallelToolCalls: null,
   preserveExplicitOutputLimits: true,
 };
-const raw = (tokens) =>
+const raw = (tokens, finishReason = "stop", toolCalls) =>
   Buffer.from(
     JSON.stringify({
       id: "offline-explicit-output",
@@ -38,8 +38,12 @@ const raw = (tokens) =>
       choices: [
         {
           index: 0,
-          message: { role: "assistant", content: "offline" },
-          finish_reason: "stop",
+          message: {
+            role: "assistant",
+            content: "offline",
+            ...(toolCalls ? { tool_calls: toolCalls } : {}),
+          },
+          finish_reason: finishReason,
         },
       ],
       usage: {
@@ -127,14 +131,14 @@ test("invalid explicit limits fail before dispatch rather than being silently re
   );
 });
 
-async function fixture(t, requestImpl) {
+async function fixture(t, requestImpl, executionBudgets = budgets) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-explicit-output-"));
   assert.ok(root.startsWith(path.resolve(os.tmpdir()) + path.sep));
   const output = path.join(root, "broker");
   const broker = await createVolcengineDiagnosticBroker({
     outputDir: output,
     key: "offline-not-an-account-key",
-    executionBudgets: budgets,
+    executionBudgets,
     maximumRequestsPerTask: 48,
     allowedTaskIds: ["verify-31"],
     allowTextOnlyRequests: true,
@@ -197,4 +201,77 @@ test("a provider response exceeding the explicit internal limit is rejected and 
   assert.equal(again.status, 403);
   await again.text();
   assert.equal(calls, 1);
+});
+
+test("bounded internal text may reach its caller-owned limit without poisoning subsequent agent calls", async (t) => {
+  let calls = 0;
+  const f = await fixture(
+    t,
+    async () => ({
+      status: 200,
+      raw: ++calls === 1 ? raw(2048, "length") : raw(20),
+    }),
+    { ...budgets, allowInternalTextLength: true },
+  );
+  const first = await f.send({ ...request(2048), tools: [] });
+  assert.equal(first.status, 200);
+  assert.equal((await first.json()).choices[0].finish_reason, "length");
+  assert.equal(f.broker.taskStatus("verify-31").passed, true);
+  const receipt = JSON.parse(
+    fs.readFileSync(path.join(f.root, "request-1.receipt.json"), "utf8"),
+  );
+  assert.equal(receipt.internalTextOutputBoundaryAccepted, true);
+  assert.equal(receipt.usage.completion_tokens, 2048);
+  const next = await f.send({
+    ...request(),
+    tools: [{ type: "function", function: { name: "write_file" } }],
+  });
+  assert.equal(next.status, 200);
+  await next.text();
+  assert.equal(calls, 2);
+  assert.equal(f.broker.taskStatus("verify-31").usageCompleteRequests, 2);
+});
+
+test("ordinary/tool truncation remains fatal and the historical internal-summary verdict stays unchanged", async (t) => {
+  for (const [input, executionBudgets, toolCalls] of [
+    [request(), { ...budgets, allowInternalTextLength: true }],
+    [
+      {
+        ...request(2048),
+        tools: [{ type: "function", function: { name: "write_file" } }],
+      },
+      { ...budgets, allowInternalTextLength: true },
+    ],
+    [request(2048), budgets],
+    [
+      request(2048),
+      { ...budgets, allowInternalTextLength: true },
+      [
+        {
+          id: "offline-call",
+          type: "function",
+          function: { name: "write_file", arguments: '{"path":' },
+        },
+      ],
+    ],
+  ]) {
+    const f = await fixture(
+      t,
+      async () => ({ status: 200, raw: raw(2048, "length", toolCalls) }),
+      executionBudgets,
+    );
+    const response = await f.send(input);
+    assert.equal(response.status, 403);
+    assert.match(await response.text(), /OUTPUT_TRUNCATED/u);
+    assert.equal(f.broker.taskStatus("verify-31").passed, false);
+  }
+  assert.throws(
+    () =>
+      volcengineBudgetRetryPolicy({
+        ...budgets,
+        preserveExplicitOutputLimits: undefined,
+        allowInternalTextLength: true,
+      }),
+    /INTERNAL_TEXT_LENGTH_POLICY_INVALID/u,
+  );
 });

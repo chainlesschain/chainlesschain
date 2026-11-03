@@ -1,0 +1,52 @@
+{
+  "id": 15,
+  "taskId": "verify-19",
+  "startedAt": "2026-11-03T13:03:00.870Z",
+  "usage": {
+    "completion_tokens": 2048,
+    "prompt_tokens": 4446,
+    "total_tokens": 6494,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  },
+  "tokenOnlyEstimateCny": 0.03177,
+  "actualBilledCostCny": null,
+  "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED",
+  "responseMode": "json",
+  "finish": "length",
+  "finishedAt": "2026-11-03T13:03:25.811Z",
+  "transport": {
+    "socketAssignedMs": 1,
+    "dnsLookupMs": 34,
+    "tcpConnectedMs": 1254,
+    "tlsConnectedMs": 1473,
+    "dispatchStartedMs": 1473,
+    "requestFinishedMs": 1474,
+    "responseStartedMs": 24939,
+    "dispatchStarted": true,
+    "failureCategory": null,
+    "connectionAttempts": [
+      {
+        "event": "start",
+        "family": 4,
+        "elapsedMs": 34,
+        "errorCode": null
+      }
+    ],
+    "nestedErrorCodes": [],
+    "errorCode": null,
+    "errorSyscall": null
+  },
+  "response": {
+    "storedSha256": "fdd54aa2a7a35fea66577fe6b1f94e40915631045d2d8646a22ad2203e39ef96",
+    "storedBytes": 9808,
+    "status": 200,
+    "originalSha256": "fdd54aa2a7a35fea66577fe6b1f94e40915631045d2d8646a22ad2203e39ef96",
+    "originalBytes": 9808,
+    "sensitiveValueRedacted": false
+  }
+}

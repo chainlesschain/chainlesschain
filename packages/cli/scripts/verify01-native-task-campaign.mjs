@@ -691,6 +691,7 @@ export async function runNativeCampaign(options) {
     "packages/cli/scripts/verify01-native-execution-budgets.mjs",
     "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
     "packages/cli/scripts/verify01-volcengine-public140-full.mjs",
+    "packages/cli/scripts/verify01-volcengine-public140-generation-recovery.mjs",
     "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
     "packages/cli/scripts/verify01-openai-transport-preload.mjs",
     "packages/cli/scripts/verify01-review-specs.mjs",
@@ -791,7 +792,8 @@ export async function runNativeCampaign(options) {
   validateNativeProjectSelection(revisionBinding, sampleIds);
   if (
     packageManifest?.volcengineBudgetRetry ||
-    packageManifest?.volcengineFullRound
+    packageManifest?.volcengineFullRound ||
+    packageManifest?.volcengineGenerationRecovery
   ) {
     assert.equal(
       reviewChanges,
@@ -855,7 +857,8 @@ export async function runNativeCampaign(options) {
     ...revisionMetadata,
     ...(runtimeRepair ? { runtimeRepair } : {}),
     ...(packageManifest?.volcengineBudgetRetry ||
-    packageManifest?.volcengineFullRound
+    packageManifest?.volcengineFullRound ||
+    packageManifest?.volcengineGenerationRecovery
       ? { executionBudgets: budgets }
       : {}),
     frozenArchiveDigest: hash(fs.readFileSync(archive)),

@@ -531,6 +531,12 @@ export function volcengineBudgetRetryPolicy(budgets) {
     [undefined, true].includes(budgets.preserveExplicitOutputLimits),
     "DIAGNOSTIC_EXPLICIT_OUTPUT_POLICY_INVALID",
   );
+  check(
+    [undefined, true].includes(budgets.allowInternalTextLength) &&
+      (budgets.allowInternalTextLength !== true ||
+        budgets.preserveExplicitOutputLimits === true),
+    "DIAGNOSTIC_INTERNAL_TEXT_LENGTH_POLICY_INVALID",
+  );
   return Object.freeze({
     ...BROKER,
     maximumRequestsPerTask: 48,
@@ -543,6 +549,9 @@ export function volcengineBudgetRetryPolicy(budgets) {
     ...(budgets.parallelToolCalls === null ? { parallelToolCalls: null } : {}),
     ...(budgets.preserveExplicitOutputLimits === true
       ? { preserveExplicitOutputLimits: true }
+      : {}),
+    ...(budgets.allowInternalTextLength === true
+      ? { allowInternalTextLength: true }
       : {}),
   });
 }
@@ -579,6 +588,27 @@ export async function createVolcengineDiagnosticBroker(options) {
     sseUsage: (raw, effective) => readUsage(diagnosticUsage, raw, effective),
     jsonUsage: (raw, effective) =>
       readUsage(diagnosticJsonUsage, raw, effective),
+    acceptInternalTextLength: ({ original, effective, captured, row }) => {
+      if (
+        !policy.allowInternalTextLength ||
+        !policy.preserveExplicitOutputLimits ||
+        effective.stream ||
+        !Number.isSafeInteger(original.max_tokens) ||
+        original.max_tokens <= 0 ||
+        (original.tools?.length ?? 0) !== 0 ||
+        effective.tools !== undefined ||
+        row.usage === null
+      )
+        return false;
+      const response = parseDiagnosticJson(
+        new TextDecoder("utf-8", { fatal: true }).decode(captured.raw),
+      );
+      const message = response.choices[0].message;
+      return (
+        typeof message.content === "string" &&
+        (message.tool_calls?.length ?? 0) === 0
+      );
+    },
     estimateField: "tokenOnlyEstimateCny",
     billedField: "actualBilledCostCny",
     defaultThinkingPreserved: false,
@@ -736,7 +766,19 @@ export async function createBoundedDiagnosticBroker(options, profile) {
           effective,
         ),
       );
-      check(row.finish !== "length", "DIAGNOSTIC_OUTPUT_TRUNCATED");
+      const internalBoundary =
+        row.finish === "length" &&
+        profile.acceptInternalTextLength?.({
+          original,
+          effective,
+          captured,
+          row,
+        }) === true;
+      if (internalBoundary) row.internalTextOutputBoundaryAccepted = true;
+      check(
+        row.finish !== "length" || internalBoundary,
+        "DIAGNOSTIC_OUTPUT_TRUNCATED",
+      );
     } catch (error) {
       // An oversized request is rejected before dispatch. It invalidates this
       // task, but no provider usage or response is left unknown for the next.

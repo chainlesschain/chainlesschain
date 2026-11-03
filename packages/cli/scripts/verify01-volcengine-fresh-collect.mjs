@@ -277,17 +277,23 @@ async function main() {
     versions: packages.versions,
     packageSetDigest: packages.packageSetDigest,
     formalSample: false,
-    roundKind: manifest.volcengineFullRound
-      ? manifest.volcengineFullRound.normalizationRepair
-        ? "public140-full-preserve-explicit-output"
-        : "public140-full-36-plus-9"
-      : retry
-        ? "expanded-budget-retry"
-        : "fresh-full-36-plus-9",
+    roundKind: manifest.volcengineGenerationRecovery
+      ? "public140-generation-recovery"
+      : manifest.volcengineFullRound
+        ? manifest.volcengineFullRound.normalizationRepair
+          ? "public140-full-preserve-explicit-output"
+          : "public140-full-36-plus-9"
+        : retry
+          ? "expanded-budget-retry"
+          : "fresh-full-36-plus-9",
     executionBudgets: nativeExecutionBudgets(manifest),
     ...(manifest.volcengineBudgetRetry
       ? { baselineRunId: manifest.volcengineBudgetRetry.baselineRunId }
-      : {}),
+      : manifest.volcengineGenerationRecovery
+        ? {
+            baselineRunId: manifest.volcengineGenerationRecovery.baseline.runId,
+          }
+        : {}),
     historicalScoresUnchanged: true,
     completeGenerationEvidence: results.every((r) => r.deliveryAvailable),
     completeEvidence:
