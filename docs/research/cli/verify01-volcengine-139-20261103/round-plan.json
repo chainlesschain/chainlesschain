@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.fresh-volcengine-native-round/v1",
   "createdAt": "2026-11-03T01:26:26.468532+00:00",
-  "status": "ready-after-complete-credential-correction",
+  "status": "dispatched-after-complete-credential-correction",
   "provider": "volcengine",
   "model": "deepseek-v4-flash-ga-260731",
   "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
@@ -120,5 +120,7 @@
     "expectedModelListed": true,
     "modelGenerationRequestsInMetadataPreflight": 0,
     "checkedAt": "2026-11-03T01:47:12.177561+00:00"
-  }
+  },
+  "executionSource": "12691dec300e3048f93e9211cbe54d794ae3ba3f",
+  "runId": 41562280904
 }
