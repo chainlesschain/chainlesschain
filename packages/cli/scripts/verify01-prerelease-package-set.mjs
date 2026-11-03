@@ -298,6 +298,11 @@ export function createPrereleaseBundle(
     "src/lib/context-memory-kernel/task-binding.js",
     "src/lib/context-memory-kernel/jsonl-session-context-port.js",
     "src/runtime/message-roles.js",
+    ...(fs.existsSync(
+      path.join(root, "packages/cli/src/runtime/tool-argument-recovery.js"),
+    )
+      ? ["src/runtime/tool-argument-recovery.js"]
+      : []),
   ].map((file) => ({
     file,
     digest: digest(fs.readFileSync(path.join(root, "packages/cli", file))),
