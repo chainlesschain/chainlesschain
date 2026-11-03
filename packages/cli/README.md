@@ -2,17 +2,21 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-<!-- release139-candidate:start -->
+<!-- release140-pairing:start -->
 
-## CLI 0.166.139 / IDE repair release
+## CLI 0.166.140 / rejected tool argument recovery
 
-This package is CLI **0.166.139**, paired with publicly verified Open VSX **0.37.175** and JetBrains **0.4.192**, with unchanged upstream SDK **0.2.17** and Kernel **0.1.11**. Production publication uses GitHub Actions OIDC after the exact-source CLI CI and Strict Sandbox matrices pass on every configured platform. Install `npm i -g chainlesschain@0.166.139 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, and check `cc --version` and `cc doctor`. Mobile/PC [v5.0.3.144](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.144) followed the verified CLI and IDE releases on 2026-11-03; all five platform builds and all 22 release asset checks passed. Windows/macOS packages are unsigned, macOS is not notarized, and iOS uses signed Ad Hoc distribution for registered devices. This release does not publish to App Store or Google Play. [Public release evidence](../../docs/research/cli/evidence/release144-public/publication.json).
+This package is CLI **0.166.140**, paired with Open VSX **0.37.176** and JetBrains **0.4.193**. Install `npm i -g chainlesschain@0.166.140 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, then check `cc --version` and `cc doctor`.
 
-The repair reserves author, fresh independent review and final reporting work within the original total request budget. Partial JavaScript reads recover complete surrounding statements from the same file snapshot within the existing output limit; focused reads do not silently switch to unrelated ranges. This release includes the standalone WebSocket host-model-policy repair.
+Malformed provider tool arguments are rejected before tool execution. A uniquely paired pre-execution rejection produces a model-only placeholder so the next turn can continue through strict self-evolution projection. Legacy run_code snapshot rejections can resume without replaying the rejected call; original durable history stays unchanged. Valid object arguments, duplicate-key rejection, nested JSON checks, redaction and decoding budgets retain their existing boundaries.
 
-CLI .138 acceptance remains **2/4**: verify-13 and first-run-darwin-vscode passed; verify-08 and verify-36 failed on author-stage iteration exhaustion despite passing candidate checks. CLI .139 engineering checks do not establish new model-task acceptance or rescore those results. CLI .136 verify-19 remains a separate historical pass; historical **41/45** and .137 **0/5** are unchanged. Review stays enabled, with 20 model turns, 24 physical requests per diagnostic case and the 32768-token planning context. JetBrains **0.4.192** is approved and public; both JAR payloads match the official build, while ZIP container hashes differ. Microsoft Marketplace remains deferred.
+Publication uses GitHub Actions OIDC after the exact release commit passes CLI CI and CLI Strict Sandbox on every configured Linux, Windows and macOS runner. IDE publication follows verified public CLI installation and its own exact-source host gates. JetBrains upload, Marketplace approval and public availability are reported separately.
 
-<!-- release139-candidate:end -->
+The focused Windows checks passed 129 tests. Two bounded real Volcengine recovery scenarios passed through the installed runtime with five physical requests and 6,401 tokens; the first scenario explicitly injected the exact logged malformed argument into one inbound model response. These results cover this recovery defect and do not rescore historical model-task acceptance. SDK 0.2.17, Protocol 0.1.12, Kernel 0.1.11 and the other child packages retain their published versions. Microsoft Marketplace and the independent PC/mobile product release are outside this patch.
+
+[Focused live recovery evidence](../../docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine.json).
+
+<!-- release140-pairing:end -->
 
 <!-- release138-current:start -->
 

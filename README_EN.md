@@ -1,5 +1,21 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+<!-- release140-candidate:start -->
+
+## CLI 0.166.140 / IDE recovery release preparation (2026-11-03)
+
+The proposed pairing is CLI **0.166.140**, Open VSX **0.37.176** and JetBrains **0.4.193**. The current verified public CLI remains **0.166.139** until the new exact-source gates and OIDC publication complete. Malformed provider tool arguments are rejected before tool execution. A uniquely paired pre-execution rejection produces a model-only placeholder so the next turn can continue through strict self-evolution projection. Legacy run_code snapshot rejections can resume without replaying the rejected call; original durable history stays unchanged. Valid object arguments, duplicate-key rejection, nested JSON checks, redaction and decoding budgets retain their existing boundaries.
+
+Publication uses GitHub Actions OIDC after the exact release commit passes CLI CI and CLI Strict Sandbox on every configured Linux, Windows and macOS runner. IDE publication follows verified public CLI installation and its own exact-source host gates. JetBrains upload, Marketplace approval and public availability are reported separately.
+
+After publication, install `npm i -g chainlesschain@0.166.140 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, then check `cc --version` and `cc doctor`.
+
+The focused Windows checks passed 129 tests. Two bounded real Volcengine recovery scenarios passed through the installed runtime with five physical requests and 6,401 tokens; the first scenario explicitly injected the exact logged malformed argument into one inbound model response. These results cover this recovery defect and do not rescore historical model-task acceptance. SDK 0.2.17, Protocol 0.1.12, Kernel 0.1.11 and the other child packages retain their published versions. Microsoft Marketplace and the independent PC/mobile product release are outside this patch.
+
+[Focused recovery evidence](docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine.json).
+
+<!-- release140-candidate:end -->
+
 <!-- release139-current:start -->
 
 ## Current public CLI: 0.166.139 (2026-11-02)

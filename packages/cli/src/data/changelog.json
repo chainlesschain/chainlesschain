@@ -3,13 +3,26 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.140",
+      "cliVersions": ["0.166.140"],
+      "date": "2026-11-03",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.140: recover rejected malformed tool arguments (candidate, 2026-11-03)",
+          "body": "- Reject malformed JSON and non-object provider tool arguments before checkpoints, hooks or tool execution instead of executing an empty-object fallback.\n- Derive model-only placeholders for uniquely paired explicit pre-execution rejections, including legacy run_code snapshot denials. Preserve original durable history and never replay the rejected call.\n- Keep valid object argument handling, duplicate-key and nested JSON rejection, redaction and projection budgets unchanged.\n- Pair with Open VSX 0.37.176 and JetBrains 0.4.193. Child npm versions are unchanged; require exact-source three-platform CLI CI / Strict Sandbox, Actions OIDC publication, public package readback and downstream IDE host gates.\n- Focused local validation passed 129 checks; two bounded real Volcengine recovery scenarios passed with five physical requests and 6,401 tokens. This is defect-specific recovery evidence, not a new broad model-task acceptance result."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.139",
       "cliVersions": ["0.166.139"],
       "date": "2026-11-02",
       "title": "",
       "sections": [
         {
-          "heading": "Fixed - cc CLI 0.166.139: complete author work and independent review within one budget (candidate, 2026-11-02)",
+          "heading": "Fixed - cc CLI 0.166.139: complete author work and independent review within one budget (released, 2026-11-02)",
           "body": "- Reserve fresh independent inspection, repair, read-back and final reporting inside the original model-turn limit, including when the author continues calling tools. Unknown usage and insufficient remaining review capacity fail explicitly; last-turn tool calls cannot become a successful terminal result.\n- Recover complete surrounding JavaScript statements from the same file snapshot when a partial page cannot be projected. Preserve the original requested range and actual returned range, the existing JSON/source validation, provider delivery accounting and output metadata headroom.\n- Preserve focused explicit read ranges instead of silently substituting an unrelated unread section. Broad truncated scans retain bounded cursor progress.\n- Pair CLI 0.166.139 with Open VSX 0.37.175 and JetBrains 0.4.192 after complete exact-source release gates and verified upstream publication. SDK 0.2.17 and Kernel 0.1.11 remain unchanged and must pass upstream reuse checks.\n- Retest only verify-08 and verify-36 with the new package set, keeping independent review and the original budget. Prior CLI .138 result remains 2/4; previously accepted samples are not repeated. These engineering repairs do not claim new real-model success."
         }
       ]
