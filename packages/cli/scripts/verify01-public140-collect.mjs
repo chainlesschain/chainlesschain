@@ -47,14 +47,40 @@ assert.equal(selections.length, 3);
 assert.equal(new Set(selections.map((row) => row.id)).size, 3);
 const hash = (bytes) =>
   "sha256:" + createHash("sha256").update(bytes).digest("hex");
-const request = (route) =>
-  execFileSync("gh", ["api", `repos/${repo}${route}`], {
-    timeout: 120000,
-    env: githubEnvironment,
-    windowsHide: true,
-    maxBuffer: 64 * 1024 * 1024,
-  });
+function request(route) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return execFileSync("gh", ["api", `repos/${repo}${route}`], {
+        timeout: 120000,
+        env: githubEnvironment,
+        windowsHide: true,
+        stdio: ["ignore", "pipe", "pipe"],
+        maxBuffer: 64 * 1024 * 1024,
+      });
+    } catch {
+      if (attempt === 2)
+        throw new Error(
+          `Read-only GitHub GET failed after three attempts: ${route}`,
+        );
+    }
+  }
+}
 const api = (route) => JSON.parse(request(route).toString("utf8"));
+// Interrupted read-only collections retain their original ZIPs. Reuse only
+// bytes matching the current GitHub artifact digest and size, checked below.
+const cachedArchives = new Map();
+for (const entry of fs.readdirSync(os.tmpdir(), { withFileTypes: true })) {
+  if (!entry.isDirectory() || !entry.name.startsWith("cc-public139-collect-"))
+    continue;
+  const archive = path.join(os.tmpdir(), entry.name, "artifact.zip");
+  try {
+    const stat = fs.lstatSync(archive);
+    if (stat.isFile() && stat.size > 0 && stat.size < 64 * 1024 * 1024)
+      cachedArchives.set(hash(fs.readFileSync(archive)), archive);
+  } catch {
+    // An unavailable cache entry never changes the original download contract.
+  }
+}
 const files = [];
 let totalBytes = 0;
 function save(name, bytes) {
@@ -119,7 +145,10 @@ for (const selection of selections) {
     assert.equal(artifact.workflow_run.head_sha, source);
     assert.equal(artifact.workflow_run.id, selection.id);
     assert.equal(artifact.expired, false);
-    const zip = request(`/actions/artifacts/${artifact.id}/zip`);
+    const cached = cachedArchives.get(artifact.digest);
+    const zip = cached
+      ? fs.readFileSync(cached)
+      : request(`/actions/artifacts/${artifact.id}/zip`);
     assert.equal(zip.length, artifact.size_in_bytes);
     assert.equal(hash(zip), artifact.digest);
     const temp = fs.mkdtempSync(
