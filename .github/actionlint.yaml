@@ -7,12 +7,6 @@ self-hosted-runner:
     - graph-kernel-production
 
 paths:
-  # These diagnostic jobs must remain disabled. The trajectory regression
-  # checks both literal-false guards; do not follow the generic lint suggestion
-  # to remove them, which would enable paid provider execution.
-  ".github/workflows/ide-roadmap-live-provider.yml":
-    ignore:
-      - '^constant expression "false" in condition\. remove the if: section$'
   # Baseline captured from PR #311 run 33467645421 / job 99730720142 at
   # aec444286d5d683f3903c4f30b9530f176813f7d: 196 historical ShellCheck
   # findings in 34 unchanged workflows after fixing Maven's SC2086 directly.

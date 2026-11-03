@@ -710,10 +710,10 @@ describe("IDE roadmap live-provider trajectory", () => {
     const liveProviderVerifyJob = workflow.slice(
       workflow.indexOf("  live-provider-verify:\n"),
     );
-    // The diagnostic workflow deliberately disables paid execution. Assert
-    // both job guards so manual dispatch cannot accidentally enable either.
+    // GitHub always() is true even for cancelled runs. Its negation keeps both
+    // jobs disabled for every event without relaxing the actionlint baseline.
     for (const job of [liveProviderJob, liveProviderVerifyJob]) {
-      expect(job).toMatch(/^    if: \$\{\{ false \}\}$/m);
+      expect(job).toMatch(/^    if: \$\{\{ !always\(\) \}\}$/m);
     }
     const liveProviderRunStep = liveProviderJob.slice(
       liveProviderJob.indexOf(
