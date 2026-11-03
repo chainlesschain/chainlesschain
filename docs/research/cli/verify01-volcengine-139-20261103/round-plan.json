@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.fresh-volcengine-native-round/v1",
   "createdAt": "2026-11-03T01:26:26.468532+00:00",
-  "status": "ready-after-actions-package-preflight",
+  "status": "dispatched",
   "provider": "volcengine",
   "model": "deepseek-v4-flash-ga-260731",
   "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
@@ -99,5 +99,7 @@
   "localContracts": {
     "passed": 53,
     "failed": 0
-  }
+  },
+  "executionSource": "92f480b24de7d6419ce00c5ff58ec3fd20e137c3",
+  "runId": 41560581328
 }
