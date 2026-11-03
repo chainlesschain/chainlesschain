@@ -1,0 +1,109 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+const root = mkdtempSync(join(tmpdir(), "cc-fork-ownership-"));
+// From __tests__, ../src resolves to packages/cli/src (not ../../src).
+vi.mock("../src/lib/paths.js", () => ({
+  getHomeDir: () => join(root, "home"),
+  getSessionStoreDir: () => join(root, "home", "sessions"),
+  getClaudeProjectStorageDir: () => null,
+  getStatePath: () => join(root, "home", "state"),
+  getMachineSecurityAnchorDir: () => join(root, "security"),
+}));
+const store = await import("../src/harness/jsonl-session-store.js");
+const { createSessionTranscriptBranchProjection, readSessionTranscriptHistory } =
+  await import("../src/lib/session-transcript-history.js");
+
+afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+function importPrefix(parentSessionId, branchSessionId, retained) {
+  const messages = store.readVerifiedMessages(parentSessionId).slice(0, retained);
+  const head = store.findLatestEvent(parentSessionId, null).hash;
+  return store.withSessionAuthorityTransaction(parentSessionId, head, (tx) =>
+    tx.readProjection(() =>
+      createSessionTranscriptBranchProjection(parentSessionId, messages, (history) =>
+        store.createBranchSession({
+          parentSessionId,
+          branchSessionId,
+          parentTurnId: "selected",
+          messages,
+          history,
+        }),
+      ),
+    ),
+  );
+}
+
+const body = (id) => store.readVerifiedMessages(id)
+  .filter(({ role }) => role === "user" || role === "assistant")
+  .map(({ role, content }) => ({ role, content }));
+const display = (id) => readSessionTranscriptHistory(id).messages
+  .map(({ role, text }) => ({ role, content: text }));
+const user = (content) => ({ role: "user", content });
+
+// These are ownership controls, not malformed-input rejection tests: every
+// branch is created with a live verified history capability. The excluded row
+// differs only in whether it falls before/after the cut or belongs to a sibling.
+describe("fork history belongs to each restored branch", () => {
+  it("retains different valid ancestor prefixes and excludes later parent rows", () => {
+    store.startSession("ancestor", {});
+    store.appendUserMessage("ancestor", "shared question");
+    store.appendAssistantMessage("ancestor", "shared answer");
+    store.appendUserMessage("ancestor", "later question");
+    store.appendAssistantMessage("ancestor", "later answer");
+    store.appendUserMessage("ancestor", "beyond both cuts");
+    importPrefix("ancestor", "early", 2);
+    importPrefix("ancestor", "late", 4);
+    const shared = [user("shared question"), { role: "assistant", content: "shared answer" }];
+    const later = [user("later question"), { role: "assistant", content: "later answer" }];
+    expect(body("early")).toEqual(shared);
+    expect(display("early")).toEqual(shared);
+    expect(body("late")).toEqual([...shared, ...later]);
+    expect(display("late")).toEqual([...shared, ...later]);
+    store.appendUserMessage("ancestor", "parent after branching");
+    expect(display("early")).toEqual(shared);
+    expect(display("late")).toEqual([...shared, ...later]);
+  });
+
+  it("full-copy forks of imported history restore ancestors and isolate both bodies", () => {
+    store.startSession("fork-parent", {});
+    store.appendUserMessage("fork-parent", "inherited question");
+    store.appendAssistantMessage("fork-parent", "inherited answer");
+    store.appendUserMessage("fork-parent", "excluded parent tail");
+    importPrefix("fork-parent", "imported", 2);
+    const inherited = [user("inherited question"), { role: "assistant", content: "inherited answer" }];
+    const forkId = (requestId) => {
+      const result = store.forkSession("imported", { requestId });
+      return typeof result === "string" ? result : result.id;
+    };
+    const left = forkId("left-request");
+    const right = forkId("right-request");
+    expect(left).not.toBe(right);
+    for (const id of ["imported", left, right]) {
+      expect(body(id)).toEqual(inherited);
+      expect(display(id)).toEqual(inherited);
+      expect(readSessionTranscriptHistory(id).coverage).toEqual({
+        kind: "from-origin", boundaryEvent: null, reason: null,
+      });
+    }
+    const leftRows = readSessionTranscriptHistory(left).messages;
+    const rightRows = readSessionTranscriptHistory(right).messages;
+    for (let i = 0; i < inherited.length; i += 1) {
+      expect(leftRows[i].id).toBe(`${left}:${leftRows[i].eventId}:${leftRows[i].itemIndex}`);
+      expect(rightRows[i].id).toBe(`${right}:${rightRows[i].eventId}:${rightRows[i].itemIndex}`);
+      expect(leftRows[i].id).not.toBe(rightRows[i].id);
+    }
+    store.appendUserMessage(left, "left only");
+    expect(display(right)).toEqual(inherited);
+    store.appendUserMessage(right, "right only");
+    store.appendUserMessage("imported", "source after forks");
+    // Re-read persistence rather than comparing mutable results held in memory.
+    for (const [id, own] of [[left, "left only"], [right, "right only"]]) {
+      expect(body(id)).toEqual([...inherited, user(own)]);
+      expect(display(id)).toEqual([...inherited, user(own)]);
+    }
+    expect(display("imported")).toEqual([...inherited, user("source after forks")]);
+  });
+});

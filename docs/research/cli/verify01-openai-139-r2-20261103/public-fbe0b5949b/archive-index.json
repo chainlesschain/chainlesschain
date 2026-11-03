@@ -1,0 +1,72 @@
+{
+  "source": "fbe0b5949b61240d05913693a8333fbea699fe68",
+  "collectorSource": "1da95a8d2284c19e9d60ab8ffeb597ac7090b835",
+  "credentialShapeScanPassed": true,
+  "files": [
+    {
+      "path": "runs/41547368707.json",
+      "digest": "sha256:8a667094a8e57c1fb001ef2a8fc8d78797d7e067151634a35a3017f7868eb2b5",
+      "bytes": 900
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-vscode-fbe0b5949b61240d05913693a8333fbea699fe68/summary.json",
+      "digest": "sha256:61a70d772bcf34937a5812364f0453335b8c83f3c917df2246f5664e9ba96447",
+      "bytes": 401505
+    },
+    {
+      "path": "candidates/verify-08/repair137-verify-08.test.js.txt",
+      "digest": "sha256:d330edacf414d3031e691088b8196b8af3e9f43849ac80efdcbfc1c18f762732",
+      "bytes": 5331
+    },
+    {
+      "path": "raw/verify01-native-subset-acceptance-darwin-vscode-fbe0b5949b61240d05913693a8333fbea699fe68/summary.json",
+      "digest": "sha256:8ce1c88e5f66e3dc1c1841cbf0ebd199b032f3cdb875c67892e031d9b55bb7e7",
+      "bytes": 390344
+    },
+    {
+      "path": "receipts/verify-08-setup.json",
+      "digest": "sha256:2fd4967165d3d73032944aac45d8c0054912931e40db10e03fee7ed000926754",
+      "bytes": 31970
+    },
+    {
+      "path": "receipts/verify-08-check.json",
+      "digest": "sha256:f094b75c072b7a68679efb8da5d1feeb8b26bedcfb381b2312a17150c2545b09",
+      "bytes": 26791
+    },
+    {
+      "path": "runs/41547386705.json",
+      "digest": "sha256:fc98fe5c8a519c7002e276fdfae4f98bf6c0d32cfc6921b87d5560ff9b7e7d7d",
+      "bytes": 848
+    },
+    {
+      "path": "raw/verify01-native-subset-delivery-darwin-jetbrains-verify-36-fbe0b5949b61240d05913693a8333fbea699fe68/summary.json",
+      "digest": "sha256:86088e52fd1320dd8a6af2ec12e1db12917ee3853006efd808c0cd15fe7094ba",
+      "bytes": 397489
+    },
+    {
+      "path": "candidates/verify-36/repair137-verify-36.test.js.txt",
+      "digest": "sha256:626805b6d955e2cf12b903e6f77e38d2da7a9ffed4d15e1a9d9bc58cf80d84b7",
+      "bytes": 3692
+    },
+    {
+      "path": "raw/verify01-native-subset-acceptance-darwin-jetbrains-verify-36-fbe0b5949b61240d05913693a8333fbea699fe68/summary.json",
+      "digest": "sha256:7348c2d117a21d5eecf88d8d403b766e6b14fa1a5f3841f6c292e85ac7596669",
+      "bytes": 386161
+    },
+    {
+      "path": "receipts/verify-36-setup.json",
+      "digest": "sha256:0b1618296c25d3bacc7132d2e991ae2910db3b681c7d09b9daaff3e1c9e9491f",
+      "bytes": 15514
+    },
+    {
+      "path": "receipts/verify-36-check.json",
+      "digest": "sha256:9ae02c65105a53b1ac16081bc9a524c7574817bf566b40b95901dd3192f922c0",
+      "bytes": 18587
+    },
+    {
+      "path": "results.json",
+      "digest": "sha256:9abd922dd1dbeab1de22618f063e38c68d8b7e43faff5f513cc79851692afeae",
+      "bytes": 13953
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-11-03T00:48:56.634Z",
+  "originalCasesAstUnchanged": true,
+  "addedCases": 2,
+  "candidateDigest": "sha256:d5e53f585cea972bb07ed452c773ccbdbe3839329bc6eaac985a285eeec42a7e",
+  "originalEvaluatorDigestsMatchNativeRound": true,
+  "localRegression": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0,
+    "pending": 0,
+    "platform": "win32",
+    "node": "v22.22.2",
+    "reportDigest": "sha256:89908f3fbc75002fccac2bd6cc80047d1a45e0527ddb9b61716834fe3c7d4209"
+  },
+  "modelRequests": 0,
+  "productRuntimeChanged": false,
+  "originalNativeScoreUnchanged": "1/2",
+  "review": "Astra independently confirms missing wrong-parent negative coverage, complete source/candidate read delivery, and no reproduced product runtime defect."
+}

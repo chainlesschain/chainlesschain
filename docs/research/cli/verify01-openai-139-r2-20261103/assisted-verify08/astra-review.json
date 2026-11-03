@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-11-03T00:50:02.210Z",
+  "reviewer": "Astra (gpt-6-astra)",
+  "kind": "independent-read-only-static-review",
+  "candidateDigest": "sha256:d5e53f585cea972bb07ed452c773ccbdbe3839329bc6eaac985a285eeec42a7e",
+  "verdict": "no-blocking-findings",
+  "productRuntimeDefectReproduced": false,
+  "originalTwoCasesUnchanged": true,
+  "capabilityUsesRealSynchronousAuthority": true,
+  "wrongParentChangesOnlyParentArgument": true,
+  "validControlsBeforeAndAfterRejection": true,
+  "otherStoreGuardsCannotMaskResolverCheck": true,
+  "expiredControlAfterCallbackExit": true,
+  "scope": "wrong-parent mutation must still be confirmed by the unchanged original Docker evaluator; extra negative controls are not evidence of additional mutation coverage",
+  "nativeProviderTaskExecutions": 0
+}
