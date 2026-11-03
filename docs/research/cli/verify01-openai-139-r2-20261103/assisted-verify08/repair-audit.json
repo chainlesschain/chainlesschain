@@ -12,7 +12,9 @@
     "pending": 0,
     "platform": "win32",
     "node": "v22.22.2",
-    "reportDigest": "sha256:89908f3fbc75002fccac2bd6cc80047d1a45e0527ddb9b61716834fe3c7d4209"
+    "reportDigest": "sha256:89908f3fbc75002fccac2bd6cc80047d1a45e0527ddb9b61716834fe3c7d4209",
+    "reportFile": "local-regression.json.gz",
+    "compressedDigest": "sha256:d71302a0a4f31fe2b404849145a9f1184b5c1de66eeed80258b592eff9ff0f95"
   },
   "modelRequests": 0,
   "productRuntimeChanged": false,
