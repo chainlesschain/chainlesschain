@@ -1,0 +1,142 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { describe, expect, it } from "vitest";
+import {
+  ProcessOwnershipJournal,
+  PROCESS_OWNERSHIP_PENDING,
+  PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,
+} from "../src/lib/process-execution-broker/process-ownership-journal.js";
+
+const SCHEMA = "chainlesschain.process-ownership-journal/v1";
+const MAX_PENDING = 1024;
+
+function makeEntry(executionId = randomUUID(), token = randomUUID()) {
+  return { executionId, token, ownerPid: process.pid };
+}
+
+// A corrupted or pending journal must never be reported as free; a legitimate
+// pending record must survive every fresh instance. Both acceptance conditions
+// are exercised with paired positive/negative controls that change only the
+// condition under test (the private directory is created by a real prepare).
+function seededJournal(directory, pending) {
+  new ProcessOwnershipJournal(directory).prepare(randomUUID()).settle();
+  const file = path.join(directory, "journal.json");
+  fs.writeFileSync(file, JSON.stringify({ schema: SCHEMA, pending }));
+  return { file, bytes: fs.readFileSync(file) };
+}
+
+describe.skipIf(process.platform !== "linux")(
+  "verify-17 persistent process ownership journal",
+  () => {
+    let root;
+    let directory;
+    beforeEach(() => {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-verify17-"));
+      directory = path.join(root, "authority");
+    });
+    afterEach(() => {
+      fs.rmSync(root, { recursive: true, force: true });
+    });
+
+    it("treats a malformed per-entry journal as unavailable, not free, and preserves it", () => {
+      const malformed = { executionId: randomUUID(), ownerPid: process.pid }; // missing token
+      const { file, bytes } = seededJournal(directory, [malformed]);
+      // Positive control: corrupt entry is rejected as UNAVAILABLE.
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(
+        expect.objectContaining({
+          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,
+          executionStarted: false,
+          recoveryRequired: true,
+        }),
+      );
+      expect(fs.readFileSync(file)).toEqual(bytes);
+      // Negative control: only the entry validity changes (valid entry) ->
+      // the journal is now readable and reported as PENDING, never free.
+      fs.writeFileSync(
+        file,
+        JSON.stringify({ schema: SCHEMA, pending: [makeEntry()] }),
+      );
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }));
+      expect(JSON.parse(fs.readFileSync(file)).pending).toHaveLength(1);
+    });
+
+    it("treats duplicate execution ids as unavailable, not free", () => {
+      const id = randomUUID();
+      const { file, bytes } = seededJournal(directory, [
+        makeEntry(id),
+        makeEntry(id),
+      ]);
+      // Positive control: duplicate ids are invalid -> UNAVAILABLE.
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE }),
+      );
+      expect(fs.readFileSync(file)).toEqual(bytes);
+      // Negative control: only uniqueness changes (distinct ids) -> readable,
+      // reported as PENDING across the fresh instance.
+      fs.writeFileSync(
+        file,
+        JSON.stringify({ schema: SCHEMA, pending: [makeEntry(), makeEntry()] }),
+      );
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }));
+    });
+
+    it("retains a legitimate pending record across fresh instances but treats an empty journal as free", () => {
+      const id = randomUUID();
+      const owner = new ProcessOwnershipJournal(directory);
+      const lease = owner.prepare(id); // legitimate pending record, never settled
+      const file = path.join(directory, "journal.json");
+      expect(JSON.parse(fs.readFileSync(file)).pending).toHaveLength(1);
+      // Positive control: a fresh instance (no local record) is still blocked.
+      const first = new ProcessOwnershipJournal(directory);
+      expect(() => first.assertAvailable()).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }),
+      );
+      expect(first.inspect().pendingExecutionIds).toEqual([id]);
+      expect(first.inspect().blocked).toBe(true);
+      // Cross-instance retention: a second fresh instance is still blocked and
+      // the failed attempts must not have erased the record.
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }));
+      expect(JSON.parse(fs.readFileSync(file)).pending).toHaveLength(1);
+      // Negative control: only the pending record is removed (the owning
+      // instance settles its own lease) -> free.
+      lease.settle();
+      expect(JSON.parse(fs.readFileSync(file)).pending).toEqual([]);
+      expect(new ProcessOwnershipJournal(directory).assertAvailable()).toBe(
+        undefined,
+      );
+    });
+
+    it("accepts the MAX_PENDING boundary but rejects the first overflow as unavailable", () => {
+      const entries = (n) =>
+        Array.from({ length: n }, () => makeEntry());
+      // Boundary accepted: 1024 entries read fine and report PENDING.
+      seededJournal(directory, entries(MAX_PENDING));
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }));
+      // First rejected value: 1025 entries -> UNAVAILABLE, never free.
+      const { file, bytes } = seededJournal(
+        path.join(root, "overflow"),
+        entries(MAX_PENDING + 1),
+      );
+      expect(() =>
+        new ProcessOwnershipJournal(path.join(root, "overflow")).assertAvailable(),
+      ).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE }),
+      );
+      expect(fs.readFileSync(file)).toEqual(bytes);
+    });
+  },
+);

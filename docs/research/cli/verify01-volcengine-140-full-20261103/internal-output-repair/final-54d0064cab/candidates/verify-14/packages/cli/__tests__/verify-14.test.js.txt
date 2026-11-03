@@ -1,0 +1,89 @@
+/**
+ * verify-14 — 图片逐项错误 (per-item image error accuracy).
+ *
+ * Acceptance: mixing valid images and corrupted inputs must preserve accurate
+ * success/rejection info per item and must NOT silently skip a corrupted input.
+ * resolveImages rejects the whole batch loudly, identifying the offending item
+ * by its 1-based index (`Image N: ...`), while valid items read before it are
+ * still produced with accurate mediaType + base64 data on the success path.
+ */
+import { describe, it, expect } from "vitest";
+import {
+  PNG_BYTES,
+  imageHeader,
+} from "./helpers/image-file-fixtures.js";
+import { resolveImages } from "../src/lib/image-input.js";
+
+/** In-memory fs: maps a path token to a buffer (valid image bytes or garbage). */
+function memFs(files) {
+  return {
+    constants: { O_RDONLY: 0, O_NONBLOCK: 0 },
+    openSync(name) {
+      return name;
+    },
+    fstatSync(fd) {
+      const b = files[fd];
+      return { size: b.length, mtimeMs: 1, ctimeMs: 1, isFile: () => true };
+    },
+    readSync(fd, target, offset, length, position) {
+      return files[fd].copy(target, offset, position, position + length);
+    },
+    closeSync() {},
+  };
+}
+
+const PNG = "a.png";
+const WEBP = "b.webp";
+const CORRUPT = "bad.png";
+
+describe("verify-14: per-item image success/rejection accuracy", () => {
+  it("a single valid image resolves to accurate mediaType + base64 data", () => {
+    const out = resolveImages([PNG], { fs: memFs({ [PNG]: PNG_BYTES }) });
+    expect(out).toEqual([
+      { mediaType: "image/png", data: PNG_BYTES.toString("base64") },
+    ]);
+  });
+
+  it("a single corrupted image is rejected loudly, not silently skipped", () => {
+    expect(() =>
+      resolveImages([CORRUPT], { fs: memFs({ [CORRUPT]: Buffer.from("garbage") }) }),
+    ).toThrow(/Image 1:.*malformed image header/);
+  });
+
+  it("mixed [valid, corrupt] keeps the valid read AND rejects item 2 by index (no silent skip)", () => {
+    expect(() =>
+      resolveImages([PNG, CORRUPT], {
+        fs: memFs({ [PNG]: PNG_BYTES, [CORRUPT]: Buffer.from("garbage") }),
+      }),
+    ).toThrow(/Image 2:.*malformed image header/);
+  });
+
+  it("mixed [corrupt, valid] rejects item 1 by index regardless of order", () => {
+    expect(() =>
+      resolveImages([CORRUPT, PNG], {
+        fs: memFs({ [PNG]: PNG_BYTES, [CORRUPT]: Buffer.from("garbage") }),
+      }),
+    ).toThrow(/Image 1:.*malformed image header/);
+  });
+
+  it("a fully valid mixed list preserves accurate per-item success info", () => {
+    const out = resolveImages([PNG, WEBP], {
+      fs: memFs({ [PNG]: PNG_BYTES, [WEBP]: imageHeader("webp") }),
+    });
+    expect(out).toEqual([
+      { mediaType: "image/png", data: PNG_BYTES.toString("base64") },
+      {
+        mediaType: "image/webp",
+        data: imageHeader("webp").toString("base64"),
+      },
+    ]);
+  });
+
+  it("an unsupported extension in a mixed list still rejects loudly (not skipped)", () => {
+    expect(() =>
+      resolveImages([PNG, "doc.pdf"], {
+        fs: memFs({ [PNG]: PNG_BYTES }),
+      }),
+    ).toThrow(/Unsupported image type/);
+  });
+});

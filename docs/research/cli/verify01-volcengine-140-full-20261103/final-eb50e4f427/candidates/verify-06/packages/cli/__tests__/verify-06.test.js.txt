@@ -1,0 +1,113 @@
+// verify-06: paid pre-decomposition precheck.
+//
+// Guards the frozen implementation contract in
+// packages/cli/src/lib/orchestrator.js#addTask (and its agent-router.js
+// preflight): a rejected backend must terminate the task *before* notifications
+// and before paid decomposition runs. This is an independent regression suite,
+// distinct from packages/cli/__tests__/integration/orchestrator-workflow.test.js.
+//
+// The preflight is `this._router.assertDispatchAvailable?.()` at the top of
+// addTask (orchestrator.js ~line 196). It passes iff at least one configured
+// backend is non-CLI (api); if every backend is an external agent CLI it throws
+// `{ code: "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED" }`
+// (agent-router.js ~line 550). The call precedes task registration, the
+// notifyStart fire-and-forget, and `_decompose`.
+
+import { describe, it, expect, vi } from "vitest";
+import {
+  Orchestrator,
+  TASK_STATUS,
+} from "../src/lib/orchestrator.js";
+
+// Shared admissible backend configs: exactly one non-CLI (api) backend so the
+// preflight guard passes, identical to the negative control apart from the
+// backend list (the only differing condition).
+const ADMISSIBLE_CONFIG = {
+  agents: { backends: [{ type: "openai" }] },
+  notifier: { isConfigured: true },
+  evolutionCompositionFactory: null,
+};
+
+describe("paid pre-decomposition precheck (verify-06)", () => {
+  // ── Negative control: every backend is a rejected external CLI. ─────
+  // Same construction as the positive controls except the guard condition
+  // (all backends isCLI) is flipped, so a different guard cannot be the
+  // cause of the rejection. notifyStart and _decompose must stay zero and
+  // no task may be registered.
+  it("terminates before decomposition when every backend is rejected", async () => {
+    const notifyStart = vi.fn();
+    const orch = new Orchestrator({
+      agents: { backends: [{ type: "claude" }, { type: "codex" }] },
+      notifier: { isConfigured: true, notifyStart },
+      evolutionCompositionFactory: null,
+    });
+    const decompose = vi.spyOn(orch, "_decompose");
+
+    await expect(orch.addTask("fix this")).rejects.toMatchObject({
+      code: "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED",
+    });
+
+    expect(decompose).not.toHaveBeenCalled();
+    expect(notifyStart).not.toHaveBeenCalled();
+    expect(orch._tasks.size).toBe(0);
+  });
+
+  // ── Positive control: an admissible (api) backend passes the preflight. ──
+  // Identical to the negative control except one backend is non-CLI, so the
+  // guard lets execution reach paid decomposition. _decompose is stubbed to
+  // resolve a valid subtask array so the test isolates "preflight admitted".
+  it("reaches decomposition when an admissible backend exists", async () => {
+    const orch = new Orchestrator({
+      ...ADMISSIBLE_CONFIG,
+      notifier: { isConfigured: true, notifyStart: vi.fn() },
+    });
+    const decompose = vi
+      .spyOn(orch, "_decompose")
+      .mockResolvedValue([{ id: "st-1", description: "fix this", context: "" }]);
+
+    await orch.addTask("fix this");
+
+    expect(decompose).toHaveBeenCalledTimes(1);
+  });
+
+  // ── Positive control for the notify side of the precheck. ────────────
+  // Once the preflight admits, notifyStart is permitted to fire for a
+  // configured notifier; the rejected case above proves it must not fire
+  // when the backend is rejected. The notify prerequisite (notifier
+  // configured, notify enabled) stays valid in the admitted path.
+  it("allows the start notification only after the preflight admits", async () => {
+    const notifyStart = vi.fn();
+    const orch = new Orchestrator({
+      agents: { backends: [{ type: "anthropic" }] },
+      notifier: { isConfigured: true, notifyStart },
+      evolutionCompositionFactory: null,
+    });
+    vi.spyOn(orch, "_decompose").mockResolvedValue([
+      { id: "st-1", description: "fix this", context: "" },
+    ]);
+
+    await orch.addTask("fix this");
+
+    expect(notifyStart).toHaveBeenCalledTimes(1);
+  });
+
+  // ── Positive control: the rejected path registers no task. ───────────
+  // Direct check that the preflight failure leaves the orchestrator's task
+  // store empty, so no record (and no later notify/decompose side effects)
+  // is created from a rejected backend. Same construction as the negative
+  // control; the observable is the task store size before/after.
+  it("registers no task when the backend is rejected", async () => {
+    const orch = new Orchestrator({
+      agents: { backends: [{ type: "codex" }] },
+      notifier: { isConfigured: true, notifyStart: vi.fn() },
+      evolutionCompositionFactory: null,
+    });
+    vi.spyOn(orch, "_decompose");
+
+    await expect(orch.addTask("fix this")).rejects.toMatchObject({
+      code: "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED",
+    });
+
+    expect(orch._tasks.size).toBe(0);
+  });
+});

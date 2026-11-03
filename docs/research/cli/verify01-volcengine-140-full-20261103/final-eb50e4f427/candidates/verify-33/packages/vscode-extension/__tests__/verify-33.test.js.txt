@@ -1,0 +1,85 @@
+import { describe, expect, it, vi } from "vitest";
+import {
+  checkImageEnvelope,
+  writeImageBatch,
+  MAX_IMAGE_BYTES,
+  MAX_TURN_BYTES,
+} from "../src/chat/image-attachments.js";
+
+// Regression coverage for the rapid multi-image add budget:
+//   * cumulative turn byte budget is enforced and the *specific* attachment
+//     that pushed the total over the limit is the one reported;
+//   * an over-budget batch is rejected without touching previously successful
+//     attachments (they stay usable).
+// Independent conditions:
+//   (a) cumulative turn-budget boundary (accepted <= limit, rejected > limit),
+//   (b) per-image byte boundary (accepted <= limit, rejected > limit),
+//   (c) an already-written attachment survives a later over-budget batch.
+//
+// Base64 body length -> decoded byte estimate used by the source:
+//   size = (bodyLength * 3) / 4  (no "=" padding for all-"A" bodies).
+const img = (body) => ({ data: `data:image/png;base64,${body}` });
+
+// Largest body length divisible by 4 whose decoded size is <= a limit.
+const bodyFor = (limit) => 4 * Math.floor(limit / 3);
+
+// 1x1 transparent PNG that decodes cleanly through writeImageBatch.
+const PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+const REAL_IMAGE = img(PNG_BASE64);
+
+describe("rapid multi-image add budget (verify-33)", () => {
+  it("accepts a cumulative turn byte total at the accepted boundary", () => {
+    // Two bodies decode to just under MAX_TURN_BYTES combined.
+    const bodyLen = bodyFor(MAX_TURN_BYTES / 2);
+    expect(() => checkImageEnvelope([img("A".repeat(bodyLen)), img("A".repeat(bodyLen))])).not.toThrow();
+  });
+
+  it("rejects the specific attachment that pushes the cumulative total over budget", () => {
+    // First rejected value: combined decoded size just over MAX_TURN_BYTES.
+    // Each image alone is within the per-image limit; the *second* image trips
+    // the cumulative turn budget and is the one reported.
+    const bodyLen = bodyFor(MAX_TURN_BYTES / 2) + 4;
+    expect(() => checkImageEnvelope([img("A".repeat(bodyLen)), img("A".repeat(bodyLen))])).toThrow(
+      /Image 2: total attachments exceed 20 MiB/,
+    );
+  });
+
+  it("accepts a single image at the per-image byte boundary", () => {
+    const bodyLen = bodyFor(MAX_IMAGE_BYTES); // decoded size <= MAX_IMAGE_BYTES
+    expect(() => checkImageEnvelope([img("A".repeat(bodyLen))])).not.toThrow();
+  });
+
+  it("rejects the first single image over the per-image byte limit", () => {
+    const bodyLen = bodyFor(MAX_IMAGE_BYTES) + 4; // decoded size > MAX_IMAGE_BYTES
+    expect(() => checkImageEnvelope([img("A".repeat(bodyLen))])).toThrow(
+      /Image 1: exceeds the 20 MiB limit or is empty/,
+    );
+  });
+
+  it("keeps an already-written attachment usable when a later batch overruns the turn budget", async () => {
+    const [kept] = await writeImageBatch([REAL_IMAGE]);
+    try {
+      // Continuous add pushes total over budget: the later batch is rejected.
+      const bodyLen = bodyFor(MAX_TURN_BYTES / 2) + 4;
+      await expect(
+        writeImageBatch([img("A".repeat(bodyLen)), img("A".repeat(bodyLen))]),
+      ).rejects.toThrow(/total attachments exceed 20 MiB/);
+      // The previously successful attachment remains present and intact.
+      const { readFile } = await import("node:fs/promises");
+      expect((await readFile(kept)).toString("base64")).toBe(PNG_BASE64);
+    } finally {
+      const { unlink } = await import("node:fs/promises");
+      await unlink(kept).catch(() => {});
+    }
+  });
+
+  it("does not open or write any file when an over-budget batch is rejected", async () => {
+    const bodyLen = bodyFor(MAX_TURN_BYTES / 2) + 4;
+    const open = vi.fn();
+    await expect(
+      writeImageBatch([img("A".repeat(bodyLen)), img("A".repeat(bodyLen))], { io: { open } }),
+    ).rejects.toThrow(/total attachments exceed 20 MiB/);
+    expect(open).not.toHaveBeenCalled();
+  });
+});

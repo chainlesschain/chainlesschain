@@ -1,0 +1,121 @@
+/**
+ * Regression: "installation vs admission separation" (安装与准入分离).
+ *
+ * The frozen AgentRouter keeps a CLI backend marked installed but still
+ * refuses to dispatch it, because per-request model governance is unattested.
+ * These tests assert that installation alone never admits a CLI backend, while
+ * a usable API backend remains admitted and dispatchable.
+ *
+ * Independent conditions under test:
+ *   C1  assertDispatchAvailable() passes when any non-CLI backend exists.
+ *   C2  assertDispatchAvailable() refuses when only installed CLI backends exist.
+ *   C3  summary() reports an installed CLI backend as blocked (unattested) and
+ *       the API backend as dispatchable — installation is decoupled from admission.
+ *   C4  a direct single-task run of an installed CLI backend is refused without
+ *       starting its pool (installed !== admitted at dispatch level).
+ *   C5  assertDispatchAvailable() refuses when no backends exist at all.
+ *
+ * For each condition the positive control is admissible and only the single
+ * independent condition is changed to produce the negative control, keeping
+ * all other prerequisites valid so a different guard cannot cause the rejection.
+ */
+
+import { describe, it, expect, vi } from "vitest";
+import { AgentRouter, BACKEND_TYPE, AGENT_ROUTER_ERROR } from "../src/lib/agent-router.js";
+
+/** Minimal mock ClaudeCodePool; its dispatch never runs in these tests. */
+function mockPool() {
+  return { dispatch: vi.fn(), on: vi.fn() };
+}
+
+/** Build a router with pre-resolved backends (bypasses real CLI detection). */
+function makeRouter(backends, strategy = "round-robin") {
+  const router = new AgentRouter({ backends: [], strategy, maxParallel: 3 });
+  router._backends = backends;
+  return router;
+}
+
+/** An installed CLI backend — installation is present, admission is not. */
+function makeInstalledCliBackend(type = BACKEND_TYPE.CLAUDE) {
+  return {
+    type,
+    isCLI: true,
+    installed: true,
+    weight: 1,
+    _pool: mockPool(),
+    timeout: 300_000,
+  };
+}
+
+function makeApiBackend(type = BACKEND_TYPE.GEMINI) {
+  return {
+    type,
+    isCLI: false,
+    weight: 1,
+    provider: type,
+    model: null,
+    apiKey: null,
+    baseUrl: null,
+    timeout: 60_000,
+  };
+}
+
+describe("verify-05 installation vs admission separation", () => {
+  it("C1: installed CLI + API backend passes assertDispatchAvailable (API retained)", () => {
+    const router = makeRouter([makeInstalledCliBackend(), makeApiBackend()]);
+    // Positive control: an API backend is present, so the preflight admits dispatch.
+    expect(() => router.assertDispatchAvailable()).not.toThrow();
+  });
+
+  it("C2: only an installed CLI backend is refused by assertDispatchAvailable", () => {
+    const router = makeRouter([makeInstalledCliBackend()]);
+    // Negative control: same as C1 but the API backend is removed. Installation
+    // alone does not admit the CLI backend; preflight must refuse it.
+    expect(() => router.assertDispatchAvailable()).toThrowError(
+      AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,
+    );
+  });
+
+  it("C3: summary decouples installation from admission", () => {
+    const router = makeRouter([makeInstalledCliBackend(), makeApiBackend()]);
+    const [cli, api] = router.summary();
+    // The installed CLI is still not admitted: blocked, not dispatchable.
+    expect(cli).toMatchObject({
+      installed: true,
+      dispatchable: false,
+      governanceAdmitted: false,
+      executionMode: "blocked",
+      blockedReason: AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,
+    });
+    // The usable API backend is retained and admitted for dispatch.
+    expect(api).toMatchObject({
+      kind: "api",
+      dispatchable: true,
+      executionMode: "text-only",
+      blockedReason: "API_TEXT_ONLY_NO_TOOL_EXECUTION",
+    });
+  });
+
+  it("C4: installed CLI is still refused at single-task dispatch level", async () => {
+    const cli = makeInstalledCliBackend();
+    const router = makeRouter([cli]);
+    // Negative control: even though the CLI is installed, a direct run attempt is
+    // refused on attestation grounds, and its pool is never started.
+    await expect(
+      router._runSingleTask({ id: "t1", description: "task" }, cli, {
+        cwd: "/tmp",
+        evolutionIngress: null,
+      }),
+    ).rejects.toMatchObject({
+      code: AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,
+    });
+    expect(cli._pool.dispatch).not.toHaveBeenCalled();
+  });
+
+  it("C5: assertDispatchAvailable refuses when no backends exist", () => {
+    const router = makeRouter([]);
+    expect(() => router.assertDispatchAvailable()).toThrowError(
+      "AGENT_ROUTER_NO_BACKENDS",
+    );
+  });
+});

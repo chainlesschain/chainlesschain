@@ -1,0 +1,140 @@
+/**
+ * verify-05: install/admission separation for CLI backends.
+ *
+ * Regression coverage for AgentRouter's install vs. admission split:
+ * a CLI backend may be *installed* (`installed: true`) yet must never be
+ * admitted to run / dispatched, because per-request model governance is
+ * unattested. Usable API backends (`isCLI: false`) remain dispatchable.
+ *
+ * Imported directly from the deliverable location, not from the unit
+ * suite. We build backends ourselves so `installed` is controlled
+ * independently of admission.
+ */
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { AgentRouter, BACKEND_TYPE, AGENT_ROUTER_ERROR } from "../src/lib/agent-router.js";
+
+const UNATTESTED = AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED;
+
+/** An installed-but-unattested CLI backend: `isCLI` true and `installed` true. */
+function makeInstalledCliBackend() {
+  const pool = {
+    dispatch: vi.fn(async () => []),
+    on: vi.fn(),
+  };
+  return {
+    type: BACKEND_TYPE.CLAUDE,
+    isCLI: true,
+    installed: true,
+    weight: 1,
+    _pool: pool,
+    timeout: 300_000,
+  };
+}
+
+/** A usable API backend: `isCLI` false. */
+function makeApiBackend() {
+  return {
+    type: BACKEND_TYPE.GEMINI,
+    isCLI: false,
+    weight: 1,
+    provider: BACKEND_TYPE.GEMINI,
+    model: null,
+    apiKey: null,
+    baseUrl: null,
+    timeout: 60_000,
+  };
+}
+
+/** Router with pre-resolved backends, mirroring the unit suite's fixture. */
+function makeRouter(backends, strategy = "round-robin") {
+  const router = new AgentRouter({ backends: [], strategy, maxParallel: 3 });
+  router._backends = backends;
+  return router;
+}
+
+describe("verify-05: install/admission separation", () => {
+  let fetchMock;
+
+  beforeEach(() => {
+    // executeViaAPI uses global fetch; reject so the API path resolves
+    // (status failed) instead of throwing, proving it was reached.
+    fetchMock = vi.fn(async () => {
+      throw new Error("network down");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  // ── Condition A: an installed CLI backend is not admitted / runnable ──
+  it("refuses to run an installed-but-unattested CLI backend and never starts its pool", async () => {
+    const cli = makeInstalledCliBackend();
+    const router = makeRouter([cli]);
+
+    await expect(
+      router._runSingleTask({ id: "t1", description: "task" }, cli, {
+        cwd: "/tmp",
+        evolutionIngress: null,
+      }),
+    ).rejects.toMatchObject({ code: UNATTESTED });
+
+    expect(cli._pool.dispatch).not.toHaveBeenCalled();
+  });
+
+  it("does not admit a router holding only an installed CLI backend", () => {
+    const router = makeRouter([makeInstalledCliBackend()]);
+    expect(() => router.assertDispatchAvailable()).toThrowError(
+      expect.objectContaining({ code: UNATTESTED }),
+    );
+  });
+
+  it("reports an installed CLI backend as installed but blocked, not dispatchable", () => {
+    const router = makeRouter([makeInstalledCliBackend()]);
+    const [entry] = router.summary();
+    expect(entry).toMatchObject({
+      kind: "cli",
+      installed: true,
+      governanceAdmitted: false,
+      dispatchable: false,
+      runnable: false,
+      executionMode: "blocked",
+      blockedReason: UNATTESTED,
+    });
+  });
+
+  // ── Condition B: usable API backends remain dispatchable ──
+  it("retains a usable API backend when admission is unavailable (positive control)", () => {
+    const router = makeRouter([makeInstalledCliBackend(), makeApiBackend()]);
+    expect(() => router.assertDispatchAvailable()).not.toThrow();
+  });
+
+  it("executes a usable API backend instead of rejecting it as unattested", async () => {
+    const api = makeApiBackend();
+    const router = makeRouter([api]);
+
+    const result = await router._runSingleTask({ id: "t1", description: "task" }, api, {
+      cwd: "/tmp",
+      evolutionIngress: null,
+    });
+
+    expect(result).toBeDefined();
+    // The API execution path (global fetch) was actually reached.
+    expect(fetchMock).toHaveBeenCalled();
+  });
+
+  it("reports a usable API backend as dispatchable text-only (positive control)", () => {
+    const router = makeRouter([makeApiBackend()]);
+    const [entry] = router.summary();
+    expect(entry).toMatchObject({
+      kind: "api",
+      installed: null,
+      governanceAdmitted: null,
+      dispatchable: true,
+      executionMode: "text-only",
+      blockedReason: "API_TEXT_ONLY_NO_TOOL_EXECUTION",
+    });
+  });
+});

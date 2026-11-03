@@ -1,0 +1,117 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-21",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 19,
+      "passed": 19,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 5,
+      "passed": 5,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 153,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 3863,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":19,\"numPassedTests\":19,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793724015008,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority reports post-publication failure when durable removal of superseded shards cannot be synced\",\"status\":\"passed\",\"title\":\"reports post-publication failure when durable removal of superseded shards cannot be synced\",\"duration\":22.126861999999846,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority exports concentrated legacy audit without an argument-count limit\",\"status\":\"passed\",\"title\":\"exports concentrated legacy audit without an argument-count limit\",\"duration\":1434.788093,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority keeps the manifest bound independent from smaller bucket limits on reopen\",\"status\":\"passed\",\"title\":\"keeps the manifest bound independent from smaller bucket limits on reopen\",\"duration\":53.70115199999964,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority rejects a symlink or junction parent before creating authority directories through it\",\"status\":\"passed\",\"title\":\"rejects a symlink or junction parent before creating authority directories through it\",\"duration\":1.0542289999998502,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority never confuses inherited object keys with stored record or reconciliation entries\",\"status\":\"passed\",\"title\":\"never confuses inherited object keys with stored record or reconciliation entries\",\"duration\":5.081494000000021,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority keeps shadow reads write-free for v1 and v2, including orphan collection\",\"status\":\"passed\",\"title\":\"keeps shadow reads write-free for v1 and v2, including orphan collection\",\"duration\":19.532450000000154,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority validates a captured generation after concurrent commit and GC without mixing generations\",\"status\":\"passed\",\"title\":\"validates a captured generation after concurrent commit and GC without mixing generations\",\"duration\":29.888836999999967,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority migrates v1 losslessly, preserves global audit order and rejects old writers\",\"status\":\"passed\",\"title\":\"migrates v1 losslessly, preserves global audit order and rejects old writers\",\"duration\":68.71390500000007,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority commits record, event and differently sharded reconciliation atomically; rejects stale CAS\",\"status\":\"passed\",\"title\":\"commits record, event and differently sharded reconciliation atomically; rejects stale CAS\",\"duration\":17.69096800000034,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority preserves old authority and removes unpublished shards on migration rename failure\",\"status\":\"passed\",\"title\":\"preserves old authority and removes unpublished shards on migration rename failure\",\"duration\":44.399063999999726,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority preserves old authority and removes unpublished shards on commit rename failure\",\"status\":\"passed\",\"title\":\"preserves old authority and removes unpublished shards on commit rename failure\",\"duration\":13.276303999999982,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority enforces maxTotalBytes before replacing authority\",\"status\":\"passed\",\"title\":\"enforces maxTotalBytes before replacing authority\",\"duration\":5.834944000000178,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority enforces maxEvents before replacing authority\",\"status\":\"passed\",\"title\":\"enforces maxEvents before replacing authority\",\"duration\":5.497447000000193,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority enforces maxStoreBytes before replacing authority\",\"status\":\"passed\",\"title\":\"enforces maxStoreBytes before replacing authority\",\"duration\":5.185668000000078,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority reports published state after post-rename fsync failure and never replays stale CAS\",\"status\":\"passed\",\"title\":\"reports published state after post-rename fsync failure and never replays stale CAS\",\"duration\":11.940831999999773,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority reports published state after post-rename gc failure and never replays stale CAS\",\"status\":\"passed\",\"title\":\"reports published state after post-rename gc failure and never replays stale CAS\",\"duration\":11.625476000000162,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority detects corrupt shards and hard-linked authorities without mutating them\",\"status\":\"passed\",\"title\":\"detects corrupt shards and hard-linked authorities without mutating them\",\"duration\":3.358552000000145,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority collects crash leftovers under the authority lock and retains unknown files\",\"status\":\"passed\",\"title\":\"collects crash leftovers under the authority lock and retains unknown files\",\"duration\":3.761099999999715,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority point reads only open their hash bucket; listing retains production sort semantics\",\"status\":\"passed\",\"title\":\"point reads only open their hash bucket; listing retains production sort semantics\",\"duration\":106.56229699999994,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793724016508,\"endTime\":1793724018372.5623,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/segmented-memory-port.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1989,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":5,\"numPassedTests\":5,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793724018898,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"Memory shadow reads are write-free (v1/v2)\"],\"fullName\":\"Memory shadow reads are write-free (v1/v2) v1 shadow read does not migrate and leaves authority bytes and directory entries unchanged\",\"status\":\"passed\",\"title\":\"v1 shadow read does not migrate and leaves authority bytes and directory entries unchanged\",\"duration\":14.95261900000014,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory shadow reads are write-free (v1/v2)\"],\"fullName\":\"Memory shadow reads are write-free (v1/v2) a writable v1 port migrates the same store, proving readOnly is the migration guard\",\"status\":\"passed\",\"title\":\"a writable v1 port migrates the same store, proving readOnly is the migration guard\",\"duration\":5.982779000000164,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory shadow reads are write-free (v1/v2)\"],\"fullName\":\"Memory shadow reads are write-free (v1/v2) v2 shadow read keeps an orphan shard and leaves manifest bytes and directory entries unchanged\",\"status\":\"passed\",\"title\":\"v2 shadow read keeps an orphan shard and leaves manifest bytes and directory entries unchanged\",\"duration\":8.176486000000068,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory shadow reads are write-free (v1/v2)\"],\"fullName\":\"Memory shadow reads are write-free (v1/v2) a writable v2 port collects the same orphan, proving readOnly is the GC guard\",\"status\":\"passed\",\"title\":\"a writable v2 port collects the same orphan, proving readOnly is the GC guard\",\"duration\":5.337689999999839,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory shadow reads are write-free (v1/v2)\"],\"fullName\":\"Memory shadow reads are write-free (v1/v2) a shadow port rejects commit and import instead of writing\",\"status\":\"passed\",\"title\":\"a shadow port rejects commit and import instead of writing\",\"duration\":7.530484999999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793724020349,\"endTime\":1793724020390.5305,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-21.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js"
+      ],
+      "setup": false,
+      "ms": 169,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 2012,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":5,\"numPassedTests\":4,\"numFailedTests\":1,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793724021047,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"Memory shadow reads are write-free (v1/v2)\"],\"fullName\":\"Memory shadow reads are write-free (v1/v2) v1 shadow read does not migrate and leaves authority bytes and directory entries unchanged\",\"status\":\"passed\",\"title\":\"v1 shadow read does not migrate and leaves authority bytes and directory entries unchanged\",\"duration\":14.70568000000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory shadow reads are write-free (v1/v2)\"],\"fullName\":\"Memory shadow reads are write-free (v1/v2) a writable v1 port migrates the same store, proving readOnly is the migration guard\",\"status\":\"passed\",\"title\":\"a writable v1 port migrates the same store, proving readOnly is the migration guard\",\"duration\":6.11273099999994,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory shadow reads are write-free (v1/v2)\"],\"fullName\":\"Memory shadow reads are write-free (v1/v2) v2 shadow read keeps an orphan shard and leaves manifest bytes and directory entries unchanged\",\"status\":\"failed\",\"title\":\"v2 shadow read keeps an orphan shard and leaves manifest bytes and directory entries unchanged\",\"duration\":14.519864999999982,\"failureMessages\":[\"Error: ENOENT: no such file or directory, open '/tmp/cc-verify21-shadow-eJlTS0/kernel-v1.json.shards/00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.json'\\n    at readFileSync (node:fs:441:20)\\n    at /workspace/packages/cli/__tests__/verify-21.test.js:96:24\\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory shadow reads are write-free (v1/v2)\"],\"fullName\":\"Memory shadow reads are write-free (v1/v2) a writable v2 port collects the same orphan, proving readOnly is the GC guard\",\"status\":\"passed\",\"title\":\"a writable v2 port collects the same orphan, proving readOnly is the GC guard\",\"duration\":5.498419000000013,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory shadow reads are write-free (v1/v2)\"],\"fullName\":\"Memory shadow reads are write-free (v1/v2) a shadow port rejects commit and import instead of writing\",\"status\":\"passed\",\"title\":\"a shadow port rejects commit and import instead of writing\",\"duration\":7.606768000000102,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793724022523,\"endTime\":1793724022571.6067,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-21.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "mutant failure must include an assertion, not a syntax/import/runner error"
+}

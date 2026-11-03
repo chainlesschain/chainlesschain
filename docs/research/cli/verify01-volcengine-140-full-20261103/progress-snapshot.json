@@ -1,0 +1,240 @@
+{
+  "schema": 1,
+  "archivedAt": "2026-11-03T16:18:13.734229+00:00",
+  "interimOnly": true,
+  "historicalCumulativeAccepted": 34,
+  "historicalCumulativeTotal": 45,
+  "rounds": [
+    {
+      "round": "initial",
+      "runId": 41630636517,
+      "checkedAt": "2026-11-03T16:02:00.970786+00:00",
+      "workflowStatus": "completed",
+      "generationCompleted": 45,
+      "generationSucceeded": 40,
+      "generationFailed": 5,
+      "generationPending": 0,
+      "total": 45,
+      "acceptanceJobs": {
+        "completed:failure": 28,
+        "completed:success": 17
+      },
+      "active": [],
+      "failed": [
+        {
+          "id": 125904750412,
+          "name": "Native win32-jetbrains-verify-30 (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125908928849,
+          "name": "Native linux-cli-verify-31 (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125909284882,
+          "name": "Native linux-vscode-first-run-linux-vscode (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125912505214,
+          "name": "Native linux-jetbrains-first-run-linux-jetbrains (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125946099707,
+          "name": "Native darwin-jetbrains-verify-18 (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 126007752604,
+          "name": "Linux acceptance of win32-jetbrains-verify-30 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007752638,
+          "name": "Linux acceptance of win32-cli-verify-10 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007752733,
+          "name": "Linux acceptance of win32-cli-verify-19 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007752744,
+          "name": "Linux acceptance of win32-vscode-verify-29 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007752751,
+          "name": "Linux acceptance of win32-jetbrains-verify-12 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007752753,
+          "name": "Linux acceptance of linux-cli-verify-04 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007752796,
+          "name": "Linux acceptance of win32-vscode-verify-20 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007752816,
+          "name": "Linux acceptance of win32-vscode-verify-11 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007752974,
+          "name": "Linux acceptance of win32-jetbrains-verify-21 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007752997,
+          "name": "Linux acceptance of linux-cli-verify-22 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007754767,
+          "name": "Linux acceptance of linux-cli-verify-13 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007756414,
+          "name": "Linux acceptance of linux-cli-verify-31 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007756469,
+          "name": "Linux acceptance of linux-vscode-first-run-linux-vscode deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007756877,
+          "name": "Linux acceptance of linux-vscode-verify-23 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007756958,
+          "name": "Linux acceptance of linux-vscode-verify-05 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007757658,
+          "name": "Linux acceptance of linux-jetbrains-verify-15 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007757718,
+          "name": "Linux acceptance of linux-jetbrains-verify-06 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007757910,
+          "name": "Linux acceptance of linux-jetbrains-first-run-linux-jetbrains deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007759906,
+          "name": "Linux acceptance of darwin-cli-first-run-darwin-cli deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007759993,
+          "name": "Linux acceptance of darwin-cli-verify-07 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007760215,
+          "name": "Linux acceptance of darwin-cli-verify-16 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007761107,
+          "name": "Linux acceptance of darwin-vscode-first-run-darwin-vscode deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007761591,
+          "name": "Linux acceptance of darwin-vscode-verify-17 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007761776,
+          "name": "Linux acceptance of darwin-vscode-verify-26 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007763315,
+          "name": "Linux acceptance of darwin-jetbrains-first-run-darwin-jetbrains deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007763591,
+          "name": "Linux acceptance of darwin-jetbrains-verify-09 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007763933,
+          "name": "Linux acceptance of darwin-jetbrains-verify-18 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126007764193,
+          "name": "Linux acceptance of darwin-jetbrains-verify-36 deliveries",
+          "step": "Check source and candidate binding then execute baseline and behavioral controls"
+        }
+      ]
+    },
+    {
+      "round": "corrected",
+      "runId": 41638188839,
+      "checkedAt": "2026-11-03T16:17:54.388587+00:00",
+      "workflowStatus": "queued",
+      "generationCompleted": 45,
+      "generationSucceeded": 39,
+      "generationFailed": 6,
+      "generationPending": 0,
+      "total": 45,
+      "acceptanceJobs": {
+        "queued": 45
+      },
+      "active": [],
+      "failed": [
+        {
+          "id": 125926776532,
+          "name": "Native win32-cli-verify-19 (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125926776699,
+          "name": "Native win32-vscode-verify-11 (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125934046772,
+          "name": "Native linux-cli-first-run-linux-cli (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125945146259,
+          "name": "Native linux-jetbrains-first-run-linux-jetbrains (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125949754360,
+          "name": "Native darwin-cli-first-run-darwin-cli (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125955236579,
+          "name": "Native darwin-vscode-first-run-darwin-vscode (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        }
+      ]
+    }
+  ],
+  "interpretation": "Generation success is not independent acceptance. These partial counts must not be used as final full-round scores or subtract historical successful sample IDs."
+}

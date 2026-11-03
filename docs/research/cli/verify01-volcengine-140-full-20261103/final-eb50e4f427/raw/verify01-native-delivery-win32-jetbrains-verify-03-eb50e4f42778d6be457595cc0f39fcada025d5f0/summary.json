@@ -1,0 +1,1952 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000,
+    "connectionAttemptTimeoutMs": 10000,
+    "parallelToolCalls": null
+  },
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:f38ba1d4c166229766cd78adfd38ccfc2413b21ad4f533ef7d87f5ec1bf10f69",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:9df4efc5365ed381684a1990009c4b162ec96ae9ce229df13d4b583860a3559c",
+  "actualPlatform": "win32",
+  "actualArch": "x64",
+  "actualEntry": "jetbrains",
+  "changeReview": {
+    "requested": true,
+    "observed": true
+  },
+  "startedAt": "2026-11-03T12:03:59.184Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-03",
+      "taskId": "verify-03",
+      "kind": "task",
+      "runId": "e7cb0593-1dca-493d-b136-63376b179a25",
+      "stratum": "win32-jetbrains-volcengine",
+      "declaredActualEntry": {
+        "platform": "win32",
+        "entry": "jetbrains"
+      },
+      "actualPlatform": "win32",
+      "actualEntry": "jetbrains",
+      "changeReview": {
+        "requested": true,
+        "observed": true,
+        "reminderCount": 1,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:9df4efc5365ed381684a1990009c4b162ec96ae9ce229df13d4b583860a3559c",
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-03.test.js"
+      ],
+      "startedAt": "2026-11-03T12:03:59.187Z",
+      "deadline": "2026-11-03T12:43:59.187Z",
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-03.test.js",
+          "path": "verify-03/candidate/packages/cli/__tests__/verify-03.test.js",
+          "digest": "sha256:c84846e96021890daf7a1568642f4512d83e9e244b989a2ce0d15ef98a10400b",
+          "bytes": 3850
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml"
+      ],
+      "unexpectedChanges": [],
+      "generationPassed": true,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T12:04:22.215Z",
+        "finishedAt": "2026-11-03T12:07:19.399Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "verify-03",
+        "locked": {
+          "version": "0.166.140",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+          "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "capturePath": "verify-03/capture",
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 116632,
+            "outputTokens": 12727,
+            "cacheReadInputTokens": 179200,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-1793708015885-4e908d",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "088a82a5-cd5d-479f-b7cb-b6906c317fcc",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_gtzfc1uo2g1heh7hf4t0ya54",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/llm-pricing.js"
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_r0pcr0r8k2mx4vn3igqraks0",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/llm-pricing.test.js"
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 7
+          },
+          {
+            "type": "tool_use",
+            "id": "call_k6j0pxcpukuf6s609ck83xz8",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/model-release-contract.test.js"
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 12
+          },
+          {
+            "type": "tool_use",
+            "id": "call_i3xq5ph4p2r2k3aypmm9g039",
+            "tool": "search_files",
+            "args": {
+              "pattern": "DOCUMENTED_OPENAI_MODELS|DOCUMENTED_ANTHROPIC_MODELS|opus-5-5|gpt-6-sol|gpt-5-5|claude-opus",
+              "path": "packages/cli/src/lib/model-context-catalog.js",
+              "maxMatches": 40
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 16
+          },
+          {
+            "type": "tool_use",
+            "id": "call_ix6vbn3d0jynxzvdhxevfuuc",
+            "tool": "search_files",
+            "args": {
+              "pattern": "opus-5-5",
+              "path": "packages/cli/src/lib/model-context-catalog.js"
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 20
+          },
+          {
+            "type": "tool_use",
+            "id": "call_3l5zibp95z5hjsh18b8giyuk",
+            "tool": "search_files",
+            "args": {
+              "pattern": "gpt-6-sol",
+              "path": "packages/cli/src/lib/model-context-catalog.js"
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 21
+          },
+          {
+            "type": "tool_use",
+            "id": "call_7t6pvnypg5449ehhaij56bfb",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-03.test.js",
+              "content": "import { describe, it, expect } from \"vitest\";\nimport {\n  lookupRate,\n  estimateCost,\n  priceRollup,\n  mergePricing,\n} from \"../../src/lib/llm-pricing.js\";\n\n// verify-03 — \"新家族未知计价\" regression coverage.\n//\n// Contract: an unrecognized model from a *new* family must be reported as\n// unpriced (lookupRate null / estimateCost matched:false, zero cost) instead of\n// silently inheriting an older family's list price. Known models must keep\n// pricing. Independent of the existing llm-pricing / model-release suites.\n\ndescribe(\"verify-03 — new family must not inherit an older family's price\", () => {\n  it(\"prices a known model in an older family (positive control)\", () => {\n    // gpt-5 is the openai catch-all base rate ($1.25 / $10 per 1M).\n    expect(lookupRate(\"openai\", \"gpt-5\")).toMatchObject({ in: 1.25, out: 10 });\n    const c = estimateCost({\n      provider: \"openai\",\n      model: \"gpt-5\",\n      inputTokens: 1_000_000,\n      outputTokens: 1_000_000,\n    });\n    expect(c.matched).toBe(true);\n    expect(c.rate).toMatchObject({ in: 1.25, out: 10 });\n    expect(c.totalCost).toBeCloseTo(11.25, 9);\n  });\n\n  it(\"prices a known documented new model (positive control)\", () => {\n    // claude-opus-5-5 is a documented, explicitly-priced Anthropic model.\n    expect(lookupRate(\"anthropic\", \"claude-opus-5-5\")).toMatchObject({\n      in: 4,\n      out: 20,\n    });\n    const c = estimateCost({\n      provider: \"anthropic\",\n      model: \"claude-opus-5-5\",\n      inputTokens: 1000,\n      outputTokens: 1000,\n    });\n    expect(c.matched).toBe(true);\n    expect(c.totalCost).toBeCloseTo(0.024, 9);\n  });\n\n  it(\"reports an unknown new family model as unpriced, not mis-priced\", () => {\n    // \"gpt-7x-nano\" deliberately shares tokens with the old gpt-5 family\n    // (-nano) and the gpt-* prefix, but is not a documented / listed model.\n    expect(lookupRate(\"openai\", \"gpt-7x-nano\")).toBeNull();\n    const c = estimateCost({\n      provider: \"openai\",\n      model: \"gpt-7x-nano\",\n      inputTokens: 1_000_000,\n      outputTokens: 1_000_000,\n    });\n    expect(c.matched).toBe(false);\n    expect(c.rate).toBeNull();\n    expect(c.totalCost).toBe(0);\n  });\n\n  it(\"a new Opus version does not fall back to the bare opus rate\", () => {\n    // The bare \"opus\" pattern ($5/$25) must not price an unrecognized\n    // claude-opus-6 / claude-opus-9 — they stay unpriced.\n    expect(lookupRate(\"anthropic\", \"claude-opus-6\")).toBeNull();\n    expect(lookupRate(\"anthropic\", \"claude-opus-9\")).toBeNull();\n  });\n\n  it(\"an explicit user override stays authoritative over the guard\", () => {\n    // Explicit overrides bypass the new-version guard, so an operator can\n    // still price an unknown Opus version deliberately.\n    const table = mergePricing({\n      anthropic: [{ match: \"opus\", in: 4, out: 20 }],\n    });\n    expect(lookupRate(\"anthropic\", \"claude-opus-10\", table)).toMatchObject({\n      in: 4,\n      out: 20,\n    });\n  });\n\n  it(\"priceRollup lists the unknown new family row as unpriced and prices only known\", () => {\n    const r = priceRollup({\n      total: {},\n      byModel: [\n        {\n          provider: \"anthropic\",\n          model: \"claude-opus-6\",\n          inputTokens: 1_000_000,\n          outputTokens: 0,\n          totalTokens: 1_000_000,\n          calls: 1,\n        },\n        {\n          provider: \"openai\",\n          model: \"gpt-5\",\n          inputTokens: 1_000_000,\n          outputTokens: 0,\n          totalTokens: 1_000_000,\n          calls: 1,\n        },\n      ],\n    });\n    expect(r.cost.totalCost).toBeCloseTo(1.25, 9); // only the known gpt-5 row\n    expect(r.cost.unpricedCount).toBe(1);\n    expect(r.unpriced).toEqual([\n      { provider: \"anthropic\", model: \"claude-opus-6\", totalTokens: 1_000_000 },\n    ]);\n    expect(r.byModel[0].matched).toBe(false);\n    expect(r.byModel[1].matched).toBe(true);\n  });\n});\n"
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 26
+          },
+          {
+            "type": "tool_use",
+            "id": "call_0oily7095pklu7wnmsb5gzyq",
+            "tool": "edit_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-03.test.js",
+              "old_string": "} from \"../../src/lib/llm-pricing.js\";",
+              "new_string": "} from \"../src/lib/llm-pricing.js\";"
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 32
+          },
+          {
+            "type": "tool_use",
+            "id": "call_k77bvzi92cacsq1zggqbj1pv",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/cli/src/lib/llm-pricing.js",
+              "pattern": "function priceRollup",
+              "contextChars": 60
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 38
+          },
+          {
+            "type": "tool_use",
+            "id": "call_2z6ljppcf8ne61bklu06qi8i",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/llm-pricing.js",
+              "offset": 260,
+              "limit": 130
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 39
+          },
+          {
+            "type": "tool_use",
+            "id": "call_ycd2txz7p1qyrzm1rmg30bp8",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/llm-pricing.js",
+              "offset": 389,
+              "limit": 30
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 46
+          },
+          {
+            "type": "tool_use",
+            "id": "call_vnucrmtblxqh2cwxtx5ufvvp",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-03.test.js"
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 56
+          },
+          {
+            "type": "tool_use",
+            "id": "call_beya700mbdys8iles48t5oyt",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/cli/src/lib/llm-pricing.js",
+              "pattern": "gpt-5-mini",
+              "contextChars": 40
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 62
+          },
+          {
+            "type": "tool_use",
+            "id": "call_w24ma0se1r0w0wc8a0it1j08",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/cli/src/lib/llm-pricing.js",
+              "pattern": "export function mergePricing",
+              "contextChars": 20
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 63
+          },
+          {
+            "type": "tool_use",
+            "id": "call_zw4kyh6pgrtcoh3z979op7ys",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/llm-pricing.js",
+              "offset": 60,
+              "limit": 50
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 70
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_gtzfc1uo2g1heh7hf4t0ya54",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-GwnS3Z\\e7cb0593-1dca-493d-b136-63376b179a25\\workspace\\packages\\cli\\src\\lib\\llm-pricing.js",
+              "fileVersion": "15061:1793707456438.4175:1793707456438.4175",
+              "readSpan": {
+                "start": 0,
+                "end": 15034,
+                "total": 15034
+              },
+              "hashed": false,
+              "content": "/**\n * llm-pricing — turn token counts into estimated $ cost.\n *\n * Layers a price table on top of the token roll-ups produced by\n * `session-usage.js`, so `cc cost` can show spend per provider/model.\n *\n * IMPORTANT: these rates are ESTIMATES of public list prices (USD per 1M\n * tokens) and drift over time. Local providers (ollama / local) are free.\n * An unmatched model is reported as `matched:false` with zero cost rather\n * than guessed — the caller surfaces it as \"unpriced\" so the number is never\n * silently wrong. Override or extend PRICE_TABLE below as prices change.\n *\n * Rate shape: { in: <USD per 1M input tokens>, out: <USD per 1M output> }.\n * Matching is provider-scoped, longest-pattern-first, case-insensitive\n * substring against the model id.\n */\n\nimport {\n  DOCUMENTED_OPENAI_MODELS,\n  DOCUMENTED_ANTHROPIC_MODELS,\n  GPT6_PRICING_TERMS,\n} from \"./model-context-catalog.js\";\n\n/** Providers whose models run locally and cost nothing to call. */\nexport const FREE_PROVIDERS = Object.freeze([\n  \"ollama\",\n  \"local\",\n  \"llamacpp\",\n  \"mediapipe\",\n]);\n\n/**\n * Per-provider model price patterns. Each entry: { match, in, out }.\n * Order within a provider matters — more specific patterns first so\n * \"gpt-4o-mini\" is not shadowed by \"gpt-4o\".\n */\nexport const PRICE_TABLE = Object.freeze({\n  anthropic: [\n    ...Object.entries(DOCUMENTED_ANTHROPIC_MODELS).map(([match, model]) => ({\n      match,\n      ...model.pricing,\n      exact: true,\n    })),\n    // Current Anthropic list prices (USD per 1M tokens), verified 2026-06-21\n    // against the claude-api reference. The Opus tier dropped to $5/$25 with\n    // Opus 4.5 (Nov 2025) — the old $15/$75 applies only to the retired\n    // Opus 4 / 4.1. Longest-pattern-first matching (see matchRate) resolves\n    // dated ids to the specific rate; bare \"opus\" defaults to the current price.\n    { match: \"fable-5\", in: 10, out: 50 },\n    { match: \"mythos-5\", in: 10, out: 50 },\n    { match: \"opus-4-8\", in: 5, out: 25 },\n    { match: \"opus-4-7\", in: 5, out: 25 },\n    { match: \"opus-4-6\", in: 5, out: 25 },\n    { match: \"opus-4-5\", in: 5, out: 25 },\n    { match: \"opus-4-1\", in: 15, out: 75 },\n    { match: \"opus\", in: 5, out: 25 },\n    { match: \"sonnet\", in: 3, out: 15 },\n    { match: \"haiku\", in: 1, out: 5 },\n  ],\n  openai: [\n    ...Object.entries(DOCUMENTED_OPENAI_MODELS)\n      .filter(([, model]) => model.pricing)\n      .map(([match, model]) => ({\n        match,\n        ...model.pricing,\n        exact: true,\n        terms: GPT6_PRICING_TERMS,\n      })),\n    // GPT-5 family (2026). Matching is longest-pattern-first, so dated/variant\n    // ids (gpt-5.5, gpt-5.5-pro, gpt-5.5-instant, …) resolve to the most\n    // specific rate; bare \"gpt-5\" is the catch-all base rate.\n    { match: \"gpt-5.5-pro\", in: 30, out: 180 },\n    { match: \"gpt-5.5\", in: 5, out: 30 },\n    { match: \"gpt-5.4\", in: 2.5, out: 15 },\n    { match: \"gpt-5-mini\", in: 0.25, out: 2 },\n    { match: \"gpt-5-nano\", in: 0.05, out: 0.4 },\n    { match: \"gpt-5\", in: 1.25, out: 10 },\n    { match: \"gpt-4o-mini\", in: 0.15, out: 0.6 },\n    { match: \"gpt-4o\", in: 2.5, out: 10 },\n    { match: \"gpt-4-turbo\", in: 10, out: 30 },\n    { match: \"gpt-4\", in: 30, out: 60 },\n    { match: \"gpt-3.5\", in: 0.5, out: 1.5 },\n    { match: \"o1-mini\", in: 1.1, out: 4.4 },\n    { match: \"o1\", in: 15, out: 60 },\n  ],\n  dashscope: [\n    { match: \"qwen-turbo\", in: 0.3, out: 0.6 },\n    { match: \"qwen-plus\", in: 0.8, out: 2 },\n  ],\n  deepseek: [\n    // DeepSeek V4 launch-list rates for the versioned 2026-04 model ids.\n    // Keep these ahead of the legacy aliases so formal budget gates never\n    // treat the current V4 models as unpriced remote usage.\n    { match: \"deepseek-v4-pro\", in: 0.435, out: 0.87 },\n    { match: \"deepseek-v4-flash\", in: 0.14, out: 0.28 },\n    { match: \"reasoner\", in: 0.55, out: 2.19 },\n    { match: \"chat\", in: 0.27, out: 1.1 },\n  ],\n  // Volcengine Doubao — rough USD conversion of public RMB list pricing.\n  volcengine: [\n    // Third-party DeepSeek V4 ids exposed by Ark use the same token-accounting\n    // shape. Pricing them explicitly is required by USD-capped Agent/Team runs;\n    // falling through to the Doubao patterns would fail closed as unpriced.\n    { match: \"deepseek-v4-pro\", in: 0.435, out: 0.87 },\n    { match: \"deepseek-v4-flash\", in: 0.14, out: 0.28 },\n    // Doubao Seed 2.0 family (2026, e.g. doubao-seed-2-0-lite-260215) is\n    // natively multimodal. Rates ≈ official CNY ÷ ~7.2 (lite ≤32k is 0.6/3.6\n    // CNY → $0.08/$0.50); the generic \"seed\" rate below underprices 2.0 output.\n    { match: \"seed-2-0-pro\", in: 0.5, out: 2.5 },\n    { match: \"seed-2-0-lite\", in: 0.08, out: 0.5 },\n    { match: \"seed-2-0-mini\", in: 0.03, out: 0.3 },\n    { match: \"seed-1-6\", in: 0.11, out: 0.28 },\n    { match: \"seed\", in: 0.11, out: 0.28 },\n    { match: \"pro\", in: 0.11, out: 0.28 },\n    { match: \"lite\", in: 0.04, out: 0.08 },\n    { match: \"doubao\", in: 0.11, out: 0.28 },\n  ],\n});\n\n/**\n * Merge user-supplied price overrides (typically `config.llm.pricing`) onto the\n * built-in table. Override shape mirrors PRICE_TABLE:\n *   { \"<provider>\": [ { match: \"<substr>\", in: <num>, out: <num> }, ... ] }\n *\n * Per provider, a user entry whose `match` equals a built-in pattern REPLACES\n * it; brand-new patterns are prepended so they win ties; unknown providers are\n * added. Malformed entries (missing match / non-numeric / negative / Infinity\n * rate) are skipped so a bad config line can't crash cost reporting or produce a\n * negative cost that undercounts spend. Returns a new table; never mutates\n * PRICE_TABLE or the input.\n *\n * @param {object} [overrides]\n * @param {object} [base=PRICE_TABLE]\n * @returns {object} merged price table\n */\nexport function mergePricing(overrides, base = PRICE_TABLE) {\n  const merged = {};\n  for (const [p, entries] of Object.entries(base)) {\n    merged[p] = entries.map((e) => ({ ...e }));\n  }\n  if (!overrides || typeof overrides !== \"object\") return merged;\n\n  for (const [provider, rawEntries] of Object.entries(overrides)) {\n    if (!Array.isArray(rawEntries)) continue;\n    // lookupRate() always lowercases the provider, and built-in keys are\n    // lowercase, so an override under a mixed-case key (e.g. \"Anthropic\")\n    // would land on an unreachable key and be silently ignored. Normalize.\n    const providerKey = String(provider).toLowerCase();\n    const valid = rawEntries\n      .filter(\n        (e) =>\n          e &&\n          typeof e.match === \"string\" &&\n          e.match.trim() &&\n          // Rates must be finite AND non-negative — a negative price would\n          // produce a negative cost that undercounts spend (and could keep a\n          // CostBudget under its cap). `>= 0` also rejects NaN (NaN >= 0 is\n          // false); isFinite additionally rejects Infinity.\n          Number.isFinite(Number(e.in)) &&\n          Number(e.in) >= 0 &&\n          Number.isFinite(Number(e.out)) &&\n          Number(e.out) >= 0,\n      )\n      .map((e) => ({\n        ...(base[providerKey]?.find(\n          (entry) => entry.match === e.match.toLowerCase(),\n        ) || {}),\n        match: e.match.toLowerCase(),\n        in: Number(e.in),\n        out: Number(e.out),\n        explicitOverride: true,\n      }));\n    if (valid.length === 0) continue;\n    const overridden = new Set(valid.map((v) => v.match));\n    const kept = (merged[providerKey] || []).filter(\n      (e) => !overridden.has(e.match.toLowerCase()),\n    );\n    merged[providerKey] = [...valid, ...kept];\n  }\n  return merged;\n}\n\n/**\n * Look up the rate for a provider/model, or null if unpriced.\n * @param {string} provider\n * @param {string} model\n * @param {object} [table=PRICE_TABLE] merged table from mergePricing()\n * @returns {{ in:number, out:number, pattern:string }|null}\n */\nexport function lookupRate(provider, model, table = PRICE_TABLE) {\n  const p = String(provider || \"\").toLowerCase();\n  const m = String(model || \"\").toLowerCase();\n  if (FREE_PROVIDERS.includes(p)) {\n    return { in: 0, out: 0, pattern: \"free\" };\n  }\n  const entries = (table || PRICE_TABLE)[p];\n  if (!entries) return null;\n  // Longest pattern first so specific beats generic regardless of table order.\n  const sorted = [...entries].sort((a, b) => b.match.length - a.match.length);\n  for (const e of sorted) {\n    if (e.exact ? m === e.match : m.includes(e.match)) {\n      // An unrecognized new version must not inherit an older Opus price.\n      // Explicit operator overrides remain authoritative.\n      if (\n        e.match === \"opus\" &&\n        Number(/^claude-opus-(\\d+)(?:[.-]|$)/u.exec(m)?.[1]) >= 5 &&\n        !e.explicitOverride &&\n        e.in === 5 &&\n        e.out === 25\n      )\n        continue;\n      return {\n        in: e.in,\n        out: e.out,\n        pattern: e.match,\n        ...(e.terms ? { terms: e.terms } : {}),\n      };\n    }\n  }\n  return null;\n}\n\n/**\n * Estimate cost for a single usage record.\n * @returns {{ inputCost:number, outputCost:number, totalCost:number,\n *             currency:string, matched:boolean, free:boolean, rate:object|null }}\n */\n// Prompt-cache price multipliers relative to the input rate. A cache WRITE\n// (Anthropic 5-minute ephemeral breakpoint) bills at ~125%; only Anthropic\n// reports cache creation. Cache READ pricing differs per provider — Anthropic\n// ~10%, OpenAI ~50%, DeepSeek ~25% of the input rate — so the default below is\n// overridden per provider. Applied only when cache token counts are present, so\n// non-caching usage is priced exactly as before. Public list-price estimates\n// that drift; override the table via config.llm.pricing for the base rates.\nexport const CACHE_READ_MULTIPLIER = 0.1;\nexport const CACHE_WRITE_MULTIPLIER = 1.25;\nexport const CACHE_READ_MULTIPLIER_BY_PROVIDER = Object.freeze({\n  anthropic: 0.1,\n  openai: 0.5,\n  deepseek: 0.25,\n});\n\nfunction cacheReadMultiplier(provider) {\n  const p = String(provider || \"\").toLowerCase();\n  return CACHE_READ_MULTIPLIER_BY_PROVIDER[p] ?? CACHE_READ_MULTIPLIER;\n}\n\nexport function estimateCost({\n  provider,\n  model,\n  inputTokens = 0,\n  outputTokens = 0,\n  cacheReadTokens = 0,\n  cacheCreationTokens = 0,\n  requestInputTokens,\n  serviceTier = \"standard\",\n  regionalProcessing = false,\n  table,\n} = {}) {\n  const rate = lookupRate(provider, model, table);\n  const tierMultiplier = rate?.terms\n    ? Object.hasOwn(rate.terms.serviceMultipliers, serviceTier)\n      ? rate.terms.serviceMultipliers[serviceTier]\n      : null\n    : 1;\n  if (!rate || tierMultiplier == null) {\n    return {\n      inputCost: 0,\n      outputCost: 0,\n      cacheReadCost: 0,\n      cacheCreationCost: 0,\n      totalCost: 0,\n      currency: \"USD\",\n      matched: false,\n      free: false,\n      rate: null,\n    };\n  }\n  const promptTokens =\n    requestInputTokens ??\n    Number(inputTokens) + Number(cacheReadTokens) + Number(cacheCreationTokens);\n  const longContext = rate.terms?.longContext;\n  const longPrompt = longContext && promptTokens > longContext.threshold;\n  const inputMultiplier = longPrompt ? longContext.inputMultiplier : 1;\n  const outputMultiplier = longPrompt ? longContext.outputMultiplier : 1;\n  const multiplier = tierMultiplier * (regionalProcessing ? 1.1 : 1);\n  // Keep full IEEE-754 precision throughout authority and budget arithmetic.\n  // Rounding each component to six decimals lets a real sub-microdollar call\n  // become zero and can make a hard `maxUsd` gate pass incorrectly. Display\n  // surfaces may format these values, but safety decisions consume the raw sum.\n  const inputCost =\n    (Number(inputTokens) / 1e6) * rate.in * inputMultiplier * multiplier;\n  const outputCost =\n    (Number(outputTokens) / 1e6) * rate.out * outputMultiplier * multiplier;\n  const cacheReadCost =\n    (Number(cacheReadTokens) / 1e6) *\n    rate.in *\n    (rate.terms?.cacheReadMultiplier ?? cacheReadMultiplier(provider)) *\n    inputMultiplier *\n    multiplier;\n  const cacheCreationCost =\n    (Number(cacheCreationTokens) / 1e6) *\n    rate.in *\n    (rate.terms?.cacheWriteMultiplier ?? CACHE_WRITE_MULTIPLIER) *\n    inputMultiplier *\n    multiplier;\n  return {\n    inputCost,\n    outputCost,\n    cacheReadCost,\n    cacheCreationCost,\n    totalCost: inputCost + outputCost + cacheReadCost + cacheCreationCost,\n    currency: \"USD\",\n    matched: true,\n    free: rate.pattern === \"free\",\n    rate: { in: rate.in, out: rate.out, pattern: rate.pattern },\n  };\n}\n\n/**\n * Augment a session-usage aggregate ({ total, byModel:[...] }) with cost.\n * Returns a new object — does not mutate the input.\n *\n * Each byModel row gains: cost, currency, matched. The returned `cost`\n * top-level sums priced rows; `unpriced` lists provider/model rows that had\n * usage but no matching rate (their tokens are excluded from `cost.totalCost`).\n */\nexport function priceRollup(aggregate, { table } = {}) {\n  const byModel = (aggregate?.byModel || []).map((row) => {\n    let est = estimateCost({\n      provider: row.provider,\n      model: row.model,\n      inputTokens: row.inputTokens,\n      outputTokens: row.outputTokens,\n      cacheReadTokens: row.cacheReadTokens,\n      cacheCreationTokens: row.cacheCreationTokens,\n      serviceTier: row.serviceTier ?? row.service_tier ?? \"standard\",\n      regionalProcessing:\n        row.regionalProcessing ?? row.regional_processing ?? false,\n      table,\n    });\n    if (Array.isArray(row.pricingBuckets)) {\n      const estimates = row.pricingBuckets.map((bucket) =>\n        estimateCost({\n          provider: row.provider,\n          model: row.model,\n          ...bucket,\n          table,\n        }),\n      );\n      est = { ...est, matched: estimates.every((entry) => entry.matched) };\n      for (const field of [\n        \"inputCost\",\n        \"outputCost\",\n        \"cacheReadCost\",\n        \"cacheCreationCost\",\n        \"totalCost\",\n      ]) {\n        est[field] = estimates.reduce((sum, entry) => sum + entry[field], 0);\n      }\n    } else if (\n      lookupRate(row.provider, row.model, table)?.terms &&\n      row.calls > 1\n    ) {\n      // A legacy aggregate cannot establish which individual requests crossed\n      // a pricing threshold. Exclude it rather than inventing a bill.\n      est = {\n        ...est,\n        matched: false,\n        inputCost: 0,\n        outputCost: 0,\n        cacheReadCost: 0,\n        cacheCreationCost: 0,\n        totalCost: 0,\n      };\n    }\n    return {\n      ...row,\n      cost: est.totalCost,\n      inputCost: est.inputCost,\n      outputCost: est.outputCost,\n      cacheReadCost: est.cacheReadCost,\n      cacheCreationCost: est.cacheCreationCost,\n      currency: est.currency,\n      matched: est.matched,\n      free: est.free,\n    };\n  });\n\n  let totalCost = 0;\n  const unpriced = [];\n  for (const row of byModel) {\n    if (row.matched) {\n      totalCost += row.cost;\n    } else if (row.totalTokens > 0) {\n      unpriced.push({\n        provider: row.provider,\n        model: row.model,\n        totalTokens: row.totalTokens,\n      });\n    }\n  }\n\n  return {\n    ...aggregate,\n    byModel,\n    cost: {\n      totalCost,\n      currency: \"USD\",\n      unpricedCount: unpriced.length,\n    },\n    unpriced,\n  };\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708050061,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 17,
+                "sessionId": "panel-1793708015885-4e908d",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_gtzfc1uo2g1heh7hf4t0ya54",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 8
+          },
+          {
+            "type": "tool_result",
+            "id": "call_r0pcr0r8k2mx4vn3igqraks0",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-GwnS3Z\\e7cb0593-1dca-493d-b136-63376b179a25\\workspace\\packages\\cli\\__tests__\\unit\\llm-pricing.test.js",
+              "fileVersion": "11010:1793707454985.755:1793707454985.755",
+              "readSpan": {
+                "start": 0,
+                "end": 10990,
+                "total": 10990
+              },
+              "hashed": false,
+              "content": "import { describe, it, expect } from \"vitest\";\nimport {\n  lookupRate,\n  estimateCost,\n  priceRollup,\n  mergePricing,\n  FREE_PROVIDERS,\n} from \"../../src/lib/llm-pricing.js\";\n\ndescribe(\"llm-pricing — lookupRate\", () => {\n  it(\"treats local providers as free\", () => {\n    for (const p of FREE_PROVIDERS) {\n      expect(lookupRate(p, \"anything\")).toEqual({\n        in: 0,\n        out: 0,\n        pattern: \"free\",\n      });\n    }\n  });\n\n  it(\"matches the most specific pattern first (gpt-4o-mini before gpt-4o)\", () => {\n    expect(lookupRate(\"openai\", \"gpt-4o-mini-2024\").pattern).toBe(\n      \"gpt-4o-mini\",\n    );\n    expect(lookupRate(\"openai\", \"gpt-4o-2024\").pattern).toBe(\"gpt-4o\");\n  });\n\n  it(\"is case-insensitive on provider and model\", () => {\n    expect(lookupRate(\"Anthropic\", \"Claude-3-OPUS\").pattern).toBe(\"opus\");\n  });\n\n  it(\"resolves the GPT-5 family without shadowing (5.5 not caught by 5)\", () => {\n    expect(lookupRate(\"openai\", \"gpt-5.5-pro\").pattern).toBe(\"gpt-5.5-pro\");\n    expect(lookupRate(\"openai\", \"gpt-5.5-instant\").pattern).toBe(\"gpt-5.5\");\n    expect(lookupRate(\"openai\", \"gpt-5.5-2026-04-23\")).toMatchObject({\n      in: 5,\n      out: 30,\n    });\n    expect(lookupRate(\"openai\", \"gpt-5-mini\").pattern).toBe(\"gpt-5-mini\");\n    expect(lookupRate(\"openai\", \"gpt-5-nano\")).toMatchObject({\n      in: 0.05,\n      out: 0.4,\n    });\n    expect(lookupRate(\"openai\", \"gpt-5\")).toMatchObject({ in: 1.25, out: 10 });\n  });\n\n  it(\"uses current Opus pricing ($5/$25) and prices Fable 5 / Opus 4.x snapshots\", () => {\n    // The Opus tier dropped to $5/$25 with Opus 4.5 — the table must NOT bill\n    // the old $15/$75 for current Opus, or cc cost / /cost overcounts 3x.\n    expect(lookupRate(\"anthropic\", \"claude-opus-4-8\")).toMatchObject({\n      in: 5,\n      out: 25,\n    });\n    expect(lookupRate(\"anthropic\", \"claude-opus-4-7\")).toMatchObject({\n      in: 5,\n      out: 25,\n    });\n    expect(lookupRate(\"anthropic\", \"claude-opus-4-6\")).toMatchObject({\n      in: 5,\n      out: 25,\n    });\n    expect(lookupRate(\"anthropic\", \"claude-opus-4-5-20251101\")).toMatchObject({\n      in: 5,\n      out: 25,\n    });\n    // bare \"opus\" defaults to the current price, not the retired $15/$75\n    expect(lookupRate(\"anthropic\", \"claude-opus\")).toMatchObject({\n      in: 5,\n      out: 25,\n    });\n    // the one deprecated-but-live $15/$75 snapshot keeps its real rate\n    expect(lookupRate(\"anthropic\", \"claude-opus-4-1-20250805\")).toMatchObject({\n      in: 15,\n      out: 75,\n    });\n    // Fable 5 ($10/$50) was previously unpriced\n    expect(lookupRate(\"anthropic\", \"claude-fable-5\")).toMatchObject({\n      in: 10,\n      out: 50,\n    });\n    // Sonnet / Haiku unchanged\n    expect(lookupRate(\"anthropic\", \"claude-sonnet-4-6\")).toMatchObject({\n      in: 3,\n      out: 15,\n    });\n    expect(lookupRate(\"anthropic\", \"claude-haiku-4-5\")).toMatchObject({\n      in: 1,\n      out: 5,\n    });\n  });\n\n  it(\"prices Doubao Seed 2.0 above the generic seed fallback\", () => {\n    // doubao-seed-2-0-lite-260215 must hit the 2.0 lite rate (out 0.5), not the\n    // generic \"seed\" 0.28 that underprices 2.0 output by ~2x.\n    expect(\n      lookupRate(\"volcengine\", \"doubao-seed-2-0-lite-260215\"),\n    ).toMatchObject({ in: 0.08, out: 0.5 });\n    expect(\n      lookupRate(\"volcengine\", \"doubao-seed-2-0-mini-260215\"),\n    ).toMatchObject({ in: 0.03, out: 0.3 });\n    expect(\n      lookupRate(\"volcengine\", \"doubao-seed-2-0-pro-260215\"),\n    ).toMatchObject({ in: 0.5, out: 2.5 });\n    // older 1.6 vision id still resolves to its own rate\n    expect(\n      lookupRate(\"volcengine\", \"doubao-seed-1-6-vision-250815\").pattern,\n    ).toBe(\"seed-1-6\");\n  });\n\n  it(\"prices the DeepSeek V4 models used by protected quality evals\", () => {\n    expect(\n      lookupRate(\"volcengine\", \"deepseek-v4-flash-ga-260731\"),\n    ).toMatchObject({\n      pattern: \"deepseek-v4-flash\",\n      in: 0.14,\n      out: 0.28,\n    });\n    expect(lookupRate(\"volcengine\", \"deepseek-v4-pro-260425\")).toMatchObject({\n      pattern: \"deepseek-v4-pro\",\n      in: 0.435,\n      out: 0.87,\n    });\n    expect(lookupRate(\"deepseek\", \"deepseek-v4-flash\")).toMatchObject({\n      pattern: \"deepseek-v4-flash\",\n      in: 0.14,\n      out: 0.28,\n    });\n  });\n\n  it(\"returns null for an unknown provider or model\", () => {\n    expect(lookupRate(\"mystery\", \"x\")).toBeNull();\n    expect(lookupRate(\"openai\", \"totally-unknown\")).toBeNull();\n  });\n});\n\ndescribe(\"llm-pricing — estimateCost\", () => {\n  it(\"computes input/output cost from MTok rates\", () => {\n    // sonnet = in 3 / out 15 per 1M\n    const c = estimateCost({\n      provider: \"anthropic\",\n      model: \"claude-3-5-sonnet\",\n      inputTokens: 1_000_000,\n      outputTokens: 1_000_000,\n    });\n    expect(c.matched).toBe(true);\n    expect(c.inputCost).toBeCloseTo(3, 6);\n    expect(c.outputCost).toBeCloseTo(15, 6);\n    expect(c.totalCost).toBeCloseTo(18, 6);\n    expect(c.currency).toBe(\"USD\");\n  });\n\n  it(\"preserves sub-microdollar charges for hard budget decisions\", () => {\n    const c = estimateCost({\n      provider: \"openai\",\n      model: \"gpt-5-nano\",\n      inputTokens: 1,\n      outputTokens: 0,\n    });\n    expect(c.matched).toBe(true);\n    expect(c.free).toBe(false);\n    expect(c.inputCost).toBe(5e-8);\n    expect(c.totalCost).toBe(5e-8);\n  });\n\n  it(\"local model costs nothing but is matched+free\", () => {\n    const c = estimateCost({\n      provider: \"ollama\",\n      model: \"qwen2.5:7b\",\n      inputTokens: 5000,\n      outputTokens: 5000,\n    });\n    expect(c.matched).toBe(true);\n    expect(c.free).toBe(true);\n    expect(c.totalCost).toBe(0);\n  });\n\n  it(\"unknown model → unmatched, zero cost (never guessed)\", () => {\n    const c = estimateCost({\n      provider: \"openai\",\n      model: \"ghost-model\",\n      inputTokens: 1000,\n      outputTokens: 1000,\n    });\n    expect(c.matched).toBe(false);\n    expect(c.totalCost).toBe(0);\n    expect(c.rate).toBeNull();\n  });\n});\n\ndescribe(\"llm-pricing — priceRollup\", () => {\n  it(\"sums priced rows and lists unpriced ones separately\", () => {\n    const aggregate = {\n      total: { inputTokens: 0, outputTokens: 0, totalTokens: 0, calls: 0 },\n      byModel: [\n        {\n          provider: \"anthropic\",\n          model: \"claude-3-5-sonnet\",\n          inputTokens: 1_000_000,\n          outputTokens: 0,\n          totalTokens: 1_000_000,\n          calls: 1,\n        },\n        {\n          provider: \"openai\",\n          model: \"ghost-model\",\n          inputTokens: 500,\n          outputTokens: 500,\n          totalTokens: 1000,\n          calls: 1,\n        },\n      ],\n    };\n    const r = priceRollup(aggregate);\n    expect(r.cost.totalCost).toBeCloseTo(3, 6); // only the sonnet row\n    expect(r.cost.unpricedCount).toBe(1);\n    expect(r.unpriced).toEqual([\n      { provider: \"openai\", model: \"ghost-model\", totalTokens: 1000 },\n    ]);\n    // does not mutate input\n    expect(aggregate.byModel[0].cost).toBeUndefined();\n  });\n\n  it(\"handles an empty aggregate\", () => {\n    const r = priceRollup({ total: {}, byModel: [] });\n    expect(r.cost.totalCost).toBe(0);\n    expect(r.byModel).toEqual([]);\n    expect(r.unpriced).toEqual([]);\n  });\n\n  it(\"threads a custom table through priceRollup\", () => {\n    const table = mergePricing({ mystery: [{ match: \"x\", in: 10, out: 0 }] });\n    const r = priceRollup(\n      {\n        total: {},\n        byModel: [\n          {\n            provider: \"mystery\",\n            model: \"x-1\",\n            inputTokens: 1_000_000,\n            outputTokens: 0,\n            totalTokens: 1_000_000,\n            calls: 1,\n          },\n        ],\n      },\n      { table },\n    );\n    expect(r.cost.totalCost).toBeCloseTo(10, 6);\n    expect(r.cost.unpricedCount).toBe(0);\n  });\n});\n\ndescribe(\"llm-pricing — mergePricing (config overrides)\", () => {\n  it(\"adds a brand-new provider rate usable by lookupRate\", () => {\n    const table = mergePricing({\n      myprovider: [{ match: \"custom\", in: 2, out: 8 }],\n    });\n    expect(lookupRate(\"myprovider\", \"custom-v1\", table)).toEqual({\n      in: 2,\n      out: 8,\n      pattern: \"custom\",\n    });\n    // built-in providers still present\n    expect(lookupRate(\"openai\", \"gpt-4o\", table).pattern).toBe(\"gpt-4o\");\n  });\n\n  it(\"normalizes a mixed-case provider key so the override applies\", () => {\n    // lookupRate lowercases the provider; an override under \"Anthropic\"\n    // must merge into the lowercase \"anthropic\" table, not a dead key.\n    const table = mergePricing({\n      Anthropic: [{ match: \"claude-opus\", in: 4, out: 20 }],\n    });\n    expect(lookupRate(\"anthropic\", \"claude-opus-4\", table)).toMatchObject({\n      in: 4,\n      out: 20,\n    });\n    // and the original built-in table is untouched\n    expect(lookupRate(\"anthropic\", \"claude-opus-4\")).not.toMatchObject({\n      in: 4,\n      out: 20,\n    });\n  });\n\n  it(\"a user entry replaces a built-in pattern of the same match\", () => {\n    const before = lookupRate(\"openai\", \"gpt-4o\");\n    expect(before).toMatchObject({ in: 2.5, out: 10 });\n    const table = mergePricing({\n      openai: [{ match: \"gpt-4o\", in: 99, out: 1 }],\n    });\n    expect(lookupRate(\"openai\", \"gpt-4o\", table)).toMatchObject({\n      in: 99,\n      out: 1,\n    });\n    // does not mutate the built-in table (default lookup unchanged)\n    expect(lookupRate(\"openai\", \"gpt-4o\")).toMatchObject({ in: 2.5, out: 10 });\n  });\n\n  it(\"skips malformed override entries without throwing\", () => {\n    const table = mergePricing({\n      openai: [\n        { match: \"\", in: 1, out: 1 }, // empty match\n        { match: \"good\", in: 5, out: 6 },\n        { match: \"bad\", in: \"NaN\", out: 2 }, // non-numeric\n        null,\n      ],\n    });\n    expect(lookupRate(\"openai\", \"good-1\", table)).toMatchObject({\n      in: 5,\n      out: 6,\n    });\n    expect(lookupRate(\"openai\", \"bad-1\", table)).toBeNull();\n  });\n\n  it(\"rejects negative and Infinity rates (a price can't be < 0 or unbounded)\", () => {\n    const table = mergePricing({\n      anthropic: [\n        { match: \"haiku\", in: -5, out: 10 }, // negative input rate\n        { match: \"neg-out\", in: 2, out: -1 }, // negative output rate\n        { match: \"inf\", in: Infinity, out: 1 }, // unbounded\n        { match: \"ok\", in: 4, out: 8 }, // valid → kept\n      ],\n    });\n    // The negative haiku override is dropped → the built-in haiku rate stands.\n    expect(lookupRate(\"anthropic\", \"claude-haiku\", table)).toMatchObject({\n      in: 1,\n      out: 5,\n    });\n    // Other invalid entries never enter the table…\n    expect(lookupRate(\"anthropic\", \"neg-out-x\", table)).toBeNull();\n    expect(lookupRate(\"anthropic\", \"inf-x\", table)).toBeNull();\n    // …and the one valid override does apply.\n    expect(lookupRate(\"anthropic\", \"ok-x\", table)).toMatchObject({\n      in: 4,\n      out: 8,\n    });\n  });\n\n  it(\"returns the base table untouched when overrides are absent/invalid\", () => {\n    expect(lookupRate(\"openai\", \"gpt-4o\", mergePricing()).pattern).toBe(\n      \"gpt-4o\",\n    );\n    expect(lookupRate(\"openai\", \"gpt-4o\", mergePricing(\"nope\")).pattern).toBe(\n      \"gpt-4o\",\n    );\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708050061,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/llm-pricing.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 5,
+                "sessionId": "panel-1793708015885-4e908d",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/llm-pricing.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_r0pcr0r8k2mx4vn3igqraks0",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 9
+          },
+          {
+            "type": "tool_result",
+            "id": "call_k6j0pxcpukuf6s609ck83xz8",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-GwnS3Z\\e7cb0593-1dca-493d-b136-63376b179a25\\workspace\\packages\\cli\\__tests__\\unit\\model-release-contract.test.js",
+              "fileVersion": "10017:1793707455053.8872:1793707455053.8872",
+              "readSpan": {
+                "start": 0,
+                "end": 10017,
+                "total": 10017
+              },
+              "hashed": false,
+              "content": "import { afterEach, describe, expect, it, vi } from \"vitest\";\nimport Database from \"better-sqlite3\";\nimport { resolveModelCapabilityProfile } from \"../../src/lib/model-capabilities.js\";\nimport {\n  estimateCost,\n  lookupRate,\n  mergePricing,\n  priceRollup,\n} from \"../../src/lib/llm-pricing.js\";\nimport {\n  calculateCost,\n  recordUsage,\n  getUsageStats,\n  getCostBreakdown,\n} from \"../../src/lib/token-tracker.js\";\nimport {\n  aggregateUsage,\n  allSessionsUsage,\n  _deps,\n} from \"../../src/lib/session-usage.js\";\nimport { CostBudget } from \"../../src/lib/cost-budget.js\";\nimport { normalizeOpenAIResponsesResponse } from \"../../src/lib/openai-responses.js\";\nimport { projectRuntimeTokenUsage } from \"../../src/lib/runtime-usage-ledger.js\";\nimport { projectVerifiedSession } from \"../../src/lib/causal-observability.js\";\nimport { SessionResourceBudget } from \"../../src/lib/session-resource-budget.js\";\n\nafterEach(() => vi.restoreAllMocks());\n\ndescribe(\"September model release contracts\", () => {\n  it(\"preserves request pricing through durable projection, budget and Eval\", () => {\n    const records = [200000, 200000, 300000].map((input, index) =>\n      projectRuntimeTokenUsage({\n        provider: \"openai\",\n        model: \"gpt-6-sol\",\n        callId: `call-${index}`,\n        usage: {\n          input_tokens: input,\n          output_tokens: 1000,\n          service_tier: index === 1 ? \"flex\" : \"fast\",\n          regional_processing: true,\n        },\n      }),\n    );\n    const events = [\n      {\n        type: \"session_start\",\n        timestamp: 1,\n        data: {\n          observabilityScope: { workspaceId: \"w\", teamId: \"t\", policyId: \"p\" },\n        },\n      },\n      ...records.map((data) => ({ type: \"token_usage\", data })),\n    ];\n    const budget = new CostBudget({ limitUsd: 100 });\n    for (const record of records) budget.add(record);\n    const observed = projectVerifiedSession(\"session-a\", events, {\n      headHash: \"a\".repeat(64),\n      eventCount: events.length,\n    });\n    expect(observed.usage.estimatedUsd).toBeCloseTo(budget.spentUsd, 10);\n    expect(priceRollup(aggregateUsage(events)).cost.totalCost).toBeCloseTo(\n      budget.spentUsd,\n      10,\n    );\n    expect(observed.usage.byModel[0].pricingBuckets).toHaveLength(3);\n    expect(records[0].usage.service_tier).toBe(\"fast\");\n    expect(\n      projectRuntimeTokenUsage({\n        ...records[0],\n        usage: {\n          ...records[0].usage,\n          service_tier: \"sensitive arbitrary text\",\n        },\n      }).usage.service_tier,\n    ).toBe(\"unknown\");\n  });\n\n  it(\"preserves pricing conditions in crash-recovery settlements\", () => {\n    const source = new SessionResourceBudget({ maxUsd: 100 });\n    const pending = source.beginUsageSettlement({ id: \"call-a\" });\n    source.markUsageUnknown({ callId: pending.id });\n    const snapshot = source.snapshot();\n    source.dispose();\n    const resumed = SessionResourceBudget.restore(snapshot);\n    const record = {\n      provider: \"openai\",\n      model: \"gpt-6-sol\",\n      usage: {\n        input_tokens: 300000,\n        output_tokens: 1000,\n        service_tier: \"fast\",\n        regional_processing: true,\n      },\n    };\n    try {\n      const recovery = resumed.adjudicateRecovery({\n        settled: [{ authorityId: pending.authorityId, ...record }],\n      });\n      const budget = new CostBudget({ limitUsd: 100 });\n      budget.add(record);\n      expect(recovery.adjudication.spentUsdDelta).toBeCloseTo(\n        budget.spentUsd,\n        10,\n      );\n      expect(resumed.cost.spentUsd).toBeCloseTo(budget.spentUsd, 10);\n    } finally {\n      resumed.dispose();\n    }\n  });\n  it.each([\"gpt-6-astra\", \"gpt-6-sol\", \"gpt-6-luna\"])(\n    \"resolves %s only at the official endpoint\",\n    (model) => {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model,\n      });\n      expect(profile).toMatchObject({\n        contextWindowTokens: 1050000,\n        advertisedMaxOutputTokens: 128000,\n        runtimeProtocol: \"openai-responses\",\n        windowAssumed: false,\n        runtimeVerified: false,\n      });\n      expect(profile.reasoningEfforts).toContain(\"high\");\n      for (const baseUrl of [\n        \"https://gateway.example/v1\",\n        \"https://api.openai.com.evil/v1\",\n      ]) {\n        expect(\n          resolveModelCapabilityProfile({ provider: \"openai\", model, baseUrl }),\n        ).toMatchObject({\n          windowAssumed: true,\n          runtimeProtocol: \"chat-completions\",\n          advertisedMaxOutputTokens: null,\n        });\n      }\n      expect(\n        resolveModelCapabilityProfile({\n          provider: \"openai\",\n          model: `${model}-future`,\n        }).windowAssumed,\n      ).toBe(true);\n      expect(lookupRate(\"openai\", `${model}-future`)).toBeNull();\n    },\n  );\n\n  it(\"resolves Opus 5.5 without changing a custom gateway's assumptions\", () => {\n    expect(\n      resolveModelCapabilityProfile({\n        provider: \"anthropic\",\n        model: \"claude-opus-5-5\",\n        baseUrl: \"https://api.anthropic.com/v1\",\n      }),\n    ).toMatchObject({\n      contextWindowTokens: 1000000,\n      windowAssumed: false,\n      advertisedMaxOutputTokens: null,\n    });\n    expect(\n      resolveModelCapabilityProfile({\n        provider: \"anthropic\",\n        model: \"claude-opus-5-5\",\n        baseUrl: \"https://gateway.example/v1\",\n      }).windowAssumed,\n    ).toBe(true);\n    expect(lookupRate(\"anthropic\", \"claude-opus-5-5\")).toMatchObject({\n      in: 4,\n      out: 20,\n    });\n    expect(lookupRate(\"anthropic\", \"claude-opus-6\")).toBeNull();\n    expect(lookupRate(\"anthropic\", \"claude-opus-10\")).toBeNull();\n    expect(\n      lookupRate(\n        \"anthropic\",\n        \"claude-opus-10\",\n        mergePricing({ anthropic: [{ match: \"opus\", in: 5, out: 25 }] }),\n      ),\n    ).toMatchObject({ in: 5, out: 25 });\n    expect(lookupRate(\"anthropic\", \"claude-opus-5-5-custom\")).toBeNull();\n  });\n\n  it(\"prices cached tokens and long prompts at the request boundary\", () => {\n    const base = {\n      provider: \"openai\",\n      model: \"gpt-6-sol\",\n      inputTokens: 272000,\n      outputTokens: 1000,\n    };\n    expect(estimateCost(base).totalCost).toBeCloseTo(0.554, 9);\n    expect(\n      estimateCost({ ...base, inputTokens: 272001 }).totalCost,\n    ).toBeCloseTo(1.103004, 9);\n    const cached = estimateCost({\n      ...base,\n      inputTokens: 200000,\n      cacheReadTokens: 73000,\n    });\n    expect(cached.inputCost).toBeCloseTo(0.8, 9);\n    expect(cached.cacheReadCost).toBeCloseTo(0.0292, 9);\n    expect(cached.outputCost).toBeCloseTo(0.015, 9);\n    expect(\n      estimateCost({ ...base, serviceTier: \"fast\" }).totalCost,\n    ).toBeCloseTo(1.108, 9);\n    expect(\n      estimateCost({ ...base, serviceTier: \"flex\" }).totalCost,\n    ).toBeCloseTo(0.277, 9);\n    expect(estimateCost({ ...base, serviceTier: \"unknown\" }).matched).toBe(\n      false,\n    );\n    expect(estimateCost({ ...base, serviceTier: \"constructor\" }).matched).toBe(\n      false,\n    );\n    const table = mergePricing({\n      openai: [{ match: \"gpt-6-sol\", in: 4, out: 20 }],\n    });\n    expect(\n      estimateCost({ ...base, table, cacheReadTokens: 1 }).cacheReadCost,\n    ).toBeCloseTo(0.0000008, 12);\n  });\n\n  it(\"keeps separate request tiers when aggregating one or many sessions\", () => {\n    const event = (input) => ({\n      type: \"token_usage\",\n      data: {\n        provider: \"openai\",\n        model: \"gpt-6-sol\",\n        usage: { input_tokens: input, output_tokens: 1000 },\n      },\n    });\n    const events = [event(200000), event(200000), event(300000)];\n    const budget = new CostBudget({ limitUsd: 100 });\n    for (const event of events) budget.add(event.data);\n    const aggregate = aggregateUsage(events);\n    expect(aggregate.byModel[0].pricingBuckets).toHaveLength(2);\n    expect(priceRollup(aggregate).cost.totalCost).toBeCloseTo(2.035, 9);\n    expect(priceRollup(aggregate).cost.totalCost).toBeCloseTo(\n      budget.spentUsd,\n      9,\n    );\n    vi.spyOn(_deps, \"listJsonlSessions\").mockReturnValue([\n      { id: \"one\" },\n      { id: \"two\" },\n    ]);\n    vi.spyOn(_deps, \"readEvents\").mockImplementation((id) =>\n      id === \"one\" ? events.slice(0, 2) : events.slice(2),\n    );\n    expect(priceRollup(allSessionsUsage()).cost.totalCost).toBeCloseTo(\n      budget.spentUsd,\n      9,\n    );\n    const { pricingBuckets, ...legacy } = aggregate.byModel[0];\n    expect(priceRollup({ byModel: [legacy] }).cost.unpricedCount).toBe(1);\n  });\n\n  it(\"preserves response service tier for budget settlement\", () => {\n    expect(\n      normalizeOpenAIResponsesResponse({\n        status: \"completed\",\n        output: [],\n        service_tier: \"flex\",\n        usage: { input_tokens: 100, output_tokens: 20 },\n      }).usage.service_tier,\n    ).toBe(\"flex\");\n  });\n\n  it(\"uses the same prices in the legacy database, preserving unknown as NULL\", () => {\n    const db = new Database(\":memory:\");\n    try {\n      for (const model of [\"gpt-6-astra\", \"gpt-6-sol\", \"gpt-6-luna\"]) {\n        const args = {\n          provider: \"openai\",\n          model,\n          inputTokens: 300000,\n          outputTokens: 1000,\n        };\n        expect(\n          calculateCost(\n            args.provider,\n            model,\n            args.inputTokens,\n            args.outputTokens,\n          ),\n        ).toBe(estimateCost(args).totalCost);\n      }\n      const known = recordUsage(db, {\n        provider: \"anthropic\",\n        model: \"claude-opus-5-5\",\n        inputTokens: 1000,\n        outputTokens: 1000,\n      });\n      const unknown = recordUsage(db, {\n        provider: \"openai\",\n        model: \"future-model\",\n        inputTokens: 1000,\n      });\n      expect(known.costUsd).toBeCloseTo(0.024, 9);\n      expect(unknown).toMatchObject({ costUsd: null, priced: false });\n      expect(getUsageStats(db)).toMatchObject({\n        total_calls: 2,\n        unpriced_calls: 1,\n      });\n      expect(\n        getCostBreakdown(db).find((row) => row.model === \"future-model\"),\n      ).toMatchObject({ cost_usd: null, unpriced_calls: 1 });\n    } finally {\n      db.close();\n    }\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708061818,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-release-contract.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-1793708015885-4e908d",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-release-contract.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_k6j0pxcpukuf6s609ck83xz8",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 13
+          },
+          {
+            "type": "tool_result",
+            "id": "call_i3xq5ph4p2r2k3aypmm9g039",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [],
+              "count": 0,
+              "hasMore": false,
+              "nextOffset": null,
+              "hint": "No literal matches. This pattern contains regex syntax, but this search used literal matching. If alternation or regex was intended, set regex: true; otherwise search one exact symbol. Do not infer that the symbols are absent from this result.",
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-GwnS3Z\\e7cb0593-1dca-493d-b136-63376b179a25\\workspace\\packages\\cli\\src\\lib\\model-context-catalog.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708099651,
+                "meta": {
+                  "args": {
+                    "pattern": "DOCUMENTED_OPENAI_MODELS|DOCUMENTED_ANTHROPIC_MODELS|opus-5-5|gpt-6-sol|gpt-5-5|claude-opus",
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "maxMatches": 40
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 46,
+                "sessionId": "panel-1793708015885-4e908d",
+                "metadata": {
+                  "args": {
+                    "pattern": "DOCUMENTED_OPENAI_MODELS|DOCUMENTED_ANTHROPIC_MODELS|opus-5-5|gpt-6-sol|gpt-5-5|claude-opus",
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "maxMatches": 40
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_i3xq5ph4p2r2k3aypmm9g039",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 17
+          },
+          {
+            "type": "tool_result",
+            "id": "call_ix6vbn3d0jynxzvdhxevfuuc",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 135,
+                  "column": 11,
+                  "offset": 4063,
+                  "text": "opus-5-5",
+                  "context": "rs.openai.com/api/docs/models/${model}`,\n        ]),\n      }),\n    ]),\n  ),\n});\n\nexport const DOCUMENTED_ANTHROPIC_MODELS = Object.freeze({\n  \"claude-opus-5-5\": Object.freeze({\n    contextWindowTokens: 1000000,\n    // The release notes establish the window and pricing, not an output cap.\n    advertisedMaxOu",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 135,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 1,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-GwnS3Z\\e7cb0593-1dca-493d-b136-63376b179a25\\workspace\\packages\\cli\\src\\lib\\model-context-catalog.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708105736,
+                "meta": {
+                  "args": {
+                    "pattern": "opus-5-5",
+                    "path": "packages/cli/src/lib/model-context-catalog.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 52,
+                "sessionId": "panel-1793708015885-4e908d",
+                "metadata": {
+                  "args": {
+                    "pattern": "opus-5-5",
+                    "path": "packages/cli/src/lib/model-context-catalog.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_ix6vbn3d0jynxzvdhxevfuuc",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 22
+          },
+          {
+            "type": "tool_result",
+            "id": "call_3l5zibp95z5hjsh18b8giyuk",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 109,
+                  "column": 9,
+                  "offset": 3381,
+                  "text": "gpt-6-sol",
+                  "context": "models/gpt-6-astra\",\n      \"https://developers.openai.com/api/docs/guides/migrate-to-responses\",\n    ]),\n  }),\n  ...Object.fromEntries(\n    [\n      [\"gpt-6-sol\", 2, 10],\n      [\"gpt-6-luna\", 0.1, 0.5],\n    ].map(([model, input, output]) => [\n      model,\n      Object.freeze({\n        contextWindowTokens: 105",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 109,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 1,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-GwnS3Z\\e7cb0593-1dca-493d-b136-63376b179a25\\workspace\\packages\\cli\\src\\lib\\model-context-catalog.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708105858,
+                "meta": {
+                  "args": {
+                    "pattern": "gpt-6-sol",
+                    "path": "packages/cli/src/lib/model-context-catalog.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 174,
+                "sessionId": "panel-1793708015885-4e908d",
+                "metadata": {
+                  "args": {
+                    "pattern": "gpt-6-sol",
+                    "path": "packages/cli/src/lib/model-context-catalog.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_3l5zibp95z5hjsh18b8giyuk",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 23
+          },
+          {
+            "type": "tool_result",
+            "id": "call_7t6pvnypg5449ehhaij56bfb",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-GwnS3Z\\e7cb0593-1dca-493d-b136-63376b179a25\\workspace\\packages\\cli\\__tests__\\verify-03.test.js",
+              "size": 3853,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "newDiagnostics": [
+                {
+                  "source": "relative-import",
+                  "code": "UNRESOLVED_RELATIVE_IMPORT",
+                  "severity": "error",
+                  "filePath": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-GwnS3Z\\e7cb0593-1dca-493d-b136-63376b179a25\\workspace\\packages\\cli\\__tests__\\verify-03.test.js",
+                  "specifier": "../../src/lib/llm-pricing.js",
+                  "line": 7,
+                  "column": 8,
+                  "message": "Relative import \"../../src/lib/llm-pricing.js\" does not point to an existing file from this file's directory. Verify the importing file's location before running tests."
+                }
+              ],
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708164776,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-03.test.js",
+                    "content": "import { describe, it, expect } from \"vitest\";\nimport {\n  lookupRate,\n  estimateCost,\n  priceRollup,\n  mergePricing,\n} from \"../../src/lib/llm-pricing.js\";\n\n// verify-03 — \"新家族未知计价\" regression coverage.\n//\n// Contract: an unrecognized model from a *new* family must be reported as\n// unpriced (lookupRate null / estimateCost matched:false, zero cost) instead of\n// silently inheriting an older family's list price. Known models must keep\n// pricing. Independent of the existing llm-pricing / model-release suites.\n\ndescribe(\"verify-03 — new family must not inherit an older family's price\", () => {\n  it(\"prices a known model in an older family (positive control)\", () => {\n    // gpt-5 is the openai catch-all base rate ($1.25 / $10 per 1M).\n    expect(lookupRate(\"openai\", \"gpt-5\")).toMatchObject({ in: 1.25, out: 10 });\n    const c = estimateCost({\n      provider: \"openai\",\n      model: \"gpt-5\",\n      inputTokens: 1_000_000,\n      outputTokens: 1_000_000,\n    });\n    expect(c.matched).toBe(true);\n    expect(c.rate).toMatchObject({ in: 1.25, out: 10 });\n    expect(c.totalCost).toBeCloseTo(11.25, 9);\n  });\n\n  it(\"prices a known documented new model (positive control)\", () => {\n    // claude-opus-5-5 is a documented, explicitly-priced Anthropic model.\n    expect(lookupRate(\"anthropic\", \"claude-opus-5-5\")).toMatchObject({\n      in: 4,\n      out: 20,\n    });\n    const c = estimateCost({\n      provider: \"anthropic\",\n      model: \"claude-opus-5-5\",\n      inputTokens: 1000,\n      outputTokens: 1000,\n    });\n    expect(c.matched).toBe(true);\n    expect(c.totalCost).toBeCloseTo(0.024, 9);\n  });\n\n  it(\"reports an unknown new family model as unpriced, not mis-priced\", () => {\n    // \"gpt-7x-nano\" deliberately shares tokens with the old gpt-5 family\n    // (-nano) and the gpt-* prefix, but is not a documented / listed model.\n    expect(lookupRate(\"openai\", \"gpt-7x-nano\")).toBeNull();\n    const c = estimateCost({\n      provider: \"openai\",\n      model: \"gpt-7x-nano\",\n      inputTokens: 1_000_000,\n      outputTokens: 1_000_000,\n    });\n    expect(c.matched).toBe(false);\n    expect(c.rate).toBeNull();\n    expect(c.totalCost).toBe(0);\n  });\n\n  it(\"a new Opus version does not fall back to the bare opus rate\", () => {\n    // The bare \"opus\" pattern ($5/$25) must not price an unrecognized\n    // claude-opus-6 / claude-opus-9 — they stay unpriced.\n    expect(lookupRate(\"anthropic\", \"claude-opus-6\")).toBeNull();\n    expect(lookupRate(\"anthropic\", \"claude-opus-9\")).toBeNull();\n  });\n\n  it(\"an explicit user override stays authoritative over the guard\", () => {\n    // Explicit overrides bypass the new-version guard, so an operator can\n    // still price an unknown Opus version deliberately.\n    const table = mergePricing({\n      anthropic: [{ match: \"opus\", in: 4, out: 20 }],\n    });\n    expect(lookupRate(\"anthropic\", \"claude-opus-10\", table)).toMatchObject({\n      in: 4,\n      out: 20,\n    });\n  });\n\n  it(\"priceRollup lists the unknown new family row as unpriced and prices only known\", () => {\n    const r = priceRollup({\n      total: {},\n      byModel: [\n        {\n          provider: \"anthropic\",\n          model: \"claude-opus-6\",\n          inputTokens: 1_000_000,\n          outputTokens: 0,\n          totalTokens: 1_000_000,\n          calls: 1,\n        },\n        {\n          provider: \"openai\",\n          model: \"gpt-5\",\n          inputTokens: 1_000_000,\n          outputTokens: 0,\n          totalTokens: 1_000_000,\n          calls: 1,\n        },\n      ],\n    });\n    expect(r.cost.totalCost).toBeCloseTo(1.25, 9); // only the known gpt-5 row\n    expect(r.cost.unpricedCount).toBe(1);\n    expect(r.unpriced).toEqual([\n      { provider: \"anthropic\", model: \"claude-opus-6\", totalTokens: 1_000_000 },\n    ]);\n    expect(r.byModel[0].matched).toBe(false);\n    expect(r.byModel[1].matched).toBe(true);\n  });\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 21,
+                "sessionId": "panel-1793708015885-4e908d",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-03.test.js",
+                    "content": "import { describe, it, expect } from \"vitest\";\nimport {\n  lookupRate,\n  estimateCost,\n  priceRollup,\n  mergePricing,\n} from \"../../src/lib/llm-pricing.js\";\n\n// verify-03 — \"新家族未知计价\" regression coverage.\n//\n// Contract: an unrecognized model from a *new* family must be reported as\n// unpriced (lookupRate null / estimateCost matched:false, zero cost) instead of\n// silently inheriting an older family's list price. Known models must keep\n// pricing. Independent of the existing llm-pricing / model-release suites.\n\ndescribe(\"verify-03 — new family must not inherit an older family's price\", () => {\n  it(\"prices a known model in an older family (positive control)\", () => {\n    // gpt-5 is the openai catch-all base rate ($1.25 / $10 per 1M).\n    expect(lookupRate(\"openai\", \"gpt-5\")).toMatchObject({ in: 1.25, out: 10 });\n    const c = estimateCost({\n      provider: \"openai\",\n      model: \"gpt-5\",\n      inputTokens: 1_000_000,\n      outputTokens: 1_000_000,\n    });\n    expect(c.matched).toBe(true);\n    expect(c.rate).toMatchObject({ in: 1.25, out: 10 });\n    expect(c.totalCost).toBeCloseTo(11.25, 9);\n  });\n\n  it(\"prices a known documented new model (positive control)\", () => {\n    // claude-opus-5-5 is a documented, explicitly-priced Anthropic model.\n    expect(lookupRate(\"anthropic\", \"claude-opus-5-5\")).toMatchObject({\n      in: 4,\n      out: 20,\n    });\n    const c = estimateCost({\n      provider: \"anthropic\",\n      model: \"claude-opus-5-5\",\n      inputTokens: 1000,\n      outputTokens: 1000,\n    });\n    expect(c.matched).toBe(true);\n    expect(c.totalCost).toBeCloseTo(0.024, 9);\n  });\n\n  it(\"reports an unknown new family model as unpriced, not mis-priced\", () => {\n    // \"gpt-7x-nano\" deliberately shares tokens with the old gpt-5 family\n    // (-nano) and the gpt-* prefix, but is not a documented / listed model.\n    expect(lookupRate(\"openai\", \"gpt-7x-nano\")).toBeNull();\n    const c = estimateCost({\n      provider: \"openai\",\n      model: \"gpt-7x-nano\",\n      inputTokens: 1_000_000,\n      outputTokens: 1_000_000,\n    });\n    expect(c.matched).toBe(false);\n    expect(c.rate).toBeNull();\n    expect(c.totalCost).toBe(0);\n  });\n\n  it(\"a new Opus version does not fall back to the bare opus rate\", () => {\n    // The bare \"opus\" pattern ($5/$25) must not price an unrecognized\n    // claude-opus-6 / claude-opus-9 — they stay unpriced.\n    expect(lookupRate(\"anthropic\", \"claude-opus-6\")).toBeNull();\n    expect(lookupRate(\"anthropic\", \"claude-opus-9\")).toBeNull();\n  });\n\n  it(\"an explicit user override stays authoritative over the guard\", () => {\n    // Explicit overrides bypass the new-version guard, so an operator can\n    // still price an unknown Opus version deliberately.\n    const table = mergePricing({\n      anthropic: [{ match: \"opus\", in: 4, out: 20 }],\n    });\n    expect(lookupRate(\"anthropic\", \"claude-opus-10\", table)).toMatchObject({\n      in: 4,\n      out: 20,\n    });\n  });\n\n  it(\"priceRollup lists the unknown new family row as unpriced and prices only known\", () => {\n    const r = priceRollup({\n      total: {},\n      byModel: [\n        {\n          provider: \"anthropic\",\n          model: \"claude-opus-6\",\n          inputTokens: 1_000_000,\n          outputTokens: 0,\n          totalTokens: 1_000_000,\n          calls: 1,\n        },\n        {\n          provider: \"openai\",\n          model: \"gpt-5\",\n          inputTokens: 1_000_000,\n          outputTokens: 0,\n          totalTokens: 1_000_000,\n          calls: 1,\n        },\n      ],\n    });\n    expect(r.cost.totalCost).toBeCloseTo(1.25, 9); // only the known gpt-5 row\n    expect(r.cost.unpricedCount).toBe(1);\n    expect(r.unpriced).toEqual([\n      { provider: \"anthropic\", model: \"claude-opus-6\", totalTokens: 1_000_000 },\n    ]);\n    expect(r.byModel[0].matched).toBe(false);\n    expect(r.byModel[1].matched).toBe(true);\n  });\n});\n"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "write_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_7t6pvnypg5449ehhaij56bfb",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 27
+          },
+          {
+            "type": "tool_result",
+            "id": "call_0oily7095pklu7wnmsb5gzyq",
+            "tool": "edit_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-GwnS3Z\\e7cb0593-1dca-493d-b136-63376b179a25\\workspace\\packages\\cli\\__tests__\\verify-03.test.js",
+              "size": 3850,
+              "replaced": 1,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708176751,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-03.test.js",
+                    "old_string": "} from \"../../src/lib/llm-pricing.js\";",
+                    "new_string": "} from \"../src/lib/llm-pricing.js\";"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 13,
+                "sessionId": "panel-1793708015885-4e908d",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-03.test.js",
+                    "old_string": "} from \"../../src/lib/llm-pricing.js\";",
+                    "new_string": "} from \"../src/lib/llm-pricing.js\";"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "edit_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_0oily7095pklu7wnmsb5gzyq",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 33
+          },
+          {
+            "type": "tool_result",
+            "id": "call_k77bvzi92cacsq1zggqbj1pv",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 328,
+                  "column": 8,
+                  "offset": 12708,
+                  "text": "function priceRollup",
+                  "context": "heir tokens are excluded from `cost.totalCost`).\n */\nexport function priceRollup(aggregate, { table } = {}) {\n  const byModel = (aggregate?.",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 328,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 1,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-GwnS3Z\\e7cb0593-1dca-493d-b136-63376b179a25\\workspace\\packages\\cli\\src\\lib\\llm-pricing.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708186728,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "pattern": "function priceRollup",
+                    "contextChars": 60
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 98,
+                "sessionId": "panel-1793708015885-4e908d",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "pattern": "function priceRollup",
+                    "contextChars": 60
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_k77bvzi92cacsq1zggqbj1pv",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 40
+          },
+          {
+            "type": "tool_result",
+            "id": "call_2z6ljppcf8ne61bklu06qi8i",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-GwnS3Z\\e7cb0593-1dca-493d-b136-63376b179a25\\workspace\\packages\\cli\\src\\lib\\llm-pricing.js",
+              "fileVersion": "15061:1793707456438.4175:1793707456438.4175",
+              "range": {
+                "startLine": 260,
+                "endLine": 389,
+                "totalLines": 415
+              },
+              "nextRead": {
+                "path": "packages/cli/src/lib/llm-pricing.js",
+                "offset": 390,
+                "limit": 130
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 10191,
+                "end": 14570,
+                "total": 15034
+              },
+              "hashed": false,
+              "content": "  const rate = lookupRate(provider, model, table);\n  const tierMultiplier = rate?.terms\n    ? Object.hasOwn(rate.terms.serviceMultipliers, serviceTier)\n      ? rate.terms.serviceMultipliers[serviceTier]\n      : null\n    : 1;\n  if (!rate || tierMultiplier == null) {\n    return {\n      inputCost: 0,\n      outputCost: 0,\n      cacheReadCost: 0,\n      cacheCreationCost: 0,\n      totalCost: 0,\n      currency: \"USD\",\n      matched: false,\n      free: false,\n      rate: null,\n    };\n  }\n  const promptTokens =\n    requestInputTokens ??\n    Number(inputTokens) + Number(cacheReadTokens) + Number(cacheCreationTokens);\n  const longContext = rate.terms?.longContext;\n  const longPrompt = longContext && promptTokens > longContext.threshold;\n  const inputMultiplier = longPrompt ? longContext.inputMultiplier : 1;\n  const outputMultiplier = longPrompt ? longContext.outputMultiplier : 1;\n  const multiplier = tierMultiplier * (regionalProcessing ? 1.1 : 1);\n  // Keep full IEEE-754 precision throughout authority and budget arithmetic.\n  // Rounding each component to six decimals lets a real sub-microdollar call\n  // become zero and can make a hard `maxUsd` gate pass incorrectly. Display\n  // surfaces may format these values, but safety decisions consume the raw sum.\n  const inputCost =\n    (Number(inputTokens) / 1e6) * rate.in * inputMultiplier * multiplier;\n  const outputCost =\n    (Number(outputTokens) / 1e6) * rate.out * outputMultiplier * multiplier;\n  const cacheReadCost =\n    (Number(cacheReadTokens) / 1e6) *\n    rate.in *\n    (rate.terms?.cacheReadMultiplier ?? cacheReadMultiplier(provider)) *\n    inputMultiplier *\n    multiplier;\n  const cacheCreationCost =\n    (Number(cacheCreationTokens) / 1e6) *\n    rate.in *\n    (rate.terms?.cacheWriteMultiplier ?? CACHE_WRITE_MULTIPLIER) *\n    inputMultiplier *\n    multiplier;\n  return {\n    inputCost,\n    outputCost,\n    cacheReadCost,\n    cacheCreationCost,\n    totalCost: inputCost + outputCost + cacheReadCost + cacheCreationCost,\n    currency: \"USD\",\n    matched: true,\n    free: rate.pattern === \"free\",\n    rate: { in: rate.in, out: rate.out, pattern: rate.pattern },\n  };\n}\n\n/**\n * Augment a session-usage aggregate ({ total, byModel:[...] }) with cost.\n * Returns a new object — does not mutate the input.\n *\n * Each byModel row gains: cost, currency, matched. The returned `cost`\n * top-level sums priced rows; `unpriced` lists provider/model rows that had\n * usage but no matching rate (their tokens are excluded from `cost.totalCost`).\n */\nexport function priceRollup(aggregate, { table } = {}) {\n  const byModel = (aggregate?.byModel || []).map((row) => {\n    let est = estimateCost({\n      provider: row.provider,\n      model: row.model,\n      inputTokens: row.inputTokens,\n      outputTokens: row.outputTokens,\n      cacheReadTokens: row.cacheReadTokens,\n      cacheCreationTokens: row.cacheCreationTokens,\n      serviceTier: row.serviceTier ?? row.service_tier ?? \"standard\",\n      regionalProcessing:\n        row.regionalProcessing ?? row.regional_processing ?? false,\n      table,\n    });\n    if (Array.isArray(row.pricingBuckets)) {\n      const estimates = row.pricingBuckets.map((bucket) =>\n        estimateCost({\n          provider: row.provider,\n          model: row.model,\n          ...bucket,\n          table,\n        }),\n      );\n      est = { ...est, matched: estimates.every((entry) => entry.matched) };\n      for (const field of [\n        \"inputCost\",\n        \"outputCost\",\n        \"cacheReadCost\",\n        \"cacheCreationCost\",\n        \"totalCost\",\n      ]) {\n        est[field] = estimates.reduce((sum, entry) => sum + entry[field], 0);\n      }\n    } else if (\n      lookupRate(row.provider, row.model, table)?.terms &&\n      row.calls > 1\n    ) {\n      // A legacy aggregate cannot establish which individual requests crossed\n      // a pricing threshold. Exclude it rather than inventing a bill.\n      est = {\n        ...est,\n        matched: false,\n        inputCost: 0,\n        outputCost: 0,\n        cacheReadCost: 0,\n        cacheCreationCost: 0,\n        totalCost: 0,\n      };\n    }\n    return {\n      ...row,\n      cost: est.totalCost,\n      inputCost: est.inputCost,\n      outputCost: est.outputCost,\n      cacheReadCost: est.cacheReadCost,\n      cacheCreationCost: est.cacheCreationCost,\n      currency: est.currency,\n      matched: est.matched,\n      free: est.free,\n    };\n  });\n",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "15061:1793707456438.4175:1793707456438.4175"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708186672,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 260,
+                    "limit": 130
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 20,
+                "sessionId": "panel-1793708015885-4e908d",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 260,
+                    "limit": 130
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_2z6ljppcf8ne61bklu06qi8i",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 41
+          },
+          {
+            "type": "tool_result",
+            "id": "call_ycd2txz7p1qyrzm1rmg30bp8",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-GwnS3Z\\e7cb0593-1dca-493d-b136-63376b179a25\\workspace\\packages\\cli\\src\\lib\\llm-pricing.js",
+              "fileVersion": "15061:1793707456438.4175:1793707456438.4175",
+              "range": {
+                "startLine": 389,
+                "endLine": 415,
+                "totalLines": 415
+              },
+              "readSpan": {
+                "start": 14569,
+                "end": 15034,
+                "total": 15034
+              },
+              "hashed": false,
+              "content": "\n  let totalCost = 0;\n  const unpriced = [];\n  for (const row of byModel) {\n    if (row.matched) {\n      totalCost += row.cost;\n    } else if (row.totalTokens > 0) {\n      unpriced.push({\n        provider: row.provider,\n        model: row.model,\n        totalTokens: row.totalTokens,\n      });\n    }\n  }\n\n  return {\n    ...aggregate,\n    byModel,\n    cost: {\n      totalCost,\n      currency: \"USD\",\n      unpricedCount: unpriced.length,\n    },\n    unpriced,\n  };\n}\n",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "15061:1793707456438.4175:1793707456438.4175"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708194915,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 389,
+                    "limit": 30
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-1793708015885-4e908d",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 389,
+                    "limit": 30
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_ycd2txz7p1qyrzm1rmg30bp8",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 47
+          },
+          {
+            "type": "tool_result",
+            "id": "call_vnucrmtblxqh2cwxtx5ufvvp",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-GwnS3Z\\e7cb0593-1dca-493d-b136-63376b179a25\\workspace\\packages\\cli\\__tests__\\verify-03.test.js",
+              "fileVersion": "3850:1793708176739.2869:1793708176739.2869",
+              "readSpan": {
+                "start": 0,
+                "end": 3830,
+                "total": 3830
+              },
+              "hashed": false,
+              "content": "import { describe, it, expect } from \"vitest\";\nimport {\n  lookupRate,\n  estimateCost,\n  priceRollup,\n  mergePricing,\n} from \"../src/lib/llm-pricing.js\";\n\n// verify-03 — \"新家族未知计价\" regression coverage.\n//\n// Contract: an unrecognized model from a *new* family must be reported as\n// unpriced (lookupRate null / estimateCost matched:false, zero cost) instead of\n// silently inheriting an older family's list price. Known models must keep\n// pricing. Independent of the existing llm-pricing / model-release suites.\n\ndescribe(\"verify-03 — new family must not inherit an older family's price\", () => {\n  it(\"prices a known model in an older family (positive control)\", () => {\n    // gpt-5 is the openai catch-all base rate ($1.25 / $10 per 1M).\n    expect(lookupRate(\"openai\", \"gpt-5\")).toMatchObject({ in: 1.25, out: 10 });\n    const c = estimateCost({\n      provider: \"openai\",\n      model: \"gpt-5\",\n      inputTokens: 1_000_000,\n      outputTokens: 1_000_000,\n    });\n    expect(c.matched).toBe(true);\n    expect(c.rate).toMatchObject({ in: 1.25, out: 10 });\n    expect(c.totalCost).toBeCloseTo(11.25, 9);\n  });\n\n  it(\"prices a known documented new model (positive control)\", () => {\n    // claude-opus-5-5 is a documented, explicitly-priced Anthropic model.\n    expect(lookupRate(\"anthropic\", \"claude-opus-5-5\")).toMatchObject({\n      in: 4,\n      out: 20,\n    });\n    const c = estimateCost({\n      provider: \"anthropic\",\n      model: \"claude-opus-5-5\",\n      inputTokens: 1000,\n      outputTokens: 1000,\n    });\n    expect(c.matched).toBe(true);\n    expect(c.totalCost).toBeCloseTo(0.024, 9);\n  });\n\n  it(\"reports an unknown new family model as unpriced, not mis-priced\", () => {\n    // \"gpt-7x-nano\" deliberately shares tokens with the old gpt-5 family\n    // (-nano) and the gpt-* prefix, but is not a documented / listed model.\n    expect(lookupRate(\"openai\", \"gpt-7x-nano\")).toBeNull();\n    const c = estimateCost({\n      provider: \"openai\",\n      model: \"gpt-7x-nano\",\n      inputTokens: 1_000_000,\n      outputTokens: 1_000_000,\n    });\n    expect(c.matched).toBe(false);\n    expect(c.rate).toBeNull();\n    expect(c.totalCost).toBe(0);\n  });\n\n  it(\"a new Opus version does not fall back to the bare opus rate\", () => {\n    // The bare \"opus\" pattern ($5/$25) must not price an unrecognized\n    // claude-opus-6 / claude-opus-9 — they stay unpriced.\n    expect(lookupRate(\"anthropic\", \"claude-opus-6\")).toBeNull();\n    expect(lookupRate(\"anthropic\", \"claude-opus-9\")).toBeNull();\n  });\n\n  it(\"an explicit user override stays authoritative over the guard\", () => {\n    // Explicit overrides bypass the new-version guard, so an operator can\n    // still price an unknown Opus version deliberately.\n    const table = mergePricing({\n      anthropic: [{ match: \"opus\", in: 4, out: 20 }],\n    });\n    expect(lookupRate(\"anthropic\", \"claude-opus-10\", table)).toMatchObject({\n      in: 4,\n      out: 20,\n    });\n  });\n\n  it(\"priceRollup lists the unknown new family row as unpriced and prices only known\", () => {\n    const r = priceRollup({\n      total: {},\n      byModel: [\n        {\n          provider: \"anthropic\",\n          model: \"claude-opus-6\",\n          inputTokens: 1_000_000,\n          outputTokens: 0,\n          totalTokens: 1_000_000,\n          calls: 1,\n        },\n        {\n          provider: \"openai\",\n          model: \"gpt-5\",\n          inputTokens: 1_000_000,\n          outputTokens: 0,\n          totalTokens: 1_000_000,\n          calls: 1,\n        },\n      ],\n    });\n    expect(r.cost.totalCost).toBeCloseTo(1.25, 9); // only the known gpt-5 row\n    expect(r.cost.unpricedCount).toBe(1);\n    expect(r.unpriced).toEqual([\n      { provider: \"anthropic\", model: \"claude-opus-6\", totalTokens: 1_000_000 },\n    ]);\n    expect(r.byModel[0].matched).toBe(false);\n    expect(r.byModel[1].matched).toBe(true);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708215128,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-03.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 0,
+                "sessionId": "panel-1793708015885-4e908d",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-03.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_vnucrmtblxqh2cwxtx5ufvvp",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 57
+          },
+          {
+            "type": "tool_result",
+            "id": "call_beya700mbdys8iles48t5oyt",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 75,
+                  "column": 15,
+                  "offset": 2890,
+                  "text": "gpt-5-mini",
+                  "context": "5.4\", in: 2.5, out: 15 },\n    { match: \"gpt-5-mini\", in: 0.25, out: 2 },\n    { match: \"gpt",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 75,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 1,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-GwnS3Z\\e7cb0593-1dca-493d-b136-63376b179a25\\workspace\\packages\\cli\\src\\lib\\llm-pricing.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708224505,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "pattern": "gpt-5-mini",
+                    "contextChars": 40
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 46,
+                "sessionId": "panel-1793708015885-4e908d",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "pattern": "gpt-5-mini",
+                    "contextChars": 40
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_beya700mbdys8iles48t5oyt",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 64
+          },
+          {
+            "type": "tool_result",
+            "id": "call_w24ma0se1r0w0wc8a0it1j08",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 136,
+                  "column": 1,
+                  "offset": 5699,
+                  "text": "export function mergePricing",
+                  "context": "ged price table\n */\nexport function mergePricing(overrides, base = P",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 136,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 1,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-GwnS3Z\\e7cb0593-1dca-493d-b136-63376b179a25\\workspace\\packages\\cli\\src\\lib\\llm-pricing.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708224641,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "pattern": "export function mergePricing",
+                    "contextChars": 20
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 182,
+                "sessionId": "panel-1793708015885-4e908d",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "pattern": "export function mergePricing",
+                    "contextChars": 20
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_w24ma0se1r0w0wc8a0it1j08",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 65
+          },
+          {
+            "type": "tool_result",
+            "id": "call_zw4kyh6pgrtcoh3z979op7ys",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-GwnS3Z\\e7cb0593-1dca-493d-b136-63376b179a25\\workspace\\packages\\cli\\src\\lib\\llm-pricing.js",
+              "fileVersion": "15061:1793707456438.4175:1793707456438.4175",
+              "range": {
+                "startLine": 60,
+                "endLine": 109,
+                "totalLines": 415
+              },
+              "nextRead": {
+                "path": "packages/cli/src/lib/llm-pricing.js",
+                "offset": 110,
+                "limit": 50
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 2279,
+                "end": 4599,
+                "total": 15034
+              },
+              "hashed": false,
+              "content": "  openai: [\n    ...Object.entries(DOCUMENTED_OPENAI_MODELS)\n      .filter(([, model]) => model.pricing)\n      .map(([match, model]) => ({\n        match,\n        ...model.pricing,\n        exact: true,\n        terms: GPT6_PRICING_TERMS,\n      })),\n    // GPT-5 family (2026). Matching is longest-pattern-first, so dated/variant\n    // ids (gpt-5.5, gpt-5.5-pro, gpt-5.5-instant, …) resolve to the most\n    // specific rate; bare \"gpt-5\" is the catch-all base rate.\n    { match: \"gpt-5.5-pro\", in: 30, out: 180 },\n    { match: \"gpt-5.5\", in: 5, out: 30 },\n    { match: \"gpt-5.4\", in: 2.5, out: 15 },\n    { match: \"gpt-5-mini\", in: 0.25, out: 2 },\n    { match: \"gpt-5-nano\", in: 0.05, out: 0.4 },\n    { match: \"gpt-5\", in: 1.25, out: 10 },\n    { match: \"gpt-4o-mini\", in: 0.15, out: 0.6 },\n    { match: \"gpt-4o\", in: 2.5, out: 10 },\n    { match: \"gpt-4-turbo\", in: 10, out: 30 },\n    { match: \"gpt-4\", in: 30, out: 60 },\n    { match: \"gpt-3.5\", in: 0.5, out: 1.5 },\n    { match: \"o1-mini\", in: 1.1, out: 4.4 },\n    { match: \"o1\", in: 15, out: 60 },\n  ],\n  dashscope: [\n    { match: \"qwen-turbo\", in: 0.3, out: 0.6 },\n    { match: \"qwen-plus\", in: 0.8, out: 2 },\n  ],\n  deepseek: [\n    // DeepSeek V4 launch-list rates for the versioned 2026-04 model ids.\n    // Keep these ahead of the legacy aliases so formal budget gates never\n    // treat the current V4 models as unpriced remote usage.\n    { match: \"deepseek-v4-pro\", in: 0.435, out: 0.87 },\n    { match: \"deepseek-v4-flash\", in: 0.14, out: 0.28 },\n    { match: \"reasoner\", in: 0.55, out: 2.19 },\n    { match: \"chat\", in: 0.27, out: 1.1 },\n  ],\n  // Volcengine Doubao — rough USD conversion of public RMB list pricing.\n  volcengine: [\n    // Third-party DeepSeek V4 ids exposed by Ark use the same token-accounting\n    // shape. Pricing them explicitly is required by USD-capped Agent/Team runs;\n    // falling through to the Doubao patterns would fail closed as unpriced.\n    { match: \"deepseek-v4-pro\", in: 0.435, out: 0.87 },\n    { match: \"deepseek-v4-flash\", in: 0.14, out: 0.28 },\n    // Doubao Seed 2.0 family (2026, e.g. doubao-seed-2-0-lite-260215) is\n    // natively multimodal. Rates ≈ official CNY ÷ ~7.2 (lite ≤32k is 0.6/3.6\n    // CNY → $0.08/$0.50); the generic \"seed\" rate below underprices 2.0 output.\n    { match: \"seed-2-0-pro\", in: 0.5, out: 2.5 },",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "15061:1793707456438.4175:1793707456438.4175"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708231543,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 60,
+                    "limit": 50
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-1793708015885-4e908d",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 60,
+                    "limit": 50
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_zw4kyh6pgrtcoh3z979op7ys",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 71
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2741,
+              "output_tokens": 100,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 13440,
+              "output_tokens": 686,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 11
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 8020,
+              "output_tokens": 3393,
+              "cache_read_input_tokens": 14336,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 15
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 7612,
+              "output_tokens": 177,
+              "cache_read_input_tokens": 18688,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 19
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4185,
+              "output_tokens": 4276,
+              "cache_read_input_tokens": 22528,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 25
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 20226,
+              "output_tokens": 560,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 31
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4169,
+              "output_tokens": 420,
+              "cache_read_input_tokens": 21248,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 37
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 19152,
+              "output_tokens": 152,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 45
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4011,
+              "output_tokens": 772,
+              "cache_read_input_tokens": 20480,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 51
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3028,
+              "output_tokens": 243,
+              "cache_read_input_tokens": 22528,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 55
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 19942,
+              "output_tokens": 342,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 61
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4546,
+              "output_tokens": 145,
+              "cache_read_input_tokens": 20480,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 69
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5560,
+              "output_tokens": 1461,
+              "cache_read_input_tokens": 20480,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+            "seq": 75
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 116632,
+          "output_tokens": 12727,
+          "cache_read_input_tokens": 179200
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 13,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "I've now confirmed the openai table contents. Let me finalize the audit. My key assertion for case 3 is `gpt-7x-nano` → null. Let me verify no openai pattern matches `gpt-7x-nano`:\n- Patterns: gpt-5.5-pro, gpt-5.5, gpt-5.4, gpt-5-mini, gpt-5-nano, gpt-5, gpt-4o-mini, gpt-4o, gpt-4-turbo, gpt-4, gpt-3.5, o1-mini, o1.\n- `gpt-7x-nano` contains none of these substrings. Correct, returns null.\n\nI've now confirmed all the source facts needed. Let me do the final requirement-to-assertion audit.\n\n**Requirement 1: Unknown model returns unpriced, doesn't hit old-family prices.**\n- Case 3: `gpt-7x-nano` (openai) → `lookupRate` null, `estimateCost` matched:false, rate:null, totalCost 0. The model shares tokens with old family (`-nano`, `gpt-` prefix) but no old pattern matches → not mis-priced. This is the positive control for the unpriced/new-family condition.\n- Case 4: `claude-opus-6`/`claude-opus-9` → null. This specifically proves the bare `opus` pattern (old family $5/$25) is NOT applied to a new unrecognized Opus version. This is the strongest \"not hitting old-family price\" check since the bare `opus` substring DOES appear in these models — so if the guard were absent, they'd wrongly price at $5/$25. This is a genuine negative control where the old-family token is present, and the guard must prevent the fallback.\n\n**Requirement 2: Known model positive control still prices.**\n- Case 1: `gpt-5` → $1.25/$10, matched:true, totalCost 11.25.\n- Case 2: `claude-opus-5-5` documented → $4/$20, matched:true, totalCost 0.024.\n\n**Requirement 3: Independent controls, at most six cases, not importing existing suite.**\n- 6 cases, standalone file, imports only `../src/lib/llm-pricing.js` and vitest. No source-text assertions. ✓\n\n**Requirement 4: For each independent condition, positive then negative, differing only in the intended condition.**\nLet me audit the paired conditions:\n\nCase 1 (gpt-5 known) vs Case 3 (gpt-7x-nano unknown): Both openai, both 1M/1M tokens, differ only in model. Positive prices, negative unpriced. Same boundary (lookupRate/estimateCost). ✓ Strong pair.\n\nCase 2 (claude-opus-5-5 documented) vs Case 4 (claude-opus-6/9 unknown): Both anthropic, differ only in model. Known prices, unknown new-version unpriced (guard). ✓\n\nCase 5: explicit override authoritative — independent condition (override bypass). Positive: override prices claude-opus-10. This confirms the guard isn't over-suppressing. Without a direct paired negative for the override itself, this complements Case 4 (which is the guard's active negative). Actually the pair here is: Case 4 proves the guard blocks the bare opus fallback; Case 5 proves an *explicit* override still works (guard only blocks implicit fallback). These differ in the intended condition (explicitOverride present vs absent). Valid.\n\nCase 6: priceRollup integration — positive/negative within one aggregate: claude-opus-6 row (unpriced, matched:false) + gpt-5 row (priced, matched:true). totalCost only from known, unpricedCount 1, unpriced lists the unknown. Confirms the end-to-end behavior surfaces unknown-new-family as unpriced. ✓\n\nAll conditions are covered:\n- Unpriced/not mis-priced for new family: Case 3, 4.\n- Known model still priced: Case 1, 2.\n- Guard preserves explicit overrides: Case 5.\n- Rollup surfaces unpriced: Case 6.\n\nNo uncovered requirement. No source defect found — the frozen implementation already correctly guards new-family unknowns (the opus guard), so no minimal fix was needed. My tests did not expose a defect; they are pure regression coverage as the task permitted (\"新增独立回归覆盖或补齐已有覆盖\").\n\nI did not run tests (no execution tools). I report this limitation.\n\nThe deliverable is complete and correct. I'll give the final account.\n\n**Final account:**\n\nThe deliverable `packages/cli/__tests__/verify-03.test.js` is written with 6 independent Vitest cases covering the \"新家族未知计价\" contract, importing only `../src/lib/llm-pricing.js` and vitest (no existing suite, no source-text assertions). All source facts are verified against the frozen implementation (openai table, opus guard, mergePricing override, priceRollup shape).\n\nRequirement-to-assertion mapping:\n- Unknown new-family → unpriced (matched:false, rate null, cost 0): Case 3 (`gpt-7x-nano`, a new-family id that shares `gpt-`/`-nano` tokens with the old gpt-5 family but matches no pattern) and Case 4 (`claude-opus-6`/`claude-opus-9`, where the old bare `opus` substring is present — proving the guard stops the $5/$25 fallback).\n- Known model still prices: Case 1 (`gpt-5` → 1.25/10, totalCost 11.25) and Case 2 (`claude-opus-5-5` → 4/20, totalCost 0.024).\n- Explicit override authoritative over the guard: Case 5 (`mergePricing` `opus` override prices `claude-opus-10`).\n- Rollup surfaces unknown as unpriced and sums only known: Case 6.\n\nPaired controls differ only in the intended condition (model identity / explicit-override presence) with valid identical prerequisites (same provider, token volumes, cost shape). No source defect was exposed — the frozen implementation already guards new-family unknowns correctly, so no minimal fix was required, matching the \"仅在反例证明需要时\" instruction.\n\nLimitation: no execution/shell tools are available in this environment; native generation does not imply native test execution, so I cannot confirm the tests pass. The independent checker will run baseline, candidate, and behavioral coverage in a separate network-disabled Linux Docker.",
+          "session_id": "panel-1793708015885-4e908d",
+          "turn": 1,
+          "usage": {
+            "input_tokens": 116632,
+            "output_tokens": 12727,
+            "cache_read_input_tokens": 179200,
+            "cache_creation_input_tokens": 0
+          },
+          "transcript_refs": {
+            "schema": "chainlesschain.session-transcript-references/v1",
+            "sessionId": "panel-1793708015885-4e908d",
+            "assistantEventId": "e3988227d8f74a4316a272bcf71000182b6a42b7504ca4bc3f43be423a974aef",
+            "userEventId": "6531f3e5d450b630a9d6219405fdee950c9b69628de02464911a0848975e2850",
+            "clientMessageId": "69baf8e9-1460-4a92-b5fe-1a72bda54f22"
+          },
+          "trace_id": "tr-64e85777-dae7-4286-aec7-6cee40f6d5b6",
+          "seq": 76
+        },
+        "scopePathComparison": "windows-case-insensitive; raw stream retained"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 13,
+        "usageCompleteRequests": 13,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 13,
+        "usageCompleteRequests": 13,
+        "tasks": [
+          {
+            "taskId": "verify-03",
+            "requests": 13,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": 0.4823589999999999,
+        "knownTokenOnlyEstimateCny": 0.4823589999999999,
+        "fxRate": null
+      },
+      "changedPaths": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml",
+        "packages/cli/__tests__/verify-03.test.js"
+      ],
+      "finishedAt": "2026-11-03T12:19:30.181Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-03"
+  ],
+  "generationPassed": true,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 40 model turns, 48 requests, 180 second request timeout, model maximum 393216 output tokens (8192 test cap removed), 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:082bc5a98c8a209b214f2aa1fa66bf07976cd719f0d3d33b17f8b215f21799c0",
+  "group": "win32-jetbrains",
+  "entry": "jetbrains",
+  "platform": "win32",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:3ca5c1bfa5bffdee860665eeb757c24004dfaf0f3075f2a63e1a2600b3f6d600"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:7bf33df63888e550ac1ebd6a469d99e56ea1bb54f1d094b359b0c7fa1da1ffa6"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:be2edf8e1ced537796d5819e458e4b56f2c1638eab8880b09c2c7fea4a4245fd"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+      "digest": "sha256:82becb2b0b551916e312131bcca48736d9e3f462aed4ea2a89ec00f907457eed"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
+      "digest": "sha256:d2cbc2dee63e7f53c622d61ad314143d6bd4d59a679d9aea29579cb034a829fb"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-public140-full.mjs",
+      "digest": "sha256:f7c7f0dbe8cb572e4832b41f53aa89139e5ab398d7bdb603b7beb9942a9312f9"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:3e515efc1cff606e2cbbfa977b5674abe6a73c142caa1b0539c0a2698978f8e4"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-plugin-artifact.mjs",
+      "digest": "sha256:ce04147c3e2f97c7d44d37052f5e8329595efe9bbcb852b51952535ba96357bc"
+    },
+    {
+      "file": "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.mjs",
+      "digest": "sha256:b8fc449018df5d188d9aada8469e023bd220ece659620b2323cf796e9d08fdcb"
+    },
+    {
+      "file": "packages/jetbrains-plugin/build.gradle.kts",
+      "digest": "sha256:17510157d489a11ed93bde3b2cb06cf3f939edac6ffd8b26735c047f44e3aba7"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "digest": "sha256:29655e9a949948528018ad85baf368e5240445216caa747719c95d6c83903e0b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/UiFailureDiagnostics.java",
+      "digest": "sha256:5802b749fd82048d196e90ce5f0f2f4e4c7cfc527590f07b62ccafb73d4c6a20"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "digest": "sha256:44cb87d4c64437b64204a4bca9d7faaec68a6cbbff8b7303c491e17e7597337b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "digest": "sha256:b2a5f856e6607ec559b1c7d17be14a110cccd6bcaea323cbab5ae1458109ee5b"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T12:04:22.215Z",
+    "finishedAt": "2026-11-03T12:07:19.399Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "verify-03",
+    "locked": {
+      "version": "0.166.140",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+      "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T12:19:30.186Z"
+}

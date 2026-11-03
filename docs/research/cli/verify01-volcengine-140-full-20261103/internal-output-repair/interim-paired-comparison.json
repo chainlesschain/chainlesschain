@@ -1,0 +1,207 @@
+{
+  "checkedAt": [
+    "2026-11-03T14:56:06.569305+00:00",
+    "2026-11-03T14:55:21.548662+00:00"
+  ],
+  "scope": "Generation only; independent acceptance still pending",
+  "initialCompleted": 43,
+  "correctedCompleted": 36,
+  "sharedCompleted": 36,
+  "initialSucceededOnShared": 32,
+  "correctedSucceededOnShared": 30,
+  "recoveredGeneration": ["first-run-linux-vscode", "verify-30", "verify-31"],
+  "newGenerationFailures": [
+    "first-run-darwin-cli",
+    "first-run-darwin-vscode",
+    "first-run-linux-cli",
+    "verify-11",
+    "verify-19"
+  ],
+  "failedInBoth": ["first-run-linux-jetbrains"],
+  "schema": 1,
+  "interimOnly": true,
+  "initialRunId": 41630636517,
+  "correctedRunId": 41638188839,
+  "pairedSamples": [
+    {
+      "sampleId": "first-run-darwin-cli",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": false
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": false
+    },
+    {
+      "sampleId": "first-run-linux-cli",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": false
+    },
+    {
+      "sampleId": "first-run-linux-jetbrains",
+      "initialGenerationSucceeded": false,
+      "correctedGenerationSucceeded": false
+    },
+    {
+      "sampleId": "first-run-linux-vscode",
+      "initialGenerationSucceeded": false,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "first-run-win32-cli",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "first-run-win32-jetbrains",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "first-run-win32-vscode",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-01",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-02",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-03",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-04",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-05",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-06",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-07",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-10",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-11",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": false
+    },
+    {
+      "sampleId": "verify-12",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-13",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-14",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-15",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-16",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-17",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-19",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": false
+    },
+    {
+      "sampleId": "verify-20",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-21",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-22",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-23",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-24",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-25",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-28",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-29",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-30",
+      "initialGenerationSucceeded": false,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-31",
+      "initialGenerationSucceeded": false,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-32",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    },
+    {
+      "sampleId": "verify-33",
+      "initialGenerationSucceeded": true,
+      "correctedGenerationSucceeded": true
+    }
+  ]
+}

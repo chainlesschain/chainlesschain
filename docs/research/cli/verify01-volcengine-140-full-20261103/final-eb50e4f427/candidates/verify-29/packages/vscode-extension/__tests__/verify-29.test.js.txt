@@ -1,0 +1,128 @@
+/**
+ * verify-29 — Mode ACK correlation regression.
+ *
+ * Direct unit coverage of `acceptModeAcknowledgement` in
+ * `src/chat/permission-mode-state.js`. This is display evidence only and never
+ * a substitute for the CLI permission gate; it must (a) reject a stale
+ * generation/correlation ACK and any ACK bound to a different session, and
+ * (b) never surface the newly requested mode as already effective when any
+ * validation condition fails.
+ *
+ * Each negative control keeps every unrelated prerequisite valid so only the
+ * mutated condition can cause the rejection (the assertion that would fail if
+ * the guard under test were missing is noted per case).
+ */
+import { describe, it, expect } from "vitest";
+import { acceptModeAcknowledgement } from "../src/chat/permission-mode-state.js";
+
+const HEX16 = "a".repeat(16); // accepted policy_revision boundary
+
+/** A conversation already in a pending (awaiting confirmation) state. */
+function pendingConv(overrides = {}) {
+  return {
+    mode: "acceptEdits",
+    modeRequestId: "req-1",
+    sessionId: "sess-1",
+    effectiveMode: null,
+    modeStatus: "pending",
+    policyRevision: null,
+    modeError: "",
+    ...overrides,
+  };
+}
+
+/** A well-formed init event whose ACK targets the pending request. */
+function goodAck(overrides = {}) {
+  return {
+    session_id: "sess-1",
+    permission_mode_state: {
+      correlation_id: "req-1",
+      requested: "acceptEdits",
+      effective: "acceptEdits",
+      policy_revision: HEX16,
+      ...overrides,
+    },
+  };
+}
+
+describe("acceptModeAcknowledgement — mode ACK correlation", () => {
+  it("accepts a correlated, well-formed ACK and marks the mode effective", () => {
+    const conv = pendingConv();
+    expect(acceptModeAcknowledgement(conv, goodAck())).toBe(true);
+    expect(conv).toMatchObject({
+      effectiveMode: "acceptEdits",
+      policyRevision: HEX16,
+      modeStatus: "effective",
+      modeError: "",
+    });
+  });
+
+  it("rejects a stale generation/correlation ACK and does not mark effective", () => {
+    // Mutated condition: correlation_id no longer matches modeRequestId
+    // (an ACK from an earlier child/generation). If the correlation guard were
+    // missing, this old ACK's effective mode would leak onto the new request.
+    const conv = pendingConv({
+      modeRequestId: "req-2", // the current (newer) request
+      mode: "bypassPermissions",
+    });
+    const stale = goodAck({
+      correlation_id: "req-1", // old generation
+      requested: "bypassPermissions",
+      effective: "bypassPermissions",
+    });
+    expect(acceptModeAcknowledgement(conv, stale)).toBe(false);
+    // The NEW requested mode must not appear effective.
+    expect(conv.effectiveMode).toBeNull();
+    expect(conv.modeStatus).toBe("pending");
+  });
+
+  it("rejects an ACK bound to a different session and does not mark effective", () => {
+    // Mutated condition: event.session_id differs from conv.sessionId.
+    // If the session guard were missing, a foreign-session ACK would apply.
+    const conv = pendingConv();
+    const foreign = goodAck({ session_id: "sess-other" });
+    expect(acceptModeAcknowledgement(conv, foreign)).toBe(false);
+    expect(conv.effectiveMode).toBeNull();
+    expect(conv.modeStatus).toBe("pending");
+  });
+
+  it("rejects when the ACK requested mode does not match the requested mode", () => {
+    // Mutated condition: ack.requested differs from conv.mode. If the requested
+    // guard were missing, the ack would be accepted even though the CLI reports
+    // a different requested mode than the one the panel asked for.
+    const conv = pendingConv();
+    const mismatch = goodAck({ requested: "bypassPermissions" });
+    expect(acceptModeAcknowledgement(conv, mismatch)).toBe(false);
+    expect(conv.effectiveMode).toBeNull();
+    expect(conv.modeStatus).toBe("unconfirmed");
+    expect(conv.modeError).toContain("has not confirmed");
+  });
+
+  it("rejects an effective mode that is not in the allowed set", () => {
+    // Mutated condition: ack.effective is not a member of MODES. If the allow-list
+    // guard were missing, a bogus effective mode would be stored as effective.
+    const conv = pendingConv();
+    const bogus = goodAck({ effective: "nonsense" });
+    expect(acceptModeAcknowledgement(conv, bogus)).toBe(false);
+    expect(conv.effectiveMode).toBeNull();
+    expect(conv.modeStatus).toBe("unconfirmed");
+  });
+
+  it("rejects a malformed or badly formatted policy_revision", () => {
+    // Mutated condition: policy_revision is not a string, or fails the hex
+    // format/regex guard (type check + /^[a-f0-9]{16,64}$/). If the policy
+    // guard were missing, an unverifiable revision would be recorded.
+    const notString = pendingConv();
+    const badType = goodAck({ policy_revision: 123 });
+    expect(acceptModeAcknowledgement(notString, badType)).toBe(false);
+    expect(notString.effectiveMode).toBeNull();
+    expect(notString.modeStatus).toBe("unconfirmed");
+
+    // First rejected value below the accepted length boundary (15 < 16 hex).
+    const tooShort = pendingConv();
+    const shortRev = goodAck({ policy_revision: "a".repeat(15) });
+    expect(acceptModeAcknowledgement(tooShort, shortRev)).toBe(false);
+    expect(tooShort.effectiveMode).toBeNull();
+    expect(tooShort.modeStatus).toBe("unconfirmed");
+  });
+});

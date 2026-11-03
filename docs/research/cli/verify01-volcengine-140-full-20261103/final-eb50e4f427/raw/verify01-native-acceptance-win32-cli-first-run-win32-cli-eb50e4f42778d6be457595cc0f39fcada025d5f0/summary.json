@@ -1,0 +1,1935 @@
+{
+  "schema": "chainlesschain.verify01-native-task-acceptance/v1",
+  "executionSourceCommit": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+  "deliverySourceCommit": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "packageSetDigest": "sha256:9df4efc5365ed381684a1990009c4b162ec96ae9ce229df13d4b583860a3559c",
+  "group": "win32-cli",
+  "actualGenerationHost": {
+    "platform": "win32",
+    "entry": "cli",
+    "arch": "x64"
+  },
+  "acceptanceHost": "linux-docker",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+  "sourceSummaryDigest": "sha256:d7a3bf54e4690dfff60e867a911e84ba8d0c75b2e296b8a0fc85c67ee5e89a0f",
+  "formalSample": false,
+  "startedAt": "2026-11-03T15:18:20.948Z",
+  "samples": [
+    {
+      "sampleId": "first-run-win32-cli",
+      "taskId": "verify-01",
+      "kind": "first-run",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:9df4efc5365ed381684a1990009c4b162ec96ae9ce229df13d4b583860a3559c",
+      "originalGenerationPassed": true,
+      "generationPassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      },
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 143893,
+            "outputTokens": 13688,
+            "cacheReadInputTokens": 178432,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": 0.026475708000000004
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "headless-1793706952993-2148",
+          "session_persistence": false,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "isolation_level": "policy-only",
+          "max_turns": 40,
+          "resumed_from": null,
+          "history_messages": 0,
+          "additional_directories": [],
+          "goal_id": null
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_r0o7sr6hbfyb9b1pomu45tq4",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/model-context-catalog.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_cldtgsdct4nln5u8bo39vtal",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/model-capabilities.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_ewunw6q3tdenvfajhikzo0p3",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/model-release-contract.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_ibizjpybctbfqxgznzqw6334",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/model-capabilities.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_oe45c113ukdei0pt2ht7yxms",
+            "tool": "search_files",
+            "args": {
+              "pattern": "volcengine",
+              "directory": "packages/cli/src/lib"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_uepv2gf0v5rj8718u6h4v1zi",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-01.test.js",
+              "content": "import { describe, expect, it } from \"vitest\";\nimport { resolveModelCapabilityProfile } from \"../../src/lib/model-capabilities.js\";\n\n// Independent regression coverage for \"official endpoint vs same-named custom\n// gateway isolation\": a model served at the official endpoint may carry\n// documented (official) certification, but the same-named model served at a\n// custom gateway must never share it. Volcengine has no documented official\n// catalog, so its legacy models stay assumed at either endpoint.\ndescribe(\"official endpoint vs same-named custom gateway isolation\", () => {\n  it(\"applies official certification only at the official openai endpoint\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://api.openai.com/v1\",\n    });\n    expect(profile).toMatchObject({\n      contextWindowTokens: 128000,\n      windowSource: \"official-model-docs\",\n      windowAssumed: false,\n      runtimeVerified: false,\n      advertisedMaxOutputTokens: 16384,\n    });\n    expect(profile.sources.length).toBeGreaterThan(0);\n  });\n\n  it(\"does not let a same-named custom gateway share that official certification\", () => {\n    const custom = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://gateway.example/v1\",\n    });\n    expect(custom).toMatchObject({\n      contextWindowTokens: 128000,\n      windowSource: \"legacy-catalog\",\n      windowAssumed: true,\n      advertisedMaxOutputTokens: null,\n    });\n    expect(custom.sources).toEqual([]);\n    expect(custom.limitations.join(\" \")).toMatch(\n      /not applied to a custom endpoint/,\n    );\n    const official = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://api.openai.com/v1\",\n    });\n    // Certification is not shared: only the official endpoint is non-assumed.\n    expect(official.windowAssumed).toBe(false);\n    expect(custom.windowAssumed).toBe(true);\n  });\n\n  it(\"keeps a legacy volcengine model assumed at the official endpoint\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"volcengine\",\n      model: \"doubao-seed-1-6-251015\",\n      baseUrl: \"https://api.volcengine.com/v1\",\n    });\n    expect(profile).toMatchObject({\n      contextWindowTokens: 32768,\n      windowSource: \"legacy-catalog\",\n      windowAssumed: true,\n      runtimeProtocol: \"chat-completions\",\n      advertisedMaxOutputTokens: null,\n    });\n    expect(profile.sources).toEqual([]);\n  });\n\n  it(\"does not fabricate official certification for the same volcengine model at a custom gateway\", () => {\n    const official = resolveModelCapabilityProfile({\n      provider: \"volcengine\",\n      model: \"doubao-seed-1-6-251015\",\n      baseUrl: \"https://api.volcengine.com/v1\",\n    });\n    const custom = resolveModelCapabilityProfile({\n      provider: \"volcengine\",\n      model: \"doubao-seed-1-6-251015\",\n      baseUrl: \"https://gateway.example/v1\",\n    });\n    for (const profile of [official, custom]) {\n      expect(profile.windowAssumed).toBe(true);\n      expect(profile.windowSource).toBe(\"legacy-catalog\");\n      expect(profile.advertisedMaxOutputTokens).toBeNull();\n      expect(profile.runtimeVerified).toBe(false);\n    }\n  });\n\n  it(\"keeps an unknown volcengine window an assumed estimate at either endpoint\", () => {\n    for (const baseUrl of [\n      \"https://api.volcengine.com/v1\",\n      \"https://gateway.example/v1\",\n    ]) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"volcengine\",\n        model: \"doubao-seed-future-999999\",\n        baseUrl,\n      });\n      expect(profile).toMatchObject({\n        windowSource: \"provider-default\",\n        windowAssumed: true,\n        runtimeVerified: false,\n        advertisedMaxOutputTokens: null,\n        sources: [],\n      });\n    }\n  });\n});\n"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_a7d1eybskjqfjxjajjwmrzb3",
+            "tool": "list_dir",
+            "args": {
+              "path": "packages/cli"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_2dnfco40s6upxev3cvnvqh2h",
+            "tool": "edit_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-01.test.js",
+              "old_string": "import { resolveModelCapabilityProfile } from \"../../src/lib/model-capabilities.js\";",
+              "new_string": "import { resolveModelCapabilityProfile } from \"../src/lib/model-capabilities.js\";"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_a32iw9a7uhvjzc2v6rt13n4h",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-01.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_llkfizkvkztqz6cn3k4gv0a3",
+            "tool": "search_files",
+            "args": {
+              "pattern": "doubao",
+              "path": "packages/cli/src/lib/model-context-catalog.js",
+              "contextChars": 80
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_1lk2mpr4sztvt1za9y3te281",
+            "tool": "search_files",
+            "args": {
+              "contextChars": 60,
+              "path": "packages/cli/src/lib/model-context-catalog.js",
+              "pattern": "gpt-4o"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_xfpfmav7yze76s4on2tdz9ps",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/model-context-catalog.js",
+              "offset": 88,
+              "limit": 10
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_l4ibhuhuj6orqt3sqtwcd46y",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/model-context-catalog.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_dco17hjywe237jly4p59ff20",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/model-capabilities.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_ji0m6pua987e28c5oxszx5vi",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/model-release-contract.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_xgt41bpcwdxj7t7usa73r3yv",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/model-capabilities.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_4dxebn8wga8g7hlwm2746eyn",
+            "tool": "list_dir",
+            "args": {
+              "path": "packages/cli/__tests__"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_yhbp5ykuiqb3h9nthmp3ytv0",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-01.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_8r7cz31fx3jl5zcyji77r0fc",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-01.test.js",
+              "offset": 60
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_742s5mg1nz26jcj6c3e4i6jn",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-01.test.js",
+              "offset": 80,
+              "limit": 27
+            }
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_r0o7sr6hbfyb9b1pomu45tq4",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\src\\lib\\model-context-catalog.js",
+              "fileVersion": "4888:1793706746519.3857:1793706746519.3857",
+              "readSpan": {
+                "start": 0,
+                "end": 4888,
+                "total": 4888
+              },
+              "hashed": false,
+              "content": "// Compatibility catalog: these legacy values are retained verbatim. They are\n// planning assumptions, not recently verified provider capability guarantees.\nexport const CONTEXT_WINDOWS = Object.freeze({\n  \"qwen2.5:7b\": 32768,\n  \"qwen2.5:14b\": 32768,\n  \"qwen2.5-coder:14b\": 32768,\n  \"qwen2:7b\": 32768,\n  \"llama3:8b\": 8192,\n  \"mistral:7b\": 32768,\n  \"codellama:7b\": 16384,\n  \"gpt-4o\": 128000,\n  \"gpt-4o-mini\": 128000,\n  \"gpt-4-turbo\": 128000,\n  \"gpt-3.5-turbo\": 16385,\n  o1: 200000,\n  \"claude-opus-4-6\": 200000,\n  \"claude-sonnet-4-6\": 200000,\n  \"claude-haiku-4-5-20251001\": 200000,\n  \"deepseek-chat\": 64000,\n  \"deepseek-coder\": 64000,\n  \"deepseek-reasoner\": 64000,\n  \"qwen-turbo\": 131072,\n  \"qwen-plus\": 131072,\n  \"qwen-max\": 32768,\n  \"gemini-2.0-flash\": 1048576,\n  \"gemini-2.0-pro\": 1048576,\n  \"gemini-1.5-flash\": 1048576,\n  \"moonshot-v1-auto\": 131072,\n  \"moonshot-v1-8k\": 8192,\n  \"moonshot-v1-32k\": 32768,\n  \"moonshot-v1-128k\": 131072,\n  \"doubao-seed-1-6-251015\": 32768,\n  \"doubao-seed-2-1-pro-260628\": 32768,\n  _provider_defaults: Object.freeze({\n    ollama: 32768,\n    openai: 128000,\n    anthropic: 200000,\n    deepseek: 64000,\n    dashscope: 131072,\n    gemini: 1048576,\n    kimi: 131072,\n    volcengine: 32768,\n    minimax: 32768,\n    mistral: 32768,\n  }),\n});\n\nexport const MODEL_CAPABILITY_CATALOG_VERSION = \"2026-09-27\";\n\n// Explicit ownership prevents a model name served by an unrelated provider\n// from silently inheriting another provider's catalog window.\nexport const LEGACY_MODEL_PROVIDERS = Object.freeze({\n  \"qwen2.5:7b\": \"ollama\",\n  \"qwen2.5:14b\": \"ollama\",\n  \"qwen2.5-coder:14b\": \"ollama\",\n  \"qwen2:7b\": \"ollama\",\n  \"llama3:8b\": \"ollama\",\n  \"mistral:7b\": \"ollama\",\n  \"codellama:7b\": \"ollama\",\n  \"gpt-4o\": \"openai\",\n  \"gpt-4o-mini\": \"openai\",\n  \"gpt-4-turbo\": \"openai\",\n  \"gpt-3.5-turbo\": \"openai\",\n  o1: \"openai\",\n  \"claude-opus-4-6\": \"anthropic\",\n  \"claude-sonnet-4-6\": \"anthropic\",\n  \"claude-haiku-4-5-20251001\": \"anthropic\",\n  \"deepseek-chat\": \"deepseek\",\n  \"deepseek-coder\": \"deepseek\",\n  \"deepseek-reasoner\": \"deepseek\",\n  \"qwen-turbo\": \"dashscope\",\n  \"qwen-plus\": \"dashscope\",\n  \"qwen-max\": \"dashscope\",\n  \"gemini-2.0-flash\": \"gemini\",\n  \"gemini-2.0-pro\": \"gemini\",\n  \"gemini-1.5-flash\": \"gemini\",\n  \"moonshot-v1-auto\": \"kimi\",\n  \"moonshot-v1-8k\": \"kimi\",\n  \"moonshot-v1-32k\": \"kimi\",\n  \"moonshot-v1-128k\": \"kimi\",\n  \"doubao-seed-1-6-251015\": \"volcengine\",\n  \"doubao-seed-2-1-pro-260628\": \"volcengine\",\n});\n\n// Official pages reviewed on the catalog version date. These describe the\n// named models, not endpoint access, account entitlement, or a live CLI run.\nexport const DOCUMENTED_OPENAI_MODELS = Object.freeze({\n  \"gpt-4o\": Object.freeze({\n    contextWindowTokens: 128000,\n    advertisedMaxOutputTokens: 16384,\n    requiresResponsesForTools: false,\n    sources: Object.freeze([\n      \"https://developers.openai.com/api/docs/models/gpt-4o\",\n    ]),\n  }),\n  \"gpt-6-astra\": Object.freeze({\n    contextWindowTokens: 1050000,\n    advertisedMaxOutputTokens: 128000,\n    requiresResponsesForTools: true,\n    reasoningEfforts: Object.freeze([\"low\", \"medium\", \"high\", \"xhigh\", \"max\"]),\n    pricing: Object.freeze({ in: 10, out: 50 }),\n    sources: Object.freeze([\n      \"https://developers.openai.com/api/docs/models/gpt-6-astra\",\n      \"https://developers.openai.com/api/docs/guides/migrate-to-responses\",\n    ]),\n  }),\n  ...Object.fromEntries(\n    [\n      [\"gpt-6-sol\", 2, 10],\n      [\"gpt-6-luna\", 0.1, 0.5],\n    ].map(([model, input, output]) => [\n      model,\n      Object.freeze({\n        contextWindowTokens: 1050000,\n        advertisedMaxOutputTokens: 128000,\n        requiresResponsesForTools: true,\n        reasoningEfforts: Object.freeze([\n          \"none\",\n          \"low\",\n          \"medium\",\n          \"high\",\n          \"xhigh\",\n          \"max\",\n        ]),\n        pricing: Object.freeze({ in: input, out: output }),\n        sources: Object.freeze([\n          `https://developers.openai.com/api/docs/models/${model}`,\n        ]),\n      }),\n    ]),\n  ),\n});\n\nexport const DOCUMENTED_ANTHROPIC_MODELS = Object.freeze({\n  \"claude-opus-5-5\": Object.freeze({\n    contextWindowTokens: 1000000,\n    // The release notes establish the window and pricing, not an output cap.\n    advertisedMaxOutputTokens: null,\n    pricing: Object.freeze({ in: 4, out: 20 }),\n    sources: Object.freeze([\n      \"https://code.claude.com/docs/en/changelog#2-1-280\",\n    ]),\n  }),\n});\n\n// Request-level pricing terms shared by cost reporting and hard budget gates.\n// Never apply these tiers to a sum of multiple requests.\nexport const GPT6_PRICING_TERMS = Object.freeze({\n  cacheReadMultiplier: 0.1,\n  cacheWriteMultiplier: 1.25,\n  longContext: Object.freeze({\n    threshold: 272000,\n    inputMultiplier: 2,\n    outputMultiplier: 1.5,\n  }),\n  serviceMultipliers: Object.freeze({\n    standard: 1,\n    default: 1,\n    auto: 1,\n    batch: 0.5,\n    flex: 0.5,\n    fast: 2,\n  }),\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793706956393,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 15,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_cldtgsdct4nln5u8bo39vtal",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\__tests__\\unit\\model-capabilities.test.js",
+              "fileVersion": "14263:1793706744988.7664:1793706744988.7664",
+              "readSpan": {
+                "start": 0,
+                "end": 14263,
+                "total": 14263
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport { canonicalDigest } from \"@chainlesschain/context-memory-kernel\";\nimport {\n  resolveAgentOutputBudget,\n  resolveModelCapabilityProfile,\n} from \"../../src/lib/model-capabilities.js\";\nimport {\n  CONTEXT_WINDOWS as CATALOG_WINDOWS,\n  DOCUMENTED_OPENAI_MODELS,\n  LEGACY_MODEL_PROVIDERS,\n} from \"../../src/lib/model-context-catalog.js\";\nimport {\n  CONTEXT_WINDOWS,\n  getContextWindow,\n} from \"../../src/lib/model-context-window.js\";\n\ndescribe(\"versioned model capability profiles\", () => {\n  it(\"reports the documented official model window without claiming live verification\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n    });\n    expect(profile).toMatchObject({\n      schema: \"chainlesschain.model-capability-profile/v1\",\n      catalogVersion: \"2026-09-27\",\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      contextWindowTokens: 128000,\n      windowSource: \"official-model-docs\",\n      windowAssumed: false,\n      runtimeProtocol: \"chat-completions\",\n      runtimeVerified: false,\n      requestMaxOutputTokens: null,\n      plannedOutputReserveTokens: 4096,\n      outputReserveSource: \"planning-fallback\",\n      advertisedMaxOutputTokens: 16384,\n      sources: [\"https://developers.openai.com/api/docs/models/gpt-4o\"],\n    });\n    expect(profile.limitations.join(\" \")).toMatch(/not an output cap/);\n  });\n\n  it(\"selects native Responses for the documented official tool target\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n      baseUrl: \"https://api.openai.com/v1\",\n    });\n    expect(profile.contextWindowTokens).toBe(1050000);\n    expect(profile.advertisedMaxOutputTokens).toBe(128000);\n    expect(profile.runtimeProtocol).toBe(\"openai-responses\");\n    expect(profile.runtimeVerified).toBe(false);\n    expect(profile.limitations.join(\" \")).toMatch(/has not been verified/);\n    expect(profile.limitations.join(\" \")).not.toMatch(/not implemented/);\n    expect(profile.sources).toContain(\n      \"https://developers.openai.com/api/docs/guides/migrate-to-responses\",\n    );\n    expect(CONTEXT_WINDOWS).not.toHaveProperty(\"gpt-6-astra\");\n  });\n\n  it.each([\n    \"https://gateway.example/v1\",\n    \"http://api.openai.com/v1\",\n    \"https://api.openai.com:444/v1\",\n    \"https://api.openai.com/v1/\",\n    \"https://api.openai.com/v1/other\",\n    \"https://api.openai.com/v1?token=secret-marker\",\n    \"https://api.openai.com/v1#secret-marker\",\n    \"https://api.openai.com/v1#\",\n    \"https://api.openai.com/v1 \",\n    \"https://user:secret-marker@api.openai.com/v1\",\n    \"https://api.openai.com.example/v1\",\n    \"not-a-url\",\n  ])(\"does not apply new official limits to custom endpoint %s\", (baseUrl) => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n      baseUrl,\n    });\n    expect(profile.contextWindowTokens).toBe(128000);\n    expect(profile.windowSource).toBe(\"provider-default\");\n    expect(profile.windowAssumed).toBe(true);\n    expect(profile.advertisedMaxOutputTokens).toBeNull();\n    expect(profile.sources).toEqual([]);\n    expect(JSON.stringify(profile)).not.toContain(baseUrl);\n    expect(JSON.stringify(profile)).not.toContain(\"secret-marker\");\n  });\n\n  it(\"retains a custom gateway's old catalog value as assumed, not official\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://gateway.example/v1\",\n    });\n    expect(profile.contextWindowTokens).toBe(128000);\n    expect(profile.windowSource).toBe(\"legacy-catalog\");\n    expect(profile.windowAssumed).toBe(true);\n    expect(profile.advertisedMaxOutputTokens).toBeNull();\n  });\n\n  it(\"does not infer arbitrary aliases or future snapshots from a prefix\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra-custom\",\n    });\n    expect(profile.windowSource).toBe(\"provider-default\");\n    expect(profile.contextWindowTokens).toBe(128000);\n    expect(profile.sources).toEqual([]);\n  });\n\n  it(\"keeps provider and model identities exact rather than rewriting request ids\", () => {\n    for (const model of [\" gpt-6-astra\", \"gpt-6-astra \", \"GPT-6-ASTRA\"]) {\n      expect(\n        resolveModelCapabilityProfile({ provider: \"openai\", model })\n          .windowSource,\n      ).toBe(\"provider-default\");\n    }\n    expect(\n      resolveModelCapabilityProfile({\n        provider: \" openai\",\n        model: \"gpt-6-astra\",\n      }).windowSource,\n    ).toBe(\"generic-default\");\n  });\n\n  it(\"isolates model catalog windows by explicit provider\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"ollama\",\n      model: \"gpt-4o\",\n    });\n    expect(profile.contextWindowTokens).toBe(32768);\n    expect(profile.windowSource).toBe(\"provider-default\");\n    expect(profile.windowAssumed).toBe(true);\n    expect(profile.runtimeProtocol).toBe(\"ollama-chat\");\n    expect(profile.limitations.join(\" \")).toMatch(/another provider/);\n    expect(getContextWindow(\"gpt-4o\", \"ollama\")).toBe(32768);\n  });\n\n  it(\"keeps the no-provider legacy lookup explicitly unscoped\", () => {\n    expect(resolveModelCapabilityProfile({ model: \"gpt-4o\" })).toMatchObject({\n      provider: \"unknown\",\n      contextWindowTokens: 128000,\n      windowSource: \"legacy-catalog-unscoped\",\n      windowAssumed: true,\n      runtimeProtocol: \"unsupported\",\n      runtimeVerified: false,\n    });\n    expect(getContextWindow(\"gpt-4o\")).toBe(128000);\n  });\n\n  it(\"does not choose a default model for an incomplete diagnostic target\", () => {\n    expect(resolveModelCapabilityProfile()).toMatchObject({\n      provider: \"unknown\",\n      model: null,\n      contextWindowTokens: 32768,\n      windowSource: \"generic-default\",\n      windowAssumed: true,\n    });\n    expect(resolveModelCapabilityProfile({ provider: \"openai\" })).toMatchObject(\n      {\n        model: null,\n        contextWindowTokens: 128000,\n        windowSource: \"provider-default\",\n      },\n    );\n  });\n\n  it(\"never treats prototype property names as catalog records\", () => {\n    for (const model of [\n      \"__proto__\",\n      \"constructor\",\n      \"toString\",\n      \"_provider_defaults\",\n    ]) {\n      expect(\n        resolveModelCapabilityProfile({ model, provider: \"openai\" })\n          .windowSource,\n      ).toBe(\"provider-default\");\n    }\n    expect(\n      resolveModelCapabilityProfile({ provider: \"toString\", model: \"gpt-4o\" })\n        .contextWindowTokens,\n    ).toBe(32768);\n  });\n\n  it(\"validates and identifies operator overrides without certifying them\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n      contextMemoryModelWindowTokens: \" 8192 \",\n    });\n    expect(profile).toMatchObject({\n      contextWindowTokens: 8192,\n      windowSource: \"explicit-override\",\n      windowAssumed: true,\n    });\n    expect(profile.limitations.join(\" \")).toMatch(\n      /operator-declared and unverified/,\n    );\n    expect(\n      resolveModelCapabilityProfile({ contextMemoryModelWindowTokens: 1024 })\n        .contextWindowTokens,\n    ).toBe(1024);\n    expect(\n      resolveModelCapabilityProfile({\n        contextMemoryModelWindowTokens: 16777216,\n      }).contextWindowTokens,\n    ).toBe(16777216);\n  });\n\n  it.each([\n    0,\n    -1,\n    1023,\n    16777217,\n    NaN,\n    Infinity,\n    1024.5,\n    true,\n    false,\n    \"\",\n    \"1e5\",\n    \"1024.0\",\n    \"secret-marker\",\n  ])(\n    \"rejects an invalid window override instead of silently using a fallback: %s\",\n    (value) => {\n      expect(() =>\n        resolveModelCapabilityProfile({\n          contextMemoryModelWindowTokens: value,\n        }),\n      ).toThrow(/contextMemoryModelWindowTokens must be an integer/);\n      try {\n        resolveModelCapabilityProfile({\n          contextMemoryModelWindowTokens: value,\n        });\n      } catch (error) {\n        expect(error.message).not.toContain(\"secret-marker\");\n      }\n    },\n  );\n\n  it(\"binds stable resolved values and provenance into a content digest\", () => {\n    const input = { provider: \"openai\", model: \"gpt-6-astra\" };\n    const first = resolveModelCapabilityProfile(input);\n    const second = resolveModelCapabilityProfile({ ...input });\n    expect(second).toEqual(first);\n    const { digest, ...payload } = first;\n    expect(digest).toBe(canonicalDigest(payload, payload.schema));\n    expect(first.profileId.length).toBeLessThan(128);\n    expect(\n      resolveModelCapabilityProfile({\n        ...input,\n        contextMemoryModelWindowTokens: 8192,\n      }).digest,\n    ).not.toBe(digest);\n    expect(\n      resolveModelCapabilityProfile({ ...input, maxOutputTokens: 8192 }).digest,\n    ).not.toBe(digest);\n    expect(\n      resolveModelCapabilityProfile({\n        ...input,\n        baseUrl: \"https://gateway.example/v1\",\n      }).digest,\n    ).not.toBe(digest);\n    expect(\n      resolveModelCapabilityProfile({ ...input, provider: \"ollama\" }).profileId,\n    ).not.toBe(first.profileId);\n  });\n\n  it(\"does not include endpoint credentials or transient host state in a digest\", () => {\n    const first = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n      baseUrl: \"https://user:one@gateway.example/v1\",\n    });\n    const second = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n      baseUrl: \"https://user:two@other.example/v1\",\n    });\n    expect(second.digest).toBe(first.digest);\n    expect(JSON.stringify(first)).not.toMatch(\n      /gateway\\.example|user:one|baseUrl|apiKey|resolvedAt/,\n    );\n  });\n\n  it(\"freezes and copies metadata so a caller cannot contaminate another profile\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n    });\n    expect(Object.isFrozen(profile)).toBe(true);\n    expect(Object.isFrozen(profile.sources)).toBe(true);\n    expect(Object.isFrozen(profile.limitations)).toBe(true);\n    expect(profile.sources).not.toBe(\n      DOCUMENTED_OPENAI_MODELS[\"gpt-6-astra\"].sources,\n    );\n    expect(() => profile.sources.push(\"changed\")).toThrow(TypeError);\n    expect(() => {\n      profile.contextWindowTokens = 1;\n    }).toThrow(TypeError);\n    expect(\n      resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model: \"gpt-6-astra\",\n      }),\n    ).toEqual(profile);\n  });\n});\n\ndescribe(\"agent output budget matches existing transport behavior\", () => {\n  it.each([\n    [undefined, 8192],\n    [\"claude-sonnet-4-6\", 8192],\n    [\"claude-opus-4-6\", 16384],\n    [\"claude-haiku-4-5\", 4096],\n  ])(\"uses the existing Anthropic default for %s\", (model, cap) => {\n    expect(resolveAgentOutputBudget({ provider: \"anthropic\", model })).toEqual({\n      requestMaxOutputTokens: cap,\n      plannedOutputReserveTokens: cap,\n      outputReserveSource: \"anthropic-request-default\",\n    });\n  });\n\n  it(\"retains the Anthropic explicit-cap clamp and exposes it to the planner\", () => {\n    expect(\n      resolveAgentOutputBudget({\n        provider: \"anthropic\",\n        model: \"claude-opus-4-6\",\n        maxOutputTokens: 30000,\n      }),\n    ).toEqual({\n      requestMaxOutputTokens: 16384,\n      plannedOutputReserveTokens: 16384,\n      outputReserveSource: \"anthropic-request-clamp\",\n    });\n    expect(\n      resolveAgentOutputBudget({\n        provider: \"anthropic\",\n        maxOutputTokens: \"512\",\n      }),\n    ).toEqual({\n      requestMaxOutputTokens: 512,\n      plannedOutputReserveTokens: 512,\n      outputReserveSource: \"explicit-request-cap\",\n    });\n  });\n\n  it.each([\"openai\", \"ollama\", \"deepseek\", \"custom\", undefined])(\n    \"does not synthesize a request cap for %s\",\n    (provider) => {\n      expect(resolveAgentOutputBudget({ provider })).toEqual({\n        requestMaxOutputTokens: null,\n        plannedOutputReserveTokens: 4096,\n        outputReserveSource: \"planning-fallback\",\n      });\n    },\n  );\n\n  it(\"does not clip a requested cap or impose the planner's minimum reserve\", () => {\n    expect(\n      resolveAgentOutputBudget({ provider: \"openai\", maxOutputTokens: 1 }),\n    ).toMatchObject({\n      requestMaxOutputTokens: 1,\n      plannedOutputReserveTokens: 1,\n    });\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      maxOutputTokens: 20000,\n      contextMemoryModelWindowTokens: 1024,\n    });\n    expect(profile.requestMaxOutputTokens).toBe(20000);\n    expect(profile.plannedOutputReserveTokens).toBe(20000);\n    expect(profile.limitations.join(\" \")).toMatch(\n      /exceeds the documented model maximum/,\n    );\n  });\n\n  it.each([null, undefined])(\n    \"treats only nullish caps as absent: %s\",\n    (maxOutputTokens) => {\n      expect(\n        resolveAgentOutputBudget({ maxOutputTokens }).requestMaxOutputTokens,\n      ).toBeNull();\n    },\n  );\n\n  it.each([\n    0,\n    -1,\n    NaN,\n    Infinity,\n    1.5,\n    true,\n    false,\n    \"\",\n    \"1e3\",\n    \"1.5\",\n    \"secret-marker\",\n    Number.MAX_SAFE_INTEGER + 1,\n  ])(\"rejects an invalid explicit output cap: %s\", (maxOutputTokens) => {\n    expect(() => resolveAgentOutputBudget({ maxOutputTokens })).toThrow(\n      /maxOutputTokens must be an integer/,\n    );\n  });\n});\n\ndescribe(\"legacy context window interface\", () => {\n  it(\"reexports the unchanged frozen catalog object\", () => {\n    expect(CONTEXT_WINDOWS).toBe(CATALOG_WINDOWS);\n    expect(Object.isFrozen(CONTEXT_WINDOWS)).toBe(true);\n    expect(Object.isFrozen(CONTEXT_WINDOWS._provider_defaults)).toBe(true);\n    expect(Object.keys(CONTEXT_WINDOWS)).toHaveLength(31);\n    for (const [model, provider] of Object.entries(LEGACY_MODEL_PROVIDERS)) {\n      expect(getContextWindow(model, provider)).toBe(CONTEXT_WINDOWS[model]);\n      expect(getContextWindow(model)).toBe(CONTEXT_WINDOWS[model]);\n    }\n  });\n\n  it(\"retains provider and generic fallback numeric behavior\", () => {\n    expect(getContextWindow(\"unknown-model\", \"anthropic\")).toBe(200000);\n    expect(getContextWindow(null, \"openai\")).toBe(128000);\n    expect(getContextWindow(undefined, \"deepseek\")).toBe(64000);\n    expect(getContextWindow(\"\", \"anthropic\")).toBe(200000);\n    expect(getContextWindow(\"x\", \"y\")).toBe(32768);\n    expect(getContextWindow()).toBe(32768);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793706956393,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-capabilities.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 5,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-capabilities.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_ewunw6q3tdenvfajhikzo0p3",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\__tests__\\unit\\model-release-contract.test.js",
+              "fileVersion": "10017:1793706744990.532:1793706744990.532",
+              "readSpan": {
+                "start": 0,
+                "end": 10017,
+                "total": 10017
+              },
+              "hashed": false,
+              "content": "import { afterEach, describe, expect, it, vi } from \"vitest\";\nimport Database from \"better-sqlite3\";\nimport { resolveModelCapabilityProfile } from \"../../src/lib/model-capabilities.js\";\nimport {\n  estimateCost,\n  lookupRate,\n  mergePricing,\n  priceRollup,\n} from \"../../src/lib/llm-pricing.js\";\nimport {\n  calculateCost,\n  recordUsage,\n  getUsageStats,\n  getCostBreakdown,\n} from \"../../src/lib/token-tracker.js\";\nimport {\n  aggregateUsage,\n  allSessionsUsage,\n  _deps,\n} from \"../../src/lib/session-usage.js\";\nimport { CostBudget } from \"../../src/lib/cost-budget.js\";\nimport { normalizeOpenAIResponsesResponse } from \"../../src/lib/openai-responses.js\";\nimport { projectRuntimeTokenUsage } from \"../../src/lib/runtime-usage-ledger.js\";\nimport { projectVerifiedSession } from \"../../src/lib/causal-observability.js\";\nimport { SessionResourceBudget } from \"../../src/lib/session-resource-budget.js\";\n\nafterEach(() => vi.restoreAllMocks());\n\ndescribe(\"September model release contracts\", () => {\n  it(\"preserves request pricing through durable projection, budget and Eval\", () => {\n    const records = [200000, 200000, 300000].map((input, index) =>\n      projectRuntimeTokenUsage({\n        provider: \"openai\",\n        model: \"gpt-6-sol\",\n        callId: `call-${index}`,\n        usage: {\n          input_tokens: input,\n          output_tokens: 1000,\n          service_tier: index === 1 ? \"flex\" : \"fast\",\n          regional_processing: true,\n        },\n      }),\n    );\n    const events = [\n      {\n        type: \"session_start\",\n        timestamp: 1,\n        data: {\n          observabilityScope: { workspaceId: \"w\", teamId: \"t\", policyId: \"p\" },\n        },\n      },\n      ...records.map((data) => ({ type: \"token_usage\", data })),\n    ];\n    const budget = new CostBudget({ limitUsd: 100 });\n    for (const record of records) budget.add(record);\n    const observed = projectVerifiedSession(\"session-a\", events, {\n      headHash: \"a\".repeat(64),\n      eventCount: events.length,\n    });\n    expect(observed.usage.estimatedUsd).toBeCloseTo(budget.spentUsd, 10);\n    expect(priceRollup(aggregateUsage(events)).cost.totalCost).toBeCloseTo(\n      budget.spentUsd,\n      10,\n    );\n    expect(observed.usage.byModel[0].pricingBuckets).toHaveLength(3);\n    expect(records[0].usage.service_tier).toBe(\"fast\");\n    expect(\n      projectRuntimeTokenUsage({\n        ...records[0],\n        usage: {\n          ...records[0].usage,\n          service_tier: \"sensitive arbitrary text\",\n        },\n      }).usage.service_tier,\n    ).toBe(\"unknown\");\n  });\n\n  it(\"preserves pricing conditions in crash-recovery settlements\", () => {\n    const source = new SessionResourceBudget({ maxUsd: 100 });\n    const pending = source.beginUsageSettlement({ id: \"call-a\" });\n    source.markUsageUnknown({ callId: pending.id });\n    const snapshot = source.snapshot();\n    source.dispose();\n    const resumed = SessionResourceBudget.restore(snapshot);\n    const record = {\n      provider: \"openai\",\n      model: \"gpt-6-sol\",\n      usage: {\n        input_tokens: 300000,\n        output_tokens: 1000,\n        service_tier: \"fast\",\n        regional_processing: true,\n      },\n    };\n    try {\n      const recovery = resumed.adjudicateRecovery({\n        settled: [{ authorityId: pending.authorityId, ...record }],\n      });\n      const budget = new CostBudget({ limitUsd: 100 });\n      budget.add(record);\n      expect(recovery.adjudication.spentUsdDelta).toBeCloseTo(\n        budget.spentUsd,\n        10,\n      );\n      expect(resumed.cost.spentUsd).toBeCloseTo(budget.spentUsd, 10);\n    } finally {\n      resumed.dispose();\n    }\n  });\n  it.each([\"gpt-6-astra\", \"gpt-6-sol\", \"gpt-6-luna\"])(\n    \"resolves %s only at the official endpoint\",\n    (model) => {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model,\n      });\n      expect(profile).toMatchObject({\n        contextWindowTokens: 1050000,\n        advertisedMaxOutputTokens: 128000,\n        runtimeProtocol: \"openai-responses\",\n        windowAssumed: false,\n        runtimeVerified: false,\n      });\n      expect(profile.reasoningEfforts).toContain(\"high\");\n      for (const baseUrl of [\n        \"https://gateway.example/v1\",\n        \"https://api.openai.com.evil/v1\",\n      ]) {\n        expect(\n          resolveModelCapabilityProfile({ provider: \"openai\", model, baseUrl }),\n        ).toMatchObject({\n          windowAssumed: true,\n          runtimeProtocol: \"chat-completions\",\n          advertisedMaxOutputTokens: null,\n        });\n      }\n      expect(\n        resolveModelCapabilityProfile({\n          provider: \"openai\",\n          model: `${model}-future`,\n        }).windowAssumed,\n      ).toBe(true);\n      expect(lookupRate(\"openai\", `${model}-future`)).toBeNull();\n    },\n  );\n\n  it(\"resolves Opus 5.5 without changing a custom gateway's assumptions\", () => {\n    expect(\n      resolveModelCapabilityProfile({\n        provider: \"anthropic\",\n        model: \"claude-opus-5-5\",\n        baseUrl: \"https://api.anthropic.com/v1\",\n      }),\n    ).toMatchObject({\n      contextWindowTokens: 1000000,\n      windowAssumed: false,\n      advertisedMaxOutputTokens: null,\n    });\n    expect(\n      resolveModelCapabilityProfile({\n        provider: \"anthropic\",\n        model: \"claude-opus-5-5\",\n        baseUrl: \"https://gateway.example/v1\",\n      }).windowAssumed,\n    ).toBe(true);\n    expect(lookupRate(\"anthropic\", \"claude-opus-5-5\")).toMatchObject({\n      in: 4,\n      out: 20,\n    });\n    expect(lookupRate(\"anthropic\", \"claude-opus-6\")).toBeNull();\n    expect(lookupRate(\"anthropic\", \"claude-opus-10\")).toBeNull();\n    expect(\n      lookupRate(\n        \"anthropic\",\n        \"claude-opus-10\",\n        mergePricing({ anthropic: [{ match: \"opus\", in: 5, out: 25 }] }),\n      ),\n    ).toMatchObject({ in: 5, out: 25 });\n    expect(lookupRate(\"anthropic\", \"claude-opus-5-5-custom\")).toBeNull();\n  });\n\n  it(\"prices cached tokens and long prompts at the request boundary\", () => {\n    const base = {\n      provider: \"openai\",\n      model: \"gpt-6-sol\",\n      inputTokens: 272000,\n      outputTokens: 1000,\n    };\n    expect(estimateCost(base).totalCost).toBeCloseTo(0.554, 9);\n    expect(\n      estimateCost({ ...base, inputTokens: 272001 }).totalCost,\n    ).toBeCloseTo(1.103004, 9);\n    const cached = estimateCost({\n      ...base,\n      inputTokens: 200000,\n      cacheReadTokens: 73000,\n    });\n    expect(cached.inputCost).toBeCloseTo(0.8, 9);\n    expect(cached.cacheReadCost).toBeCloseTo(0.0292, 9);\n    expect(cached.outputCost).toBeCloseTo(0.015, 9);\n    expect(\n      estimateCost({ ...base, serviceTier: \"fast\" }).totalCost,\n    ).toBeCloseTo(1.108, 9);\n    expect(\n      estimateCost({ ...base, serviceTier: \"flex\" }).totalCost,\n    ).toBeCloseTo(0.277, 9);\n    expect(estimateCost({ ...base, serviceTier: \"unknown\" }).matched).toBe(\n      false,\n    );\n    expect(estimateCost({ ...base, serviceTier: \"constructor\" }).matched).toBe(\n      false,\n    );\n    const table = mergePricing({\n      openai: [{ match: \"gpt-6-sol\", in: 4, out: 20 }],\n    });\n    expect(\n      estimateCost({ ...base, table, cacheReadTokens: 1 }).cacheReadCost,\n    ).toBeCloseTo(0.0000008, 12);\n  });\n\n  it(\"keeps separate request tiers when aggregating one or many sessions\", () => {\n    const event = (input) => ({\n      type: \"token_usage\",\n      data: {\n        provider: \"openai\",\n        model: \"gpt-6-sol\",\n        usage: { input_tokens: input, output_tokens: 1000 },\n      },\n    });\n    const events = [event(200000), event(200000), event(300000)];\n    const budget = new CostBudget({ limitUsd: 100 });\n    for (const event of events) budget.add(event.data);\n    const aggregate = aggregateUsage(events);\n    expect(aggregate.byModel[0].pricingBuckets).toHaveLength(2);\n    expect(priceRollup(aggregate).cost.totalCost).toBeCloseTo(2.035, 9);\n    expect(priceRollup(aggregate).cost.totalCost).toBeCloseTo(\n      budget.spentUsd,\n      9,\n    );\n    vi.spyOn(_deps, \"listJsonlSessions\").mockReturnValue([\n      { id: \"one\" },\n      { id: \"two\" },\n    ]);\n    vi.spyOn(_deps, \"readEvents\").mockImplementation((id) =>\n      id === \"one\" ? events.slice(0, 2) : events.slice(2),\n    );\n    expect(priceRollup(allSessionsUsage()).cost.totalCost).toBeCloseTo(\n      budget.spentUsd,\n      9,\n    );\n    const { pricingBuckets, ...legacy } = aggregate.byModel[0];\n    expect(priceRollup({ byModel: [legacy] }).cost.unpricedCount).toBe(1);\n  });\n\n  it(\"preserves response service tier for budget settlement\", () => {\n    expect(\n      normalizeOpenAIResponsesResponse({\n        status: \"completed\",\n        output: [],\n        service_tier: \"flex\",\n        usage: { input_tokens: 100, output_tokens: 20 },\n      }).usage.service_tier,\n    ).toBe(\"flex\");\n  });\n\n  it(\"uses the same prices in the legacy database, preserving unknown as NULL\", () => {\n    const db = new Database(\":memory:\");\n    try {\n      for (const model of [\"gpt-6-astra\", \"gpt-6-sol\", \"gpt-6-luna\"]) {\n        const args = {\n          provider: \"openai\",\n          model,\n          inputTokens: 300000,\n          outputTokens: 1000,\n        };\n        expect(\n          calculateCost(\n            args.provider,\n            model,\n            args.inputTokens,\n            args.outputTokens,\n          ),\n        ).toBe(estimateCost(args).totalCost);\n      }\n      const known = recordUsage(db, {\n        provider: \"anthropic\",\n        model: \"claude-opus-5-5\",\n        inputTokens: 1000,\n        outputTokens: 1000,\n      });\n      const unknown = recordUsage(db, {\n        provider: \"openai\",\n        model: \"future-model\",\n        inputTokens: 1000,\n      });\n      expect(known.costUsd).toBeCloseTo(0.024, 9);\n      expect(unknown).toMatchObject({ costUsd: null, priced: false });\n      expect(getUsageStats(db)).toMatchObject({\n        total_calls: 2,\n        unpriced_calls: 1,\n      });\n      expect(\n        getCostBreakdown(db).find((row) => row.model === \"future-model\"),\n      ).toMatchObject({ cost_usd: null, unpriced_calls: 1 });\n    } finally {\n      db.close();\n    }\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793706956393,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-release-contract.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 4,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-release-contract.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_ibizjpybctbfqxgznzqw6334",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\src\\lib\\model-capabilities.js",
+              "fileVersion": "9351:1793706746519.3857:1793706746519.3857",
+              "readSpan": {
+                "start": 0,
+                "end": 9351,
+                "total": 9351
+              },
+              "hashed": false,
+              "content": "import { canonicalDigest } from \"@chainlesschain/context-memory-kernel\";\nimport {\n  CONTEXT_WINDOWS,\n  DOCUMENTED_OPENAI_MODELS,\n  DOCUMENTED_ANTHROPIC_MODELS,\n  LEGACY_MODEL_PROVIDERS,\n  MODEL_CAPABILITY_CATALOG_VERSION,\n} from \"./model-context-catalog.js\";\nimport { mergeProviderOptions } from \"./provider-options.js\";\n\nconst PROFILE_SCHEMA = \"chainlesschain.model-capability-profile/v1\";\nconst MAX_CONTEXT_WINDOW_TOKENS = 16_777_216;\nconst CHAT_COMPLETIONS_PROVIDERS = new Set([\n  \"openai\",\n  \"deepseek\",\n  \"dashscope\",\n  \"mistral\",\n  \"gemini\",\n  \"volcengine\",\n]);\n\nfunction optionalIdentity(value, field) {\n  if (value == null || value === \"\") return null;\n  if (typeof value !== \"string\" || value.length > 256) {\n    throw new TypeError(`${field} must be a string of at most 256 characters`);\n  }\n  if (/\\p{Cc}/u.test(value)) {\n    throw new TypeError(`${field} must not contain control characters`);\n  }\n  // Provider/model identity is exact, just like the request transport. Do not\n  // certify an alias by trimming or changing the case of an actual request id.\n  return value;\n}\n\nfunction optionalPositiveInteger(\n  value,\n  field,\n  { min = 1, max = Number.MAX_SAFE_INTEGER } = {},\n) {\n  if (value == null) return null;\n  const normalized =\n    typeof value === \"string\" && /^\\d+$/u.test(value.trim())\n      ? Number(value.trim())\n      : value;\n  if (\n    typeof normalized !== \"number\" ||\n    !Number.isSafeInteger(normalized) ||\n    normalized < min ||\n    normalized > max\n  ) {\n    throw new RangeError(\n      `${field} must be an integer between ${min} and ${max}`,\n    );\n  }\n  return normalized;\n}\n\nfunction deepFreeze(value) {\n  for (const child of Object.values(value)) {\n    if (child && typeof child === \"object\") deepFreeze(child);\n  }\n  return Object.freeze(value);\n}\n\nfunction isOfficialModelBaseUrl(provider, baseUrl) {\n  if (baseUrl == null || baseUrl === \"\") return true;\n  if (typeof baseUrl !== \"string\") {\n    throw new TypeError(\"baseUrl must be a string when provided\");\n  }\n  try {\n    // Deliberately excludes credentials, paths other than /v1, query/hash\n    // decorations and non-default ports. Never return or hash the input URL.\n    return (\n      baseUrl === baseUrl.trim() &&\n      new URL(baseUrl).href ===\n        (provider === \"openai\"\n          ? \"https://api.openai.com/v1\"\n          : \"https://api.anthropic.com/v1\")\n    );\n  } catch {\n    return false;\n  }\n}\n\n/**\n * Describe the output cap the existing agent transport actually sends.\n * This does not add a cap to Chat Completions/Ollama or select a new model.\n * The planner may apply its own minimum reserve and reject an impossible\n * input/output allocation; no context-window clipping happens here.\n */\nexport function resolveAgentOutputBudget({\n  provider,\n  model,\n  maxOutputTokens,\n} = {}) {\n  const requested = optionalPositiveInteger(maxOutputTokens, \"maxOutputTokens\");\n  if (provider === \"anthropic\") {\n    const effectiveModel = model || \"claude-sonnet-4-6\";\n    const { maxTokens } = mergeProviderOptions(\"anthropic\", effectiveModel);\n    const defaultCap = maxTokens || 8192;\n    const requestMaxOutputTokens =\n      requested === null ? defaultCap : Math.min(defaultCap, requested);\n    return Object.freeze({\n      requestMaxOutputTokens,\n      plannedOutputReserveTokens: requestMaxOutputTokens,\n      outputReserveSource:\n        requested === null\n          ? \"anthropic-request-default\"\n          : requested > defaultCap\n            ? \"anthropic-request-clamp\"\n            : \"explicit-request-cap\",\n    });\n  }\n  return Object.freeze({\n    requestMaxOutputTokens: requested,\n    plannedOutputReserveTokens: requested ?? 4096,\n    outputReserveSource:\n      requested === null ? \"planning-fallback\" : \"explicit-request-cap\",\n  });\n}\n\n/**\n * Pure, versioned diagnostics/planning projection. No provider discovery,\n * credential loading, model calls or protocol negotiation is performed.\n * `runtimeVerified:false` applies even to documented model specifications.\n */\nexport function resolveModelCapabilityProfile({\n  provider,\n  model,\n  baseUrl,\n  contextMemoryModelWindowTokens,\n  maxOutputTokens,\n} = {}) {\n  const selectedProvider = optionalIdentity(provider, \"provider\");\n  const selectedModel = optionalIdentity(model, \"model\");\n  if (baseUrl != null && typeof baseUrl !== \"string\") {\n    throw new TypeError(\"baseUrl must be a string when provided\");\n  }\n  const override = optionalPositiveInteger(\n    contextMemoryModelWindowTokens,\n    \"contextMemoryModelWindowTokens\",\n    { min: 1024, max: MAX_CONTEXT_WINDOW_TOKENS },\n  );\n  const catalog =\n    selectedProvider === \"openai\"\n      ? DOCUMENTED_OPENAI_MODELS\n      : selectedProvider === \"anthropic\"\n        ? DOCUMENTED_ANTHROPIC_MODELS\n        : null;\n  const officialEndpoint =\n    Boolean(catalog) && isOfficialModelBaseUrl(selectedProvider, baseUrl);\n  const documented =\n    officialEndpoint && selectedModel && Object.hasOwn(catalog, selectedModel)\n      ? catalog[selectedModel]\n      : null;\n  const legacyOwner =\n    selectedModel && Object.hasOwn(LEGACY_MODEL_PROVIDERS, selectedModel)\n      ? LEGACY_MODEL_PROVIDERS[selectedModel]\n      : null;\n  let contextWindowTokens;\n  let windowSource;\n  let windowAssumed = true;\n  if (override !== null) {\n    contextWindowTokens = override;\n    windowSource = \"explicit-override\";\n  } else if (documented) {\n    contextWindowTokens = documented.contextWindowTokens;\n    windowSource = \"official-model-docs\";\n    windowAssumed = false;\n  } else if (\n    legacyOwner &&\n    (!selectedProvider || legacyOwner === selectedProvider)\n  ) {\n    contextWindowTokens = CONTEXT_WINDOWS[selectedModel];\n    windowSource = selectedProvider\n      ? \"legacy-catalog\"\n      : \"legacy-catalog-unscoped\";\n  } else if (\n    selectedProvider &&\n    Object.hasOwn(CONTEXT_WINDOWS._provider_defaults, selectedProvider)\n  ) {\n    contextWindowTokens = CONTEXT_WINDOWS._provider_defaults[selectedProvider];\n    windowSource = \"provider-default\";\n  } else {\n    contextWindowTokens = 32768;\n    windowSource = \"generic-default\";\n  }\n\n  const output = resolveAgentOutputBudget({\n    provider: selectedProvider,\n    model: selectedModel,\n    maxOutputTokens,\n  });\n  const runtimeProtocol =\n    selectedProvider === \"ollama\"\n      ? \"ollama-chat\"\n      : selectedProvider === \"anthropic\"\n        ? \"anthropic-messages\"\n        : selectedProvider === \"openai\" && documented?.requiresResponsesForTools\n          ? \"openai-responses\"\n          : CHAT_COMPLETIONS_PROVIDERS.has(selectedProvider) || Boolean(baseUrl)\n            ? \"chat-completions\"\n            : \"unsupported\";\n  const limitations = [\n    \"Runtime execution, endpoint access and account entitlement have not been verified.\",\n  ];\n  if (windowSource === \"explicit-override\") {\n    limitations.push(\"The context window is operator-declared and unverified.\");\n  } else if (windowAssumed) {\n    limitations.push(\n      \"The context window is a legacy or fallback planning estimate, not a verified model limit.\",\n    );\n  }\n  if (!selectedProvider) {\n    limitations.push(\n      \"No provider was specified; an unscoped legacy model lookup does not establish provider capabilities.\",\n    );\n  }\n  if (legacyOwner && selectedProvider && legacyOwner !== selectedProvider) {\n    limitations.push(\n      \"The model's legacy catalog entry belongs to another provider and was not applied.\",\n    );\n  }\n  if (catalog && !officialEndpoint) {\n    limitations.push(\n      `Official ${selectedProvider === \"openai\" ? \"OpenAI\" : \"Anthropic\"} model specifications are not applied to a custom endpoint.`,\n    );\n  }\n  if (output.requestMaxOutputTokens === null) {\n    limitations.push(\n      \"The output reserve is a planning fallback, not an output cap sent to the provider.\",\n    );\n  }\n  if (documented?.requiresResponsesForTools) {\n    limitations.push(\n      \"Responses selection is based on the versioned catalog and has not been verified against this account at runtime.\",\n    );\n  }\n  if (runtimeProtocol === \"unsupported\") {\n    limitations.push(\n      \"No supported agent transport was resolved for this provider and endpoint configuration.\",\n    );\n  }\n  if (\n    documented?.advertisedMaxOutputTokens != null &&\n    output.requestMaxOutputTokens > documented.advertisedMaxOutputTokens\n  ) {\n    limitations.push(\n      \"The requested output cap exceeds the documented model maximum; the profile does not rewrite the request.\",\n    );\n  }\n\n  const identityDigest = canonicalDigest(\n    {\n      schema: PROFILE_SCHEMA,\n      provider: selectedProvider || \"unknown\",\n      model: selectedModel,\n    },\n    \"chainlesschain.model-capability-identity/v1\",\n  );\n  const profile = {\n    schema: PROFILE_SCHEMA,\n    catalogVersion: MODEL_CAPABILITY_CATALOG_VERSION,\n    profileId: `model-capability-v1:${identityDigest.slice(7, 39)}`,\n    provider: selectedProvider || \"unknown\",\n    model: selectedModel,\n    contextWindowTokens,\n    windowSource,\n    windowAssumed,\n    runtimeProtocol,\n    runtimeVerified: false,\n    ...output,\n    advertisedMaxOutputTokens: documented?.advertisedMaxOutputTokens ?? null,\n    ...(documented?.reasoningEfforts\n      ? { reasoningEfforts: [...documented.reasoningEfforts] }\n      : {}),\n    sources: documented ? [...documented.sources] : [],\n    limitations,\n  };\n  profile.digest = canonicalDigest(profile, PROFILE_SCHEMA);\n  return deepFreeze(profile);\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793706962159,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-capabilities.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-capabilities.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_oe45c113ukdei0pt2ht7yxms",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "files": [
+                "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\src\\lib\\evolution\\pm-exploration-volcengine-provider.js",
+                "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\src\\lib\\evolution\\volcengine-function-execution-authority.js",
+                "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\src\\lib\\evolution\\volcengine-function-process-executor.js",
+                "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\src\\lib\\evolution\\volcengine-function-replay-store.js",
+                "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\src\\lib\\evolution\\volcengine-function-revocation-status-floor-store.js"
+              ],
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793706962158,
+                "meta": {
+                  "args": {
+                    "pattern": "volcengine",
+                    "directory": "packages/cli/src/lib"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 294,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "pattern": "volcengine",
+                    "directory": "packages/cli/src/lib"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_uepv2gf0v5rj8718u6h4v1zi",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\__tests__\\verify-01.test.js",
+              "size": 3856,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "newDiagnostics": [
+                {
+                  "source": "relative-import",
+                  "code": "UNRESOLVED_RELATIVE_IMPORT",
+                  "severity": "error",
+                  "filePath": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\__tests__\\verify-01.test.js",
+                  "specifier": "../../src/lib/model-capabilities.js",
+                  "line": 2,
+                  "column": 47,
+                  "message": "Relative import \"../../src/lib/model-capabilities.js\" does not point to an existing file from this file's directory. Verify the importing file's location before running tests."
+                }
+              ],
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707032102,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-01.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\nimport { resolveModelCapabilityProfile } from \"../../src/lib/model-capabilities.js\";\n\n// Independent regression coverage for \"official endpoint vs same-named custom\n// gateway isolation\": a model served at the official endpoint may carry\n// documented (official) certification, but the same-named model served at a\n// custom gateway must never share it. Volcengine has no documented official\n// catalog, so its legacy models stay assumed at either endpoint.\ndescribe(\"official endpoint vs same-named custom gateway isolation\", () => {\n  it(\"applies official certification only at the official openai endpoint\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://api.openai.com/v1\",\n    });\n    expect(profile).toMatchObject({\n      contextWindowTokens: 128000,\n      windowSource: \"official-model-docs\",\n      windowAssumed: false,\n      runtimeVerified: false,\n      advertisedMaxOutputTokens: 16384,\n    });\n    expect(profile.sources.length).toBeGreaterThan(0);\n  });\n\n  it(\"does not let a same-named custom gateway share that official certification\", () => {\n    const custom = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://gateway.example/v1\",\n    });\n    expect(custom).toMatchObject({\n      contextWindowTokens: 128000,\n      windowSource: \"legacy-catalog\",\n      windowAssumed: true,\n      advertisedMaxOutputTokens: null,\n    });\n    expect(custom.sources).toEqual([]);\n    expect(custom.limitations.join(\" \")).toMatch(\n      /not applied to a custom endpoint/,\n    );\n    const official = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://api.openai.com/v1\",\n    });\n    // Certification is not shared: only the official endpoint is non-assumed.\n    expect(official.windowAssumed).toBe(false);\n    expect(custom.windowAssumed).toBe(true);\n  });\n\n  it(\"keeps a legacy volcengine model assumed at the official endpoint\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"volcengine\",\n      model: \"doubao-seed-1-6-251015\",\n      baseUrl: \"https://api.volcengine.com/v1\",\n    });\n    expect(profile).toMatchObject({\n      contextWindowTokens: 32768,\n      windowSource: \"legacy-catalog\",\n      windowAssumed: true,\n      runtimeProtocol: \"chat-completions\",\n      advertisedMaxOutputTokens: null,\n    });\n    expect(profile.sources).toEqual([]);\n  });\n\n  it(\"does not fabricate official certification for the same volcengine model at a custom gateway\", () => {\n    const official = resolveModelCapabilityProfile({\n      provider: \"volcengine\",\n      model: \"doubao-seed-1-6-251015\",\n      baseUrl: \"https://api.volcengine.com/v1\",\n    });\n    const custom = resolveModelCapabilityProfile({\n      provider: \"volcengine\",\n      model: \"doubao-seed-1-6-251015\",\n      baseUrl: \"https://gateway.example/v1\",\n    });\n    for (const profile of [official, custom]) {\n      expect(profile.windowAssumed).toBe(true);\n      expect(profile.windowSource).toBe(\"legacy-catalog\");\n      expect(profile.advertisedMaxOutputTokens).toBeNull();\n      expect(profile.runtimeVerified).toBe(false);\n    }\n  });\n\n  it(\"keeps an unknown volcengine window an assumed estimate at either endpoint\", () => {\n    for (const baseUrl of [\n      \"https://api.volcengine.com/v1\",\n      \"https://gateway.example/v1\",\n    ]) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"volcengine\",\n        model: \"doubao-seed-future-999999\",\n        baseUrl,\n      });\n      expect(profile).toMatchObject({\n        windowSource: \"provider-default\",\n        windowAssumed: true,\n        runtimeVerified: false,\n        advertisedMaxOutputTokens: null,\n        sources: [],\n      });\n    }\n  });\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 41,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-01.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\nimport { resolveModelCapabilityProfile } from \"../../src/lib/model-capabilities.js\";\n\n// Independent regression coverage for \"official endpoint vs same-named custom\n// gateway isolation\": a model served at the official endpoint may carry\n// documented (official) certification, but the same-named model served at a\n// custom gateway must never share it. Volcengine has no documented official\n// catalog, so its legacy models stay assumed at either endpoint.\ndescribe(\"official endpoint vs same-named custom gateway isolation\", () => {\n  it(\"applies official certification only at the official openai endpoint\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://api.openai.com/v1\",\n    });\n    expect(profile).toMatchObject({\n      contextWindowTokens: 128000,\n      windowSource: \"official-model-docs\",\n      windowAssumed: false,\n      runtimeVerified: false,\n      advertisedMaxOutputTokens: 16384,\n    });\n    expect(profile.sources.length).toBeGreaterThan(0);\n  });\n\n  it(\"does not let a same-named custom gateway share that official certification\", () => {\n    const custom = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://gateway.example/v1\",\n    });\n    expect(custom).toMatchObject({\n      contextWindowTokens: 128000,\n      windowSource: \"legacy-catalog\",\n      windowAssumed: true,\n      advertisedMaxOutputTokens: null,\n    });\n    expect(custom.sources).toEqual([]);\n    expect(custom.limitations.join(\" \")).toMatch(\n      /not applied to a custom endpoint/,\n    );\n    const official = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://api.openai.com/v1\",\n    });\n    // Certification is not shared: only the official endpoint is non-assumed.\n    expect(official.windowAssumed).toBe(false);\n    expect(custom.windowAssumed).toBe(true);\n  });\n\n  it(\"keeps a legacy volcengine model assumed at the official endpoint\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"volcengine\",\n      model: \"doubao-seed-1-6-251015\",\n      baseUrl: \"https://api.volcengine.com/v1\",\n    });\n    expect(profile).toMatchObject({\n      contextWindowTokens: 32768,\n      windowSource: \"legacy-catalog\",\n      windowAssumed: true,\n      runtimeProtocol: \"chat-completions\",\n      advertisedMaxOutputTokens: null,\n    });\n    expect(profile.sources).toEqual([]);\n  });\n\n  it(\"does not fabricate official certification for the same volcengine model at a custom gateway\", () => {\n    const official = resolveModelCapabilityProfile({\n      provider: \"volcengine\",\n      model: \"doubao-seed-1-6-251015\",\n      baseUrl: \"https://api.volcengine.com/v1\",\n    });\n    const custom = resolveModelCapabilityProfile({\n      provider: \"volcengine\",\n      model: \"doubao-seed-1-6-251015\",\n      baseUrl: \"https://gateway.example/v1\",\n    });\n    for (const profile of [official, custom]) {\n      expect(profile.windowAssumed).toBe(true);\n      expect(profile.windowSource).toBe(\"legacy-catalog\");\n      expect(profile.advertisedMaxOutputTokens).toBeNull();\n      expect(profile.runtimeVerified).toBe(false);\n    }\n  });\n\n  it(\"keeps an unknown volcengine window an assumed estimate at either endpoint\", () => {\n    for (const baseUrl of [\n      \"https://api.volcengine.com/v1\",\n      \"https://gateway.example/v1\",\n    ]) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"volcengine\",\n        model: \"doubao-seed-future-999999\",\n        baseUrl,\n      });\n      expect(profile).toMatchObject({\n        windowSource: \"provider-default\",\n        windowAssumed: true,\n        runtimeVerified: false,\n        advertisedMaxOutputTokens: null,\n        sources: [],\n      });\n    }\n  });\n});\n"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_a7d1eybskjqfjxjajjwmrzb3",
+            "tool": "list_dir",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "entries": [
+                {
+                  "name": ".gitignore",
+                  "type": "file"
+                },
+                {
+                  "name": "bin",
+                  "type": "dir"
+                },
+                {
+                  "name": "check-all-commands.mjs",
+                  "type": "file"
+                },
+                {
+                  "name": "completions",
+                  "type": "dir"
+                },
+                {
+                  "name": "docs",
+                  "type": "dir"
+                },
+                {
+                  "name": "install",
+                  "type": "dir"
+                },
+                {
+                  "name": "package.json",
+                  "type": "file"
+                },
+                {
+                  "name": "README.md",
+                  "type": "file"
+                },
+                {
+                  "name": "scripts",
+                  "type": "dir"
+                },
+                {
+                  "name": "src",
+                  "type": "dir"
+                },
+                {
+                  "name": "test",
+                  "type": "dir"
+                },
+                {
+                  "name": "test-node",
+                  "type": "dir"
+                },
+                {
+                  "name": "vitest.config.js",
+                  "type": "file"
+                },
+                {
+                  "name": "vitest.e2e.config.js",
+                  "type": "file"
+                },
+                {
+                  "name": "__tests__",
+                  "type": "dir"
+                }
+              ],
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707038119,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_2dnfco40s6upxev3cvnvqh2h",
+            "tool": "edit_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\__tests__\\verify-01.test.js",
+              "size": 3853,
+              "replaced": 1,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707044372,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-01.test.js",
+                    "old_string": "import { resolveModelCapabilityProfile } from \"../../src/lib/model-capabilities.js\";",
+                    "new_string": "import { resolveModelCapabilityProfile } from \"../src/lib/model-capabilities.js\";"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 35,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-01.test.js",
+                    "old_string": "import { resolveModelCapabilityProfile } from \"../../src/lib/model-capabilities.js\";",
+                    "new_string": "import { resolveModelCapabilityProfile } from \"../src/lib/model-capabilities.js\";"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_a32iw9a7uhvjzc2v6rt13n4h",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\__tests__\\verify-01.test.js",
+              "fileVersion": "3853:1793707044338.843:1793707044365.2788",
+              "readSpan": {
+                "start": 0,
+                "end": 3853,
+                "total": 3853
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport { resolveModelCapabilityProfile } from \"../src/lib/model-capabilities.js\";\n\n// Independent regression coverage for \"official endpoint vs same-named custom\n// gateway isolation\": a model served at the official endpoint may carry\n// documented (official) certification, but the same-named model served at a\n// custom gateway must never share it. Volcengine has no documented official\n// catalog, so its legacy models stay assumed at either endpoint.\ndescribe(\"official endpoint vs same-named custom gateway isolation\", () => {\n  it(\"applies official certification only at the official openai endpoint\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://api.openai.com/v1\",\n    });\n    expect(profile).toMatchObject({\n      contextWindowTokens: 128000,\n      windowSource: \"official-model-docs\",\n      windowAssumed: false,\n      runtimeVerified: false,\n      advertisedMaxOutputTokens: 16384,\n    });\n    expect(profile.sources.length).toBeGreaterThan(0);\n  });\n\n  it(\"does not let a same-named custom gateway share that official certification\", () => {\n    const custom = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://gateway.example/v1\",\n    });\n    expect(custom).toMatchObject({\n      contextWindowTokens: 128000,\n      windowSource: \"legacy-catalog\",\n      windowAssumed: true,\n      advertisedMaxOutputTokens: null,\n    });\n    expect(custom.sources).toEqual([]);\n    expect(custom.limitations.join(\" \")).toMatch(\n      /not applied to a custom endpoint/,\n    );\n    const official = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://api.openai.com/v1\",\n    });\n    // Certification is not shared: only the official endpoint is non-assumed.\n    expect(official.windowAssumed).toBe(false);\n    expect(custom.windowAssumed).toBe(true);\n  });\n\n  it(\"keeps a legacy volcengine model assumed at the official endpoint\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"volcengine\",\n      model: \"doubao-seed-1-6-251015\",\n      baseUrl: \"https://api.volcengine.com/v1\",\n    });\n    expect(profile).toMatchObject({\n      contextWindowTokens: 32768,\n      windowSource: \"legacy-catalog\",\n      windowAssumed: true,\n      runtimeProtocol: \"chat-completions\",\n      advertisedMaxOutputTokens: null,\n    });\n    expect(profile.sources).toEqual([]);\n  });\n\n  it(\"does not fabricate official certification for the same volcengine model at a custom gateway\", () => {\n    const official = resolveModelCapabilityProfile({\n      provider: \"volcengine\",\n      model: \"doubao-seed-1-6-251015\",\n      baseUrl: \"https://api.volcengine.com/v1\",\n    });\n    const custom = resolveModelCapabilityProfile({\n      provider: \"volcengine\",\n      model: \"doubao-seed-1-6-251015\",\n      baseUrl: \"https://gateway.example/v1\",\n    });\n    for (const profile of [official, custom]) {\n      expect(profile.windowAssumed).toBe(true);\n      expect(profile.windowSource).toBe(\"legacy-catalog\");\n      expect(profile.advertisedMaxOutputTokens).toBeNull();\n      expect(profile.runtimeVerified).toBe(false);\n    }\n  });\n\n  it(\"keeps an unknown volcengine window an assumed estimate at either endpoint\", () => {\n    for (const baseUrl of [\n      \"https://api.volcengine.com/v1\",\n      \"https://gateway.example/v1\",\n    ]) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"volcengine\",\n        model: \"doubao-seed-future-999999\",\n        baseUrl,\n      });\n      expect(profile).toMatchObject({\n        windowSource: \"provider-default\",\n        windowAssumed: true,\n        runtimeVerified: false,\n        advertisedMaxOutputTokens: null,\n        sources: [],\n      });\n    }\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707049224,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-01.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-01.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_llkfizkvkztqz6cn3k4gv0a3",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 32,
+                  "column": 4,
+                  "offset": 939,
+                  "text": "doubao",
+                  "context": "shot-v1-8k\": 8192,\n  \"moonshot-v1-32k\": 32768,\n  \"moonshot-v1-128k\": 131072,\n  \"doubao-seed-1-6-251015\": 32768,\n  \"doubao-seed-2-1-pro-260628\": 32768,\n  _provider_def",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 32,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 33,
+                  "column": 4,
+                  "offset": 974,
+                  "text": "doubao",
+                  "context": "2k\": 32768,\n  \"moonshot-v1-128k\": 131072,\n  \"doubao-seed-1-6-251015\": 32768,\n  \"doubao-seed-2-1-pro-260628\": 32768,\n  _provider_defaults: Object.freeze({\n    ollama: ",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 33,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 81,
+                  "column": 4,
+                  "offset": 2343,
+                  "text": "doubao",
+                  "context": "t-v1-8k\": \"kimi\",\n  \"moonshot-v1-32k\": \"kimi\",\n  \"moonshot-v1-128k\": \"kimi\",\n  \"doubao-seed-1-6-251015\": \"volcengine\",\n  \"doubao-seed-2-1-pro-260628\": \"volcengine\",\n}",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 81,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 82,
+                  "column": 4,
+                  "offset": 2385,
+                  "text": "doubao",
+                  "context": "mi\",\n  \"moonshot-v1-128k\": \"kimi\",\n  \"doubao-seed-1-6-251015\": \"volcengine\",\n  \"doubao-seed-2-1-pro-260628\": \"volcengine\",\n});\n\n// Official pages reviewed on the cata",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 82,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 4,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\src\\lib\\model-context-catalog.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707056650,
+                "meta": {
+                  "args": {
+                    "pattern": "doubao",
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "contextChars": 80
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 44,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "pattern": "doubao",
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "contextChars": 80
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_1lk2mpr4sztvt1za9y3te281",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 11,
+                  "column": 4,
+                  "offset": 374,
+                  "text": "gpt-4o",
+                  "context": "\": 8192,\n  \"mistral:7b\": 32768,\n  \"codellama:7b\": 16384,\n  \"gpt-4o\": 128000,\n  \"gpt-4o-mini\": 128000,\n  \"gpt-4-turbo\": 128000,",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 11,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 12,
+                  "column": 4,
+                  "offset": 394,
+                  "text": "gpt-4o",
+                  "context": "7b\": 32768,\n  \"codellama:7b\": 16384,\n  \"gpt-4o\": 128000,\n  \"gpt-4o-mini\": 128000,\n  \"gpt-4-turbo\": 128000,\n  \"gpt-3.5-turbo\": ",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 12,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 60,
+                  "column": 4,
+                  "offset": 1715,
+                  "text": "gpt-4o",
+                  "context": "\",\n  \"mistral:7b\": \"ollama\",\n  \"codellama:7b\": \"ollama\",\n  \"gpt-4o\": \"openai\",\n  \"gpt-4o-mini\": \"openai\",\n  \"gpt-4-turbo\": \"op",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 60,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 61,
+                  "column": 4,
+                  "offset": 1737,
+                  "text": "gpt-4o",
+                  "context": "lama\",\n  \"codellama:7b\": \"ollama\",\n  \"gpt-4o\": \"openai\",\n  \"gpt-4o-mini\": \"openai\",\n  \"gpt-4-turbo\": \"openai\",\n  \"gpt-3.5-turb",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 61,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 88,
+                  "column": 4,
+                  "offset": 2645,
+                  "text": "gpt-4o",
+                  "context": "\nexport const DOCUMENTED_OPENAI_MODELS = Object.freeze({\n  \"gpt-4o\": Object.freeze({\n    contextWindowTokens: 128000,\n    adve",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 88,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 93,
+                  "column": 54,
+                  "offset": 2861,
+                  "text": "gpt-4o",
+                  "context": "eeze([\n      \"https://developers.openai.com/api/docs/models/gpt-4o\",\n    ]),\n  }),\n  \"gpt-6-astra\": Object.freeze({\n    contex",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 93,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 6,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\src\\lib\\model-context-catalog.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707062291,
+                "meta": {
+                  "args": {
+                    "contextChars": 60,
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "pattern": "gpt-4o"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 43,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "contextChars": 60,
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "pattern": "gpt-4o"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_xfpfmav7yze76s4on2tdz9ps",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\src\\lib\\model-context-catalog.js",
+              "fileVersion": "4888:1793706746519.3857:1793706746519.3857",
+              "range": {
+                "startLine": 87,
+                "endLine": 132,
+                "totalLines": 165
+              },
+              "readSpan": {
+                "start": 2586,
+                "end": 3993,
+                "total": 4888
+              },
+              "hashed": false,
+              "content": "export const DOCUMENTED_OPENAI_MODELS = Object.freeze({\n  \"gpt-4o\": Object.freeze({\n    contextWindowTokens: 128000,\n    advertisedMaxOutputTokens: 16384,\n    requiresResponsesForTools: false,\n    sources: Object.freeze([\n      \"https://developers.openai.com/api/docs/models/gpt-4o\",\n    ]),\n  }),\n  \"gpt-6-astra\": Object.freeze({\n    contextWindowTokens: 1050000,\n    advertisedMaxOutputTokens: 128000,\n    requiresResponsesForTools: true,\n    reasoningEfforts: Object.freeze([\"low\", \"medium\", \"high\", \"xhigh\", \"max\"]),\n    pricing: Object.freeze({ in: 10, out: 50 }),\n    sources: Object.freeze([\n      \"https://developers.openai.com/api/docs/models/gpt-6-astra\",\n      \"https://developers.openai.com/api/docs/guides/migrate-to-responses\",\n    ]),\n  }),\n  ...Object.fromEntries(\n    [\n      [\"gpt-6-sol\", 2, 10],\n      [\"gpt-6-luna\", 0.1, 0.5],\n    ].map(([model, input, output]) => [\n      model,\n      Object.freeze({\n        contextWindowTokens: 1050000,\n        advertisedMaxOutputTokens: 128000,\n        requiresResponsesForTools: true,\n        reasoningEfforts: Object.freeze([\n          \"none\",\n          \"low\",\n          \"medium\",\n          \"high\",\n          \"xhigh\",\n          \"max\",\n        ]),\n        pricing: Object.freeze({ in: input, out: output }),\n        sources: Object.freeze([\n          `https://developers.openai.com/api/docs/models/${model}`,\n        ]),\n      }),\n    ]),\n  ),\n});\n",
+              "sourceRecovery": {
+                "action": "complete-source-container",
+                "fileVersion": "4888:1793706746519.3857:1793706746519.3857",
+                "requestedRange": {
+                  "startLine": 88,
+                  "endLine": 97,
+                  "totalLines": 165
+                },
+                "requestedSpan": {
+                  "start": 2642,
+                  "end": 2951,
+                  "total": 4888
+                },
+                "note": "The requested excerpt cut a source container. These complete surrounding statements come from the same file version; the range and readSpan describe the content actually returned."
+              },
+              "nextRead": {
+                "path": "packages/cli/src/lib/model-context-catalog.js",
+                "offset": 133,
+                "limit": 10,
+                "column": 1
+              },
+              "hint": "Continue with nextRead only if more source is needed.",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "4888:1793706746519.3857:1793706746519.3857"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707068375,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 88,
+                    "limit": 10
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 13,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 88,
+                    "limit": 10
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_l4ibhuhuj6orqt3sqtwcd46y",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\src\\lib\\model-context-catalog.js",
+              "fileVersion": "4888:1793706746519.3857:1793706746519.3857",
+              "readSpan": {
+                "start": 0,
+                "end": 4888,
+                "total": 4888
+              },
+              "hashed": false,
+              "content": "// Compatibility catalog: these legacy values are retained verbatim. They are\n// planning assumptions, not recently verified provider capability guarantees.\nexport const CONTEXT_WINDOWS = Object.freeze({\n  \"qwen2.5:7b\": 32768,\n  \"qwen2.5:14b\": 32768,\n  \"qwen2.5-coder:14b\": 32768,\n  \"qwen2:7b\": 32768,\n  \"llama3:8b\": 8192,\n  \"mistral:7b\": 32768,\n  \"codellama:7b\": 16384,\n  \"gpt-4o\": 128000,\n  \"gpt-4o-mini\": 128000,\n  \"gpt-4-turbo\": 128000,\n  \"gpt-3.5-turbo\": 16385,\n  o1: 200000,\n  \"claude-opus-4-6\": 200000,\n  \"claude-sonnet-4-6\": 200000,\n  \"claude-haiku-4-5-20251001\": 200000,\n  \"deepseek-chat\": 64000,\n  \"deepseek-coder\": 64000,\n  \"deepseek-reasoner\": 64000,\n  \"qwen-turbo\": 131072,\n  \"qwen-plus\": 131072,\n  \"qwen-max\": 32768,\n  \"gemini-2.0-flash\": 1048576,\n  \"gemini-2.0-pro\": 1048576,\n  \"gemini-1.5-flash\": 1048576,\n  \"moonshot-v1-auto\": 131072,\n  \"moonshot-v1-8k\": 8192,\n  \"moonshot-v1-32k\": 32768,\n  \"moonshot-v1-128k\": 131072,\n  \"doubao-seed-1-6-251015\": 32768,\n  \"doubao-seed-2-1-pro-260628\": 32768,\n  _provider_defaults: Object.freeze({\n    ollama: 32768,\n    openai: 128000,\n    anthropic: 200000,\n    deepseek: 64000,\n    dashscope: 131072,\n    gemini: 1048576,\n    kimi: 131072,\n    volcengine: 32768,\n    minimax: 32768,\n    mistral: 32768,\n  }),\n});\n\nexport const MODEL_CAPABILITY_CATALOG_VERSION = \"2026-09-27\";\n\n// Explicit ownership prevents a model name served by an unrelated provider\n// from silently inheriting another provider's catalog window.\nexport const LEGACY_MODEL_PROVIDERS = Object.freeze({\n  \"qwen2.5:7b\": \"ollama\",\n  \"qwen2.5:14b\": \"ollama\",\n  \"qwen2.5-coder:14b\": \"ollama\",\n  \"qwen2:7b\": \"ollama\",\n  \"llama3:8b\": \"ollama\",\n  \"mistral:7b\": \"ollama\",\n  \"codellama:7b\": \"ollama\",\n  \"gpt-4o\": \"openai\",\n  \"gpt-4o-mini\": \"openai\",\n  \"gpt-4-turbo\": \"openai\",\n  \"gpt-3.5-turbo\": \"openai\",\n  o1: \"openai\",\n  \"claude-opus-4-6\": \"anthropic\",\n  \"claude-sonnet-4-6\": \"anthropic\",\n  \"claude-haiku-4-5-20251001\": \"anthropic\",\n  \"deepseek-chat\": \"deepseek\",\n  \"deepseek-coder\": \"deepseek\",\n  \"deepseek-reasoner\": \"deepseek\",\n  \"qwen-turbo\": \"dashscope\",\n  \"qwen-plus\": \"dashscope\",\n  \"qwen-max\": \"dashscope\",\n  \"gemini-2.0-flash\": \"gemini\",\n  \"gemini-2.0-pro\": \"gemini\",\n  \"gemini-1.5-flash\": \"gemini\",\n  \"moonshot-v1-auto\": \"kimi\",\n  \"moonshot-v1-8k\": \"kimi\",\n  \"moonshot-v1-32k\": \"kimi\",\n  \"moonshot-v1-128k\": \"kimi\",\n  \"doubao-seed-1-6-251015\": \"volcengine\",\n  \"doubao-seed-2-1-pro-260628\": \"volcengine\",\n});\n\n// Official pages reviewed on the catalog version date. These describe the\n// named models, not endpoint access, account entitlement, or a live CLI run.\nexport const DOCUMENTED_OPENAI_MODELS = Object.freeze({\n  \"gpt-4o\": Object.freeze({\n    contextWindowTokens: 128000,\n    advertisedMaxOutputTokens: 16384,\n    requiresResponsesForTools: false,\n    sources: Object.freeze([\n      \"https://developers.openai.com/api/docs/models/gpt-4o\",\n    ]),\n  }),\n  \"gpt-6-astra\": Object.freeze({\n    contextWindowTokens: 1050000,\n    advertisedMaxOutputTokens: 128000,\n    requiresResponsesForTools: true,\n    reasoningEfforts: Object.freeze([\"low\", \"medium\", \"high\", \"xhigh\", \"max\"]),\n    pricing: Object.freeze({ in: 10, out: 50 }),\n    sources: Object.freeze([\n      \"https://developers.openai.com/api/docs/models/gpt-6-astra\",\n      \"https://developers.openai.com/api/docs/guides/migrate-to-responses\",\n    ]),\n  }),\n  ...Object.fromEntries(\n    [\n      [\"gpt-6-sol\", 2, 10],\n      [\"gpt-6-luna\", 0.1, 0.5],\n    ].map(([model, input, output]) => [\n      model,\n      Object.freeze({\n        contextWindowTokens: 1050000,\n        advertisedMaxOutputTokens: 128000,\n        requiresResponsesForTools: true,\n        reasoningEfforts: Object.freeze([\n          \"none\",\n          \"low\",\n          \"medium\",\n          \"high\",\n          \"xhigh\",\n          \"max\",\n        ]),\n        pricing: Object.freeze({ in: input, out: output }),\n        sources: Object.freeze([\n          `https://developers.openai.com/api/docs/models/${model}`,\n        ]),\n      }),\n    ]),\n  ),\n});\n\nexport const DOCUMENTED_ANTHROPIC_MODELS = Object.freeze({\n  \"claude-opus-5-5\": Object.freeze({\n    contextWindowTokens: 1000000,\n    // The release notes establish the window and pricing, not an output cap.\n    advertisedMaxOutputTokens: null,\n    pricing: Object.freeze({ in: 4, out: 20 }),\n    sources: Object.freeze([\n      \"https://code.claude.com/docs/en/changelog#2-1-280\",\n    ]),\n  }),\n});\n\n// Request-level pricing terms shared by cost reporting and hard budget gates.\n// Never apply these tiers to a sum of multiple requests.\nexport const GPT6_PRICING_TERMS = Object.freeze({\n  cacheReadMultiplier: 0.1,\n  cacheWriteMultiplier: 1.25,\n  longContext: Object.freeze({\n    threshold: 272000,\n    inputMultiplier: 2,\n    outputMultiplier: 1.5,\n  }),\n  serviceMultipliers: Object.freeze({\n    standard: 1,\n    default: 1,\n    auto: 1,\n    batch: 0.5,\n    flex: 0.5,\n    fast: 2,\n  }),\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707086652,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 3,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_dco17hjywe237jly4p59ff20",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\__tests__\\unit\\model-capabilities.test.js",
+              "fileVersion": "14263:1793706744988.7664:1793706744988.7664",
+              "readSpan": {
+                "start": 0,
+                "end": 14263,
+                "total": 14263
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport { canonicalDigest } from \"@chainlesschain/context-memory-kernel\";\nimport {\n  resolveAgentOutputBudget,\n  resolveModelCapabilityProfile,\n} from \"../../src/lib/model-capabilities.js\";\nimport {\n  CONTEXT_WINDOWS as CATALOG_WINDOWS,\n  DOCUMENTED_OPENAI_MODELS,\n  LEGACY_MODEL_PROVIDERS,\n} from \"../../src/lib/model-context-catalog.js\";\nimport {\n  CONTEXT_WINDOWS,\n  getContextWindow,\n} from \"../../src/lib/model-context-window.js\";\n\ndescribe(\"versioned model capability profiles\", () => {\n  it(\"reports the documented official model window without claiming live verification\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n    });\n    expect(profile).toMatchObject({\n      schema: \"chainlesschain.model-capability-profile/v1\",\n      catalogVersion: \"2026-09-27\",\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      contextWindowTokens: 128000,\n      windowSource: \"official-model-docs\",\n      windowAssumed: false,\n      runtimeProtocol: \"chat-completions\",\n      runtimeVerified: false,\n      requestMaxOutputTokens: null,\n      plannedOutputReserveTokens: 4096,\n      outputReserveSource: \"planning-fallback\",\n      advertisedMaxOutputTokens: 16384,\n      sources: [\"https://developers.openai.com/api/docs/models/gpt-4o\"],\n    });\n    expect(profile.limitations.join(\" \")).toMatch(/not an output cap/);\n  });\n\n  it(\"selects native Responses for the documented official tool target\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n      baseUrl: \"https://api.openai.com/v1\",\n    });\n    expect(profile.contextWindowTokens).toBe(1050000);\n    expect(profile.advertisedMaxOutputTokens).toBe(128000);\n    expect(profile.runtimeProtocol).toBe(\"openai-responses\");\n    expect(profile.runtimeVerified).toBe(false);\n    expect(profile.limitations.join(\" \")).toMatch(/has not been verified/);\n    expect(profile.limitations.join(\" \")).not.toMatch(/not implemented/);\n    expect(profile.sources).toContain(\n      \"https://developers.openai.com/api/docs/guides/migrate-to-responses\",\n    );\n    expect(CONTEXT_WINDOWS).not.toHaveProperty(\"gpt-6-astra\");\n  });\n\n  it.each([\n    \"https://gateway.example/v1\",\n    \"http://api.openai.com/v1\",\n    \"https://api.openai.com:444/v1\",\n    \"https://api.openai.com/v1/\",\n    \"https://api.openai.com/v1/other\",\n    \"https://api.openai.com/v1?token=secret-marker\",\n    \"https://api.openai.com/v1#secret-marker\",\n    \"https://api.openai.com/v1#\",\n    \"https://api.openai.com/v1 \",\n    \"https://user:secret-marker@api.openai.com/v1\",\n    \"https://api.openai.com.example/v1\",\n    \"not-a-url\",\n  ])(\"does not apply new official limits to custom endpoint %s\", (baseUrl) => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n      baseUrl,\n    });\n    expect(profile.contextWindowTokens).toBe(128000);\n    expect(profile.windowSource).toBe(\"provider-default\");\n    expect(profile.windowAssumed).toBe(true);\n    expect(profile.advertisedMaxOutputTokens).toBeNull();\n    expect(profile.sources).toEqual([]);\n    expect(JSON.stringify(profile)).not.toContain(baseUrl);\n    expect(JSON.stringify(profile)).not.toContain(\"secret-marker\");\n  });\n\n  it(\"retains a custom gateway's old catalog value as assumed, not official\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://gateway.example/v1\",\n    });\n    expect(profile.contextWindowTokens).toBe(128000);\n    expect(profile.windowSource).toBe(\"legacy-catalog\");\n    expect(profile.windowAssumed).toBe(true);\n    expect(profile.advertisedMaxOutputTokens).toBeNull();\n  });\n\n  it(\"does not infer arbitrary aliases or future snapshots from a prefix\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra-custom\",\n    });\n    expect(profile.windowSource).toBe(\"provider-default\");\n    expect(profile.contextWindowTokens).toBe(128000);\n    expect(profile.sources).toEqual([]);\n  });\n\n  it(\"keeps provider and model identities exact rather than rewriting request ids\", () => {\n    for (const model of [\" gpt-6-astra\", \"gpt-6-astra \", \"GPT-6-ASTRA\"]) {\n      expect(\n        resolveModelCapabilityProfile({ provider: \"openai\", model })\n          .windowSource,\n      ).toBe(\"provider-default\");\n    }\n    expect(\n      resolveModelCapabilityProfile({\n        provider: \" openai\",\n        model: \"gpt-6-astra\",\n      }).windowSource,\n    ).toBe(\"generic-default\");\n  });\n\n  it(\"isolates model catalog windows by explicit provider\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"ollama\",\n      model: \"gpt-4o\",\n    });\n    expect(profile.contextWindowTokens).toBe(32768);\n    expect(profile.windowSource).toBe(\"provider-default\");\n    expect(profile.windowAssumed).toBe(true);\n    expect(profile.runtimeProtocol).toBe(\"ollama-chat\");\n    expect(profile.limitations.join(\" \")).toMatch(/another provider/);\n    expect(getContextWindow(\"gpt-4o\", \"ollama\")).toBe(32768);\n  });\n\n  it(\"keeps the no-provider legacy lookup explicitly unscoped\", () => {\n    expect(resolveModelCapabilityProfile({ model: \"gpt-4o\" })).toMatchObject({\n      provider: \"unknown\",\n      contextWindowTokens: 128000,\n      windowSource: \"legacy-catalog-unscoped\",\n      windowAssumed: true,\n      runtimeProtocol: \"unsupported\",\n      runtimeVerified: false,\n    });\n    expect(getContextWindow(\"gpt-4o\")).toBe(128000);\n  });\n\n  it(\"does not choose a default model for an incomplete diagnostic target\", () => {\n    expect(resolveModelCapabilityProfile()).toMatchObject({\n      provider: \"unknown\",\n      model: null,\n      contextWindowTokens: 32768,\n      windowSource: \"generic-default\",\n      windowAssumed: true,\n    });\n    expect(resolveModelCapabilityProfile({ provider: \"openai\" })).toMatchObject(\n      {\n        model: null,\n        contextWindowTokens: 128000,\n        windowSource: \"provider-default\",\n      },\n    );\n  });\n\n  it(\"never treats prototype property names as catalog records\", () => {\n    for (const model of [\n      \"__proto__\",\n      \"constructor\",\n      \"toString\",\n      \"_provider_defaults\",\n    ]) {\n      expect(\n        resolveModelCapabilityProfile({ model, provider: \"openai\" })\n          .windowSource,\n      ).toBe(\"provider-default\");\n    }\n    expect(\n      resolveModelCapabilityProfile({ provider: \"toString\", model: \"gpt-4o\" })\n        .contextWindowTokens,\n    ).toBe(32768);\n  });\n\n  it(\"validates and identifies operator overrides without certifying them\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n      contextMemoryModelWindowTokens: \" 8192 \",\n    });\n    expect(profile).toMatchObject({\n      contextWindowTokens: 8192,\n      windowSource: \"explicit-override\",\n      windowAssumed: true,\n    });\n    expect(profile.limitations.join(\" \")).toMatch(\n      /operator-declared and unverified/,\n    );\n    expect(\n      resolveModelCapabilityProfile({ contextMemoryModelWindowTokens: 1024 })\n        .contextWindowTokens,\n    ).toBe(1024);\n    expect(\n      resolveModelCapabilityProfile({\n        contextMemoryModelWindowTokens: 16777216,\n      }).contextWindowTokens,\n    ).toBe(16777216);\n  });\n\n  it.each([\n    0,\n    -1,\n    1023,\n    16777217,\n    NaN,\n    Infinity,\n    1024.5,\n    true,\n    false,\n    \"\",\n    \"1e5\",\n    \"1024.0\",\n    \"secret-marker\",\n  ])(\n    \"rejects an invalid window override instead of silently using a fallback: %s\",\n    (value) => {\n      expect(() =>\n        resolveModelCapabilityProfile({\n          contextMemoryModelWindowTokens: value,\n        }),\n      ).toThrow(/contextMemoryModelWindowTokens must be an integer/);\n      try {\n        resolveModelCapabilityProfile({\n          contextMemoryModelWindowTokens: value,\n        });\n      } catch (error) {\n        expect(error.message).not.toContain(\"secret-marker\");\n      }\n    },\n  );\n\n  it(\"binds stable resolved values and provenance into a content digest\", () => {\n    const input = { provider: \"openai\", model: \"gpt-6-astra\" };\n    const first = resolveModelCapabilityProfile(input);\n    const second = resolveModelCapabilityProfile({ ...input });\n    expect(second).toEqual(first);\n    const { digest, ...payload } = first;\n    expect(digest).toBe(canonicalDigest(payload, payload.schema));\n    expect(first.profileId.length).toBeLessThan(128);\n    expect(\n      resolveModelCapabilityProfile({\n        ...input,\n        contextMemoryModelWindowTokens: 8192,\n      }).digest,\n    ).not.toBe(digest);\n    expect(\n      resolveModelCapabilityProfile({ ...input, maxOutputTokens: 8192 }).digest,\n    ).not.toBe(digest);\n    expect(\n      resolveModelCapabilityProfile({\n        ...input,\n        baseUrl: \"https://gateway.example/v1\",\n      }).digest,\n    ).not.toBe(digest);\n    expect(\n      resolveModelCapabilityProfile({ ...input, provider: \"ollama\" }).profileId,\n    ).not.toBe(first.profileId);\n  });\n\n  it(\"does not include endpoint credentials or transient host state in a digest\", () => {\n    const first = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n      baseUrl: \"https://user:one@gateway.example/v1\",\n    });\n    const second = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n      baseUrl: \"https://user:two@other.example/v1\",\n    });\n    expect(second.digest).toBe(first.digest);\n    expect(JSON.stringify(first)).not.toMatch(\n      /gateway\\.example|user:one|baseUrl|apiKey|resolvedAt/,\n    );\n  });\n\n  it(\"freezes and copies metadata so a caller cannot contaminate another profile\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n    });\n    expect(Object.isFrozen(profile)).toBe(true);\n    expect(Object.isFrozen(profile.sources)).toBe(true);\n    expect(Object.isFrozen(profile.limitations)).toBe(true);\n    expect(profile.sources).not.toBe(\n      DOCUMENTED_OPENAI_MODELS[\"gpt-6-astra\"].sources,\n    );\n    expect(() => profile.sources.push(\"changed\")).toThrow(TypeError);\n    expect(() => {\n      profile.contextWindowTokens = 1;\n    }).toThrow(TypeError);\n    expect(\n      resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model: \"gpt-6-astra\",\n      }),\n    ).toEqual(profile);\n  });\n});\n\ndescribe(\"agent output budget matches existing transport behavior\", () => {\n  it.each([\n    [undefined, 8192],\n    [\"claude-sonnet-4-6\", 8192],\n    [\"claude-opus-4-6\", 16384],\n    [\"claude-haiku-4-5\", 4096],\n  ])(\"uses the existing Anthropic default for %s\", (model, cap) => {\n    expect(resolveAgentOutputBudget({ provider: \"anthropic\", model })).toEqual({\n      requestMaxOutputTokens: cap,\n      plannedOutputReserveTokens: cap,\n      outputReserveSource: \"anthropic-request-default\",\n    });\n  });\n\n  it(\"retains the Anthropic explicit-cap clamp and exposes it to the planner\", () => {\n    expect(\n      resolveAgentOutputBudget({\n        provider: \"anthropic\",\n        model: \"claude-opus-4-6\",\n        maxOutputTokens: 30000,\n      }),\n    ).toEqual({\n      requestMaxOutputTokens: 16384,\n      plannedOutputReserveTokens: 16384,\n      outputReserveSource: \"anthropic-request-clamp\",\n    });\n    expect(\n      resolveAgentOutputBudget({\n        provider: \"anthropic\",\n        maxOutputTokens: \"512\",\n      }),\n    ).toEqual({\n      requestMaxOutputTokens: 512,\n      plannedOutputReserveTokens: 512,\n      outputReserveSource: \"explicit-request-cap\",\n    });\n  });\n\n  it.each([\"openai\", \"ollama\", \"deepseek\", \"custom\", undefined])(\n    \"does not synthesize a request cap for %s\",\n    (provider) => {\n      expect(resolveAgentOutputBudget({ provider })).toEqual({\n        requestMaxOutputTokens: null,\n        plannedOutputReserveTokens: 4096,\n        outputReserveSource: \"planning-fallback\",\n      });\n    },\n  );\n\n  it(\"does not clip a requested cap or impose the planner's minimum reserve\", () => {\n    expect(\n      resolveAgentOutputBudget({ provider: \"openai\", maxOutputTokens: 1 }),\n    ).toMatchObject({\n      requestMaxOutputTokens: 1,\n      plannedOutputReserveTokens: 1,\n    });\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      maxOutputTokens: 20000,\n      contextMemoryModelWindowTokens: 1024,\n    });\n    expect(profile.requestMaxOutputTokens).toBe(20000);\n    expect(profile.plannedOutputReserveTokens).toBe(20000);\n    expect(profile.limitations.join(\" \")).toMatch(\n      /exceeds the documented model maximum/,\n    );\n  });\n\n  it.each([null, undefined])(\n    \"treats only nullish caps as absent: %s\",\n    (maxOutputTokens) => {\n      expect(\n        resolveAgentOutputBudget({ maxOutputTokens }).requestMaxOutputTokens,\n      ).toBeNull();\n    },\n  );\n\n  it.each([\n    0,\n    -1,\n    NaN,\n    Infinity,\n    1.5,\n    true,\n    false,\n    \"\",\n    \"1e3\",\n    \"1.5\",\n    \"secret-marker\",\n    Number.MAX_SAFE_INTEGER + 1,\n  ])(\"rejects an invalid explicit output cap: %s\", (maxOutputTokens) => {\n    expect(() => resolveAgentOutputBudget({ maxOutputTokens })).toThrow(\n      /maxOutputTokens must be an integer/,\n    );\n  });\n});\n\ndescribe(\"legacy context window interface\", () => {\n  it(\"reexports the unchanged frozen catalog object\", () => {\n    expect(CONTEXT_WINDOWS).toBe(CATALOG_WINDOWS);\n    expect(Object.isFrozen(CONTEXT_WINDOWS)).toBe(true);\n    expect(Object.isFrozen(CONTEXT_WINDOWS._provider_defaults)).toBe(true);\n    expect(Object.keys(CONTEXT_WINDOWS)).toHaveLength(31);\n    for (const [model, provider] of Object.entries(LEGACY_MODEL_PROVIDERS)) {\n      expect(getContextWindow(model, provider)).toBe(CONTEXT_WINDOWS[model]);\n      expect(getContextWindow(model)).toBe(CONTEXT_WINDOWS[model]);\n    }\n  });\n\n  it(\"retains provider and generic fallback numeric behavior\", () => {\n    expect(getContextWindow(\"unknown-model\", \"anthropic\")).toBe(200000);\n    expect(getContextWindow(null, \"openai\")).toBe(128000);\n    expect(getContextWindow(undefined, \"deepseek\")).toBe(64000);\n    expect(getContextWindow(\"\", \"anthropic\")).toBe(200000);\n    expect(getContextWindow(\"x\", \"y\")).toBe(32768);\n    expect(getContextWindow()).toBe(32768);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707086652,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-capabilities.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 3,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-capabilities.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_ji0m6pua987e28c5oxszx5vi",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\__tests__\\unit\\model-release-contract.test.js",
+              "fileVersion": "10017:1793706744990.532:1793706744990.532",
+              "readSpan": {
+                "start": 0,
+                "end": 10017,
+                "total": 10017
+              },
+              "hashed": false,
+              "content": "import { afterEach, describe, expect, it, vi } from \"vitest\";\nimport Database from \"better-sqlite3\";\nimport { resolveModelCapabilityProfile } from \"../../src/lib/model-capabilities.js\";\nimport {\n  estimateCost,\n  lookupRate,\n  mergePricing,\n  priceRollup,\n} from \"../../src/lib/llm-pricing.js\";\nimport {\n  calculateCost,\n  recordUsage,\n  getUsageStats,\n  getCostBreakdown,\n} from \"../../src/lib/token-tracker.js\";\nimport {\n  aggregateUsage,\n  allSessionsUsage,\n  _deps,\n} from \"../../src/lib/session-usage.js\";\nimport { CostBudget } from \"../../src/lib/cost-budget.js\";\nimport { normalizeOpenAIResponsesResponse } from \"../../src/lib/openai-responses.js\";\nimport { projectRuntimeTokenUsage } from \"../../src/lib/runtime-usage-ledger.js\";\nimport { projectVerifiedSession } from \"../../src/lib/causal-observability.js\";\nimport { SessionResourceBudget } from \"../../src/lib/session-resource-budget.js\";\n\nafterEach(() => vi.restoreAllMocks());\n\ndescribe(\"September model release contracts\", () => {\n  it(\"preserves request pricing through durable projection, budget and Eval\", () => {\n    const records = [200000, 200000, 300000].map((input, index) =>\n      projectRuntimeTokenUsage({\n        provider: \"openai\",\n        model: \"gpt-6-sol\",\n        callId: `call-${index}`,\n        usage: {\n          input_tokens: input,\n          output_tokens: 1000,\n          service_tier: index === 1 ? \"flex\" : \"fast\",\n          regional_processing: true,\n        },\n      }),\n    );\n    const events = [\n      {\n        type: \"session_start\",\n        timestamp: 1,\n        data: {\n          observabilityScope: { workspaceId: \"w\", teamId: \"t\", policyId: \"p\" },\n        },\n      },\n      ...records.map((data) => ({ type: \"token_usage\", data })),\n    ];\n    const budget = new CostBudget({ limitUsd: 100 });\n    for (const record of records) budget.add(record);\n    const observed = projectVerifiedSession(\"session-a\", events, {\n      headHash: \"a\".repeat(64),\n      eventCount: events.length,\n    });\n    expect(observed.usage.estimatedUsd).toBeCloseTo(budget.spentUsd, 10);\n    expect(priceRollup(aggregateUsage(events)).cost.totalCost).toBeCloseTo(\n      budget.spentUsd,\n      10,\n    );\n    expect(observed.usage.byModel[0].pricingBuckets).toHaveLength(3);\n    expect(records[0].usage.service_tier).toBe(\"fast\");\n    expect(\n      projectRuntimeTokenUsage({\n        ...records[0],\n        usage: {\n          ...records[0].usage,\n          service_tier: \"sensitive arbitrary text\",\n        },\n      }).usage.service_tier,\n    ).toBe(\"unknown\");\n  });\n\n  it(\"preserves pricing conditions in crash-recovery settlements\", () => {\n    const source = new SessionResourceBudget({ maxUsd: 100 });\n    const pending = source.beginUsageSettlement({ id: \"call-a\" });\n    source.markUsageUnknown({ callId: pending.id });\n    const snapshot = source.snapshot();\n    source.dispose();\n    const resumed = SessionResourceBudget.restore(snapshot);\n    const record = {\n      provider: \"openai\",\n      model: \"gpt-6-sol\",\n      usage: {\n        input_tokens: 300000,\n        output_tokens: 1000,\n        service_tier: \"fast\",\n        regional_processing: true,\n      },\n    };\n    try {\n      const recovery = resumed.adjudicateRecovery({\n        settled: [{ authorityId: pending.authorityId, ...record }],\n      });\n      const budget = new CostBudget({ limitUsd: 100 });\n      budget.add(record);\n      expect(recovery.adjudication.spentUsdDelta).toBeCloseTo(\n        budget.spentUsd,\n        10,\n      );\n      expect(resumed.cost.spentUsd).toBeCloseTo(budget.spentUsd, 10);\n    } finally {\n      resumed.dispose();\n    }\n  });\n  it.each([\"gpt-6-astra\", \"gpt-6-sol\", \"gpt-6-luna\"])(\n    \"resolves %s only at the official endpoint\",\n    (model) => {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model,\n      });\n      expect(profile).toMatchObject({\n        contextWindowTokens: 1050000,\n        advertisedMaxOutputTokens: 128000,\n        runtimeProtocol: \"openai-responses\",\n        windowAssumed: false,\n        runtimeVerified: false,\n      });\n      expect(profile.reasoningEfforts).toContain(\"high\");\n      for (const baseUrl of [\n        \"https://gateway.example/v1\",\n        \"https://api.openai.com.evil/v1\",\n      ]) {\n        expect(\n          resolveModelCapabilityProfile({ provider: \"openai\", model, baseUrl }),\n        ).toMatchObject({\n          windowAssumed: true,\n          runtimeProtocol: \"chat-completions\",\n          advertisedMaxOutputTokens: null,\n        });\n      }\n      expect(\n        resolveModelCapabilityProfile({\n          provider: \"openai\",\n          model: `${model}-future`,\n        }).windowAssumed,\n      ).toBe(true);\n      expect(lookupRate(\"openai\", `${model}-future`)).toBeNull();\n    },\n  );\n\n  it(\"resolves Opus 5.5 without changing a custom gateway's assumptions\", () => {\n    expect(\n      resolveModelCapabilityProfile({\n        provider: \"anthropic\",\n        model: \"claude-opus-5-5\",\n        baseUrl: \"https://api.anthropic.com/v1\",\n      }),\n    ).toMatchObject({\n      contextWindowTokens: 1000000,\n      windowAssumed: false,\n      advertisedMaxOutputTokens: null,\n    });\n    expect(\n      resolveModelCapabilityProfile({\n        provider: \"anthropic\",\n        model: \"claude-opus-5-5\",\n        baseUrl: \"https://gateway.example/v1\",\n      }).windowAssumed,\n    ).toBe(true);\n    expect(lookupRate(\"anthropic\", \"claude-opus-5-5\")).toMatchObject({\n      in: 4,\n      out: 20,\n    });\n    expect(lookupRate(\"anthropic\", \"claude-opus-6\")).toBeNull();\n    expect(lookupRate(\"anthropic\", \"claude-opus-10\")).toBeNull();\n    expect(\n      lookupRate(\n        \"anthropic\",\n        \"claude-opus-10\",\n        mergePricing({ anthropic: [{ match: \"opus\", in: 5, out: 25 }] }),\n      ),\n    ).toMatchObject({ in: 5, out: 25 });\n    expect(lookupRate(\"anthropic\", \"claude-opus-5-5-custom\")).toBeNull();\n  });\n\n  it(\"prices cached tokens and long prompts at the request boundary\", () => {\n    const base = {\n      provider: \"openai\",\n      model: \"gpt-6-sol\",\n      inputTokens: 272000,\n      outputTokens: 1000,\n    };\n    expect(estimateCost(base).totalCost).toBeCloseTo(0.554, 9);\n    expect(\n      estimateCost({ ...base, inputTokens: 272001 }).totalCost,\n    ).toBeCloseTo(1.103004, 9);\n    const cached = estimateCost({\n      ...base,\n      inputTokens: 200000,\n      cacheReadTokens: 73000,\n    });\n    expect(cached.inputCost).toBeCloseTo(0.8, 9);\n    expect(cached.cacheReadCost).toBeCloseTo(0.0292, 9);\n    expect(cached.outputCost).toBeCloseTo(0.015, 9);\n    expect(\n      estimateCost({ ...base, serviceTier: \"fast\" }).totalCost,\n    ).toBeCloseTo(1.108, 9);\n    expect(\n      estimateCost({ ...base, serviceTier: \"flex\" }).totalCost,\n    ).toBeCloseTo(0.277, 9);\n    expect(estimateCost({ ...base, serviceTier: \"unknown\" }).matched).toBe(\n      false,\n    );\n    expect(estimateCost({ ...base, serviceTier: \"constructor\" }).matched).toBe(\n      false,\n    );\n    const table = mergePricing({\n      openai: [{ match: \"gpt-6-sol\", in: 4, out: 20 }],\n    });\n    expect(\n      estimateCost({ ...base, table, cacheReadTokens: 1 }).cacheReadCost,\n    ).toBeCloseTo(0.0000008, 12);\n  });\n\n  it(\"keeps separate request tiers when aggregating one or many sessions\", () => {\n    const event = (input) => ({\n      type: \"token_usage\",\n      data: {\n        provider: \"openai\",\n        model: \"gpt-6-sol\",\n        usage: { input_tokens: input, output_tokens: 1000 },\n      },\n    });\n    const events = [event(200000), event(200000), event(300000)];\n    const budget = new CostBudget({ limitUsd: 100 });\n    for (const event of events) budget.add(event.data);\n    const aggregate = aggregateUsage(events);\n    expect(aggregate.byModel[0].pricingBuckets).toHaveLength(2);\n    expect(priceRollup(aggregate).cost.totalCost).toBeCloseTo(2.035, 9);\n    expect(priceRollup(aggregate).cost.totalCost).toBeCloseTo(\n      budget.spentUsd,\n      9,\n    );\n    vi.spyOn(_deps, \"listJsonlSessions\").mockReturnValue([\n      { id: \"one\" },\n      { id: \"two\" },\n    ]);\n    vi.spyOn(_deps, \"readEvents\").mockImplementation((id) =>\n      id === \"one\" ? events.slice(0, 2) : events.slice(2),\n    );\n    expect(priceRollup(allSessionsUsage()).cost.totalCost).toBeCloseTo(\n      budget.spentUsd,\n      9,\n    );\n    const { pricingBuckets, ...legacy } = aggregate.byModel[0];\n    expect(priceRollup({ byModel: [legacy] }).cost.unpricedCount).toBe(1);\n  });\n\n  it(\"preserves response service tier for budget settlement\", () => {\n    expect(\n      normalizeOpenAIResponsesResponse({\n        status: \"completed\",\n        output: [],\n        service_tier: \"flex\",\n        usage: { input_tokens: 100, output_tokens: 20 },\n      }).usage.service_tier,\n    ).toBe(\"flex\");\n  });\n\n  it(\"uses the same prices in the legacy database, preserving unknown as NULL\", () => {\n    const db = new Database(\":memory:\");\n    try {\n      for (const model of [\"gpt-6-astra\", \"gpt-6-sol\", \"gpt-6-luna\"]) {\n        const args = {\n          provider: \"openai\",\n          model,\n          inputTokens: 300000,\n          outputTokens: 1000,\n        };\n        expect(\n          calculateCost(\n            args.provider,\n            model,\n            args.inputTokens,\n            args.outputTokens,\n          ),\n        ).toBe(estimateCost(args).totalCost);\n      }\n      const known = recordUsage(db, {\n        provider: \"anthropic\",\n        model: \"claude-opus-5-5\",\n        inputTokens: 1000,\n        outputTokens: 1000,\n      });\n      const unknown = recordUsage(db, {\n        provider: \"openai\",\n        model: \"future-model\",\n        inputTokens: 1000,\n      });\n      expect(known.costUsd).toBeCloseTo(0.024, 9);\n      expect(unknown).toMatchObject({ costUsd: null, priced: false });\n      expect(getUsageStats(db)).toMatchObject({\n        total_calls: 2,\n        unpriced_calls: 1,\n      });\n      expect(\n        getCostBreakdown(db).find((row) => row.model === \"future-model\"),\n      ).toMatchObject({ cost_usd: null, unpriced_calls: 1 });\n    } finally {\n      db.close();\n    }\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707086652,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-release-contract.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-release-contract.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_xgt41bpcwdxj7t7usa73r3yv",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\src\\lib\\model-capabilities.js",
+              "fileVersion": "9351:1793706746519.3857:1793706746519.3857",
+              "readSpan": {
+                "start": 0,
+                "end": 9351,
+                "total": 9351
+              },
+              "hashed": false,
+              "content": "import { canonicalDigest } from \"@chainlesschain/context-memory-kernel\";\nimport {\n  CONTEXT_WINDOWS,\n  DOCUMENTED_OPENAI_MODELS,\n  DOCUMENTED_ANTHROPIC_MODELS,\n  LEGACY_MODEL_PROVIDERS,\n  MODEL_CAPABILITY_CATALOG_VERSION,\n} from \"./model-context-catalog.js\";\nimport { mergeProviderOptions } from \"./provider-options.js\";\n\nconst PROFILE_SCHEMA = \"chainlesschain.model-capability-profile/v1\";\nconst MAX_CONTEXT_WINDOW_TOKENS = 16_777_216;\nconst CHAT_COMPLETIONS_PROVIDERS = new Set([\n  \"openai\",\n  \"deepseek\",\n  \"dashscope\",\n  \"mistral\",\n  \"gemini\",\n  \"volcengine\",\n]);\n\nfunction optionalIdentity(value, field) {\n  if (value == null || value === \"\") return null;\n  if (typeof value !== \"string\" || value.length > 256) {\n    throw new TypeError(`${field} must be a string of at most 256 characters`);\n  }\n  if (/\\p{Cc}/u.test(value)) {\n    throw new TypeError(`${field} must not contain control characters`);\n  }\n  // Provider/model identity is exact, just like the request transport. Do not\n  // certify an alias by trimming or changing the case of an actual request id.\n  return value;\n}\n\nfunction optionalPositiveInteger(\n  value,\n  field,\n  { min = 1, max = Number.MAX_SAFE_INTEGER } = {},\n) {\n  if (value == null) return null;\n  const normalized =\n    typeof value === \"string\" && /^\\d+$/u.test(value.trim())\n      ? Number(value.trim())\n      : value;\n  if (\n    typeof normalized !== \"number\" ||\n    !Number.isSafeInteger(normalized) ||\n    normalized < min ||\n    normalized > max\n  ) {\n    throw new RangeError(\n      `${field} must be an integer between ${min} and ${max}`,\n    );\n  }\n  return normalized;\n}\n\nfunction deepFreeze(value) {\n  for (const child of Object.values(value)) {\n    if (child && typeof child === \"object\") deepFreeze(child);\n  }\n  return Object.freeze(value);\n}\n\nfunction isOfficialModelBaseUrl(provider, baseUrl) {\n  if (baseUrl == null || baseUrl === \"\") return true;\n  if (typeof baseUrl !== \"string\") {\n    throw new TypeError(\"baseUrl must be a string when provided\");\n  }\n  try {\n    // Deliberately excludes credentials, paths other than /v1, query/hash\n    // decorations and non-default ports. Never return or hash the input URL.\n    return (\n      baseUrl === baseUrl.trim() &&\n      new URL(baseUrl).href ===\n        (provider === \"openai\"\n          ? \"https://api.openai.com/v1\"\n          : \"https://api.anthropic.com/v1\")\n    );\n  } catch {\n    return false;\n  }\n}\n\n/**\n * Describe the output cap the existing agent transport actually sends.\n * This does not add a cap to Chat Completions/Ollama or select a new model.\n * The planner may apply its own minimum reserve and reject an impossible\n * input/output allocation; no context-window clipping happens here.\n */\nexport function resolveAgentOutputBudget({\n  provider,\n  model,\n  maxOutputTokens,\n} = {}) {\n  const requested = optionalPositiveInteger(maxOutputTokens, \"maxOutputTokens\");\n  if (provider === \"anthropic\") {\n    const effectiveModel = model || \"claude-sonnet-4-6\";\n    const { maxTokens } = mergeProviderOptions(\"anthropic\", effectiveModel);\n    const defaultCap = maxTokens || 8192;\n    const requestMaxOutputTokens =\n      requested === null ? defaultCap : Math.min(defaultCap, requested);\n    return Object.freeze({\n      requestMaxOutputTokens,\n      plannedOutputReserveTokens: requestMaxOutputTokens,\n      outputReserveSource:\n        requested === null\n          ? \"anthropic-request-default\"\n          : requested > defaultCap\n            ? \"anthropic-request-clamp\"\n            : \"explicit-request-cap\",\n    });\n  }\n  return Object.freeze({\n    requestMaxOutputTokens: requested,\n    plannedOutputReserveTokens: requested ?? 4096,\n    outputReserveSource:\n      requested === null ? \"planning-fallback\" : \"explicit-request-cap\",\n  });\n}\n\n/**\n * Pure, versioned diagnostics/planning projection. No provider discovery,\n * credential loading, model calls or protocol negotiation is performed.\n * `runtimeVerified:false` applies even to documented model specifications.\n */\nexport function resolveModelCapabilityProfile({\n  provider,\n  model,\n  baseUrl,\n  contextMemoryModelWindowTokens,\n  maxOutputTokens,\n} = {}) {\n  const selectedProvider = optionalIdentity(provider, \"provider\");\n  const selectedModel = optionalIdentity(model, \"model\");\n  if (baseUrl != null && typeof baseUrl !== \"string\") {\n    throw new TypeError(\"baseUrl must be a string when provided\");\n  }\n  const override = optionalPositiveInteger(\n    contextMemoryModelWindowTokens,\n    \"contextMemoryModelWindowTokens\",\n    { min: 1024, max: MAX_CONTEXT_WINDOW_TOKENS },\n  );\n  const catalog =\n    selectedProvider === \"openai\"\n      ? DOCUMENTED_OPENAI_MODELS\n      : selectedProvider === \"anthropic\"\n        ? DOCUMENTED_ANTHROPIC_MODELS\n        : null;\n  const officialEndpoint =\n    Boolean(catalog) && isOfficialModelBaseUrl(selectedProvider, baseUrl);\n  const documented =\n    officialEndpoint && selectedModel && Object.hasOwn(catalog, selectedModel)\n      ? catalog[selectedModel]\n      : null;\n  const legacyOwner =\n    selectedModel && Object.hasOwn(LEGACY_MODEL_PROVIDERS, selectedModel)\n      ? LEGACY_MODEL_PROVIDERS[selectedModel]\n      : null;\n  let contextWindowTokens;\n  let windowSource;\n  let windowAssumed = true;\n  if (override !== null) {\n    contextWindowTokens = override;\n    windowSource = \"explicit-override\";\n  } else if (documented) {\n    contextWindowTokens = documented.contextWindowTokens;\n    windowSource = \"official-model-docs\";\n    windowAssumed = false;\n  } else if (\n    legacyOwner &&\n    (!selectedProvider || legacyOwner === selectedProvider)\n  ) {\n    contextWindowTokens = CONTEXT_WINDOWS[selectedModel];\n    windowSource = selectedProvider\n      ? \"legacy-catalog\"\n      : \"legacy-catalog-unscoped\";\n  } else if (\n    selectedProvider &&\n    Object.hasOwn(CONTEXT_WINDOWS._provider_defaults, selectedProvider)\n  ) {\n    contextWindowTokens = CONTEXT_WINDOWS._provider_defaults[selectedProvider];\n    windowSource = \"provider-default\";\n  } else {\n    contextWindowTokens = 32768;\n    windowSource = \"generic-default\";\n  }\n\n  const output = resolveAgentOutputBudget({\n    provider: selectedProvider,\n    model: selectedModel,\n    maxOutputTokens,\n  });\n  const runtimeProtocol =\n    selectedProvider === \"ollama\"\n      ? \"ollama-chat\"\n      : selectedProvider === \"anthropic\"\n        ? \"anthropic-messages\"\n        : selectedProvider === \"openai\" && documented?.requiresResponsesForTools\n          ? \"openai-responses\"\n          : CHAT_COMPLETIONS_PROVIDERS.has(selectedProvider) || Boolean(baseUrl)\n            ? \"chat-completions\"\n            : \"unsupported\";\n  const limitations = [\n    \"Runtime execution, endpoint access and account entitlement have not been verified.\",\n  ];\n  if (windowSource === \"explicit-override\") {\n    limitations.push(\"The context window is operator-declared and unverified.\");\n  } else if (windowAssumed) {\n    limitations.push(\n      \"The context window is a legacy or fallback planning estimate, not a verified model limit.\",\n    );\n  }\n  if (!selectedProvider) {\n    limitations.push(\n      \"No provider was specified; an unscoped legacy model lookup does not establish provider capabilities.\",\n    );\n  }\n  if (legacyOwner && selectedProvider && legacyOwner !== selectedProvider) {\n    limitations.push(\n      \"The model's legacy catalog entry belongs to another provider and was not applied.\",\n    );\n  }\n  if (catalog && !officialEndpoint) {\n    limitations.push(\n      `Official ${selectedProvider === \"openai\" ? \"OpenAI\" : \"Anthropic\"} model specifications are not applied to a custom endpoint.`,\n    );\n  }\n  if (output.requestMaxOutputTokens === null) {\n    limitations.push(\n      \"The output reserve is a planning fallback, not an output cap sent to the provider.\",\n    );\n  }\n  if (documented?.requiresResponsesForTools) {\n    limitations.push(\n      \"Responses selection is based on the versioned catalog and has not been verified against this account at runtime.\",\n    );\n  }\n  if (runtimeProtocol === \"unsupported\") {\n    limitations.push(\n      \"No supported agent transport was resolved for this provider and endpoint configuration.\",\n    );\n  }\n  if (\n    documented?.advertisedMaxOutputTokens != null &&\n    output.requestMaxOutputTokens > documented.advertisedMaxOutputTokens\n  ) {\n    limitations.push(\n      \"The requested output cap exceeds the documented model maximum; the profile does not rewrite the request.\",\n    );\n  }\n\n  const identityDigest = canonicalDigest(\n    {\n      schema: PROFILE_SCHEMA,\n      provider: selectedProvider || \"unknown\",\n      model: selectedModel,\n    },\n    \"chainlesschain.model-capability-identity/v1\",\n  );\n  const profile = {\n    schema: PROFILE_SCHEMA,\n    catalogVersion: MODEL_CAPABILITY_CATALOG_VERSION,\n    profileId: `model-capability-v1:${identityDigest.slice(7, 39)}`,\n    provider: selectedProvider || \"unknown\",\n    model: selectedModel,\n    contextWindowTokens,\n    windowSource,\n    windowAssumed,\n    runtimeProtocol,\n    runtimeVerified: false,\n    ...output,\n    advertisedMaxOutputTokens: documented?.advertisedMaxOutputTokens ?? null,\n    ...(documented?.reasoningEfforts\n      ? { reasoningEfforts: [...documented.reasoningEfforts] }\n      : {}),\n    sources: documented ? [...documented.sources] : [],\n    limitations,\n  };\n  profile.digest = canonicalDigest(profile, PROFILE_SCHEMA);\n  return deepFreeze(profile);\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707091761,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-capabilities.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-capabilities.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_4dxebn8wga8g7hlwm2746eyn",
+            "tool": "list_dir",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "entries": [
+                {
+                  "name": "e2e",
+                  "type": "dir"
+                },
+                {
+                  "name": "fixtures",
+                  "type": "dir"
+                },
+                {
+                  "name": "helpers",
+                  "type": "dir"
+                },
+                {
+                  "name": "integration",
+                  "type": "dir"
+                },
+                {
+                  "name": "README-background-stability.md",
+                  "type": "file"
+                },
+                {
+                  "name": "unit",
+                  "type": "dir"
+                },
+                {
+                  "name": "verify-01.test.js",
+                  "type": "file"
+                }
+              ],
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707102059,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_yhbp5ykuiqb3h9nthmp3ytv0",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\__tests__\\verify-01.test.js",
+              "fileVersion": "3853:1793707044338.843:1793707044365.2788",
+              "readSpan": {
+                "start": 0,
+                "end": 3853,
+                "total": 3853
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport { resolveModelCapabilityProfile } from \"../src/lib/model-capabilities.js\";\n\n// Independent regression coverage for \"official endpoint vs same-named custom\n// gateway isolation\": a model served at the official endpoint may carry\n// documented (official) certification, but the same-named model served at a\n// custom gateway must never share it. Volcengine has no documented official\n// catalog, so its legacy models stay assumed at either endpoint.\ndescribe(\"official endpoint vs same-named custom gateway isolation\", () => {\n  it(\"applies official certification only at the official openai endpoint\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://api.openai.com/v1\",\n    });\n    expect(profile).toMatchObject({\n      contextWindowTokens: 128000,\n      windowSource: \"official-model-docs\",\n      windowAssumed: false,\n      runtimeVerified: false,\n      advertisedMaxOutputTokens: 16384,\n    });\n    expect(profile.sources.length).toBeGreaterThan(0);\n  });\n\n  it(\"does not let a same-named custom gateway share that official certification\", () => {\n    const custom = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://gateway.example/v1\",\n    });\n    expect(custom).toMatchObject({\n      contextWindowTokens: 128000,\n      windowSource: \"legacy-catalog\",\n      windowAssumed: true,\n      advertisedMaxOutputTokens: null,\n    });\n    expect(custom.sources).toEqual([]);\n    expect(custom.limitations.join(\" \")).toMatch(\n      /not applied to a custom endpoint/,\n    );\n    const official = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://api.openai.com/v1\",\n    });\n    // Certification is not shared: only the official endpoint is non-assumed.\n    expect(official.windowAssumed).toBe(false);\n    expect(custom.windowAssumed).toBe(true);\n  });\n\n  it(\"keeps a legacy volcengine model assumed at the official endpoint\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"volcengine\",\n      model: \"doubao-seed-1-6-251015\",\n      baseUrl: \"https://api.volcengine.com/v1\",\n    });\n    expect(profile).toMatchObject({\n      contextWindowTokens: 32768,\n      windowSource: \"legacy-catalog\",\n      windowAssumed: true,\n      runtimeProtocol: \"chat-completions\",\n      advertisedMaxOutputTokens: null,\n    });\n    expect(profile.sources).toEqual([]);\n  });\n\n  it(\"does not fabricate official certification for the same volcengine model at a custom gateway\", () => {\n    const official = resolveModelCapabilityProfile({\n      provider: \"volcengine\",\n      model: \"doubao-seed-1-6-251015\",\n      baseUrl: \"https://api.volcengine.com/v1\",\n    });\n    const custom = resolveModelCapabilityProfile({\n      provider: \"volcengine\",\n      model: \"doubao-seed-1-6-251015\",\n      baseUrl: \"https://gateway.example/v1\",\n    });\n    for (const profile of [official, custom]) {\n      expect(profile.windowAssumed).toBe(true);\n      expect(profile.windowSource).toBe(\"legacy-catalog\");\n      expect(profile.advertisedMaxOutputTokens).toBeNull();\n      expect(profile.runtimeVerified).toBe(false);\n    }\n  });\n\n  it(\"keeps an unknown volcengine window an assumed estimate at either endpoint\", () => {\n    for (const baseUrl of [\n      \"https://api.volcengine.com/v1\",\n      \"https://gateway.example/v1\",\n    ]) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"volcengine\",\n        model: \"doubao-seed-future-999999\",\n        baseUrl,\n      });\n      expect(profile).toMatchObject({\n        windowSource: \"provider-default\",\n        windowAssumed: true,\n        runtimeVerified: false,\n        advertisedMaxOutputTokens: null,\n        sources: [],\n      });\n    }\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707107793,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-01.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-01.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_8r7cz31fx3jl5zcyji77r0fc",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\__tests__\\verify-01.test.js",
+              "fileVersion": "3853:1793707044338.843:1793707044365.2788",
+              "range": {
+                "startLine": 60,
+                "endLine": 107,
+                "totalLines": 107
+              },
+              "hashed": false,
+              "alreadyRead": true,
+              "contentOmitted": true,
+              "reachedEnd": true,
+              "readProgress": {
+                "newContent": false
+              },
+              "readRecovery": {
+                "action": "use-findings"
+              },
+              "recoveryRead": {
+                "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\__tests__\\verify-01.test.js",
+                "offset": 1,
+                "limit": 80
+              },
+              "hint": "This requested range was read earlier, but historical coverage does not mean its source is visible now. The runtime has not substituted an unrelated file range. Use source actually present in this request; recover missing details with a focused search or the bounded recoveryRead. Reading the file is not task completion.",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707129236,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-01.test.js",
+                    "offset": 60
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 6,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-01.test.js",
+                    "offset": 60
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_742s5mg1nz26jcj6c3e4i6jn",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Ukeg4Y\\6f69b8d0-c113-49c3-a8c2-9a51ecb3043e\\workspace\\packages\\cli\\__tests__\\verify-01.test.js",
+              "fileVersion": "3853:1793707044338.843:1793707044365.2788",
+              "range": {
+                "startLine": 80,
+                "endLine": 106,
+                "totalLines": 107
+              },
+              "nextRead": {
+                "path": "packages/cli/__tests__/verify-01.test.js",
+                "offset": 107,
+                "limit": 27
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 3034,
+                "end": 3853,
+                "total": 3853
+              },
+              "hashed": false,
+              "content": "      expect(profile.windowAssumed).toBe(true);\n      expect(profile.windowSource).toBe(\"legacy-catalog\");\n      expect(profile.advertisedMaxOutputTokens).toBeNull();\n      expect(profile.runtimeVerified).toBe(false);\n    }\n  });\n\n  it(\"keeps an unknown volcengine window an assumed estimate at either endpoint\", () => {\n    for (const baseUrl of [\n      \"https://api.volcengine.com/v1\",\n      \"https://gateway.example/v1\",\n    ]) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"volcengine\",\n        model: \"doubao-seed-future-999999\",\n        baseUrl,\n      });\n      expect(profile).toMatchObject({\n        windowSource: \"provider-default\",\n        windowAssumed: true,\n        runtimeVerified: false,\n        advertisedMaxOutputTokens: null,\n        sources: [],\n      });\n    }\n  });\n});",
+              "readRecovery": {
+                "action": "targeted-review"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707135746,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-01.test.js",
+                    "offset": 80,
+                    "limit": 27
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 3,
+                "sessionId": "headless-1793706952993-2148",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-01.test.js",
+                    "offset": 80,
+                    "limit": 27
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 1176,
+              "output_tokens": 143,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 13525,
+              "output_tokens": 156,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 7078,
+              "output_tokens": 7711,
+              "cache_read_input_tokens": 12288,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 17096,
+              "output_tokens": 151,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3212,
+              "output_tokens": 211,
+              "cache_read_input_tokens": 16384,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3921,
+              "output_tokens": 79,
+              "cache_read_input_tokens": 16384,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6730,
+              "output_tokens": 250,
+              "cache_read_input_tokens": 16384,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5400,
+              "output_tokens": 222,
+              "cache_read_input_tokens": 18432,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3976,
+              "output_tokens": 165,
+              "cache_read_input_tokens": 20736,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 20264,
+              "output_tokens": 817,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 1441,
+              "output_tokens": 160,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 13807,
+              "output_tokens": 115,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6797,
+              "output_tokens": 334,
+              "cache_read_input_tokens": 12288,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3267,
+              "output_tokens": 78,
+              "cache_read_input_tokens": 16384,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4795,
+              "output_tokens": 2118,
+              "cache_read_input_tokens": 17664,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5958,
+              "output_tokens": 163,
+              "cache_read_input_tokens": 19200,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 25450,
+              "output_tokens": 815,
+              "cache_read_input_tokens": 0,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 143893,
+          "output_tokens": 13688,
+          "cache_read_input_tokens": 178432
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 17,
+        "estimatedCostUSD": 0.026475708000000004,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "The file `verify-01.test.js` is already complete and valid (107 lines, ends with the closing `});` of the describe block and test 5). I have now audited all its assertions against the actual frozen implementation.\n\nThe deliverable is already written and correct. No implementation defect was found — the frozen `model-capabilities.js` correctly isolates official certification behind `isOfficialModelBaseUrl`, so the tests are valid positive/negative controls rather than failing assertions. Since no defect exists, no source change is permitted or needed (only the deliverable file is mutable anyway).\n\nI've confirmed:\n- Import path `../src/lib/model-capabilities.js` resolves correctly from the deliverable directory.\n- All 5 test cases map to the 3 explicit requirements and within the 6-case cap.\n- No source text assertions; all assert observable profile fields on the real production call path.\n\nI'll now provide the terminal account. No further file changes are needed — the deliverable is complete.\n\n## Completion Report\n\n**Deliverable**: `packages/cli/__tests__/verify-01.test.js` (only authorized mutable path) is complete with 5 independent Vitest cases, already present and audited against the frozen source.\n\n**Requirement → assertion mapping** (validated against `model-context-catalog.js` and `model-capabilities.js`):\n\n1. **分别输入官方与自定义 endpoint / 同名模型不得共享官方认证**\n   - *Official openai endpoint positive control* (case 1): `gpt-4o` + `baseUrl: \"https://api.openai.com/v1\"` → `isOfficialModelBaseUrl` returns true → `documented` applies → asserts `windowSource:\"official-model-docs\"`, `windowAssumed:false`, `advertisedMaxOutputTokens:16384`, non-empty `sources`.\n   - *Same-name custom gateway negative control* (case 2): identical provider/model, only `baseUrl` changed to `https://gateway.example/v1` → `officialEndpoint=false` → `documented` null → asserts `windowAssumed:true`, `windowSource:\"legacy-catalog\"`, `advertisedMaxOutputTokens:null`, `sources:[]`, limitation `/not applied to a custom endpoint/`, and explicit `official.windowAssumed !== custom.windowAssumed`. Only the endpoint condition differs, so no other guard can mask this check.\n   - *Volcengine no-fabrication pair* (cases 3–4): `doubao-seed-1-6-251015` at official and custom endpoints both remain `legacy-catalog` + `windowAssumed:true` + `advertisedMaxOutputTokens:null`, proving no official certification is invented for a provider without a documented catalog.\n\n2. **未知窗口保留未知** (case 5): unknown model `doubao-seed-future-999999` at both endpoints stays `provider-default` + `windowAssumed:true` + `runtimeVerified:false` + empty `sources` — the unknown window is never converted to a documented/verified value.\n\n**Independent-condition audit**: The single behavioral guard is `isOfficialModelBaseUrl`, which gates the `documented` branch. Positive (case 1) and negative (case 2) controls reach that same boundary with identical other prerequisites, differing only in baseUrl. All conditions are covered; none inferred from an unrelated rejection.\n\n**Implementation defect check**: none. The frozen implementation correctly isolates official certification behind the exact-endpoint match, so all assertions pass against real behavior. No source change was needed (and none is permitted).\n\n**Limitations**: No execution tools were available; I could not run the tests. This is static inspection/audit only — I do not claim the tests passed. Native generation does not imply native test execution; the independent checker runs them later.",
+          "session_id": "headless-1793706952993-2148",
+          "num_turns": 17,
+          "duration_ms": 195165,
+          "usage": {
+            "input_tokens": 143893,
+            "output_tokens": 13688,
+            "cache_read_input_tokens": 178432,
+            "cache_creation_input_tokens": 0
+          },
+          "total_cost_usd": 0.026475708000000004,
+          "compaction_degradations": [
+            {
+              "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+              "summary_mode": "none"
+            },
+            {
+              "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+              "summary_mode": "none"
+            },
+            {
+              "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+              "summary_mode": "none"
+            },
+            {
+              "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+              "summary_mode": "none"
+            },
+            {
+              "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+              "summary_mode": "none"
+            },
+            {
+              "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+              "summary_mode": "none"
+            },
+            {
+              "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+              "summary_mode": "none"
+            }
+          ]
+        },
+        "scopePathComparison": "windows-case-insensitive; raw stream retained"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 17,
+        "usageCompleteRequests": 17,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateAcceptancePassed": true,
+      "passed": true,
+      "generationAssessment": {
+        "passed": true,
+        "originalGenerationPassed": true,
+        "originalTerminalVerified": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 143893,
+            "outputTokens": 13688,
+            "cacheReadInputTokens": 178432,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": 0.026475708000000004
+        },
+        "dialect": "one-shot"
+      },
+      "sourceScopePassed": true,
+      "unexpectedChanges": [],
+      "frozenSourceAssessment": {
+        "exact": true,
+        "contentVerified": true,
+        "filenameEncoding": "utf8"
+      },
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-01-setup-8f0b3c71-3619-4c78-80b0-f66ca7cf060b.json",
+        "receiptDigest": "sha256:3b7c6da5034c27c021883021d9705c6424704ca214e1764f2dea431e9ca9a715",
+        "scriptDigest": "sha256:74e3fc2333f3ef9ee1b0416a5db920786d078a0f9caec9d7253e44aa4120421d",
+        "receiptPath": "pack/acceptance-evidence/verify-01-setup-8f0b3c71-3619-4c78-80b0-f66ca7cf060b.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 75,
+            "passed": 75,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-01-check-ec6a0adc-8f85-4671-97c5-05a843094ebb.json",
+        "receiptDigest": "sha256:1a19499dd0b1016d6743132b8c8df34fbc7015e5f0dd83cb395e5179c66c80b1",
+        "scriptDigest": "sha256:1581d3e2ce0a0ce037f84f7a606e9c35043e72088b30e4d24d14ed42066f86fa",
+        "receiptPath": "pack/acceptance-evidence/verify-01-check-ec6a0adc-8f85-4671-97c5-05a843094ebb.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 75,
+            "passed": 75,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 5,
+            "passed": 5,
+            "failed": 0
+          }
+        ],
+        "mutations": [
+          {
+            "name": "custom-endpoint-inherits-official-profile",
+            "sourceSha256": "7b9f578314b4856f00231a9a88e69385cedfc29ce9b393e613d72f5dcca757b9",
+            "total": 5,
+            "passed": 4,
+            "failed": 1
+          }
+        ]
+      },
+      "finishedAt": "2026-11-03T15:19:30.469Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "first-run-win32-cli"
+  ],
+  "passed": true,
+  "finishedAt": "2026-11-03T15:19:30.472Z"
+}

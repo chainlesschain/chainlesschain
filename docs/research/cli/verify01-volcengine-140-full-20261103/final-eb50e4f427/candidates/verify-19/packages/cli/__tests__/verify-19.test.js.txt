@@ -1,0 +1,168 @@
+/**
+ * verify-19 —「取消审批迟到回调」
+ *
+ * Behavioral regression coverage for the approval-grant ledger, which is the
+ * unit where a late/cancelled acceptance could otherwise authorize a *new*
+ * request. Two acceptance criteria are exercised through the public
+ * `ApprovalGrantLedger` surface (import resolved relative to this file):
+ *
+ *   1. 正常接受仅绑定原请求 — an acceptance grants *only* the original
+ *      request's permission (other permissions offered in the same verdict are
+ *      not granted) and records the original request's binding on that grant.
+ *   2. 取消后迟到接受不能授权新请求 — a grant that has been cancelled
+ *      (revoked) no longer authorizes a subsequent request; it is not
+ *      resurrected by a persistence round-trip, and a turn-scoped acceptance
+ *      is not persisted to the session ledger.
+ *
+ * No source is modified. Import path is relative to this deliverable:
+ * `../src/lib/approval-grant-ledger.js`.
+ */
+import { describe, it, expect } from "vitest";
+import {
+  ApprovalGrantLedger,
+  approvalPermissionForContext,
+} from "../src/lib/approval-grant-ledger.js";
+
+const NOW = 1_700_000_000_000;
+
+function makeLedger(sessionId = "sess-19") {
+  return new ApprovalGrantLedger({ sessionId, now: () => NOW });
+}
+
+describe("verify-19 — 取消审批迟到回调", () => {
+  it("正常接受仅授权原请求所需权限（其余候选不被授予）", () => {
+    const ledger = makeLedger();
+    const original = approvalPermissionForContext(
+      { tool: "shell", args: { command: "ls" } },
+      { cwd: "/work" },
+    );
+    // A different tool call in the same session → different args → different
+    // scope → a genuinely different permission that must NOT be granted.
+    const other = approvalPermissionForContext(
+      { tool: "shell", args: { command: "rm -rf /" } },
+      { cwd: "/work" },
+    );
+
+    const applied = ledger.applyDecision(
+      { kind: "acceptForSession", permissions: [other, original] },
+      original,
+      "binding-original",
+    );
+
+    expect(applied.granted).toEqual([original]);
+    // Only the original request's permission is authorized; the other offered
+    // permission is untouched even though the verdict mentioned it.
+    expect(ledger.allows(original)).toBe(true);
+    expect(ledger.allows(other)).toBe(false);
+  });
+
+  it("正常接受将原请求绑定记录在授权项上", () => {
+    const ledger = makeLedger();
+    const original = approvalPermissionForContext(
+      { tool: "shell", args: { command: "ls" } },
+      { cwd: "/work" },
+    );
+
+    ledger.applyDecision(
+      { kind: "acceptForSession", permissions: [original] },
+      original,
+      "binding-original",
+    );
+
+    const grants = ledger.listGrants();
+    expect(grants).toHaveLength(1);
+    expect(grants[0].binding).toBe("binding-original");
+    // Binding survives serialization (persistence) unchanged.
+    expect(ledger.toJSON().grants[0].binding).toBe("binding-original");
+  });
+
+  it("改变参数的新请求不被已绑定授权项覆盖（仅绑定原请求）", () => {
+    const ledger = makeLedger();
+    const original = approvalPermissionForContext(
+      { tool: "shell", args: { command: "ls" } },
+      { cwd: "/work" },
+    );
+    // Change ONLY the args of the follow-up request; cwd/tool/policy stay valid.
+    const differentArgs = approvalPermissionForContext(
+      { tool: "shell", args: { command: "ls -la" } },
+      { cwd: "/work" },
+    );
+
+    ledger.applyDecision(
+      { kind: "acceptForSession", permissions: [original] },
+      original,
+      "binding-original",
+    );
+
+    expect(ledger.allows(original)).toBe(true);
+    // A new request with different args is NOT authorized: the grant is bound
+    // to the original request only.
+    expect(ledger.allows(differentArgs)).toBe(false);
+  });
+
+  it("取消（撤销）后的授权项不再授权后续请求", () => {
+    const ledger = makeLedger();
+    const original = approvalPermissionForContext(
+      { tool: "shell", args: { command: "ls" } },
+      { cwd: "/work" },
+    );
+
+    ledger.applyDecision(
+      { kind: "acceptForSession", permissions: [original] },
+      original,
+      "binding-original",
+    );
+    const grantId = ledger.listGrants()[0].grantId;
+
+    // Cancellation (revoke) succeeds and removes the grant.
+    expect(ledger.revoke(grantId).revoked).toBe(true);
+    expect(ledger.listGrants()).toEqual([]);
+    // A subsequent (even identical) request is NOT authorized: the cancelled
+    // acceptance cannot authorize a new request.
+    expect(ledger.allows(original)).toBe(false);
+  });
+
+  it("被取消的授权项不会因持久化往返而复活", () => {
+    const ledger = makeLedger();
+    const original = approvalPermissionForContext(
+      { tool: "shell", args: { command: "ls" } },
+      { cwd: "/work" },
+    );
+    const sessionId = "sess-19";
+
+    ledger.applyDecision(
+      { kind: "acceptForSession", permissions: [original] },
+      original,
+      "binding-original",
+    );
+    ledger.revoke(ledger.listGrants()[0].grantId);
+
+    // Persist the post-revoke ledger and reload it: the revoked grant is gone.
+    const restored = ApprovalGrantLedger.fromJSON(ledger.toJSON(), {
+      sessionId,
+      now: () => NOW,
+    });
+    expect(restored.listGrants()).toEqual([]);
+    expect(restored.allows(original)).toBe(false);
+  });
+
+  it("turn 级接受不写入会话授权，不覆盖新请求", () => {
+    const ledger = makeLedger();
+    const original = approvalPermissionForContext(
+      { tool: "shell", args: { command: "ls" } },
+      { cwd: "/work" },
+    );
+
+    const applied = ledger.applyDecision(
+      { kind: "acceptForTurn", permissions: [original] },
+      original,
+      "binding-turn",
+    );
+    expect(applied.persistedScope).toBe(false);
+    // Available within the turn…
+    expect(ledger.allows(original)).toBe(true);
+    // …but not persisted as a session grant, so it cannot authorize a new
+    // session's request.
+    expect(ledger.toJSON().grants).toEqual([]);
+  });
+});

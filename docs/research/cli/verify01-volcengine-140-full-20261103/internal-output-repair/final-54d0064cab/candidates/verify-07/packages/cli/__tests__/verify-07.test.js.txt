@@ -1,0 +1,113 @@
+// verify-07: 持久正文分页边界 (persistent-transcript paging boundary).
+// Independent regression coverage for cross-page head/tail cursor navigation:
+// the newest page must retain the final message, older pages must not repeat
+// the boundary row (exclusive `before` bound), and walking every nextCursor
+// (and the incremental `after` cursor) must reconstruct each message exactly
+// once without omitting or duplicating boundary events.
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+const root = mkdtempSync(join(tmpdir(), "cc-verify-07-"));
+vi.mock("../src/lib/paths.js", () => ({
+  getHomeDir: () => join(root, "home"),
+  getClaudeProjectStorageDir: () => null,
+  getStatePath: () => join(root, "home", "state"),
+  getMachineSecurityAnchorDir: () => join(root, "security"),
+}));
+const store = await import("../src/harness/jsonl-session-store.js");
+const { readSessionTranscriptHistory } = await import(
+  "../src/lib/session-transcript-history.js"
+);
+
+afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+// Each "turn" contributes one user message and one assistant message, so a
+// session started with `turns` has 2*turns messages with contiguous ordinals
+// 0..(2*turns-1). With 6 turns the messages are
+// q-0,a-0,q-1,a-1,q-2,a-2,q-3,a-3,q-4,a-4,q-5,a-5 (ordinals 0..11).
+function start(id, turns) {
+  store.startSession(id, { provider: "test", model: "test" });
+  for (let i = 0; i < turns; i++) {
+    store.appendUserMessage(id, `q-${i}`);
+    store.appendAssistantMessage(id, `a-${i}`);
+  }
+}
+
+function texts(page) {
+  return page.messages.map((m) => m.text);
+}
+
+// Independent conditions under test:
+//   C1 final content retained on the newest page (no omitted final body).
+//   C2 non-incremental cross-page boundary is exclusive (no duplicated row).
+//   C3 paging threshold hasMore accepted boundary / first rejected value.
+//   C5 head/tail termination (nextCursor null and hasMore false at both ends).
+// Note: the incremental `after` path is a delta stream seeded by the latest
+// page's syncCursor (starting at offset = eventCount) and is not a forward
+// paginator over existing rows, so it is out of scope for this boundary test.
+describe("persistent-transcript paging boundary", () => {
+  it("C1/C5 newest page keeps the final message and opens a cursor to older rows", () => {
+    const id = "verify07-final-retained";
+    start(id, 6); // 12 messages, ordinals 0..11
+    const tail = readSessionTranscriptHistory(id, { limit: 4 });
+    // Newest four rows are the tail page: ordinals 8,9,10,11 (q-4,a-4,q-5,a-5).
+    expect(texts(tail)).toEqual(["q-4", "a-4", "q-5", "a-5"]);
+    expect(tail.messages[tail.messages.length - 1].text).toBe("a-5");
+    expect(tail.hasMore).toBe(true);
+    expect(tail.nextCursor).toBeTruthy();
+  });
+
+  it("C1/C5 walking the head/tail cursor chain reconstructs every message exactly once", () => {
+    const id = "verify07-no-omit-no-dup";
+    start(id, 6);
+    const full = readSessionTranscriptHistory(id, { limit: 100 });
+    const expected = texts(full); // newest-first: [a-5,q-5,a-4,q-4,...,q-0]
+    const collected = [];
+    let cursor = null;
+    let terminal = null;
+    do {
+      const page = readSessionTranscriptHistory(id, { limit: 4, cursor });
+      collected.push(...texts(page));
+      terminal = page;
+      cursor = page.nextCursor;
+    } while (cursor);
+    expect(collected).toEqual(expected); // no omitted message
+    expect(new Set(collected).size).toBe(collected.length); // no duplicate
+    // The final page reached the head and terminates the chain.
+    expect(terminal.nextCursor).toBeNull();
+    expect(terminal.hasMore).toBe(false);
+  });
+
+  it("C2 the `before` cursor is exclusive: the next page never repeats the boundary row", () => {
+    const id = "verify07-exclusive-boundary";
+    start(id, 6);
+    const tail = readSessionTranscriptHistory(id, { limit: 4 });
+    const older = readSessionTranscriptHistory(id, {
+      limit: 4,
+      cursor: tail.nextCursor,
+    });
+    const tailTexts = texts(tail);
+    const olderTexts = texts(older);
+    // Disjoint pages: the boundary row (oldest of the tail page, ordinal 8)
+    // must not appear again on the following page.
+    expect(tailTexts.some((t) => olderTexts.includes(t))).toBe(false);
+    expect(olderTexts).toEqual(["q-2", "a-2", "q-3", "a-3"]); // ordinals 4..7
+  });
+
+  it("C3 hasMore accepts a single full page and rejects the first value needing paging", () => {
+    const id = "verify07-hasmore-boundary";
+    start(id, 6); // 12 messages
+    // Accepted boundary: the whole session fits on one page.
+    const full = readSessionTranscriptHistory(id, { limit: 12 });
+    expect(texts(full)).toHaveLength(12);
+    expect(full.hasMore).toBe(false);
+    expect(full.nextCursor).toBeNull();
+    expect(full.messages[0].text).toBe("a-5"); // final body retained
+    // First rejected value: one less than the count forces a second page.
+    const first = readSessionTranscriptHistory(id, { limit: 11 });
+    expect(first.hasMore).toBe(true);
+    expect(first.nextCursor).toBeTruthy();
+  });
+});

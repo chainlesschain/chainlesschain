@@ -1,0 +1,115 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { applyMemoryCommand } from "@chainlesschain/context-memory-kernel";
+import { createDurableMemoryFixture } from "../scripts/persistent-capacity-benchmark.mjs";
+import {
+  SegmentedMemoryPort,
+  SEGMENTED_STORE_SCHEMA,
+} from "../src/lib/context-memory-kernel/segmented-memory-port.js";
+
+const roots = [];
+function location() {
+  const root = mkdtempSync(join(tmpdir(), "cc-verify21-shadow-"));
+  roots.push(root);
+  return join(root, "authority.json");
+}
+function reinforce(record) {
+  return applyMemoryCommand(record, {
+    type: "reinforce",
+    expectedRevision: record.revision,
+    confidenceDelta: 0.01,
+    authority: "verify21",
+    at: "2026-10-04T00:00:00.000Z",
+  });
+}
+afterEach(() => {
+  vi.restoreAllMocks();
+  while (roots.length) rmSync(roots.pop(), { recursive: true, force: true });
+});
+
+describe("memory shadow read performs no writes", () => {
+  it("v1 shadow query and export leave authority bytes and entries unchanged (no migration)", async () => {
+    const filePath = location();
+    const state = createDurableMemoryFixture(2);
+    writeFileSync(filePath, JSON.stringify(state));
+    const before = readFileSync(filePath);
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.query()).toHaveLength(2);
+    await shadow.exportSnapshot();
+    expect(readFileSync(filePath)).toEqual(before);
+    // No migration: the v2 shard directory must never be created by a shadow read.
+    expect(existsSync(shadow.shardDirectory)).toBe(false);
+  });
+
+  it("without the shadow guard a v1 read migrates the authority to v2", async () => {
+    const filePath = location();
+    const state = createDurableMemoryFixture(2);
+    writeFileSync(filePath, JSON.stringify(state));
+    const writer = new SegmentedMemoryPort({ filePath });
+    await writer.query();
+    expect(JSON.parse(readFileSync(filePath)).schema).toBe(SEGMENTED_STORE_SCHEMA);
+    expect(existsSync(writer.shardDirectory)).toBe(true);
+  });
+
+  it("v2 shadow query retains orphan shards and leaves directory and bytes unchanged (no GC)", async () => {
+    const filePath = location();
+    const port = new SegmentedMemoryPort({ filePath });
+    await port.importSnapshot(createDurableMemoryFixture(2));
+    const orphan = join(port.shardDirectory, `00-${"a".repeat(64)}.json`);
+    writeFileSync(orphan, "orphan");
+    const before = readFileSync(filePath);
+    const beforeDir = readdirSync(port.shardDirectory).sort();
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.query()).toHaveLength(2);
+    expect(readFileSync(orphan, "utf8")).toBe("orphan");
+    expect(readFileSync(filePath)).toEqual(before);
+    expect(readdirSync(port.shardDirectory).sort()).toEqual(beforeDir);
+  });
+
+  it("without the shadow guard a v2 read collects orphan shards", async () => {
+    const filePath = location();
+    const port = new SegmentedMemoryPort({ filePath });
+    await port.importSnapshot(createDurableMemoryFixture(2));
+    const orphan = join(port.shardDirectory, `00-${"a".repeat(64)}.json`);
+    writeFileSync(orphan, "orphan");
+    await port.query();
+    expect(existsSync(orphan)).toBe(false);
+  });
+
+  it("v2 shadow point read opens only its bucket and leaves the authority unchanged", async () => {
+    const filePath = location();
+    const state = createDurableMemoryFixture(300);
+    const port = new SegmentedMemoryPort({ filePath });
+    await port.importSnapshot(state);
+    const before = readFileSync(filePath);
+    const record = Object.values(state.records)[123];
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    const spy = vi.spyOn(shadow, "_readShard");
+    expect(await shadow.read(record.memoryId)).toEqual(record);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(readFileSync(filePath)).toEqual(before);
+  });
+
+  it("shadow rejects write APIs with READ_ONLY and leaves the authority unchanged", async () => {
+    const filePath = location();
+    const state = createDurableMemoryFixture(1);
+    const port = new SegmentedMemoryPort({ filePath });
+    await port.importSnapshot(state);
+    const before = readFileSync(filePath);
+    const record = Object.values(state.records)[0];
+    const transition = reinforce(record);
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    await expect(shadow.commit(transition, record.revision)).rejects.toMatchObject({
+      code: "CONTEXT_MEMORY_READ_ONLY",
+    });
+    await expect(
+      shadow.putReconciliation({
+        requestId: "verify21-reconcile",
+        status: "pending",
+      }),
+    ).rejects.toMatchObject({ code: "CONTEXT_MEMORY_READ_ONLY" });
+    expect(readFileSync(filePath)).toEqual(before);
+  });
+});

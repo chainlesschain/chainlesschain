@@ -1,0 +1,117 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-21",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 19,
+      "passed": 19,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 127,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 2869,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":19,\"numPassedTests\":19,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793719533053,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority reports post-publication failure when durable removal of superseded shards cannot be synced\",\"status\":\"passed\",\"title\":\"reports post-publication failure when durable removal of superseded shards cannot be synced\",\"duration\":15.239970999999969,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority exports concentrated legacy audit without an argument-count limit\",\"status\":\"passed\",\"title\":\"exports concentrated legacy audit without an argument-count limit\",\"duration\":1042.5607650000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority keeps the manifest bound independent from smaller bucket limits on reopen\",\"status\":\"passed\",\"title\":\"keeps the manifest bound independent from smaller bucket limits on reopen\",\"duration\":35.615663999999924,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority rejects a symlink or junction parent before creating authority directories through it\",\"status\":\"passed\",\"title\":\"rejects a symlink or junction parent before creating authority directories through it\",\"duration\":0.8188890000001265,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority never confuses inherited object keys with stored record or reconciliation entries\",\"status\":\"passed\",\"title\":\"never confuses inherited object keys with stored record or reconciliation entries\",\"duration\":3.8143770000001496,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority keeps shadow reads write-free for v1 and v2, including orphan collection\",\"status\":\"passed\",\"title\":\"keeps shadow reads write-free for v1 and v2, including orphan collection\",\"duration\":15.512341000000106,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority validates a captured generation after concurrent commit and GC without mixing generations\",\"status\":\"passed\",\"title\":\"validates a captured generation after concurrent commit and GC without mixing generations\",\"duration\":21.022993999999926,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority migrates v1 losslessly, preserves global audit order and rejects old writers\",\"status\":\"passed\",\"title\":\"migrates v1 losslessly, preserves global audit order and rejects old writers\",\"duration\":48.25841700000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority commits record, event and differently sharded reconciliation atomically; rejects stale CAS\",\"status\":\"passed\",\"title\":\"commits record, event and differently sharded reconciliation atomically; rejects stale CAS\",\"duration\":13.87346000000025,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority preserves old authority and removes unpublished shards on migration rename failure\",\"status\":\"passed\",\"title\":\"preserves old authority and removes unpublished shards on migration rename failure\",\"duration\":27.951246999999967,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority preserves old authority and removes unpublished shards on commit rename failure\",\"status\":\"passed\",\"title\":\"preserves old authority and removes unpublished shards on commit rename failure\",\"duration\":9.279943000000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority enforces maxTotalBytes before replacing authority\",\"status\":\"passed\",\"title\":\"enforces maxTotalBytes before replacing authority\",\"duration\":5.1290610000000925,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority enforces maxEvents before replacing authority\",\"status\":\"passed\",\"title\":\"enforces maxEvents before replacing authority\",\"duration\":4.258393000000069,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority enforces maxStoreBytes before replacing authority\",\"status\":\"passed\",\"title\":\"enforces maxStoreBytes before replacing authority\",\"duration\":3.7705810000002202,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority reports published state after post-rename fsync failure and never replays stale CAS\",\"status\":\"passed\",\"title\":\"reports published state after post-rename fsync failure and never replays stale CAS\",\"duration\":8.714473999999882,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority reports published state after post-rename gc failure and never replays stale CAS\",\"status\":\"passed\",\"title\":\"reports published state after post-rename gc failure and never replays stale CAS\",\"duration\":8.587242999999944,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority detects corrupt shards and hard-linked authorities without mutating them\",\"status\":\"passed\",\"title\":\"detects corrupt shards and hard-linked authorities without mutating them\",\"duration\":2.5489370000000235,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority collects crash leftovers under the authority lock and retains unknown files\",\"status\":\"passed\",\"title\":\"collects crash leftovers under the authority lock and retains unknown files\",\"duration\":2.912203000000318,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority point reads only open their hash bucket; listing retains production sort semantics\",\"status\":\"passed\",\"title\":\"point reads only open their hash bucket; listing retains production sort semantics\",\"duration\":77.28325300000006,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793719534181,\"endTime\":1793719535528.2832,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/segmented-memory-port.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1627,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793719535934,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"memory shadow read performs no writes\"],\"fullName\":\"memory shadow read performs no writes v1 shadow query and export leave authority bytes and entries unchanged (no migration)\",\"status\":\"passed\",\"title\":\"v1 shadow query and export leave authority bytes and entries unchanged (no migration)\",\"duration\":19.472056000000066,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"memory shadow read performs no writes\"],\"fullName\":\"memory shadow read performs no writes without the shadow guard a v1 read migrates the authority to v2\",\"status\":\"passed\",\"title\":\"without the shadow guard a v1 read migrates the authority to v2\",\"duration\":4.934069000000136,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"memory shadow read performs no writes\"],\"fullName\":\"memory shadow read performs no writes v2 shadow query retains orphan shards and leaves directory and bytes unchanged (no GC)\",\"status\":\"passed\",\"title\":\"v2 shadow query retains orphan shards and leaves directory and bytes unchanged (no GC)\",\"duration\":7.642630999999938,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"memory shadow read performs no writes\"],\"fullName\":\"memory shadow read performs no writes without the shadow guard a v2 read collects orphan shards\",\"status\":\"passed\",\"title\":\"without the shadow guard a v2 read collects orphan shards\",\"duration\":3.777810000000045,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"memory shadow read performs no writes\"],\"fullName\":\"memory shadow read performs no writes v2 shadow point read opens only its bucket and leaves the authority unchanged\",\"status\":\"passed\",\"title\":\"v2 shadow point read opens only its bucket and leaves the authority unchanged\",\"duration\":105.42542900000012,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"memory shadow read performs no writes\"],\"fullName\":\"memory shadow read performs no writes shadow rejects write APIs with READ_ONLY and leaves the authority unchanged\",\"status\":\"passed\",\"title\":\"shadow rejects write APIs with READ_ONLY and leaves the authority unchanged\",\"duration\":5.712327999999843,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793719537037,\"endTime\":1793719537183.7124,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-21.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js"
+      ],
+      "setup": false,
+      "ms": 150,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1694,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":5,\"numFailedTests\":1,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793719537722,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"memory shadow read performs no writes\"],\"fullName\":\"memory shadow read performs no writes v1 shadow query and export leave authority bytes and entries unchanged (no migration)\",\"status\":\"passed\",\"title\":\"v1 shadow query and export leave authority bytes and entries unchanged (no migration)\",\"duration\":19.308870999999954,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"memory shadow read performs no writes\"],\"fullName\":\"memory shadow read performs no writes without the shadow guard a v1 read migrates the authority to v2\",\"status\":\"passed\",\"title\":\"without the shadow guard a v1 read migrates the authority to v2\",\"duration\":4.829221000000189,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"memory shadow read performs no writes\"],\"fullName\":\"memory shadow read performs no writes v2 shadow query retains orphan shards and leaves directory and bytes unchanged (no GC)\",\"status\":\"failed\",\"title\":\"v2 shadow query retains orphan shards and leaves directory and bytes unchanged (no GC)\",\"duration\":8.101230000000214,\"failureMessages\":[\"Error: ENOENT: no such file or directory, open '/tmp/cc-verify21-shadow-jfgzHJ/authority.json.shards/00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.json'\\n    at readFileSync (node:fs:441:20)\\n    at /workspace/packages/cli/__tests__/verify-21.test.js:66:24\\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"memory shadow read performs no writes\"],\"fullName\":\"memory shadow read performs no writes without the shadow guard a v2 read collects orphan shards\",\"status\":\"passed\",\"title\":\"without the shadow guard a v2 read collects orphan shards\",\"duration\":5.098825999999917,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"memory shadow read performs no writes\"],\"fullName\":\"memory shadow read performs no writes v2 shadow point read opens only its bucket and leaves the authority unchanged\",\"status\":\"passed\",\"title\":\"v2 shadow point read opens only its bucket and leaves the authority unchanged\",\"duration\":106.15245800000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"memory shadow read performs no writes\"],\"fullName\":\"memory shadow read performs no writes shadow rejects write APIs with READ_ONLY and leaves the authority unchanged\",\"status\":\"passed\",\"title\":\"shadow rejects write APIs with READ_ONLY and leaves the authority unchanged\",\"duration\":5.8947729999999865,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793719538872,\"endTime\":1793719539021.8948,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-21.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "mutant failure must include an assertion, not a syntax/import/runner error"
+}

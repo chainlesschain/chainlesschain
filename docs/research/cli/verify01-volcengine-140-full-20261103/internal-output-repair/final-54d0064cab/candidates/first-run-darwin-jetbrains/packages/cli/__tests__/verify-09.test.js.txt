@@ -1,0 +1,104 @@
+import { describe, expect, it } from "vitest";
+import {
+  createSessionHistoryOrigins,
+  HISTORY_PREFIX_SCHEMA,
+} from "../src/lib/session-history-origins.js";
+
+const goodHead = "a".repeat(64);
+
+// Build a rewind event whose historyPrefix declares the same source identity
+// as the display history that produced `messages` (each entry appended at its
+// own ordinal), so every guard except the one under test is valid.
+function prefixEvent(messages, retainedMessageCount, override = {}) {
+  return {
+    prevHash: override.prevHash ?? goodHead,
+    data: {
+      action: "restore-conversation",
+      messages: messages.slice(0, retainedMessageCount),
+      historyPrefix: {
+        schema: HISTORY_PREFIX_SCHEMA,
+        sourceHead: override.sourceHead ?? goodHead,
+        sourceMessageCount: override.sourceMessageCount ?? messages.length,
+        retainedMessageCount,
+      },
+    },
+  };
+}
+
+function seeded(messages) {
+  const origins = createSessionHistoryOrigins();
+  messages.forEach((message, index) => origins.appendPersisted(message, index));
+  return origins;
+}
+
+describe("history source tampering is rejected", () => {
+  it("reads a correct source: a valid rewind returns the user cutoff", () => {
+    const messages = [
+      { role: "user", content: "first" },
+      { role: "assistant", content: "answer" },
+      { role: "user", content: "cut" },
+    ];
+    const origins = seeded(messages);
+    expect(origins.rewind(prefixEvent(messages, 2), 3)).toBe(2);
+  });
+
+  it("rejects a rewritten sourceHead that no longer matches the event hash", () => {
+    const messages = [
+      { role: "user", content: "first" },
+      { role: "assistant", content: "answer" },
+      { role: "user", content: "cut" },
+    ];
+    const origins = seeded(messages);
+    const tampered = prefixEvent(messages, 2, {
+      sourceHead: "b".repeat(64),
+    });
+    expect(origins.rewind(tampered, 3)).toBeNull();
+  });
+
+  it("rejects a cut whose anchor is not a user message", () => {
+    const messages = [
+      { role: "user", content: "first" },
+      { role: "assistant", content: "answer" },
+    ];
+    const origins = seeded(messages);
+    // Retain only the user so the first removed entry (the anchor) is the
+    // assistant; a non-user anchor cannot be a legitimate rewind cut.
+    expect(origins.rewind(prefixEvent(messages, 1), 2)).toBeNull();
+  });
+
+  it("rejects a declared sourceMessageCount that differs from the tracked context", () => {
+    const messages = [
+      { role: "user", content: "first" },
+      { role: "assistant", content: "answer" },
+      { role: "user", content: "cut" },
+    ];
+    const origins = seeded(messages);
+    const tampered = prefixEvent(messages, 2, { sourceMessageCount: 2 });
+    expect(origins.rewind(tampered, 3)).toBeNull();
+  });
+
+  it("rejects swapped retained content even when the prefix identity is intact", () => {
+    const messages = [
+      { role: "user", content: "first" },
+      { role: "assistant", content: "answer" },
+      { role: "user", content: "cut" },
+    ];
+    const origins = seeded(messages);
+    const tampered = prefixEvent(messages, 2);
+    tampered.data.messages[0] = { role: "user", content: "forged" };
+    expect(origins.rewind(tampered, 3)).toBeNull();
+  });
+
+  it("accepts the retainedMessageCount boundary at 0 and rejects the first value at context length", () => {
+    const messages = [
+      { role: "user", content: "first" },
+      { role: "assistant", content: "answer" },
+    ];
+    const origins = seeded(messages);
+    // Accepted lower boundary: retain nothing, anchor is the first message.
+    expect(origins.rewind(prefixEvent(messages, 0), 2)).toBe(0);
+    const atLength = seeded(messages);
+    // First rejected value: retaining the whole context leaves no anchor.
+    expect(atLength.rewind(prefixEvent(messages, 2), 2)).toBeNull();
+  });
+});

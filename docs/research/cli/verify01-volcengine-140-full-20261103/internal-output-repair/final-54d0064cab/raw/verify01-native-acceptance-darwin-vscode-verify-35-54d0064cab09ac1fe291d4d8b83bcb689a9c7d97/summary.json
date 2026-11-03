@@ -1,0 +1,1257 @@
+{
+  "schema": "chainlesschain.verify01-native-task-acceptance/v1",
+  "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "deliverySourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+  "group": "darwin-vscode",
+  "actualGenerationHost": {
+    "platform": "darwin",
+    "entry": "vscode",
+    "arch": "arm64"
+  },
+  "acceptanceHost": "linux-docker",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+  "sourceSummaryDigest": "sha256:ae50260a2df85bb0e5507d247f9dc9a651332a4612ef742d4577735a3ca6b148",
+  "formalSample": false,
+  "startedAt": "2026-11-03T17:24:03.224Z",
+  "samples": [
+    {
+      "sampleId": "verify-35",
+      "taskId": "verify-35",
+      "kind": "task",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+      "originalGenerationPassed": true,
+      "generationPassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 88999,
+            "outputTokens": 8377,
+            "cacheReadInputTokens": 126976,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-4139013e-f63e-487e-9682-053fa3a1cdb2",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "2cb6fead-25af-4055-b6d3-15de8899689f",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_f5oq1qx7n08o6dh8ppxuef06",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/model-failure-policy.js"
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_nm88znygnbcjy1u416m6rhjy",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/fallback-model.test.js"
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 8
+          },
+          {
+            "type": "tool_use",
+            "id": "call_et0h1d98n92cr93mt2xaka2l",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/abort-utils.js"
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 12
+          },
+          {
+            "type": "tool_use",
+            "id": "call_uer5vqizihn7byrga7letd78",
+            "tool": "search_files",
+            "args": {
+              "pattern": "isTerminalModelFailure|isEvolutionIngressFailure|model-failure-policy",
+              "directory": "packages/cli/__tests__/integration/orchestrator-workflow.test.js"
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 14
+          },
+          {
+            "type": "tool_use",
+            "id": "call_0xukbdxt4o5dph1ie5u8dcuo",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/cli/__tests__/integration/orchestrator-workflow.test.js",
+              "pattern": "isTerminalModelFailure|isEvolutionIngressFailure"
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 18
+          },
+          {
+            "type": "tool_use",
+            "id": "call_8tjf9udhrd0wbku9ugis892x",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-35.test.js",
+              "content": "/**\n * Regression coverage for the model failure classification policy\n * (packages/cli/src/lib/model-failure-policy.js).\n *\n * The contract: an ingress admission failure (evolution code) is a hard\n * rejection; a ledger/workflow/budget/abort failure is terminal and must not be\n * silently retried; a plain transient provider error (HTTP status, retryable\n * phrasing) is NOT terminal and remains eligible for retry. We must never\n * collapse a retryable protocol error into an implicit success.\n */\n\nimport { describe, it, expect } from \"vitest\";\nimport {\n  isEvolutionIngressFailure,\n  isTerminalModelFailure,\n} from \"../src/lib/model-failure-policy.js\";\n\nfunction withCause(cause) {\n  const outer = new Error(\"provider request failed\");\n  outer.cause = cause;\n  return outer;\n}\n\ndescribe(\"isEvolutionIngressFailure\", () => {\n  it(\"is true for a direct ingress admission code and false for a retryable code\", () => {\n    expect(\n      isEvolutionIngressFailure({ code: \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" }),\n    ).toBe(true);\n    // Same shape, only the code differs → not an ingress admission failure.\n    expect(isEvolutionIngressFailure({ code: \"ECONNREFUSED\" })).toBe(false);\n  });\n\n  it(\"detects an ingress code nested in the cause chain, not a transient cause\", () => {\n    const ingress = { code: \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" };\n    expect(isEvolutionIngressFailure(withCause(ingress))).toBe(true);\n    // Identical wrapper, but a plain 503 cause carries no ingress marker.\n    expect(isEvolutionIngressFailure(withCause({ status: 503 }))).toBe(false);\n  });\n});\n\ndescribe(\"isTerminalModelFailure\", () => {\n  it(\"does NOT mark a plain retryable 503 as terminal, but does when ledger persistence fails\", () => {\n    const plain = withCause({ status: 503 });\n    expect(isTerminalModelFailure(plain)).toBe(false);\n    // Only the ledger marker is added; the rest of the chain is unchanged.\n    expect(\n      isTerminalModelFailure(withCause({ status: 503, runtimeLedgerPersistence: true })),\n    ).toBe(true);\n  });\n\n  it(\"is terminal for an unknown workflow effect, not for the same transient error\", () => {\n    expect(isTerminalModelFailure({ status: 503 })).toBe(false);\n    expect(\n      isTerminalModelFailure({ status: 503, workflowEffectOutcomeUnknown: true }),\n    ).toBe(true);\n  });\n\n  it(\"is terminal for a session budget code at the accepted boundary, rejected at the first non-matching prefix\", () => {\n    // Accepted boundary: any CC_/ERR_SESSION_BUDGET_* code.\n    expect(\n      isTerminalModelFailure({ code: \"ERR_SESSION_BUDGET_IN_FLIGHT_LIMIT\" }),\n    ).toBe(true);\n    expect(isTerminalModelFailure({ code: \"CC_SESSION_BUDGET_HARD_LIMIT\" })).toBe(\n      true,\n    );\n    // First rejected value: same body but no CC_/ERR_ budget prefix.\n    expect(isTerminalModelFailure({ code: \"SESSION_BUDGET_IN_FLIGHT_LIMIT\" })).toBe(\n      false,\n    );\n  });\n\n  it(\"is terminal for an abort error but not for a retryable message on the same error\", () => {\n    const aborted = new Error(\"provider 503\");\n    aborted.name = \"AbortError\";\n    expect(isTerminalModelFailure(withCause(aborted))).toBe(true);\n    // Same wrapper; the inner error only carries a retryable message → retryable.\n    expect(isTerminalModelFailure(withCause(new Error(\"provider 503\")))).toBe(\n      false,\n    );\n  });\n});\n"
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 22
+          },
+          {
+            "type": "tool_use",
+            "id": "call_g5ur5r5egoq4j9b0c8sa538m",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-35.test.js"
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 26
+          },
+          {
+            "type": "tool_use",
+            "id": "call_rrvep1y6qz62l84vgrysflbl",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/model-failure-policy.js"
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 33
+          },
+          {
+            "type": "tool_use",
+            "id": "call_jt69gtbefss2wy26gupe5qu2",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/model-failure-policy.js",
+              "offset": 1,
+              "limit": 80
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 37
+          },
+          {
+            "type": "tool_use",
+            "id": "call_bz43iuaheqo93shuee0u0b6g",
+            "tool": "edit_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-35.test.js",
+              "old_string": "  it(\"does NOT mark a plain retryable 503 as terminal, but does when ledger persistence fails\", () => {\n    const plain = withCause({ status: 503 });\n    expect(isTerminalModelFailure(plain)).toBe(false);\n    // Only the ledger marker is added; the rest of the chain is unchanged.\n    expect(\n      isTerminalModelFailure(withCause({ status: 503, runtimeLedgerPersistence: true })),\n    ).toBe(true);\n  });",
+              "new_string": "  it(\"does NOT mark a plain retryable 503 as terminal, but does when ledger persistence or ingress admission fails\", () => {\n    const plain = withCause({ status: 503 });\n    expect(isTerminalModelFailure(plain)).toBe(false);\n    // Only the ledger marker is added; the rest of the chain is unchanged.\n    expect(\n      isTerminalModelFailure(withCause({ status: 503, runtimeLedgerPersistence: true })),\n    ).toBe(true);\n    // The explicit ingress admission rejection is terminal through the same\n    // policy, never silently retried as a provider outage.\n    expect(\n      isTerminalModelFailure({ code: \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" }),\n    ).toBe(true);\n  });"
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 41
+          },
+          {
+            "type": "tool_use",
+            "id": "call_rch38ys3badpb5v2dyywy67a",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-35.test.js"
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 47
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_f5oq1qx7n08o6dh8ppxuef06",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-QYvkIF/300df4d7-01bb-4671-b4a0-e57e45b10ae1/workspace/packages/cli/src/lib/model-failure-policy.js",
+              "fileVersion": "1075:1791108223000:1793718201276.9202",
+              "readSpan": {
+                "start": 0,
+                "end": 1075,
+                "total": 1075
+              },
+              "hashed": false,
+              "content": "import { isAbortError } from \"./abort-utils.js\";\n\nexport function isEvolutionIngressFailure(error) {\n  const visited = new Set();\n  for (let current = error; current; current = current.cause) {\n    if (visited.has(current) || visited.size >= 32) return true;\n    visited.add(current);\n    if (current.code === \"CC_AGENT_EVOLUTION_INGRESS_FAILED\") return true;\n  }\n  return false;\n}\n\n// Admission failures are not provider outages, even when their causes contain\n// HTTP status codes or retryable/authentication words.\nexport function isTerminalModelFailure(error) {\n  const visited = new Set();\n  for (let current = error; current; current = current.cause) {\n    if (visited.has(current) || visited.size >= 32) return true;\n    visited.add(current);\n    if (\n      current.code === \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" ||\n      current.runtimeLedgerPersistence === true ||\n      current.workflowEffectOutcomeUnknown === true ||\n      /^(?:CC|ERR)_SESSION_BUDGET_/u.test(current.code || \"\") ||\n      isAbortError(current)\n    ) {\n      return true;\n    }\n  }\n  return false;\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793718259321,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-failure-policy.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 17,
+                "sessionId": "panel-4139013e-f63e-487e-9682-053fa3a1cdb2",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-failure-policy.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_f5oq1qx7n08o6dh8ppxuef06",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 7
+          },
+          {
+            "type": "tool_result",
+            "id": "call_nm88znygnbcjy1u416m6rhjy",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-QYvkIF/300df4d7-01bb-4671-b4a0-e57e45b10ae1/workspace/packages/cli/__tests__/unit/fallback-model.test.js",
+              "fileVersion": "20072:1791108223000:1793718201044.1775",
+              "readSpan": {
+                "start": 0,
+                "end": 20064,
+                "total": 20064
+              },
+              "hashed": false,
+              "content": "/**\n * Unit tests for --fallback-model. The base chatFn is injected so no real\n * provider is contacted; only the retry/skip logic is exercised.\n */\n\nimport { describe, it, expect, vi } from \"vitest\";\nimport {\n  isRetryableModelError,\n  isModelNotFoundError,\n  normalizeFallbackModels,\n  makeFallbackChatFn,\n  parseFallbackEntry,\n  resolveFallbackTarget,\n} from \"../../src/runtime/fallback-model.js\";\nimport { resolveFallbackModels } from \"../../src/commands/agent.js\";\n\ndescribe(\"isRetryableModelError\", () => {\n  it(\"is true for overload / rate-limit / transient status codes\", () => {\n    expect(isRetryableModelError({ status: 429 })).toBe(true);\n    expect(isRetryableModelError({ status: 503 })).toBe(true);\n    expect(isRetryableModelError({ statusCode: 529 })).toBe(true);\n    expect(isRetryableModelError(new Error(\"Model is overloaded\"))).toBe(true);\n    expect(isRetryableModelError(new Error(\"429 Too Many Requests\"))).toBe(\n      true,\n    );\n    expect(isRetryableModelError(new Error(\"fetch failed\"))).toBe(true);\n    expect(isRetryableModelError({ code: \"ECONNREFUSED\" })).toBe(true);\n  });\n\n  it(\"unwraps a retryable cause\", () => {\n    const err = new Error(\"request failed\");\n    err.cause = { code: \"ETIMEDOUT\" };\n    expect(isRetryableModelError(err)).toBe(true);\n  });\n\n  it(\"is false for non-transient errors and nullish input\", () => {\n    expect(isRetryableModelError(null)).toBe(false);\n    expect(isRetryableModelError(new Error(\"invalid prompt\"))).toBe(false);\n    expect(isRetryableModelError({ status: 400 })).toBe(false);\n    expect(isRetryableModelError({ status: 401 })).toBe(false);\n  });\n});\n\ndescribe(\"makeFallbackChatFn\", () => {\n  it.each([\n    [\"projection\", { code: \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" }],\n    [\"ledger\", { runtimeLedgerPersistence: true }],\n    [\"workflow\", { workflowEffectOutcomeUnknown: true }],\n    [\"budget\", { code: \"ERR_SESSION_BUDGET_IN_FLIGHT_LIMIT\" }],\n    [\"abort\", { name: \"AbortError\" }],\n  ])(\n    \"never retries a nested %s failure even with permissive predicates\",\n    async (_label, marker) => {\n      const terminal = Object.assign(\n        new Error(\"timeout: model not found\"),\n        marker,\n      );\n      const error = Object.assign(\n        new Error(\"provider 503\", { cause: terminal }),\n        {\n          status: 503,\n        },\n      );\n      expect(isRetryableModelError(error)).toBe(false);\n      expect(isModelNotFoundError({ status: 404, cause: terminal })).toBe(\n        false,\n      );\n      for (const afterFallback of [false, true]) {\n        const baseChatFn = vi.fn().mockRejectedValue(error);\n        if (afterFallback)\n          baseChatFn.mockRejectedValueOnce(new Error(\"overloaded\"));\n        const onFallback = vi.fn();\n        const fn = makeFallbackChatFn({\n          fallbackModels: [\"backup\", \"third\"],\n          baseChatFn,\n          onFallback,\n          isRetryable: () => true,\n          isModelNotFound: () => true,\n        });\n        await expect(fn([], { model: \"primary\" })).rejects.toBe(error);\n        expect(baseChatFn).toHaveBeenCalledTimes(afterFallback ? 2 : 1);\n        expect(onFallback).toHaveBeenCalledTimes(afterFallback ? 1 : 0);\n      }\n    },\n  );\n\n  it(\"fails closed on cyclic error causes\", async () => {\n    const error = new Error(\"timeout\");\n    error.cause = error;\n    const baseChatFn = vi.fn().mockRejectedValue(error);\n    await expect(\n      makeFallbackChatFn({ baseChatFn, fallbackModel: \"backup\" })([], {}),\n    ).rejects.toBe(error);\n    expect(baseChatFn).toHaveBeenCalledOnce();\n  });\n\n  it.each([\"workflowEffectId\", \"providerRequestId\"])(\n    \"does not hide another attempt under one %s\",\n    async (field) => {\n      const error = new Error(\"503\");\n      const baseChatFn = vi.fn().mockRejectedValue(error);\n      const fn = makeFallbackChatFn({ baseChatFn, fallbackModel: \"backup\" });\n      await expect(\n        fn([], { model: \"primary\", [field]: \"effect:1\" }),\n      ).rejects.toBe(error);\n      expect(baseChatFn).toHaveBeenCalledOnce();\n    },\n  );\n\n  it.each([\"before-primary\", \"before-backup\"])(\n    \"honors cancellation %s even when it contains a retryable message\",\n    async (when) => {\n      const controller = new AbortController();\n      const cancelled = new Error(\"timeout\");\n      const baseChatFn = vi.fn().mockRejectedValue(new Error(\"503\"));\n      const onFallback = () => controller.abort(cancelled);\n      const fn = makeFallbackChatFn({\n        baseChatFn,\n        fallbackModel: \"backup\",\n        onFallback,\n      });\n      if (when === \"before-primary\") controller.abort(cancelled);\n      await expect(\n        fn([], { model: \"primary\", signal: controller.signal }),\n      ).rejects.toBe(cancelled);\n      expect(baseChatFn).toHaveBeenCalledTimes(\n        when === \"before-primary\" ? 0 : 1,\n      );\n    },\n  );\n\n  it(\"captures strict accounting before the caller mutates options\", async () => {\n    const options = { model: \"primary\", strictUsageTelemetry: true };\n    const error = new Error(\"503\");\n    const baseChatFn = vi.fn(async () => {\n      options.strictUsageTelemetry = false;\n      throw error;\n    });\n    await expect(\n      makeFallbackChatFn({ baseChatFn, fallbackModel: \"backup\" })([], options),\n    ).rejects.toBe(error);\n    expect(baseChatFn).toHaveBeenCalledOnce();\n  });\n\n  it(\"passes through on success without invoking fallback\", async () => {\n    const baseChatFn = vi.fn(async () => ({ message: { content: \"ok\" } }));\n    const onFallback = vi.fn();\n    const fn = makeFallbackChatFn({\n      fallbackModel: \"backup\",\n      baseChatFn,\n      onFallback,\n    });\n    const r = await fn([{ role: \"user\", content: \"hi\" }], { model: \"primary\" });\n    expect(r.message.content).toBe(\"ok\");\n    expect(baseChatFn).toHaveBeenCalledTimes(1);\n    expect(onFallback).not.toHaveBeenCalled();\n  });\n\n  it(\"retries with the fallback model on a retryable error\", async () => {\n    const baseChatFn = vi\n      .fn()\n      .mockRejectedValueOnce(new Error(\"overloaded\"))\n      .mockResolvedValueOnce({ message: { content: \"from-backup\" } });\n    const onFallback = vi.fn();\n    const fn = makeFallbackChatFn({\n      fallbackModel: \"backup\",\n      baseChatFn,\n      onFallback,\n    });\n\n    const r = await fn([], { model: \"primary\", provider: \"ollama\" });\n\n    expect(r.message.content).toBe(\"from-backup\");\n    expect(baseChatFn).toHaveBeenCalledTimes(2);\n    // second call keeps provider but swaps model\n    expect(baseChatFn.mock.calls[1][1]).toMatchObject({\n      model: \"backup\",\n      provider: \"ollama\",\n    });\n    expect(onFallback).toHaveBeenCalledWith({\n      from: \"primary\",\n      to: \"backup\",\n      crossProvider: false,\n      error: \"overloaded\",\n    });\n  });\n\n  it(\"does not issue or announce fallbacks for a strict usage ledger\", async () => {\n    const primaryError = new Error(\"overloaded\");\n    const baseChatFn = vi\n      .fn()\n      .mockRejectedValueOnce(primaryError)\n      .mockResolvedValueOnce({ message: { content: \"must-not-run\" } });\n    const onFallback = vi.fn();\n    const fn = makeFallbackChatFn({\n      fallbackModels: [\"backup-1\", \"backup-2\"],\n      baseChatFn,\n      onFallback,\n    });\n\n    await expect(\n      fn([], {\n        model: \"primary\",\n        provider: \"ollama\",\n        strictUsageTelemetry: true,\n      }),\n    ).rejects.toBe(primaryError);\n\n    expect(baseChatFn).toHaveBeenCalledTimes(1);\n    expect(onFallback).not.toHaveBeenCalled();\n  });\n\n  it(\"does not retry a non-retryable error\", async () => {\n    const baseChatFn = vi.fn().mockRejectedValue(new Error(\"invalid prompt\"));\n    const fn = makeFallbackChatFn({ fallbackModel: \"backup\", baseChatFn });\n    await expect(fn([], { model: \"primary\" })).rejects.toThrow(\n      \"invalid prompt\",\n    );\n    expect(baseChatFn).toHaveBeenCalledTimes(1);\n  });\n\n  it(\"does not retry when fallback equals the primary model\", async () => {\n    const baseChatFn = vi.fn().mockRejectedValue(new Error(\"overloaded\"));\n    const fn = makeFallbackChatFn({ fallbackModel: \"same\", baseChatFn });\n    await expect(fn([], { model: \"same\" })).rejects.toThrow(\"overloaded\");\n    expect(baseChatFn).toHaveBeenCalledTimes(1);\n  });\n\n  it(\"propagates the fallback error when the retry also fails\", async () => {\n    const baseChatFn = vi\n      .fn()\n      .mockRejectedValueOnce(new Error(\"overloaded\"))\n      .mockRejectedValueOnce(new Error(\"backup also 503\"));\n    const fn = makeFallbackChatFn({ fallbackModel: \"backup\", baseChatFn });\n    await expect(fn([], { model: \"primary\" })).rejects.toThrow(\n      \"backup also 503\",\n    );\n    expect(baseChatFn).toHaveBeenCalledTimes(2);\n  });\n\n  it(\"walks an ordered chain until one model succeeds\", async () => {\n    const baseChatFn = vi\n      .fn()\n      .mockRejectedValueOnce(new Error(\"overloaded\")) // primary\n      .mockRejectedValueOnce(new Error(\"503\")) // backup-1\n      .mockResolvedValueOnce({ message: { content: \"from-2\" } }); // backup-2\n    const onFallback = vi.fn();\n    const fn = makeFallbackChatFn({\n      fallbackModels: [\"backup-1\", \"backup-2\"],\n      baseChatFn,\n      onFallback,\n    });\n\n    const r = await fn([], { model: \"primary\", provider: \"ollama\" });\n\n    expect(r.message.content).toBe(\"from-2\");\n    expect(baseChatFn).toHaveBeenCalledTimes(3);\n    expect(baseChatFn.mock.calls[1][1]).toMatchObject({ model: \"backup-1\" });\n    expect(baseChatFn.mock.calls[2][1]).toMatchObject({\n      model: \"backup-2\",\n      provider: \"ollama\",\n    });\n    expect(onFallback).toHaveBeenNthCalledWith(1, {\n      from: \"primary\",\n      to: \"backup-1\",\n      crossProvider: false,\n      error: \"overloaded\",\n    });\n    expect(onFallback).toHaveBeenNthCalledWith(2, {\n      from: \"backup-1\",\n      to: \"backup-2\",\n      crossProvider: false,\n      error: \"503\",\n    });\n  });\n\n  it(\"throws the last error when the whole chain is exhausted\", async () => {\n    const baseChatFn = vi\n      .fn()\n      .mockRejectedValueOnce(new Error(\"overloaded\"))\n      .mockRejectedValueOnce(new Error(\"b1 503\"))\n      .mockRejectedValueOnce(new Error(\"b2 timeout\"));\n    const fn = makeFallbackChatFn({\n      fallbackModels: [\"b1\", \"b2\"],\n      baseChatFn,\n    });\n    await expect(fn([], { model: \"primary\" })).rejects.toThrow(\"b2 timeout\");\n    expect(baseChatFn).toHaveBeenCalledTimes(3);\n  });\n\n  it(\"falls back when the primary model is not found (non-transient)\", async () => {\n    const baseChatFn = vi\n      .fn()\n      .mockRejectedValueOnce(new Error(\"model not found: gpt-old\"))\n      .mockResolvedValueOnce({ message: { content: \"recovered\" } });\n    const fn = makeFallbackChatFn({ fallbackModel: \"backup\", baseChatFn });\n    const r = await fn([], { model: \"gpt-old\" });\n    expect(r.message.content).toBe(\"recovered\");\n    expect(baseChatFn).toHaveBeenCalledTimes(2);\n  });\n\n  it(\"skips a fallback identical to the model just tried\", async () => {\n    const baseChatFn = vi\n      .fn()\n      .mockRejectedValueOnce(new Error(\"overloaded\"))\n      .mockResolvedValueOnce({ message: { content: \"ok\" } });\n    const fn = makeFallbackChatFn({\n      fallbackModels: [\"primary\", \"backup\"], // first dup of primary is skipped\n      baseChatFn,\n    });\n    const r = await fn([], { model: \"primary\" });\n    expect(r.message.content).toBe(\"ok\");\n    // primary (fail) → skip \"primary\" dup → \"backup\" (ok) = 2 calls, not 3\n    expect(baseChatFn).toHaveBeenCalledTimes(2);\n    expect(baseChatFn.mock.calls[1][1]).toMatchObject({ model: \"backup\" });\n  });\n});\n\ndescribe(\"parseFallbackEntry\", () => {\n  const known = new Set([\"openai\", \"anthropic\", \"ollama\"]);\n  it(\"recognizes a known provider prefix\", () => {\n    expect(parseFallbackEntry(\"openai:gpt-4o\", known)).toEqual({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n    });\n  });\n  it(\"keeps a colon-bearing model id intact under a known provider\", () => {\n    expect(parseFallbackEntry(\"ollama:qwen2.5:7b\", known)).toEqual({\n      provider: \"ollama\",\n      model: \"qwen2.5:7b\",\n    });\n  });\n  it(\"does NOT split a plain model whose prefix is not a known provider\", () => {\n    // `qwen2.5` is not a provider, so the whole thing is a same-provider model.\n    expect(parseFallbackEntry(\"qwen2.5:7b\", known)).toEqual({\n      provider: null,\n      model: \"qwen2.5:7b\",\n    });\n  });\n  it(\"treats a bare model as same-provider\", () => {\n    expect(parseFallbackEntry(\"claude-haiku-4-5\", known)).toEqual({\n      provider: null,\n      model: \"claude-haiku-4-5\",\n    });\n  });\n});\n\ndescribe(\"resolveFallbackTarget (cross-provider)\", () => {\n  const providers = {\n    ollama: {\n      name: \"ollama\",\n      baseUrl: \"http://localhost:11434\",\n      apiKeyEnv: null,\n    },\n    openai: {\n      name: \"openai\",\n      baseUrl: \"https://api.openai.com/v1\",\n      apiKeyEnv: \"OPENAI_API_KEY\",\n    },\n  };\n\n  it(\"same-provider entry only carries the model\", () => {\n    const t = resolveFallbackTarget(\"backup\", { providers, env: {} });\n    expect(t).toEqual({ model: \"backup\", crossProvider: false });\n  });\n\n  it(\"cross-provider entry resolves baseUrl + apiKey from the env\", () => {\n    const t = resolveFallbackTarget(\"openai:gpt-4o\", {\n      providers,\n      env: { OPENAI_API_KEY: \"sk-test\" },\n    });\n    expect(t).toMatchObject({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://api.openai.com/v1\",\n      apiKey: \"sk-test\",\n      crossProvider: true,\n    });\n  });\n\n  it(\"marks a cross-provider hop UNAVAILABLE when its key is absent (never reuse the wrong key)\", () => {\n    const t = resolveFallbackTarget(\"openai:gpt-4o\", { providers, env: {} });\n    expect(t.unavailable).toBe(true);\n    expect(t.reason).toMatch(/OPENAI_API_KEY not set/);\n  });\n\n  it(\"a keyless provider (ollama) resolves without a key\", () => {\n    const t = resolveFallbackTarget(\"ollama:qwen2.5:7b\", {\n      providers,\n      env: {},\n    });\n    expect(t).toMatchObject({\n      provider: \"ollama\",\n      model: \"qwen2.5:7b\",\n      crossProvider: true,\n    });\n  });\n\n  it(\"an unrecognized prefix is treated as a same-provider literal model (not split)\", () => {\n    // `bogus` is not a known provider, so `bogus:m` is a same-provider model id.\n    const t = resolveFallbackTarget(\"bogus:m\", { providers, env: {} });\n    expect(t).toEqual({ model: \"bogus:m\", crossProvider: false });\n  });\n\n  it(\"flags a known-but-unconfigured provider as unavailable (defensive guard)\", () => {\n    // knownProviders lists `azure` as a prefix, but `providers` has no def → unavailable.\n    const t = resolveFallbackTarget(\"azure:gpt-4o\", {\n      providers,\n      env: {},\n      knownProviders: new Set([\"openai\", \"ollama\", \"azure\"]),\n    });\n    expect(t.unavailable).toBe(true);\n    expect(t.reason).toMatch(/unknown provider/);\n  });\n});\n\ndescribe(\"makeFallbackChatFn — cross-provider hops\", () => {\n  const providers = {\n    ollama: {\n      name: \"ollama\",\n      baseUrl: \"http://localhost:11434\",\n      apiKeyEnv: null,\n    },\n    openai: {\n      name: \"openai\",\n      baseUrl: \"https://api.openai.com/v1\",\n      apiKeyEnv: \"OPENAI_API_KEY\",\n    },\n  };\n\n  it(\"compares no-op hops against the last provider, not just its model name\", async () => {\n    const baseChatFn = vi\n      .fn()\n      .mockRejectedValueOnce(new Error(\"503\"))\n      .mockRejectedValueOnce(new Error(\"503\"))\n      .mockResolvedValueOnce({\n        message: { content: \"back at original provider\" },\n      });\n    const fn = makeFallbackChatFn({\n      fallbackModels: [\"openai:shared\", \"shared\"],\n      providers,\n      env: { OPENAI_API_KEY: \"test-key\" },\n      baseChatFn,\n    });\n    await expect(\n      fn([], { model: \"primary\", provider: \"ollama\", apiKey: \"original-key\" }),\n    ).resolves.toMatchObject({\n      message: { content: \"back at original provider\" },\n    });\n    expect(baseChatFn).toHaveBeenCalledTimes(3);\n    expect(baseChatFn.mock.calls[2][1]).toMatchObject({\n      provider: \"ollama\",\n      model: \"shared\",\n      apiKey: \"original-key\",\n    });\n  });\n\n  it(\"switches provider + baseUrl + apiKey when a cross-provider fallback is used\", async () => {\n    const baseChatFn = vi\n      .fn()\n      .mockRejectedValueOnce(new Error(\"overloaded\"))\n      .mockResolvedValueOnce({ message: { content: \"from-openai\" } });\n    const onFallback = vi.fn();\n    const fn = makeFallbackChatFn({\n      fallbackModels: [\"openai:gpt-4o\"],\n      baseChatFn,\n      onFallback,\n      providers,\n      env: { OPENAI_API_KEY: \"sk-test\" },\n    });\n    const r = await fn([], {\n      model: \"qwen2.5:7b\",\n      provider: \"ollama\",\n      baseUrl: \"http://localhost:11434\",\n    });\n    expect(r.message.content).toBe(\"from-openai\");\n    expect(baseChatFn.mock.calls[1][1]).toMatchObject({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://api.openai.com/v1\",\n      apiKey: \"sk-test\",\n    });\n    expect(onFallback).toHaveBeenCalledWith(\n      expect.objectContaining({ to: \"openai:gpt-4o\", crossProvider: true }),\n    );\n  });\n\n  it(\"SKIPS a cross-provider hop whose key is missing (no wrong-credential call)\", async () => {\n    const baseChatFn = vi.fn().mockRejectedValue(new Error(\"overloaded\"));\n    const onFallback = vi.fn();\n    const fn = makeFallbackChatFn({\n      fallbackModels: [\"openai:gpt-4o\"], // no OPENAI_API_KEY in env\n      baseChatFn,\n      onFallback,\n      providers,\n      env: {},\n    });\n    await expect(\n      fn([], { model: \"qwen2.5:7b\", provider: \"ollama\" }),\n    ).rejects.toThrow(\"overloaded\");\n    // Only the primary was attempted; the keyless cross-provider hop was skipped.\n    expect(baseChatFn).toHaveBeenCalledTimes(1);\n    expect(onFallback).toHaveBeenCalledWith(\n      expect.objectContaining({ skipped: true }),\n    );\n  });\n});\n\ndescribe(\"isModelNotFoundError\", () => {\n  it(\"is true for 404 and not-found / unknown-model phrasings\", () => {\n    expect(isModelNotFoundError({ status: 404 })).toBe(true);\n    expect(isModelNotFoundError(new Error(\"model not found\"))).toBe(true);\n    expect(isModelNotFoundError(new Error(\"model_not_found\"))).toBe(true);\n    expect(isModelNotFoundError(new Error(\"Unknown model: foo\"))).toBe(true);\n    expect(\n      isModelNotFoundError(new Error(\"The model abc does not exist\")),\n    ).toBe(true);\n    expect(isModelNotFoundError(new Error(\"invalid model id\"))).toBe(true);\n  });\n\n  it(\"is false for transient, auth, and nullish errors\", () => {\n    expect(isModelNotFoundError(null)).toBe(false);\n    expect(isModelNotFoundError(new Error(\"overloaded\"))).toBe(false);\n    expect(isModelNotFoundError({ status: 429 })).toBe(false);\n    expect(isModelNotFoundError({ status: 401 })).toBe(false);\n    expect(isModelNotFoundError(new Error(\"invalid prompt\"))).toBe(false);\n  });\n});\n\ndescribe(\"normalizeFallbackModels\", () => {\n  it(\"returns [] for nullish / non-string input\", () => {\n    expect(normalizeFallbackModels(null)).toEqual([]);\n    expect(normalizeFallbackModels(undefined)).toEqual([]);\n    expect(normalizeFallbackModels([42, {}])).toEqual([]);\n  });\n\n  it(\"splits comma lists, trims, drops empties, and dedupes\", () => {\n    expect(normalizeFallbackModels(\"a, b ,,a, c\")).toEqual([\"a\", \"b\", \"c\"]);\n    expect(normalizeFallbackModels([\"a\", \"b,c\", \"b\"])).toEqual([\"a\", \"b\", \"c\"]);\n  });\n\n  it(\"caps the chain at 3 models\", () => {\n    expect(normalizeFallbackModels(\"a,b,c,d,e\")).toEqual([\"a\", \"b\", \"c\"]);\n    expect(normalizeFallbackModels([\"a\", \"b\", \"c\", \"d\"])).toEqual([\n      \"a\",\n      \"b\",\n      \"c\",\n    ]);\n  });\n});\n\ndescribe(\"resolveFallbackModels (flag > config)\", () => {\n  it(\"prefers the flag array over config\", () => {\n    expect(\n      resolveFallbackModels([\"x\", \"y\"], { fallbackModels: [\"a\", \"b\"] }),\n    ).toEqual([\"x\", \"y\"]);\n  });\n\n  it(\"falls back to config llm.fallbackModels when no flag\", () => {\n    expect(resolveFallbackModels(undefined, { fallbackModels: \"a,b\" })).toEqual(\n      [\"a\", \"b\"],\n    );\n  });\n\n  it(\"supports legacy config llm.fallbackModel (single)\", () => {\n    expect(resolveFallbackModels(undefined, { fallbackModel: \"solo\" })).toEqual(\n      [\"solo\"],\n    );\n  });\n\n  it(\"returns [] when neither flag nor config provides a chain\", () => {\n    expect(resolveFallbackModels(undefined, {})).toEqual([]);\n    expect(resolveFallbackModels([], undefined)).toEqual([]);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793718259398,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/fallback-model.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-4139013e-f63e-487e-9682-053fa3a1cdb2",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/fallback-model.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_nm88znygnbcjy1u416m6rhjy",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 9
+          },
+          {
+            "type": "tool_result",
+            "id": "call_et0h1d98n92cr93mt2xaka2l",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-QYvkIF/300df4d7-01bb-4671-b4a0-e57e45b10ae1/workspace/packages/cli/src/lib/abort-utils.js",
+              "fileVersion": "2529:1791108223000:1793718201211.0027",
+              "readSpan": {
+                "start": 0,
+                "end": 2529,
+                "total": 2529
+              },
+              "hashed": false,
+              "content": "export function createAbortError(message = \"Agent loop interrupted\") {\n  const error = new Error(message);\n  error.name = \"AbortError\";\n  return error;\n}\n\nexport function isAbortError(error) {\n  return (\n    error?.name === \"AbortError\" ||\n    error?.code === \"ABORT_ERR\" ||\n    (typeof error?.message === \"string\" &&\n      /aborted|interrupted/i.test(error.message))\n  );\n}\n\nexport function throwIfAborted(signal, message = \"Agent loop interrupted\") {\n  if (signal?.aborted) {\n    throw signal.reason || createAbortError(message);\n  }\n}\n\n/**\n * Await a value while making a host AbortSignal authoritative over settlement.\n * The source promise is always observed after cancellation, so a late rejection\n * cannot become unhandled and a late success cannot revive the cancelled path.\n */\nexport function raceWithAbort(\n  value,\n  signal,\n  message = \"Agent loop interrupted\",\n) {\n  if (!signal) return Promise.resolve(value);\n  try {\n    throwIfAborted(signal, message);\n  } catch (error) {\n    return Promise.reject(error);\n  }\n  if (typeof signal.addEventListener !== \"function\") {\n    return Promise.resolve(value);\n  }\n\n  const source = Promise.resolve(value);\n  return new Promise((resolve, reject) => {\n    let settled = false;\n    const cleanup = () => {\n      try {\n        signal.removeEventListener?.(\"abort\", onAbort);\n      } catch {\n        // Listener cleanup cannot change the already-authoritative settlement.\n      }\n    };\n    const onAbort = () => {\n      if (settled) return;\n      settled = true;\n      cleanup();\n      reject(signal.reason || createAbortError(message));\n    };\n    try {\n      signal.addEventListener(\"abort\", onAbort, { once: true });\n    } catch (error) {\n      settled = true;\n      // Observe a later source rejection even though the signal contract was\n      // malformed and this wrapper must fail immediately.\n      source.catch(() => {});\n      reject(error);\n      return;\n    }\n    source.then(\n      (result) => {\n        if (settled) return;\n        settled = true;\n        cleanup();\n        resolve(result);\n      },\n      (error) => {\n        if (settled) return;\n        settled = true;\n        cleanup();\n        reject(error);\n      },\n    );\n    // AbortSignal does not replay an event that fired immediately before the\n    // listener was attached. Re-check after both observers are installed so\n    // that narrow registration race still settles as cancellation, while the\n    // source remains observed if it finishes later.\n    if (signal.aborted) onAbort();\n  });\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793718265976,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/abort-utils.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-4139013e-f63e-487e-9682-053fa3a1cdb2",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/abort-utils.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_et0h1d98n92cr93mt2xaka2l",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 13
+          },
+          {
+            "type": "tool_result",
+            "id": "call_uer5vqizihn7byrga7letd78",
+            "tool": "search_files",
+            "is_error": true,
+            "error": "Search did not complete; returned hits may be partial",
+            "result": {
+              "files": [],
+              "error": "Search did not complete; returned hits may be partial",
+              "code": "ERR_SEARCH_INCOMPLETE",
+              "failures": [
+                {
+                  "root": "/private/tmp/cc-native-QYvkIF/300df4d7-01bb-4671-b4a0-e57e45b10ae1/workspace/packages/cli/__tests__/integration/orchestrator-workflow.test.js",
+                  "code": "ENOTDIR",
+                  "exitCode": null
+                }
+              ],
+              "truncated": true,
+              "hint": "Do not infer that the requested text or files are absent. Narrow directory to an existing relevant folder, or use path for a known file. Inspect the failure code before retrying the same search.",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793718266042,
+                "meta": {
+                  "args": {
+                    "pattern": "isTerminalModelFailure|isEvolutionIngressFailure|model-failure-policy",
+                    "directory": "packages/cli/__tests__/integration/orchestrator-workflow.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "error",
+                "durationMs": 2,
+                "sessionId": "panel-4139013e-f63e-487e-9682-053fa3a1cdb2",
+                "metadata": {
+                  "args": {
+                    "pattern": "isTerminalModelFailure|isEvolutionIngressFailure|model-failure-policy",
+                    "directory": "packages/cli/__tests__/integration/orchestrator-workflow.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_uer5vqizihn7byrga7letd78",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 15
+          },
+          {
+            "type": "tool_result",
+            "id": "call_0xukbdxt4o5dph1ie5u8dcuo",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [],
+              "count": 0,
+              "hasMore": false,
+              "nextOffset": null,
+              "hint": "No literal matches. This pattern contains regex syntax, but this search used literal matching. If alternation or regex was intended, set regex: true; otherwise search one exact symbol. Do not infer that the symbols are absent from this result.",
+              "path": "/private/tmp/cc-native-QYvkIF/300df4d7-01bb-4671-b4a0-e57e45b10ae1/workspace/packages/cli/__tests__/integration/orchestrator-workflow.test.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793718272656,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/integration/orchestrator-workflow.test.js",
+                    "pattern": "isTerminalModelFailure|isEvolutionIngressFailure"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 47,
+                "sessionId": "panel-4139013e-f63e-487e-9682-053fa3a1cdb2",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/integration/orchestrator-workflow.test.js",
+                    "pattern": "isTerminalModelFailure|isEvolutionIngressFailure"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_0xukbdxt4o5dph1ie5u8dcuo",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 19
+          },
+          {
+            "type": "tool_result",
+            "id": "call_8tjf9udhrd0wbku9ugis892x",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "/private/tmp/cc-native-QYvkIF/300df4d7-01bb-4671-b4a0-e57e45b10ae1/workspace/packages/cli/__tests__/verify-35.test.js",
+              "size": 3326,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793718291731,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-35.test.js",
+                    "content": "/**\n * Regression coverage for the model failure classification policy\n * (packages/cli/src/lib/model-failure-policy.js).\n *\n * The contract: an ingress admission failure (evolution code) is a hard\n * rejection; a ledger/workflow/budget/abort failure is terminal and must not be\n * silently retried; a plain transient provider error (HTTP status, retryable\n * phrasing) is NOT terminal and remains eligible for retry. We must never\n * collapse a retryable protocol error into an implicit success.\n */\n\nimport { describe, it, expect } from \"vitest\";\nimport {\n  isEvolutionIngressFailure,\n  isTerminalModelFailure,\n} from \"../src/lib/model-failure-policy.js\";\n\nfunction withCause(cause) {\n  const outer = new Error(\"provider request failed\");\n  outer.cause = cause;\n  return outer;\n}\n\ndescribe(\"isEvolutionIngressFailure\", () => {\n  it(\"is true for a direct ingress admission code and false for a retryable code\", () => {\n    expect(\n      isEvolutionIngressFailure({ code: \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" }),\n    ).toBe(true);\n    // Same shape, only the code differs → not an ingress admission failure.\n    expect(isEvolutionIngressFailure({ code: \"ECONNREFUSED\" })).toBe(false);\n  });\n\n  it(\"detects an ingress code nested in the cause chain, not a transient cause\", () => {\n    const ingress = { code: \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" };\n    expect(isEvolutionIngressFailure(withCause(ingress))).toBe(true);\n    // Identical wrapper, but a plain 503 cause carries no ingress marker.\n    expect(isEvolutionIngressFailure(withCause({ status: 503 }))).toBe(false);\n  });\n});\n\ndescribe(\"isTerminalModelFailure\", () => {\n  it(\"does NOT mark a plain retryable 503 as terminal, but does when ledger persistence fails\", () => {\n    const plain = withCause({ status: 503 });\n    expect(isTerminalModelFailure(plain)).toBe(false);\n    // Only the ledger marker is added; the rest of the chain is unchanged.\n    expect(\n      isTerminalModelFailure(withCause({ status: 503, runtimeLedgerPersistence: true })),\n    ).toBe(true);\n  });\n\n  it(\"is terminal for an unknown workflow effect, not for the same transient error\", () => {\n    expect(isTerminalModelFailure({ status: 503 })).toBe(false);\n    expect(\n      isTerminalModelFailure({ status: 503, workflowEffectOutcomeUnknown: true }),\n    ).toBe(true);\n  });\n\n  it(\"is terminal for a session budget code at the accepted boundary, rejected at the first non-matching prefix\", () => {\n    // Accepted boundary: any CC_/ERR_SESSION_BUDGET_* code.\n    expect(\n      isTerminalModelFailure({ code: \"ERR_SESSION_BUDGET_IN_FLIGHT_LIMIT\" }),\n    ).toBe(true);\n    expect(isTerminalModelFailure({ code: \"CC_SESSION_BUDGET_HARD_LIMIT\" })).toBe(\n      true,\n    );\n    // First rejected value: same body but no CC_/ERR_ budget prefix.\n    expect(isTerminalModelFailure({ code: \"SESSION_BUDGET_IN_FLIGHT_LIMIT\" })).toBe(\n      false,\n    );\n  });\n\n  it(\"is terminal for an abort error but not for a retryable message on the same error\", () => {\n    const aborted = new Error(\"provider 503\");\n    aborted.name = \"AbortError\";\n    expect(isTerminalModelFailure(withCause(aborted))).toBe(true);\n    // Same wrapper; the inner error only carries a retryable message → retryable.\n    expect(isTerminalModelFailure(withCause(new Error(\"provider 503\")))).toBe(\n      false,\n    );\n  });\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 18,
+                "sessionId": "panel-4139013e-f63e-487e-9682-053fa3a1cdb2",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-35.test.js",
+                    "content": "/**\n * Regression coverage for the model failure classification policy\n * (packages/cli/src/lib/model-failure-policy.js).\n *\n * The contract: an ingress admission failure (evolution code) is a hard\n * rejection; a ledger/workflow/budget/abort failure is terminal and must not be\n * silently retried; a plain transient provider error (HTTP status, retryable\n * phrasing) is NOT terminal and remains eligible for retry. We must never\n * collapse a retryable protocol error into an implicit success.\n */\n\nimport { describe, it, expect } from \"vitest\";\nimport {\n  isEvolutionIngressFailure,\n  isTerminalModelFailure,\n} from \"../src/lib/model-failure-policy.js\";\n\nfunction withCause(cause) {\n  const outer = new Error(\"provider request failed\");\n  outer.cause = cause;\n  return outer;\n}\n\ndescribe(\"isEvolutionIngressFailure\", () => {\n  it(\"is true for a direct ingress admission code and false for a retryable code\", () => {\n    expect(\n      isEvolutionIngressFailure({ code: \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" }),\n    ).toBe(true);\n    // Same shape, only the code differs → not an ingress admission failure.\n    expect(isEvolutionIngressFailure({ code: \"ECONNREFUSED\" })).toBe(false);\n  });\n\n  it(\"detects an ingress code nested in the cause chain, not a transient cause\", () => {\n    const ingress = { code: \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" };\n    expect(isEvolutionIngressFailure(withCause(ingress))).toBe(true);\n    // Identical wrapper, but a plain 503 cause carries no ingress marker.\n    expect(isEvolutionIngressFailure(withCause({ status: 503 }))).toBe(false);\n  });\n});\n\ndescribe(\"isTerminalModelFailure\", () => {\n  it(\"does NOT mark a plain retryable 503 as terminal, but does when ledger persistence fails\", () => {\n    const plain = withCause({ status: 503 });\n    expect(isTerminalModelFailure(plain)).toBe(false);\n    // Only the ledger marker is added; the rest of the chain is unchanged.\n    expect(\n      isTerminalModelFailure(withCause({ status: 503, runtimeLedgerPersistence: true })),\n    ).toBe(true);\n  });\n\n  it(\"is terminal for an unknown workflow effect, not for the same transient error\", () => {\n    expect(isTerminalModelFailure({ status: 503 })).toBe(false);\n    expect(\n      isTerminalModelFailure({ status: 503, workflowEffectOutcomeUnknown: true }),\n    ).toBe(true);\n  });\n\n  it(\"is terminal for a session budget code at the accepted boundary, rejected at the first non-matching prefix\", () => {\n    // Accepted boundary: any CC_/ERR_SESSION_BUDGET_* code.\n    expect(\n      isTerminalModelFailure({ code: \"ERR_SESSION_BUDGET_IN_FLIGHT_LIMIT\" }),\n    ).toBe(true);\n    expect(isTerminalModelFailure({ code: \"CC_SESSION_BUDGET_HARD_LIMIT\" })).toBe(\n      true,\n    );\n    // First rejected value: same body but no CC_/ERR_ budget prefix.\n    expect(isTerminalModelFailure({ code: \"SESSION_BUDGET_IN_FLIGHT_LIMIT\" })).toBe(\n      false,\n    );\n  });\n\n  it(\"is terminal for an abort error but not for a retryable message on the same error\", () => {\n    const aborted = new Error(\"provider 503\");\n    aborted.name = \"AbortError\";\n    expect(isTerminalModelFailure(withCause(aborted))).toBe(true);\n    // Same wrapper; the inner error only carries a retryable message → retryable.\n    expect(isTerminalModelFailure(withCause(new Error(\"provider 503\")))).toBe(\n      false,\n    );\n  });\n});\n"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "write_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_8tjf9udhrd0wbku9ugis892x",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 23
+          },
+          {
+            "type": "tool_result",
+            "id": "call_g5ur5r5egoq4j9b0c8sa538m",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-QYvkIF/300df4d7-01bb-4671-b4a0-e57e45b10ae1/workspace/packages/cli/__tests__/verify-35.test.js",
+              "fileVersion": "3326:1793718291715.4546:1793718291715.4546",
+              "readSpan": {
+                "start": 0,
+                "end": 3322,
+                "total": 3322
+              },
+              "hashed": false,
+              "content": "/**\n * Regression coverage for the model failure classification policy\n * (packages/cli/src/lib/model-failure-policy.js).\n *\n * The contract: an ingress admission failure (evolution code) is a hard\n * rejection; a ledger/workflow/budget/abort failure is terminal and must not be\n * silently retried; a plain transient provider error (HTTP status, retryable\n * phrasing) is NOT terminal and remains eligible for retry. We must never\n * collapse a retryable protocol error into an implicit success.\n */\n\nimport { describe, it, expect } from \"vitest\";\nimport {\n  isEvolutionIngressFailure,\n  isTerminalModelFailure,\n} from \"../src/lib/model-failure-policy.js\";\n\nfunction withCause(cause) {\n  const outer = new Error(\"provider request failed\");\n  outer.cause = cause;\n  return outer;\n}\n\ndescribe(\"isEvolutionIngressFailure\", () => {\n  it(\"is true for a direct ingress admission code and false for a retryable code\", () => {\n    expect(\n      isEvolutionIngressFailure({ code: \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" }),\n    ).toBe(true);\n    // Same shape, only the code differs → not an ingress admission failure.\n    expect(isEvolutionIngressFailure({ code: \"ECONNREFUSED\" })).toBe(false);\n  });\n\n  it(\"detects an ingress code nested in the cause chain, not a transient cause\", () => {\n    const ingress = { code: \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" };\n    expect(isEvolutionIngressFailure(withCause(ingress))).toBe(true);\n    // Identical wrapper, but a plain 503 cause carries no ingress marker.\n    expect(isEvolutionIngressFailure(withCause({ status: 503 }))).toBe(false);\n  });\n});\n\ndescribe(\"isTerminalModelFailure\", () => {\n  it(\"does NOT mark a plain retryable 503 as terminal, but does when ledger persistence fails\", () => {\n    const plain = withCause({ status: 503 });\n    expect(isTerminalModelFailure(plain)).toBe(false);\n    // Only the ledger marker is added; the rest of the chain is unchanged.\n    expect(\n      isTerminalModelFailure(withCause({ status: 503, runtimeLedgerPersistence: true })),\n    ).toBe(true);\n  });\n\n  it(\"is terminal for an unknown workflow effect, not for the same transient error\", () => {\n    expect(isTerminalModelFailure({ status: 503 })).toBe(false);\n    expect(\n      isTerminalModelFailure({ status: 503, workflowEffectOutcomeUnknown: true }),\n    ).toBe(true);\n  });\n\n  it(\"is terminal for a session budget code at the accepted boundary, rejected at the first non-matching prefix\", () => {\n    // Accepted boundary: any CC_/ERR_SESSION_BUDGET_* code.\n    expect(\n      isTerminalModelFailure({ code: \"ERR_SESSION_BUDGET_IN_FLIGHT_LIMIT\" }),\n    ).toBe(true);\n    expect(isTerminalModelFailure({ code: \"CC_SESSION_BUDGET_HARD_LIMIT\" })).toBe(\n      true,\n    );\n    // First rejected value: same body but no CC_/ERR_ budget prefix.\n    expect(isTerminalModelFailure({ code: \"SESSION_BUDGET_IN_FLIGHT_LIMIT\" })).toBe(\n      false,\n    );\n  });\n\n  it(\"is terminal for an abort error but not for a retryable message on the same error\", () => {\n    const aborted = new Error(\"provider 503\");\n    aborted.name = \"AbortError\";\n    expect(isTerminalModelFailure(withCause(aborted))).toBe(true);\n    // Same wrapper; the inner error only carries a retryable message → retryable.\n    expect(isTerminalModelFailure(withCause(new Error(\"provider 503\")))).toBe(\n      false,\n    );\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793718297045,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-35.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 14,
+                "sessionId": "panel-4139013e-f63e-487e-9682-053fa3a1cdb2",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-35.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_g5ur5r5egoq4j9b0c8sa538m",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 27
+          },
+          {
+            "type": "tool_result",
+            "id": "call_rrvep1y6qz62l84vgrysflbl",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-QYvkIF/300df4d7-01bb-4671-b4a0-e57e45b10ae1/workspace/packages/cli/src/lib/model-failure-policy.js",
+              "fileVersion": "1075:1791108223000:1793718201276.9202",
+              "hashed": false,
+              "alreadyRead": true,
+              "contentOmitted": true,
+              "reachedEnd": true,
+              "readProgress": {
+                "newContent": false
+              },
+              "readRecovery": {
+                "action": "use-findings"
+              },
+              "recoveryRead": {
+                "path": "/private/tmp/cc-native-QYvkIF/300df4d7-01bb-4671-b4a0-e57e45b10ae1/workspace/packages/cli/src/lib/model-failure-policy.js",
+                "offset": 1,
+                "limit": 80
+              },
+              "hint": "This requested range was read earlier, but historical coverage does not mean its source is visible now. The runtime has not substituted an unrelated file range. Use source actually present in this request; recover missing details with a focused search or the bounded recoveryRead. Reading the file is not task completion.",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793718317746,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-failure-policy.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-4139013e-f63e-487e-9682-053fa3a1cdb2",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-failure-policy.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_rrvep1y6qz62l84vgrysflbl",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 34
+          },
+          {
+            "type": "tool_result",
+            "id": "call_jt69gtbefss2wy26gupe5qu2",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-QYvkIF/300df4d7-01bb-4671-b4a0-e57e45b10ae1/workspace/packages/cli/src/lib/model-failure-policy.js",
+              "fileVersion": "1075:1791108223000:1793718201276.9202",
+              "range": {
+                "startLine": 1,
+                "endLine": 32,
+                "totalLines": 32
+              },
+              "readSpan": {
+                "start": 0,
+                "end": 1075,
+                "total": 1075
+              },
+              "hashed": false,
+              "content": "import { isAbortError } from \"./abort-utils.js\";\n\nexport function isEvolutionIngressFailure(error) {\n  const visited = new Set();\n  for (let current = error; current; current = current.cause) {\n    if (visited.has(current) || visited.size >= 32) return true;\n    visited.add(current);\n    if (current.code === \"CC_AGENT_EVOLUTION_INGRESS_FAILED\") return true;\n  }\n  return false;\n}\n\n// Admission failures are not provider outages, even when their causes contain\n// HTTP status codes or retryable/authentication words.\nexport function isTerminalModelFailure(error) {\n  const visited = new Set();\n  for (let current = error; current; current = current.cause) {\n    if (visited.has(current) || visited.size >= 32) return true;\n    visited.add(current);\n    if (\n      current.code === \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" ||\n      current.runtimeLedgerPersistence === true ||\n      current.workflowEffectOutcomeUnknown === true ||\n      /^(?:CC|ERR)_SESSION_BUDGET_/u.test(current.code || \"\") ||\n      isAbortError(current)\n    ) {\n      return true;\n    }\n  }\n  return false;\n}\n",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "1075:1791108223000:1793718201276.9202"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793718322296,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-failure-policy.js",
+                    "offset": 1,
+                    "limit": 80
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-4139013e-f63e-487e-9682-053fa3a1cdb2",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-failure-policy.js",
+                    "offset": 1,
+                    "limit": 80
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_jt69gtbefss2wy26gupe5qu2",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 38
+          },
+          {
+            "type": "tool_result",
+            "id": "call_bz43iuaheqo93shuee0u0b6g",
+            "tool": "edit_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "/private/tmp/cc-native-QYvkIF/300df4d7-01bb-4671-b4a0-e57e45b10ae1/workspace/packages/cli/__tests__/verify-35.test.js",
+              "size": 3591,
+              "replaced": 1,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793718352363,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-35.test.js",
+                    "old_string": "  it(\"does NOT mark a plain retryable 503 as terminal, but does when ledger persistence fails\", () => {\n    const plain = withCause({ status: 503 });\n    expect(isTerminalModelFailure(plain)).toBe(false);\n    // Only the ledger marker is added; the rest of the chain is unchanged.\n    expect(\n      isTerminalModelFailure(withCause({ status: 503, runtimeLedgerPersistence: true })),\n    ).toBe(true);\n  });",
+                    "new_string": "  it(\"does NOT mark a plain retryable 503 as terminal, but does when ledger persistence or ingress admission fails\", () => {\n    const plain = withCause({ status: 503 });\n    expect(isTerminalModelFailure(plain)).toBe(false);\n    // Only the ledger marker is added; the rest of the chain is unchanged.\n    expect(\n      isTerminalModelFailure(withCause({ status: 503, runtimeLedgerPersistence: true })),\n    ).toBe(true);\n    // The explicit ingress admission rejection is terminal through the same\n    // policy, never silently retried as a provider outage.\n    expect(\n      isTerminalModelFailure({ code: \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" }),\n    ).toBe(true);\n  });"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 5,
+                "sessionId": "panel-4139013e-f63e-487e-9682-053fa3a1cdb2",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-35.test.js",
+                    "old_string": "  it(\"does NOT mark a plain retryable 503 as terminal, but does when ledger persistence fails\", () => {\n    const plain = withCause({ status: 503 });\n    expect(isTerminalModelFailure(plain)).toBe(false);\n    // Only the ledger marker is added; the rest of the chain is unchanged.\n    expect(\n      isTerminalModelFailure(withCause({ status: 503, runtimeLedgerPersistence: true })),\n    ).toBe(true);\n  });",
+                    "new_string": "  it(\"does NOT mark a plain retryable 503 as terminal, but does when ledger persistence or ingress admission fails\", () => {\n    const plain = withCause({ status: 503 });\n    expect(isTerminalModelFailure(plain)).toBe(false);\n    // Only the ledger marker is added; the rest of the chain is unchanged.\n    expect(\n      isTerminalModelFailure(withCause({ status: 503, runtimeLedgerPersistence: true })),\n    ).toBe(true);\n    // The explicit ingress admission rejection is terminal through the same\n    // policy, never silently retried as a provider outage.\n    expect(\n      isTerminalModelFailure({ code: \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" }),\n    ).toBe(true);\n  });"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "edit_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_bz43iuaheqo93shuee0u0b6g",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 42
+          },
+          {
+            "type": "tool_result",
+            "id": "call_rch38ys3badpb5v2dyywy67a",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-QYvkIF/300df4d7-01bb-4671-b4a0-e57e45b10ae1/workspace/packages/cli/__tests__/verify-35.test.js",
+              "fileVersion": "3591:1793718352359.429:1793718352359.429",
+              "readSpan": {
+                "start": 0,
+                "end": 3587,
+                "total": 3587
+              },
+              "hashed": false,
+              "content": "/**\n * Regression coverage for the model failure classification policy\n * (packages/cli/src/lib/model-failure-policy.js).\n *\n * The contract: an ingress admission failure (evolution code) is a hard\n * rejection; a ledger/workflow/budget/abort failure is terminal and must not be\n * silently retried; a plain transient provider error (HTTP status, retryable\n * phrasing) is NOT terminal and remains eligible for retry. We must never\n * collapse a retryable protocol error into an implicit success.\n */\n\nimport { describe, it, expect } from \"vitest\";\nimport {\n  isEvolutionIngressFailure,\n  isTerminalModelFailure,\n} from \"../src/lib/model-failure-policy.js\";\n\nfunction withCause(cause) {\n  const outer = new Error(\"provider request failed\");\n  outer.cause = cause;\n  return outer;\n}\n\ndescribe(\"isEvolutionIngressFailure\", () => {\n  it(\"is true for a direct ingress admission code and false for a retryable code\", () => {\n    expect(\n      isEvolutionIngressFailure({ code: \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" }),\n    ).toBe(true);\n    // Same shape, only the code differs → not an ingress admission failure.\n    expect(isEvolutionIngressFailure({ code: \"ECONNREFUSED\" })).toBe(false);\n  });\n\n  it(\"detects an ingress code nested in the cause chain, not a transient cause\", () => {\n    const ingress = { code: \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" };\n    expect(isEvolutionIngressFailure(withCause(ingress))).toBe(true);\n    // Identical wrapper, but a plain 503 cause carries no ingress marker.\n    expect(isEvolutionIngressFailure(withCause({ status: 503 }))).toBe(false);\n  });\n});\n\ndescribe(\"isTerminalModelFailure\", () => {\n  it(\"does NOT mark a plain retryable 503 as terminal, but does when ledger persistence or ingress admission fails\", () => {\n    const plain = withCause({ status: 503 });\n    expect(isTerminalModelFailure(plain)).toBe(false);\n    // Only the ledger marker is added; the rest of the chain is unchanged.\n    expect(\n      isTerminalModelFailure(withCause({ status: 503, runtimeLedgerPersistence: true })),\n    ).toBe(true);\n    // The explicit ingress admission rejection is terminal through the same\n    // policy, never silently retried as a provider outage.\n    expect(\n      isTerminalModelFailure({ code: \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" }),\n    ).toBe(true);\n  });\n\n  it(\"is terminal for an unknown workflow effect, not for the same transient error\", () => {\n    expect(isTerminalModelFailure({ status: 503 })).toBe(false);\n    expect(\n      isTerminalModelFailure({ status: 503, workflowEffectOutcomeUnknown: true }),\n    ).toBe(true);\n  });\n\n  it(\"is terminal for a session budget code at the accepted boundary, rejected at the first non-matching prefix\", () => {\n    // Accepted boundary: any CC_/ERR_SESSION_BUDGET_* code.\n    expect(\n      isTerminalModelFailure({ code: \"ERR_SESSION_BUDGET_IN_FLIGHT_LIMIT\" }),\n    ).toBe(true);\n    expect(isTerminalModelFailure({ code: \"CC_SESSION_BUDGET_HARD_LIMIT\" })).toBe(\n      true,\n    );\n    // First rejected value: same body but no CC_/ERR_ budget prefix.\n    expect(isTerminalModelFailure({ code: \"SESSION_BUDGET_IN_FLIGHT_LIMIT\" })).toBe(\n      false,\n    );\n  });\n\n  it(\"is terminal for an abort error but not for a retryable message on the same error\", () => {\n    const aborted = new Error(\"provider 503\");\n    aborted.name = \"AbortError\";\n    expect(isTerminalModelFailure(withCause(aborted))).toBe(true);\n    // Same wrapper; the inner error only carries a retryable message → retryable.\n    expect(isTerminalModelFailure(withCause(new Error(\"provider 503\")))).toBe(\n      false,\n    );\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793718357223,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-35.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-4139013e-f63e-487e-9682-053fa3a1cdb2",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-35.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_rch38ys3badpb5v2dyywy67a",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 48
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2735,
+              "output_tokens": 116,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 10222,
+              "output_tokens": 404,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 11
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5245,
+              "output_tokens": 436,
+              "cache_read_input_tokens": 12288,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 17
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4100,
+              "output_tokens": 1714,
+              "cache_read_input_tokens": 14336,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 21
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 8244,
+              "output_tokens": 82,
+              "cache_read_input_tokens": 14336,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 25
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5488,
+              "output_tokens": 1147,
+              "cache_read_input_tokens": 19200,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 29
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3070,
+              "output_tokens": 283,
+              "cache_read_input_tokens": 23040,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 32
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 14961,
+              "output_tokens": 137,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 36
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5651,
+              "output_tokens": 2619,
+              "cache_read_input_tokens": 14848,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 40
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 9876,
+              "output_tokens": 78,
+              "cache_read_input_tokens": 14336,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 46
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 19407,
+              "output_tokens": 1361,
+              "cache_read_input_tokens": 4352,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+            "seq": 52
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 88999,
+          "output_tokens": 8377,
+          "cache_read_input_tokens": 126976
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 11,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "I have the current deliverable fully verified in context, plus the authoritative source (`model-failure-policy.js`) and its dependency (`abort-utils.js`). Let me complete my audit and confirm the repairs are coherent.\n\n**Final requirement-to-assertion account:**\n\nTask requirements (derived from the original task, not the tests):\n1. Regression coverage for model failure classification.\n2. Distinguish retryable vs explicit rejection per existing contract; never implicitly convert protocol errors to success.\n3. Independent Vitest tests, ≤6 cases, positive/negative controls differing only in the intended condition.\n4. No source changes (frozen), no assertion-lowering.\n\n**Source contract (verified now in context):**\n- `isEvolutionIngressFailure`: walks cause chain; `true` if any node `code === \"CC_AGENT_EVOLUTION_INGRESS_FAILED\"`; else `false`.\n- `isTerminalModelFailure`: walks cause chain; `true` if any node has ingress code OR `runtimeLedgerPersistence === true` OR `workflowEffectOutcomeUnknown === true` OR code matches `/^(?:CC|ERR)_SESSION_BUDGET_/` OR `isAbortError(current)`.\n- `isAbortError`: `name === \"AbortError\"` OR `code === \"ABORT_ERR\"` OR message matches `/aborted|interrupted/i`.\n\n**Mapping of each deliverable case → requirement:**\n\n| Case | Positive | Negative | Condition covered |\n|---|---|---|---|\n| 1 `isEvolutionIngressFailure` | `{code:CC_AGENT_EVOLUTION_INGRESS_FAILED}`→true | `{code:ECONNREFUSED}`→false | ingress code branch (direct) |\n| 2 `isEvolutionIngressFailure` | ingress in cause→true | 503 cause→false | chain-walk (nested) |\n| 3 `isTerminalModelFailure` | 503+ledger→true; ingress code→true | plain 503→false | ledger branch + **ingress-in-terminal** + retryable-vs-rejection |\n| 4 `isTerminalModelFailure` | 503+workflow→true | plain 503→false | workflow branch + retryable-vs-rejection |\n| 5 `isTerminalModelFailure` | `ERR_/CC_SESSION_BUDGET_*`→true | `SESSION_BUDGET_*`(no prefix)→false | budget regex accepted boundary + first rejected |\n| 6 `isTerminalModelFailure` | `name=AbortError`→true | retryable message→false | abort branch + retryable-vs-rejection |\n\nThis is exactly 6 `it` cases. Each negative control differs from its positive only in the single intended condition (same wrapper, same body shape, only the marker/prefix/name changes), and reaches `false` genuinely (no other guard rejects it):\n- Case 1/2 negatives: `ECONNREFUSED`/503 have no ingress code → false genuinely.\n- Case 3/4 negatives: plain 503 → false genuinely; no marker present.\n- Case 5 negative: `SESSION_BUDGET_*` doesn't match `/^(?:CC|ERR)_SESSION_BUDGET_/`, no other terminal marker → false genuinely.\n- Case 6 negative: `new Error(\"provider 503\")` — message doesn't contain \"aborted\"/\"interrupted\", name is \"Error\", code undefined → `isAbortError` false genuinely.\n\nNo negative is masked by an unrelated guard. The acceptance-critical \"protocol error not implicitly success\" is covered by every negative (plain 503/ECONNREFUSED → false) with matching positives.\n\n**Repair applied this round:** added the ingress-in-terminal assertion to case 3, closing the previously-noted gap where the ingress OR-branch in `isTerminalModelFailure` wasn't independently asserted. This stays within the 6-case cap by extending an existing case rather than adding a new one.\n\n**Remaining uncovered (explicit, non-acceptance-critical):**\n- `isAbortError`'s `code === \"ABORT_ERR\"` and message `/aborted|interrupted/i` matchers (only the `name` matcher is asserted). These are alternate ways to reach the same terminal abort decision, and the abort-branch terminal outcome is already established by case 6. Not a requirement gap for the task's core discrimination.\n- Cycle/depth≥32 guards in both functions (degenerate defensive paths returning `true`).\n- Nested-cause terminal markers for ledger/workflow (only abort and ingress are tested nested).\n\nNone of these affect the task's acceptance requirements, which are fully covered.\n\nNo implementation defect was found: the frozen source behaves exactly as the tests assert. No source modified.\n\n**Limitations:** Tests were not executed (no shell/code execution available in this environment — only six file tools). Independent acceptance runs later in network-disabled Linux Docker. My read-back is static inspection, not a passing test.\n\n## Final account\n\n**Repair delivered:** `packages/cli/__tests__/verify-35.test.js` — 6 `it` cases covering both functions' contracts, with focused positive/negative controls differing only in the intended condition and genuine (unmasked) rejections. This round added the ingress-in-terminal assertion to the ledger case, closing the only meaningful coverage gap.\n\n**Verified against requirements:** retryable (plain 503/`ECONNREFUSED` → `false`) vs explicit rejection (ingress/ledger/workflow/budget/abort markers → `true`) is covered for every terminal branch, including the budget boundary (accepted `ERR_/CC_SESSION_BUDGET_*` vs first-rejected `SESSION_BUDGET_*`). No protocol error is treated as an implicit success in any negative control.\n\n**Not covered:** alternate `isAbortError` matchers (`ABORT_ERR` code, `/aborted|interrupted/i` message), cycle/depth-32 guards, nested ledger/workflow markers. These are non-acceptance-critical; the abort terminal outcome is established via the `name` matcher.\n\n**No source changes** — frozen implementation matched assertions; no defect found. **Tests not executed** in this environment (file tools only); read-back is static verification, not a passing run.",
+          "session_id": "panel-4139013e-f63e-487e-9682-053fa3a1cdb2",
+          "turn": 1,
+          "usage": {
+            "input_tokens": 88999,
+            "output_tokens": 8377,
+            "cache_read_input_tokens": 126976,
+            "cache_creation_input_tokens": 0
+          },
+          "transcript_refs": {
+            "schema": "chainlesschain.session-transcript-references/v1",
+            "sessionId": "panel-4139013e-f63e-487e-9682-053fa3a1cdb2",
+            "assistantEventId": "d6d075675fdc977eabdd1171e7a19e64f83d9474aae75b775d7702ee0ca13d0a",
+            "userEventId": "6dc7754a8c17fad7a3b0282df212da4e5996bc31125191b636a660d4aee9d4e9",
+            "clientMessageId": "99340c9d-0405-44e3-89fe-4a5bb786d559"
+          },
+          "trace_id": "tr-dc7020a7-24e8-4c17-899c-a22141327696",
+          "seq": 53
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateAcceptancePassed": true,
+      "passed": true,
+      "generationAssessment": {
+        "passed": true,
+        "originalGenerationPassed": true,
+        "originalTerminalVerified": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 88999,
+            "outputTokens": 8377,
+            "cacheReadInputTokens": 126976,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "dialect": "persistent-IDE-with-validated-session-end"
+      },
+      "sourceScopePassed": true,
+      "unexpectedChanges": [],
+      "frozenSourceAssessment": {
+        "exact": true,
+        "contentVerified": true,
+        "filenameEncoding": "utf8"
+      },
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-35-setup-27726fae-7343-4b9d-956c-0b4247e4834f.json",
+        "receiptDigest": "sha256:8dd9e2114d9d6b274699952f353a07cfe8d976f7a4feec86087c37ab801ac903",
+        "scriptDigest": "sha256:2367de646ff85eb3be264704b211e878c2e2a05c02fbd500a299e66fa7562a01",
+        "receiptPath": "pack/acceptance-evidence/verify-35-setup-27726fae-7343-4b9d-956c-0b4247e4834f.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 77,
+            "passed": 77,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-35-check-09d6ff89-4c4d-4c5f-a0e7-c0412436ab0c.json",
+        "receiptDigest": "sha256:34ec6e61d5aff87fdbd41c448ff86db6b6e5fb9527022c4f22cea9d981e8bee9",
+        "scriptDigest": "sha256:3893e8ac698537eb70da6673a19209e742ca32f5688fc41d7810f61b931fa3bd",
+        "receiptPath": "pack/acceptance-evidence/verify-35-check-09d6ff89-4c4d-4c5f-a0e7-c0412436ab0c.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 77,
+            "passed": 77,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          }
+        ],
+        "mutations": [
+          {
+            "name": "retry-governance-rejection-as-provider-outage",
+            "sourceSha256": "0e2b5fdba66f6dc19d0885640a068ee04df7aa112a00db33473260128f705881",
+            "total": 6,
+            "passed": 5,
+            "failed": 1
+          }
+        ]
+      },
+      "finishedAt": "2026-11-03T17:25:15.358Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-35"
+  ],
+  "passed": true,
+  "finishedAt": "2026-11-03T17:25:15.359Z"
+}

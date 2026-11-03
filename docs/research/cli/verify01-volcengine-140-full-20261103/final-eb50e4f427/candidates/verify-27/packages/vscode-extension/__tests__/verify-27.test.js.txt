@@ -1,0 +1,156 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { tmpdir } from "node:os";
+import { randomUUID } from "node:crypto";
+import { DraftStore } from "../src/chat/draft-store.js";
+import { QuestionDrafts } from "../src/chat/question-drafts.js";
+
+const cleanups = [];
+afterEach(async () => {
+  for (const fn of cleanups.splice(0).reverse()) await fn();
+});
+
+async function storage() {
+  const root = await fs.mkdtemp(path.join(tmpdir(), "cc-verify27-"));
+  cleanups.push(() => fs.rm(root, { recursive: true, force: true }));
+  return root;
+}
+
+const binding = {
+  backgroundAgentId: null,
+  sessionId: "session-1",
+  turnId: "turn-1",
+  toolUseId: "tool-1",
+  sequence: 1,
+};
+
+const baseRequest = {
+  kind: "question",
+  id: "q1",
+  question: "Choose a target",
+  binding,
+};
+
+const values = [{ key: "answer", value: "half entered 中文" }];
+
+function payload(q, extra = {}) {
+  return { ...q, fields: values, revision: 1, ...extra };
+}
+
+function controller(store, overrides = {}) {
+  cleanups.push(async () => {
+    let queue;
+    do {
+      queue = store.queue;
+      await queue;
+    } while (queue !== store.queue);
+  });
+  const conv = {
+    id: "a",
+    sessionId: "session-1",
+    draftKey: randomUUID(),
+    _sessionToken: {},
+    session: { running: true, sendEvent: vi.fn(() => true) },
+    ...overrides,
+  };
+  const messages = [];
+  const drafts = new QuestionDrafts({
+    store,
+    getConversation: (id) => (id === conv.id ? conv : null),
+    post: (m) => messages.push(m),
+    refresh: () => {},
+  });
+  return { drafts, conv, messages };
+}
+
+describe("reload precise binding restores live fields only for an exact resend", () => {
+  it("restores saved fields in a fresh host when the request, session and schema match exactly", async () => {
+    const root = await storage();
+    const first = controller(new DraftStore(root));
+    const q = first.drafts.register(first.conv, baseRequest);
+    await first.drafts.save(payload(q));
+
+    const next = controller(new DraftStore(root), {
+      draftKey: first.conv.draftKey,
+    });
+    const restored = next.drafts.register(next.conv, baseRequest);
+    expect(restored.questionInstance).not.toBe(q.questionInstance);
+    await next.drafts.restore(restored);
+    expect(next.messages.at(-1)).toMatchObject({
+      kind: "questionDraftSnapshot",
+      fields: values,
+      state: "draft",
+    });
+    expect(next.conv.session.sendEvent).not.toHaveBeenCalled();
+  });
+
+  it("does not restore live fields when the resent request id differs", async () => {
+    const root = await storage();
+    const first = controller(new DraftStore(root));
+    const q = first.drafts.register(first.conv, baseRequest);
+    await first.drafts.save(payload(q));
+
+    const next = controller(new DraftStore(root), {
+      draftKey: first.conv.draftKey,
+    });
+    const changed = next.drafts.register(next.conv, {
+      ...baseRequest,
+      id: "q2",
+    });
+    await next.drafts.restore(changed);
+    expect(next.messages.at(-1).fields).toEqual([]);
+    expect(next.conv.session.sendEvent).not.toHaveBeenCalled();
+  });
+
+  it("does not restore live fields when the resent session differs", async () => {
+    const root = await storage();
+    const first = controller(new DraftStore(root));
+    const q = first.drafts.register(first.conv, baseRequest);
+    await first.drafts.save(payload(q));
+
+    const otherBinding = { ...binding, sessionId: "session-2" };
+    const next = controller(new DraftStore(root), {
+      draftKey: first.conv.draftKey,
+      sessionId: "session-2",
+    });
+    const changed = next.drafts.register(next.conv, {
+      ...baseRequest,
+      binding: otherBinding,
+    });
+    await next.drafts.restore(changed);
+    expect(next.messages.at(-1).fields).toEqual([]);
+    expect(next.conv.session.sendEvent).not.toHaveBeenCalled();
+  });
+
+  it("does not restore live fields when the resent schema differs", async () => {
+    const root = await storage();
+    const first = controller(new DraftStore(root));
+    const schemaA = {
+      type: "object",
+      properties: { name: { type: "string" } },
+    };
+    const schemaB = {
+      type: "object",
+      properties: { color: { type: "string", enum: ["a", "b"] } },
+    };
+    const q = first.drafts.register(first.conv, {
+      ...baseRequest,
+      elicitation: true,
+      requestedSchema: schemaA,
+    });
+    await first.drafts.save(payload(q));
+
+    const next = controller(new DraftStore(root), {
+      draftKey: first.conv.draftKey,
+    });
+    const changed = next.drafts.register(next.conv, {
+      ...baseRequest,
+      elicitation: true,
+      requestedSchema: schemaB,
+    });
+    await next.drafts.restore(changed);
+    expect(next.messages.at(-1).fields).toEqual([]);
+    expect(next.conv.session.sendEvent).not.toHaveBeenCalled();
+  });
+});

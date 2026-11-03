@@ -62,7 +62,11 @@ export function assertNativeProviderIdentity(
     : null;
   const budgets = nativeExecutionBudgets(manifest, provider);
   const profile = nativeProviderProfile(provider, { budgets });
-  if (manifest?.volcengineBudgetRetry || manifest?.volcengineFullRound)
+  if (
+    manifest?.volcengineBudgetRetry ||
+    manifest?.volcengineFullRound ||
+    manifest?.volcengineGenerationRecovery
+  )
     assert.deepEqual(summary.executionBudgets, budgets);
   const hash = (value) =>
     `sha256:${createHash("sha256").update(value).digest("hex")}`;

@@ -1,0 +1,728 @@
+{
+  "schema": "chainlesschain.verify01-native-task-acceptance/v1",
+  "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "deliverySourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+  "group": "linux-jetbrains",
+  "actualGenerationHost": {
+    "platform": "linux",
+    "entry": "jetbrains",
+    "arch": "x64"
+  },
+  "acceptanceHost": "linux-docker",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+  "sourceSummaryDigest": "sha256:b456a7c4ffdb6283dd0a0ae14fcc67a5aa9ca39a03735550e7ebdb1e73a99e35",
+  "formalSample": false,
+  "startedAt": "2026-11-03T17:13:33.912Z",
+  "samples": [
+    {
+      "sampleId": "verify-24",
+      "taskId": "verify-24",
+      "kind": "task",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+      "originalGenerationPassed": true,
+      "generationPassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 28148,
+            "outputTokens": 5912,
+            "cacheReadInputTokens": 72448,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-1793713198761-2e57f9",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "de0cdf84-59b7-41ab-86c3-a88dc69eb0e2",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_wr5rbzttragrsfzqn3ak5rqg",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/eval/evidence.js"
+            },
+            "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_94yy9rdz0s1xr66uxv2leplp",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/eval-evidence.test.js"
+            },
+            "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+            "seq": 7
+          },
+          {
+            "type": "tool_use",
+            "id": "call_a6xdq84fm7xx6j1iqu2iox4a",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-24.test.js",
+              "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createEvalComparison,\n  createEvalHistoryRecord,\n  EVAL_CONTEXT_SCHEMA,\n  EVAL_EXECUTION_PROTOCOL,\n  evaluateStrictEvalGate,\n} from \"../src/lib/eval/evidence.js\";\n\n// verify-24: strict isolation of comparison identity. Two runs over the SAME\n// task population must not be treated as a comparable improvement when the\n// model, permission or runtime identity differs between baseline and candidate.\n\nconst NOW = Date.parse(\"2026-09-12T12:00:00.000Z\");\nconst D = (character) => `sha256:${character.repeat(64)}`;\n\nfunction context() {\n  return {\n    schema: EVAL_CONTEXT_SCHEMA,\n    provider: \"openai\",\n    model: \"test-model\",\n    modelRevision: \"test-model@revision-1\",\n    environmentDigest: D(\"a\"),\n    permissionDigest: D(\"b\"),\n    inferenceDigest: D(\"c\"),\n  };\n}\n\nfunction comparison() {\n  return createEvalComparison({\n    suite: \"builtin\",\n    corpusDigest: D(\"d\"),\n    provider: \"openai\",\n    model: \"test-model\",\n    context: context(),\n    platform: \"linux\",\n    arch: \"x64\",\n    node: \"v22.22.2\",\n  });\n}\n\nfunction record(index) {\n  const results = [\n    [\"a\", true],\n    [\"b\", true],\n  ].map(([id, pass]) => ({\n    id,\n    pass,\n    artifactCheckPassed: pass,\n    executionSucceeded: true,\n    agentOk: true,\n    executionEvidence: {\n      protocol: EVAL_EXECUTION_PROTOCOL,\n      exitCode: 0,\n      signal: null,\n      terminalVerified: true,\n      observedFallback: false,\n    },\n    error: null,\n    detail: \"checked\",\n    changedFiles: [],\n    unrelatedChanges: [],\n  }));\n  return createEvalHistoryRecord(\n    {\n      total: 2,\n      passed: 2,\n      failed: 0,\n      passRate: 1,\n      unrelatedChangeRate: 0,\n      results,\n    },\n    {\n      comparison: comparison(),\n      runId: `run-${index}`,\n      ranAt: new Date(NOW - (3 - index) * 1000).toISOString(),\n    },\n  );\n}\n\nconst gate = (runs) =>\n  evaluateStrictEvalGate({ runs, issues: [] }, { now: NOW });\n\ndescribe(\"verify-24: comparison identity isolation\", () => {\n  it(\"PASSES when the same task population runs under an identical comparison identity\", () => {\n    const result = gate([record(1), record(2)]);\n    expect(result).toMatchObject({\n      passed: true,\n      status: \"PASS\",\n      baselineRunId: \"run-1\",\n      candidateRunId: \"run-2\",\n    });\n    expect(result.reasons).toEqual([]);\n  });\n\n  it.each([\n    [\"model\", (comparison) => {\n      comparison.model = \"other-model\";\n      comparison.declared.model = \"other-model\";\n    }],\n    [\"permissionDigest\", (comparison) => {\n      comparison.declared.permissionDigest = D(\"e\");\n    }],\n    [\"runtime.node\", (comparison) => {\n      comparison.runtime.node = \"v24.0.0\";\n    }],\n    [\"environmentDigest\", (comparison) => {\n      comparison.declared.environmentDigest = D(\"f\");\n    }],\n    [\"inferenceDigest\", (comparison) => {\n      comparison.declared.inferenceDigest = D(\"g\");\n    }],\n  ])(\n    \"rejects a same-task pair when only the %s identity differs (not a comparable improvement)\",\n    (_field, mutate) => {\n      const candidate = record(2);\n      mutate(candidate.comparison);\n      const result = gate([record(1), candidate]);\n      expect(result.passed).toBe(false);\n      expect(result.status).toBe(\"INSUFFICIENT_EVIDENCE\");\n      expect(result.reasons).toContain(\"comparison_identity_changed\");\n    },\n  );\n});\n"
+            },
+            "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+            "seq": 12
+          },
+          {
+            "type": "tool_use",
+            "id": "call_udj2hww759mr2xhjo367scpl",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-24.test.js"
+            },
+            "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+            "seq": 16
+          },
+          {
+            "type": "tool_use",
+            "id": "call_7pc66rhkreif6qdrx2mbzigq",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-24.test.js",
+              "offset": 75,
+              "limit": 60
+            },
+            "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+            "seq": 23
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_wr5rbzttragrsfzqn3ak5rqg",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-5VKVdM/9e837ebc-7aa8-4e4e-ba32-b51efe404a40/workspace/packages/cli/src/lib/eval/evidence.js",
+              "fileVersion": "11015:1791108223000:1793712943621.4229",
+              "readSpan": {
+                "start": 0,
+                "end": 11015,
+                "total": 11015
+              },
+              "hashed": false,
+              "content": "import { createHash, randomUUID } from \"node:crypto\";\nimport fs from \"node:fs\";\nimport { computeTrend } from \"./trend.js\";\nimport { redactSecrets } from \"../secret-scan.js\";\n\nexport const EVAL_HISTORY_SCHEMA = \"chainlesschain.eval-history/v1\";\nexport const EVAL_CONTEXT_SCHEMA = \"chainlesschain.eval-comparison-context/v1\";\nexport const EVAL_COMPARISON_SCHEMA = \"chainlesschain.eval-comparison/v1\";\nexport const EVAL_EXECUTION_PROTOCOL = \"cc-agent-stream-json/v1\";\nconst DIGEST = /^sha256:[a-f0-9]{64}$/u;\nconst MAX_HISTORY_BYTES = 16 * 1024 * 1024;\nconst CONTEXT_KEYS = [\n  \"schema\",\n  \"provider\",\n  \"model\",\n  \"modelRevision\",\n  \"environmentDigest\",\n  \"permissionDigest\",\n  \"inferenceDigest\",\n];\n\nfunction canonical(value) {\n  if (Array.isArray(value)) return `[${value.map(canonical).join(\",\")}]`;\n  if (value && typeof value === \"object\") {\n    return `{${Object.keys(value)\n      .sort()\n      .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)\n      .join(\",\")}}`;\n  }\n  return JSON.stringify(value);\n}\n\nexport function evalDigest(value) {\n  return `sha256:${createHash(\"sha256\").update(value).digest(\"hex\")}`;\n}\n\nfunction nonempty(value) {\n  return (\n    typeof value === \"string\" && value.trim().length > 0 && value.length <= 1024\n  );\n}\n\n/** These are operator declarations, not observed provider state or PKI proofs. */\nexport function validateComparisonContext(value, { provider, model } = {}) {\n  if (\n    !value ||\n    typeof value !== \"object\" ||\n    Array.isArray(value) ||\n    Object.keys(value).length !== CONTEXT_KEYS.length ||\n    Object.keys(value).some((key) => !CONTEXT_KEYS.includes(key)) ||\n    value.schema !== EVAL_CONTEXT_SCHEMA ||\n    ![value.provider, value.model, value.modelRevision].every(nonempty) ||\n    ![\n      value.environmentDigest,\n      value.permissionDigest,\n      value.inferenceDigest,\n    ].every((v) => DIGEST.test(v || \"\"))\n  ) {\n    throw new Error(\n      \"comparison context requires its v1 schema, provider, model, modelRevision and environment/permission/inference sha256 digests\",\n    );\n  }\n  if (\n    (provider !== undefined && value.provider !== provider) ||\n    (model !== undefined && value.model !== model)\n  ) {\n    throw new Error(\n      \"comparison context must match explicit --provider and --model\",\n    );\n  }\n  return { ...value };\n}\n\nexport function readComparisonContext(file, selection) {\n  if (fs.statSync(file).size > 16 * 1024)\n    throw new Error(\"comparison context exceeds its size limit\");\n  const bytes = fs.readFileSync(file);\n  if (bytes.length === 0 || bytes.length > 16 * 1024) {\n    throw new Error(\"comparison context exceeds its size limit\");\n  }\n  return validateComparisonContext(\n    JSON.parse(bytes.toString(\"utf8\")),\n    selection,\n  );\n}\n\nexport function createEvalComparison({\n  suite,\n  corpusDigest,\n  provider,\n  model,\n  context,\n  platform = process.platform,\n  arch = process.arch,\n  node = process.version,\n} = {}) {\n  if (!context) return null;\n  if (!nonempty(provider) || !nonempty(model)) {\n    throw new Error(\n      \"--comparison-context requires explicit --provider and --model\",\n    );\n  }\n  if (!nonempty(suite) || !DIGEST.test(corpusDigest || \"\"))\n    throw new Error(\"eval corpus identity is required\");\n  const declared = validateComparisonContext(context, { provider, model });\n  return {\n    schema: EVAL_COMPARISON_SCHEMA,\n    basis: \"local-runtime-and-operator-declarations\",\n    suite,\n    corpusDigest,\n    provider,\n    model,\n    runtime: { platform, arch, node },\n    permissionMode: \"acceptEdits\",\n    executionProtocol: EVAL_EXECUTION_PROTOCOL,\n    declared,\n  };\n}\n\nexport function createEvalHistoryRecord(\n  summary,\n  {\n    comparison = null,\n    dryRun = false,\n    label = null,\n    ranAt = new Date().toISOString(),\n    runId = randomUUID(),\n  } = {},\n) {\n  return {\n    schema: EVAL_HISTORY_SCHEMA,\n    runId,\n    ranAt,\n    label,\n    dryRun,\n    comparison,\n    passed: summary.passed,\n    failed: summary.failed,\n    total: summary.total,\n    passRate: summary.passRate,\n    unrelatedChangeRate: summary.unrelatedChangeRate,\n    results: summary.results.map((result) => ({\n      id: result.id,\n      pass: result.pass,\n      artifactCheckPassed: result.artifactCheckPassed,\n      executionSucceeded: result.executionSucceeded,\n      agentOk: result.agentOk,\n      executionEvidence: result.executionEvidence,\n      usage: result.usage ?? null,\n      totalCostUsd: Number.isFinite(result.totalCostUsd)\n        ? result.totalCostUsd\n        : null,\n      error:\n        result.error == null\n          ? null\n          : redactSecrets(String(result.error)).slice(0, 2048),\n      detail: redactSecrets(String(result.detail || \"\")).slice(0, 2048),\n      ms: result.ms,\n      changedFiles: result.changedFiles,\n      unrelatedChanges: result.unrelatedChanges,\n    })),\n  };\n}\n\n/** Diagnostic callers may inspect valid rows, but must keep parse issues. */\nexport function parseEvalHistory(text) {\n  const runs = [],\n    issues = [];\n  if (Buffer.byteLength(text, \"utf8\") > MAX_HISTORY_BYTES) {\n    return { runs, issues: [{ code: \"history_too_large\" }] };\n  }\n  text.split(/\\r?\\n/u).forEach((line, index) => {\n    if (!line.trim()) return;\n    try {\n      const value = JSON.parse(line);\n      if (!value || typeof value !== \"object\" || Array.isArray(value))\n        throw new Error(\"not a record\");\n      runs.push(value);\n    } catch {\n      issues.push({ code: \"invalid_history_record\", line: index + 1 });\n    }\n  });\n  return { runs, issues };\n}\n\nexport function readEvalHistory(file) {\n  if (!fs.existsSync(file)) return { runs: [], issues: [] };\n  if (fs.statSync(file).size > MAX_HISTORY_BYTES) {\n    return { runs: [], issues: [{ code: \"history_too_large\" }] };\n  }\n  return parseEvalHistory(fs.readFileSync(file, \"utf8\"));\n}\n\nfunction validateComparison(value) {\n  try {\n    const rebuilt = createEvalComparison({\n      suite: value?.suite,\n      corpusDigest: value?.corpusDigest,\n      provider: value?.provider,\n      model: value?.model,\n      context: value?.declared,\n      platform: value?.runtime?.platform,\n      arch: value?.runtime?.arch,\n      node: value?.runtime?.node,\n    });\n    return (\n      rebuilt &&\n      Object.values(value.runtime).every(nonempty) &&\n      canonical(rebuilt) === canonical(value)\n    );\n  } catch {\n    return false;\n  }\n}\n\nexport function evalExecutionSucceeded(result) {\n  const execution = result?.executionEvidence;\n  return (\n    result?.executionSucceeded === true &&\n    result.error === null &&\n    execution?.protocol === EVAL_EXECUTION_PROTOCOL &&\n    execution.exitCode === 0 &&\n    execution.signal === null &&\n    execution.terminalVerified === true\n  );\n}\n\nexport function evalHistoryRecordIssues(record, now, maxAgeMs) {\n  if (!record || typeof record !== \"object\" || Array.isArray(record))\n    return [\"invalid_history_record\"];\n  const issues = [];\n  if (record.schema !== EVAL_HISTORY_SCHEMA || !nonempty(record.runId))\n    issues.push(\"legacy_or_missing_run_identity\");\n  if (record.dryRun !== false) issues.push(\"dry_run_or_missing_execution_mode\");\n  const epoch = Date.parse(record.ranAt);\n  if (\n    typeof record.ranAt !== \"string\" ||\n    !Number.isFinite(epoch) ||\n    new Date(epoch).toISOString() !== record.ranAt ||\n    epoch > now ||\n    now - epoch > maxAgeMs\n  )\n    issues.push(\"invalid_or_expired_evidence\");\n  if (!validateComparison(record.comparison))\n    issues.push(\"missing_comparison_identity\");\n  const results = record.results;\n  if (!Array.isArray(results) || results.length === 0)\n    return [...issues, \"missing_task_results\"];\n  const ids = new Set();\n  let passed = 0;\n  for (const result of results) {\n    if (!result || !nonempty(result.id) || ids.has(result.id)) {\n      issues.push(\"invalid_or_duplicate_task\");\n      continue;\n    }\n    ids.add(result.id);\n    const execution = result.executionEvidence;\n    if (\n      typeof result.pass !== \"boolean\" ||\n      typeof result.artifactCheckPassed !== \"boolean\" ||\n      typeof result.executionSucceeded !== \"boolean\" ||\n      result.agentOk !== result.executionSucceeded ||\n      result.pass !== (result.artifactCheckPassed && result.executionSucceeded)\n    )\n      issues.push(\"inconsistent_task_verdict\");\n    if (!evalExecutionSucceeded(result))\n      issues.push(\"execution_not_successful\");\n    if (execution?.observedFallback !== false)\n      issues.push(\"fallback_or_missing_model_continuity\");\n    if (result.pass === true) passed += 1;\n  }\n  if (\n    record.total !== results.length ||\n    record.passed !== passed ||\n    record.failed !== results.length - passed ||\n    record.passRate !== passed / results.length\n  )\n    issues.push(\"inconsistent_task_totals\");\n  return issues;\n}\n\n/**\n * A local comparison gate. It does not attest model checkpoints, configuration\n * declarations, edited JSONL, hidden holdouts, or production release authority.\n * Append order selects the pair; timestamps cannot silently select older rows.\n */\nexport function evaluateStrictEvalGate(\n  { runs = [], issues = [] } = {},\n  {\n    now = Date.now(),\n    maxAgeMs = 7 * 24 * 60 * 60 * 1000,\n    regressionThreshold = 0,\n  } = {},\n) {\n  const reasons = issues.map((issue) => issue.code);\n  if (\n    !Number.isFinite(now) ||\n    !Number.isFinite(maxAgeMs) ||\n    maxAgeMs <= 0 ||\n    !Number.isFinite(regressionThreshold) ||\n    regressionThreshold < 0 ||\n    regressionThreshold > 1\n  )\n    reasons.push(\"invalid_gate_options\");\n  if (!Array.isArray(runs) || runs.length < 2) reasons.push(\"missing_baseline\");\n  const pair = Array.isArray(runs) ? runs.slice(-2) : [];\n  for (const record of pair)\n    reasons.push(...evalHistoryRecordIssues(record, now, maxAgeMs));\n  if (pair.length === 2) {\n    const [baseline, candidate] = pair;\n    if (\n      baseline?.runId === candidate?.runId ||\n      Date.parse(baseline?.ranAt) >= Date.parse(candidate?.ranAt)\n    )\n      reasons.push(\"duplicate_or_unordered_runs\");\n    if (canonical(baseline?.comparison) !== canonical(candidate?.comparison))\n      reasons.push(\"comparison_identity_changed\");\n    const ids = (record) =>\n      (Array.isArray(record?.results) ? record.results : [])\n        .map((r) => r?.id)\n        .sort();\n    if (canonical(ids(baseline)) !== canonical(ids(candidate)))\n      reasons.push(\"task_population_changed\");\n  }\n  const uniqueReasons = [...new Set(reasons)];\n  const base = {\n    scope: \"local-eval-comparison\",\n    productionAttested: false,\n    baselineRunId: pair.length === 2 ? pair[0]?.runId || null : null,\n    candidateRunId: pair.at(-1)?.runId || null,\n  };\n  if (uniqueReasons.length)\n    return {\n      ...base,\n      status: \"INSUFFICIENT_EVIDENCE\",\n      passed: false,\n      reasons: uniqueReasons,\n    };\n  const trend = computeTrend(pair, { regressionThreshold });\n  const failed = trend.regressed || pair[1].passed !== pair[1].total;\n  return {\n    ...base,\n    status: failed ? \"FAIL\" : \"PASS\",\n    passed: !failed,\n    reasons: failed\n      ? [trend.regressed ? \"task_regression\" : \"candidate_tasks_failed\"]\n      : [],\n    trend,\n  };\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793713207736,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/evidence.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 18,
+                "sessionId": "panel-1793713198761-2e57f9",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/evidence.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_wr5rbzttragrsfzqn3ak5rqg",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+            "seq": 8
+          },
+          {
+            "type": "tool_result",
+            "id": "call_94yy9rdz0s1xr66uxv2leplp",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-5VKVdM/9e837ebc-7aa8-4e4e-ba32-b51efe404a40/workspace/packages/cli/__tests__/unit/eval-evidence.test.js",
+              "fileVersion": "8168:1791108223000:1793712943554.4236",
+              "readSpan": {
+                "start": 0,
+                "end": 8168,
+                "total": 8168
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createEvalComparison,\n  createEvalHistoryRecord,\n  EVAL_CONTEXT_SCHEMA,\n  EVAL_EXECUTION_PROTOCOL,\n  evaluateStrictEvalGate,\n  parseEvalHistory,\n  validateComparisonContext,\n} from \"../../src/lib/eval/evidence.js\";\nimport { computeTrend } from \"../../src/lib/eval/trend.js\";\n\nconst NOW = Date.parse(\"2026-09-12T12:00:00.000Z\");\nconst D = (character) => `sha256:${character.repeat(64)}`;\nconst context = () => ({\n  schema: EVAL_CONTEXT_SCHEMA,\n  provider: \"openai\",\n  model: \"test-model\",\n  modelRevision: \"test-model@revision-1\",\n  environmentDigest: D(\"a\"),\n  permissionDigest: D(\"b\"),\n  inferenceDigest: D(\"c\"),\n});\nconst comparison = () =>\n  createEvalComparison({\n    suite: \"builtin\",\n    corpusDigest: D(\"d\"),\n    provider: \"openai\",\n    model: \"test-model\",\n    context: context(),\n    platform: \"linux\",\n    arch: \"x64\",\n    node: \"v22.22.2\",\n  });\nfunction record(\n  index,\n  pairs = [\n    [\"a\", true],\n    [\"b\", true],\n  ],\n) {\n  const passed = pairs.filter(([, pass]) => pass).length;\n  return createEvalHistoryRecord(\n    {\n      total: pairs.length,\n      passed,\n      failed: pairs.length - passed,\n      passRate: passed / pairs.length,\n      unrelatedChangeRate: 0,\n      results: pairs.map(([id, pass]) => ({\n        id,\n        pass,\n        artifactCheckPassed: pass,\n        executionSucceeded: true,\n        agentOk: true,\n        executionEvidence: {\n          protocol: EVAL_EXECUTION_PROTOCOL,\n          exitCode: 0,\n          signal: null,\n          terminalVerified: true,\n          observedFallback: false,\n        },\n        error: null,\n        detail: \"checked\",\n        changedFiles: [],\n        unrelatedChanges: [],\n      })),\n    },\n    {\n      comparison: comparison(),\n      runId: `run-${index}`,\n      ranAt: new Date(NOW - (3 - index) * 1000).toISOString(),\n    },\n  );\n}\nconst gate = (runs, options = {}) =>\n  evaluateStrictEvalGate({ runs, issues: [] }, { now: NOW, ...options });\n\ndescribe(\"strict local Eval comparison\", () => {\n  it(\"accepts only a complete pair and explicitly limits the authority claim\", () => {\n    expect(gate([record(1), record(2)])).toMatchObject({\n      passed: true,\n      status: \"PASS\",\n      productionAttested: false,\n      scope: \"local-eval-comparison\",\n      baselineRunId: \"run-1\",\n      candidateRunId: \"run-2\",\n    });\n  });\n  it.each([[[]], [[record(1)]]])(\n    \"rejects missing baselines without changing diagnostic n/a\",\n    (runs) => {\n      expect(gate(runs).status).toBe(\"INSUFFICIENT_EVIDENCE\");\n      expect(computeTrend(runs)).toMatchObject({\n        direction: \"n/a\",\n        regressed: false,\n      });\n    },\n  );\n  it(\"rejects deleted or added tasks even if the aggregate stays at 100 percent\", () => {\n    for (const pairs of [\n      [[\"a\", true]],\n      [\n        [\"a\", true],\n        [\"b\", true],\n        [\"c\", true],\n      ],\n    ]) {\n      expect(gate([record(1), record(2, pairs)]).reasons).toContain(\n        \"task_population_changed\",\n      );\n    }\n  });\n  it.each([\"provider\", \"model\", \"corpusDigest\", \"runtime\", \"declared\"])(\n    \"rejects changed %s\",\n    (field) => {\n      const candidate = record(2);\n      if (field === \"runtime\") candidate.comparison.runtime.node = \"v24.0.0\";\n      else if (field === \"declared\")\n        candidate.comparison.declared.permissionDigest = D(\"e\");\n      else if (field === \"corpusDigest\")\n        candidate.comparison.corpusDigest = D(\"e\");\n      else {\n        candidate.comparison[field] = \"changed\";\n        candidate.comparison.declared[field] = \"changed\";\n      }\n      expect(gate([record(1), candidate]).reasons).toContain(\n        \"comparison_identity_changed\",\n      );\n    },\n  );\n  it(\"never substitutes older passing rows for the latest dry run\", () => {\n    const dry = { ...record(3), dryRun: true };\n    expect(computeTrend([record(1), record(2), dry]).runs).toBe(2);\n    expect(gate([record(1), record(2), dry]).reasons).toContain(\n      \"dry_run_or_missing_execution_mode\",\n    );\n  });\n  it(\"rejects legacy, duplicate, stale and future evidence\", () => {\n    const legacy = { ...record(2) };\n    delete legacy.comparison;\n    delete legacy.schema;\n    expect(gate([record(1), legacy]).passed).toBe(false);\n    expect(gate([record(1), record(1)]).reasons).toContain(\n      \"duplicate_or_unordered_runs\",\n    );\n    expect(gate([record(1), record(2)], { maxAgeMs: 500 }).reasons).toContain(\n      \"invalid_or_expired_evidence\",\n    );\n    expect(\n      gate([record(1), record(2)], { now: NOW - 10_000 }).reasons,\n    ).toContain(\"invalid_or_expired_evidence\");\n  });\n  it(\"rejects forged totals and duplicate task identities\", () => {\n    const forged = record(2);\n    forged.passed = 1;\n    expect(gate([record(1), forged]).reasons).toContain(\n      \"inconsistent_task_totals\",\n    );\n    const duplicate = record(2);\n    duplicate.results[1].id = \"a\";\n    expect(gate([record(1), duplicate]).reasons).toContain(\n      \"invalid_or_duplicate_task\",\n    );\n  });\n  it(\"fails on artifact regressions and rejects failed execution evidence\", () => {\n    expect(\n      gate([\n        record(1),\n        record(2, [\n          [\"a\", true],\n          [\"b\", false],\n        ]),\n      ]).status,\n    ).toBe(\"FAIL\");\n    const failed = record(2);\n    Object.assign(failed.results[0], {\n      pass: false,\n      agentOk: false,\n      executionSucceeded: false,\n      error: \"provider failed\",\n    });\n    failed.results[0].executionEvidence.exitCode = 1;\n    Object.assign(failed, { passed: 1, failed: 1, passRate: 0.5 });\n    expect(gate([record(1), failed]).reasons).toContain(\n      \"execution_not_successful\",\n    );\n  });\n  it(\"requires a verified terminal even when a caller claims ok\", () => {\n    const candidate = record(2);\n    candidate.results[0].executionEvidence.terminalVerified = false;\n    expect(gate([record(1), candidate]).reasons).toContain(\n      \"execution_not_successful\",\n    );\n  });\n  it(\"does not compare a fallback run as the originally declared model\", () => {\n    const candidate = record(2);\n    candidate.results[0].executionEvidence.observedFallback = true;\n    expect(gate([record(1), candidate]).reasons).toContain(\n      \"fallback_or_missing_model_continuity\",\n    );\n  });\n  it(\"rejects corrupted JSONL instead of comparing only its remaining valid lines\", () => {\n    const history = parseEvalHistory(\n      `${JSON.stringify(record(1))}\\nBROKEN\\n${JSON.stringify(record(2))}\\n`,\n    );\n    expect(history.runs).toHaveLength(2);\n    expect(history.issues).toEqual([\n      { code: \"invalid_history_record\", line: 2 },\n    ]);\n    expect(evaluateStrictEvalGate(history, { now: NOW })).toMatchObject({\n      status: \"INSUFFICIENT_EVIDENCE\",\n      passed: false,\n    });\n  });\n  it.each([NaN, 0, -1])(\"rejects invalid age %s\", (maxAgeMs) => {\n    expect(gate([record(1), record(2)], { maxAgeMs }).reasons).toContain(\n      \"invalid_gate_options\",\n    );\n  });\n  it(\"retains execution/artifact failures in history\", () => {\n    const source = record(1);\n    const result = source.results[0];\n    Object.assign(result, {\n      pass: false,\n      artifactCheckPassed: true,\n      executionSucceeded: false,\n      agentOk: false,\n      error: \"timed out\",\n    });\n    const stored = createEvalHistoryRecord(source);\n    expect(stored.results[0]).toMatchObject({\n      pass: false,\n      artifactCheckPassed: true,\n      executionSucceeded: false,\n      error: \"timed out\",\n    });\n  });\n});\n\ndescribe(\"Eval comparison metadata\", () => {\n  it(\"does not invent a fingerprint for undeclared environment or implicit model selection\", () => {\n    expect(createEvalComparison({})).toBeNull();\n    expect(() => createEvalComparison({ context: context() })).toThrow(\n      \"explicit --provider and --model\",\n    );\n    expect(() =>\n      validateComparisonContext(context(), { model: \"other-model\" }),\n    ).toThrow(\"must match\");\n  });\n  it(\"rejects missing digests and unknown context fields\", () => {\n    expect(() =>\n      validateComparisonContext({ ...context(), permissionDigest: \"unknown\" }),\n    ).toThrow(\"sha256\");\n    expect(() =>\n      validateComparisonContext({ ...context(), extra: true }),\n    ).toThrow(\"schema\");\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793713207736,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/eval-evidence.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 5,
+                "sessionId": "panel-1793713198761-2e57f9",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/eval-evidence.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_94yy9rdz0s1xr66uxv2leplp",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+            "seq": 9
+          },
+          {
+            "type": "tool_result",
+            "id": "call_a6xdq84fm7xx6j1iqu2iox4a",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "/tmp/cc-native-5VKVdM/9e837ebc-7aa8-4e4e-ba32-b51efe404a40/workspace/packages/cli/__tests__/verify-24.test.js",
+              "size": 3319,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793713237066,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-24.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createEvalComparison,\n  createEvalHistoryRecord,\n  EVAL_CONTEXT_SCHEMA,\n  EVAL_EXECUTION_PROTOCOL,\n  evaluateStrictEvalGate,\n} from \"../src/lib/eval/evidence.js\";\n\n// verify-24: strict isolation of comparison identity. Two runs over the SAME\n// task population must not be treated as a comparable improvement when the\n// model, permission or runtime identity differs between baseline and candidate.\n\nconst NOW = Date.parse(\"2026-09-12T12:00:00.000Z\");\nconst D = (character) => `sha256:${character.repeat(64)}`;\n\nfunction context() {\n  return {\n    schema: EVAL_CONTEXT_SCHEMA,\n    provider: \"openai\",\n    model: \"test-model\",\n    modelRevision: \"test-model@revision-1\",\n    environmentDigest: D(\"a\"),\n    permissionDigest: D(\"b\"),\n    inferenceDigest: D(\"c\"),\n  };\n}\n\nfunction comparison() {\n  return createEvalComparison({\n    suite: \"builtin\",\n    corpusDigest: D(\"d\"),\n    provider: \"openai\",\n    model: \"test-model\",\n    context: context(),\n    platform: \"linux\",\n    arch: \"x64\",\n    node: \"v22.22.2\",\n  });\n}\n\nfunction record(index) {\n  const results = [\n    [\"a\", true],\n    [\"b\", true],\n  ].map(([id, pass]) => ({\n    id,\n    pass,\n    artifactCheckPassed: pass,\n    executionSucceeded: true,\n    agentOk: true,\n    executionEvidence: {\n      protocol: EVAL_EXECUTION_PROTOCOL,\n      exitCode: 0,\n      signal: null,\n      terminalVerified: true,\n      observedFallback: false,\n    },\n    error: null,\n    detail: \"checked\",\n    changedFiles: [],\n    unrelatedChanges: [],\n  }));\n  return createEvalHistoryRecord(\n    {\n      total: 2,\n      passed: 2,\n      failed: 0,\n      passRate: 1,\n      unrelatedChangeRate: 0,\n      results,\n    },\n    {\n      comparison: comparison(),\n      runId: `run-${index}`,\n      ranAt: new Date(NOW - (3 - index) * 1000).toISOString(),\n    },\n  );\n}\n\nconst gate = (runs) =>\n  evaluateStrictEvalGate({ runs, issues: [] }, { now: NOW });\n\ndescribe(\"verify-24: comparison identity isolation\", () => {\n  it(\"PASSES when the same task population runs under an identical comparison identity\", () => {\n    const result = gate([record(1), record(2)]);\n    expect(result).toMatchObject({\n      passed: true,\n      status: \"PASS\",\n      baselineRunId: \"run-1\",\n      candidateRunId: \"run-2\",\n    });\n    expect(result.reasons).toEqual([]);\n  });\n\n  it.each([\n    [\"model\", (comparison) => {\n      comparison.model = \"other-model\";\n      comparison.declared.model = \"other-model\";\n    }],\n    [\"permissionDigest\", (comparison) => {\n      comparison.declared.permissionDigest = D(\"e\");\n    }],\n    [\"runtime.node\", (comparison) => {\n      comparison.runtime.node = \"v24.0.0\";\n    }],\n    [\"environmentDigest\", (comparison) => {\n      comparison.declared.environmentDigest = D(\"f\");\n    }],\n    [\"inferenceDigest\", (comparison) => {\n      comparison.declared.inferenceDigest = D(\"g\");\n    }],\n  ])(\n    \"rejects a same-task pair when only the %s identity differs (not a comparable improvement)\",\n    (_field, mutate) => {\n      const candidate = record(2);\n      mutate(candidate.comparison);\n      const result = gate([record(1), candidate]);\n      expect(result.passed).toBe(false);\n      expect(result.status).toBe(\"INSUFFICIENT_EVIDENCE\");\n      expect(result.reasons).toContain(\"comparison_identity_changed\");\n    },\n  );\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 12,
+                "sessionId": "panel-1793713198761-2e57f9",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-24.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createEvalComparison,\n  createEvalHistoryRecord,\n  EVAL_CONTEXT_SCHEMA,\n  EVAL_EXECUTION_PROTOCOL,\n  evaluateStrictEvalGate,\n} from \"../src/lib/eval/evidence.js\";\n\n// verify-24: strict isolation of comparison identity. Two runs over the SAME\n// task population must not be treated as a comparable improvement when the\n// model, permission or runtime identity differs between baseline and candidate.\n\nconst NOW = Date.parse(\"2026-09-12T12:00:00.000Z\");\nconst D = (character) => `sha256:${character.repeat(64)}`;\n\nfunction context() {\n  return {\n    schema: EVAL_CONTEXT_SCHEMA,\n    provider: \"openai\",\n    model: \"test-model\",\n    modelRevision: \"test-model@revision-1\",\n    environmentDigest: D(\"a\"),\n    permissionDigest: D(\"b\"),\n    inferenceDigest: D(\"c\"),\n  };\n}\n\nfunction comparison() {\n  return createEvalComparison({\n    suite: \"builtin\",\n    corpusDigest: D(\"d\"),\n    provider: \"openai\",\n    model: \"test-model\",\n    context: context(),\n    platform: \"linux\",\n    arch: \"x64\",\n    node: \"v22.22.2\",\n  });\n}\n\nfunction record(index) {\n  const results = [\n    [\"a\", true],\n    [\"b\", true],\n  ].map(([id, pass]) => ({\n    id,\n    pass,\n    artifactCheckPassed: pass,\n    executionSucceeded: true,\n    agentOk: true,\n    executionEvidence: {\n      protocol: EVAL_EXECUTION_PROTOCOL,\n      exitCode: 0,\n      signal: null,\n      terminalVerified: true,\n      observedFallback: false,\n    },\n    error: null,\n    detail: \"checked\",\n    changedFiles: [],\n    unrelatedChanges: [],\n  }));\n  return createEvalHistoryRecord(\n    {\n      total: 2,\n      passed: 2,\n      failed: 0,\n      passRate: 1,\n      unrelatedChangeRate: 0,\n      results,\n    },\n    {\n      comparison: comparison(),\n      runId: `run-${index}`,\n      ranAt: new Date(NOW - (3 - index) * 1000).toISOString(),\n    },\n  );\n}\n\nconst gate = (runs) =>\n  evaluateStrictEvalGate({ runs, issues: [] }, { now: NOW });\n\ndescribe(\"verify-24: comparison identity isolation\", () => {\n  it(\"PASSES when the same task population runs under an identical comparison identity\", () => {\n    const result = gate([record(1), record(2)]);\n    expect(result).toMatchObject({\n      passed: true,\n      status: \"PASS\",\n      baselineRunId: \"run-1\",\n      candidateRunId: \"run-2\",\n    });\n    expect(result.reasons).toEqual([]);\n  });\n\n  it.each([\n    [\"model\", (comparison) => {\n      comparison.model = \"other-model\";\n      comparison.declared.model = \"other-model\";\n    }],\n    [\"permissionDigest\", (comparison) => {\n      comparison.declared.permissionDigest = D(\"e\");\n    }],\n    [\"runtime.node\", (comparison) => {\n      comparison.runtime.node = \"v24.0.0\";\n    }],\n    [\"environmentDigest\", (comparison) => {\n      comparison.declared.environmentDigest = D(\"f\");\n    }],\n    [\"inferenceDigest\", (comparison) => {\n      comparison.declared.inferenceDigest = D(\"g\");\n    }],\n  ])(\n    \"rejects a same-task pair when only the %s identity differs (not a comparable improvement)\",\n    (_field, mutate) => {\n      const candidate = record(2);\n      mutate(candidate.comparison);\n      const result = gate([record(1), candidate]);\n      expect(result.passed).toBe(false);\n      expect(result.status).toBe(\"INSUFFICIENT_EVIDENCE\");\n      expect(result.reasons).toContain(\"comparison_identity_changed\");\n    },\n  );\n});\n"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "write_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_a6xdq84fm7xx6j1iqu2iox4a",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+            "seq": 13
+          },
+          {
+            "type": "tool_result",
+            "id": "call_udj2hww759mr2xhjo367scpl",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-5VKVdM/9e837ebc-7aa8-4e4e-ba32-b51efe404a40/workspace/packages/cli/__tests__/verify-24.test.js",
+              "fileVersion": "3319:1793713237054.1313:1793713237054.1313",
+              "readSpan": {
+                "start": 0,
+                "end": 3319,
+                "total": 3319
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createEvalComparison,\n  createEvalHistoryRecord,\n  EVAL_CONTEXT_SCHEMA,\n  EVAL_EXECUTION_PROTOCOL,\n  evaluateStrictEvalGate,\n} from \"../src/lib/eval/evidence.js\";\n\n// verify-24: strict isolation of comparison identity. Two runs over the SAME\n// task population must not be treated as a comparable improvement when the\n// model, permission or runtime identity differs between baseline and candidate.\n\nconst NOW = Date.parse(\"2026-09-12T12:00:00.000Z\");\nconst D = (character) => `sha256:${character.repeat(64)}`;\n\nfunction context() {\n  return {\n    schema: EVAL_CONTEXT_SCHEMA,\n    provider: \"openai\",\n    model: \"test-model\",\n    modelRevision: \"test-model@revision-1\",\n    environmentDigest: D(\"a\"),\n    permissionDigest: D(\"b\"),\n    inferenceDigest: D(\"c\"),\n  };\n}\n\nfunction comparison() {\n  return createEvalComparison({\n    suite: \"builtin\",\n    corpusDigest: D(\"d\"),\n    provider: \"openai\",\n    model: \"test-model\",\n    context: context(),\n    platform: \"linux\",\n    arch: \"x64\",\n    node: \"v22.22.2\",\n  });\n}\n\nfunction record(index) {\n  const results = [\n    [\"a\", true],\n    [\"b\", true],\n  ].map(([id, pass]) => ({\n    id,\n    pass,\n    artifactCheckPassed: pass,\n    executionSucceeded: true,\n    agentOk: true,\n    executionEvidence: {\n      protocol: EVAL_EXECUTION_PROTOCOL,\n      exitCode: 0,\n      signal: null,\n      terminalVerified: true,\n      observedFallback: false,\n    },\n    error: null,\n    detail: \"checked\",\n    changedFiles: [],\n    unrelatedChanges: [],\n  }));\n  return createEvalHistoryRecord(\n    {\n      total: 2,\n      passed: 2,\n      failed: 0,\n      passRate: 1,\n      unrelatedChangeRate: 0,\n      results,\n    },\n    {\n      comparison: comparison(),\n      runId: `run-${index}`,\n      ranAt: new Date(NOW - (3 - index) * 1000).toISOString(),\n    },\n  );\n}\n\nconst gate = (runs) =>\n  evaluateStrictEvalGate({ runs, issues: [] }, { now: NOW });\n\ndescribe(\"verify-24: comparison identity isolation\", () => {\n  it(\"PASSES when the same task population runs under an identical comparison identity\", () => {\n    const result = gate([record(1), record(2)]);\n    expect(result).toMatchObject({\n      passed: true,\n      status: \"PASS\",\n      baselineRunId: \"run-1\",\n      candidateRunId: \"run-2\",\n    });\n    expect(result.reasons).toEqual([]);\n  });\n\n  it.each([\n    [\"model\", (comparison) => {\n      comparison.model = \"other-model\";\n      comparison.declared.model = \"other-model\";\n    }],\n    [\"permissionDigest\", (comparison) => {\n      comparison.declared.permissionDigest = D(\"e\");\n    }],\n    [\"runtime.node\", (comparison) => {\n      comparison.runtime.node = \"v24.0.0\";\n    }],\n    [\"environmentDigest\", (comparison) => {\n      comparison.declared.environmentDigest = D(\"f\");\n    }],\n    [\"inferenceDigest\", (comparison) => {\n      comparison.declared.inferenceDigest = D(\"g\");\n    }],\n  ])(\n    \"rejects a same-task pair when only the %s identity differs (not a comparable improvement)\",\n    (_field, mutate) => {\n      const candidate = record(2);\n      mutate(candidate.comparison);\n      const result = gate([record(1), candidate]);\n      expect(result.passed).toBe(false);\n      expect(result.status).toBe(\"INSUFFICIENT_EVIDENCE\");\n      expect(result.reasons).toContain(\"comparison_identity_changed\");\n    },\n  );\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793713241391,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-24.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-1793713198761-2e57f9",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-24.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_udj2hww759mr2xhjo367scpl",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+            "seq": 17
+          },
+          {
+            "type": "tool_result",
+            "id": "call_7pc66rhkreif6qdrx2mbzigq",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-5VKVdM/9e837ebc-7aa8-4e4e-ba32-b51efe404a40/workspace/packages/cli/__tests__/verify-24.test.js",
+              "fileVersion": "3319:1793713237054.1313:1793713237054.1313",
+              "range": {
+                "startLine": 75,
+                "endLine": 125,
+                "totalLines": 125
+              },
+              "readSpan": {
+                "start": 1745,
+                "end": 3319,
+                "total": 3319
+              },
+              "hashed": false,
+              "content": "      runId: `run-${index}`,\n      ranAt: new Date(NOW - (3 - index) * 1000).toISOString(),\n    },\n  );\n}\n\nconst gate = (runs) =>\n  evaluateStrictEvalGate({ runs, issues: [] }, { now: NOW });\n\ndescribe(\"verify-24: comparison identity isolation\", () => {\n  it(\"PASSES when the same task population runs under an identical comparison identity\", () => {\n    const result = gate([record(1), record(2)]);\n    expect(result).toMatchObject({\n      passed: true,\n      status: \"PASS\",\n      baselineRunId: \"run-1\",\n      candidateRunId: \"run-2\",\n    });\n    expect(result.reasons).toEqual([]);\n  });\n\n  it.each([\n    [\"model\", (comparison) => {\n      comparison.model = \"other-model\";\n      comparison.declared.model = \"other-model\";\n    }],\n    [\"permissionDigest\", (comparison) => {\n      comparison.declared.permissionDigest = D(\"e\");\n    }],\n    [\"runtime.node\", (comparison) => {\n      comparison.runtime.node = \"v24.0.0\";\n    }],\n    [\"environmentDigest\", (comparison) => {\n      comparison.declared.environmentDigest = D(\"f\");\n    }],\n    [\"inferenceDigest\", (comparison) => {\n      comparison.declared.inferenceDigest = D(\"g\");\n    }],\n  ])(\n    \"rejects a same-task pair when only the %s identity differs (not a comparable improvement)\",\n    (_field, mutate) => {\n      const candidate = record(2);\n      mutate(candidate.comparison);\n      const result = gate([record(1), candidate]);\n      expect(result.passed).toBe(false);\n      expect(result.status).toBe(\"INSUFFICIENT_EVIDENCE\");\n      expect(result.reasons).toContain(\"comparison_identity_changed\");\n    },\n  );\n});\n",
+              "readRecovery": {
+                "action": "targeted-review"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793713267068,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-24.test.js",
+                    "offset": 75,
+                    "limit": 60
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-1793713198761-2e57f9",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-24.test.js",
+                    "offset": 75,
+                    "limit": 60
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_7pc66rhkreif6qdrx2mbzigq",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+            "seq": 24
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2708,
+              "output_tokens": 110,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 8328,
+              "output_tokens": 3142,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+            "seq": 11
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6788,
+              "output_tokens": 72,
+              "cache_read_input_tokens": 11520,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+            "seq": 15
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3201,
+              "output_tokens": 429,
+              "cache_read_input_tokens": 17152,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+            "seq": 19
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 1857,
+              "output_tokens": 1460,
+              "cache_read_input_tokens": 19200,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+            "seq": 22
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5266,
+              "output_tokens": 699,
+              "cache_read_input_tokens": 18432,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+            "seq": 26
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 28148,
+          "output_tokens": 5912,
+          "cache_read_input_tokens": 72448
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 6,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "The deliverable is intact and verified against the source. I've completed the audit. Let me provide the final account.\n\nMy audit is complete. The deliverable `packages/cli/__tests__/verify-24.test.js` is confirmed as written (unchanged since creation) and maps to each task requirement. No gaps found. No implementation defect exists in the frozen source — it already rejects all identity changes via `comparison_identity_changed`, so no repair was needed (consistent with \"不得虚构已存在缺陷\").\n\n## Final account\n\n**Deliverable:** `packages/cli/__tests__/verify-24.test.js` — 6 cases (within cap), independent of the existing `eval-evidence.test.js` suite, importing only from `../src/lib/eval/evidence.js` (resolved relative to the deliverable, same directory level as the existing unit test).\n\n**Requirement → fixture → call path → assertion:**\n\n1. *Same task, identical identity → comparable improvement (PASS).* Positive control: two records over task population `{a,b}` with byte-identical `comparison`. Call path: `evaluateStrictEvalGate({runs,issues:[]},{now})`. Assertion: `passed:true, status:\"PASS\", reasons:[]`.\n2. *Same task, different model → not comparable.* Negative: mutate only `comparison.model` **and** `comparison.declared.model` (both, so `validateComparison` still rebuilds consistently — otherwise `missing_comparison_identity` would mask the identity check). Assertion: `reasons` contains `comparison_identity_changed`, `passed:false`.\n3. *Different permission identity.* Negative: mutate only `declared.permissionDigest` (still a valid sha256, provider/model match). Assertion: `comparison_identity_changed`.\n4. *Different runtime identity.* Negative: mutate only `runtime.node` (rebuild-consistent, so `validateComparison` stays valid). Assertion: `comparison_identity_changed`.\n5. *Different environment identity.* Negative: only `declared.environmentDigest`. Assertion: `comparison_identity_changed`.\n6. *Different inference identity.* Negative: only `declared.inferenceDigest`. Assertion: `comparison_identity_changed`.\n\n**Negative controls all keep other prerequisites valid** (same task ids → `task_population_changed` absent; ordered distinct runIds → `duplicate_or_unordered_runs` absent; valid digests/schema → `missing_comparison_identity` absent). So the observed `comparison_identity_changed` can only come from the identity field mutated — the intended condition. The positive control proves valid prerequisites and that the guard doesn't over-reject.\n\n**All three named dimensions covered:** model ✓, permission (permissionDigest) ✓, runtime (runtime.node) ✓, plus environment/inference as extra context identity fields.\n\n**No implementation defect:** the frozen `evaluateStrictEvalGate` canonical-comparison check already rejects every tested identity change. No source edit, no assertion weakening.\n\n**Limitations:** Tests were not executed — no shell/execution tools are available in this environment; the write persisted and imports/relative references resolved, but that does not constitute a passing test.",
+          "session_id": "panel-1793713198761-2e57f9",
+          "turn": 1,
+          "usage": {
+            "input_tokens": 28148,
+            "output_tokens": 5912,
+            "cache_read_input_tokens": 72448,
+            "cache_creation_input_tokens": 0
+          },
+          "transcript_refs": {
+            "schema": "chainlesschain.session-transcript-references/v1",
+            "sessionId": "panel-1793713198761-2e57f9",
+            "assistantEventId": "0d2775dfadd1bdb491541cc35ac431d3cf2e5f7e0f76cd8ccae5f7f3e8459ccd",
+            "userEventId": "ba65949531e8730cd55dc06bf0170043fb89b0b68193b4069c71f51b5e5ecf94",
+            "clientMessageId": "bfa166be-d2dd-4cad-9ad3-51c55b76cae4"
+          },
+          "trace_id": "tr-bff7df01-6b51-4484-89cb-3500f8ce289a",
+          "seq": 28
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 6,
+        "usageCompleteRequests": 6,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateAcceptancePassed": true,
+      "passed": true,
+      "generationAssessment": {
+        "passed": true,
+        "originalGenerationPassed": true,
+        "originalTerminalVerified": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 28148,
+            "outputTokens": 5912,
+            "cacheReadInputTokens": 72448,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "dialect": "persistent-IDE-with-validated-session-end"
+      },
+      "sourceScopePassed": true,
+      "unexpectedChanges": [],
+      "frozenSourceAssessment": {
+        "exact": true,
+        "contentVerified": true,
+        "filenameEncoding": "utf8"
+      },
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-24-setup-4bc96441-1b03-49e1-a736-3a95bfaf429f.json",
+        "receiptDigest": "sha256:6c2777b4f1869ae8b481a14fa1485a901d6559a6ae3e67786afec12ee3bdfe08",
+        "scriptDigest": "sha256:72ba58e1473c8e4f288a8a77f8c90e0da098b9c9fc663c29dc338022a0109043",
+        "receiptPath": "pack/acceptance-evidence/verify-24-setup-4bc96441-1b03-49e1-a736-3a95bfaf429f.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 22,
+            "passed": 22,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-24-check-16086733-f1e2-466a-b0be-1a914c13792f.json",
+        "receiptDigest": "sha256:6eb234c48cc0da5fb4c6eccb16056baa1fad6f81cb2778182104a61238c9ed30",
+        "scriptDigest": "sha256:d1f2729b64b813aeb053f905a73299b296dea62ebd9c69478edd2b7ebf75e6a2",
+        "receiptPath": "pack/acceptance-evidence/verify-24-check-16086733-f1e2-466a-b0be-1a914c13792f.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 22,
+            "passed": 22,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          }
+        ],
+        "mutations": [
+          {
+            "name": "compare-different-runtime-identities",
+            "sourceSha256": "8b289918121a57dc4d30c53fe4315e3103f178d7c169c493be8b6374a226941e",
+            "total": 6,
+            "passed": 1,
+            "failed": 5
+          }
+        ]
+      },
+      "finishedAt": "2026-11-03T17:14:34.834Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-24"
+  ],
+  "passed": true,
+  "finishedAt": "2026-11-03T17:14:34.835Z"
+}

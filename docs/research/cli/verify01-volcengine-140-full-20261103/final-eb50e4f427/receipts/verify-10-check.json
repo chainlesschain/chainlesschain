@@ -1,0 +1,117 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-10",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 2,
+      "passed": 2,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 170,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 797,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":2,\"numPassedTests\":2,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793719154103,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"background agent read-only list index\"],\"fullName\":\"background agent read-only list index reuses an exact authority-file projection without storing session content\",\"status\":\"passed\",\"title\":\"reuses an exact authority-file projection without storing session content\",\"duration\":15.125738000000013,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent read-only list index\"],\"fullName\":\"background agent read-only list index invalidates on authority replacement and rebuilds a corrupt cache\",\"status\":\"passed\",\"title\":\"invalidates on authority replacement and rebuilds a corrupt cache\",\"duration\":2.7706459999999993,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793719154368,\"endTime\":1793719154385.7708,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/background-agent-list-index.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 787,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793719154898,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"background agent list index pagination invalidation\"],\"fullName\":\"background agent list index pagination invalidation repaginates a rebuilt index after a write, keeping the partial last page\",\"status\":\"passed\",\"title\":\"repaginates a rebuilt index after a write, keeping the partial last page\",\"duration\":16.163839999999993,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent list index pagination invalidation\"],\"fullName\":\"background agent list index pagination invalidation keeps a cached index in sync when nothing changes (negative: no write)\",\"status\":\"passed\",\"title\":\"keeps a cached index in sync when nothing changes (negative: no write)\",\"duration\":2.6404129999999952,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent list index pagination invalidation\"],\"fullName\":\"background agent list index pagination invalidation repaginates a rebuilt index after deleting a state file\",\"status\":\"passed\",\"title\":\"repaginates a rebuilt index after deleting a state file\",\"duration\":2.46972599999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent list index pagination invalidation\"],\"fullName\":\"background agent list index pagination invalidation keeps a cached index in sync when deleting a missing file (negative: no delete)\",\"status\":\"passed\",\"title\":\"keeps a cached index in sync when deleting a missing file (negative: no delete)\",\"duration\":1.7946300000000122,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent list index pagination invalidation\"],\"fullName\":\"background agent list index pagination invalidation repaginates a rebuilt index after a simultaneous add and delete\",\"status\":\"passed\",\"title\":\"repaginates a rebuilt index after a simultaneous add and delete\",\"duration\":2.074410999999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent list index pagination invalidation\"],\"fullName\":\"background agent list index pagination invalidation keeps a cached index in sync after a rebuild on an unchanged snapshot\",\"status\":\"passed\",\"title\":\"keeps a cached index in sync after a rebuild on an unchanged snapshot\",\"duration\":1.7523109999999917,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793719155154,\"endTime\":1793719155181.7522,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-10.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/background-agent-list-index.js"
+      ],
+      "setup": false,
+      "ms": 187,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 769,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793719155859,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"background agent list index pagination invalidation\"],\"fullName\":\"background agent list index pagination invalidation repaginates a rebuilt index after a write, keeping the partial last page\",\"status\":\"passed\",\"title\":\"repaginates a rebuilt index after a write, keeping the partial last page\",\"duration\":15.887535999999983,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent list index pagination invalidation\"],\"fullName\":\"background agent list index pagination invalidation keeps a cached index in sync when nothing changes (negative: no write)\",\"status\":\"passed\",\"title\":\"keeps a cached index in sync when nothing changes (negative: no write)\",\"duration\":2.2070970000000045,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent list index pagination invalidation\"],\"fullName\":\"background agent list index pagination invalidation repaginates a rebuilt index after deleting a state file\",\"status\":\"passed\",\"title\":\"repaginates a rebuilt index after deleting a state file\",\"duration\":2.127779000000004,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent list index pagination invalidation\"],\"fullName\":\"background agent list index pagination invalidation keeps a cached index in sync when deleting a missing file (negative: no delete)\",\"status\":\"passed\",\"title\":\"keeps a cached index in sync when deleting a missing file (negative: no delete)\",\"duration\":1.77030400000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent list index pagination invalidation\"],\"fullName\":\"background agent list index pagination invalidation repaginates a rebuilt index after a simultaneous add and delete\",\"status\":\"passed\",\"title\":\"repaginates a rebuilt index after a simultaneous add and delete\",\"duration\":2.068899999999985,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent list index pagination invalidation\"],\"fullName\":\"background agent list index pagination invalidation keeps a cached index in sync after a rebuild on an unchanged snapshot\",\"status\":\"passed\",\"title\":\"keeps a cached index in sync after a rebuild on an unchanged snapshot\",\"duration\":1.704812000000004,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793719156110,\"endTime\":1793719156135.7048,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-10.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate tests did not reject the behavioral mutant"
+}

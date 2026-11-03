@@ -1,0 +1,127 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+// Regression: official endpoint vs same-name custom gateway isolation.
+// A model name served by a custom gateway must not inherit the official
+// endpoint's documented limits/authentication, and an unknown model must stay
+// unknown regardless of which endpoint it is addressed through.
+describe("official endpoint vs same-name custom gateway isolation", () => {
+  it.each([
+    undefined,
+    "https://api.openai.com/v1",
+  ])("applies official docs to the same-name model at the official endpoint %s", (baseUrl) => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl,
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 128000,
+      windowSource: "official-model-docs",
+      windowAssumed: false,
+      advertisedMaxOutputTokens: 16384,
+    });
+    expect(profile.sources).toContain(
+      "https://developers.openai.com/api/docs/models/gpt-4o",
+    );
+  });
+
+  it.each([
+    "https://gateway.example/v1",
+    "https://api.openai.com.evil/v1",
+    "https://api.openai.com:444/v1",
+    "https://api.openai.com/v1/",
+    "https://user:secret@api.openai.com/v1",
+  ])(
+    "does not share official auth/limits with the same-name model on custom gateway %s",
+    (baseUrl) => {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model: "gpt-4o",
+        baseUrl,
+      });
+      expect(profile.windowSource).not.toBe("official-model-docs");
+      expect(profile).toMatchObject({
+        windowAssumed: true,
+        advertisedMaxOutputTokens: null,
+        sources: [],
+      });
+      // No official documentation URL, credential marker, or baseUrl leak.
+      expect(JSON.stringify(profile)).not.toMatch(
+        /developers\.openai\.com|secret|baseUrl/,
+      );
+    },
+  );
+
+  it("keeps an unknown model unknown at the official endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-future-unknown",
+      baseUrl: "https://api.openai.com/v1",
+    });
+    expect(profile).toMatchObject({
+      windowAssumed: true,
+      windowSource: "provider-default",
+      contextWindowTokens: 128000,
+      advertisedMaxOutputTokens: null,
+      sources: [],
+    });
+  });
+
+  it("keeps an unknown model unknown at a custom gateway", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-future-unknown",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(profile).toMatchObject({
+      windowAssumed: true,
+      windowSource: "provider-default",
+      contextWindowTokens: 128000,
+      advertisedMaxOutputTokens: null,
+      sources: [],
+    });
+    expect(JSON.stringify(profile)).not.toContain("gateway.example");
+  });
+
+  it("does not share official limits with the same-name model on a custom gateway", () => {
+    const official = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "https://api.openai.com/v1",
+    });
+    const custom = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "https://gateway.example/v1",
+    });
+    // Official endpoint carries the documented limits; the custom gateway does
+    // not inherit them (different content digest, provenance and output cap).
+    expect(official).toMatchObject({
+      windowSource: "official-model-docs",
+      windowAssumed: false,
+      advertisedMaxOutputTokens: 16384,
+    });
+    expect(custom.windowSource).not.toBe(official.windowSource);
+    expect(custom.digest).not.toBe(official.digest);
+    expect(custom).toMatchObject({
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+      sources: [],
+    });
+    // profileId is an endpoint-independent model identity: the same provider
+    // and model resolve to the same identity across endpoints.
+    expect(custom.profileId).toBe(official.profileId);
+  });
+
+  it("does not treat a same-name documented model on a custom gateway as certified", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(profile.runtimeVerified).toBe(false);
+    expect(profile.windowAssumed).toBe(true);
+    expect(profile.limitations.join(" ")).toMatch(/custom endpoint/);
+  });
+});

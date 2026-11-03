@@ -1,0 +1,105 @@
+import { EventEmitter } from "node:events";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+beforeEach(() => vi.resetModules());
+
+function supervisor(pid = 456) {
+  return Object.assign(new EventEmitter(), {
+    pid,
+    ownedProcessTreeClosed: new Promise(() => {}),
+    ownedProcessTreeEvidence: { cleanup: { confirmed: false } },
+  });
+}
+
+describe("verify-18: unknown-owner quarantine keeps future execution blocked", () => {
+  it("supervisor lost (cleanup:unconfirmed) blocks subsequent execution", async () => {
+    const ledger =
+      await import(
+        "../src/lib/process-execution-broker/process-ownership-quarantine.js"
+      );
+    const proc = supervisor();
+    ledger.observeProcessOwnership(proc, "owned");
+    proc.emit("cleanup:unconfirmed", proc.ownedProcessTreeEvidence);
+
+    const status = ledger.getProcessOwnershipStatus();
+    expect(status.blocked).toBe(true);
+    expect(status.recoveryRequired).toBe(true);
+    expect(status.unresolvedExecutionIds).toEqual(["owned"]);
+    expect(() => ledger.assertProcessOwnershipAvailable()).toThrow(
+      expect.objectContaining({
+        code: ledger.PROCESS_OWNERSHIP_UNCONFIRMED,
+        recoveryRequired: true,
+        executionStarted: false,
+      }),
+    );
+  });
+
+  it("an ordinary signal error with confirmed cleanup never blocks", async () => {
+    const ledger =
+      await import(
+        "../src/lib/process-execution-broker/process-ownership-quarantine.js"
+      );
+    const proc = supervisor();
+    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: true } };
+    ledger.observeProcessOwnership(proc, "owned");
+    proc.emit("error", new Error("signal failed"));
+    proc.emit("cleanup:unconfirmed", proc.ownedProcessTreeEvidence);
+
+    expect(ledger.getProcessOwnershipStatus().blocked).toBe(false);
+    expect(() =>
+      ledger.assertProcessOwnershipAvailable(),
+    ).not.toThrow();
+  });
+
+  it("root process close does not lift an existing quarantine", async () => {
+    const ledger =
+      await import(
+        "../src/lib/process-execution-broker/process-ownership-quarantine.js"
+      );
+    const proc = supervisor();
+    ledger.observeProcessOwnership(proc, "owned");
+    proc.emit("cleanup:unconfirmed", proc.ownedProcessTreeEvidence);
+    expect(ledger.getProcessOwnershipStatus().blocked).toBe(true);
+
+    proc.emit("close", 0, null);
+    expect(ledger.getProcessOwnershipStatus().blocked).toBe(true);
+    expect(ledger.getProcessOwnershipStatus().unresolvedExecutionIds).toEqual([
+      "owned",
+    ]);
+    expect(() => ledger.assertProcessOwnershipAvailable()).toThrow(
+      expect.objectContaining({ code: ledger.PROCESS_OWNERSHIP_UNCONFIRMED }),
+    );
+  });
+
+  it("root process close alone never creates a quarantine", async () => {
+    const ledger =
+      await import(
+        "../src/lib/process-execution-broker/process-ownership-quarantine.js"
+      );
+    const proc = supervisor();
+    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: true } };
+    ledger.observeProcessOwnership(proc, "owned");
+    proc.emit("close", 0, null);
+
+    expect(ledger.getProcessOwnershipStatus().blocked).toBe(false);
+    expect(() =>
+      ledger.assertProcessOwnershipAvailable(),
+    ).not.toThrow();
+  });
+
+  it("a process without a pid never enters the quarantine", async () => {
+    const ledger =
+      await import(
+        "../src/lib/process-execution-broker/process-ownership-quarantine.js"
+      );
+    const proc = supervisor(undefined);
+    proc.pid = undefined;
+    ledger.observeProcessOwnership(proc, "not-started");
+    proc.emit("cleanup:unconfirmed", { cleanup: { confirmed: false } });
+
+    expect(ledger.getProcessOwnershipStatus().blocked).toBe(false);
+    expect(() =>
+      ledger.assertProcessOwnershipAvailable(),
+    ).not.toThrow();
+  });
+});

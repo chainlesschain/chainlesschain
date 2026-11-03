@@ -1,0 +1,77 @@
+import { describe, expect, it } from "vitest";
+import {
+  questionFields,
+  normalizeQuestionFields,
+} from "../src/chat/question-draft-contract.js";
+
+/**
+ * Regression coverage for "sensitive question field exclusion":
+ * password / writeOnly fields and unknown-schema fallbacks must never
+ * enter the persisted question-draft projection produced by
+ * normalizeQuestionFields. normalizeQuestionFields takes an array of
+ * { key, value } candidates and returns an array of { key, value }.
+ */
+
+function draftRequest(schema) {
+  return {
+    kind: "question",
+    id: "q1",
+    question: "Fill this form",
+    requestedSchema: schema,
+  };
+}
+
+const supportedSchema = {
+  type: "object",
+  properties: {
+    name: { type: "string", title: "Name" },
+    token: { type: "string", title: "Token", writeOnly: true },
+  },
+};
+
+describe("verify-26: sensitive question field exclusion", () => {
+  it("writeOnly property is marked password while a plain sibling stays text", () => {
+    const descriptors = questionFields(draftRequest(supportedSchema));
+    const byKey = new Map(descriptors.map((d) => [d.key, d.kind]));
+    expect(byKey.get('["name"]')).toBe("text");
+    expect(byKey.get('["token"]')).toBe("password");
+  });
+
+  it("persists a plain sibling value but excludes the writeOnly value", () => {
+    const descriptors = questionFields(draftRequest(supportedSchema));
+    const projected = normalizeQuestionFields(descriptors, [
+      { key: '["name"]', value: "Alice" },
+      { key: '["token"]', value: "s3cr3t" },
+    ]);
+    expect(projected).toEqual([{ key: '["name"]', value: "Alice" }]);
+  });
+
+  it("unknown (unsupported) schema falls back to a single password descriptor", () => {
+    // format "password" is not in the vendor's supported string formats, so
+    // compileElicitationSchema reports supported=false and questionFields
+    // returns the answer-json password fallback.
+    const descriptors = questionFields(
+      draftRequest({
+        type: "object",
+        properties: { pwd: { type: "string", format: "password" } },
+      }),
+    );
+    expect(descriptors).toEqual([
+      { key: "answer-json", label: "Answer", kind: "password" },
+    ]);
+  });
+
+  it("unknown-schema fallback never enters the persisted projection", () => {
+    const descriptors = questionFields(
+      draftRequest({
+        type: "object",
+        properties: { pwd: { type: "string", format: "password" } },
+      }),
+    );
+    const projected = normalizeQuestionFields(descriptors, [
+      { key: '["pwd"]', value: "hidden" },
+      { key: "answer-json", value: "anything" },
+    ]);
+    expect(projected).toEqual([]);
+  });
+});

@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "runId": 41638188839,
+  "sampleId": "first-run-linux-jetbrains",
+  "taskId": "verify-06",
+  "executionSource": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "writeRequestId": 21,
+  "expectedDeliverable": "packages/cli/__tests__/verify-06.test.js",
+  "providerRequestedAndExecutedPath": "/tmp/cc-native-7QLvHj/ac8e901f-739f-42d6-98a2-1e61a7198821/workspace/packages/cli/__tests__/integration/verify-06.test.js",
+  "correctDeliverableStillVisibleInUserMessageAtWrite": true,
+  "unexpectedChanges": ["packages/cli/__tests__/integration/verify-06.test.js"],
+  "expectedPlaceholderBytes": 27,
+  "modelTerminalSuccess": true,
+  "physicalDispatchSlots": 35,
+  "usageCompleteRequests": 35,
+  "sourceScopePassed": false,
+  "rawDeliverySummaryDigest": "sha256:8927cfad8580486844d6e29d53b71d2a8d22468e59c29730521a752dcdf30c3b",
+  "files": {
+    "request-21.effective.json": "sha256:a1337eb761fa5c027312f9426dd088ce555826c71cf6161138a0debb2d0462ee",
+    "request-21.receipt.json": "sha256:84f60a56b145a9af14fffa7b20b52d6f7dcdad09db53943e45c12bd80e346ec5",
+    "response-21.sse.txt": "sha256:605b24be250f3c537bfb06bc27e3e08fcaa17ab43e4365260bcc6d1032edefa2"
+  },
+  "directFinding": "The model requested the integration/ path although the original user message still explicitly required the root __tests__/verify-06.test.js path. The CLI wrote exactly the requested path; the expected placeholder remained unchanged. Scope rejection is a real delivery failure, not an IDE inability to write or a lost deliverable instruction during compaction.",
+  "limitation": "This proves a specific path instruction violation in this attempt, not an isolated model-only ranking across different thinking modes, protocols or task-project revisions."
+}

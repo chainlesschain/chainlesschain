@@ -1,0 +1,104 @@
+import { describe, it, expect, vi } from "vitest";
+import {
+  createImagePreviewGate,
+  drawImagePreview,
+  decodeImagePreviewBatch,
+} from "../src/chat/image-preview-gate.js";
+
+// Independent regression coverage for "preview cancel / page-switch does not
+// deliver a late preview onto the current page". The frozen gate keeps exactly
+// one cancellable decoder active (createImagePreviewGate): a second validate()
+// cancels the superseded one and any bitmap that worker posts late is closed
+// and never handed to the caller, so the current page still resolves its own
+// result. Each condition below has an admissible positive control and a
+// negative control that changes only that condition.
+function gateWithWorkers() {
+  const workers = [];
+  const gate = createImagePreviewGate({
+    workerFactory: () => {
+      const w = { postMessage: vi.fn(), terminate: vi.fn() };
+      workers.push(w);
+      return w;
+    },
+  });
+  return { gate, workers };
+}
+function deliveredResult(bitmap) {
+  return { results: [{ thumbnails: [{ bitmap }] }] };
+}
+
+describe("image preview gate: late previews never reach the current page", () => {
+  it("explicit cancel rejects the pending preview and disposes the late result", async () => {
+    const { gate, workers } = gateWithWorkers();
+    const pending = gate.validate([{ data: "a" }]);
+    const rejection = expect(pending).rejects.toThrow("cancelled");
+    gate.cancel();
+    const late = { close: vi.fn() };
+    workers[0].onmessage({ data: deliveredResult(late) });
+    await rejection;
+    expect(late.close).toHaveBeenCalledOnce();
+    expect(workers[0].terminate).toHaveBeenCalled();
+  });
+
+  it("page switch supersedes the pending preview: it rejects and its late preview is disposed", async () => {
+    const { gate, workers } = gateWithWorkers();
+    const pageA = gate.validate([{ data: "a" }]); // pending page A
+    const pageB = gate.validate([{ data: "b" }]); // switch to page B
+    await expect(pageA).rejects.toThrow("cancelled");
+    const late = { close: vi.fn() };
+    workers[0].onmessage({ data: deliveredResult(late) });
+    expect(late.close).toHaveBeenCalledOnce();
+    expect(workers[0].terminate).toHaveBeenCalled();
+  });
+
+  it("page switch: the current page still resolves its own preview normally", async () => {
+    const { gate, workers } = gateWithWorkers();
+    const pageA = gate.validate([{ data: "a" }]);
+    const pageB = gate.validate([{ data: "b" }]);
+    await expect(pageA).rejects.toThrow("cancelled");
+    // A late result from the superseded page A worker must not satisfy page B.
+    const stale = { close: vi.fn() };
+    workers[0].onmessage({ data: deliveredResult(stale) });
+    expect(stale.close).toHaveBeenCalledOnce();
+    // The current page B worker resolves independently and stays live.
+    const current = { close: vi.fn() };
+    workers[1].onmessage({ data: deliveredResult(current) });
+    const result = await pageB;
+    expect(result[0].thumbnails[0].bitmap).toBe(current);
+    expect(current.close).not.toHaveBeenCalled();
+  });
+
+  it("a single page that is never cancelled resolves its preview and keeps bitmaps live", async () => {
+    const { gate, workers } = gateWithWorkers();
+    const pending = gate.validate([{ data: "a" }]);
+    const live = { close: vi.fn() };
+    workers[0].onmessage({ data: deliveredResult(live) });
+    const result = await pending;
+    expect(result[0].thumbnails[0].bitmap).toBe(live);
+    expect(live.close).not.toHaveBeenCalled();
+  });
+
+  it("cancel on an idle gate is a no-op and does not disturb a later preview", async () => {
+    const { gate, workers } = gateWithWorkers();
+    expect(() => gate.cancel()).not.toThrow(); // nothing active yet
+    const pending = gate.validate([{ data: "a" }]);
+    const live = { close: vi.fn() };
+    workers[0].onmessage({ data: deliveredResult(live) });
+    const result = await pending; // cancel() before this must not have stuck
+    expect(result[0].thumbnails[0].bitmap).toBe(live);
+  });
+
+  it("a late result after the current page resolved is disposed and not redelivered", async () => {
+    const { gate, workers } = gateWithWorkers();
+    const pageA = gate.validate([{ data: "a" }]);
+    const pageB = gate.validate([{ data: "b" }]);
+    await expect(pageA).rejects.toThrow("cancelled");
+    const current = { close: vi.fn() };
+    workers[1].onmessage({ data: deliveredResult(current) });
+    await pageB; // current page already rendered its preview
+    const straggler = { close: vi.fn() };
+    workers[0].onmessage({ data: deliveredResult(straggler) });
+    expect(straggler.close).toHaveBeenCalledOnce();
+    expect(current.close).not.toHaveBeenCalled();
+  });
+});

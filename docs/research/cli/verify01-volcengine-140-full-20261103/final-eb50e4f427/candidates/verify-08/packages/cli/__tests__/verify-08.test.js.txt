@@ -1,0 +1,191 @@
+import { describe, it, expect } from "vitest";
+import { createHash } from "node:crypto";
+import {
+  createBranchHistoryImport,
+  branchMessageDigest,
+  branchContextDigest,
+  withSessionBranchHistory,
+  resolveSessionBranchHistory,
+  BRANCH_HISTORY_SCHEMA,
+  BRANCH_HISTORY_MESSAGE,
+  BRANCH_HISTORY_ORIGIN,
+} from "../src/lib/session-branch-history.js";
+
+// ---------------------------------------------------------------------------
+// Fixture helpers. These reproduce the canonical fork-history event stream that
+// the frozen implementation validates: a shared ancestor `session_start` and
+// parent body rows, plus one fork-specific context turn with an origin back
+// into the parent body. The digest is computed with the same sha256 scheme the
+// source uses (`[<start>,<branch>,<ev1>,...,<evN>]`) so the stream is valid.
+// ---------------------------------------------------------------------------
+
+const HASH = "a".repeat(64); // lowercase 64-hex placeholder
+
+// Shared ancestor: both branches recover the same parent session start + body.
+const ancestorStart = { sessionId: "parent-session", createdAt: 1700000000000 };
+
+const parentRows = [
+  {
+    role: "user",
+    text: "parent prompt",
+    part: 0,
+    last: true,
+    sourceEventId: HASH,
+    sourceItemIndex: 0,
+  },
+  {
+    role: "assistant",
+    text: "parent answer",
+    part: 0,
+    last: true,
+    sourceEventId: HASH,
+    sourceItemIndex: 1,
+  },
+];
+
+// Fork-specific context turns: each branch has an independent post-fork body.
+const branchAContext = { role: "assistant", content: "fork A independent turn" };
+const branchBContext = { role: "assistant", content: "fork B independent turn" };
+
+function computeDigest(events) {
+  // events does NOT include the final complete event.
+  const start = { ...events[0].data };
+  let out = `[${JSON.stringify({ type: "session_start", data: start })},${JSON.stringify({
+    type: events[1].type,
+    data: events[1].data,
+  })}`;
+  for (let i = 2; i < events.length; i += 1) {
+    out += `,${JSON.stringify({ type: events[i].type, data: events[i].data })}`;
+  }
+  out += "]";
+  return `sha256:${createHash("sha256").update(out).digest("hex")}`;
+}
+
+function originEvent(contextMessage, first, last) {
+  return {
+    type: BRANCH_HISTORY_ORIGIN,
+    data: {
+      origin: { first, last },
+      messageDigest: branchMessageDigest(contextMessage),
+    },
+  };
+}
+
+// Builds [session_start, session_branch, parentRows..., context, origin].
+function buildForkStream(contextMessage, first, last) {
+  const events = [{ type: "session_start", data: { ...ancestorStart } }];
+  events.push({
+    type: "session_branch",
+    data: {
+      history: {
+        schema: BRANCH_HISTORY_SCHEMA,
+        sourceGeneration: HASH,
+        totalMessages: parentRows.length,
+        contextMessageCount: 1,
+        coverage: { kind: "from-origin", boundaryEvent: null, reason: null },
+      },
+    },
+  });
+  for (const row of parentRows) {
+    events.push({ type: BRANCH_HISTORY_MESSAGE, data: { ...row } });
+  }
+  events.push({ type: "assistant_message", data: { ...contextMessage } });
+  events.push(originEvent(contextMessage, first, last));
+  return events;
+}
+
+function withComplete(events) {
+  const next = events.slice();
+  next.push({
+    type: "session_branch_complete",
+    data: { schemaVersion: 2, messageCount: 1, inputDigest: computeDigest(next) },
+  });
+  return next;
+}
+
+function runStream(events) {
+  const imp = createBranchHistoryImport();
+  const results = [];
+  for (const event of events) results.push(imp.accept(event));
+  imp.finish();
+  return results;
+}
+
+function archivesOf(results) {
+  return results
+    .filter((r) => r && r.kind === "archive")
+    .map((r) => r.message);
+}
+
+function originMessagesOf(results) {
+  return results
+    .filter((r) => r && r.kind === "origin")
+    .map((r) => r.message);
+}
+
+describe("fork history attribution (verify-08)", () => {
+  it("reconstructs the shared valid ancestor and branch A independent body", () => {
+    const events = withComplete(buildForkStream(branchAContext, 0, 1));
+    const results = runStream(events);
+    expect(archivesOf(results)).toEqual([
+      { role: "user", content: "parent prompt" },
+      { role: "assistant", content: "parent answer" },
+    ]);
+    expect(originMessagesOf(results)).toEqual([branchAContext]);
+  });
+
+  it("reconstructs the shared valid ancestor and branch B independent body", () => {
+    const events = withComplete(buildForkStream(branchBContext, 0, 1));
+    const results = runStream(events);
+    expect(archivesOf(results)).toEqual([
+      { role: "user", content: "parent prompt" },
+      { role: "assistant", content: "parent answer" },
+    ]);
+    expect(originMessagesOf(results)).toEqual([branchBContext]);
+  });
+
+  it("a branch capability resolves its own fork context but rejects the other fork's body", () => {
+    const planA = {
+      parentSessionId: "parent-fork",
+      contextDigest: branchContextDigest([branchAContext]),
+    };
+    const resolved = withSessionBranchHistory(planA, (capability) =>
+      resolveSessionBranchHistory(capability, "parent-fork", [branchAContext]),
+    );
+    expect(resolved).toBe(planA);
+    expect(() =>
+      withSessionBranchHistory(planA, (capability) =>
+        resolveSessionBranchHistory(capability, "parent-fork", [branchBContext]),
+      ),
+    ).toThrow(/expired or does not match/);
+  });
+
+  it("a branch capability does not attribute itself to a different ancestor", () => {
+    const planA = {
+      parentSessionId: "parent-fork",
+      contextDigest: branchContextDigest([branchAContext]),
+    };
+    expect(() =>
+      withSessionBranchHistory(planA, (capability) =>
+        resolveSessionBranchHistory(capability, "other-parent", [branchAContext]),
+      ),
+    ).toThrow(/expired or does not match/);
+  });
+
+  it("fork bodies stay distinct while identical bodies hash identically", () => {
+    expect(branchContextDigest([branchAContext])).not.toBe(
+      branchContextDigest([branchBContext]),
+    );
+    expect(branchContextDigest([branchAContext])).toBe(
+      branchContextDigest([branchAContext]),
+    );
+  });
+
+  it("rejects an ancestor origin that points beyond the recovered rows", () => {
+    // rows = 2; the last valid ancestor index is 1, so 2 is the first rejected.
+    const events = buildForkStream(branchAContext, 0, parentRows.length);
+    const imp = createBranchHistoryImport();
+    for (const event of events.slice(0, -1)) imp.accept(event);
+    expect(() => imp.accept(events[events.length - 1])).toThrow();
+  });
+});

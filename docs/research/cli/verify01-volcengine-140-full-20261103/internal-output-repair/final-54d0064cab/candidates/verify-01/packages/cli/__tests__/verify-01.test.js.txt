@@ -1,0 +1,124 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+// Regression: an official endpoint and a same-named custom gateway must not
+// share the official (non-assumed) catalog values. Only the baseUrl differs
+// between each positive/negative pair; the provider and model name are held
+// constant so no other guard can cause the divergence. Unknown model names
+// keep their assumed/unknown window at both the official and custom endpoints.
+
+describe("official endpoint vs same-name custom gateway isolation", () => {
+  it("applies documented OpenAI specs only at the official OpenAI endpoint", () => {
+    const official = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+      baseUrl: "https://api.openai.com/v1",
+    });
+    expect(official).toMatchObject({
+      contextWindowTokens: 1050000,
+      windowSource: "official-model-docs",
+      windowAssumed: false,
+      advertisedMaxOutputTokens: 128000,
+      runtimeProtocol: "openai-responses",
+    });
+    expect(official.sources.length).toBeGreaterThan(0);
+
+    const gateway = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(gateway).toMatchObject({
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+      runtimeProtocol: "chat-completions",
+    });
+    expect(gateway.windowSource).not.toBe("official-model-docs");
+    expect(gateway.sources).toEqual([]);
+    expect(gateway.limitations.join(" ")).toMatch(
+      /not applied to a custom endpoint/,
+    );
+  });
+
+  it("isolates the same-name Anthropic model by endpoint", () => {
+    const official = resolveModelCapabilityProfile({
+      provider: "anthropic",
+      model: "claude-opus-5-5",
+      baseUrl: "https://api.anthropic.com/v1",
+    });
+    expect(official).toMatchObject({
+      contextWindowTokens: 1000000,
+      windowSource: "official-model-docs",
+      windowAssumed: false,
+    });
+    expect(official.sources.length).toBeGreaterThan(0);
+
+    const gateway = resolveModelCapabilityProfile({
+      provider: "anthropic",
+      model: "claude-opus-5-5",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(gateway).toMatchObject({ windowAssumed: true });
+    expect(gateway.windowSource).not.toBe("official-model-docs");
+    expect(gateway.sources).toEqual([]);
+    expect(gateway.limitations.join(" ")).toMatch(
+      /not applied to a custom endpoint/,
+    );
+  });
+
+  it("isolates a same-name legacy catalog model from its official record by endpoint", () => {
+    const official = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "https://api.openai.com/v1",
+    });
+    expect(official).toMatchObject({
+      windowSource: "official-model-docs",
+      windowAssumed: false,
+      advertisedMaxOutputTokens: 16384,
+    });
+
+    const gateway = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(gateway).toMatchObject({
+      windowSource: "legacy-catalog",
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+    });
+    expect(gateway.sources).toEqual([]);
+  });
+
+  it("does not fabricate an official value for an unknown model at the official endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra-future",
+      baseUrl: "https://api.openai.com/v1",
+    });
+    expect(profile).toMatchObject({
+      windowSource: "provider-default",
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+    });
+    expect(profile.sources).toEqual([]);
+    expect(profile.runtimeProtocol).toBe("chat-completions");
+    expect(profile.limitations.join(" ")).toMatch(/not a verified model limit/);
+  });
+
+  it("does not fabricate an official value for an unknown model at a custom gateway", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "future-model",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(profile).toMatchObject({
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+    });
+    expect(profile.windowSource).toBe("provider-default");
+    expect(profile.sources).toEqual([]);
+    expect(profile.windowSource).not.toBe("official-model-docs");
+  });
+});

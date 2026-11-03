@@ -4,9 +4,15 @@
 
 执行状态以 `dispatch.json` 和最终 `results.json` 为准。配置、离线检查和发布验证不计为任务完成。
 
-已从不可变提交 `eb50e4f42778d6be457595cc0f39fcada025d5f0` 启动[完整 Actions 41630636517](https://github.com/chainlesschain/chainlesschain/actions/runs/41630636517)，标签 `verify01-volc140-full45-eb50e4f427`，45 项生成及45 项独立验收均保留。启动成功不计作任务通过，最终成绩待完整回执核验。
+不可变提交 `eb50e4f42778d6be457595cc0f39fcada025d5f0` 的[完整 Actions 41630636517](https://github.com/chainlesschain/chainlesschain/actions/runs/41630636517)已结束，标签 `verify01-volc140-full45-eb50e4f427`。45项生成、45项独立验收及全部证据已核验：**生成40/45、候选验收19/45、严格通过17/45**，其中普通任务13/36、首次安装4/9。[逐项最终结果](./FINAL_RESULTS.md)、[原始报告](./final-eb50e4f427/results.json)、[失败分析](./failure-analysis.json)。
+
+保留此前全部34项成功，仅新增唯一成功 `verify-08`，累计覆盖 **35/45（28/36普通任务、7/9首次安装）**，剩10项。[去重累计账本](./cumulative-status.json)绑定90份原始摘要、90份setup/check回执和45份候选；原始完整轮分数不被累计替换。用户最新要求已测试的暂不重测，因此不再启动失败补测，只继续已调度的修正完整轮及独立验收。[后续有限预算和暂停规则](./future-budget/README.md)。
+
+**2026-11-04 最终更新：** 上段35/45为首轮结束时的累计快照。已调度的修正轮现已全部结束，生成39/45、候选验收及严格通过均为 **24/45**（普通任务21/36、首次安装3/9）；新增历史唯一成功 `verify-04` 后，当前去重累计 **36/45（80%）**（普通任务29/36、首次安装7/9），剩9项未通过，无待测项。见[修正轮最终结果](./internal-output-repair/FINAL_RESULTS.md)、[最新累计账本](./internal-output-repair/cumulative-status.json)及[具体失败原因与发版判断](./internal-output-repair/FAILURE_CAUSES_AND_RELEASE.md)。已测试样本暂不重测。
 
 **复测中确认的适配器问题：** 火山转发器把 CLI 内部摘要的显式 `2048` 输出预算覆盖为 `393216`，而 Sol 转发器会保留更小的调用方限制。已保存[实际请求、未知用量及源码摘要](./diagnostics-output-limits/proof.json)，修复采用新策略并保持任务答复模型最大输出。为得到一致配置的全量成绩，将同一三包字节与原任务源码的 **45 项完整再测** 单列在[修复后完整复测](./internal-output-repair/README.md)。当前轮保留作对照，不回写历史结果；该问题不能自动解释所有候选覆盖失败或证明超时的单一原因。
+
+北京时间22:48:18，本轮 `verify-18` 第3次调用收到提供方实际HTTP403 `AccountOverdueError`，确认账户欠费中断，不能当作模型能力或CLI/IDE失败；此前2次调用用量完整，已写出的候选仍保留。[实际错误与回执](./diagnostics-account-overdue/verify-18/proof.json)。后续恢复补测另留身份与分数，未知用量、费用不计零，历史成功不扣除。
 
 ## 固定身份
 

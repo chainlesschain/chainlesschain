@@ -1,0 +1,1595 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000,
+    "connectionAttemptTimeoutMs": 10000,
+    "parallelToolCalls": null,
+    "preserveExplicitOutputLimits": true
+  },
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:cea1a2ff4e14a002be1700446ebe97bc7640a79ad6d778839f71bb938a2d25af",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+  "actualPlatform": "win32",
+  "actualArch": "x64",
+  "actualEntry": "vscode",
+  "changeReview": {
+    "requested": true,
+    "observed": true
+  },
+  "startedAt": "2026-11-03T12:55:49.441Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "first-run-win32-vscode",
+      "taskId": "verify-02",
+      "kind": "first-run",
+      "runId": "13ee6bcd-6aee-4bd3-b779-1bd930996149",
+      "stratum": "win32-vscode-volcengine",
+      "declaredActualEntry": {
+        "platform": "win32",
+        "entry": "vscode"
+      },
+      "actualPlatform": "win32",
+      "actualEntry": "vscode",
+      "changeReview": {
+        "requested": true,
+        "observed": true,
+        "reminderCount": 1,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-02.test.js"
+      ],
+      "startedAt": "2026-11-03T12:55:49.560Z",
+      "deadline": "2026-11-03T13:55:49.560Z",
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-02.test.js",
+          "path": "first-run-win32-vscode/candidate/packages/cli/__tests__/verify-02.test.js",
+          "digest": "sha256:37df3769eeacacfb0d16c69847c39f55170aed4e73fcc9a85cdcad25d68c7727",
+          "bytes": 3467
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [],
+      "unexpectedChanges": [],
+      "generationPassed": true,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T12:56:26.615Z",
+        "finishedAt": "2026-11-03T13:02:11.858Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "first-run-win32-vscode",
+        "locked": {
+          "version": "0.166.140",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+          "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "capturePath": "first-run-win32-vscode/capture",
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 79333,
+            "outputTokens": 7173,
+            "cacheReadInputTokens": 135168,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-23b7c1aa-bc3d-4e47-a262-8168d67db5f8",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "8f133404-0621-4d54-977a-fd3777d83a3a",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_5aoo1e5usilmj4waypc187dy",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/model-capabilities.js"
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_eb6zfthxnbza1hcgdepfnlci",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/model-capabilities.test.js"
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 8
+          },
+          {
+            "type": "tool_use",
+            "id": "call_2ooamqc2mqotan1cij24xig4",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/model-release-contract.test.js"
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 12
+          },
+          {
+            "type": "tool_use",
+            "id": "call_3rlbszny97n97g6gix8qswf3",
+            "tool": "search_files",
+            "args": {
+              "pattern": "astra|sol|luna",
+              "path": "packages/cli/src/lib/model-context-catalog.js",
+              "caseSensitive": true
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 14
+          },
+          {
+            "type": "tool_use",
+            "id": "call_725eh5krvp9bzsbfzubqyuum",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/cli/src/lib/model-context-catalog.js",
+              "pattern": "astra|sol|luna",
+              "regex": true
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 18
+          },
+          {
+            "type": "tool_use",
+            "id": "call_17mi92di4djwuz6blcatx7a0",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-02.test.js",
+              "content": "import { describe, expect, it } from \"vitest\";\nimport { resolveModelCapabilityProfile } from \"../src/lib/model-capabilities.js\";\n\nconst OFFICIAL_TOOL_MODELS = [\"gpt-6-astra\", \"gpt-6-sol\", \"gpt-6-luna\"];\n\ndescribe(\"precise certified-tool model identification\", () => {\n  it(\"certifies the exact Astra/Sol/Luna identifiers at the official OpenAI scope\", () => {\n    for (const model of OFFICIAL_TOOL_MODELS) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model,\n      });\n      expect(profile).toMatchObject({\n        provider: \"openai\",\n        model,\n        contextWindowTokens: 1050000,\n        windowSource: \"official-model-docs\",\n        windowAssumed: false,\n        runtimeProtocol: \"openai-responses\",\n        advertisedMaxOutputTokens: 128000,\n      });\n      expect(profile.sources.length).toBeGreaterThan(0);\n    }\n  });\n\n  it(\"does not certify a model once an unknown suffix is appended\", () => {\n    for (const model of [\n      \"gpt-6-astra-custom\",\n      \"gpt-6-sol-future\",\n      \"gpt-6-luna-extra\",\n    ]) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model,\n      });\n      expect(profile).toMatchObject({\n        windowSource: \"provider-default\",\n        windowAssumed: true,\n        runtimeProtocol: \"chat-completions\",\n        advertisedMaxOutputTokens: null,\n        sources: [],\n      });\n      expect(profile.windowSource).not.toBe(\"official-model-docs\");\n    }\n  });\n\n  it(\"requires exact identity and rejects case/whitespace variants\", () => {\n    for (const model of [\n      \"GPT-6-ASTRA\",\n      \" gpt-6-astra\",\n      \"gpt-6-astra \",\n      \"GPT-6-SOL\",\n    ]) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model,\n      });\n      expect(profile.windowSource).toBe(\"provider-default\");\n      expect(profile.windowAssumed).toBe(true);\n      expect(profile.advertisedMaxOutputTokens).toBeNull();\n      expect(profile.sources).toEqual([]);\n    }\n  });\n\n  it(\"keeps the exact model uncertified outside the OpenAI provider scope\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"ollama\",\n      model: \"gpt-6-luna\",\n    });\n    expect(profile.windowSource).toBe(\"provider-default\");\n    expect(profile.windowAssumed).toBe(true);\n    expect(profile.advertisedMaxOutputTokens).toBeNull();\n    expect(profile.runtimeProtocol).toBe(\"ollama-chat\");\n  });\n\n  it(\"certifies a closer exact identifier but not its neighbor suffix\", () => {\n    const exact = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n    });\n    expect(exact.windowSource).toBe(\"official-model-docs\");\n    const suffixed = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astraa\",\n    });\n    expect(suffixed.windowSource).toBe(\"provider-default\");\n    expect(suffixed.advertisedMaxOutputTokens).toBeNull();\n    expect(suffixed.sources).toEqual([]);\n  });\n\n  it(\"never treats an unknown model as a certified tool model on any input path\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra-nope\",\n    });\n    expect(profile.runtimeProtocol).toBe(\"chat-completions\");\n    expect(profile.windowAssumed).toBe(true);\n    expect(profile.advertisedMaxOutputTokens).toBeNull();\n    expect(profile.sources).toEqual([]);\n    expect(JSON.stringify(profile)).not.toContain(\"openai-responses\");\n  });\n});\n"
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 22
+          },
+          {
+            "type": "tool_use",
+            "id": "call_hxbtsnfpac944oyo0kc0gacu",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-02.test.js"
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 26
+          },
+          {
+            "type": "tool_use",
+            "id": "call_vlyi8gpm04kt92kf4dtfpu5i",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/model-capabilities.js"
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 36
+          },
+          {
+            "type": "tool_use",
+            "id": "call_ca2joojsxt7dfu1ibbkevup9",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/model-capabilities.js",
+              "offset": 81,
+              "limit": 160
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 42
+          },
+          {
+            "type": "tool_use",
+            "id": "call_e7uhvwemth6igeadgplmqlmc",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/model-capabilities.js",
+              "offset": 241,
+              "limit": 43
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 48
+          },
+          {
+            "type": "tool_use",
+            "id": "call_09lpj5hwjfq3rl8w8cnmrrz6",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/cli/src/lib/model-context-catalog.js",
+              "pattern": "_provider_defaults"
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 54
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_5aoo1e5usilmj4waypc187dy",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-709CsX\\13ee6bcd-6aee-4bd3-b779-1bd930996149\\workspace\\packages\\cli\\src\\lib\\model-capabilities.js",
+              "fileVersion": "9351:1793710579172.8452:1793710579172.8452",
+              "readSpan": {
+                "start": 0,
+                "end": 9351,
+                "total": 9351
+              },
+              "hashed": false,
+              "content": "import { canonicalDigest } from \"@chainlesschain/context-memory-kernel\";\nimport {\n  CONTEXT_WINDOWS,\n  DOCUMENTED_OPENAI_MODELS,\n  DOCUMENTED_ANTHROPIC_MODELS,\n  LEGACY_MODEL_PROVIDERS,\n  MODEL_CAPABILITY_CATALOG_VERSION,\n} from \"./model-context-catalog.js\";\nimport { mergeProviderOptions } from \"./provider-options.js\";\n\nconst PROFILE_SCHEMA = \"chainlesschain.model-capability-profile/v1\";\nconst MAX_CONTEXT_WINDOW_TOKENS = 16_777_216;\nconst CHAT_COMPLETIONS_PROVIDERS = new Set([\n  \"openai\",\n  \"deepseek\",\n  \"dashscope\",\n  \"mistral\",\n  \"gemini\",\n  \"volcengine\",\n]);\n\nfunction optionalIdentity(value, field) {\n  if (value == null || value === \"\") return null;\n  if (typeof value !== \"string\" || value.length > 256) {\n    throw new TypeError(`${field} must be a string of at most 256 characters`);\n  }\n  if (/\\p{Cc}/u.test(value)) {\n    throw new TypeError(`${field} must not contain control characters`);\n  }\n  // Provider/model identity is exact, just like the request transport. Do not\n  // certify an alias by trimming or changing the case of an actual request id.\n  return value;\n}\n\nfunction optionalPositiveInteger(\n  value,\n  field,\n  { min = 1, max = Number.MAX_SAFE_INTEGER } = {},\n) {\n  if (value == null) return null;\n  const normalized =\n    typeof value === \"string\" && /^\\d+$/u.test(value.trim())\n      ? Number(value.trim())\n      : value;\n  if (\n    typeof normalized !== \"number\" ||\n    !Number.isSafeInteger(normalized) ||\n    normalized < min ||\n    normalized > max\n  ) {\n    throw new RangeError(\n      `${field} must be an integer between ${min} and ${max}`,\n    );\n  }\n  return normalized;\n}\n\nfunction deepFreeze(value) {\n  for (const child of Object.values(value)) {\n    if (child && typeof child === \"object\") deepFreeze(child);\n  }\n  return Object.freeze(value);\n}\n\nfunction isOfficialModelBaseUrl(provider, baseUrl) {\n  if (baseUrl == null || baseUrl === \"\") return true;\n  if (typeof baseUrl !== \"string\") {\n    throw new TypeError(\"baseUrl must be a string when provided\");\n  }\n  try {\n    // Deliberately excludes credentials, paths other than /v1, query/hash\n    // decorations and non-default ports. Never return or hash the input URL.\n    return (\n      baseUrl === baseUrl.trim() &&\n      new URL(baseUrl).href ===\n        (provider === \"openai\"\n          ? \"https://api.openai.com/v1\"\n          : \"https://api.anthropic.com/v1\")\n    );\n  } catch {\n    return false;\n  }\n}\n\n/**\n * Describe the output cap the existing agent transport actually sends.\n * This does not add a cap to Chat Completions/Ollama or select a new model.\n * The planner may apply its own minimum reserve and reject an impossible\n * input/output allocation; no context-window clipping happens here.\n */\nexport function resolveAgentOutputBudget({\n  provider,\n  model,\n  maxOutputTokens,\n} = {}) {\n  const requested = optionalPositiveInteger(maxOutputTokens, \"maxOutputTokens\");\n  if (provider === \"anthropic\") {\n    const effectiveModel = model || \"claude-sonnet-4-6\";\n    const { maxTokens } = mergeProviderOptions(\"anthropic\", effectiveModel);\n    const defaultCap = maxTokens || 8192;\n    const requestMaxOutputTokens =\n      requested === null ? defaultCap : Math.min(defaultCap, requested);\n    return Object.freeze({\n      requestMaxOutputTokens,\n      plannedOutputReserveTokens: requestMaxOutputTokens,\n      outputReserveSource:\n        requested === null\n          ? \"anthropic-request-default\"\n          : requested > defaultCap\n            ? \"anthropic-request-clamp\"\n            : \"explicit-request-cap\",\n    });\n  }\n  return Object.freeze({\n    requestMaxOutputTokens: requested,\n    plannedOutputReserveTokens: requested ?? 4096,\n    outputReserveSource:\n      requested === null ? \"planning-fallback\" : \"explicit-request-cap\",\n  });\n}\n\n/**\n * Pure, versioned diagnostics/planning projection. No provider discovery,\n * credential loading, model calls or protocol negotiation is performed.\n * `runtimeVerified:false` applies even to documented model specifications.\n */\nexport function resolveModelCapabilityProfile({\n  provider,\n  model,\n  baseUrl,\n  contextMemoryModelWindowTokens,\n  maxOutputTokens,\n} = {}) {\n  const selectedProvider = optionalIdentity(provider, \"provider\");\n  const selectedModel = optionalIdentity(model, \"model\");\n  if (baseUrl != null && typeof baseUrl !== \"string\") {\n    throw new TypeError(\"baseUrl must be a string when provided\");\n  }\n  const override = optionalPositiveInteger(\n    contextMemoryModelWindowTokens,\n    \"contextMemoryModelWindowTokens\",\n    { min: 1024, max: MAX_CONTEXT_WINDOW_TOKENS },\n  );\n  const catalog =\n    selectedProvider === \"openai\"\n      ? DOCUMENTED_OPENAI_MODELS\n      : selectedProvider === \"anthropic\"\n        ? DOCUMENTED_ANTHROPIC_MODELS\n        : null;\n  const officialEndpoint =\n    Boolean(catalog) && isOfficialModelBaseUrl(selectedProvider, baseUrl);\n  const documented =\n    officialEndpoint && selectedModel && Object.hasOwn(catalog, selectedModel)\n      ? catalog[selectedModel]\n      : null;\n  const legacyOwner =\n    selectedModel && Object.hasOwn(LEGACY_MODEL_PROVIDERS, selectedModel)\n      ? LEGACY_MODEL_PROVIDERS[selectedModel]\n      : null;\n  let contextWindowTokens;\n  let windowSource;\n  let windowAssumed = true;\n  if (override !== null) {\n    contextWindowTokens = override;\n    windowSource = \"explicit-override\";\n  } else if (documented) {\n    contextWindowTokens = documented.contextWindowTokens;\n    windowSource = \"official-model-docs\";\n    windowAssumed = false;\n  } else if (\n    legacyOwner &&\n    (!selectedProvider || legacyOwner === selectedProvider)\n  ) {\n    contextWindowTokens = CONTEXT_WINDOWS[selectedModel];\n    windowSource = selectedProvider\n      ? \"legacy-catalog\"\n      : \"legacy-catalog-unscoped\";\n  } else if (\n    selectedProvider &&\n    Object.hasOwn(CONTEXT_WINDOWS._provider_defaults, selectedProvider)\n  ) {\n    contextWindowTokens = CONTEXT_WINDOWS._provider_defaults[selectedProvider];\n    windowSource = \"provider-default\";\n  } else {\n    contextWindowTokens = 32768;\n    windowSource = \"generic-default\";\n  }\n\n  const output = resolveAgentOutputBudget({\n    provider: selectedProvider,\n    model: selectedModel,\n    maxOutputTokens,\n  });\n  const runtimeProtocol =\n    selectedProvider === \"ollama\"\n      ? \"ollama-chat\"\n      : selectedProvider === \"anthropic\"\n        ? \"anthropic-messages\"\n        : selectedProvider === \"openai\" && documented?.requiresResponsesForTools\n          ? \"openai-responses\"\n          : CHAT_COMPLETIONS_PROVIDERS.has(selectedProvider) || Boolean(baseUrl)\n            ? \"chat-completions\"\n            : \"unsupported\";\n  const limitations = [\n    \"Runtime execution, endpoint access and account entitlement have not been verified.\",\n  ];\n  if (windowSource === \"explicit-override\") {\n    limitations.push(\"The context window is operator-declared and unverified.\");\n  } else if (windowAssumed) {\n    limitations.push(\n      \"The context window is a legacy or fallback planning estimate, not a verified model limit.\",\n    );\n  }\n  if (!selectedProvider) {\n    limitations.push(\n      \"No provider was specified; an unscoped legacy model lookup does not establish provider capabilities.\",\n    );\n  }\n  if (legacyOwner && selectedProvider && legacyOwner !== selectedProvider) {\n    limitations.push(\n      \"The model's legacy catalog entry belongs to another provider and was not applied.\",\n    );\n  }\n  if (catalog && !officialEndpoint) {\n    limitations.push(\n      `Official ${selectedProvider === \"openai\" ? \"OpenAI\" : \"Anthropic\"} model specifications are not applied to a custom endpoint.`,\n    );\n  }\n  if (output.requestMaxOutputTokens === null) {\n    limitations.push(\n      \"The output reserve is a planning fallback, not an output cap sent to the provider.\",\n    );\n  }\n  if (documented?.requiresResponsesForTools) {\n    limitations.push(\n      \"Responses selection is based on the versioned catalog and has not been verified against this account at runtime.\",\n    );\n  }\n  if (runtimeProtocol === \"unsupported\") {\n    limitations.push(\n      \"No supported agent transport was resolved for this provider and endpoint configuration.\",\n    );\n  }\n  if (\n    documented?.advertisedMaxOutputTokens != null &&\n    output.requestMaxOutputTokens > documented.advertisedMaxOutputTokens\n  ) {\n    limitations.push(\n      \"The requested output cap exceeds the documented model maximum; the profile does not rewrite the request.\",\n    );\n  }\n\n  const identityDigest = canonicalDigest(\n    {\n      schema: PROFILE_SCHEMA,\n      provider: selectedProvider || \"unknown\",\n      model: selectedModel,\n    },\n    \"chainlesschain.model-capability-identity/v1\",\n  );\n  const profile = {\n    schema: PROFILE_SCHEMA,\n    catalogVersion: MODEL_CAPABILITY_CATALOG_VERSION,\n    profileId: `model-capability-v1:${identityDigest.slice(7, 39)}`,\n    provider: selectedProvider || \"unknown\",\n    model: selectedModel,\n    contextWindowTokens,\n    windowSource,\n    windowAssumed,\n    runtimeProtocol,\n    runtimeVerified: false,\n    ...output,\n    advertisedMaxOutputTokens: documented?.advertisedMaxOutputTokens ?? null,\n    ...(documented?.reasoningEfforts\n      ? { reasoningEfforts: [...documented.reasoningEfforts] }\n      : {}),\n    sources: documented ? [...documented.sources] : [],\n    limitations,\n  };\n  profile.digest = canonicalDigest(profile, PROFILE_SCHEMA);\n  return deepFreeze(profile);\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793710987317,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-capabilities.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 10,
+                "sessionId": "panel-23b7c1aa-bc3d-4e47-a262-8168d67db5f8",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-capabilities.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_5aoo1e5usilmj4waypc187dy",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 7
+          },
+          {
+            "type": "tool_result",
+            "id": "call_eb6zfthxnbza1hcgdepfnlci",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-709CsX\\13ee6bcd-6aee-4bd3-b779-1bd930996149\\workspace\\packages\\cli\\__tests__\\unit\\model-capabilities.test.js",
+              "fileVersion": "14263:1793710576823.3406:1793710576823.3406",
+              "readSpan": {
+                "start": 0,
+                "end": 14263,
+                "total": 14263
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport { canonicalDigest } from \"@chainlesschain/context-memory-kernel\";\nimport {\n  resolveAgentOutputBudget,\n  resolveModelCapabilityProfile,\n} from \"../../src/lib/model-capabilities.js\";\nimport {\n  CONTEXT_WINDOWS as CATALOG_WINDOWS,\n  DOCUMENTED_OPENAI_MODELS,\n  LEGACY_MODEL_PROVIDERS,\n} from \"../../src/lib/model-context-catalog.js\";\nimport {\n  CONTEXT_WINDOWS,\n  getContextWindow,\n} from \"../../src/lib/model-context-window.js\";\n\ndescribe(\"versioned model capability profiles\", () => {\n  it(\"reports the documented official model window without claiming live verification\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n    });\n    expect(profile).toMatchObject({\n      schema: \"chainlesschain.model-capability-profile/v1\",\n      catalogVersion: \"2026-09-27\",\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      contextWindowTokens: 128000,\n      windowSource: \"official-model-docs\",\n      windowAssumed: false,\n      runtimeProtocol: \"chat-completions\",\n      runtimeVerified: false,\n      requestMaxOutputTokens: null,\n      plannedOutputReserveTokens: 4096,\n      outputReserveSource: \"planning-fallback\",\n      advertisedMaxOutputTokens: 16384,\n      sources: [\"https://developers.openai.com/api/docs/models/gpt-4o\"],\n    });\n    expect(profile.limitations.join(\" \")).toMatch(/not an output cap/);\n  });\n\n  it(\"selects native Responses for the documented official tool target\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n      baseUrl: \"https://api.openai.com/v1\",\n    });\n    expect(profile.contextWindowTokens).toBe(1050000);\n    expect(profile.advertisedMaxOutputTokens).toBe(128000);\n    expect(profile.runtimeProtocol).toBe(\"openai-responses\");\n    expect(profile.runtimeVerified).toBe(false);\n    expect(profile.limitations.join(\" \")).toMatch(/has not been verified/);\n    expect(profile.limitations.join(\" \")).not.toMatch(/not implemented/);\n    expect(profile.sources).toContain(\n      \"https://developers.openai.com/api/docs/guides/migrate-to-responses\",\n    );\n    expect(CONTEXT_WINDOWS).not.toHaveProperty(\"gpt-6-astra\");\n  });\n\n  it.each([\n    \"https://gateway.example/v1\",\n    \"http://api.openai.com/v1\",\n    \"https://api.openai.com:444/v1\",\n    \"https://api.openai.com/v1/\",\n    \"https://api.openai.com/v1/other\",\n    \"https://api.openai.com/v1?token=secret-marker\",\n    \"https://api.openai.com/v1#secret-marker\",\n    \"https://api.openai.com/v1#\",\n    \"https://api.openai.com/v1 \",\n    \"https://user:secret-marker@api.openai.com/v1\",\n    \"https://api.openai.com.example/v1\",\n    \"not-a-url\",\n  ])(\"does not apply new official limits to custom endpoint %s\", (baseUrl) => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n      baseUrl,\n    });\n    expect(profile.contextWindowTokens).toBe(128000);\n    expect(profile.windowSource).toBe(\"provider-default\");\n    expect(profile.windowAssumed).toBe(true);\n    expect(profile.advertisedMaxOutputTokens).toBeNull();\n    expect(profile.sources).toEqual([]);\n    expect(JSON.stringify(profile)).not.toContain(baseUrl);\n    expect(JSON.stringify(profile)).not.toContain(\"secret-marker\");\n  });\n\n  it(\"retains a custom gateway's old catalog value as assumed, not official\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      baseUrl: \"https://gateway.example/v1\",\n    });\n    expect(profile.contextWindowTokens).toBe(128000);\n    expect(profile.windowSource).toBe(\"legacy-catalog\");\n    expect(profile.windowAssumed).toBe(true);\n    expect(profile.advertisedMaxOutputTokens).toBeNull();\n  });\n\n  it(\"does not infer arbitrary aliases or future snapshots from a prefix\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra-custom\",\n    });\n    expect(profile.windowSource).toBe(\"provider-default\");\n    expect(profile.contextWindowTokens).toBe(128000);\n    expect(profile.sources).toEqual([]);\n  });\n\n  it(\"keeps provider and model identities exact rather than rewriting request ids\", () => {\n    for (const model of [\" gpt-6-astra\", \"gpt-6-astra \", \"GPT-6-ASTRA\"]) {\n      expect(\n        resolveModelCapabilityProfile({ provider: \"openai\", model })\n          .windowSource,\n      ).toBe(\"provider-default\");\n    }\n    expect(\n      resolveModelCapabilityProfile({\n        provider: \" openai\",\n        model: \"gpt-6-astra\",\n      }).windowSource,\n    ).toBe(\"generic-default\");\n  });\n\n  it(\"isolates model catalog windows by explicit provider\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"ollama\",\n      model: \"gpt-4o\",\n    });\n    expect(profile.contextWindowTokens).toBe(32768);\n    expect(profile.windowSource).toBe(\"provider-default\");\n    expect(profile.windowAssumed).toBe(true);\n    expect(profile.runtimeProtocol).toBe(\"ollama-chat\");\n    expect(profile.limitations.join(\" \")).toMatch(/another provider/);\n    expect(getContextWindow(\"gpt-4o\", \"ollama\")).toBe(32768);\n  });\n\n  it(\"keeps the no-provider legacy lookup explicitly unscoped\", () => {\n    expect(resolveModelCapabilityProfile({ model: \"gpt-4o\" })).toMatchObject({\n      provider: \"unknown\",\n      contextWindowTokens: 128000,\n      windowSource: \"legacy-catalog-unscoped\",\n      windowAssumed: true,\n      runtimeProtocol: \"unsupported\",\n      runtimeVerified: false,\n    });\n    expect(getContextWindow(\"gpt-4o\")).toBe(128000);\n  });\n\n  it(\"does not choose a default model for an incomplete diagnostic target\", () => {\n    expect(resolveModelCapabilityProfile()).toMatchObject({\n      provider: \"unknown\",\n      model: null,\n      contextWindowTokens: 32768,\n      windowSource: \"generic-default\",\n      windowAssumed: true,\n    });\n    expect(resolveModelCapabilityProfile({ provider: \"openai\" })).toMatchObject(\n      {\n        model: null,\n        contextWindowTokens: 128000,\n        windowSource: \"provider-default\",\n      },\n    );\n  });\n\n  it(\"never treats prototype property names as catalog records\", () => {\n    for (const model of [\n      \"__proto__\",\n      \"constructor\",\n      \"toString\",\n      \"_provider_defaults\",\n    ]) {\n      expect(\n        resolveModelCapabilityProfile({ model, provider: \"openai\" })\n          .windowSource,\n      ).toBe(\"provider-default\");\n    }\n    expect(\n      resolveModelCapabilityProfile({ provider: \"toString\", model: \"gpt-4o\" })\n        .contextWindowTokens,\n    ).toBe(32768);\n  });\n\n  it(\"validates and identifies operator overrides without certifying them\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n      contextMemoryModelWindowTokens: \" 8192 \",\n    });\n    expect(profile).toMatchObject({\n      contextWindowTokens: 8192,\n      windowSource: \"explicit-override\",\n      windowAssumed: true,\n    });\n    expect(profile.limitations.join(\" \")).toMatch(\n      /operator-declared and unverified/,\n    );\n    expect(\n      resolveModelCapabilityProfile({ contextMemoryModelWindowTokens: 1024 })\n        .contextWindowTokens,\n    ).toBe(1024);\n    expect(\n      resolveModelCapabilityProfile({\n        contextMemoryModelWindowTokens: 16777216,\n      }).contextWindowTokens,\n    ).toBe(16777216);\n  });\n\n  it.each([\n    0,\n    -1,\n    1023,\n    16777217,\n    NaN,\n    Infinity,\n    1024.5,\n    true,\n    false,\n    \"\",\n    \"1e5\",\n    \"1024.0\",\n    \"secret-marker\",\n  ])(\n    \"rejects an invalid window override instead of silently using a fallback: %s\",\n    (value) => {\n      expect(() =>\n        resolveModelCapabilityProfile({\n          contextMemoryModelWindowTokens: value,\n        }),\n      ).toThrow(/contextMemoryModelWindowTokens must be an integer/);\n      try {\n        resolveModelCapabilityProfile({\n          contextMemoryModelWindowTokens: value,\n        });\n      } catch (error) {\n        expect(error.message).not.toContain(\"secret-marker\");\n      }\n    },\n  );\n\n  it(\"binds stable resolved values and provenance into a content digest\", () => {\n    const input = { provider: \"openai\", model: \"gpt-6-astra\" };\n    const first = resolveModelCapabilityProfile(input);\n    const second = resolveModelCapabilityProfile({ ...input });\n    expect(second).toEqual(first);\n    const { digest, ...payload } = first;\n    expect(digest).toBe(canonicalDigest(payload, payload.schema));\n    expect(first.profileId.length).toBeLessThan(128);\n    expect(\n      resolveModelCapabilityProfile({\n        ...input,\n        contextMemoryModelWindowTokens: 8192,\n      }).digest,\n    ).not.toBe(digest);\n    expect(\n      resolveModelCapabilityProfile({ ...input, maxOutputTokens: 8192 }).digest,\n    ).not.toBe(digest);\n    expect(\n      resolveModelCapabilityProfile({\n        ...input,\n        baseUrl: \"https://gateway.example/v1\",\n      }).digest,\n    ).not.toBe(digest);\n    expect(\n      resolveModelCapabilityProfile({ ...input, provider: \"ollama\" }).profileId,\n    ).not.toBe(first.profileId);\n  });\n\n  it(\"does not include endpoint credentials or transient host state in a digest\", () => {\n    const first = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n      baseUrl: \"https://user:one@gateway.example/v1\",\n    });\n    const second = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n      baseUrl: \"https://user:two@other.example/v1\",\n    });\n    expect(second.digest).toBe(first.digest);\n    expect(JSON.stringify(first)).not.toMatch(\n      /gateway\\.example|user:one|baseUrl|apiKey|resolvedAt/,\n    );\n  });\n\n  it(\"freezes and copies metadata so a caller cannot contaminate another profile\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n    });\n    expect(Object.isFrozen(profile)).toBe(true);\n    expect(Object.isFrozen(profile.sources)).toBe(true);\n    expect(Object.isFrozen(profile.limitations)).toBe(true);\n    expect(profile.sources).not.toBe(\n      DOCUMENTED_OPENAI_MODELS[\"gpt-6-astra\"].sources,\n    );\n    expect(() => profile.sources.push(\"changed\")).toThrow(TypeError);\n    expect(() => {\n      profile.contextWindowTokens = 1;\n    }).toThrow(TypeError);\n    expect(\n      resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model: \"gpt-6-astra\",\n      }),\n    ).toEqual(profile);\n  });\n});\n\ndescribe(\"agent output budget matches existing transport behavior\", () => {\n  it.each([\n    [undefined, 8192],\n    [\"claude-sonnet-4-6\", 8192],\n    [\"claude-opus-4-6\", 16384],\n    [\"claude-haiku-4-5\", 4096],\n  ])(\"uses the existing Anthropic default for %s\", (model, cap) => {\n    expect(resolveAgentOutputBudget({ provider: \"anthropic\", model })).toEqual({\n      requestMaxOutputTokens: cap,\n      plannedOutputReserveTokens: cap,\n      outputReserveSource: \"anthropic-request-default\",\n    });\n  });\n\n  it(\"retains the Anthropic explicit-cap clamp and exposes it to the planner\", () => {\n    expect(\n      resolveAgentOutputBudget({\n        provider: \"anthropic\",\n        model: \"claude-opus-4-6\",\n        maxOutputTokens: 30000,\n      }),\n    ).toEqual({\n      requestMaxOutputTokens: 16384,\n      plannedOutputReserveTokens: 16384,\n      outputReserveSource: \"anthropic-request-clamp\",\n    });\n    expect(\n      resolveAgentOutputBudget({\n        provider: \"anthropic\",\n        maxOutputTokens: \"512\",\n      }),\n    ).toEqual({\n      requestMaxOutputTokens: 512,\n      plannedOutputReserveTokens: 512,\n      outputReserveSource: \"explicit-request-cap\",\n    });\n  });\n\n  it.each([\"openai\", \"ollama\", \"deepseek\", \"custom\", undefined])(\n    \"does not synthesize a request cap for %s\",\n    (provider) => {\n      expect(resolveAgentOutputBudget({ provider })).toEqual({\n        requestMaxOutputTokens: null,\n        plannedOutputReserveTokens: 4096,\n        outputReserveSource: \"planning-fallback\",\n      });\n    },\n  );\n\n  it(\"does not clip a requested cap or impose the planner's minimum reserve\", () => {\n    expect(\n      resolveAgentOutputBudget({ provider: \"openai\", maxOutputTokens: 1 }),\n    ).toMatchObject({\n      requestMaxOutputTokens: 1,\n      plannedOutputReserveTokens: 1,\n    });\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      maxOutputTokens: 20000,\n      contextMemoryModelWindowTokens: 1024,\n    });\n    expect(profile.requestMaxOutputTokens).toBe(20000);\n    expect(profile.plannedOutputReserveTokens).toBe(20000);\n    expect(profile.limitations.join(\" \")).toMatch(\n      /exceeds the documented model maximum/,\n    );\n  });\n\n  it.each([null, undefined])(\n    \"treats only nullish caps as absent: %s\",\n    (maxOutputTokens) => {\n      expect(\n        resolveAgentOutputBudget({ maxOutputTokens }).requestMaxOutputTokens,\n      ).toBeNull();\n    },\n  );\n\n  it.each([\n    0,\n    -1,\n    NaN,\n    Infinity,\n    1.5,\n    true,\n    false,\n    \"\",\n    \"1e3\",\n    \"1.5\",\n    \"secret-marker\",\n    Number.MAX_SAFE_INTEGER + 1,\n  ])(\"rejects an invalid explicit output cap: %s\", (maxOutputTokens) => {\n    expect(() => resolveAgentOutputBudget({ maxOutputTokens })).toThrow(\n      /maxOutputTokens must be an integer/,\n    );\n  });\n});\n\ndescribe(\"legacy context window interface\", () => {\n  it(\"reexports the unchanged frozen catalog object\", () => {\n    expect(CONTEXT_WINDOWS).toBe(CATALOG_WINDOWS);\n    expect(Object.isFrozen(CONTEXT_WINDOWS)).toBe(true);\n    expect(Object.isFrozen(CONTEXT_WINDOWS._provider_defaults)).toBe(true);\n    expect(Object.keys(CONTEXT_WINDOWS)).toHaveLength(31);\n    for (const [model, provider] of Object.entries(LEGACY_MODEL_PROVIDERS)) {\n      expect(getContextWindow(model, provider)).toBe(CONTEXT_WINDOWS[model]);\n      expect(getContextWindow(model)).toBe(CONTEXT_WINDOWS[model]);\n    }\n  });\n\n  it(\"retains provider and generic fallback numeric behavior\", () => {\n    expect(getContextWindow(\"unknown-model\", \"anthropic\")).toBe(200000);\n    expect(getContextWindow(null, \"openai\")).toBe(128000);\n    expect(getContextWindow(undefined, \"deepseek\")).toBe(64000);\n    expect(getContextWindow(\"\", \"anthropic\")).toBe(200000);\n    expect(getContextWindow(\"x\", \"y\")).toBe(32768);\n    expect(getContextWindow()).toBe(32768);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793710987671,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-capabilities.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-23b7c1aa-bc3d-4e47-a262-8168d67db5f8",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-capabilities.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_eb6zfthxnbza1hcgdepfnlci",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 9
+          },
+          {
+            "type": "tool_result",
+            "id": "call_2ooamqc2mqotan1cij24xig4",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-709CsX\\13ee6bcd-6aee-4bd3-b779-1bd930996149\\workspace\\packages\\cli\\__tests__\\unit\\model-release-contract.test.js",
+              "fileVersion": "10017:1793710576827.1575:1793710576827.1575",
+              "readSpan": {
+                "start": 0,
+                "end": 10017,
+                "total": 10017
+              },
+              "hashed": false,
+              "content": "import { afterEach, describe, expect, it, vi } from \"vitest\";\nimport Database from \"better-sqlite3\";\nimport { resolveModelCapabilityProfile } from \"../../src/lib/model-capabilities.js\";\nimport {\n  estimateCost,\n  lookupRate,\n  mergePricing,\n  priceRollup,\n} from \"../../src/lib/llm-pricing.js\";\nimport {\n  calculateCost,\n  recordUsage,\n  getUsageStats,\n  getCostBreakdown,\n} from \"../../src/lib/token-tracker.js\";\nimport {\n  aggregateUsage,\n  allSessionsUsage,\n  _deps,\n} from \"../../src/lib/session-usage.js\";\nimport { CostBudget } from \"../../src/lib/cost-budget.js\";\nimport { normalizeOpenAIResponsesResponse } from \"../../src/lib/openai-responses.js\";\nimport { projectRuntimeTokenUsage } from \"../../src/lib/runtime-usage-ledger.js\";\nimport { projectVerifiedSession } from \"../../src/lib/causal-observability.js\";\nimport { SessionResourceBudget } from \"../../src/lib/session-resource-budget.js\";\n\nafterEach(() => vi.restoreAllMocks());\n\ndescribe(\"September model release contracts\", () => {\n  it(\"preserves request pricing through durable projection, budget and Eval\", () => {\n    const records = [200000, 200000, 300000].map((input, index) =>\n      projectRuntimeTokenUsage({\n        provider: \"openai\",\n        model: \"gpt-6-sol\",\n        callId: `call-${index}`,\n        usage: {\n          input_tokens: input,\n          output_tokens: 1000,\n          service_tier: index === 1 ? \"flex\" : \"fast\",\n          regional_processing: true,\n        },\n      }),\n    );\n    const events = [\n      {\n        type: \"session_start\",\n        timestamp: 1,\n        data: {\n          observabilityScope: { workspaceId: \"w\", teamId: \"t\", policyId: \"p\" },\n        },\n      },\n      ...records.map((data) => ({ type: \"token_usage\", data })),\n    ];\n    const budget = new CostBudget({ limitUsd: 100 });\n    for (const record of records) budget.add(record);\n    const observed = projectVerifiedSession(\"session-a\", events, {\n      headHash: \"a\".repeat(64),\n      eventCount: events.length,\n    });\n    expect(observed.usage.estimatedUsd).toBeCloseTo(budget.spentUsd, 10);\n    expect(priceRollup(aggregateUsage(events)).cost.totalCost).toBeCloseTo(\n      budget.spentUsd,\n      10,\n    );\n    expect(observed.usage.byModel[0].pricingBuckets).toHaveLength(3);\n    expect(records[0].usage.service_tier).toBe(\"fast\");\n    expect(\n      projectRuntimeTokenUsage({\n        ...records[0],\n        usage: {\n          ...records[0].usage,\n          service_tier: \"sensitive arbitrary text\",\n        },\n      }).usage.service_tier,\n    ).toBe(\"unknown\");\n  });\n\n  it(\"preserves pricing conditions in crash-recovery settlements\", () => {\n    const source = new SessionResourceBudget({ maxUsd: 100 });\n    const pending = source.beginUsageSettlement({ id: \"call-a\" });\n    source.markUsageUnknown({ callId: pending.id });\n    const snapshot = source.snapshot();\n    source.dispose();\n    const resumed = SessionResourceBudget.restore(snapshot);\n    const record = {\n      provider: \"openai\",\n      model: \"gpt-6-sol\",\n      usage: {\n        input_tokens: 300000,\n        output_tokens: 1000,\n        service_tier: \"fast\",\n        regional_processing: true,\n      },\n    };\n    try {\n      const recovery = resumed.adjudicateRecovery({\n        settled: [{ authorityId: pending.authorityId, ...record }],\n      });\n      const budget = new CostBudget({ limitUsd: 100 });\n      budget.add(record);\n      expect(recovery.adjudication.spentUsdDelta).toBeCloseTo(\n        budget.spentUsd,\n        10,\n      );\n      expect(resumed.cost.spentUsd).toBeCloseTo(budget.spentUsd, 10);\n    } finally {\n      resumed.dispose();\n    }\n  });\n  it.each([\"gpt-6-astra\", \"gpt-6-sol\", \"gpt-6-luna\"])(\n    \"resolves %s only at the official endpoint\",\n    (model) => {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model,\n      });\n      expect(profile).toMatchObject({\n        contextWindowTokens: 1050000,\n        advertisedMaxOutputTokens: 128000,\n        runtimeProtocol: \"openai-responses\",\n        windowAssumed: false,\n        runtimeVerified: false,\n      });\n      expect(profile.reasoningEfforts).toContain(\"high\");\n      for (const baseUrl of [\n        \"https://gateway.example/v1\",\n        \"https://api.openai.com.evil/v1\",\n      ]) {\n        expect(\n          resolveModelCapabilityProfile({ provider: \"openai\", model, baseUrl }),\n        ).toMatchObject({\n          windowAssumed: true,\n          runtimeProtocol: \"chat-completions\",\n          advertisedMaxOutputTokens: null,\n        });\n      }\n      expect(\n        resolveModelCapabilityProfile({\n          provider: \"openai\",\n          model: `${model}-future`,\n        }).windowAssumed,\n      ).toBe(true);\n      expect(lookupRate(\"openai\", `${model}-future`)).toBeNull();\n    },\n  );\n\n  it(\"resolves Opus 5.5 without changing a custom gateway's assumptions\", () => {\n    expect(\n      resolveModelCapabilityProfile({\n        provider: \"anthropic\",\n        model: \"claude-opus-5-5\",\n        baseUrl: \"https://api.anthropic.com/v1\",\n      }),\n    ).toMatchObject({\n      contextWindowTokens: 1000000,\n      windowAssumed: false,\n      advertisedMaxOutputTokens: null,\n    });\n    expect(\n      resolveModelCapabilityProfile({\n        provider: \"anthropic\",\n        model: \"claude-opus-5-5\",\n        baseUrl: \"https://gateway.example/v1\",\n      }).windowAssumed,\n    ).toBe(true);\n    expect(lookupRate(\"anthropic\", \"claude-opus-5-5\")).toMatchObject({\n      in: 4,\n      out: 20,\n    });\n    expect(lookupRate(\"anthropic\", \"claude-opus-6\")).toBeNull();\n    expect(lookupRate(\"anthropic\", \"claude-opus-10\")).toBeNull();\n    expect(\n      lookupRate(\n        \"anthropic\",\n        \"claude-opus-10\",\n        mergePricing({ anthropic: [{ match: \"opus\", in: 5, out: 25 }] }),\n      ),\n    ).toMatchObject({ in: 5, out: 25 });\n    expect(lookupRate(\"anthropic\", \"claude-opus-5-5-custom\")).toBeNull();\n  });\n\n  it(\"prices cached tokens and long prompts at the request boundary\", () => {\n    const base = {\n      provider: \"openai\",\n      model: \"gpt-6-sol\",\n      inputTokens: 272000,\n      outputTokens: 1000,\n    };\n    expect(estimateCost(base).totalCost).toBeCloseTo(0.554, 9);\n    expect(\n      estimateCost({ ...base, inputTokens: 272001 }).totalCost,\n    ).toBeCloseTo(1.103004, 9);\n    const cached = estimateCost({\n      ...base,\n      inputTokens: 200000,\n      cacheReadTokens: 73000,\n    });\n    expect(cached.inputCost).toBeCloseTo(0.8, 9);\n    expect(cached.cacheReadCost).toBeCloseTo(0.0292, 9);\n    expect(cached.outputCost).toBeCloseTo(0.015, 9);\n    expect(\n      estimateCost({ ...base, serviceTier: \"fast\" }).totalCost,\n    ).toBeCloseTo(1.108, 9);\n    expect(\n      estimateCost({ ...base, serviceTier: \"flex\" }).totalCost,\n    ).toBeCloseTo(0.277, 9);\n    expect(estimateCost({ ...base, serviceTier: \"unknown\" }).matched).toBe(\n      false,\n    );\n    expect(estimateCost({ ...base, serviceTier: \"constructor\" }).matched).toBe(\n      false,\n    );\n    const table = mergePricing({\n      openai: [{ match: \"gpt-6-sol\", in: 4, out: 20 }],\n    });\n    expect(\n      estimateCost({ ...base, table, cacheReadTokens: 1 }).cacheReadCost,\n    ).toBeCloseTo(0.0000008, 12);\n  });\n\n  it(\"keeps separate request tiers when aggregating one or many sessions\", () => {\n    const event = (input) => ({\n      type: \"token_usage\",\n      data: {\n        provider: \"openai\",\n        model: \"gpt-6-sol\",\n        usage: { input_tokens: input, output_tokens: 1000 },\n      },\n    });\n    const events = [event(200000), event(200000), event(300000)];\n    const budget = new CostBudget({ limitUsd: 100 });\n    for (const event of events) budget.add(event.data);\n    const aggregate = aggregateUsage(events);\n    expect(aggregate.byModel[0].pricingBuckets).toHaveLength(2);\n    expect(priceRollup(aggregate).cost.totalCost).toBeCloseTo(2.035, 9);\n    expect(priceRollup(aggregate).cost.totalCost).toBeCloseTo(\n      budget.spentUsd,\n      9,\n    );\n    vi.spyOn(_deps, \"listJsonlSessions\").mockReturnValue([\n      { id: \"one\" },\n      { id: \"two\" },\n    ]);\n    vi.spyOn(_deps, \"readEvents\").mockImplementation((id) =>\n      id === \"one\" ? events.slice(0, 2) : events.slice(2),\n    );\n    expect(priceRollup(allSessionsUsage()).cost.totalCost).toBeCloseTo(\n      budget.spentUsd,\n      9,\n    );\n    const { pricingBuckets, ...legacy } = aggregate.byModel[0];\n    expect(priceRollup({ byModel: [legacy] }).cost.unpricedCount).toBe(1);\n  });\n\n  it(\"preserves response service tier for budget settlement\", () => {\n    expect(\n      normalizeOpenAIResponsesResponse({\n        status: \"completed\",\n        output: [],\n        service_tier: \"flex\",\n        usage: { input_tokens: 100, output_tokens: 20 },\n      }).usage.service_tier,\n    ).toBe(\"flex\");\n  });\n\n  it(\"uses the same prices in the legacy database, preserving unknown as NULL\", () => {\n    const db = new Database(\":memory:\");\n    try {\n      for (const model of [\"gpt-6-astra\", \"gpt-6-sol\", \"gpt-6-luna\"]) {\n        const args = {\n          provider: \"openai\",\n          model,\n          inputTokens: 300000,\n          outputTokens: 1000,\n        };\n        expect(\n          calculateCost(\n            args.provider,\n            model,\n            args.inputTokens,\n            args.outputTokens,\n          ),\n        ).toBe(estimateCost(args).totalCost);\n      }\n      const known = recordUsage(db, {\n        provider: \"anthropic\",\n        model: \"claude-opus-5-5\",\n        inputTokens: 1000,\n        outputTokens: 1000,\n      });\n      const unknown = recordUsage(db, {\n        provider: \"openai\",\n        model: \"future-model\",\n        inputTokens: 1000,\n      });\n      expect(known.costUsd).toBeCloseTo(0.024, 9);\n      expect(unknown).toMatchObject({ costUsd: null, priced: false });\n      expect(getUsageStats(db)).toMatchObject({\n        total_calls: 2,\n        unpriced_calls: 1,\n      });\n      expect(\n        getCostBreakdown(db).find((row) => row.model === \"future-model\"),\n      ).toMatchObject({ cost_usd: null, unpriced_calls: 1 });\n    } finally {\n      db.close();\n    }\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793710992887,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-release-contract.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-23b7c1aa-bc3d-4e47-a262-8168d67db5f8",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-release-contract.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_2ooamqc2mqotan1cij24xig4",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 13
+          },
+          {
+            "type": "tool_result",
+            "id": "call_3rlbszny97n97g6gix8qswf3",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [],
+              "count": 0,
+              "hasMore": false,
+              "nextOffset": null,
+              "hint": "No literal matches. This pattern contains regex syntax, but this search used literal matching. If alternation or regex was intended, set regex: true; otherwise search one exact symbol. Do not infer that the symbols are absent from this result.",
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-709CsX\\13ee6bcd-6aee-4bd3-b779-1bd930996149\\workspace\\packages\\cli\\src\\lib\\model-context-catalog.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793710993245,
+                "meta": {
+                  "args": {
+                    "pattern": "astra|sol|luna",
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "caseSensitive": true
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 47,
+                "sessionId": "panel-23b7c1aa-bc3d-4e47-a262-8168d67db5f8",
+                "metadata": {
+                  "args": {
+                    "pattern": "astra|sol|luna",
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "caseSensitive": true
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_3rlbszny97n97g6gix8qswf3",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 15
+          },
+          {
+            "type": "tool_result",
+            "id": "call_725eh5krvp9bzsbfzubqyuum",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 96,
+                  "column": 10,
+                  "offset": 2893,
+                  "text": "astra",
+                  "context": "  requiresResponsesForTools: false,\n    sources: Object.freeze([\n      \"https://developers.openai.com/api/docs/models/gpt-4o\",\n    ]),\n  }),\n  \"gpt-6-astra\": Object.freeze({\n    contextWindowTokens: 1050000,\n    advertisedMaxOutputTokens: 128000,\n    requiresResponsesForTools: true,\n    reasoningEfforts:",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 96,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 103,
+                  "column": 60,
+                  "offset": 3244,
+                  "text": "astra",
+                  "context": "h\", \"max\"]),\n    pricing: Object.freeze({ in: 10, out: 50 }),\n    sources: Object.freeze([\n      \"https://developers.openai.com/api/docs/models/gpt-6-astra\",\n      \"https://developers.openai.com/api/docs/guides/migrate-to-responses\",\n    ]),\n  }),\n  ...Object.fromEntries(\n    [\n      [\"gpt-6-sol\", 2, 10]",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 103,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 109,
+                  "column": 15,
+                  "offset": 3387,
+                  "text": "sol",
+                  "context": "/gpt-6-astra\",\n      \"https://developers.openai.com/api/docs/guides/migrate-to-responses\",\n    ]),\n  }),\n  ...Object.fromEntries(\n    [\n      [\"gpt-6-sol\", 2, 10],\n      [\"gpt-6-luna\", 0.1, 0.5],\n    ].map(([model, input, output]) => [\n      model,\n      Object.freeze({\n        contextWindowTokens: 105",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 109,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 110,
+                  "column": 15,
+                  "offset": 3415,
+                  "text": "luna",
+                  "context": "//developers.openai.com/api/docs/guides/migrate-to-responses\",\n    ]),\n  }),\n  ...Object.fromEntries(\n    [\n      [\"gpt-6-sol\", 2, 10],\n      [\"gpt-6-luna\", 0.1, 0.5],\n    ].map(([model, input, output]) => [\n      model,\n      Object.freeze({\n        contextWindowTokens: 1050000,\n        advertisedMaxOu",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 110,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 4,
+              "hasMore": false,
+              "nextOffset": null,
+              "regexWindowChars": 69632,
+              "hint": "Regular expressions are evaluated in overlapping text windows; matches spanning more than 4096 characters across a window boundary may be omitted. Use a literal keyword to locate the section, then read its context.",
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-709CsX\\13ee6bcd-6aee-4bd3-b779-1bd930996149\\workspace\\packages\\cli\\src\\lib\\model-context-catalog.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711002342,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "pattern": "astra|sol|luna",
+                    "regex": true
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 47,
+                "sessionId": "panel-23b7c1aa-bc3d-4e47-a262-8168d67db5f8",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "pattern": "astra|sol|luna",
+                    "regex": true
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_725eh5krvp9bzsbfzubqyuum",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 19
+          },
+          {
+            "type": "tool_result",
+            "id": "call_17mi92di4djwuz6blcatx7a0",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-709CsX\\13ee6bcd-6aee-4bd3-b779-1bd930996149\\workspace\\packages\\cli\\__tests__\\verify-02.test.js",
+              "size": 3467,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711029812,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-02.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\nimport { resolveModelCapabilityProfile } from \"../src/lib/model-capabilities.js\";\n\nconst OFFICIAL_TOOL_MODELS = [\"gpt-6-astra\", \"gpt-6-sol\", \"gpt-6-luna\"];\n\ndescribe(\"precise certified-tool model identification\", () => {\n  it(\"certifies the exact Astra/Sol/Luna identifiers at the official OpenAI scope\", () => {\n    for (const model of OFFICIAL_TOOL_MODELS) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model,\n      });\n      expect(profile).toMatchObject({\n        provider: \"openai\",\n        model,\n        contextWindowTokens: 1050000,\n        windowSource: \"official-model-docs\",\n        windowAssumed: false,\n        runtimeProtocol: \"openai-responses\",\n        advertisedMaxOutputTokens: 128000,\n      });\n      expect(profile.sources.length).toBeGreaterThan(0);\n    }\n  });\n\n  it(\"does not certify a model once an unknown suffix is appended\", () => {\n    for (const model of [\n      \"gpt-6-astra-custom\",\n      \"gpt-6-sol-future\",\n      \"gpt-6-luna-extra\",\n    ]) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model,\n      });\n      expect(profile).toMatchObject({\n        windowSource: \"provider-default\",\n        windowAssumed: true,\n        runtimeProtocol: \"chat-completions\",\n        advertisedMaxOutputTokens: null,\n        sources: [],\n      });\n      expect(profile.windowSource).not.toBe(\"official-model-docs\");\n    }\n  });\n\n  it(\"requires exact identity and rejects case/whitespace variants\", () => {\n    for (const model of [\n      \"GPT-6-ASTRA\",\n      \" gpt-6-astra\",\n      \"gpt-6-astra \",\n      \"GPT-6-SOL\",\n    ]) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model,\n      });\n      expect(profile.windowSource).toBe(\"provider-default\");\n      expect(profile.windowAssumed).toBe(true);\n      expect(profile.advertisedMaxOutputTokens).toBeNull();\n      expect(profile.sources).toEqual([]);\n    }\n  });\n\n  it(\"keeps the exact model uncertified outside the OpenAI provider scope\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"ollama\",\n      model: \"gpt-6-luna\",\n    });\n    expect(profile.windowSource).toBe(\"provider-default\");\n    expect(profile.windowAssumed).toBe(true);\n    expect(profile.advertisedMaxOutputTokens).toBeNull();\n    expect(profile.runtimeProtocol).toBe(\"ollama-chat\");\n  });\n\n  it(\"certifies a closer exact identifier but not its neighbor suffix\", () => {\n    const exact = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n    });\n    expect(exact.windowSource).toBe(\"official-model-docs\");\n    const suffixed = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astraa\",\n    });\n    expect(suffixed.windowSource).toBe(\"provider-default\");\n    expect(suffixed.advertisedMaxOutputTokens).toBeNull();\n    expect(suffixed.sources).toEqual([]);\n  });\n\n  it(\"never treats an unknown model as a certified tool model on any input path\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra-nope\",\n    });\n    expect(profile.runtimeProtocol).toBe(\"chat-completions\");\n    expect(profile.windowAssumed).toBe(true);\n    expect(profile.advertisedMaxOutputTokens).toBeNull();\n    expect(profile.sources).toEqual([]);\n    expect(JSON.stringify(profile)).not.toContain(\"openai-responses\");\n  });\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 54,
+                "sessionId": "panel-23b7c1aa-bc3d-4e47-a262-8168d67db5f8",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-02.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\nimport { resolveModelCapabilityProfile } from \"../src/lib/model-capabilities.js\";\n\nconst OFFICIAL_TOOL_MODELS = [\"gpt-6-astra\", \"gpt-6-sol\", \"gpt-6-luna\"];\n\ndescribe(\"precise certified-tool model identification\", () => {\n  it(\"certifies the exact Astra/Sol/Luna identifiers at the official OpenAI scope\", () => {\n    for (const model of OFFICIAL_TOOL_MODELS) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model,\n      });\n      expect(profile).toMatchObject({\n        provider: \"openai\",\n        model,\n        contextWindowTokens: 1050000,\n        windowSource: \"official-model-docs\",\n        windowAssumed: false,\n        runtimeProtocol: \"openai-responses\",\n        advertisedMaxOutputTokens: 128000,\n      });\n      expect(profile.sources.length).toBeGreaterThan(0);\n    }\n  });\n\n  it(\"does not certify a model once an unknown suffix is appended\", () => {\n    for (const model of [\n      \"gpt-6-astra-custom\",\n      \"gpt-6-sol-future\",\n      \"gpt-6-luna-extra\",\n    ]) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model,\n      });\n      expect(profile).toMatchObject({\n        windowSource: \"provider-default\",\n        windowAssumed: true,\n        runtimeProtocol: \"chat-completions\",\n        advertisedMaxOutputTokens: null,\n        sources: [],\n      });\n      expect(profile.windowSource).not.toBe(\"official-model-docs\");\n    }\n  });\n\n  it(\"requires exact identity and rejects case/whitespace variants\", () => {\n    for (const model of [\n      \"GPT-6-ASTRA\",\n      \" gpt-6-astra\",\n      \"gpt-6-astra \",\n      \"GPT-6-SOL\",\n    ]) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model,\n      });\n      expect(profile.windowSource).toBe(\"provider-default\");\n      expect(profile.windowAssumed).toBe(true);\n      expect(profile.advertisedMaxOutputTokens).toBeNull();\n      expect(profile.sources).toEqual([]);\n    }\n  });\n\n  it(\"keeps the exact model uncertified outside the OpenAI provider scope\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"ollama\",\n      model: \"gpt-6-luna\",\n    });\n    expect(profile.windowSource).toBe(\"provider-default\");\n    expect(profile.windowAssumed).toBe(true);\n    expect(profile.advertisedMaxOutputTokens).toBeNull();\n    expect(profile.runtimeProtocol).toBe(\"ollama-chat\");\n  });\n\n  it(\"certifies a closer exact identifier but not its neighbor suffix\", () => {\n    const exact = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n    });\n    expect(exact.windowSource).toBe(\"official-model-docs\");\n    const suffixed = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astraa\",\n    });\n    expect(suffixed.windowSource).toBe(\"provider-default\");\n    expect(suffixed.advertisedMaxOutputTokens).toBeNull();\n    expect(suffixed.sources).toEqual([]);\n  });\n\n  it(\"never treats an unknown model as a certified tool model on any input path\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra-nope\",\n    });\n    expect(profile.runtimeProtocol).toBe(\"chat-completions\");\n    expect(profile.windowAssumed).toBe(true);\n    expect(profile.advertisedMaxOutputTokens).toBeNull();\n    expect(profile.sources).toEqual([]);\n    expect(JSON.stringify(profile)).not.toContain(\"openai-responses\");\n  });\n});\n"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "write_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_17mi92di4djwuz6blcatx7a0",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 23
+          },
+          {
+            "type": "tool_result",
+            "id": "call_hxbtsnfpac944oyo0kc0gacu",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-709CsX\\13ee6bcd-6aee-4bd3-b779-1bd930996149\\workspace\\packages\\cli\\__tests__\\verify-02.test.js",
+              "fileVersion": "3467:1793711029760.686:1793711029760.686",
+              "readSpan": {
+                "start": 0,
+                "end": 3467,
+                "total": 3467
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport { resolveModelCapabilityProfile } from \"../src/lib/model-capabilities.js\";\n\nconst OFFICIAL_TOOL_MODELS = [\"gpt-6-astra\", \"gpt-6-sol\", \"gpt-6-luna\"];\n\ndescribe(\"precise certified-tool model identification\", () => {\n  it(\"certifies the exact Astra/Sol/Luna identifiers at the official OpenAI scope\", () => {\n    for (const model of OFFICIAL_TOOL_MODELS) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model,\n      });\n      expect(profile).toMatchObject({\n        provider: \"openai\",\n        model,\n        contextWindowTokens: 1050000,\n        windowSource: \"official-model-docs\",\n        windowAssumed: false,\n        runtimeProtocol: \"openai-responses\",\n        advertisedMaxOutputTokens: 128000,\n      });\n      expect(profile.sources.length).toBeGreaterThan(0);\n    }\n  });\n\n  it(\"does not certify a model once an unknown suffix is appended\", () => {\n    for (const model of [\n      \"gpt-6-astra-custom\",\n      \"gpt-6-sol-future\",\n      \"gpt-6-luna-extra\",\n    ]) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model,\n      });\n      expect(profile).toMatchObject({\n        windowSource: \"provider-default\",\n        windowAssumed: true,\n        runtimeProtocol: \"chat-completions\",\n        advertisedMaxOutputTokens: null,\n        sources: [],\n      });\n      expect(profile.windowSource).not.toBe(\"official-model-docs\");\n    }\n  });\n\n  it(\"requires exact identity and rejects case/whitespace variants\", () => {\n    for (const model of [\n      \"GPT-6-ASTRA\",\n      \" gpt-6-astra\",\n      \"gpt-6-astra \",\n      \"GPT-6-SOL\",\n    ]) {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model,\n      });\n      expect(profile.windowSource).toBe(\"provider-default\");\n      expect(profile.windowAssumed).toBe(true);\n      expect(profile.advertisedMaxOutputTokens).toBeNull();\n      expect(profile.sources).toEqual([]);\n    }\n  });\n\n  it(\"keeps the exact model uncertified outside the OpenAI provider scope\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"ollama\",\n      model: \"gpt-6-luna\",\n    });\n    expect(profile.windowSource).toBe(\"provider-default\");\n    expect(profile.windowAssumed).toBe(true);\n    expect(profile.advertisedMaxOutputTokens).toBeNull();\n    expect(profile.runtimeProtocol).toBe(\"ollama-chat\");\n  });\n\n  it(\"certifies a closer exact identifier but not its neighbor suffix\", () => {\n    const exact = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra\",\n    });\n    expect(exact.windowSource).toBe(\"official-model-docs\");\n    const suffixed = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astraa\",\n    });\n    expect(suffixed.windowSource).toBe(\"provider-default\");\n    expect(suffixed.advertisedMaxOutputTokens).toBeNull();\n    expect(suffixed.sources).toEqual([]);\n  });\n\n  it(\"never treats an unknown model as a certified tool model on any input path\", () => {\n    const profile = resolveModelCapabilityProfile({\n      provider: \"openai\",\n      model: \"gpt-6-astra-nope\",\n    });\n    expect(profile.runtimeProtocol).toBe(\"chat-completions\");\n    expect(profile.windowAssumed).toBe(true);\n    expect(profile.advertisedMaxOutputTokens).toBeNull();\n    expect(profile.sources).toEqual([]);\n    expect(JSON.stringify(profile)).not.toContain(\"openai-responses\");\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711043073,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-02.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-23b7c1aa-bc3d-4e47-a262-8168d67db5f8",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-02.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_hxbtsnfpac944oyo0kc0gacu",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 27
+          },
+          {
+            "type": "tool_result",
+            "id": "call_vlyi8gpm04kt92kf4dtfpu5i",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-709CsX\\13ee6bcd-6aee-4bd3-b779-1bd930996149\\workspace\\packages\\cli\\src\\lib\\model-capabilities.js",
+              "fileVersion": "9351:1793710579172.8452:1793710579172.8452",
+              "range": {
+                "startLine": 1,
+                "endLine": 80,
+                "totalLines": 283
+              },
+              "nextRead": {
+                "path": "packages/cli/src/lib/model-capabilities.js",
+                "offset": 81,
+                "limit": 80
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 0,
+                "end": 2383,
+                "total": 9351
+              },
+              "hashed": false,
+              "content": "import { canonicalDigest } from \"@chainlesschain/context-memory-kernel\";\nimport {\n  CONTEXT_WINDOWS,\n  DOCUMENTED_OPENAI_MODELS,\n  DOCUMENTED_ANTHROPIC_MODELS,\n  LEGACY_MODEL_PROVIDERS,\n  MODEL_CAPABILITY_CATALOG_VERSION,\n} from \"./model-context-catalog.js\";\nimport { mergeProviderOptions } from \"./provider-options.js\";\n\nconst PROFILE_SCHEMA = \"chainlesschain.model-capability-profile/v1\";\nconst MAX_CONTEXT_WINDOW_TOKENS = 16_777_216;\nconst CHAT_COMPLETIONS_PROVIDERS = new Set([\n  \"openai\",\n  \"deepseek\",\n  \"dashscope\",\n  \"mistral\",\n  \"gemini\",\n  \"volcengine\",\n]);\n\nfunction optionalIdentity(value, field) {\n  if (value == null || value === \"\") return null;\n  if (typeof value !== \"string\" || value.length > 256) {\n    throw new TypeError(`${field} must be a string of at most 256 characters`);\n  }\n  if (/\\p{Cc}/u.test(value)) {\n    throw new TypeError(`${field} must not contain control characters`);\n  }\n  // Provider/model identity is exact, just like the request transport. Do not\n  // certify an alias by trimming or changing the case of an actual request id.\n  return value;\n}\n\nfunction optionalPositiveInteger(\n  value,\n  field,\n  { min = 1, max = Number.MAX_SAFE_INTEGER } = {},\n) {\n  if (value == null) return null;\n  const normalized =\n    typeof value === \"string\" && /^\\d+$/u.test(value.trim())\n      ? Number(value.trim())\n      : value;\n  if (\n    typeof normalized !== \"number\" ||\n    !Number.isSafeInteger(normalized) ||\n    normalized < min ||\n    normalized > max\n  ) {\n    throw new RangeError(\n      `${field} must be an integer between ${min} and ${max}`,\n    );\n  }\n  return normalized;\n}\n\nfunction deepFreeze(value) {\n  for (const child of Object.values(value)) {\n    if (child && typeof child === \"object\") deepFreeze(child);\n  }\n  return Object.freeze(value);\n}\n\nfunction isOfficialModelBaseUrl(provider, baseUrl) {\n  if (baseUrl == null || baseUrl === \"\") return true;\n  if (typeof baseUrl !== \"string\") {\n    throw new TypeError(\"baseUrl must be a string when provided\");\n  }\n  try {\n    // Deliberately excludes credentials, paths other than /v1, query/hash\n    // decorations and non-default ports. Never return or hash the input URL.\n    return (\n      baseUrl === baseUrl.trim() &&\n      new URL(baseUrl).href ===\n        (provider === \"openai\"\n          ? \"https://api.openai.com/v1\"\n          : \"https://api.anthropic.com/v1\")\n    );\n  } catch {",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "9351:1793710579172.8452:1793710579172.8452"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711069039,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-capabilities.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 15,
+                "sessionId": "panel-23b7c1aa-bc3d-4e47-a262-8168d67db5f8",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-capabilities.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_vlyi8gpm04kt92kf4dtfpu5i",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 37
+          },
+          {
+            "type": "tool_result",
+            "id": "call_ca2joojsxt7dfu1ibbkevup9",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-709CsX\\13ee6bcd-6aee-4bd3-b779-1bd930996149\\workspace\\packages\\cli\\src\\lib\\model-capabilities.js",
+              "fileVersion": "9351:1793710579172.8452:1793710579172.8452",
+              "range": {
+                "startLine": 81,
+                "endLine": 240,
+                "totalLines": 283
+              },
+              "nextRead": {
+                "path": "packages/cli/src/lib/model-capabilities.js",
+                "offset": 241,
+                "limit": 160
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 2383,
+                "end": 8010,
+                "total": 9351
+              },
+              "hashed": false,
+              "content": "    return false;\n  }\n}\n\n/**\n * Describe the output cap the existing agent transport actually sends.\n * This does not add a cap to Chat Completions/Ollama or select a new model.\n * The planner may apply its own minimum reserve and reject an impossible\n * input/output allocation; no context-window clipping happens here.\n */\nexport function resolveAgentOutputBudget({\n  provider,\n  model,\n  maxOutputTokens,\n} = {}) {\n  const requested = optionalPositiveInteger(maxOutputTokens, \"maxOutputTokens\");\n  if (provider === \"anthropic\") {\n    const effectiveModel = model || \"claude-sonnet-4-6\";\n    const { maxTokens } = mergeProviderOptions(\"anthropic\", effectiveModel);\n    const defaultCap = maxTokens || 8192;\n    const requestMaxOutputTokens =\n      requested === null ? defaultCap : Math.min(defaultCap, requested);\n    return Object.freeze({\n      requestMaxOutputTokens,\n      plannedOutputReserveTokens: requestMaxOutputTokens,\n      outputReserveSource:\n        requested === null\n          ? \"anthropic-request-default\"\n          : requested > defaultCap\n            ? \"anthropic-request-clamp\"\n            : \"explicit-request-cap\",\n    });\n  }\n  return Object.freeze({\n    requestMaxOutputTokens: requested,\n    plannedOutputReserveTokens: requested ?? 4096,\n    outputReserveSource:\n      requested === null ? \"planning-fallback\" : \"explicit-request-cap\",\n  });\n}\n\n/**\n * Pure, versioned diagnostics/planning projection. No provider discovery,\n * credential loading, model calls or protocol negotiation is performed.\n * `runtimeVerified:false` applies even to documented model specifications.\n */\nexport function resolveModelCapabilityProfile({\n  provider,\n  model,\n  baseUrl,\n  contextMemoryModelWindowTokens,\n  maxOutputTokens,\n} = {}) {\n  const selectedProvider = optionalIdentity(provider, \"provider\");\n  const selectedModel = optionalIdentity(model, \"model\");\n  if (baseUrl != null && typeof baseUrl !== \"string\") {\n    throw new TypeError(\"baseUrl must be a string when provided\");\n  }\n  const override = optionalPositiveInteger(\n    contextMemoryModelWindowTokens,\n    \"contextMemoryModelWindowTokens\",\n    { min: 1024, max: MAX_CONTEXT_WINDOW_TOKENS },\n  );\n  const catalog =\n    selectedProvider === \"openai\"\n      ? DOCUMENTED_OPENAI_MODELS\n      : selectedProvider === \"anthropic\"\n        ? DOCUMENTED_ANTHROPIC_MODELS\n        : null;\n  const officialEndpoint =\n    Boolean(catalog) && isOfficialModelBaseUrl(selectedProvider, baseUrl);\n  const documented =\n    officialEndpoint && selectedModel && Object.hasOwn(catalog, selectedModel)\n      ? catalog[selectedModel]\n      : null;\n  const legacyOwner =\n    selectedModel && Object.hasOwn(LEGACY_MODEL_PROVIDERS, selectedModel)\n      ? LEGACY_MODEL_PROVIDERS[selectedModel]\n      : null;\n  let contextWindowTokens;\n  let windowSource;\n  let windowAssumed = true;\n  if (override !== null) {\n    contextWindowTokens = override;\n    windowSource = \"explicit-override\";\n  } else if (documented) {\n    contextWindowTokens = documented.contextWindowTokens;\n    windowSource = \"official-model-docs\";\n    windowAssumed = false;\n  } else if (\n    legacyOwner &&\n    (!selectedProvider || legacyOwner === selectedProvider)\n  ) {\n    contextWindowTokens = CONTEXT_WINDOWS[selectedModel];\n    windowSource = selectedProvider\n      ? \"legacy-catalog\"\n      : \"legacy-catalog-unscoped\";\n  } else if (\n    selectedProvider &&\n    Object.hasOwn(CONTEXT_WINDOWS._provider_defaults, selectedProvider)\n  ) {\n    contextWindowTokens = CONTEXT_WINDOWS._provider_defaults[selectedProvider];\n    windowSource = \"provider-default\";\n  } else {\n    contextWindowTokens = 32768;\n    windowSource = \"generic-default\";\n  }\n\n  const output = resolveAgentOutputBudget({\n    provider: selectedProvider,\n    model: selectedModel,\n    maxOutputTokens,\n  });\n  const runtimeProtocol =\n    selectedProvider === \"ollama\"\n      ? \"ollama-chat\"\n      : selectedProvider === \"anthropic\"\n        ? \"anthropic-messages\"\n        : selectedProvider === \"openai\" && documented?.requiresResponsesForTools\n          ? \"openai-responses\"\n          : CHAT_COMPLETIONS_PROVIDERS.has(selectedProvider) || Boolean(baseUrl)\n            ? \"chat-completions\"\n            : \"unsupported\";\n  const limitations = [\n    \"Runtime execution, endpoint access and account entitlement have not been verified.\",\n  ];\n  if (windowSource === \"explicit-override\") {\n    limitations.push(\"The context window is operator-declared and unverified.\");\n  } else if (windowAssumed) {\n    limitations.push(\n      \"The context window is a legacy or fallback planning estimate, not a verified model limit.\",\n    );\n  }\n  if (!selectedProvider) {\n    limitations.push(\n      \"No provider was specified; an unscoped legacy model lookup does not establish provider capabilities.\",\n    );\n  }\n  if (legacyOwner && selectedProvider && legacyOwner !== selectedProvider) {\n    limitations.push(\n      \"The model's legacy catalog entry belongs to another provider and was not applied.\",\n    );\n  }\n  if (catalog && !officialEndpoint) {\n    limitations.push(\n      `Official ${selectedProvider === \"openai\" ? \"OpenAI\" : \"Anthropic\"} model specifications are not applied to a custom endpoint.`,\n    );\n  }\n  if (output.requestMaxOutputTokens === null) {\n    limitations.push(\n      \"The output reserve is a planning fallback, not an output cap sent to the provider.\",\n    );\n  }\n  if (documented?.requiresResponsesForTools) {\n    limitations.push(\n      \"Responses selection is based on the versioned catalog and has not been verified against this account at runtime.\",\n    );\n  }\n  if (runtimeProtocol === \"unsupported\") {\n    limitations.push(",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "9351:1793710579172.8452:1793710579172.8452"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711077893,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-capabilities.js",
+                    "offset": 81,
+                    "limit": 160
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 13,
+                "sessionId": "panel-23b7c1aa-bc3d-4e47-a262-8168d67db5f8",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-capabilities.js",
+                    "offset": 81,
+                    "limit": 160
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_ca2joojsxt7dfu1ibbkevup9",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 43
+          },
+          {
+            "type": "tool_result",
+            "id": "call_e7uhvwemth6igeadgplmqlmc",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-709CsX\\13ee6bcd-6aee-4bd3-b779-1bd930996149\\workspace\\packages\\cli\\src\\lib\\model-capabilities.js",
+              "fileVersion": "9351:1793710579172.8452:1793710579172.8452",
+              "range": {
+                "startLine": 241,
+                "endLine": 283,
+                "totalLines": 283
+              },
+              "readSpan": {
+                "start": 8010,
+                "end": 9351,
+                "total": 9351
+              },
+              "hashed": false,
+              "content": "      \"No supported agent transport was resolved for this provider and endpoint configuration.\",\n    );\n  }\n  if (\n    documented?.advertisedMaxOutputTokens != null &&\n    output.requestMaxOutputTokens > documented.advertisedMaxOutputTokens\n  ) {\n    limitations.push(\n      \"The requested output cap exceeds the documented model maximum; the profile does not rewrite the request.\",\n    );\n  }\n\n  const identityDigest = canonicalDigest(\n    {\n      schema: PROFILE_SCHEMA,\n      provider: selectedProvider || \"unknown\",\n      model: selectedModel,\n    },\n    \"chainlesschain.model-capability-identity/v1\",\n  );\n  const profile = {\n    schema: PROFILE_SCHEMA,\n    catalogVersion: MODEL_CAPABILITY_CATALOG_VERSION,\n    profileId: `model-capability-v1:${identityDigest.slice(7, 39)}`,\n    provider: selectedProvider || \"unknown\",\n    model: selectedModel,\n    contextWindowTokens,\n    windowSource,\n    windowAssumed,\n    runtimeProtocol,\n    runtimeVerified: false,\n    ...output,\n    advertisedMaxOutputTokens: documented?.advertisedMaxOutputTokens ?? null,\n    ...(documented?.reasoningEfforts\n      ? { reasoningEfforts: [...documented.reasoningEfforts] }\n      : {}),\n    sources: documented ? [...documented.sources] : [],\n    limitations,\n  };\n  profile.digest = canonicalDigest(profile, PROFILE_SCHEMA);\n  return deepFreeze(profile);\n}\n",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "9351:1793710579172.8452:1793710579172.8452"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711085800,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-capabilities.js",
+                    "offset": 241,
+                    "limit": 43
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-23b7c1aa-bc3d-4e47-a262-8168d67db5f8",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-capabilities.js",
+                    "offset": 241,
+                    "limit": 43
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_e7uhvwemth6igeadgplmqlmc",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 49
+          },
+          {
+            "type": "tool_result",
+            "id": "call_09lpj5hwjfq3rl8w8cnmrrz6",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 34,
+                  "column": 3,
+                  "offset": 1012,
+                  "text": "_provider_defaults",
+                  "context": "t-v1-8k\": 8192,\n  \"moonshot-v1-32k\": 32768,\n  \"moonshot-v1-128k\": 131072,\n  \"doubao-seed-1-6-251015\": 32768,\n  \"doubao-seed-2-1-pro-260628\": 32768,\n  _provider_defaults: Object.freeze({\n    ollama: 32768,\n    openai: 128000,\n    anthropic: 200000,\n    deepseek: 64000,\n    dashscope: 131072,\n    gemini: 1048576,\n    k",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 34,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 1,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-709CsX\\13ee6bcd-6aee-4bd3-b779-1bd930996149\\workspace\\packages\\cli\\src\\lib\\model-context-catalog.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711097479,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "pattern": "_provider_defaults"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 48,
+                "sessionId": "panel-23b7c1aa-bc3d-4e47-a262-8168d67db5f8",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "pattern": "_provider_defaults"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_09lpj5hwjfq3rl8w8cnmrrz6",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 55
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2741,
+              "output_tokens": 96,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 9773,
+              "output_tokens": 167,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 11
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6336,
+              "output_tokens": 126,
+              "cache_read_input_tokens": 12288,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 17
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3429,
+              "output_tokens": 2559,
+              "cache_read_input_tokens": 16384,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 21
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 7118,
+              "output_tokens": 816,
+              "cache_read_input_tokens": 17920,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 25
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 14920,
+              "output_tokens": 803,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 31
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3710,
+              "output_tokens": 101,
+              "cache_read_input_tokens": 16384,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 35
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4786,
+              "output_tokens": 119,
+              "cache_read_input_tokens": 16384,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 41
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3927,
+              "output_tokens": 411,
+              "cache_read_input_tokens": 19712,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 47
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3782,
+              "output_tokens": 746,
+              "cache_read_input_tokens": 21760,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 53
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 18811,
+              "output_tokens": 1229,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+            "seq": 59
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 79333,
+          "output_tokens": 7173,
+          "cache_read_input_tokens": 135168
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 11,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "I've confirmed all source facts. `_provider_defaults` includes `ollama: 32768` and `openai: 128000`, so case 4's `windowSource: \"provider-default\"` and case 1's openai context window hold.\n\nMy deliverable (already written and read back in the prior turn) needs no changes — all six cases align with the frozen implementation. Let me consolidate my requirement-to-assertion account.\n\n**Requirement derivation from the original task:**\n- R1: Verify **precise/exact** identification of Astra/Sol/Luna (the certified-tool models `gpt-6-astra`, `gpt-6-sol`, `gpt-6-luna`).\n- R2: Verify **unknown suffixes** are handled (not mistaken for a certified model).\n- R3: **Do not treat an unknown model as a certified tool model** — certification observable is `documented !== null` → `advertisedMaxOutputTokens`, non-empty `sources`, `windowAssumed: false`, `runtimeProtocol: \"openai-responses\"`; unknown → `null`/`[]`/`true`/`chat-completions`.\n\n**Requirement → fixture → call path → assertion:**\n\n- R1 positive (case 1): fixtures are the three catalog keys; call path `resolveModelCapabilityProfile({provider:\"openai\", model})`; assertion `official-model-docs`, `windowAssumed:false`, `openai-responses`, `advertisedMaxOutputTokens:128000`, `sources.length>0`. Verified: catalog entry for these has `contextWindowTokens:1050000`, `advertisedMaxOutputTokens:128000`, `requiresResponsesForTools:true`.\n- R1 exactness negative (case 3): fixtures `\"GPT-6-ASTRA\"`, `\" gpt-6-astra\"`, `\"gpt-6-astra \"`; only the model identity condition changes; assertion `provider-default`/`windowAssumed:true`/`advertisedMaxOutputTokens:null`/`sources:[]`. `Object.hasOwn` is case/whitespace-sensitive and `optionalIdentity` does not trim → sole guard is the documented lookup.\n- R2/R3 unknown-suffix negatives (cases 2, 5, 6): fixtures `gpt-6-astra-custom`, `gpt-6-sol-future`, `gpt-6-luna-extra`, `gpt-6-astraa`, `gpt-6-astra-nope`; provider openai, official endpoint valid; assertion unknown-profile (`provider-default`, `windowAssumed:true`, `chat-completions`, `advertisedMaxOutputTokens:null`, `sources:[]`). Only the model string changes; the certification guard `Object.hasOwn(catalog, selectedModel)` is the sole rejection cause — no other guard can mask a missing check.\n- R3 scope-tie negative (case 4): fixture `provider:\"ollama\", model:\"gpt-6-luna\"`; assertion `ollama-chat`, `provider-default`, `windowAssumed:true`, `advertisedMaxOutputTokens:null` — certification is scope-gated (catalog null for non-openai/anthropic).\n\nNo uncovered requirement; six cases within the cap. No implementation defect found — the frozen code correctly certifies only exact identities and rejects every unknown suffix/alias/provider. No source modification needed; deliverable is unchanged and complete. No execution tools available, so I do not claim the tests ran.\n\n## Final account\n\n**Deliverable** (unchanged, written and read back in the previous author allocation): `packages/cli/__tests__/verify-02.test.js` — six independent Vitest cases importing only `resolveModelCapabilityProfile` from `../src/lib/model-capabilities.js` (path verified resolving to the frozen source).\n\n**Coverage vs. the three explicit requirements:**\n- R1 (precise Astra/Sol/Luna identification): case 1 positive + case 3 exactness negative. Fixtures are the real catalog keys; the production call path is `resolveModelCapabilityProfile`; assertions on `windowSource`/`windowAssumed`/`runtimeProtocol`/`advertisedMaxOutputTokens`/`sources`.\n- R2/R3 (unknown suffixes not certified): cases 2, 5, 6 negative. Only the model string differs from the positive control; the sole certification guard (`Object.hasOwn`) is what rejects, so no unrelated guard masks a missing check. Assertions prove an unknown model is not treated as a certified tool model (`advertisedMaxOutputTokens:null`, `sources:[]`, `windowAssumed:true`, `chat-completions`).\n- R3 scope-tie: case 4 negative.\n\n**Audit against source:** read the full `resolveModelCapabilityProfile` (lines ~130-283) and confirmed `documented` is an exact `Object.hasOwn` lookup, `advertisedMaxOutputTokens: documented?.advertisedMaxOutputTokens ?? null`, `sources: documented ? [...] : []`, and the runtime-protocol/`_provider_defaults` branch (openai→`chat-completions` for unknown, ollama→`ollama-chat`, ollama default 32768). Every assertion matches actual behavior.\n\n**No implementation defect:** the frozen code already satisfies the task; no source change warranted. No uncovered requirement.\n\n**Limitations:** no execution tools available in this review — I did not run Vitest and make no claim tests passed. Assertions were validated by static inspection of the frozen implementation and catalog; actual execution happens in the later network-disabled Linux Docker checker.",
+          "session_id": "panel-23b7c1aa-bc3d-4e47-a262-8168d67db5f8",
+          "turn": 1,
+          "usage": {
+            "input_tokens": 79333,
+            "output_tokens": 7173,
+            "cache_read_input_tokens": 135168,
+            "cache_creation_input_tokens": 0
+          },
+          "transcript_refs": {
+            "schema": "chainlesschain.session-transcript-references/v1",
+            "sessionId": "panel-23b7c1aa-bc3d-4e47-a262-8168d67db5f8",
+            "assistantEventId": "e875f6cc81891100c1a14a4180e66ea9d3cbdadeecca86609737b0e3184ff326",
+            "userEventId": "e48b347fe70d03f926a67114b837c9486aa23f7a3af9029a08ed7dd97e871ea8",
+            "clientMessageId": "5526cef3-c2e3-41e0-bab7-59315b9d8bc3"
+          },
+          "trace_id": "tr-1cfc5839-ae96-4d92-af9c-672afeae6a9c",
+          "seq": 60
+        },
+        "scopePathComparison": "windows-case-insensitive; raw stream retained"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "tasks": [
+          {
+            "taskId": "first-run-win32-vscode",
+            "requests": 11,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": 0.31607280000000004,
+        "knownTokenOnlyEstimateCny": 0.31607280000000004,
+        "fxRate": null
+      },
+      "changedPaths": [
+        "packages/cli/__tests__/verify-02.test.js"
+      ],
+      "finishedAt": "2026-11-03T13:06:00.359Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "first-run-win32-vscode"
+  ],
+  "generationPassed": true,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 40 model turns, 48 requests, 180 second request timeout, model maximum 393216 output tokens (8192 test cap removed), 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:3185a92e57bc89a9f9c1283aeff4823c409e1bebd48b8d20da509814fded8b29",
+  "group": "win32-vscode",
+  "entry": "vscode",
+  "platform": "win32",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:3ca5c1bfa5bffdee860665eeb757c24004dfaf0f3075f2a63e1a2600b3f6d600"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:487ed1e27103348c920988130954ec6449a81e66f7973e81ed02e1befd126da3"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:be2edf8e1ced537796d5819e458e4b56f2c1638eab8880b09c2c7fea4a4245fd"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+      "digest": "sha256:82becb2b0b551916e312131bcca48736d9e3f462aed4ea2a89ec00f907457eed"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
+      "digest": "sha256:d2cbc2dee63e7f53c622d61ad314143d6bd4d59a679d9aea29579cb034a829fb"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-public140-full.mjs",
+      "digest": "sha256:4c8b323e6c28b2dafb2f2e71ec2e7825d6b321d2998e3ef5f6ace3c2a10acdb9"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:3e515efc1cff606e2cbbfa977b5674abe6a73c142caa1b0539c0a2698978f8e4"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/verify01-run.cjs",
+      "digest": "sha256:7843460e829832d36768c90036414a1ceba5b3a03cca674f981b7e2fa3fdae44"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/verify01.cjs",
+      "digest": "sha256:a4a8a1d3d0e83227f22943e36920883d234fcdc847fb0f9faa08a969abf0c177"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/verify01-composer.cjs",
+      "digest": "sha256:3309c665f3bcb2941a27941ab4a096047869dd85deab78052c4932bf8f425554"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/noop.cjs",
+      "digest": "sha256:06a84182b7e81818c35b47c64170139b572a665645dbf9561de7fd521517bbb6"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/failure-receipt.cjs",
+      "digest": "sha256:802abcf31cb2dcbfb4e3873e29a440e9b1e8a5399ba6e8bb05883d1a36494c84"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/cdp-journey.cjs",
+      "digest": "sha256:31d467277d6eee1f7ecbe5551ae20e318d9ead0363b692a1ab106e64e388cfd0"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/run.cjs",
+      "digest": "sha256:761393469af5d77dea596dffe0fff8e984e93445949796474a281f3f68b635f1"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T12:56:26.615Z",
+    "finishedAt": "2026-11-03T13:02:11.858Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "first-run-win32-vscode",
+    "locked": {
+      "version": "0.166.140",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+      "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T13:06:00.363Z"
+}

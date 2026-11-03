@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-12",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 11,
+      "passed": 11,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "flatten-spaces-and-empty-argv",
+      "sourceSha256": "3e443a6ee958f5c6ba68dacef32fc5383e0f88be386ffc5d03c6655d5f542f52",
+      "total": 6,
+      "passed": 4,
+      "failed": 2
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 131,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 566,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":11,\"numPassedTests\":11,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793724071861,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv rejects ephemeral background authority but preserves literal prompt data\",\"status\":\"passed\",\"title\":\"rejects ephemeral background authority but preserves literal prompt data\",\"duration\":2.0392260000000135,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv keeps option-shaped prompt data inside one print token: --help\",\"status\":\"passed\",\"title\":\"keeps option-shaped prompt data inside one print token: --help\",\"duration\":0.28789599999998927,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv keeps option-shaped prompt data inside one print token: --no-worktree\",\"status\":\"passed\",\"title\":\"keeps option-shaped prompt data inside one print token: --no-worktree\",\"duration\":0.12396300000000338,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv keeps option-shaped prompt data inside one print token: --dangerously-skip-permissions\",\"status\":\"passed\",\"title\":\"keeps option-shaped prompt data inside one print token: --dangerously-skip-permissions\",\"duration\":0.2163500000000056,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv captures Commander option aliases and arity\",\"status\":\"passed\",\"title\":\"captures Commander option aliases and arity\",\"duration\":0.5254469999999856,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv captures root options and command aliases as one argv grammar\",\"status\":\"passed\",\"title\":\"captures root options and command aliases as one argv grammar\",\"duration\":0.381764000000004,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv canonicalizes resume/fork options to one resolved session\",\"status\":\"passed\",\"title\":\"canonicalizes resume/fork options to one resolved session\",\"duration\":0.6475180000000194,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv preserves other option values and the literal tail\",\"status\":\"passed\",\"title\":\"preserves other option values and the literal tail\",\"duration\":0.43419200000002434,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv removes true operands without deleting equal option values\",\"status\":\"passed\",\"title\":\"removes true operands without deleting equal option values\",\"duration\":0.518447000000009,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv preserves global options before the real command token\",\"status\":\"passed\",\"title\":\"preserves global options before the real command token\",\"duration\":0.2518320000000074,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv drops print payloads and every post-terminator first-turn token\",\"status\":\"passed\",\"title\":\"drops print payloads and every post-terminator first-turn token\",\"duration\":0.3201430000000016,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793724072042,\"endTime\":1793724072048.32,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/background-command-argv.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 554,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793724072429,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"background argv space/quoted argument integrity\"],\"fullName\":\"background argv space/quoted argument integrity keeps spaces and embedded quotes inside one print token\",\"status\":\"passed\",\"title\":\"keeps spaces and embedded quotes inside one print token\",\"duration\":1.2595830000000205,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background argv space/quoted argument integrity\"],\"fullName\":\"background argv space/quoted argument integrity preserves an empty argument as an intact print token\",\"status\":\"passed\",\"title\":\"preserves an empty argument as an intact print token\",\"duration\":0.23176300000000083,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background argv space/quoted argument integrity\"],\"fullName\":\"background argv space/quoted argument integrity does not expand shell metacharacters inside the print payload\",\"status\":\"passed\",\"title\":\"does not expand shell metacharacters inside the print payload\",\"duration\":0.14796899999998914,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background argv space/quoted argument integrity\"],\"fullName\":\"background argv space/quoted argument integrity keeps a required option value containing spaces as one argv element\",\"status\":\"passed\",\"title\":\"keeps a required option value containing spaces as one argv element\",\"duration\":0.8745529999999917,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background argv space/quoted argument integrity\"],\"fullName\":\"background argv space/quoted argument integrity keeps an operand containing spaces intact during background launch transform\",\"status\":\"passed\",\"title\":\"keeps an operand containing spaces intact during background launch transform\",\"duration\":0.40182400000000484,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background argv space/quoted argument integrity\"],\"fullName\":\"background argv space/quoted argument integrity inserts a directory with spaces as a single add-dir token\",\"status\":\"passed\",\"title\":\"inserts a directory with spaces as a single add-dir token\",\"duration\":0.2585029999999904,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793724072596,\"endTime\":1793724072599.2585,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-12.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/background-command-argv.js"
+      ],
+      "setup": false,
+      "ms": 161,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 573,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":4,\"numFailedTests\":2,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793724073155,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"background argv space/quoted argument integrity\"],\"fullName\":\"background argv space/quoted argument integrity keeps spaces and embedded quotes inside one print token\",\"status\":\"passed\",\"title\":\"keeps spaces and embedded quotes inside one print token\",\"duration\":1.2325730000000021,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background argv space/quoted argument integrity\"],\"fullName\":\"background argv space/quoted argument integrity preserves an empty argument as an intact print token\",\"status\":\"passed\",\"title\":\"preserves an empty argument as an intact print token\",\"duration\":0.26471099999997705,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background argv space/quoted argument integrity\"],\"fullName\":\"background argv space/quoted argument integrity does not expand shell metacharacters inside the print payload\",\"status\":\"passed\",\"title\":\"does not expand shell metacharacters inside the print payload\",\"duration\":0.1665270000000021,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background argv space/quoted argument integrity\"],\"fullName\":\"background argv space/quoted argument integrity keeps a required option value containing spaces as one argv element\",\"status\":\"failed\",\"title\":\"keeps a required option value containing spaces as one argv element\",\"duration\":6.199860000000001,\"failureMessages\":[\"AssertionError: expected [ 'agent', '--model', 'my', …(4) ] to deeply equal [ 'agent', '--model', …(3) ]\\n    at /workspace/packages/cli/__tests__/verify-12.test.js:44:7\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background argv space/quoted argument integrity\"],\"fullName\":\"background argv space/quoted argument integrity keeps an operand containing spaces intact during background launch transform\",\"status\":\"failed\",\"title\":\"keeps an operand containing spaces intact during background launch transform\",\"duration\":1.0777940000000115,\"failureMessages\":[\"AssertionError: expected [ 'agent', 'path', 'with', …(3) ] to deeply equal [ 'agent', …(3) ]\\n    at /workspace/packages/cli/__tests__/verify-12.test.js:53:7\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background argv space/quoted argument integrity\"],\"fullName\":\"background argv space/quoted argument integrity inserts a directory with spaces as a single add-dir token\",\"status\":\"passed\",\"title\":\"inserts a directory with spaces as a single add-dir token\",\"duration\":0.3961659999999938,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793724073322,\"endTime\":1793724073331.3962,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-12.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

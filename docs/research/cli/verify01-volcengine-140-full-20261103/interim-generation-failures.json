@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "runId": 41630636517,
+  "checkedAt": "2026-11-03T12:55:17.225052+00:00",
+  "interimOnly": true,
+  "independentAcceptancePending": true,
+  "scope": "Four completed generation failures, not the full45 score",
+  "samples": [
+    {
+      "sampleId": "verify-30",
+      "generationPassed": false,
+      "actualPlatform": "win32",
+      "actualEntry": "jetbrains",
+      "modelTerminalSubtype": "error",
+      "modelFailureCategory": "agent-error",
+      "classification": "pre-http-connection-failure",
+      "physicalDispatchSlots": 4,
+      "usageCompleteRequests": 3,
+      "provenNotDispatched": 1,
+      "unresolvedDispatchedSlots": 0,
+      "writeOrEditCalls": 0,
+      "placeholderBytes": 27,
+      "compactionDegradations": [],
+      "rawSummaryDigest": "sha256:d9a6ccbd625b816754e4a0cdcfe50f89b19f04cedf9b20304dbe5b2b3bf2060f",
+      "artifactName": "verify01-native-delivery-win32-jetbrains-verify-30-eb50e4f42778d6be457595cc0f39fcada025d5f0"
+    },
+    {
+      "sampleId": "verify-31",
+      "generationPassed": false,
+      "actualPlatform": "linux",
+      "actualEntry": "cli",
+      "modelTerminalSubtype": "success",
+      "modelFailureCategory": "deliverable-unverified",
+      "classification": "model-stopped-without-deliverable",
+      "physicalDispatchSlots": 11,
+      "usageCompleteRequests": 11,
+      "provenNotDispatched": 0,
+      "unresolvedDispatchedSlots": 0,
+      "writeOrEditCalls": 0,
+      "placeholderBytes": 27,
+      "compactionDegradations": [
+        {
+          "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+          "summary_mode": "none"
+        },
+        {
+          "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+          "summary_mode": "none"
+        },
+        {
+          "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+          "summary_mode": "none"
+        },
+        {
+          "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+          "summary_mode": "none"
+        }
+      ],
+      "rawSummaryDigest": "sha256:4eb77db668c23b593a102b74edd717c5085524e466c2570766d6a16baf3c7021",
+      "artifactName": "verify01-native-delivery-linux-cli-verify-31-eb50e4f42778d6be457595cc0f39fcada025d5f0"
+    },
+    {
+      "sampleId": "first-run-linux-vscode",
+      "generationPassed": false,
+      "actualPlatform": "linux",
+      "actualEntry": "vscode",
+      "modelTerminalSubtype": "error_compaction_usage_unknown",
+      "modelFailureCategory": "agent-error",
+      "classification": "dispatched-timeout-with-unknown-usage",
+      "physicalDispatchSlots": 3,
+      "usageCompleteRequests": 2,
+      "provenNotDispatched": 0,
+      "unresolvedDispatchedSlots": 1,
+      "writeOrEditCalls": 1,
+      "placeholderBytes": 4792,
+      "compactionDegradations": [],
+      "rawSummaryDigest": "sha256:8550e24ad03c25574166a52309d9ee72f886f8368b0981d3cda3356f029a7180",
+      "artifactName": "verify01-native-delivery-linux-vscode-first-run-linux-vscode-eb50e4f42778d6be457595cc0f39fcada025d5f0"
+    },
+    {
+      "sampleId": "first-run-linux-jetbrains",
+      "generationPassed": false,
+      "actualPlatform": "linux",
+      "actualEntry": "jetbrains",
+      "modelTerminalSubtype": "success",
+      "modelFailureCategory": "deliverable-unverified",
+      "classification": "model-stopped-without-deliverable",
+      "physicalDispatchSlots": 17,
+      "usageCompleteRequests": 17,
+      "provenNotDispatched": 0,
+      "unresolvedDispatchedSlots": 0,
+      "writeOrEditCalls": 0,
+      "placeholderBytes": 27,
+      "compactionDegradations": [],
+      "rawSummaryDigest": "sha256:2cca0a27e893cd301069b1ef9f1d923bf39b9c56ee4838197b34aac7f88315eb",
+      "artifactName": "verify01-native-delivery-linux-jetbrains-first-run-linux-jetbrains-eb50e4f42778d6be457595cc0f39fcada025d5f0"
+    }
+  ],
+  "caveats": [
+    "Known usage is not an account billing receipt. Unknown dispatched usage is not zero.",
+    "Budget substitution is proven separately; its causal effect on timeout or model finalization is not isolated.",
+    "Premature model terminal success is not actual test delivery; no write/edit tool was called in these two cases."
+  ]
+}

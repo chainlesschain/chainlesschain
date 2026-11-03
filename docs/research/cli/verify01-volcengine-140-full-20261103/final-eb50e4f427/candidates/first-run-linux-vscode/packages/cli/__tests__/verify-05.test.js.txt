@@ -1,0 +1,117 @@
+/**
+ * Regression coverage: installation vs admission separation for the
+ * AgentRouter backend surface.
+ *
+ * Acceptance:
+ *  - A CLI backend that is installed (found on disk) but cannot attest
+ *    per-request evolution ingress is STILL blocked from running.
+ *  - A usable API backend (text-only) is retained and dispatchable.
+ *
+ * Each independent condition is covered by an admissible positive control
+ * and a negative control that changes only the target condition while
+ * keeping every other prerequisite valid, so a rejection can only be
+ * attributed to the CLI admission guard.
+ */
+
+import { describe, it, expect, vi } from "vitest";
+import {
+  AgentRouter,
+  AGENT_ROUTER_ERROR,
+} from "../src/lib/agent-router.js";
+
+// Keep the LLM-provider and ingress prerequisites valid so that a refusal
+// can only be caused by the CLI admission guard (never the ingress guard,
+// a missing provider, or a network call).
+vi.mock("../src/lib/cowork-adapter.js", () => ({
+  createChatFn: vi.fn(() => async () => "ok"),
+}));
+vi.mock("../src/lib/evolution/agent-evolution-ingress.js", () => ({
+  captureAgentEvolutionIngress: vi.fn(() => ({ mock: "ingress" })),
+}));
+
+const VALID_INGRESS = { mock: "ingress" };
+const UNATTESTED = AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED;
+
+describe("AgentRouter: installation is separate from admission", () => {
+  // Condition A — public dispatch: an installed-but-unattested CLI backend
+  // refuses to run; the same valid ingress on an API backend is retained.
+  describe("dispatch keeps usable API backends while blocking installed CLI", () => {
+    it("positive: installed CLI backend is filtered out and refuses to run", async () => {
+      const router = new AgentRouter({
+        backends: [{ type: "claude", installed: true }],
+      });
+      await expect(
+        router.dispatch([{ id: "t1", description: "task" }], {
+          cwd: "/tmp",
+          evolutionIngress: VALID_INGRESS,
+        }),
+      ).rejects.toMatchObject({ code: UNATTESTED });
+    });
+
+    it("negative: an API backend with the same valid ingress is retained and runs", async () => {
+      const router = new AgentRouter({ backends: [{ type: "openai" }] });
+      const results = await router.dispatch(
+        [{ id: "t1", description: "task" }],
+        { cwd: "/tmp", evolutionIngress: VALID_INGRESS },
+      );
+      expect(results).toHaveLength(1);
+      expect(results[0].backendType).toBe("openai");
+      expect(results[0].status).toBe("simulated");
+    });
+  });
+
+  // Condition B — even a direct internal execution with a valid ingress is
+  // refused for an installed CLI; the API counterpart executes.
+  describe("_runSingleTask refuses CLI even with valid ingress", () => {
+    it("positive: installed CLI refuses to run despite a valid ingress", async () => {
+      const router = new AgentRouter({
+        backends: [{ type: "claude", installed: true }],
+      });
+      const cliBackend = router._backends[0];
+      await expect(
+        router._runSingleTask({ id: "t1", description: "task" }, cliBackend, {
+          cwd: "/tmp",
+          evolutionIngress: VALID_INGRESS,
+        }),
+      ).rejects.toMatchObject({ code: UNATTESTED });
+    });
+
+    it("negative: an API backend runs with the same valid ingress", async () => {
+      const router = new AgentRouter({ backends: [{ type: "gemini" }] });
+      const apiBackend = router._backends[0];
+      const result = await router._runSingleTask(
+        { id: "t1", description: "task" },
+        apiBackend,
+        { cwd: "/tmp", evolutionIngress: VALID_INGRESS },
+      );
+      expect(result.backendType).toBe("gemini");
+      expect(result.status).toBe("simulated");
+    });
+  });
+
+  // Condition C — summary separates installation from admission and keeps
+  // the API backend available.
+  describe("summary separates install from admission", () => {
+    it("positive: an installed CLI is reported as unattested and non-dispatchable", () => {
+      const router = new AgentRouter({
+        backends: [{ type: "codex", installed: true }],
+      });
+      const s = router.summary()[0];
+      expect(s.installed).toBe(true);
+      expect(s.governanceAdmitted).toBe(false);
+      expect(s.dispatchable).toBe(false);
+      expect(s.runnable).toBe(false);
+      expect(() => router.assertDispatchAvailable()).toThrow(/blocked/);
+    });
+
+    it("negative: an API backend is retained as usable text-only", () => {
+      const router = new AgentRouter({ backends: [{ type: "openai" }] });
+      const s = router.summary()[0];
+      expect(s.installed).toBe(null);
+      expect(s.governanceAdmitted).toBe(null);
+      expect(s.dispatchable).toBe(true);
+      expect(s.executionMode).toBe("text-only");
+      expect(() => router.assertDispatchAvailable()).not.toThrow();
+    });
+  });
+});

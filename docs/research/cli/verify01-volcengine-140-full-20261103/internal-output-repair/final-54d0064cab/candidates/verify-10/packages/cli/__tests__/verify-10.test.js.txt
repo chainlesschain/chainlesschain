@@ -1,0 +1,172 @@
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { loadBackgroundAgentListIndex } from "../src/lib/background-agent-list-index.js";
+
+const PAGE_SIZE = 3;
+
+let directory;
+
+function writeState(id) {
+  writeFileSync(
+    join(directory, `${id}.json`),
+    JSON.stringify({ id, startedAt: 1, status: "completed" }),
+    "utf8",
+  );
+}
+
+function deleteState(id) {
+  rmSync(join(directory, `${id}.json`), { force: true });
+}
+
+function reader() {
+  return vi.fn((id) =>
+    JSON.parse(readFileSync(join(directory, `${id}.json`), "utf8")),
+  );
+}
+
+function paginate(entries, pageSize) {
+  const pages = [];
+  for (let i = 0; i < entries.length; i += pageSize) {
+    pages.push(entries.slice(i, i + pageSize));
+  }
+  return pages;
+}
+
+function assertFullListConsistency(entries, expectedIds) {
+  const ids = entries.map((entry) => entry.id);
+  expect(ids).toEqual(expectedIds);
+  const pages = paginate(entries, PAGE_SIZE);
+  expect(pages.length).toBeGreaterThan(0);
+  expect(pages[pages.length - 1].length).toBeGreaterThan(0);
+  expect(pages.flat().map((entry) => entry.id)).toEqual(ids);
+}
+
+function sortedIds(ids) {
+  return [...ids].sort((a, b) =>
+    `bg-${a}`.localeCompare(`bg-${b}`, "en"),
+  );
+}
+
+beforeEach(() => {
+  directory = mkdtempSync(join(tmpdir(), "cc-verify-10-list-index-"));
+});
+
+afterEach(() => {
+  rmSync(directory, { recursive: true, force: true });
+});
+
+describe("background agent list index pagination regression", () => {
+  it("rebuilds a multi-page projection matching the full same-snapshot list, including last page", () => {
+    const ids = sortedIds(["a", "b", "c", "d", "e", "f", "g"]);
+    ids.forEach(writeState);
+
+    const result = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+
+    expect(result.source).toBe("rebuilt");
+    expect(result.entries.length).toBe(7);
+    assertFullListConsistency(result.entries, ids);
+  });
+
+  it("serves the cached index with the same pagination completeness, including last page", () => {
+    const ids = sortedIds(["a", "b", "c", "d", "e"]);
+    ids.forEach(writeState);
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    const cachedReader = reader();
+    const cached = loadBackgroundAgentListIndex({
+      directory,
+      readState: cachedReader,
+    });
+
+    expect(cached.source).toBe("index");
+    expect(cachedReader).not.toHaveBeenCalled();
+    assertFullListConsistency(cached.entries, ids);
+  });
+
+  it("invalidates the cached index after a write so pagination matches the enlarged list", () => {
+    const ids = sortedIds(["a", "b"]);
+    ids.forEach(writeState);
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    const added = "c";
+    writeState(added);
+
+    const changedReader = reader();
+    const changed = loadBackgroundAgentListIndex({
+      directory,
+      readState: changedReader,
+    });
+
+    expect(changed.source).toBe("rebuilt");
+    expect(changed.entries.map((entry) => entry.id)).toContain(added);
+    assertFullListConsistency(changed.entries, sortedIds([...ids, added]));
+  });
+
+  it("invalidates the cached index after a delete so pagination matches the shrunk list", () => {
+    const ids = sortedIds(["a", "b", "c", "d", "e"]);
+    ids.forEach(writeState);
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    deleteState("b");
+
+    const changedReader = reader();
+    const changed = loadBackgroundAgentListIndex({
+      directory,
+      readState: changedReader,
+    });
+
+    expect(changed.source).toBe("rebuilt");
+    expect(changed.entries.map((entry) => entry.id)).not.toContain("b");
+    assertFullListConsistency(
+      changed.entries,
+      ids.filter((id) => id !== "b"),
+    );
+  });
+
+  it("keeps the cached index valid when authority is unchanged (no false invalidation)", () => {
+    const ids = sortedIds(["a", "b", "c"]);
+    ids.forEach(writeState);
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    const cachedReader = reader();
+    const cached = loadBackgroundAgentListIndex({
+      directory,
+      readState: cachedReader,
+    });
+
+    expect(cached.source).toBe("index");
+    expect(cachedReader).not.toHaveBeenCalled();
+    assertFullListConsistency(cached.entries, ids);
+  });
+
+  it("after a combined write+delete round, pagination matches the new full list including last page", () => {
+    const ids = sortedIds(["a", "b", "c", "d", "e", "f"]);
+    ids.forEach(writeState);
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    deleteState("a");
+    writeState("g");
+
+    const changedReader = reader();
+    const changed = loadBackgroundAgentListIndex({
+      directory,
+      readState: changedReader,
+    });
+
+    expect(changed.source).toBe("rebuilt");
+    assertFullListConsistency(
+      changed.entries,
+      sortedIds(ids.filter((id) => id !== "a").concat("g")),
+    );
+  });
+});

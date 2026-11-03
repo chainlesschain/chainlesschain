@@ -1,0 +1,259 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import fs from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
+import { mkdtempSync, rmSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { applyMemoryCommand } from "@chainlesschain/context-memory-kernel";
+import { stateDigest } from "../src/lib/context-memory-kernel/durable-memory-port.js";
+import { SegmentedMemoryPort } from "../src/lib/context-memory-kernel/segmented-memory-port.js";
+import { createDurableMemoryFixture } from "../scripts/persistent-capacity-benchmark.mjs";
+
+/**
+ * Regression coverage for post-publish failure semantics in the segmented
+ * memory authority ("Memory 发布后故障语义").
+ *
+ * In `_publish` the boolean `published` becomes true only after
+ * `renameSync(temporary, filePath)` succeeds. A synchronous failure raised
+ * after that rename (the parent-directory fsync) must surface as an error with
+ * `committed: true` while leaving the new manifest authoritative (readable on
+ * reopen). A failure raised before the rename must NOT be declared committed
+ * and the old manifest must remain intact. `_publish` is shared by `commit`
+ * and `putReconciliation`, so both entry points are covered.
+ *
+ * Synchronous failures are injected by spying on `fs.renameSync` (to observe
+ * the publish point) and `fs.fsyncSync` (to throw), then calling
+ * `syncBuiltinESMExports()` so the ESM live bindings imported by the authority
+ * resolve to the patched methods. Real fs is restored before every reopen read.
+ */
+
+const AT = "2026-09-13T00:00:00.000Z";
+
+let root;
+let filePath;
+
+beforeEach(() => {
+  root = mkdtempSync(join(tmpdir(), "verify-22-"));
+  filePath = join(root, "kernel-v1.json");
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  syncBuiltinESMExports();
+  if (root) rmSync(root, { recursive: true, force: true });
+});
+
+function reinforce(record) {
+  return applyMemoryCommand(record, {
+    type: "reinforce",
+    expectedRevision: record.revision,
+    confidenceDelta: 0.01,
+    authority: "verify-22",
+    at: AT,
+  });
+}
+
+/**
+ * Patches fs.renameSync to mark the authority published when the manifest
+ * rename target matches filePath, and patches fs.fsyncSync so a directory sync
+ * occurring strictly *after* publish throws. Returns a handle exposing
+ * `published` and `postPublishDirectorySyncs` so the test asserts the failure
+ * fired at the intended stage rather than a pre-rename shard sync.
+ */
+function injectPostPublishFailure() {
+  const rename = fs.renameSync;
+  const sync = fs.fsyncSync;
+  const handle = { published: false, postPublishDirectorySyncs: 0 };
+  vi.spyOn(fs, "renameSync").mockImplementation((from, to) => {
+    rename(from, to);
+    if (to === filePath) handle.published = true;
+  });
+  vi.spyOn(fs, "fsyncSync").mockImplementation((fd) => {
+    if (handle.published && fs.fstatSync(fd).isDirectory()) {
+      handle.postPublishDirectorySyncs += 1;
+      throw Object.assign(new Error("injected post-publish fsync failure"), {
+        code: "EIO",
+      });
+    }
+    return sync(fd);
+  });
+  syncBuiltinESMExports();
+  return handle;
+}
+
+/**
+ * Patches fs.fsyncSync so every call throws. In `_publish` the first fsyncs
+ * are the shard fd sync and shard-directory sync, which run before the
+ * manifest rename, so the authority is not yet published when the failure hits.
+ */
+function injectPrePublishFsyncFailure() {
+  const sync = fs.fsyncSync;
+  let fsyncCalls = 0;
+  vi.spyOn(fs, "fsyncSync").mockImplementation((fd) => {
+    fsyncCalls += 1;
+    throw Object.assign(new Error("injected pre-publish fsync failure"), {
+      code: "EIO",
+    });
+  });
+  syncBuiltinESMExports();
+  return { fsyncCalls: () => fsyncCalls };
+}
+
+describe("Memory post-publish failure semantics (SegmentedMemoryPort)", () => {
+  it("positive: a normal commit persists and is readable on reopen", async () => {
+    const state = createDurableMemoryFixture(1);
+    const record = Object.values(state.records)[0];
+    const port = new SegmentedMemoryPort({ filePath });
+    const imported = await port.importSnapshot(state);
+    expect(imported.storeRevision).toBe(state.storeRevision);
+
+    const transition = reinforce(record);
+    const committed = await port.commit(transition, record.revision);
+    expect(committed.ok).toBe(true);
+    expect(committed.storeRevision).toBe(state.storeRevision + 1);
+
+    const reopened = new SegmentedMemoryPort({ filePath });
+    const read = await reopened.read(record.memoryId);
+    expect(read).not.toBeNull();
+    expect(read.revision).toBe(record.revision + 1);
+    expect(read.digest).toBe(transition.record.digest);
+  });
+
+  it("post-publish fsync failure: error declares committed and reopen reads the new state", async () => {
+    const state = createDurableMemoryFixture(1);
+    const record = Object.values(state.records)[0];
+    const transition = reinforce(record);
+    const port = new SegmentedMemoryPort({ filePath });
+    await port.importSnapshot(state);
+
+    const handle = injectPostPublishFailure();
+    let failure;
+    try {
+      await port.commit(transition, record.revision);
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(handle.published).toBe(true);
+    expect(handle.postPublishDirectorySyncs).toBeGreaterThan(0);
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure.code).toBe("CONTEXT_MEMORY_COMMIT_PUBLISHED");
+    expect(failure.committed).toBe(true);
+    expect(failure.cleanupComplete).toBe(false);
+    expect(failure.storeRevision).toBe(state.storeRevision + 1);
+
+    // Restore the real fs implementation before reopening.
+    vi.restoreAllMocks();
+    syncBuiltinESMExports();
+
+    const reopened = new SegmentedMemoryPort({ filePath });
+    const read = await reopened.read(record.memoryId);
+    expect(read).not.toBeNull();
+    expect(read.revision).toBe(record.revision + 1);
+    expect(read.digest).toBe(transition.record.digest);
+    expect(await reopened.getRevision()).toBe(state.storeRevision + 1);
+  });
+
+  it("pre-publish fsync failure: error is NOT declared committed and reopen reads the old state", async () => {
+    const state = createDurableMemoryFixture(1);
+    const record = Object.values(state.records)[0];
+    const transition = reinforce(record);
+    const port = new SegmentedMemoryPort({ filePath });
+    await port.importSnapshot(state);
+    const digestBefore = JSON.parse(readFileSync(filePath, "utf8")).digest;
+
+    const handle = injectPrePublishFsyncFailure();
+    let failure;
+    try {
+      await port.commit(transition, record.revision);
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(handle.fsyncCalls()).toBeGreaterThan(0);
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure.code).toBe("EIO");
+    expect(failure.committed).toBeUndefined();
+
+    // Restore the real fs implementation before reopening.
+    vi.restoreAllMocks();
+    syncBuiltinESMExports();
+
+    const reopened = new SegmentedMemoryPort({ filePath });
+    expect(await reopened.getRevision()).toBe(state.storeRevision);
+    const read = await reopened.read(record.memoryId);
+    expect(read.revision).toBe(record.revision);
+    expect(JSON.parse(readFileSync(filePath, "utf8")).digest).toBe(
+      digestBefore,
+    );
+  });
+
+  it("after a committed publish, a stale CAS races out and the new revision is authoritative", async () => {
+    const state = createDurableMemoryFixture(1);
+    const record = Object.values(state.records)[0];
+    const transition = reinforce(record);
+    const port = new SegmentedMemoryPort({ filePath });
+    await port.importSnapshot(state);
+    await port.commit(transition, record.revision);
+
+    // A writer that still holds the pre-commit revision must race out.
+    const stale = await port.commit(transition, record.revision);
+    expect(stale.ok).toBe(false);
+    expect(stale.currentRevision).toBe(state.storeRevision + 1);
+    expect(stale.storeRevision).toBe(state.storeRevision + 1);
+    expect(await port.getRevision()).toBe(state.storeRevision + 1);
+  });
+
+  it("positive: importSnapshot succeeds and reopen reads the imported record", async () => {
+    const state = createDurableMemoryFixture(1);
+    const memoryId = Object.keys(state.records)[0];
+    const port = new SegmentedMemoryPort({ filePath });
+    const imported = await port.importSnapshot(state);
+    expect(imported.storeRevision).toBe(state.storeRevision);
+    expect(imported.recordCount).toBe(1);
+
+    const reopened = new SegmentedMemoryPort({ filePath });
+    const record = await reopened.read(memoryId);
+    expect(record).not.toBeNull();
+    expect(record.digest).toBe(state.records[memoryId].digest);
+  });
+
+  it("putReconciliation post-publish fsync failure is committed and readable on reopen", async () => {
+    const state = createDurableMemoryFixture(1);
+    const record = Object.values(state.records)[0];
+    const port = new SegmentedMemoryPort({ filePath });
+    await port.importSnapshot(state);
+    const requestId = `verify-22-recon-${record.memoryId}`;
+    const reconciliation = {
+      requestId,
+      memoryId: record.memoryId,
+      storeRevision: state.storeRevision,
+      mode: "completed",
+      at: AT,
+      digest: stateDigest({ schema: "verify-22" }),
+    };
+
+    const handle = injectPostPublishFailure();
+    let failure;
+    try {
+      await port.putReconciliation(reconciliation);
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(handle.postPublishDirectorySyncs).toBeGreaterThan(0);
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure.code).toBe("CONTEXT_MEMORY_COMMIT_PUBLISHED");
+    expect(failure.committed).toBe(true);
+
+    // Restore the real fs implementation before reopening.
+    vi.restoreAllMocks();
+    syncBuiltinESMExports();
+
+    const reopened = new SegmentedMemoryPort({ filePath });
+    const stored = await reopened.getReconciliation(requestId);
+    expect(stored).not.toBeNull();
+    expect(stored.requestId).toBe(requestId);
+    expect(await reopened.getRevision()).toBe(state.storeRevision + 1);
+  });
+});

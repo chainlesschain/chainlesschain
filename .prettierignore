@@ -104,3 +104,10 @@ docs/research/cli/verify01-volcengine-139-20261103/**
 docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139-budget40.json
 docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139-budget40-host-recovery.json
 docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139-provider-output.json
+
+# Preserve .140 provider summaries, acceptance receipts and candidate bytes.
+docs/research/cli/verify01-volcengine-140-full-20261103/**/*.json
+docs/research/cli/verify01-volcengine-140-full-20261103/**/*.txt
+docs/research/cli/verify01-volcengine-140-full-20261103/**/*.sse
+docs/research/cli/verify01-volcengine-140-full-20261103/**/*.ndjson
+docs/research/cli/verify01-package-sets/2026-11-03-volcengine-public140-*.json

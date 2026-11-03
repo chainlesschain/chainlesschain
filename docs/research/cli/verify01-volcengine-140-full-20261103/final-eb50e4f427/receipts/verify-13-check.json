@@ -1,0 +1,158 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-13",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 13,
+      "passed": 13,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "ignore-image-change-on-pinned-handle",
+      "sourceSha256": "e0cd0906e581ae0516fbb93f51b6cb9b157cf0c7175abb9d8e702733ce8c432b",
+      "total": 6,
+      "passed": 5,
+      "failed": 1
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 151,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 761,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":13,\"numPassedTests\":13,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793720356946,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary recognizes bounded png headers\",\"status\":\"passed\",\"title\":\"recognizes bounded png headers\",\"duration\":3.3478459999999757,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary recognizes bounded jpeg headers\",\"status\":\"passed\",\"title\":\"recognizes bounded jpeg headers\",\"duration\":0.5879410000000007,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary recognizes bounded gif headers\",\"status\":\"passed\",\"title\":\"recognizes bounded gif headers\",\"duration\":0.6078979999999774,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary recognizes bounded webp headers\",\"status\":\"passed\",\"title\":\"recognizes bounded webp headers\",\"duration\":0.5289500000000089,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects a forged extension and malformed header before returning content\",\"status\":\"passed\",\"title\":\"rejects a forged extension and malformed header before returning content\",\"duration\":1.655428999999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects zero and oversized pixel declarations\",\"status\":\"passed\",\"title\":\"rejects zero and oversized pixel declarations\",\"duration\":0.8134019999999964,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary bounds file size before any read or full-buffer allocation\",\"status\":\"passed\",\"title\":\"bounds file size before any read or full-buffer allocation\",\"duration\":1.512250999999992,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary bounds the combined attachment bytes and identifies the failing entry\",\"status\":\"passed\",\"title\":\"bounds the combined attachment bytes and identifies the failing entry\",\"duration\":18.82253,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects excess image count before opening files\",\"status\":\"passed\",\"title\":\"rejects excess image count before opening files\",\"duration\":0.7066120000000069,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects non-regular handles and closes them\",\"status\":\"passed\",\"title\":\"rejects non-regular handles and closes them\",\"duration\":0.9075889999999731,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary uses bounded descriptor reads when the file grows after its size check\",\"status\":\"passed\",\"title\":\"uses bounded descriptor reads when the file grows after its size check\",\"duration\":0.9074579999999912,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary supports short reads and rejects a truncated file\",\"status\":\"passed\",\"title\":\"supports short reads and rejects a truncated file\",\"duration\":0.8181109999999876,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary caps JPEG header scanning at 1 MiB\",\"status\":\"passed\",\"title\":\"caps JPEG header scanning at 1 MiB\",\"duration\":2.645632000000006,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793720357192,\"endTime\":1793720357226.6458,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/image-file-boundary.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 753,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793720357703,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary reads a normal small image and closes its descriptor once\",\"status\":\"passed\",\"title\":\"reads a normal small image and closes its descriptor once\",\"duration\":3.6457240000000013,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary rejects over-limit input before any read and still closes the handle\",\"status\":\"passed\",\"title\":\"rejects over-limit input before any read and still closes the handle\",\"duration\":1.6175479999999993,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary rejects a file that grows (replaced) while reading, via the pinned size\",\"status\":\"passed\",\"title\":\"rejects a file that grows (replaced) while reading, via the pinned size\",\"duration\":1.0240960000000143,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary rejects a file whose mtime/ctime changes (replaced) while reading\",\"status\":\"passed\",\"title\":\"rejects a file whose mtime/ctime changes (replaced) while reading\",\"duration\":0.9608080000000143,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary reads header and body through the same single pinned descriptor\",\"status\":\"passed\",\"title\":\"reads header and body through the same single pinned descriptor\",\"duration\":1.3531030000000044,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary rejects an empty (below-limit) file before reading and closes it\",\"status\":\"passed\",\"title\":\"rejects an empty (below-limit) file before reading and closes it\",\"duration\":0.6378840000000139,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793720357952,\"endTime\":1793720357960.638,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-13.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/image-file-boundary.js"
+      ],
+      "setup": false,
+      "ms": 172,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 767,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":5,\"numFailedTests\":1,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793720358632,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary reads a normal small image and closes its descriptor once\",\"status\":\"passed\",\"title\":\"reads a normal small image and closes its descriptor once\",\"duration\":4.1333569999999895,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary rejects over-limit input before any read and still closes the handle\",\"status\":\"passed\",\"title\":\"rejects over-limit input before any read and still closes the handle\",\"duration\":1.842318000000006,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary rejects a file that grows (replaced) while reading, via the pinned size\",\"status\":\"passed\",\"title\":\"rejects a file that grows (replaced) while reading, via the pinned size\",\"duration\":1.0730289999999911,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary rejects a file whose mtime/ctime changes (replaced) while reading\",\"status\":\"failed\",\"title\":\"rejects a file whose mtime/ctime changes (replaced) while reading\",\"duration\":7.057719999999989,\"failureMessages\":[\"AssertionError: expected [Function] to throw an error\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1552:16)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/cli/__tests__/verify-13.test.js:80:7\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary reads header and body through the same single pinned descriptor\",\"status\":\"passed\",\"title\":\"reads header and body through the same single pinned descriptor\",\"duration\":1.4856709999999964,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary rejects an empty (below-limit) file before reading and closes it\",\"status\":\"passed\",\"title\":\"rejects an empty (below-limit) file before reading and closes it\",\"duration\":0.7194360000000017,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793720358887,\"endTime\":1793720358903.7195,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-13.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/image-file-boundary.js"
+      ],
+      "setup": false,
+      "ms": 176,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 773,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793720359567,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary reads a normal small image and closes its descriptor once\",\"status\":\"passed\",\"title\":\"reads a normal small image and closes its descriptor once\",\"duration\":3.655462,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary rejects over-limit input before any read and still closes the handle\",\"status\":\"passed\",\"title\":\"rejects over-limit input before any read and still closes the handle\",\"duration\":1.587491,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary rejects a file that grows (replaced) while reading, via the pinned size\",\"status\":\"passed\",\"title\":\"rejects a file that grows (replaced) while reading, via the pinned size\",\"duration\":0.9675420000000088,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary rejects a file whose mtime/ctime changes (replaced) while reading\",\"status\":\"passed\",\"title\":\"rejects a file whose mtime/ctime changes (replaced) while reading\",\"duration\":0.9049740000000099,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary reads header and body through the same single pinned descriptor\",\"status\":\"passed\",\"title\":\"reads header and body through the same single pinned descriptor\",\"duration\":1.336782999999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary\"],\"fullName\":\"attachment same-handle read boundary rejects an empty (below-limit) file before reading and closes it\",\"status\":\"passed\",\"title\":\"rejects an empty (below-limit) file before reading and closes it\",\"duration\":0.6287969999999916,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793720359843,\"endTime\":1793720359852.629,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-13.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate tests did not reject the behavioral mutant"
+}

@@ -1,0 +1,832 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000,
+    "connectionAttemptTimeoutMs": 10000,
+    "parallelToolCalls": null
+  },
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:f38ba1d4c166229766cd78adfd38ccfc2413b21ad4f533ef7d87f5ec1bf10f69",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:9df4efc5365ed381684a1990009c4b162ec96ae9ce229df13d4b583860a3559c",
+  "actualPlatform": "win32",
+  "actualArch": "x64",
+  "actualEntry": "jetbrains",
+  "changeReview": {
+    "requested": true,
+    "observed": false
+  },
+  "startedAt": "2026-11-03T12:08:27.672Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-30",
+      "taskId": "verify-30",
+      "kind": "task",
+      "runId": "a817e753-c55e-443e-a8ca-8ee6e0222496",
+      "stratum": "win32-jetbrains-volcengine",
+      "declaredActualEntry": {
+        "platform": "win32",
+        "entry": "jetbrains"
+      },
+      "actualPlatform": "win32",
+      "actualEntry": "jetbrains",
+      "changeReview": {
+        "requested": true,
+        "observed": false,
+        "reminderCount": 0,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:9df4efc5365ed381684a1990009c4b162ec96ae9ce229df13d4b583860a3559c",
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-30.test.js"
+      ],
+      "startedAt": "2026-11-03T12:08:27.675Z",
+      "deadline": "2026-11-03T12:48:27.675Z",
+      "candidates": [
+        {
+          "file": "packages/vscode-extension/__tests__/verify-30.test.js",
+          "path": "verify-30/candidate/packages/vscode-extension/__tests__/verify-30.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml"
+      ],
+      "unexpectedChanges": [],
+      "generationPassed": false,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T12:08:53.708Z",
+        "finishedAt": "2026-11-03T12:12:44.270Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "verify-30",
+        "locked": {
+          "version": "0.166.140",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+          "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": false,
+        "failure": "model task failed before a restartable result; see real protocol",
+        "restartRequired": true
+      },
+      "capturePath": "verify-30/capture",
+      "model": {
+        "pass": false,
+        "terminal": {
+          "terminalVerified": false,
+          "observedFallback": false,
+          "usage": null,
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": false,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-1793708297738-a10c7a",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "a3379121-3177-4b20-b5d9-a1eaa482ac0b",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-5e5b6f37-3211-4be8-b675-af2c646d55cb",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_qlrddqmk654rfmstwg5wpf1x",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/image-decode-budget.js"
+            },
+            "trace_id": "tr-5e5b6f37-3211-4be8-b675-af2c646d55cb",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_s1uvjonwevjf2xr36axr9pdr",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/vscode-ext-image-decode-budget.test.js"
+            },
+            "trace_id": "tr-5e5b6f37-3211-4be8-b675-af2c646d55cb",
+            "seq": 7
+          },
+          {
+            "type": "tool_use",
+            "id": "call_3i8pnfiwa4ap2skmpnbmgw9j",
+            "tool": "list_dir",
+            "args": {
+              "path": "packages/vscode-extension/__tests__"
+            },
+            "trace_id": "tr-5e5b6f37-3211-4be8-b675-af2c646d55cb",
+            "seq": 12
+          },
+          {
+            "type": "tool_use",
+            "id": "call_7xkzcz5eclpin1wh7zha9ia0",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-30.test.js"
+            },
+            "trace_id": "tr-5e5b6f37-3211-4be8-b675-af2c646d55cb",
+            "seq": 16
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_qlrddqmk654rfmstwg5wpf1x",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Gcynb6\\a817e753-c55e-443e-a8ca-8ee6e0222496\\workspace\\packages\\vscode-extension\\src\\chat\\image-decode-budget.js",
+              "fileVersion": "10070:1793707730053.1494:1793707730053.1494",
+              "readSpan": {
+                "start": 0,
+                "end": 10070,
+                "total": 10070
+              },
+              "hashed": false,
+              "content": "// This function is also embedded in the isolated browser decoder worker.\n// Container admission is deliberately separate from actual codec decoding.\nfunction inspectImageBudget(input) {\n  const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);\n  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);\n  const fail = (message) => {\n    throw new Error(message);\n  };\n  const need = (at, size) => {\n    if (at < 0 || size < 0 || at + size > bytes.length)\n      fail(\"Truncated image container\");\n  };\n  const text = (at, size) => {\n    need(at, size);\n    return String.fromCharCode(...bytes.subarray(at, at + size));\n  };\n  const u16 = (at) => {\n    need(at, 2);\n    return view.getUint16(at, true);\n  };\n  const u24 = (at) => {\n    need(at, 3);\n    return bytes[at] + bytes[at + 1] * 256 + bytes[at + 2] * 65536;\n  };\n  const u32 = (at, little = false) => {\n    need(at, 4);\n    return view.getUint32(at, little);\n  };\n  const pixels = (width, height) => {\n    if (!width || !height || width * height > 40_000_000)\n      fail(\"Image dimensions exceed 40 megapixels or are invalid\");\n    return width * height;\n  };\n  if (!bytes.length || bytes.length > 20 * 1024 * 1024)\n    fail(\"Image must be nonempty and at most 20 MiB\");\n  let width = 0,\n    height = 0,\n    frames = 0,\n    format;\n  let extraCanvases = 0;\n  const frame = (w = width, h = height) => {\n    pixels(w, h);\n    frames++;\n    if (frames > 200 || pixels(width, height) * frames > 40_000_000)\n      fail(\"Animation exceeds 200 frames or 40 million decoded canvas pixels\");\n  };\n  if (bytes.length >= 8 && u32(0) === 0x89504e47 && u32(4) === 0x0d0a1a0a) {\n    format = \"png\";\n    let at = 8,\n      ended = false,\n      dataSeen = false,\n      declared = 0;\n    let chunks = 0;\n    while (at < bytes.length) {\n      if (++chunks > 16384) fail(\"PNG exceeds the 16,384 chunk budget\");\n      need(at, 12);\n      const size = u32(at),\n        type = text(at + 4, 4),\n        data = at + 8;\n      need(data, size + 4);\n      if (!width && (type !== \"IHDR\" || size !== 13))\n        fail(\"PNG requires its IHDR first\");\n      // Reject damaged chunks before a tolerant browser codec can conceal them.\n      let crc = 0xffffffff;\n      for (let i = at + 4; i < data + size; i++) {\n        crc ^= bytes[i];\n        for (let bit = 0; bit < 8; bit++)\n          crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);\n      }\n      if ((crc ^ 0xffffffff) >>> 0 !== u32(data + size))\n        fail(\"PNG chunk checksum mismatch\");\n      if (\n        type[0] === type[0].toUpperCase() &&\n        ![\"IHDR\", \"PLTE\", \"IDAT\", \"IEND\"].includes(type)\n      )\n        fail(\"Unsupported PNG critical chunk\");\n      const fixedSizes = { gAMA: 4, cHRM: 32, sRGB: 1 };\n      if (fixedSizes[type] && size !== fixedSizes[type])\n        fail(\"Invalid PNG color metadata\");\n      if (\n        (type === \"PLTE\" && (!size || size > 768 || size % 3)) ||\n        (type === \"tRNS\" && size > 256)\n      )\n        fail(\"Invalid PNG palette metadata\");\n      if (type === \"IHDR\") {\n        if (width || size !== 13) fail(\"Invalid PNG header\");\n        width = u32(data);\n        height = u32(data + 4);\n        pixels(width, height);\n      } else if (type === \"acTL\") {\n        if (size !== 8 || declared || dataSeen)\n          fail(\"Invalid PNG animation control\");\n        declared = u32(data);\n        if (\n          !declared ||\n          declared > 200 ||\n          width * height * declared > 40_000_000\n        )\n          fail(\n            \"Animation exceeds 200 frames or 40 million decoded canvas pixels\",\n          );\n      } else if (type === \"fcTL\") {\n        if (size !== 26 || !declared) fail(\"Invalid PNG animation frame\");\n        const w = u32(data + 4),\n          h = u32(data + 8);\n        if (u32(data + 12) + w > width || u32(data + 16) + h > height)\n          fail(\"PNG frame exceeds canvas\");\n        frame(w, h);\n      } else if (type === \"IDAT\") {\n        if (!dataSeen && declared && !frames) extraCanvases = 1;\n        dataSeen = true;\n      } else if (type === \"IEND\") {\n        if (size !== 0 || !dataSeen || data + 4 !== bytes.length)\n          fail(\"Invalid PNG end\");\n        ended = true;\n      }\n      at = data + size + 4;\n    }\n    if (!ended || (declared && frames !== declared))\n      fail(\"Incomplete PNG image or animation\");\n    if (!frames) frame();\n  } else if (bytes.length >= 13 && [\"GIF87a\", \"GIF89a\"].includes(text(0, 6))) {\n    format = \"gif\";\n    width = u16(6);\n    height = u16(8);\n    pixels(width, height);\n    let at = 13 + (bytes[10] & 128 ? 3 * (1 << ((bytes[10] & 7) + 1)) : 0);\n    need(0, at);\n    const blocks = () => {\n      while (true) {\n        need(at, 1);\n        const size = bytes[at++];\n        if (!size) return;\n        need(at, size);\n        at += size;\n      }\n    };\n    let ended = false;\n    while (at < bytes.length) {\n      const type = bytes[at++];\n      if (type === 0x3b) {\n        ended = at === bytes.length;\n        break;\n      }\n      if (type === 0x21) {\n        need(at, 1);\n        at++;\n        blocks();\n        continue;\n      }\n      if (type !== 0x2c) fail(\"Invalid GIF block\");\n      need(at, 9);\n      const w = u16(at + 4),\n        h = u16(at + 6);\n      if (u16(at) + w > width || u16(at + 2) + h > height)\n        fail(\"GIF frame exceeds canvas\");\n      frame(w, h);\n      const packed = bytes[at + 8];\n      at += 9;\n      if (packed & 128) at += 3 * (1 << ((packed & 7) + 1));\n      need(at, 1);\n      if (bytes[at] < 2 || bytes[at] > 8) fail(\"Invalid GIF code size\");\n      at++;\n      blocks();\n    }\n    if (!ended || !frames) fail(\"Incomplete GIF image\");\n  } else if (\n    bytes.length >= 12 &&\n    text(0, 4) === \"RIFF\" &&\n    text(8, 4) === \"WEBP\"\n  ) {\n    format = \"webp\";\n    if (u32(4, true) + 8 !== bytes.length)\n      fail(\"Invalid WebP container length\");\n    const codedSize = (type, data, size) => {\n      if (type === \"VP8 \") {\n        if (size < 10 || text(data + 3, 3) !== \"\\x9d\\x01\\x2a\")\n          fail(\"Invalid WebP lossy frame\");\n        return [u16(data + 6) & 16383, u16(data + 8) & 16383];\n      }\n      if (type !== \"VP8L\" || size < 5 || bytes[data] !== 47)\n        fail(\"Invalid WebP lossless frame\");\n      const bits = u32(data + 1, true);\n      return [(bits & 16383) + 1, ((bits >>> 14) & 16383) + 1];\n    };\n    let at = 12,\n      animated = false,\n      imageSeen = false;\n    while (at < bytes.length) {\n      need(at, 8);\n      const type = text(at, 4),\n        size = u32(at + 4, true),\n        data = at + 8;\n      need(data, size + (size % 2));\n      if (type === \"VP8X\") {\n        if (at !== 12 || size !== 10) fail(\"Invalid WebP extended header\");\n        width = u24(data + 4) + 1;\n        height = u24(data + 7) + 1;\n        animated = !!(bytes[data] & 2);\n        pixels(width, height);\n      } else if (type === \"ANMF\") {\n        if (!animated || size < 24) fail(\"Invalid WebP animation frame\");\n        const w = u24(data + 6) + 1,\n          h = u24(data + 9) + 1;\n        if (u24(data) * 2 + w > width || u24(data + 3) * 2 + h > height)\n          fail(\"WebP frame exceeds canvas\");\n        frame(w, h);\n        let inner = data + 16,\n          coded = false;\n        while (inner < data + size) {\n          if (inner + 8 > data + size) fail(\"Truncated WebP frame chunk\");\n          const kind = text(inner, 4),\n            length = u32(inner + 4, true);\n          if (inner + 8 + length + (length % 2) > data + size)\n            fail(\"Truncated WebP frame payload\");\n          if (kind === \"VP8 \" || kind === \"VP8L\") {\n            if (coded) fail(\"Duplicate WebP frame payload\");\n            const [cw, ch] = codedSize(kind, inner + 8, length);\n            if (cw !== w || ch !== h)\n              fail(\"WebP coded frame dimensions disagree\");\n            coded = true;\n          } else if (kind !== \"ALPH\" || coded)\n            fail(\"Invalid WebP frame payload\");\n          inner += 8 + length + (length % 2);\n        }\n        if (!coded) fail(\"Missing WebP frame payload\");\n      } else if (type === \"VP8 \" || type === \"VP8L\") {\n        if (imageSeen || animated) fail(\"Unexpected WebP image chunk\");\n        imageSeen = true;\n        const [w, h] = codedSize(type, data, size);\n        if (width && (width !== w || height !== h))\n          fail(\"WebP dimensions disagree\");\n        width = w;\n        height = h;\n        frame();\n      }\n      at = data + size + (size % 2);\n    }\n    if (!frames || (!animated && !imageSeen)) fail(\"Incomplete WebP image\");\n  } else if (bytes.length >= 4 && bytes[0] === 255 && bytes[1] === 216) {\n    format = \"jpeg\";\n    let at = 2,\n      ended = false,\n      scan = false;\n    while (at < bytes.length) {\n      if (bytes[at++] !== 255) {\n        if (scan) continue;\n        fail(\"Invalid JPEG marker\");\n      }\n      while (bytes[at] === 255) at++;\n      need(at, 1);\n      const marker = bytes[at++];\n      if (marker === 0 && scan) continue;\n      if (marker >= 208 && marker <= 215 && scan) continue;\n      if (marker === 217) {\n        ended = at === bytes.length;\n        break;\n      }\n      if (marker === 1) continue;\n      need(at, 2);\n      const size = view.getUint16(at);\n      if (size < 2) fail(\"Invalid JPEG segment\");\n      need(at, size);\n      if ([192, 193, 194].includes(marker)) {\n        if (size < 8 || width) fail(\"Invalid JPEG frame\");\n        height = view.getUint16(at + 3);\n        width = view.getUint16(at + 5);\n        pixels(width, height);\n      }\n      if (marker === 218) scan = true;\n      at += size;\n    }\n    if (!ended || !scan || !width) fail(\"Incomplete or unsupported JPEG image\");\n    frame();\n  } else\n    fail(\"Unsupported or malformed image header; use PNG, JPEG, GIF or WebP\");\n  if (\n    frames + extraCanvases > 200 ||\n    width * height * (frames + extraCanvases) > 40_000_000\n  )\n    fail(\n      \"Animation and fallback exceed 200 frames or 40 million decoded canvas pixels\",\n    );\n  return {\n    format,\n    width,\n    height,\n    frames,\n    extraCanvases,\n    decodedPixels: width * height * (frames + extraCanvases),\n  };\n}\n\nmodule.exports = { inspectImageBudget };\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708332105,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-decode-budget.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 16,
+                "sessionId": "panel-1793708297738-a10c7a",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-decode-budget.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_qlrddqmk654rfmstwg5wpf1x",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-5e5b6f37-3211-4be8-b675-af2c646d55cb",
+            "seq": 8
+          },
+          {
+            "type": "tool_result",
+            "id": "call_s1uvjonwevjf2xr36axr9pdr",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Gcynb6\\a817e753-c55e-443e-a8ca-8ee6e0222496\\workspace\\packages\\cli\\__tests__\\unit\\vscode-ext-image-decode-budget.test.js",
+              "fileVersion": "11843:1793707726376.379:1793707726376.379",
+              "readSpan": {
+                "start": 0,
+                "end": 11843,
+                "total": 11843
+              },
+              "hashed": false,
+              "content": "import { describe, it, expect, vi } from \"vitest\";\nimport fs from \"node:fs/promises\";\nimport os from \"node:os\";\nimport path from \"node:path\";\nimport { inspectImageBudget } from \"../../../vscode-extension/src/chat/image-decode-budget.js\";\nimport {\n  createImagePreviewGate,\n  drawImagePreview,\n  decodeImagePreviewBatch,\n} from \"../../../vscode-extension/src/chat/image-preview-gate.js\";\nimport { readImageSnapshot } from \"../../../vscode-extension/src/chat/image-file-snapshot.js\";\nimport { writeImageTemps } from \"../../../vscode-extension/src/chat/image-attachments.js\";\n\nconst gif = Buffer.from(\n  \"R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7\",\n  \"base64\",\n);\nconst png = Buffer.from(\n  \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGPgKfjwHwAEZAJsF63ZDAAAAABJRU5ErkJggg==\",\n  \"base64\",\n);\nconst animated = (count, canvas = 1) => {\n  const header = Buffer.from(gif.subarray(0, 19));\n  header.writeUInt16LE(canvas, 6);\n  header.writeUInt16LE(canvas, 8);\n  return Buffer.concat([\n    header,\n    ...Array.from({ length: count }, () => gif.subarray(19, -1)),\n    Buffer.from([0x3b]),\n  ]);\n};\n\ndescribe(\"complete-container admission, distinct from codec decoding\", () => {\n  it(\"counts all GIF compositing canvases, including small delta frames\", () => {\n    expect(inspectImageBudget(animated(3, 100))).toMatchObject({\n      frames: 3,\n      decodedPixels: 30000,\n    });\n    expect(() => inspectImageBudget(animated(201))).toThrow(\"200 frames\");\n    expect(() => inspectImageBudget(animated(3, 4000))).toThrow(\n      \"decoded canvas pixels\",\n    );\n  });\n  it(\"rejects damaged/truncated containers that retain valid dimension headers\", () => {\n    const damaged = Buffer.from(png);\n    damaged[45] ^= 1;\n    expect(() => inspectImageBudget(damaged)).toThrow(\"checksum\");\n    for (const file of [gif, png])\n      expect(() => inspectImageBudget(file.subarray(0, -1))).toThrow();\n    const outside = Buffer.from(gif);\n    outside.writeUInt16LE(2, 32);\n    expect(() => inspectImageBudget(outside)).toThrow(\"canvas\");\n  });\n  it(\"retains PNG and GIF acceptance with explicit frame metadata\", () => {\n    for (const file of [png, gif])\n      expect(inspectImageBudget(file)).toMatchObject({\n        width: 1,\n        height: 1,\n        frames: 1,\n        decodedPixels: 1,\n      });\n  });\n});\n\ndescribe(\"cancellable codec worker lifecycle\", () => {\n  it(\"closes transferred bitmaps that arrive after cancellation\", async () => {\n    const worker = { postMessage() {}, terminate() {} };\n    const gate = createImagePreviewGate({ workerFactory: () => worker });\n    const pending = gate.validate([]);\n    const rejected = expect(pending).rejects.toThrow(\"cancelled\");\n    gate.cancel();\n    const bitmap = { close: vi.fn() };\n    worker.onmessage({ data: { results: [{ thumbnails: [{ bitmap }] }] } });\n    await rejected;\n    expect(bitmap.close).toHaveBeenCalledOnce();\n  });\n  it(\"preserves per-frame duration with a minimum and stops playback timers\", async () => {\n    vi.useFakeTimers();\n    try {\n      const context = { clearRect() {}, drawImage: vi.fn() };\n      const stop = drawImagePreview(\n        { getContext: () => context },\n        {\n          repetitions: Infinity,\n          thumbnails: [\n            { bitmap: \"first\", duration: 1 },\n            { bitmap: \"second\", duration: 125 },\n          ],\n        },\n      );\n      expect(context.drawImage).toHaveBeenLastCalledWith(\"first\", 0, 0);\n      await vi.advanceTimersByTimeAsync(19);\n      expect(context.drawImage).toHaveBeenCalledTimes(1);\n      await vi.advanceTimersByTimeAsync(1);\n      expect(context.drawImage).toHaveBeenLastCalledWith(\"second\", 0, 0);\n      await vi.advanceTimersByTimeAsync(124);\n      expect(context.drawImage).toHaveBeenCalledTimes(2);\n      await vi.advanceTimersByTimeAsync(1);\n      expect(context.drawImage).toHaveBeenCalledTimes(3);\n      stop();\n      await vi.advanceTimersByTimeAsync(1000);\n      expect(context.drawImage).toHaveBeenCalledTimes(3);\n    } finally {\n      vi.useRealTimers();\n    }\n  });\n  it(\"rejects codec frame-count or canvas disagreements and closes native resources\", async () => {\n    for (const incorrectFrames of [true, false]) {\n      const close = vi.fn();\n      const frameClose = vi.fn();\n      vi.stubGlobal(\n        \"ImageDecoder\",\n        class {\n          static async isTypeSupported() {\n            return true;\n          }\n          tracks = {\n            ready: Promise.resolve(),\n            selectedTrack: { frameCount: incorrectFrames ? 2 : 1 },\n          };\n          completed = Promise.resolve();\n          async decode() {\n            return {\n              complete: true,\n              image: { displayWidth: 9, displayHeight: 9, close: frameClose },\n            };\n          }\n          close = close;\n        },\n      );\n      vi.stubGlobal(\n        \"OffscreenCanvas\",\n        class {\n          getContext() {\n            return {};\n          }\n        },\n      );\n      try {\n        await expect(\n          decodeImagePreviewBatch([\n            { data: \"data:image/gif;base64,\" + gif.toString(\"base64\") },\n          ]),\n        ).rejects.toThrow(incorrectFrames ? \"frame count\" : \"dimensions\");\n        expect(close).toHaveBeenCalledOnce();\n        if (!incorrectFrames) expect(frameClose).toHaveBeenCalledOnce();\n      } finally {\n        vi.unstubAllGlobals();\n      }\n    }\n  });\n  it(\"terminates a stuck worker on deadline and rejects stale completion\", async () => {\n    vi.useFakeTimers();\n    try {\n      const worker = { postMessage: vi.fn(), terminate: vi.fn() };\n      const gate = createImagePreviewGate({\n        timeoutMs: 25,\n        workerFactory: () => worker,\n      });\n      const result = gate.validate([{ data: \"fixture\" }]);\n      const rejected = expect(result).rejects.toThrow(\"budget\");\n      await vi.advanceTimersByTimeAsync(25);\n      await rejected;\n      worker.onmessage({ data: { results: [\"late\"] } });\n      expect(worker.terminate).toHaveBeenCalledOnce();\n    } finally {\n      vi.useRealTimers();\n    }\n  });\n  it(\"replacing the visible batch kills its decoder and accepts only the new result\", async () => {\n    const workers = [];\n    const gate = createImagePreviewGate({\n      workerFactory: () => {\n        const worker = { postMessage() {}, terminate: vi.fn() };\n        workers.push(worker);\n        return worker;\n      },\n    });\n    const first = gate.validate([{ data: \"first\" }]);\n    const rejected = expect(first).rejects.toThrow(\"cancelled\");\n    const second = gate.validate([{ data: \"second\" }]);\n    workers[0].onmessage({ data: { results: [\"old\"] } });\n    workers[1].onmessage({ data: { results: [\"new\"] } });\n    await rejected;\n    expect(await second).toEqual([\"new\"]);\n    expect(\n      workers.every((worker) => worker.terminate.mock.calls.length === 1),\n    ).toBe(true);\n  });\n});\n\ndescribe(\"single-descriptor image reads\", () => {\n  function fixture({ growth = false, mutation = false, tick = () => {} } = {}) {\n    const before = {\n      isFile: () => true,\n      size: 3,\n      dev: 1,\n      ino: 2,\n      mtimeMs: 1,\n      ctimeMs: 1,\n    };\n    let reads = 0;\n    const handle = {\n      stat: vi.fn(async () =>\n        mutation && reads ? { ...before, mtimeMs: 2 } : before,\n      ),\n      read: vi.fn(async (buffer, offset, length, position) => {\n        reads++;\n        tick();\n        const source = Buffer.from(growth ? \"grow\" : \"abc\");\n        const bytesRead = Math.min(length, 1, source.length - position);\n        if (bytesRead > 0)\n          source.copy(buffer, offset, position, position + bytesRead);\n        return { bytesRead: Math.max(0, bytesRead) };\n      }),\n      close: vi.fn(async () => {}),\n    };\n    return {\n      handle,\n      io: { lstat: vi.fn(async () => before), open: vi.fn(async () => handle) },\n    };\n  }\n  it(\"handles short reads and rejects growth or same-size observed modification\", async () => {\n    const valid = fixture();\n    expect(String(await readImageSnapshot(\"image\", null, valid))).toBe(\"abc\");\n    for (const options of [{ growth: true }, { mutation: true }]) {\n      const test = fixture(options);\n      await expect(readImageSnapshot(\"image\", null, test)).rejects.toThrow(\n        \"changed while reading\",\n      );\n      expect(test.handle.close).toHaveBeenCalledOnce();\n      expect(\n        test.handle.read.mock.calls.every((call) => call[0].length === 4),\n      ).toBe(true);\n    }\n  });\n  it(\"checks cancellation and elapsed budget between chunks and closes the descriptor\", async () => {\n    let now = 0;\n    const timed = fixture({\n      tick: () => {\n        now += 6;\n      },\n    });\n    await expect(\n      readImageSnapshot(\"image\", null, {\n        ...timed,\n        timeoutMs: 5,\n        now: () => now,\n      }),\n    ).rejects.toThrow(\"time budget\");\n    expect(timed.handle.close).toHaveBeenCalledOnce();\n    const controller = new AbortController();\n    const cancelled = fixture({ tick: () => controller.abort() });\n    await expect(\n      readImageSnapshot(\"image\", null, {\n        ...cancelled,\n        signal: controller.signal,\n      }),\n    ).rejects.toThrow(\"cancelled\");\n    expect(cancelled.handle.close).toHaveBeenCalledOnce();\n  });\n  it(\"reads real files and rejects an unexpected saved size\", async () => {\n    const dir = await fs.mkdtemp(path.join(os.tmpdir(), \"image-read-\"));\n    try {\n      const file = path.join(dir, \"one.png\");\n      await fs.writeFile(file, png);\n      expect(await readImageSnapshot(file, png.length)).toEqual(png);\n      await expect(readImageSnapshot(file, png.length + 1)).rejects.toThrow(\n        \"changed\",\n      );\n    } finally {\n      await fs.rm(dir, { recursive: true, force: true });\n    }\n  });\n});\n\nit(\"persists GIF attachments and cleans staging under a path longer than Windows MAX_PATH\", async () => {\n  const root = await fs.mkdtemp(path.join(os.tmpdir(), \"image-long-path-\"));\n  const directory = path.join(\n    root,\n    ...Array(5).fill(\"draft-\" + \"x\".repeat(48)),\n  );\n  expect(directory.length).toBeGreaterThan(260);\n  try {\n    await fs.mkdir(directory, { recursive: true });\n    const [file] = await writeImageTemps(\n      [{ data: \"data:image/gif;base64,\" + gif.toString(\"base64\") }],\n      { directory },\n    );\n    expect(path.dirname(file)).toBe(directory);\n    expect(file.startsWith(\"\\\\\\\\?\\\\\")).toBe(false);\n    expect(await readImageSnapshot(file, gif.length)).toEqual(gif);\n    expect(await fs.readdir(directory)).toEqual([path.basename(file)]);\n    await expect(\n      writeImageTemps(\n        [{ data: \"data:image/gif;base64,\" + gif.toString(\"base64\") }],\n        { directory, timeoutMs: 0 },\n      ),\n    ).rejects.toThrow(\"budget\");\n    expect(await fs.readdir(directory)).toEqual([path.basename(file)]);\n  } finally {\n    // root is the exact directory created by this test under os.tmpdir().\n    await fs.rm(root, { recursive: true, force: true });\n  }\n});\n\nit(\"cleans private worker staging after timeout/cancel and promotes accepted bytes exclusively\", async () => {\n  const directory = await fs.mkdtemp(path.join(os.tmpdir(), \"image-worker-\"));\n  const images = [{ data: \"data:image/png;base64,\" + png.toString(\"base64\") }];\n  try {\n    await expect(\n      writeImageTemps(images, { directory, timeoutMs: 0 }),\n    ).rejects.toThrow(\"budget\");\n    expect(await fs.readdir(directory)).toEqual([]);\n    const controller = new AbortController();\n    const pending = writeImageTemps(images, {\n      directory,\n      signal: controller.signal,\n    });\n    controller.abort();\n    await expect(pending).rejects.toThrow(\"cancelled\");\n    expect(await fs.readdir(directory)).toEqual([]);\n    const [file] = await writeImageTemps(images, { directory });\n    expect(await fs.readFile(file)).toEqual(png);\n    expect(await fs.readdir(directory)).toEqual([path.basename(file)]);\n  } finally {\n    await fs.rm(directory, { recursive: true, force: true });\n  }\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708332105,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-image-decode-budget.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 4,
+                "sessionId": "panel-1793708297738-a10c7a",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-image-decode-budget.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_s1uvjonwevjf2xr36axr9pdr",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-5e5b6f37-3211-4be8-b675-af2c646d55cb",
+            "seq": 9
+          },
+          {
+            "type": "tool_result",
+            "id": "call_3i8pnfiwa4ap2skmpnbmgw9j",
+            "tool": "list_dir",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "entries": [
+                {
+                  "name": "verify-30.test.js",
+                  "type": "file"
+                }
+              ],
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708402570,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 0,
+                "sessionId": "panel-1793708297738-a10c7a",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "list_dir",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_3i8pnfiwa4ap2skmpnbmgw9j",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-5e5b6f37-3211-4be8-b675-af2c646d55cb",
+            "seq": 13
+          },
+          {
+            "type": "tool_result",
+            "id": "call_7xkzcz5eclpin1wh7zha9ia0",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Gcynb6\\a817e753-c55e-443e-a8ca-8ee6e0222496\\workspace\\packages\\vscode-extension\\__tests__\\verify-30.test.js",
+              "fileVersion": "27:1793707731160.3826:1793707731160.3826",
+              "readSpan": {
+                "start": 0,
+                "end": 27,
+                "total": 27
+              },
+              "hashed": false,
+              "content": "// Non-answer placeholder.\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708408110,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-30.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-1793708297738-a10c7a",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-30.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_7xkzcz5eclpin1wh7zha9ia0",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-5e5b6f37-3211-4be8-b675-af2c646d55cb",
+            "seq": 17
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2735,
+              "output_tokens": 108,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-5e5b6f37-3211-4be8-b675-af2c646d55cb",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 11195,
+              "output_tokens": 7161,
+              "cache_read_input_tokens": 4352,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-5e5b6f37-3211-4be8-b675-af2c646d55cb",
+            "seq": 11
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 10414,
+              "output_tokens": 78,
+              "cache_read_input_tokens": 12544,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-5e5b6f37-3211-4be8-b675-af2c646d55cb",
+            "seq": 15
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 24344,
+          "output_tokens": 7347,
+          "cache_read_input_tokens": 18944
+        },
+        "usageComplete": false,
+        "failureCategory": "agent-error",
+        "modelUsageRecordCount": 3,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "error",
+          "is_error": true,
+          "error": "volcengine API error: HTTP 403 — DIAGNOSTIC_REQUEST_NOT_DISPATCHED.",
+          "turn": 1,
+          "trace_id": "tr-5e5b6f37-3211-4be8-b675-af2c646d55cb",
+          "seq": 20
+        },
+        "scopePathComparison": "windows-case-insensitive; raw stream retained"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 4,
+        "usageCompleteRequests": 3,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED"
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 4,
+        "usageCompleteRequests": 3,
+        "tasks": [
+          {
+            "taskId": "verify-30",
+            "requests": 4,
+            "errorCode": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED"
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": null,
+        "knownTokenOnlyEstimateCny": 0.1410494,
+        "fxRate": null
+      },
+      "changedPaths": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml"
+      ],
+      "finishedAt": "2026-11-03T12:20:46.328Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-30"
+  ],
+  "generationPassed": false,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 40 model turns, 48 requests, 180 second request timeout, model maximum 393216 output tokens (8192 test cap removed), 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:082bc5a98c8a209b214f2aa1fa66bf07976cd719f0d3d33b17f8b215f21799c0",
+  "group": "win32-jetbrains",
+  "entry": "jetbrains",
+  "platform": "win32",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:3ca5c1bfa5bffdee860665eeb757c24004dfaf0f3075f2a63e1a2600b3f6d600"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:7bf33df63888e550ac1ebd6a469d99e56ea1bb54f1d094b359b0c7fa1da1ffa6"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:be2edf8e1ced537796d5819e458e4b56f2c1638eab8880b09c2c7fea4a4245fd"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+      "digest": "sha256:82becb2b0b551916e312131bcca48736d9e3f462aed4ea2a89ec00f907457eed"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
+      "digest": "sha256:d2cbc2dee63e7f53c622d61ad314143d6bd4d59a679d9aea29579cb034a829fb"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-public140-full.mjs",
+      "digest": "sha256:f7c7f0dbe8cb572e4832b41f53aa89139e5ab398d7bdb603b7beb9942a9312f9"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:3e515efc1cff606e2cbbfa977b5674abe6a73c142caa1b0539c0a2698978f8e4"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-plugin-artifact.mjs",
+      "digest": "sha256:ce04147c3e2f97c7d44d37052f5e8329595efe9bbcb852b51952535ba96357bc"
+    },
+    {
+      "file": "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.mjs",
+      "digest": "sha256:b8fc449018df5d188d9aada8469e023bd220ece659620b2323cf796e9d08fdcb"
+    },
+    {
+      "file": "packages/jetbrains-plugin/build.gradle.kts",
+      "digest": "sha256:17510157d489a11ed93bde3b2cb06cf3f939edac6ffd8b26735c047f44e3aba7"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "digest": "sha256:29655e9a949948528018ad85baf368e5240445216caa747719c95d6c83903e0b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/UiFailureDiagnostics.java",
+      "digest": "sha256:5802b749fd82048d196e90ce5f0f2f4e4c7cfc527590f07b62ccafb73d4c6a20"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "digest": "sha256:44cb87d4c64437b64204a4bca9d7faaec68a6cbbff8b7303c491e17e7597337b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "digest": "sha256:b2a5f856e6607ec559b1c7d17be14a110cccd6bcaea323cbab5ae1458109ee5b"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T12:08:53.708Z",
+    "finishedAt": "2026-11-03T12:12:44.270Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "verify-30",
+    "locked": {
+      "version": "0.166.140",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+      "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T12:20:46.330Z"
+}

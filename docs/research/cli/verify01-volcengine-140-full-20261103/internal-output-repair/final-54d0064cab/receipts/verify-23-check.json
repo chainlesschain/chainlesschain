@@ -1,0 +1,165 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-23",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 30,
+      "passed": 30,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "remove-missing-samples-from-denominator",
+      "sourceSha256": "6f041e6b788021b60fa38e8d460bc32d9b4db80a710695f0e8e08ecccf639c3e",
+      "total": 4,
+      "passed": 3,
+      "failed": 1
+    },
+    {
+      "name": "unknown-cost-becomes-zero",
+      "sourceSha256": "a7353b3a3c1a92a9cc4ece217e1b9413f6b1768bf41849591a89e5b4d7028d2b",
+      "total": 4,
+      "passed": 2,
+      "failed": 2
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 151,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 964,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":30,\"numPassedTests\":30,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793724643492,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline reuses Eval evidence and records a baseline without issuing an improvement PASS\",\"status\":\"passed\",\"title\":\"reuses Eval evidence and records a baseline without issuing an improvement PASS\",\"duration\":6.535145,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline retains missing planned samples and does not turn unknown costs into zero\",\"status\":\"passed\",\"title\":\"retains missing planned samples and does not turn unknown costs into zero\",\"duration\":1.697291000000007,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline counts an execution failure despite a correct artifact and preserves its expense\",\"status\":\"passed\",\"title\":\"counts an execution failure despite a correct artifact and preserves its expense\",\"duration\":1.2192499999999882,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline cannot count dryRun evidence as success\",\"status\":\"passed\",\"title\":\"cannot count dryRun evidence as success\",\"duration\":0.9916100000000085,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline cannot count label evidence as success\",\"status\":\"passed\",\"title\":\"cannot count label evidence as success\",\"duration\":0.8360660000000166,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline cannot count comparison evidence as success\",\"status\":\"passed\",\"title\":\"cannot count comparison evidence as success\",\"duration\":0.6241569999999967,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline cannot count terminal evidence as success\",\"status\":\"passed\",\"title\":\"cannot count terminal evidence as success\",\"duration\":0.5582930000000204,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline cannot count fallback evidence as success\",\"status\":\"passed\",\"title\":\"cannot count fallback evidence as success\",\"duration\":0.5120060000000137,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline cannot count deleted-task evidence as success\",\"status\":\"passed\",\"title\":\"cannot count deleted-task evidence as success\",\"duration\":0.8993260000000021,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline cannot count tampered-pass evidence as success\",\"status\":\"passed\",\"title\":\"cannot count tampered-pass evidence as success\",\"duration\":0.6374320000000182,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline keeps retry expenses within one sample and rejects manual repair as initial success\",\"status\":\"passed\",\"title\":\"keeps retry expenses within one sample and rejects manual repair as initial success\",\"duration\":0.5946509999999989,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline enforces the frozen budget {\\\"cost\\\":2}\",\"status\":\"passed\",\"title\":\"enforces the frozen budget {\\\"cost\\\":2}\",\"duration\":1.08227100000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline enforces the frozen budget {\\\"elapsedMs\\\":1001}\",\"status\":\"passed\",\"title\":\"enforces the frozen budget {\\\"elapsedMs\\\":1001}\",\"duration\":0.43060199999999327,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline does not count READY without the full first-run journey\",\"status\":\"passed\",\"title\":\"does not count READY without the full first-run journey\",\"duration\":0.6494649999999922,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline accepts documented installation failure as a failed observation even before any Eval run\",\"status\":\"passed\",\"title\":\"accepts documented installation failure as a failed observation even before any Eval run\",\"duration\":0.43573200000000156,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline rejects out-of-order first-run stage evidence\",\"status\":\"passed\",\"title\":\"rejects out-of-order first-run stage evidence\",\"duration\":0.7802509999999927,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline rejects evidence reuse and extra observations instead of increasing the denominator\",\"status\":\"passed\",\"title\":\"rejects evidence reuse and extra observations instead of increasing the denominator\",\"duration\":1.1098829999999964,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline rejects duplicate plan samples\",\"status\":\"passed\",\"title\":\"rejects duplicate plan samples\",\"duration\":0.30609699999999407,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline detects a changed frozen plan\",\"status\":\"passed\",\"title\":\"detects a changed frozen plan\",\"duration\":0.3663709999999867,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline does not report missing maintenance as free: null\",\"status\":\"passed\",\"title\":\"does not report missing maintenance as free: null\",\"duration\":0.37950600000002055,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline does not report missing maintenance as free: {\\\"complete\\\":false,\\\"entries\\\":[]}\",\"status\":\"passed\",\"title\":\"does not report missing maintenance as free: {\\\"complete\\\":false,\\\"entries\\\":[]}\",\"duration\":0.3268770000000245,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline does not report missing maintenance as free: {\\\"complete\\\":true,\\\"window\\\":{\\\"start\\\":\\\"other\\\"},\\\"entries\\\":[]}\",\"status\":\"passed\",\"title\":\"does not report missing maintenance as free: {\\\"complete\\\":true,\\\"window\\\":{\\\"start\\\":\\\"other\\\"},\\\"entries\\\":[]}\",\"duration\":0.3594879999999989,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline retains history parse failures\",\"status\":\"passed\",\"title\":\"retains history parse failures\",\"duration\":0.41255799999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline rejects observations outside the window even when no model task started\",\"status\":\"passed\",\"title\":\"rejects observations outside the window even when no model task started\",\"duration\":0.504712000000012,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline rejects invalid observed costs NaN\",\"status\":\"passed\",\"title\":\"rejects invalid observed costs NaN\",\"duration\":0.6516090000000077,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline rejects invalid observed costs -1\",\"status\":\"passed\",\"title\":\"rejects invalid observed costs -1\",\"duration\":0.7022839999999917,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline rejects invalid observed costs Infinity\",\"status\":\"passed\",\"title\":\"rejects invalid observed costs Infinity\",\"duration\":0.7403159999999787,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline rejects invalid observed costs 0\",\"status\":\"passed\",\"title\":\"rejects invalid observed costs 0\",\"duration\":2.3230100000000107,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline keeps per-task repeated samples and strata visible\",\"status\":\"passed\",\"title\":\"keeps per-task repeated samples and strata visible\",\"duration\":0.5013450000000148,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"task outcome baseline\"],\"fullName\":\"task outcome baseline runs the offline CLI with distinct complete, incomplete, and invalid exits\",\"status\":\"passed\",\"title\":\"runs the offline CLI with distinct complete, incomplete, and invalid exits\",\"duration\":170.94711,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793724643773,\"endTime\":1793724643972.947,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/task-outcome-report.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 750,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":4,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793724644435,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-23 missing-sample fixed denominator and unknown cost\"],\"fullName\":\"verify-23 missing-sample fixed denominator and unknown cost keeps the full planned denominator when every sample is observed\",\"status\":\"passed\",\"title\":\"keeps the full planned denominator when every sample is observed\",\"duration\":6.355034999999987,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-23 missing-sample fixed denominator and unknown cost\"],\"fullName\":\"verify-23 missing-sample fixed denominator and unknown cost does not shrink the denominator when one planned sample is missing\",\"status\":\"passed\",\"title\":\"does not shrink the denominator when one planned sample is missing\",\"duration\":1.5466770000000167,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-23 missing-sample fixed denominator and unknown cost\"],\"fullName\":\"verify-23 missing-sample fixed denominator and unknown cost keeps an unknown cost null instead of counting it as zero\",\"status\":\"passed\",\"title\":\"keeps an unknown cost null instead of counting it as zero\",\"duration\":2.133203000000009,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-23 missing-sample fixed denominator and unknown cost\"],\"fullName\":\"verify-23 missing-sample fixed denominator and unknown cost counts a genuinely zero cost but not an unknown one\",\"status\":\"passed\",\"title\":\"counts a genuinely zero cost but not an unknown one\",\"duration\":1.0615530000000035,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793724644703,\"endTime\":1793724644714.0615,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-23.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/eval/outcomes.js"
+      ],
+      "setup": false,
+      "ms": 168,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 746,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":3,\"numFailedTests\":1,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793724645352,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-23 missing-sample fixed denominator and unknown cost\"],\"fullName\":\"verify-23 missing-sample fixed denominator and unknown cost keeps the full planned denominator when every sample is observed\",\"status\":\"passed\",\"title\":\"keeps the full planned denominator when every sample is observed\",\"duration\":6.399488999999988,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-23 missing-sample fixed denominator and unknown cost\"],\"fullName\":\"verify-23 missing-sample fixed denominator and unknown cost does not shrink the denominator when one planned sample is missing\",\"status\":\"failed\",\"title\":\"does not shrink the denominator when one planned sample is missing\",\"duration\":10.801981999999981,\"failureMessages\":[\"AssertionError: expected { planned: 1, observed: 1, …(8) } to match object { planned: 2, observed: 1, …(3) }\\n(5 matching properties omitted from actual)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1283:10)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/cli/__tests__/verify-23.test.js:162:25\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-23 missing-sample fixed denominator and unknown cost\"],\"fullName\":\"verify-23 missing-sample fixed denominator and unknown cost keeps an unknown cost null instead of counting it as zero\",\"status\":\"passed\",\"title\":\"keeps an unknown cost null instead of counting it as zero\",\"duration\":2.2414970000000096,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-23 missing-sample fixed denominator and unknown cost\"],\"fullName\":\"verify-23 missing-sample fixed denominator and unknown cost counts a genuinely zero cost but not an unknown one\",\"status\":\"passed\",\"title\":\"counts a genuinely zero cost but not an unknown one\",\"duration\":1.260266999999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793724645616,\"endTime\":1793724645637.2603,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-23.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/eval/outcomes.js"
+      ],
+      "setup": false,
+      "ms": 165,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 751,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":2,\"numFailedTests\":2,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793724646263,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-23 missing-sample fixed denominator and unknown cost\"],\"fullName\":\"verify-23 missing-sample fixed denominator and unknown cost keeps the full planned denominator when every sample is observed\",\"status\":\"passed\",\"title\":\"keeps the full planned denominator when every sample is observed\",\"duration\":6.389739999999989,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-23 missing-sample fixed denominator and unknown cost\"],\"fullName\":\"verify-23 missing-sample fixed denominator and unknown cost does not shrink the denominator when one planned sample is missing\",\"status\":\"failed\",\"title\":\"does not shrink the denominator when one planned sample is missing\",\"duration\":11.141321999999974,\"failureMessages\":[\"AssertionError: expected { sampleId: 'task-b', …(12) } to match object { observed: false, cost: null }\\n(11 matching properties omitted from actual)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1283:10)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/cli/__tests__/verify-23.test.js:172:28\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-23 missing-sample fixed denominator and unknown cost\"],\"fullName\":\"verify-23 missing-sample fixed denominator and unknown cost keeps an unknown cost null instead of counting it as zero\",\"status\":\"failed\",\"title\":\"keeps an unknown cost null instead of counting it as zero\",\"duration\":2.5096729999999923,\"failureMessages\":[\"AssertionError: expected { sampleId: 'task-b', …(12) } to match object { observed: true, cost: null }\\n(11 matching properties omitted from actual)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1283:10)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/cli/__tests__/verify-23.test.js:183:28\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-23 missing-sample fixed denominator and unknown cost\"],\"fullName\":\"verify-23 missing-sample fixed denominator and unknown cost counts a genuinely zero cost but not an unknown one\",\"status\":\"passed\",\"title\":\"counts a genuinely zero cost but not an unknown one\",\"duration\":1.1936509999999885,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793724646535,\"endTime\":1793724646556.1936,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-23.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

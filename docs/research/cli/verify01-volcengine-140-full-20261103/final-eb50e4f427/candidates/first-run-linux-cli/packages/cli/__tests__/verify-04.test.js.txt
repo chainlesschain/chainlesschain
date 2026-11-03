@@ -1,0 +1,111 @@
+// Request-level caching and tiered pricing regression coverage.
+//
+// Acceptance: fees for the same total token count must be computed per the
+// per-request contract when the distribution of cache / long-context across
+// requests differs. mergeUsagePricingBucket keeps per-request long/short
+// thresholds in separate buckets; estimateCost prices each bucket with that
+// bucket's own requestInputTokens and service tier.
+import { describe, it, expect } from "vitest";
+import { mergeUsagePricingBucket } from "../src/lib/usage-pricing-context.js";
+import { estimateCost } from "../src/lib/llm-pricing.js";
+
+// openai gpt-6-sol -> { in: 2, out: 10 } with GPT6_PRICING_TERMS:
+// longContext.threshold=272000 (input x2 / output x1.5), cacheRead x0.1,
+// serviceMultipliers.batch=0.5.
+const MODEL = "gpt-6-sol";
+const PROVIDER = "openai";
+
+// Merge one request's usage into a fresh entry and return the produced bucket.
+const mergeOne = (usage) => {
+  const entry = { provider: PROVIDER, model: MODEL };
+  mergeUsagePricingBucket(entry, usage);
+  return entry;
+};
+
+// Price every bucket of an entry and sum totalCost across buckets.
+const price = (entry) =>
+  entry.pricingBuckets.reduce(
+    (sum, bucket) =>
+      sum + estimateCost({ provider: entry.provider, model: entry.model, ...bucket }).totalCost,
+    0,
+  );
+
+describe("verify-04 request-level caching and tiered pricing", () => {
+  it("prices a long-context request at x2 and a short request at x1 within one entry", () => {
+    const entry = { provider: PROVIDER, model: MODEL };
+    mergeUsagePricingBucket(entry, {
+      inputTokens: 300000, // prompt > 272000 -> long bucket
+      outputTokens: 1000,
+    });
+    mergeUsagePricingBucket(entry, {
+      inputTokens: 1000, // short bucket
+      outputTokens: 1000,
+    });
+    expect(entry.pricingBuckets).toHaveLength(2);
+    const long = entry.pricingBuckets.find((b) => b.requestInputTokens === 300000);
+    const short = entry.pricingBuckets.find((b) => b.requestInputTokens === 1000);
+    // Long request: input 300000/1e6*2*2 + output 1000/1e6*10*1.5 = 1.2 + 0.015.
+    expect(estimateCost({ provider: PROVIDER, model: MODEL, ...long }).totalCost).toBeCloseTo(1.215, 6);
+    // Short request: input 1000/1e6*2 + output 1000/1e6*10 = 0.012.
+    expect(estimateCost({ provider: PROVIDER, model: MODEL, ...short }).totalCost).toBeCloseTo(0.012, 6);
+    expect(price(entry)).toBeCloseTo(1.227, 6);
+  });
+
+  it("does not apply the long multiplier to the same total spread across short requests", () => {
+    // Same total input (301000) and output (2000) as above, but both requests
+    // stay under the per-request threshold: no long multiplier may apply.
+    const entry = { provider: PROVIDER, model: MODEL };
+    mergeUsagePricingBucket(entry, { inputTokens: 150500, outputTokens: 1000 });
+    mergeUsagePricingBucket(entry, { inputTokens: 150500, outputTokens: 1000 });
+    expect(entry.pricingBuckets).toHaveLength(1);
+    expect(price(entry)).toBeCloseTo(0.622, 6); // 301000/1e6*2 + 2000/1e6*10
+    // This must differ from the long/short distribution with identical totals.
+    const longShort = { provider: PROVIDER, model: MODEL };
+    mergeUsagePricingBucket(longShort, { inputTokens: 300000, outputTokens: 1000 });
+    mergeUsagePricingBucket(longShort, { inputTokens: 1000, outputTokens: 1000 });
+    expect(price(longShort)).toBeCloseTo(1.227, 6);
+    expect(price(longShort)).toBeGreaterThan(price(entry) * 1.9);
+  });
+
+  it("prices cache-read tokens at the x0.1 multiplier, not as fresh input", () => {
+    // Same 201000 prompt tokens per request: fresh input vs cache read.
+    const cached = mergeOne({ inputTokens: 1000, cacheReadTokens: 200000, outputTokens: 1000 });
+    const fresh = mergeOne({ inputTokens: 201000, outputTokens: 1000 });
+    // cached: 1000/1e6*2 + 200000/1e6*2*0.1 + 1000/1e6*10 = 0.052
+    expect(price(cached)).toBeCloseTo(0.052, 6);
+    // fresh: 201000/1e6*2 + 1000/1e6*10 = 0.412
+    expect(price(fresh)).toBeCloseTo(0.412, 6);
+    expect(price(cached)).toBeLessThan(price(fresh) / 7);
+  });
+
+  it("counts cache tokens toward the per-request long-context threshold", () => {
+    // 50000 fresh input; cache read just below vs just above the 272000 mark.
+    const below = mergeOne({ inputTokens: 50000, cacheReadTokens: 222000, outputTokens: 1000 });
+    const above = mergeOne({ inputTokens: 50000, cacheReadTokens: 222001, outputTokens: 1000 });
+    // 272000 -> short: 50000/1e6*2 + 222000/1e6*2*0.1 + 1000/1e6*10 = 0.1544
+    expect(price(below)).toBeCloseTo(0.1544, 6);
+    // 272001 -> long (x2 input, x1.5 output): 50000/1e6*2*2 + 222001/1e6*2*0.1*2 + 1000/1e6*10*1.5
+    expect(price(above)).toBeCloseTo(0.2 + (222001 / 1e6) * 2 * 0.1 * 2 + 0.015, 6);
+    expect(price(above)).toBeGreaterThan(price(below));
+  });
+
+  it("applies the long-context tier only above the exact threshold", () => {
+    const at = mergeOne({ inputTokens: 272000, outputTokens: 1000 });
+    const over = mergeOne({ inputTokens: 272001, outputTokens: 1000 });
+    // Accepted boundary (not > threshold): x1 input, x1 output.
+    expect(price(at)).toBeCloseTo(272000 / 1e6 * 2 + 1000 / 1e6 * 10, 6);
+    // First rejected value (> threshold): x2 input, x1.5 output.
+    expect(price(over)).toBeCloseTo(272001 / 1e6 * 2 * 2 + 1000 / 1e6 * 10 * 1.5, 6);
+  });
+
+  it("applies the per-request service tier multiplier to each bucket", () => {
+    const batch = mergeOne({
+      inputTokens: 1000,
+      outputTokens: 1000,
+      serviceTier: "batch",
+    });
+    const standard = mergeOne({ inputTokens: 1000, outputTokens: 1000 });
+    expect(price(batch)).toBeCloseTo(0.5 * price(standard), 6); // batch x0.5
+    expect(price(standard)).toBeCloseTo(0.012, 6);
+  });
+});

@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-24",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 22,
+      "passed": 22,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "compare-different-runtime-identities",
+      "sourceSha256": "8b289918121a57dc4d30c53fe4315e3103f178d7c169c493be8b6374a226941e",
+      "total": 6,
+      "passed": 2,
+      "failed": 4
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 112,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 560,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":3,\"numPassedTestSuites\":3,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":22,\"numPassedTests\":22,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793720828150,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison accepts only a complete pair and explicitly limits the authority claim\",\"status\":\"passed\",\"title\":\"accepts only a complete pair and explicitly limits the authority claim\",\"duration\":3.7314239999999756,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison rejects missing baselines without changing diagnostic n/a\",\"status\":\"passed\",\"title\":\"rejects missing baselines without changing diagnostic n/a\",\"duration\":0.5514269999999897,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison rejects missing baselines without changing diagnostic n/a\",\"status\":\"passed\",\"title\":\"rejects missing baselines without changing diagnostic n/a\",\"duration\":0.45175200000002746,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison rejects deleted or added tasks even if the aggregate stays at 100 percent\",\"status\":\"passed\",\"title\":\"rejects deleted or added tasks even if the aggregate stays at 100 percent\",\"duration\":1.7464620000000082,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison rejects changed provider\",\"status\":\"passed\",\"title\":\"rejects changed provider\",\"duration\":0.5776830000000075,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison rejects changed model\",\"status\":\"passed\",\"title\":\"rejects changed model\",\"duration\":0.5980899999999849,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison rejects changed corpusDigest\",\"status\":\"passed\",\"title\":\"rejects changed corpusDigest\",\"duration\":0.46715699999998606,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison rejects changed runtime\",\"status\":\"passed\",\"title\":\"rejects changed runtime\",\"duration\":0.576139000000012,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison rejects changed declared\",\"status\":\"passed\",\"title\":\"rejects changed declared\",\"duration\":0.6553659999999866,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison never substitutes older passing rows for the latest dry run\",\"status\":\"passed\",\"title\":\"never substitutes older passing rows for the latest dry run\",\"duration\":0.45390199999999936,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison rejects legacy, duplicate, stale and future evidence\",\"status\":\"passed\",\"title\":\"rejects legacy, duplicate, stale and future evidence\",\"duration\":0.8678390000000036,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison rejects forged totals and duplicate task identities\",\"status\":\"passed\",\"title\":\"rejects forged totals and duplicate task identities\",\"duration\":1.3259290000000021,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison fails on artifact regressions and rejects failed execution evidence\",\"status\":\"passed\",\"title\":\"fails on artifact regressions and rejects failed execution evidence\",\"duration\":0.5209079999999915,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison requires a verified terminal even when a caller claims ok\",\"status\":\"passed\",\"title\":\"requires a verified terminal even when a caller claims ok\",\"duration\":0.22121400000000335,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison does not compare a fallback run as the originally declared model\",\"status\":\"passed\",\"title\":\"does not compare a fallback run as the originally declared model\",\"duration\":0.17521600000000603,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison rejects corrupted JSONL instead of comparing only its remaining valid lines\",\"status\":\"passed\",\"title\":\"rejects corrupted JSONL instead of comparing only its remaining valid lines\",\"duration\":0.878454000000005,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison rejects invalid age NaN\",\"status\":\"passed\",\"title\":\"rejects invalid age NaN\",\"duration\":0.23503800000000297,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison rejects invalid age 0\",\"status\":\"passed\",\"title\":\"rejects invalid age 0\",\"duration\":0.18674500000000194,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison rejects invalid age -1\",\"status\":\"passed\",\"title\":\"rejects invalid age -1\",\"duration\":0.14201099999999656,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict local Eval comparison\"],\"fullName\":\"strict local Eval comparison retains execution/artifact failures in history\",\"status\":\"passed\",\"title\":\"retains execution/artifact failures in history\",\"duration\":0.3639209999999764,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Eval comparison metadata\"],\"fullName\":\"Eval comparison metadata does not invent a fingerprint for undeclared environment or implicit model selection\",\"status\":\"passed\",\"title\":\"does not invent a fingerprint for undeclared environment or implicit model selection\",\"duration\":0.6217760000000112,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Eval comparison metadata\"],\"fullName\":\"Eval comparison metadata rejects missing digests and unknown context fields\",\"status\":\"passed\",\"title\":\"rejects missing digests and unknown context fields\",\"duration\":0.17680100000001175,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793720828346,\"endTime\":1793720828362.6218,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/eval-evidence.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 569,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793720828718,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-24: strict comparison identity isolation\"],\"fullName\":\"verify-24: strict comparison identity isolation accepts an improvement only when model/permission/runtime identity is unchanged\",\"status\":\"passed\",\"title\":\"accepts an improvement only when model/permission/runtime identity is unchanged\",\"duration\":3.2450439999999787,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-24: strict comparison identity isolation\"],\"fullName\":\"verify-24: strict comparison identity isolation does not count a same-task run as comparable when model identity differs\",\"status\":\"passed\",\"title\":\"does not count a same-task run as comparable when model identity differs\",\"duration\":1.0860070000000235,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-24: strict comparison identity isolation\"],\"fullName\":\"verify-24: strict comparison identity isolation does not count a same-task run as comparable when provider identity differs\",\"status\":\"passed\",\"title\":\"does not count a same-task run as comparable when provider identity differs\",\"duration\":0.553701999999987,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-24: strict comparison identity isolation\"],\"fullName\":\"verify-24: strict comparison identity isolation does not count a same-task run as comparable when permission digest identity differs\",\"status\":\"passed\",\"title\":\"does not count a same-task run as comparable when permission digest identity differs\",\"duration\":0.4731840000000034,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-24: strict comparison identity isolation\"],\"fullName\":\"verify-24: strict comparison identity isolation does not count a same-task run as comparable when runtime identity differs\",\"status\":\"passed\",\"title\":\"does not count a same-task run as comparable when runtime identity differs\",\"duration\":0.46281700000000114,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-24: strict comparison identity isolation\"],\"fullName\":\"verify-24: strict comparison identity isolation still requires an identical task population even when identity matches\",\"status\":\"passed\",\"title\":\"still requires an identical task population even when identity matches\",\"duration\":0.43402000000000385,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793720828916,\"endTime\":1793720828922.463,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-24.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/eval/evidence.js"
+      ],
+      "setup": false,
+      "ms": 128,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 578,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":2,\"numFailedTests\":4,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793720829422,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-24: strict comparison identity isolation\"],\"fullName\":\"verify-24: strict comparison identity isolation accepts an improvement only when model/permission/runtime identity is unchanged\",\"status\":\"passed\",\"title\":\"accepts an improvement only when model/permission/runtime identity is unchanged\",\"duration\":3.316541000000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-24: strict comparison identity isolation\"],\"fullName\":\"verify-24: strict comparison identity isolation does not count a same-task run as comparable when model identity differs\",\"status\":\"failed\",\"title\":\"does not count a same-task run as comparable when model identity differs\",\"duration\":5.6157929999999965,\"failureMessages\":[\"AssertionError: expected true to be false // Object.is equality\\n    at /workspace/packages/cli/__tests__/verify-24.test.js:110:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-24: strict comparison identity isolation\"],\"fullName\":\"verify-24: strict comparison identity isolation does not count a same-task run as comparable when provider identity differs\",\"status\":\"failed\",\"title\":\"does not count a same-task run as comparable when provider identity differs\",\"duration\":1.044748999999996,\"failureMessages\":[\"AssertionError: expected true to be false // Object.is equality\\n    at /workspace/packages/cli/__tests__/verify-24.test.js:110:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-24: strict comparison identity isolation\"],\"fullName\":\"verify-24: strict comparison identity isolation does not count a same-task run as comparable when permission digest identity differs\",\"status\":\"failed\",\"title\":\"does not count a same-task run as comparable when permission digest identity differs\",\"duration\":1.0157949999999971,\"failureMessages\":[\"AssertionError: expected true to be false // Object.is equality\\n    at /workspace/packages/cli/__tests__/verify-24.test.js:110:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-24: strict comparison identity isolation\"],\"fullName\":\"verify-24: strict comparison identity isolation does not count a same-task run as comparable when runtime identity differs\",\"status\":\"failed\",\"title\":\"does not count a same-task run as comparable when runtime identity differs\",\"duration\":0.8056119999999964,\"failureMessages\":[\"AssertionError: expected true to be false // Object.is equality\\n    at /workspace/packages/cli/__tests__/verify-24.test.js:110:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-24: strict comparison identity isolation\"],\"fullName\":\"verify-24: strict comparison identity isolation still requires an identical task population even when identity matches\",\"status\":\"passed\",\"title\":\"still requires an identical task population even when identity matches\",\"duration\":0.7931749999999909,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793720829621,\"endTime\":1793720829632.8057,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-24.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

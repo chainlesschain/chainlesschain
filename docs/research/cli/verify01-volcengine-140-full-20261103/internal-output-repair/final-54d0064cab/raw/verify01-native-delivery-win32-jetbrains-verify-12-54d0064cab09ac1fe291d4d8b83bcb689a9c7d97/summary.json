@@ -1,0 +1,1271 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000,
+    "connectionAttemptTimeoutMs": 10000,
+    "parallelToolCalls": null,
+    "preserveExplicitOutputLimits": true
+  },
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:cea1a2ff4e14a002be1700446ebe97bc7640a79ad6d778839f71bb938a2d25af",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+  "actualPlatform": "win32",
+  "actualArch": "x64",
+  "actualEntry": "jetbrains",
+  "changeReview": {
+    "requested": true,
+    "observed": true
+  },
+  "startedAt": "2026-11-03T13:18:46.195Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-12",
+      "taskId": "verify-12",
+      "kind": "task",
+      "runId": "a7aecb4c-c8e7-4cd2-94bc-4b29dc7ba283",
+      "stratum": "win32-jetbrains-volcengine",
+      "declaredActualEntry": {
+        "platform": "win32",
+        "entry": "jetbrains"
+      },
+      "actualPlatform": "win32",
+      "actualEntry": "jetbrains",
+      "changeReview": {
+        "requested": true,
+        "observed": true,
+        "reminderCount": 1,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-12.test.js"
+      ],
+      "startedAt": "2026-11-03T13:18:46.198Z",
+      "deadline": "2026-11-03T13:58:46.198Z",
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-12.test.js",
+          "path": "verify-12/candidate/packages/cli/__tests__/verify-12.test.js",
+          "digest": "sha256:8586f401d343bba3538f007420e54e8ce5ba0d6e17a3ef2d408ff3a76eb753c9",
+          "bytes": 2413
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml"
+      ],
+      "unexpectedChanges": [],
+      "generationPassed": true,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T13:19:18.254Z",
+        "finishedAt": "2026-11-03T13:23:11.368Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "verify-12",
+        "locked": {
+          "version": "0.166.140",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+          "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "capturePath": "verify-12/capture",
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 61802,
+            "outputTokens": 5461,
+            "cacheReadInputTokens": 103168,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-1793712598246-e86e2a",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "da28d6ed-91dc-421d-9026-92d2714800ee",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_xwmhkqr3sgsgvrbhwm20tl3b",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/background-command-argv.js"
+            },
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_a5qklm6tetvbh6l2uaukcifj",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/background-command-argv.test.js"
+            },
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 7
+          },
+          {
+            "type": "tool_use",
+            "id": "call_msj06buayrfvktk873du15w3",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-12.test.js",
+              "content": "import { describe, expect, it } from \"vitest\";\n\nimport {\n  agentPrintArgument,\n  canonicalizeBackgroundSessionArgv,\n  transformBackgroundLaunchArgv,\n} from \"../src/lib/background-command-argv.js\";\n\nconst OPTION_SPECS = [\n  { long: \"--model\", required: true },\n  { long: \"--session\", required: true },\n  { long: \"--resume\", optional: true },\n  { short: \"-p\", long: \"--print\", optional: true },\n];\n\ndescribe(\"background argv space/quoted argument integrity\", () => {\n  it(\"keeps spaces and embedded quotes inside one print token\", () => {\n    const prompt = 'say \"hello world\"';\n    // The whole prompt stays a single argv token: one \"--print=\" element\n    // whose payload is the exact bytes of the prompt, quote characters\n    // included, with no separator whitespace inserted.\n    expect(agentPrintArgument(prompt)).toBe('--print=say \"hello world\"');\n  });\n\n  it(\"preserves an empty argument as an intact print token\", () => {\n    expect(agentPrintArgument(\"\")).toBe(\"--print=\");\n  });\n\n  it(\"does not expand shell metacharacters inside the print payload\", () => {\n    const shellLike = \"$HOME `date` * & |\";\n    // The returned element is exactly the raw payload; no substitution or\n    // word-splitting is performed, so nothing shell-expands at the boundary.\n    expect(agentPrintArgument(shellLike)).toBe(\n      \"--print=$HOME `date` * & |\",\n    );\n  });\n\n  it(\"keeps a required option value containing spaces as one argv element\", () => {\n    expect(\n      canonicalizeBackgroundSessionArgv(\n        [\"agent\", \"--model\", \"my model name\", \"--session\", \"s\"],\n        { sessionId: \"resolved\", optionSpecs: OPTION_SPECS },\n      ),\n    ).toEqual([\"agent\", \"--model\", \"my model name\", \"--session\", \"resolved\"]);\n  });\n\n  it(\"keeps an operand containing spaces intact during background launch transform\", () => {\n    expect(\n      transformBackgroundLaunchArgv(\n        [\"agent\", \"path with spaces/file.txt\", \"--session\", \"s\"],\n        { optionSpecs: OPTION_SPECS, commandNames: [\"agent\", \"a\"] },\n      ),\n    ).toEqual([\n      \"agent\",\n      \"path with spaces/file.txt\",\n      \"--session\",\n      \"s\",\n      \"--add-dir\",\n      \"cwd\",\n    ]);\n  });\n\n  it(\"inserts a directory with spaces as a single add-dir token\", () => {\n    expect(\n      transformBackgroundLaunchArgv([\"agent\"], {\n        directories: [\"/a dir/sub dir\"],\n        optionSpecs: OPTION_SPECS,\n        commandNames: [\"agent\", \"a\"],\n      }),\n    ).toEqual([\"agent\", \"--add-dir\", \"/a dir/sub dir\"]);\n  });\n});\n"
+            },
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 12
+          },
+          {
+            "type": "tool_use",
+            "id": "call_r80kg67x7ed177xxfzlfndjm",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-12.test.js"
+            },
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 16
+          },
+          {
+            "type": "tool_use",
+            "id": "call_6rw8iimi7w352p70oqjozon6",
+            "tool": "edit_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-12.test.js",
+              "old_string": "    expect(\n      transformBackgroundLaunchArgv(\n        [\"agent\", \"path with spaces/file.txt\", \"--session\", \"s\"],\n        { optionSpecs: OPTION_SPECS, commandNames: [\"agent\", \"a\"] },\n      ),\n    ).toEqual([\n      \"agent\",\n      \"path with spaces/file.txt\",\n      \"--session\",\n      \"s\",\n      \"--add-dir\",\n      \"cwd\",\n    ]);\n  });",
+              "new_string": "    expect(\n      transformBackgroundLaunchArgv(\n        [\"agent\", \"path with spaces/file.txt\", \"--session\", \"s\"],\n        { optionSpecs: OPTION_SPECS, commandNames: [\"agent\", \"a\"] },\n      ),\n    ).toEqual([\"agent\", \"path with spaces/file.txt\", \"--session\", \"s\"]);\n  });"
+            },
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 20
+          },
+          {
+            "type": "tool_use",
+            "id": "call_g8fgwr1rbyu7jac22e9izk4j",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-12.test.js"
+            },
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 24
+          },
+          {
+            "type": "tool_use",
+            "id": "call_a67wtfk7wws1hf0r7h3zm46g",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-12.test.js"
+            },
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 31
+          },
+          {
+            "type": "tool_use",
+            "id": "call_386zz9j8alzit5mm49w3d19p",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-12.test.js",
+              "offset": 1,
+              "limit": 80
+            },
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 35
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_xwmhkqr3sgsgvrbhwm20tl3b",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-0bEtNj\\a7aecb4c-c8e7-4cd2-94bc-4b29dc7ba283\\workspace\\packages\\cli\\src\\lib\\background-command-argv.js",
+              "fileVersion": "10623:1793711949702.8804:1793711949702.8804",
+              "readSpan": {
+                "start": 0,
+                "end": 10623,
+                "total": 10623
+              },
+              "hashed": false,
+              "content": "/**\n * Capture the Commander option grammar needed to safely transform a parsed\n * command's original argv. Keeping option arity is important: an option value\n * can be byte-for-byte identical to a prompt token or another option name.\n */\n/** Keep untrusted prompt text inside one argv token, even when it starts `-`. */\nexport function agentPrintArgument(prompt) {\n  return `--print=${String(prompt)}`;\n}\n\nexport function captureCommandArgvGrammar(command) {\n  const hierarchy = [];\n  for (let cursor = command; cursor; cursor = cursor.parent) {\n    hierarchy.unshift(cursor);\n  }\n  const optionSpecs = hierarchy.flatMap((owner) =>\n    (owner?.options || []).map((option) => ({\n      short: option.short || null,\n      long: option.long || null,\n      required: option.required === true,\n      optional: option.optional === true,\n      variadic: option.variadic === true,\n    })),\n  );\n  const commandNames = [\n    command?.name?.(),\n    ...(command?.aliases?.() || []),\n  ].filter(Boolean);\n  return { optionSpecs, commandNames };\n}\n\nexport function captureCommandOptionSpecs(command) {\n  return captureCommandArgvGrammar(command).optionSpecs;\n}\n\nfunction normalizedOptionSpecs(optionSpecs) {\n  return (optionSpecs || [])\n    .map((spec) => ({\n      short: spec?.short || null,\n      long: spec?.long || null,\n      required: spec?.required === true,\n      optional: spec?.optional === true,\n      variadic: spec?.variadic === true,\n    }))\n    .filter((spec) => spec.short || spec.long);\n}\n\nfunction consumesValue(spec) {\n  return spec?.required === true || spec?.optional === true;\n}\n\nfunction looksLikeOption(value) {\n  return typeof value === \"string\" && value.length > 1 && value[0] === \"-\";\n}\n\nfunction consumedValueCount(argv, start, spec) {\n  if (!consumesValue(spec) || start >= argv.length || argv[start] === \"--\") {\n    return 0;\n  }\n  if (spec.optional && looksLikeOption(argv[start])) return 0;\n  if (!spec.variadic) return 1;\n  let count = 0;\n  for (let index = start; index < argv.length; index++) {\n    if (argv[index] === \"--\" || looksLikeOption(argv[index])) break;\n    count += 1;\n  }\n  return count;\n}\n\nfunction optionGrammar(optionSpecs) {\n  const specs = normalizedOptionSpecs(optionSpecs);\n  const aliases = new Map();\n  for (const spec of specs) {\n    if (spec.short) aliases.set(spec.short, spec);\n    if (spec.long) aliases.set(spec.long, spec);\n  }\n  return { specs, aliases };\n}\n\nfunction parseShortCluster(token, aliases, argv, index) {\n  if (!/^-[^-].+/.test(token)) return null;\n  const body = token.slice(1);\n  const parts = [];\n  for (let offset = 0; offset < body.length; offset++) {\n    const alias = `-${body[offset]}`;\n    const spec = aliases.get(alias);\n    if (!spec) return null;\n    if (!consumesValue(spec)) {\n      parts.push({ alias, spec, attachedValue: null });\n      continue;\n    }\n    const attachedValue = body.slice(offset + 1);\n    parts.push({\n      alias,\n      spec,\n      attachedValue: attachedValue || null,\n    });\n    const valueCount = attachedValue\n      ? 0\n      : consumedValueCount(argv, index + 1, spec);\n    return {\n      kind: \"short-cluster\",\n      parts,\n      values: argv.slice(index + 1, index + 1 + valueCount),\n      consumed: 1 + valueCount,\n    };\n  }\n  return {\n    kind: \"short-cluster\",\n    parts,\n    values: [],\n    consumed: 1,\n  };\n}\n\nfunction parseOption(argv, index, aliases) {\n  const token = argv[index];\n  const equalsIndex = token.startsWith(\"--\") ? token.indexOf(\"=\") : -1;\n  const name = equalsIndex > 0 ? token.slice(0, equalsIndex) : token;\n  const spec = aliases.get(name);\n  if (spec) {\n    const inlineValue = equalsIndex > 0 ? token.slice(equalsIndex + 1) : null;\n    const valueCount =\n      inlineValue !== null ? 0 : consumedValueCount(argv, index + 1, spec);\n    return {\n      kind: \"option\",\n      spec,\n      token,\n      inlineValue,\n      values: argv.slice(index + 1, index + 1 + valueCount),\n      consumed: 1 + valueCount,\n    };\n  }\n  return parseShortCluster(token, aliases, argv, index);\n}\n\nfunction parseCommandArgv(argv, optionSpecs, commandNames) {\n  const source = [...(argv || [])];\n  const { aliases } = optionGrammar(optionSpecs);\n  const segments = [];\n  let index = 0;\n  const names = new Set(commandNames || []);\n  let foundCommand = names.size === 0;\n  if (foundCommand && source.length > 0) {\n    // The background launcher always receives process.argv.slice(2), whose\n    // first token is the command name (`agent`/`a`). It is not an operand.\n    segments.push({ kind: \"command\", tokens: [source[0]] });\n    index = 1;\n  }\n  while (index < source.length) {\n    if (foundCommand && source[index] === \"--\") {\n      segments.push({ kind: \"terminator\", tokens: source.slice(index) });\n      break;\n    }\n    const option = parseOption(source, index, aliases);\n    if (option) {\n      segments.push(option);\n      index += option.consumed;\n      continue;\n    }\n    if (!foundCommand && names.has(source[index])) {\n      foundCommand = true;\n      segments.push({ kind: \"command\", tokens: [source[index]] });\n    } else {\n      // Unknown pre-command tokens are preserved fail-closed. A successfully\n      // parsed Commander invocation should only reach this for the command\n      // token itself, but retaining an unexpected prefix is safer than\n      // silently launching a different command.\n      segments.push({\n        kind: foundCommand ? \"operand\" : \"prefix\",\n        tokens: [source[index]],\n      });\n    }\n    index += 1;\n  }\n  return segments;\n}\n\nfunction renderShortCluster(segment, keepPart) {\n  const kept = segment.parts.filter(keepPart);\n  if (kept.length === 0) return [];\n  let token = \"-\";\n  let keepValues = false;\n  for (const part of kept) {\n    token += part.alias.slice(1);\n    if (consumesValue(part.spec)) {\n      if (part.attachedValue !== null) token += part.attachedValue;\n      else keepValues = true;\n      break;\n    }\n  }\n  return [token, ...(keepValues ? segment.values : [])];\n}\n\nconst BACKGROUND_PARENT_OPTIONS = new Set([\n  \"--background\",\n  \"--worktree\",\n  \"--no-worktree\",\n]);\n\n/**\n * Remove parent-only background/worktree decisions and replace every parsed\n * --add-dir occurrence with the already validated canonical roots. A token is\n * changed only when the command grammar identifies it as that option; equal\n * values belonging to another option stay byte-for-byte intact.\n */\nexport function transformBackgroundLaunchArgv(\n  argv,\n  { directories = [], optionSpecs, commandNames } = {},\n) {\n  const out = [];\n  let positionalTail = [];\n  for (const segment of parseCommandArgv(argv, optionSpecs, commandNames)) {\n    if (segment.kind === \"option\") {\n      if (\n        segment.spec?.long !== \"--add-dir\" &&\n        !BACKGROUND_PARENT_OPTIONS.has(segment.spec?.long)\n      ) {\n        out.push(segment.token, ...segment.values);\n      }\n    } else if (segment.kind === \"short-cluster\") {\n      out.push(\n        ...renderShortCluster(\n          segment,\n          (part) =>\n            part.spec?.long !== \"--add-dir\" &&\n            !BACKGROUND_PARENT_OPTIONS.has(part.spec?.long),\n        ),\n      );\n    } else if (segment.kind === \"terminator\") {\n      positionalTail = segment.tokens;\n    } else {\n      out.push(...segment.tokens);\n    }\n  }\n  for (const directory of directories || []) {\n    out.push(\"--add-dir\", directory);\n  }\n  return [...out, ...positionalTail];\n}\n\nconst SESSION_PARENT_OPTIONS = new Set([\n  \"--session\",\n  \"--continue\",\n  \"--resume\",\n  \"--fork-session\",\n  \"--fork-request-id\",\n]);\n\nfunction isParentSessionOption(spec) {\n  return SESSION_PARENT_OPTIONS.has(spec?.long);\n}\n\n/**\n * Remove every parent-owned resume/fork spelling and insert one resolved\n * session id. Literal prompt tokens after `--`, and values belonging to other\n * options, are preserved exactly.\n */\nexport function canonicalizeBackgroundSessionArgv(\n  argv,\n  { sessionId, optionSpecs, commandNames } = {},\n) {\n  if (!sessionId) {\n    throw new Error(\"Cannot launch background agent without a session id\");\n  }\n  const out = [];\n  let positionalTail = [];\n  for (const segment of parseCommandArgv(argv, optionSpecs, commandNames)) {\n    if (segment.kind === \"option\") {\n      if (!isParentSessionOption(segment.spec)) {\n        out.push(segment.token, ...segment.values);\n      }\n    } else if (segment.kind === \"short-cluster\") {\n      out.push(\n        ...renderShortCluster(\n          segment,\n          (part) => !isParentSessionOption(part.spec),\n        ),\n      );\n    } else if (segment.kind === \"terminator\") {\n      positionalTail = segment.tokens;\n    } else {\n      out.push(...segment.tokens);\n    }\n  }\n  return [...out, \"--session\", String(sessionId), ...positionalTail];\n}\n\nfunction isPrintOption(spec) {\n  return spec?.long === \"--print\";\n}\n\n/**\n * Build the reusable argv for an attached follow-up turn. Option grammar, not\n * token equality, distinguishes option values from first-turn operands.\n */\nexport function stripFirstTurnPromptArgv(\n  argv,\n  { optionSpecs, commandNames } = {},\n) {\n  const out = [];\n  for (const segment of parseCommandArgv(argv, optionSpecs, commandNames)) {\n    if (segment.kind === \"command\" || segment.kind === \"prefix\") {\n      out.push(...segment.tokens);\n    } else if (segment.kind === \"option\") {\n      if (!isPrintOption(segment.spec)) {\n        out.push(segment.token, ...segment.values);\n      }\n    } else if (segment.kind === \"short-cluster\") {\n      out.push(\n        ...renderShortCluster(segment, (part) => !isPrintOption(part.spec)),\n      );\n    }\n    // All operands, the option terminator, and its literal tail belong to the\n    // first turn and are intentionally omitted.\n  }\n  return out;\n}\n\nexport const BACKGROUND_EPHEMERAL_UNSUPPORTED_CODE =\n  \"BACKGROUND_EPHEMERAL_UNSUPPORTED\";\n\n/**\n * Background sessions are resumable, attachable durable authorities. Allowing\n * an ephemeral child would leave the worker's interaction journal without a\n * canonical session genesis and a later resume would silently change the\n * caller's no-persistence contract. Keep this guard independent of Commander\n * so direct supervisor/profile callers cannot bypass the CLI validation.\n */\nexport function assertBackgroundArgvDurable(argv, label = \"background agent\") {\n  for (const token of Array.isArray(argv) ? argv : []) {\n    if (token === \"--\") break;\n    if (token === \"--ephemeral\" || token.startsWith(\"--ephemeral=\")) {\n      const error = new Error(\n        `${label} cannot use --ephemeral because background sessions require durable session and interaction authority`,\n      );\n      error.code = BACKGROUND_EPHEMERAL_UNSUPPORTED_CODE;\n      throw error;\n    }\n  }\n  return true;\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712643916,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/background-command-argv.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 18,
+                "sessionId": "panel-1793712598246-e86e2a",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/background-command-argv.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_xwmhkqr3sgsgvrbhwm20tl3b",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 8
+          },
+          {
+            "type": "tool_result",
+            "id": "call_a5qklm6tetvbh6l2uaukcifj",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-0bEtNj\\a7aecb4c-c8e7-4cd2-94bc-4b29dc7ba283\\workspace\\packages\\cli\\__tests__\\unit\\background-command-argv.test.js",
+              "fileVersion": "5772:1793711947311.861:1793711947311.861",
+              "readSpan": {
+                "start": 0,
+                "end": 5772,
+                "total": 5772
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\n\nimport {\n  agentPrintArgument,\n  assertBackgroundArgvDurable,\n  canonicalizeBackgroundSessionArgv,\n  captureCommandArgvGrammar,\n  captureCommandOptionSpecs,\n  stripFirstTurnPromptArgv,\n} from \"../../src/lib/background-command-argv.js\";\n\nconst OPTION_SPECS = [\n  { long: \"--model\", required: true },\n  { long: \"--title\", required: true },\n  { short: \"-p\", long: \"--print\", optional: true },\n  { short: \"-c\", long: \"--continue\" },\n  { long: \"--session\", required: true },\n  { long: \"--resume\", optional: true },\n  { long: \"--fork-session\" },\n  { long: \"--fork-request-id\", required: true },\n  { short: \"-y\", long: \"--yolo\" },\n  { long: \"--verbose\" },\n  { long: \"--profile\", required: true },\n];\n\ndescribe(\"background command argv\", () => {\n  it(\"rejects ephemeral background authority but preserves literal prompt data\", () => {\n    expect(() =>\n      assertBackgroundArgvDurable([\"agent\", \"--ephemeral\", \"-p\", \"work\"]),\n    ).toThrowError(\n      expect.objectContaining({ code: \"BACKGROUND_EPHEMERAL_UNSUPPORTED\" }),\n    );\n    expect(() =>\n      assertBackgroundArgvDurable([\n        \"agent\",\n        \"--session\",\n        \"durable\",\n        \"--\",\n        \"--ephemeral\",\n      ]),\n    ).not.toThrow();\n  });\n\n  it.each([\"--help\", \"--no-worktree\", \"--dangerously-skip-permissions\"])(\n    \"keeps option-shaped prompt data inside one print token: %s\",\n    (prompt) => {\n      expect(agentPrintArgument(prompt)).toBe(`--print=${prompt}`);\n    },\n  );\n\n  it(\"captures Commander option aliases and arity\", () => {\n    expect(\n      captureCommandOptionSpecs({\n        options: [\n          {\n            short: \"-p\",\n            long: \"--print\",\n            required: false,\n            optional: true,\n            variadic: false,\n          },\n        ],\n      }),\n    ).toEqual([\n      {\n        short: \"-p\",\n        long: \"--print\",\n        required: false,\n        optional: true,\n        variadic: false,\n      },\n    ]);\n  });\n\n  it(\"captures root options and command aliases as one argv grammar\", () => {\n    const root = {\n      options: [{ long: \"--profile\", required: true }],\n      parent: null,\n    };\n    const command = {\n      options: [{ long: \"--session\", required: true }],\n      parent: root,\n      name: () => \"agent\",\n      aliases: () => [\"a\"],\n    };\n    expect(captureCommandArgvGrammar(command)).toEqual({\n      optionSpecs: [\n        {\n          short: null,\n          long: \"--profile\",\n          required: true,\n          optional: false,\n          variadic: false,\n        },\n        {\n          short: null,\n          long: \"--session\",\n          required: true,\n          optional: false,\n          variadic: false,\n        },\n      ],\n      commandNames: [\"agent\", \"a\"],\n    });\n  });\n\n  it(\"canonicalizes resume/fork options to one resolved session\", () => {\n    expect(\n      canonicalizeBackgroundSessionArgv(\n        [\n          \"agent\",\n          \"--resume\",\n          \"old\",\n          \"--fork-session\",\n          \"--fork-request-id\",\n          \"request-1\",\n          \"task\",\n        ],\n        { sessionId: \"resolved\", optionSpecs: OPTION_SPECS },\n      ),\n    ).toEqual([\"agent\", \"task\", \"--session\", \"resolved\"]);\n\n    expect(\n      canonicalizeBackgroundSessionArgv(\n        [\"agent\", \"--session=old\", \"task\", \"--session\", \"literal\"],\n        { sessionId: \"resolved\", optionSpecs: OPTION_SPECS },\n      ),\n    ).toEqual([\"agent\", \"task\", \"--session\", \"resolved\"]);\n  });\n\n  it(\"preserves other option values and the literal tail\", () => {\n    expect(\n      canonicalizeBackgroundSessionArgv(\n        [\n          \"agent\",\n          \"--model=--session\",\n          \"-cy\",\n          \"task\",\n          \"--\",\n          \"--session\",\n          \"literal\",\n        ],\n        { sessionId: \"resolved\", optionSpecs: OPTION_SPECS },\n      ),\n    ).toEqual([\n      \"agent\",\n      \"--model=--session\",\n      \"-y\",\n      \"task\",\n      \"--session\",\n      \"resolved\",\n      \"--\",\n      \"--session\",\n      \"literal\",\n    ]);\n\n    expect(\n      canonicalizeBackgroundSessionArgv(\n        [\"agent\", \"--model\", \"--session\", \"task\"],\n        { sessionId: \"resolved\", optionSpecs: OPTION_SPECS },\n      ),\n    ).toEqual([\n      \"agent\",\n      \"--model\",\n      \"--session\",\n      \"task\",\n      \"--session\",\n      \"resolved\",\n    ]);\n  });\n\n  it(\"removes true operands without deleting equal option values\", () => {\n    expect(\n      stripFirstTurnPromptArgv(\n        [\"agent\", \"--model\", \"same\", \"same\", \"--session\", \"s\"],\n        { optionSpecs: OPTION_SPECS },\n      ),\n    ).toEqual([\"agent\", \"--model\", \"same\", \"--session\", \"s\"]);\n\n    expect(\n      stripFirstTurnPromptArgv(\n        [\"agent\", \"task1\", \"--model\", \"m\", \"task2\", \"--session\", \"s\"],\n        { optionSpecs: OPTION_SPECS },\n      ),\n    ).toEqual([\"agent\", \"--model\", \"m\", \"--session\", \"s\"]);\n  });\n\n  it(\"preserves global options before the real command token\", () => {\n    expect(\n      stripFirstTurnPromptArgv(\n        [\"--verbose\", \"--profile\", \"agent\", \"agent\", \"task\", \"--session\", \"s\"],\n        { optionSpecs: OPTION_SPECS, commandNames: [\"agent\", \"a\"] },\n      ),\n    ).toEqual([\"--verbose\", \"--profile\", \"agent\", \"agent\", \"--session\", \"s\"]);\n  });\n\n  it(\"drops print payloads and every post-terminator first-turn token\", () => {\n    expect(\n      stripFirstTurnPromptArgv(\n        [\n          \"agent\",\n          \"-pfirst\",\n          \"--title\",\n          \"kept\",\n          \"--\",\n          \"model-like\",\n          \"--session\",\n          \"literal\",\n        ],\n        { optionSpecs: OPTION_SPECS },\n      ),\n    ).toEqual([\"agent\", \"--title\", \"kept\"]);\n\n    expect(\n      stripFirstTurnPromptArgv([\"agent\", \"--print=first\", \"--session\", \"s\"], {\n        optionSpecs: OPTION_SPECS,\n      }),\n    ).toEqual([\"agent\", \"--session\", \"s\"]);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712643916,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/background-command-argv.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 5,
+                "sessionId": "panel-1793712598246-e86e2a",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/background-command-argv.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_a5qklm6tetvbh6l2uaukcifj",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 9
+          },
+          {
+            "type": "tool_result",
+            "id": "call_msj06buayrfvktk873du15w3",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-0bEtNj\\a7aecb4c-c8e7-4cd2-94bc-4b29dc7ba283\\workspace\\packages\\cli\\__tests__\\verify-12.test.js",
+              "size": 2476,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712672399,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-12.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\n\nimport {\n  agentPrintArgument,\n  canonicalizeBackgroundSessionArgv,\n  transformBackgroundLaunchArgv,\n} from \"../src/lib/background-command-argv.js\";\n\nconst OPTION_SPECS = [\n  { long: \"--model\", required: true },\n  { long: \"--session\", required: true },\n  { long: \"--resume\", optional: true },\n  { short: \"-p\", long: \"--print\", optional: true },\n];\n\ndescribe(\"background argv space/quoted argument integrity\", () => {\n  it(\"keeps spaces and embedded quotes inside one print token\", () => {\n    const prompt = 'say \"hello world\"';\n    // The whole prompt stays a single argv token: one \"--print=\" element\n    // whose payload is the exact bytes of the prompt, quote characters\n    // included, with no separator whitespace inserted.\n    expect(agentPrintArgument(prompt)).toBe('--print=say \"hello world\"');\n  });\n\n  it(\"preserves an empty argument as an intact print token\", () => {\n    expect(agentPrintArgument(\"\")).toBe(\"--print=\");\n  });\n\n  it(\"does not expand shell metacharacters inside the print payload\", () => {\n    const shellLike = \"$HOME `date` * & |\";\n    // The returned element is exactly the raw payload; no substitution or\n    // word-splitting is performed, so nothing shell-expands at the boundary.\n    expect(agentPrintArgument(shellLike)).toBe(\n      \"--print=$HOME `date` * & |\",\n    );\n  });\n\n  it(\"keeps a required option value containing spaces as one argv element\", () => {\n    expect(\n      canonicalizeBackgroundSessionArgv(\n        [\"agent\", \"--model\", \"my model name\", \"--session\", \"s\"],\n        { sessionId: \"resolved\", optionSpecs: OPTION_SPECS },\n      ),\n    ).toEqual([\"agent\", \"--model\", \"my model name\", \"--session\", \"resolved\"]);\n  });\n\n  it(\"keeps an operand containing spaces intact during background launch transform\", () => {\n    expect(\n      transformBackgroundLaunchArgv(\n        [\"agent\", \"path with spaces/file.txt\", \"--session\", \"s\"],\n        { optionSpecs: OPTION_SPECS, commandNames: [\"agent\", \"a\"] },\n      ),\n    ).toEqual([\n      \"agent\",\n      \"path with spaces/file.txt\",\n      \"--session\",\n      \"s\",\n      \"--add-dir\",\n      \"cwd\",\n    ]);\n  });\n\n  it(\"inserts a directory with spaces as a single add-dir token\", () => {\n    expect(\n      transformBackgroundLaunchArgv([\"agent\"], {\n        directories: [\"/a dir/sub dir\"],\n        optionSpecs: OPTION_SPECS,\n        commandNames: [\"agent\", \"a\"],\n      }),\n    ).toEqual([\"agent\", \"--add-dir\", \"/a dir/sub dir\"]);\n  });\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 67,
+                "sessionId": "panel-1793712598246-e86e2a",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-12.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\n\nimport {\n  agentPrintArgument,\n  canonicalizeBackgroundSessionArgv,\n  transformBackgroundLaunchArgv,\n} from \"../src/lib/background-command-argv.js\";\n\nconst OPTION_SPECS = [\n  { long: \"--model\", required: true },\n  { long: \"--session\", required: true },\n  { long: \"--resume\", optional: true },\n  { short: \"-p\", long: \"--print\", optional: true },\n];\n\ndescribe(\"background argv space/quoted argument integrity\", () => {\n  it(\"keeps spaces and embedded quotes inside one print token\", () => {\n    const prompt = 'say \"hello world\"';\n    // The whole prompt stays a single argv token: one \"--print=\" element\n    // whose payload is the exact bytes of the prompt, quote characters\n    // included, with no separator whitespace inserted.\n    expect(agentPrintArgument(prompt)).toBe('--print=say \"hello world\"');\n  });\n\n  it(\"preserves an empty argument as an intact print token\", () => {\n    expect(agentPrintArgument(\"\")).toBe(\"--print=\");\n  });\n\n  it(\"does not expand shell metacharacters inside the print payload\", () => {\n    const shellLike = \"$HOME `date` * & |\";\n    // The returned element is exactly the raw payload; no substitution or\n    // word-splitting is performed, so nothing shell-expands at the boundary.\n    expect(agentPrintArgument(shellLike)).toBe(\n      \"--print=$HOME `date` * & |\",\n    );\n  });\n\n  it(\"keeps a required option value containing spaces as one argv element\", () => {\n    expect(\n      canonicalizeBackgroundSessionArgv(\n        [\"agent\", \"--model\", \"my model name\", \"--session\", \"s\"],\n        { sessionId: \"resolved\", optionSpecs: OPTION_SPECS },\n      ),\n    ).toEqual([\"agent\", \"--model\", \"my model name\", \"--session\", \"resolved\"]);\n  });\n\n  it(\"keeps an operand containing spaces intact during background launch transform\", () => {\n    expect(\n      transformBackgroundLaunchArgv(\n        [\"agent\", \"path with spaces/file.txt\", \"--session\", \"s\"],\n        { optionSpecs: OPTION_SPECS, commandNames: [\"agent\", \"a\"] },\n      ),\n    ).toEqual([\n      \"agent\",\n      \"path with spaces/file.txt\",\n      \"--session\",\n      \"s\",\n      \"--add-dir\",\n      \"cwd\",\n    ]);\n  });\n\n  it(\"inserts a directory with spaces as a single add-dir token\", () => {\n    expect(\n      transformBackgroundLaunchArgv([\"agent\"], {\n        directories: [\"/a dir/sub dir\"],\n        optionSpecs: OPTION_SPECS,\n        commandNames: [\"agent\", \"a\"],\n      }),\n    ).toEqual([\"agent\", \"--add-dir\", \"/a dir/sub dir\"]);\n  });\n});\n"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "write_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_msj06buayrfvktk873du15w3",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 13
+          },
+          {
+            "type": "tool_result",
+            "id": "call_r80kg67x7ed177xxfzlfndjm",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-0bEtNj\\a7aecb4c-c8e7-4cd2-94bc-4b29dc7ba283\\workspace\\packages\\cli\\__tests__\\verify-12.test.js",
+              "fileVersion": "2476:1793712672334.5657:1793712672334.5657",
+              "readSpan": {
+                "start": 0,
+                "end": 2476,
+                "total": 2476
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\n\nimport {\n  agentPrintArgument,\n  canonicalizeBackgroundSessionArgv,\n  transformBackgroundLaunchArgv,\n} from \"../src/lib/background-command-argv.js\";\n\nconst OPTION_SPECS = [\n  { long: \"--model\", required: true },\n  { long: \"--session\", required: true },\n  { long: \"--resume\", optional: true },\n  { short: \"-p\", long: \"--print\", optional: true },\n];\n\ndescribe(\"background argv space/quoted argument integrity\", () => {\n  it(\"keeps spaces and embedded quotes inside one print token\", () => {\n    const prompt = 'say \"hello world\"';\n    // The whole prompt stays a single argv token: one \"--print=\" element\n    // whose payload is the exact bytes of the prompt, quote characters\n    // included, with no separator whitespace inserted.\n    expect(agentPrintArgument(prompt)).toBe('--print=say \"hello world\"');\n  });\n\n  it(\"preserves an empty argument as an intact print token\", () => {\n    expect(agentPrintArgument(\"\")).toBe(\"--print=\");\n  });\n\n  it(\"does not expand shell metacharacters inside the print payload\", () => {\n    const shellLike = \"$HOME `date` * & |\";\n    // The returned element is exactly the raw payload; no substitution or\n    // word-splitting is performed, so nothing shell-expands at the boundary.\n    expect(agentPrintArgument(shellLike)).toBe(\n      \"--print=$HOME `date` * & |\",\n    );\n  });\n\n  it(\"keeps a required option value containing spaces as one argv element\", () => {\n    expect(\n      canonicalizeBackgroundSessionArgv(\n        [\"agent\", \"--model\", \"my model name\", \"--session\", \"s\"],\n        { sessionId: \"resolved\", optionSpecs: OPTION_SPECS },\n      ),\n    ).toEqual([\"agent\", \"--model\", \"my model name\", \"--session\", \"resolved\"]);\n  });\n\n  it(\"keeps an operand containing spaces intact during background launch transform\", () => {\n    expect(\n      transformBackgroundLaunchArgv(\n        [\"agent\", \"path with spaces/file.txt\", \"--session\", \"s\"],\n        { optionSpecs: OPTION_SPECS, commandNames: [\"agent\", \"a\"] },\n      ),\n    ).toEqual([\n      \"agent\",\n      \"path with spaces/file.txt\",\n      \"--session\",\n      \"s\",\n      \"--add-dir\",\n      \"cwd\",\n    ]);\n  });\n\n  it(\"inserts a directory with spaces as a single add-dir token\", () => {\n    expect(\n      transformBackgroundLaunchArgv([\"agent\"], {\n        directories: [\"/a dir/sub dir\"],\n        optionSpecs: OPTION_SPECS,\n        commandNames: [\"agent\", \"a\"],\n      }),\n    ).toEqual([\"agent\", \"--add-dir\", \"/a dir/sub dir\"]);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712677275,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-12.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-1793712598246-e86e2a",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-12.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_r80kg67x7ed177xxfzlfndjm",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 17
+          },
+          {
+            "type": "tool_result",
+            "id": "call_6rw8iimi7w352p70oqjozon6",
+            "tool": "edit_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-0bEtNj\\a7aecb4c-c8e7-4cd2-94bc-4b29dc7ba283\\workspace\\packages\\cli\\__tests__\\verify-12.test.js",
+              "size": 2413,
+              "replaced": 1,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712689485,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-12.test.js",
+                    "old_string": "    expect(\n      transformBackgroundLaunchArgv(\n        [\"agent\", \"path with spaces/file.txt\", \"--session\", \"s\"],\n        { optionSpecs: OPTION_SPECS, commandNames: [\"agent\", \"a\"] },\n      ),\n    ).toEqual([\n      \"agent\",\n      \"path with spaces/file.txt\",\n      \"--session\",\n      \"s\",\n      \"--add-dir\",\n      \"cwd\",\n    ]);\n  });",
+                    "new_string": "    expect(\n      transformBackgroundLaunchArgv(\n        [\"agent\", \"path with spaces/file.txt\", \"--session\", \"s\"],\n        { optionSpecs: OPTION_SPECS, commandNames: [\"agent\", \"a\"] },\n      ),\n    ).toEqual([\"agent\", \"path with spaces/file.txt\", \"--session\", \"s\"]);\n  });"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 9,
+                "sessionId": "panel-1793712598246-e86e2a",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-12.test.js",
+                    "old_string": "    expect(\n      transformBackgroundLaunchArgv(\n        [\"agent\", \"path with spaces/file.txt\", \"--session\", \"s\"],\n        { optionSpecs: OPTION_SPECS, commandNames: [\"agent\", \"a\"] },\n      ),\n    ).toEqual([\n      \"agent\",\n      \"path with spaces/file.txt\",\n      \"--session\",\n      \"s\",\n      \"--add-dir\",\n      \"cwd\",\n    ]);\n  });",
+                    "new_string": "    expect(\n      transformBackgroundLaunchArgv(\n        [\"agent\", \"path with spaces/file.txt\", \"--session\", \"s\"],\n        { optionSpecs: OPTION_SPECS, commandNames: [\"agent\", \"a\"] },\n      ),\n    ).toEqual([\"agent\", \"path with spaces/file.txt\", \"--session\", \"s\"]);\n  });"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "edit_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_6rw8iimi7w352p70oqjozon6",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 21
+          },
+          {
+            "type": "tool_result",
+            "id": "call_g8fgwr1rbyu7jac22e9izk4j",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-0bEtNj\\a7aecb4c-c8e7-4cd2-94bc-4b29dc7ba283\\workspace\\packages\\cli\\__tests__\\verify-12.test.js",
+              "fileVersion": "2413:1793712689478.378:1793712689478.378",
+              "readSpan": {
+                "start": 0,
+                "end": 2413,
+                "total": 2413
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\n\nimport {\n  agentPrintArgument,\n  canonicalizeBackgroundSessionArgv,\n  transformBackgroundLaunchArgv,\n} from \"../src/lib/background-command-argv.js\";\n\nconst OPTION_SPECS = [\n  { long: \"--model\", required: true },\n  { long: \"--session\", required: true },\n  { long: \"--resume\", optional: true },\n  { short: \"-p\", long: \"--print\", optional: true },\n];\n\ndescribe(\"background argv space/quoted argument integrity\", () => {\n  it(\"keeps spaces and embedded quotes inside one print token\", () => {\n    const prompt = 'say \"hello world\"';\n    // The whole prompt stays a single argv token: one \"--print=\" element\n    // whose payload is the exact bytes of the prompt, quote characters\n    // included, with no separator whitespace inserted.\n    expect(agentPrintArgument(prompt)).toBe('--print=say \"hello world\"');\n  });\n\n  it(\"preserves an empty argument as an intact print token\", () => {\n    expect(agentPrintArgument(\"\")).toBe(\"--print=\");\n  });\n\n  it(\"does not expand shell metacharacters inside the print payload\", () => {\n    const shellLike = \"$HOME `date` * & |\";\n    // The returned element is exactly the raw payload; no substitution or\n    // word-splitting is performed, so nothing shell-expands at the boundary.\n    expect(agentPrintArgument(shellLike)).toBe(\n      \"--print=$HOME `date` * & |\",\n    );\n  });\n\n  it(\"keeps a required option value containing spaces as one argv element\", () => {\n    expect(\n      canonicalizeBackgroundSessionArgv(\n        [\"agent\", \"--model\", \"my model name\", \"--session\", \"s\"],\n        { sessionId: \"resolved\", optionSpecs: OPTION_SPECS },\n      ),\n    ).toEqual([\"agent\", \"--model\", \"my model name\", \"--session\", \"resolved\"]);\n  });\n\n  it(\"keeps an operand containing spaces intact during background launch transform\", () => {\n    expect(\n      transformBackgroundLaunchArgv(\n        [\"agent\", \"path with spaces/file.txt\", \"--session\", \"s\"],\n        { optionSpecs: OPTION_SPECS, commandNames: [\"agent\", \"a\"] },\n      ),\n    ).toEqual([\"agent\", \"path with spaces/file.txt\", \"--session\", \"s\"]);\n  });\n\n  it(\"inserts a directory with spaces as a single add-dir token\", () => {\n    expect(\n      transformBackgroundLaunchArgv([\"agent\"], {\n        directories: [\"/a dir/sub dir\"],\n        optionSpecs: OPTION_SPECS,\n        commandNames: [\"agent\", \"a\"],\n      }),\n    ).toEqual([\"agent\", \"--add-dir\", \"/a dir/sub dir\"]);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712695562,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-12.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-1793712598246-e86e2a",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-12.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_g8fgwr1rbyu7jac22e9izk4j",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 25
+          },
+          {
+            "type": "tool_result",
+            "id": "call_a67wtfk7wws1hf0r7h3zm46g",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-0bEtNj\\a7aecb4c-c8e7-4cd2-94bc-4b29dc7ba283\\workspace\\packages\\cli\\__tests__\\verify-12.test.js",
+              "fileVersion": "2413:1793712689478.378:1793712689478.378",
+              "hashed": false,
+              "alreadyRead": true,
+              "contentOmitted": true,
+              "reachedEnd": true,
+              "readProgress": {
+                "newContent": false
+              },
+              "readRecovery": {
+                "action": "use-findings"
+              },
+              "recoveryRead": {
+                "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-0bEtNj\\a7aecb4c-c8e7-4cd2-94bc-4b29dc7ba283\\workspace\\packages\\cli\\__tests__\\verify-12.test.js",
+                "offset": 1,
+                "limit": 80
+              },
+              "hint": "This requested range was read earlier, but historical coverage does not mean its source is visible now. The runtime has not substituted an unrelated file range. Use source actually present in this request; recover missing details with a focused search or the bounded recoveryRead. Reading the file is not task completion.",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712712846,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-12.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-1793712598246-e86e2a",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-12.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_a67wtfk7wws1hf0r7h3zm46g",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 32
+          },
+          {
+            "type": "tool_result",
+            "id": "call_386zz9j8alzit5mm49w3d19p",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-0bEtNj\\a7aecb4c-c8e7-4cd2-94bc-4b29dc7ba283\\workspace\\packages\\cli\\__tests__\\verify-12.test.js",
+              "fileVersion": "2413:1793712689478.378:1793712689478.378",
+              "range": {
+                "startLine": 1,
+                "endLine": 66,
+                "totalLines": 66
+              },
+              "readSpan": {
+                "start": 0,
+                "end": 2413,
+                "total": 2413
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\n\nimport {\n  agentPrintArgument,\n  canonicalizeBackgroundSessionArgv,\n  transformBackgroundLaunchArgv,\n} from \"../src/lib/background-command-argv.js\";\n\nconst OPTION_SPECS = [\n  { long: \"--model\", required: true },\n  { long: \"--session\", required: true },\n  { long: \"--resume\", optional: true },\n  { short: \"-p\", long: \"--print\", optional: true },\n];\n\ndescribe(\"background argv space/quoted argument integrity\", () => {\n  it(\"keeps spaces and embedded quotes inside one print token\", () => {\n    const prompt = 'say \"hello world\"';\n    // The whole prompt stays a single argv token: one \"--print=\" element\n    // whose payload is the exact bytes of the prompt, quote characters\n    // included, with no separator whitespace inserted.\n    expect(agentPrintArgument(prompt)).toBe('--print=say \"hello world\"');\n  });\n\n  it(\"preserves an empty argument as an intact print token\", () => {\n    expect(agentPrintArgument(\"\")).toBe(\"--print=\");\n  });\n\n  it(\"does not expand shell metacharacters inside the print payload\", () => {\n    const shellLike = \"$HOME `date` * & |\";\n    // The returned element is exactly the raw payload; no substitution or\n    // word-splitting is performed, so nothing shell-expands at the boundary.\n    expect(agentPrintArgument(shellLike)).toBe(\n      \"--print=$HOME `date` * & |\",\n    );\n  });\n\n  it(\"keeps a required option value containing spaces as one argv element\", () => {\n    expect(\n      canonicalizeBackgroundSessionArgv(\n        [\"agent\", \"--model\", \"my model name\", \"--session\", \"s\"],\n        { sessionId: \"resolved\", optionSpecs: OPTION_SPECS },\n      ),\n    ).toEqual([\"agent\", \"--model\", \"my model name\", \"--session\", \"resolved\"]);\n  });\n\n  it(\"keeps an operand containing spaces intact during background launch transform\", () => {\n    expect(\n      transformBackgroundLaunchArgv(\n        [\"agent\", \"path with spaces/file.txt\", \"--session\", \"s\"],\n        { optionSpecs: OPTION_SPECS, commandNames: [\"agent\", \"a\"] },\n      ),\n    ).toEqual([\"agent\", \"path with spaces/file.txt\", \"--session\", \"s\"]);\n  });\n\n  it(\"inserts a directory with spaces as a single add-dir token\", () => {\n    expect(\n      transformBackgroundLaunchArgv([\"agent\"], {\n        directories: [\"/a dir/sub dir\"],\n        optionSpecs: OPTION_SPECS,\n        commandNames: [\"agent\", \"a\"],\n      }),\n    ).toEqual([\"agent\", \"--add-dir\", \"/a dir/sub dir\"]);\n  });\n});\n",
+              "readRecovery": {
+                "action": "targeted-review"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712720971,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-12.test.js",
+                    "offset": 1,
+                    "limit": 80
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 3,
+                "sessionId": "panel-1793712598246-e86e2a",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-12.test.js",
+                    "offset": 1,
+                    "limit": 80
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_386zz9j8alzit5mm49w3d19p",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 36
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2732,
+              "output_tokens": 113,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 8651,
+              "output_tokens": 2369,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 11
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6942,
+              "output_tokens": 73,
+              "cache_read_input_tokens": 10240,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 15
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3843,
+              "output_tokens": 939,
+              "cache_read_input_tokens": 14848,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 19
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6218,
+              "output_tokens": 81,
+              "cache_read_input_tokens": 14336,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 23
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5409,
+              "output_tokens": 562,
+              "cache_read_input_tokens": 16384,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 27
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 1894,
+              "output_tokens": 177,
+              "cache_read_input_tokens": 20736,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 30
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4991,
+              "output_tokens": 151,
+              "cache_read_input_tokens": 18432,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 34
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 21122,
+              "output_tokens": 996,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+            "seq": 38
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 61802,
+          "output_tokens": 5461,
+          "cache_read_input_tokens": 103168
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 9,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "I have the full current deliverable visible (lines 1-66) and the full source retained from my earlier complete read. Let me do the requirement-to-assertion audit without further reads.\n\n**Original task requirements** (derived from the user task, not the tests):\n- R1: Empty arguments preserve argv boundary (no word-split, intact element).\n- R2: Arguments containing spaces/quotes preserve argv boundary (single element, no splitting).\n- R3: No shell expansion of the payload content at the boundary.\n- R4: Use real exported functions, no source-text assertions, at most six cases, focused positive + negative controls.\n- R5: Only fix implementation if a counterexample proves a defect (frozen source read-only; defects must be reported, not edited).\n\n**Requirement → assertion mapping in current deliverable:**\n\n- **R1 (empty arg)**: Test 2 `agentPrintArgument(\"\")` → `\"--print=\"`. The empty payload still yields one intact token (`--print=` with empty value). ✓ Positive control directly exercises `String(\"\")`.\n- **R2 (spaces/quotes boundary)**: \n  - Test 1 `agentPrintArgument('say \"hello world\"')` → single `--print=say \"hello world\"` element. Verifies the whole prompt stays one argv element; quotes preserved verbatim. ✓\n  - Test 4 `canonicalizeBackgroundSessionArgv` keeps `\"my model name\"` as one element (required `--model` consumes one token). ✓\n  - Test 5 `transformBackgroundLaunchArgv` keeps operand `\"path with spaces/file.txt\"` and `--session s` intact. ✓\n  - Test 6 directory `\"/a dir/sub dir\"` inserted as one `--add-dir` value. ✓\n- **R3 (no shell expansion)**: Test 3 `agentPrintArgument(\"$HOME `date` * & |\")` → exact raw payload. The function does `String(prompt)` with no substitution/word-split. ✓\n- **R4 (real API, ≤6 cases, controls)**: All six call real exported functions; no source-text assertions; six cases exactly at the cap. ✓\n- **R5 (defect)**: All assertions match the frozen source exactly. No implementation defect.\n\n**Negative-control audit:** The review guidance stresses keeping unrelated rejection conditions valid. In this domain the functions are pure transformers — there is no rejection path masking a missing check. Each assertion is an exact-equality positive check on the output token/boundary, so the only condition that could change the result is the input payload/argv, which is exactly what each test varies. There is no throw-and-inspect ordering issue because `agentPrintArgument`/`transformBackgroundLaunchArgv` never throw on the given inputs; `canonicalizeBackgroundSessionArgv` throws only when `sessionId` is falsy, and every call passes a truthy `sessionId`, keeping that unrelated prerequisite valid.\n\n**Gap analysis:** The acceptance explicitly lists \"空参数\" (empty), \"空格\" (spaces), \"引号路径\" (quoted paths), \"不触发 shell 展开\" (no shell expansion). All four are covered by tests 2, 1/4/5/6, 1, and 3 respectively. No uncovered requirement within the \"含空格参数完整性\" scope.\n\nOne nuance worth noting: the current test set uses two distinct paths — `agentPrintArgument` (the token-wrapping primitive) and the two transform functions. All are legitimately in the \"argv boundary integrity\" theme. The negative controls here are naturally embedded (e.g., empty vs. non-empty payload; option value vs. a value that is just a token). The current 6-case count is exactly at the cap and every case maps to a distinct requirement/condition — no redundancy to merge.\n\nI find no gap requiring repair. The deliverable satisfies all requirements; the frozen implementation has no defect (every assertion passes by direct trace). No changes are needed.\n\n**Final account:** Reviewed the current `packages/cli/__tests__/verify-12.test.js` (66 lines) against the frozen source `background-command-argv.js`. All four acceptance requirements (empty args, spaces/quoted paths boundary, no shell expansion, real-API ≤6 cases) map to concrete fixtures with observable exact-equality assertions, and the `sessionId`-throw prerequisite is kept valid in every transform call. No uncovered condition and no implementation defect; no further repair warranted. Limitation: Vitest was not executed (only the JS relative import was checked by the write tool), so I do not claim tests passed — independent Docker coverage is required for that.",
+          "session_id": "panel-1793712598246-e86e2a",
+          "turn": 1,
+          "usage": {
+            "input_tokens": 61802,
+            "output_tokens": 5461,
+            "cache_read_input_tokens": 103168,
+            "cache_creation_input_tokens": 0
+          },
+          "transcript_refs": {
+            "schema": "chainlesschain.session-transcript-references/v1",
+            "sessionId": "panel-1793712598246-e86e2a",
+            "assistantEventId": "3a57106a0b85412af595141867ada77ed0862a37479225cd8722a557aa7951b8",
+            "userEventId": "e1e86d2b4c5bb6320990ecfd44db4d5acf9a29c4d83150dfbe72b8f009b123e4",
+            "clientMessageId": "23c9b2fb-ac95-4ee9-81ec-0c18021478df"
+          },
+          "trace_id": "tr-219d58b7-3e01-4424-9f1d-c6b53e538f82",
+          "seq": 40
+        },
+        "scopePathComparison": "windows-case-insensitive; raw stream retained"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 9,
+        "usageCompleteRequests": 9,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 9,
+        "usageCompleteRequests": 9,
+        "tasks": [
+          {
+            "taskId": "verify-12",
+            "requests": 9,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": 0.24487180000000003,
+        "knownTokenOnlyEstimateCny": 0.24487180000000003,
+        "fxRate": null
+      },
+      "changedPaths": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml",
+        "packages/cli/__tests__/verify-12.test.js"
+      ],
+      "finishedAt": "2026-11-03T13:34:20.200Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-12"
+  ],
+  "generationPassed": true,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 40 model turns, 48 requests, 180 second request timeout, model maximum 393216 output tokens (8192 test cap removed), 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:3185a92e57bc89a9f9c1283aeff4823c409e1bebd48b8d20da509814fded8b29",
+  "group": "win32-jetbrains",
+  "entry": "jetbrains",
+  "platform": "win32",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:3ca5c1bfa5bffdee860665eeb757c24004dfaf0f3075f2a63e1a2600b3f6d600"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:487ed1e27103348c920988130954ec6449a81e66f7973e81ed02e1befd126da3"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:be2edf8e1ced537796d5819e458e4b56f2c1638eab8880b09c2c7fea4a4245fd"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+      "digest": "sha256:82becb2b0b551916e312131bcca48736d9e3f462aed4ea2a89ec00f907457eed"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
+      "digest": "sha256:d2cbc2dee63e7f53c622d61ad314143d6bd4d59a679d9aea29579cb034a829fb"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-public140-full.mjs",
+      "digest": "sha256:4c8b323e6c28b2dafb2f2e71ec2e7825d6b321d2998e3ef5f6ace3c2a10acdb9"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:3e515efc1cff606e2cbbfa977b5674abe6a73c142caa1b0539c0a2698978f8e4"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-plugin-artifact.mjs",
+      "digest": "sha256:ce04147c3e2f97c7d44d37052f5e8329595efe9bbcb852b51952535ba96357bc"
+    },
+    {
+      "file": "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.mjs",
+      "digest": "sha256:b8fc449018df5d188d9aada8469e023bd220ece659620b2323cf796e9d08fdcb"
+    },
+    {
+      "file": "packages/jetbrains-plugin/build.gradle.kts",
+      "digest": "sha256:17510157d489a11ed93bde3b2cb06cf3f939edac6ffd8b26735c047f44e3aba7"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "digest": "sha256:29655e9a949948528018ad85baf368e5240445216caa747719c95d6c83903e0b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/UiFailureDiagnostics.java",
+      "digest": "sha256:5802b749fd82048d196e90ce5f0f2f4e4c7cfc527590f07b62ccafb73d4c6a20"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "digest": "sha256:44cb87d4c64437b64204a4bca9d7faaec68a6cbbff8b7303c491e17e7597337b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "digest": "sha256:b2a5f856e6607ec559b1c7d17be14a110cccd6bcaea323cbab5ae1458109ee5b"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T13:19:18.254Z",
+    "finishedAt": "2026-11-03T13:23:11.368Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "verify-12",
+    "locked": {
+      "version": "0.166.140",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+      "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T13:34:20.203Z"
+}

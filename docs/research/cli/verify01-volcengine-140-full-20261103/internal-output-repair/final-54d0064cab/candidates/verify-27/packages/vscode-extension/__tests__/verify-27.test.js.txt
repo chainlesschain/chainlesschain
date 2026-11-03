@@ -1,0 +1,164 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { tmpdir } from "node:os";
+import { randomUUID } from "node:crypto";
+import { DraftStore } from "../src/chat/draft-store.js";
+import { QuestionDrafts } from "../src/chat/question-drafts.js";
+
+const cleanups = [];
+afterEach(async () => {
+  for (const fn of cleanups.splice(0).reverse()) await fn();
+});
+async function storage() {
+  const root = await fs.mkdtemp(path.join(tmpdir(), "cc-verify27-"));
+  cleanups.push(() => fs.rm(root, { recursive: true, force: true }));
+  return root;
+}
+
+// Precise binding contract: reload only revives live draft fields when the
+// re-sent request reproduces the exact request/session/schema identity.
+const binding = {
+  backgroundAgentId: null,
+  sessionId: "session-1",
+  turnId: "turn-1",
+  toolUseId: "tool-1",
+  sequence: 1,
+};
+const baseRequest = {
+  kind: "question",
+  id: "q1",
+  question: "Choose a target",
+  binding,
+};
+const schemaA = {
+  type: "object",
+  properties: { answer: { type: "string" } },
+};
+const schemaB = {
+  type: "object",
+  properties: { answer: { type: "string" }, note: { type: "string" } },
+};
+const savedFields = [{ key: '["answer"]', value: "half entered" }];
+
+function controller(store, overrides = {}) {
+  const conv = {
+    id: "a",
+    sessionId: "session-1",
+    draftKey: randomUUID(),
+    _sessionToken: {},
+    session: { running: true, sendEvent: vi.fn(() => true) },
+    ...overrides,
+  };
+  const messages = [];
+  const drafts = new QuestionDrafts({
+    store,
+    getConversation: (id) => (id === conv.id ? conv : null),
+    post: (m) => messages.push(m),
+    refresh: () => {},
+  });
+  return { drafts, conv, messages };
+}
+
+describe("reload problem precise binding", () => {
+  it("restores live fields only for a precise re-send of the same request", async () => {
+    const h = controller(new DraftStore(await storage()));
+    const q = h.drafts.register(h.conv, {
+      ...baseRequest,
+      requestedSchema: schemaA,
+    });
+    await h.drafts.save({ ...q, fields: savedFields, revision: 1 });
+    // Precise re-send: identical request, same session, same schema.
+    const resent = h.drafts.register(h.conv, {
+      ...baseRequest,
+      requestedSchema: schemaA,
+    });
+    expect(resent.questionInstance).toBe(q.questionInstance);
+    await h.drafts.restore(resent);
+    expect(h.messages.at(-1)).toMatchObject({
+      kind: "questionDraftSnapshot",
+      fields: savedFields,
+      state: "draft",
+    });
+  });
+
+  it("does not restore live fields when the schema differs", async () => {
+    const h = controller(new DraftStore(await storage()));
+    const q = h.drafts.register(h.conv, {
+      ...baseRequest,
+      requestedSchema: schemaA,
+    });
+    await h.drafts.save({ ...q, fields: savedFields, revision: 1 });
+    // Schema mismatch: a different requestedSchema must not revive the saved fields.
+    const changed = h.drafts.register(h.conv, {
+      ...baseRequest,
+      requestedSchema: schemaB,
+    });
+    await h.drafts.restore(changed);
+    expect(h.messages.at(-1)).toMatchObject({
+      kind: "questionDraftSnapshot",
+      fields: [],
+      state: "draft",
+    });
+    // Recovery data stays on disk, just not revived as live.
+    expect(
+      (await h.drafts.store.view(h.conv.draftKey)).questions[0].text,
+    ).toContain("half entered");
+  });
+
+  it("does not restore live fields when the session changes", async () => {
+    const h = controller(new DraftStore(await storage()));
+    const q = h.drafts.register(h.conv, baseRequest);
+    await h.drafts.save({ ...q, fields: [{ key: "answer", value: "typed" }], revision: 1 });
+    // Session mismatch: a new session id must not revive the previous session's fields.
+    h.conv.sessionId = "session-2";
+    const changed = h.drafts.register(h.conv, baseRequest);
+    await h.drafts.restore(changed);
+    expect(h.messages.at(-1)).toMatchObject({
+      kind: "questionDraftSnapshot",
+      fields: [],
+      state: "draft",
+    });
+  });
+
+  it("does not restore live fields when the request identity differs", async () => {
+    const h = controller(new DraftStore(await storage()));
+    const q = h.drafts.register(h.conv, baseRequest);
+    await h.drafts.save({ ...q, fields: [{ key: "answer", value: "typed" }], revision: 1 });
+    // Request mismatch: a different request id is a different review, not a reload.
+    const changed = h.drafts.register(h.conv, { ...baseRequest, id: "q2" });
+    await h.drafts.restore(changed);
+    expect(h.messages.at(-1)).toMatchObject({
+      kind: "questionDraftSnapshot",
+      fields: [],
+      state: "draft",
+    });
+  });
+
+  it("keeps the fields bound to the request that saved them even after a schema change is reverted", async () => {
+    const h = controller(new DraftStore(await storage()));
+    const q = h.drafts.register(h.conv, {
+      ...baseRequest,
+      requestedSchema: schemaA,
+    });
+    await h.drafts.save({ ...q, fields: savedFields, revision: 1 });
+    // First re-send with a different schema is not restored...
+    const changed = h.drafts.register(h.conv, {
+      ...baseRequest,
+      requestedSchema: schemaB,
+    });
+    await h.drafts.restore(changed);
+    expect(h.messages.at(-1).fields).toEqual([]);
+    // ...but re-sending the original precise request still revives the saved fields.
+    const precise = h.drafts.register(h.conv, {
+      ...baseRequest,
+      requestedSchema: schemaA,
+    });
+    await h.drafts.restore(precise);
+    expect(h.messages.at(-1)).toMatchObject({
+      kind: "questionDraftSnapshot",
+      fields: savedFields,
+      state: "draft",
+    });
+  });
+});

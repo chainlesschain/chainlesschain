@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "source": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "ref": "verify01-volc140-fixed45-54d0064cab",
+  "provider": "volcengine",
+  "scope": "complete-original36-plus9-public140-corrected-internal-output-limits",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-public140-full45-explicit-limits.json",
+  "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+  "selectedSampleIds": [
+    "first-run-darwin-cli",
+    "first-run-darwin-jetbrains",
+    "first-run-darwin-vscode",
+    "first-run-linux-cli",
+    "first-run-linux-jetbrains",
+    "first-run-linux-vscode",
+    "first-run-win32-cli",
+    "first-run-win32-jetbrains",
+    "first-run-win32-vscode",
+    "verify-01",
+    "verify-02",
+    "verify-03",
+    "verify-04",
+    "verify-05",
+    "verify-06",
+    "verify-07",
+    "verify-08",
+    "verify-09",
+    "verify-10",
+    "verify-11",
+    "verify-12",
+    "verify-13",
+    "verify-14",
+    "verify-15",
+    "verify-16",
+    "verify-17",
+    "verify-18",
+    "verify-19",
+    "verify-20",
+    "verify-21",
+    "verify-22",
+    "verify-23",
+    "verify-24",
+    "verify-25",
+    "verify-26",
+    "verify-27",
+    "verify-28",
+    "verify-29",
+    "verify-30",
+    "verify-31",
+    "verify-32",
+    "verify-33",
+    "verify-34",
+    "verify-35",
+    "verify-36"
+  ],
+  "historicalScoresUnchanged": true,
+  "normalizationRepair": {
+    "baselineRunId": 41630636517,
+    "baselineExecutionSource": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+    "baselinePackageSet": {
+      "path": "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-public140-full45.json",
+      "digest": "sha256:9df4efc5365ed381684a1990009c4b162ec96ae9ce229df13d4b583860a3559c"
+    },
+    "evidence": {
+      "path": "docs/research/cli/verify01-volcengine-140-full-20261103/diagnostics-output-limits/proof.json",
+      "digest": "sha256:c46ecea13a5d9d51af2a71bf25991aec0a8de9d74da10a7a2286e79663a1c6d2"
+    },
+    "preserveAllOriginalPackageBytes": true,
+    "outstandingUsageCarryForward": [
+      {
+        "runId": 41630636517,
+        "sampleId": "first-run-linux-vscode",
+        "requestId": 3,
+        "billedCost": null,
+        "usageKnown": false
+      }
+    ]
+  },
+  "baselineStatusAtDispatch": "queued",
+  "baselineConclusionAtDispatch": null,
+  "submitted": true,
+  "submissionStartedAt": "2026-11-03T12:39:29.428710+00:00",
+  "inputs": {
+    "confirm_live": "true",
+    "provider": "volcengine",
+    "fresh_volcengine_round": "true",
+    "hosts": "all",
+    "entries": "all",
+    "package_set": "latest",
+    "package_set_file": "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-public140-full45-explicit-limits.json",
+    "review_changes": "true"
+  },
+  "runId": 41638188839,
+  "submissionError": "Post \"https://api.github.com/repos/chainlesschain/chainlesschain/actions/workflows/verify01-native-task-campaign.yml/dispatches\": dial tcp 140.82.116.5:443: connectex: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.\n",
+  "submissionAttempts": [
+    {
+      "error": "Post \"https://api.github.com/repos/chainlesschain/chainlesschain/actions/workflows/verify01-native-task-campaign.yml/dispatches\": dial tcp 20.29.134.17:443: connectex: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond",
+      "confirmedPreHttpConnectionFailure": true,
+      "confirmedNoExistingRunAt": "2026-11-03T12:41:29.226031+00:00"
+    },
+    {
+      "error": "Post \"https://api.github.com/repos/chainlesschain/chainlesschain/actions/workflows/verify01-native-task-campaign.yml/dispatches\": dial tcp 140.82.116.5:443: connectex: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.\n",
+      "confirmedPreHttpConnectionFailure": true,
+      "confirmedNoExistingRunAt": "2026-11-03T12:43:57.119405+00:00"
+    }
+  ],
+  "retrySubmissionStartedAt": "2026-11-03T12:43:57.119405+00:00",
+  "submittedAt": "2026-11-03T12:44:00.799185+00:00",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41638188839"
+}

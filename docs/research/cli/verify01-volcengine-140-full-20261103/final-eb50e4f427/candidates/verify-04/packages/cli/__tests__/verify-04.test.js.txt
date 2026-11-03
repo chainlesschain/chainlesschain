@@ -1,0 +1,114 @@
+import { describe, expect, it } from "vitest";
+import { mergeUsagePricingBucket } from "../src/lib/usage-pricing-context.js";
+import { priceRollup } from "../src/lib/llm-pricing.js";
+
+// Acceptance: same grand-total tokens but different per-request cache / long
+// context distributions must be billed per-request (never on a merged sum).
+// mergeUsagePricingBucket splits requests into pricingBuckets keyed by the
+// long-context flag; priceRollup prices each bucket with that request's
+// multipliers.
+
+const OPENAI_MODEL = "gpt-6-sol"; // documented openai model with pricing terms
+
+const buildModel = () => ({
+  provider: "openai",
+  model: OPENAI_MODEL,
+  inputTokens: 0,
+  outputTokens: 0,
+  cacheReadTokens: 0,
+  cacheCreationTokens: 0,
+  totalTokens: 0,
+  calls: 0,
+});
+
+/** Merge one request at a time, then price the aggregate via priceRollup. */
+const priced = (records) =>
+  priceRollup({
+    byModel: [
+      records.reduce((entry, u) => {
+        mergeUsagePricingBucket(entry, u);
+        return entry;
+      }, buildModel()),
+    ],
+  });
+
+describe("request-level pricing cache & long-context distribution", () => {
+  it("splits an equal-total set across the long-context boundary per request", () => {
+    // Both aggregates total 600000 prompt tokens, but distribution differs.
+    const allLong = [300000, 300000]; // each > 272000 -> all long (2x input)
+    const splitLongShort = [400000, 200000]; // one long, one short (1x)
+    const byModel = [400000, 200000].reduce((entry, input) => {
+      mergeUsagePricingBucket(entry, { inputTokens: input });
+      return entry;
+    }, buildModel());
+    const allLongCost = priced(allLong.map((inputTokens) => ({ inputTokens })));
+    const splitCost = priced(splitLongShort.map((inputTokens) => ({ inputTokens })));
+    expect(allLongCost).toBeGreaterThan(splitCost);
+    // The equal-total split is held apart in distinct short vs long buckets.
+    expect(byModel.pricingBuckets).toHaveLength(2);
+  });
+
+  it("does not change cost when equal totals move within the same long flag", () => {
+    // Same total 600000, both requests stay long (>272000): only the long flag
+    // (not arbitrary distribution) must drive pricing, so cost is unchanged.
+    const a = priced([300000, 300000].map((inputTokens) => ({ inputTokens })));
+    const b = priced([301000, 299000].map((inputTokens) => ({ inputTokens })));
+    expect(a).toBeCloseTo(b, 10);
+    expect(a).toBeGreaterThan(0);
+  });
+
+  it("prices cache reads at the discounted rate for equal prompt totals", () => {
+    // Equal grand totals (600000) and both requests long; only cacheRead
+    // composition differs. Cached tokens bill at 0.1x of the input rate.
+    const fresh = priced([{ inputTokens: 300000 }, { inputTokens: 300000 }]);
+    const cached = priced([
+      { inputTokens: 200000, cacheReadTokens: 100000 },
+      { inputTokens: 300000 },
+    ]);
+    expect(cached).toBeLessThan(fresh);
+    expect(cached).toBeGreaterThan(0);
+  });
+
+  it("prices equal cache composition identically regardless of which request carries it", () => {
+    // Swap which request holds the cached tokens: same totals, same cache
+    // counts, so cost must be equal (identity/order is not the differing input).
+    const first = priced([
+      { inputTokens: 200000, cacheReadTokens: 100000 },
+      { inputTokens: 300000 },
+    ]);
+    const second = priced([
+      { inputTokens: 300000 },
+      { inputTokens: 200000, cacheReadTokens: 100000 },
+    ]);
+    expect(first).toBeCloseTo(second, 10);
+    expect(first).toBeGreaterThan(0);
+  });
+
+  it("treats 272000 as short and the first larger request as long", () => {
+    // Accepted boundary (threshold itself is NOT long) and first rejected value.
+    const entry = buildModel();
+    mergeUsagePricingBucket(entry, { inputTokens: 272000 });
+    mergeUsagePricingBucket(entry, { inputTokens: 272001 });
+    expect(entry.pricingBuckets).toHaveLength(2);
+    // The two buckets carry the per-request prompt totals for each side.
+    expect(entry.pricingBuckets.map((b) => b.requestInputTokens)).toEqual(
+      expect.arrayContaining([272000, 272001]),
+    );
+    // 272000 is the short bucket; 272001 is the long bucket.
+    const short = entry.pricingBuckets.find((b) => b.requestInputTokens === 272000);
+    const long = entry.pricingBuckets.find((b) => b.requestInputTokens === 272001);
+    expect(short.requestInputTokens > 272000).toBe(false);
+    expect(long.requestInputTokens > 272000).toBe(true);
+    // The two buckets must price differently at the request boundary.
+    expect(priceRollup({ byModel: [{ ...entry }] }).cost.totalCost).toBeGreaterThan(
+      0,
+    );
+  });
+
+  it("rejects a negative token count in a pricing bucket", () => {
+    const entry = buildModel();
+    expect(() =>
+      mergeUsagePricingBucket(entry, { inputTokens: 100, cacheReadTokens: -5 }),
+    ).toThrow(TypeError);
+  });
+});

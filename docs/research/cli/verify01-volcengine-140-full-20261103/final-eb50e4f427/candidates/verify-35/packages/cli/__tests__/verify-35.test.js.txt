@@ -1,0 +1,112 @@
+/**
+ * verify-35 — model failure classification regression.
+ *
+ * Focus: the frozen source's contract for distinguishing a *retryable* model
+ * failure (plain provider/protocol/transient errors) from an *explicitly
+ * rejected* one (evolution-ingress, runtime-ledger, workflow-outcome-unknown,
+ * session-budget, or abort). A protocol error must never be classified as
+ * terminal/successful; an explicit rejection marker must stay terminal even
+ * when its message/cause also carries transient HTTP text.
+ *
+ * Each case pairs a positive control (the marker under test) with a negative
+ * control that changes only that condition while keeping the surrounding
+ * failure shape (message text, outer cause) valid, so no unrelated guard can
+ * cause the flipped outcome.
+ */
+
+import { describe, it, expect } from "vitest";
+import {
+  isEvolutionIngressFailure,
+  isTerminalModelFailure,
+} from "../src/lib/model-failure-policy.js";
+
+const INGRESS_FAILED = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+
+describe("model failure classification regression (verify-35)", () => {
+  it("isEvolutionIngressFailure: ingress code at the root is terminal; a sibling code is not", () => {
+    // Positive: the exact ingress-failed code.
+    expect(isEvolutionIngressFailure({ code: INGRESS_FAILED })).toBe(true);
+    // Negative: same prefix, distinct suffix code — only the exact code matches.
+    expect(
+      isEvolutionIngressFailure({ code: "CC_AGENT_EVOLUTION_INGRESS_PENDING" }),
+    ).toBe(false);
+  });
+
+  it("isEvolutionIngressFailure: unwraps a nested ingress cause; a plain transient cause is not", () => {
+    // Positive: outer provider-503 error whose cause carries the ingress code.
+    // The same chain must also be terminal under isTerminalModelFailure, whose
+    // ingress branch is the identical code comparison.
+    const ingress = new Error("admission denied", {
+      cause: { code: INGRESS_FAILED },
+    });
+    expect(isEvolutionIngressFailure(ingress)).toBe(true);
+    expect(isTerminalModelFailure(ingress)).toBe(true);
+
+    // Negative: identical outer shape but the nested cause is a transient code.
+    const transient = new Error("provider 503", {
+      cause: { code: "ETIMEDOUT" },
+    });
+    expect(isEvolutionIngressFailure(transient)).toBe(false);
+  });
+
+  it("isTerminalModelFailure: a nested runtime-ledger marker stays terminal over transient text", () => {
+    // Positive: outer 503 error whose cause records runtimeLedgerPersistence.
+    const ledger = Object.assign(new Error("provider 503"), {
+      cause: Object.assign(new Error("ledger write failed"), {
+        runtimeLedgerPersistence: true,
+      }),
+    });
+    expect(isTerminalModelFailure(ledger)).toBe(true);
+
+    // Negative: same outer message/cause chain but without the marker.
+    const plain = Object.assign(new Error("provider 503"), {
+      cause: new Error("ledger write failed"),
+    });
+    expect(isTerminalModelFailure(plain)).toBe(false);
+  });
+
+  it("isTerminalModelFailure: workflow-outcome-unknown is terminal; the same text alone is retryable", () => {
+    // Positive: transient-looking error that also declares an unknown outcome.
+    const unknown = Object.assign(
+      new Error("upstream 503 then connection reset"),
+      { workflowEffectOutcomeUnknown: true },
+    );
+    expect(isTerminalModelFailure(unknown)).toBe(true);
+
+    // Negative: identical text with no terminal marker stays retryable.
+    expect(
+      isTerminalModelFailure(new Error("upstream 503 then connection reset")),
+    ).toBe(false);
+  });
+
+  it("isTerminalModelFailure: session-budget boundary — CC_/ERR_ prefixed codes match; bare code does not", () => {
+    // Positive: both accepted budget prefixes.
+    expect(
+      isTerminalModelFailure({
+        code: "CC_SESSION_BUDGET_IN_FLIGHT_LIMIT",
+      }),
+    ).toBe(true);
+    expect(
+      isTerminalModelFailure({
+        code: "ERR_SESSION_BUDGET_HARD_EXCEEDED",
+      }),
+    ).toBe(true);
+
+    // Negative: missing the required CC_/ERR_ prefix — first rejected value.
+    expect(
+      isTerminalModelFailure({ code: "SESSION_BUDGET_IN_FLIGHT_LIMIT" }),
+    ).toBe(false);
+  });
+
+  it("isTerminalModelFailure: an abort is terminal; a non-abort timeout is retryable", () => {
+    // Positive: AbortError name triggers the abort guard.
+    const abort = new Error("request aborted");
+    abort.name = "AbortError";
+    expect(isTerminalModelFailure(abort)).toBe(true);
+
+    // Negative: a timeout (retryable, non-abort) is not terminal.
+    const timeout = new Error("request timed out");
+    timeout.name = "TimeoutError";
+    expect(isTerminalModelFailure(timeout)).toBe(false);
+  });
+});

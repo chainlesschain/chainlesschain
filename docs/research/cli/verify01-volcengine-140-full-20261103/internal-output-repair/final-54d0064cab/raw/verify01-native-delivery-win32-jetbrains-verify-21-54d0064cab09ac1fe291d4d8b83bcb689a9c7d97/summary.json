@@ -1,0 +1,2030 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000,
+    "connectionAttemptTimeoutMs": 10000,
+    "parallelToolCalls": null,
+    "preserveExplicitOutputLimits": true
+  },
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:cea1a2ff4e14a002be1700446ebe97bc7640a79ad6d778839f71bb938a2d25af",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+  "actualPlatform": "win32",
+  "actualArch": "x64",
+  "actualEntry": "jetbrains",
+  "changeReview": {
+    "requested": true,
+    "observed": true
+  },
+  "startedAt": "2026-11-03T13:19:03.887Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-21",
+      "taskId": "verify-21",
+      "kind": "task",
+      "runId": "8aa1e9c8-db65-4a1e-a370-39b13ef9a6ee",
+      "stratum": "win32-jetbrains-volcengine",
+      "declaredActualEntry": {
+        "platform": "win32",
+        "entry": "jetbrains"
+      },
+      "actualPlatform": "win32",
+      "actualEntry": "jetbrains",
+      "changeReview": {
+        "requested": true,
+        "observed": true,
+        "reminderCount": 1,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-21.test.js"
+      ],
+      "startedAt": "2026-11-03T13:19:03.890Z",
+      "deadline": "2026-11-03T13:59:03.890Z",
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-21.test.js",
+          "path": "verify-21/candidate/packages/cli/__tests__/verify-21.test.js",
+          "digest": "sha256:2f4bd3f03556e9a0d08afdfe1197c3121136eb19eac940b07aff284e09a90041",
+          "bytes": 6056
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml"
+      ],
+      "unexpectedChanges": [],
+      "generationPassed": true,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T13:19:35.104Z",
+        "finishedAt": "2026-11-03T13:22:59.807Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "verify-21",
+        "locked": {
+          "version": "0.166.140",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+          "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "capturePath": "verify-21/capture",
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 86320,
+            "outputTokens": 14761,
+            "cacheReadInputTokens": 104960,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-1793712583143-85137b",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "2ce60411-5d0a-4085-8236-a1872fe354c8",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_o3lud52zh47gt280jzgjim01",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js"
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_s2dxs1hs8fcfjru81z3tbikn",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/segmented-memory-port.test.js"
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 7
+          },
+          {
+            "type": "tool_use",
+            "id": "call_xos0u23lal5jgizi7nm6rkcn",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-21.test.js",
+              "content": "import { afterEach, describe, expect, it } from \"vitest\";\nimport {\n  mkdtempSync,\n  readFileSync,\n  writeFileSync,\n  readdirSync,\n  rmSync,\n} from \"node:fs\";\nimport { tmpdir } from \"node:os\";\nimport { join } from \"node:path\";\nimport { applyMemoryCommand } from \"@chainlesschain/context-memory-kernel\";\nimport { createDurableMemoryFixture } from \"../scripts/persistent-capacity-benchmark.mjs\";\nimport {\n  SegmentedMemoryPort,\n  SEGMENTED_STORE_SCHEMA,\n} from \"../src/lib/context-memory-kernel/segmented-memory-port.js\";\nimport { STORE_SCHEMA } from \"../src/lib/context-memory-kernel/durable-memory-port.js\";\n\nconst roots = [];\nfunction location() {\n  const root = mkdtempSync(join(tmpdir(), \"cc-verify21-shadow-\"));\n  roots.push(root);\n  return join(root, \"kernel-v1.json\");\n}\nfunction reinforce(record) {\n  return applyMemoryCommand(record, {\n    type: \"reinforce\",\n    expectedRevision: record.revision,\n    confidenceDelta: 0.01,\n    authority: \"test\",\n    at: \"2026-10-04T00:00:00.000Z\",\n  });\n}\nfunction parentOf(filePath) {\n  return join(filePath, \"..\");\n}\nafterEach(() => {\n  while (roots.length) rmSync(roots.pop(), { recursive: true, force: true });\n});\n\ndescribe(\"Memory shadow reads are write-free (v1/v2)\", () => {\n  it(\"v1 shadow read does not migrate and leaves authority bytes and directory entries unchanged\", async () => {\n    const filePath = location();\n    const parent = parentOf(filePath);\n    const state = createDurableMemoryFixture(2);\n    writeFileSync(filePath, JSON.stringify(state));\n    const bytesBefore = readFileSync(filePath).toString();\n    const entriesBefore = readdirSync(parent).sort();\n\n    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });\n    expect(await shadow.query()).toHaveLength(2);\n    expect(await shadow.getRevision()).toBe(state.storeRevision);\n    const record = Object.values(state.records)[0];\n    expect(await shadow.read(record.memoryId)).toEqual(record);\n    expect(await shadow.exportSnapshot()).toEqual(state);\n\n    // No migration: the authority must still be a v1 (STORE_SCHEMA) store.\n    expect(JSON.parse(readFileSync(filePath)).schema).toBe(STORE_SCHEMA);\n    // No writes: authority bytes and directory entries are byte-identical.\n    expect(readFileSync(filePath).toString()).toBe(bytesBefore);\n    expect(readdirSync(parent).sort()).toEqual(entriesBefore);\n  });\n\n  it(\"a writable v1 port migrates the same store, proving readOnly is the migration guard\", async () => {\n    const filePath = location();\n    const state = createDurableMemoryFixture(2);\n    writeFileSync(filePath, JSON.stringify(state));\n\n    const writable = new SegmentedMemoryPort({ filePath });\n    expect(await writable.query()).toHaveLength(2);\n    // Changing only the readOnly flag flips behavior: migration now occurs.\n    expect(JSON.parse(readFileSync(filePath)).schema).toBe(\n      SEGMENTED_STORE_SCHEMA,\n    );\n  });\n\n  it(\"v2 shadow read keeps an orphan shard and leaves manifest bytes and directory entries unchanged\", async () => {\n    const filePath = location();\n    const parent = parentOf(filePath);\n    const state = createDurableMemoryFixture(2);\n    await new SegmentedMemoryPort({ filePath }).importSnapshot(state);\n    const shardDir = `${filePath}.shards`;\n    const manifestBefore = readFileSync(filePath).toString();\n    const parentBefore = readdirSync(parent).sort();\n    const shardEntriesBefore = readdirSync(shardDir).sort();\n    const orphanName = `00-${\"a\".repeat(64)}.json`;\n    const orphan = join(shardDir, orphanName);\n    writeFileSync(orphan, \"orphan-payload\");\n\n    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });\n    expect(await shadow.query()).toHaveLength(2);\n    expect(await shadow.exportSnapshot()).toEqual(state);\n    expect(await shadow.getRevision()).toBe(state.storeRevision);\n\n    // No GC: the orphan is retained and the shard directory is unchanged.\n    expect(readFileSync(orphan, \"utf8\")).toBe(\"orphan-payload\");\n    expect(readdirSync(shardDir).sort()).toEqual(\n      [...shardEntriesBefore, orphanName].sort(),\n    );\n    // No writes: manifest bytes and parent entries are unchanged.\n    expect(readFileSync(filePath).toString()).toBe(manifestBefore);\n    expect(readdirSync(parent).sort()).toEqual(parentBefore);\n  });\n\n  it(\"a writable v2 port collects the same orphan, proving readOnly is the GC guard\", async () => {\n    const filePath = location();\n    const state = createDurableMemoryFixture(2);\n    await new SegmentedMemoryPort({ filePath }).importSnapshot(state);\n    const shardDir = `${filePath}.shards`;\n    const orphanName = `00-${\"a\".repeat(64)}.json`;\n    writeFileSync(join(shardDir, orphanName), \"orphan-payload\");\n\n    const writable = new SegmentedMemoryPort({ filePath });\n    expect(await writable.query()).toHaveLength(2);\n    // Changing only the readOnly flag flips behavior: GC now removes the orphan.\n    expect(readdirSync(shardDir).sort()).not.toContain(orphanName);\n  });\n\n  it(\"a shadow port rejects commit and import instead of writing\", async () => {\n    const filePath = location();\n    const state = createDurableMemoryFixture(2);\n    await new SegmentedMemoryPort({ filePath }).importSnapshot(state);\n    const manifestBefore = readFileSync(filePath).toString();\n    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });\n    const record = Object.values(state.records)[0];\n\n    await expect(shadow.commit(reinforce(record), 1)).rejects.toMatchObject({\n      code: \"CONTEXT_MEMORY_READ_ONLY\",\n    });\n    expect(readFileSync(filePath).toString()).toBe(manifestBefore);\n\n    // Import into an absent authority must also be refused before any write.\n    const absent = location();\n    const absentParent = parentOf(absent);\n    const absentEntriesBefore = readdirSync(absentParent).sort();\n    await expect(\n      new SegmentedMemoryPort({ filePath: absent, readOnly: true }).importSnapshot(\n        state,\n      ),\n    ).rejects.toMatchObject({ code: \"CONTEXT_MEMORY_READ_ONLY\" });\n    expect(readdirSync(absentParent).sort()).toEqual(absentEntriesBefore);\n  });\n});\n"
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 12
+          },
+          {
+            "type": "tool_use",
+            "id": "call_hmzeoz0nc0jr9p1pv7cwrc4p",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+              "offset": 300,
+              "limit": 120
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 18
+          },
+          {
+            "type": "tool_use",
+            "id": "call_tp51k05iw4ln8iaac1oy44ad",
+            "tool": "read_file",
+            "args": {
+              "offset": 420,
+              "limit": 160,
+              "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js"
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 24
+          },
+          {
+            "type": "tool_use",
+            "id": "call_pqwpnpsn19m0i6c3bhj5pamv",
+            "tool": "search_files",
+            "args": {
+              "pattern": "_loadManifest|readOnly|_collect\\(|_installSnapshot\\(",
+              "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+              "content_search": true
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 30
+          },
+          {
+            "type": "tool_use",
+            "id": "call_h3a01kgywekijvf953pkrs3i",
+            "tool": "search_files",
+            "args": {
+              "content_search": true,
+              "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+              "pattern": "_loadManifest|readOnly|_installSnapshot",
+              "regex": true
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 38
+          },
+          {
+            "type": "tool_use",
+            "id": "call_paty04ohofjuxiopn65jz85e",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-21.test.js"
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 42
+          },
+          {
+            "type": "tool_use",
+            "id": "call_hko9r3wda8pz3gtb3zfhj6s8",
+            "tool": "search_files",
+            "args": {
+              "pattern": "commit|_publish|_collect",
+              "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+              "regex": true
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 49
+          },
+          {
+            "type": "tool_use",
+            "id": "call_cwxp7esbv3jdropqdoxh8564",
+            "tool": "search_files",
+            "args": {
+              "pattern": "createDurableMemoryFixture",
+              "path": "packages/cli/scripts/persistent-capacity-benchmark.mjs"
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 50
+          },
+          {
+            "type": "tool_use",
+            "id": "call_46ad47zbm2qdea8j1ay28666",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+              "offset": 147,
+              "limit": 20
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 55
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_o3lud52zh47gt280jzgjim01",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-ftcgRG\\8aa1e9c8-db65-4a1e-a370-39b13ef9a6ee\\workspace\\packages\\cli\\src\\lib\\context-memory-kernel\\segmented-memory-port.js",
+              "fileVersion": "22576:1793711967490.824:1793711967490.824",
+              "readSpan": {
+                "start": 0,
+                "end": 22576,
+                "total": 22576
+              },
+              "hashed": false,
+              "content": "import { createHash, randomUUID } from \"node:crypto\";\nimport {\n  closeSync,\n  fsyncSync,\n  lstatSync,\n  mkdirSync,\n  openSync,\n  opendirSync,\n  realpathSync,\n  renameSync,\n  rmSync,\n  writeFileSync,\n} from \"node:fs\";\nimport { dirname, join, resolve } from \"node:path\";\nimport {\n  canonicalDigest,\n  cloneCanonical,\n  normalizeMemoryRecord,\n} from \"@chainlesschain/context-memory-kernel\";\nimport {\n  DurableJsonMemoryPort,\n  STORE_SCHEMA,\n  corruptStore,\n  normalizeState,\n  readBoundedState,\n  stateDigest,\n  syncDirectory,\n} from \"./durable-memory-port.js\";\n\nexport const SEGMENTED_STORE_SCHEMA =\n  \"chainlesschain.cli-context-memory-store/v2\";\nexport const DEFAULT_MAX_TOTAL_BYTES = 1024 * 1024 * 1024;\nexport const DEFAULT_SEGMENTED_MAX_EVENTS = 1_000_000;\nconst MANIFEST_LIMIT = 256 * 1024;\nconst HEX = /^sha256:[a-f0-9]{64}$/u;\nconst BUCKET = /^[a-f0-9]{2}$/u;\n\nfunction bucketOf(value) {\n  return createHash(\"sha256\").update(value).digest(\"hex\").slice(0, 2);\n}\nfunction own(object, key) {\n  return Object.hasOwn(object, key) ? object[key] : null;\n}\nfunction put(object, key, value) {\n  Object.defineProperty(object, key, {\n    value,\n    writable: true,\n    configurable: true,\n    enumerable: true,\n  });\n}\nfunction limit(reason) {\n  return Object.assign(\n    new Error(`Context/Memory store limit reached: ${reason}`),\n    { code: \"CONTEXT_MEMORY_STORE_LIMIT\" },\n  );\n}\nfunction manifestDigest(value) {\n  const copy = { ...value };\n  delete copy.digest;\n  return canonicalDigest(copy, SEGMENTED_STORE_SCHEMA);\n}\nfunction blankShard() {\n  return {\n    schema: STORE_SCHEMA,\n    schemaVersion: 1,\n    storeRevision: 0,\n    records: {},\n    events: [],\n    reconciliations: {},\n  };\n}\nfunction blankManifest() {\n  return {\n    schema: SEGMENTED_STORE_SCHEMA,\n    schemaVersion: 2,\n    storeRevision: 0,\n    shards: {},\n    totalBytes: 0,\n    eventCount: 0,\n    recordCount: 0,\n  };\n}\nfunction regular(file) {\n  const stat = lstatSync(file);\n  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {\n    throw corruptStore(file, \"authority must be an unlinked regular file\");\n  }\n}\nfunction directories(directory) {\n  let current = resolve(directory);\n  while (true) {\n    const stat = lstatSync(current);\n    // macOS exposes its system temporary tree through the root-owned /var\n    // alias. This exact OS alias is not a user-controlled authority redirect.\n    const systemAlias =\n      process.platform === \"darwin\" &&\n      [\"/var\", \"/tmp\"].includes(current) &&\n      stat.isSymbolicLink() &&\n      stat.uid === 0 &&\n      realpathSync(current) === `/private${current}`;\n    if (!systemAlias && (!stat.isDirectory() || stat.isSymbolicLink()))\n      throw corruptStore(current, \"authority directory is unsafe\");\n    const parent = dirname(current);\n    if (parent === current) break;\n    current = parent;\n  }\n}\nfunction identity(directory) {\n  const stat = lstatSync(directory);\n  return `${stat.dev}:${stat.ino}`;\n}\nfunction existsSync(file) {\n  try {\n    lstatSync(file);\n    return true;\n  } catch (error) {\n    if (error.code === \"ENOENT\") return false;\n    throw error;\n  }\n}\nfunction ensureSafeDirectory(directory) {\n  let existing = resolve(directory);\n  while (!existsSync(existing)) existing = dirname(existing);\n  directories(existing);\n  mkdirSync(directory, { recursive: true, mode: 0o700 });\n  directories(directory);\n}\n\n/**\n * 256 immutable hash buckets, committed by one atomic manifest replacement.\n * The inherited lock is on the original authority path, including during v1\n * migration. A v1-only client therefore rejects v2 instead of writing a second\n * authority. Audit events are retained, not truncated to buy record capacity.\n */\nexport class SegmentedMemoryPort extends DurableJsonMemoryPort {\n  constructor({\n    maxTotalBytes = DEFAULT_MAX_TOTAL_BYTES,\n    maxEvents = DEFAULT_SEGMENTED_MAX_EVENTS,\n    readOnly = false,\n    ...options\n  } = {}) {\n    super({ ...options, maxEvents });\n    if (!Number.isSafeInteger(maxTotalBytes) || maxTotalBytes < 1)\n      throw new TypeError(\"maxTotalBytes must be a positive safe integer\");\n    this.maxTotalBytes = maxTotalBytes;\n    this.readOnly = Boolean(readOnly);\n    this.filePath = resolve(this.filePath);\n    this.shardDirectory = `${this.filePath}.shards`;\n  }\n\n  _locked(operation) {\n    ensureSafeDirectory(dirname(this.filePath));\n    directories(dirname(this.filePath));\n    return super._locked(() => {\n      directories(dirname(this.filePath));\n      this._parentIdentity = identity(dirname(this.filePath));\n      this._shardIdentity = existsSync(this.shardDirectory)\n        ? identity(this.shardDirectory)\n        : null;\n      if (existsSync(this.filePath)) regular(this.filePath);\n      return operation();\n    });\n  }\n\n  _checkDirectories() {\n    directories(dirname(this.filePath));\n    directories(this.shardDirectory);\n    if (\n      identity(dirname(this.filePath)) !== this._parentIdentity ||\n      (this._shardIdentity !== null &&\n        identity(this.shardDirectory) !== this._shardIdentity)\n    ) {\n      throw corruptStore(\n        this.filePath,\n        \"authority directory was replaced during an operation\",\n      );\n    }\n    this._shardIdentity = identity(this.shardDirectory);\n    if (\n      process.platform !== \"win32\" &&\n      lstatSync(this.shardDirectory).mode & 0o077\n    )\n      throw corruptStore(\n        this.shardDirectory,\n        \"shard directory must be private\",\n      );\n  }\n\n  _shardPath(bucket, descriptor) {\n    return join(\n      this.shardDirectory,\n      `${bucket}-${descriptor.digest.slice(7)}.json`,\n    );\n  }\n\n  _validateManifest(input) {\n    const invalid = () => {\n      throw corruptStore(this.filePath, \"segmented manifest is invalid\");\n    };\n    if (\n      !input ||\n      input.schema !== SEGMENTED_STORE_SCHEMA ||\n      input.schemaVersion !== 2 ||\n      !Number.isSafeInteger(input.storeRevision) ||\n      input.storeRevision < 0 ||\n      !input.shards ||\n      Array.isArray(input.shards) ||\n      typeof input.shards !== \"object\" ||\n      Object.keys(input).sort().join() !==\n        \"digest,eventCount,recordCount,schema,schemaVersion,shards,storeRevision,totalBytes\" ||\n      input.digest !== manifestDigest(input)\n    )\n      invalid();\n    let bytes = 0;\n    let events = 0;\n    let records = 0;\n    for (const [bucket, entry] of Object.entries(input.shards)) {\n      if (\n        !BUCKET.test(bucket) ||\n        !entry ||\n        Object.keys(entry).sort().join() !==\n          \"bytes,digest,eventCount,recordCount\" ||\n        !HEX.test(entry.digest)\n      )\n        invalid();\n      for (const key of [\"bytes\", \"eventCount\", \"recordCount\"])\n        if (!Number.isSafeInteger(entry[key]) || entry[key] < 0) invalid();\n      if (entry.bytes > this.maxStoreBytes)\n        throw limit(\"shard exceeds configured byte limit\");\n      bytes += entry.bytes;\n      events += entry.eventCount;\n      records += entry.recordCount;\n    }\n    if (\n      bytes !== input.totalBytes ||\n      events !== input.eventCount ||\n      records !== input.recordCount ||\n      ![bytes, events, records].every(Number.isSafeInteger)\n    )\n      invalid();\n    if (bytes > this.maxTotalBytes || events > this.maxEvents)\n      throw limit(\"aggregate capacity exceeded\");\n    return input;\n  }\n\n  _loadManifest() {\n    if (!existsSync(this.filePath)) return blankManifest();\n    regular(this.filePath);\n    // v1 can be larger than a manifest; preserve its existing read boundary.\n    let input;\n    let bytes;\n    try {\n      bytes = readBoundedState(\n        this.filePath,\n        Math.max(this.maxStoreBytes, MANIFEST_LIMIT),\n        true,\n      );\n      input = JSON.parse(bytes.toString(\"utf8\"));\n    } catch (cause) {\n      throw corruptStore(this.filePath, \"authority cannot be parsed\", cause);\n    }\n    if (input?.schema === STORE_SCHEMA) {\n      if (bytes.length > this.maxStoreBytes)\n        throw corruptStore(\n          this.filePath,\n          \"legacy store exceeds its configured byte limit\",\n        );\n      const legacy = normalizeState(input, this.filePath);\n      if (this.readOnly) return legacy;\n      return this._installSnapshot(legacy);\n    }\n    const manifest = this._validateManifest(input);\n    if (bytes.length > MANIFEST_LIMIT)\n      throw corruptStore(this.filePath, \"manifest is too large\");\n    this._checkDirectories();\n    if (!this.readOnly) this._collect(manifest);\n    return manifest;\n  }\n\n  _readShard(manifest, bucket) {\n    if (manifest.schema === STORE_SCHEMA) return manifest;\n    const descriptor = manifest.shards[bucket];\n    if (!descriptor) return blankShard();\n    return this._decodeShard(\n      manifest,\n      bucket,\n      this._readShardBytes(manifest, bucket),\n    );\n  }\n\n  _readShardBytes(manifest, bucket) {\n    const descriptor = manifest.shards[bucket];\n    this._checkDirectories();\n    const file = this._shardPath(bucket, descriptor);\n    regular(file);\n    const bytes = readBoundedState(\n      file,\n      Math.min(this.maxStoreBytes, descriptor.bytes),\n      true,\n    );\n    if (bytes.length !== descriptor.bytes)\n      throw corruptStore(file, \"shard byte length changed\");\n    return bytes;\n  }\n\n  _decodeShard(manifest, bucket, bytes) {\n    const descriptor = manifest.shards[bucket];\n    const file = this._shardPath(bucket, descriptor);\n    let state;\n    try {\n      state = normalizeState(JSON.parse(bytes.toString(\"utf8\")), file);\n    } catch (cause) {\n      throw corruptStore(file, \"shard cannot be validated\", cause);\n    }\n    if (\n      state.digest !== descriptor.digest ||\n      state.events.length !== descriptor.eventCount ||\n      Object.keys(state.records).length !== descriptor.recordCount ||\n      Object.keys(state.records).some((id) => bucketOf(id) !== bucket) ||\n      Object.keys(state.reconciliations).some(\n        (id) => bucketOf(id) !== bucket,\n      ) ||\n      state.events.some(\n        (entry, index) =>\n          !entry ||\n          Object.keys(entry).sort().join() !== \"event,sequence\" ||\n          !Number.isSafeInteger(entry.sequence) ||\n          entry.sequence < 1 ||\n          entry.sequence > manifest.eventCount ||\n          (index > 0 && entry.sequence <= state.events[index - 1].sequence),\n      )\n    ) {\n      throw corruptStore(file, \"shard does not match its manifest\");\n    }\n    return state;\n  }\n\n  _collect(manifest) {\n    this._checkDirectories();\n    const live = new Set(\n      Object.entries(manifest.shards).map(\n        ([bucket, entry]) => `${bucket}-${entry.digest.slice(7)}.json`,\n      ),\n    );\n    // All readers hold the same authority lock. No reader can still be using\n    // a superseded shard here. Unknown files are never treated as our garbage.\n    const directory = opendirSync(this.shardDirectory);\n    let scanned = 0;\n    let removed = false;\n    try {\n      let entry;\n      while ((entry = directory.readSync()) !== null) {\n        if (++scanned > 4096)\n          throw limit(\"shard directory inventory exceeds 4096 entries\");\n        const owned =\n          /^[a-f0-9]{2}-[a-f0-9]{64}\\.json$/u.test(entry.name) ||\n          /^manifest-[a-f0-9-]{36}\\.tmp$/u.test(entry.name);\n        if (owned && !live.has(entry.name)) {\n          const file = join(this.shardDirectory, entry.name);\n          regular(file);\n          this._checkDirectories();\n          rmSync(file);\n          removed = true;\n        }\n      }\n    } finally {\n      directory.closeSync();\n    }\n    // A successful purge must persist the removal of superseded plaintext\n    // shards on platforms supporting directory fsync, not just the manifest.\n    if (removed) syncDirectory(this.shardDirectory);\n  }\n\n  _publish(manifest, changed) {\n    if (this.readOnly)\n      throw Object.assign(\n        new Error(\"Context/Memory shadow authority is read-only\"),\n        { code: \"CONTEXT_MEMORY_READ_ONLY\" },\n      );\n    ensureSafeDirectory(this.shardDirectory);\n    this._checkDirectories();\n    this._collect(manifest);\n    const next = cloneCanonical(manifest);\n    const pending = [];\n    let pendingBytes = manifest.totalBytes;\n    let pendingEvents = manifest.eventCount;\n    for (const [bucket, state] of changed) {\n      state.digest = stateDigest(state);\n      const bytes = `${JSON.stringify(state)}\\n`;\n      const size = Buffer.byteLength(bytes);\n      if (size > this.maxStoreBytes)\n        throw limit(\"shard exceeds configured byte limit\");\n      pendingBytes += size - (next.shards[bucket]?.bytes || 0);\n      pendingEvents +=\n        state.events.length - (next.shards[bucket]?.eventCount || 0);\n      if (pendingBytes > this.maxTotalBytes || pendingEvents > this.maxEvents)\n        throw limit(\"aggregate capacity exceeded\");\n      next.shards[bucket] = {\n        digest: state.digest,\n        bytes: size,\n        eventCount: state.events.length,\n        recordCount: Object.keys(state.records).length,\n      };\n      pending.push({\n        file: this._shardPath(bucket, next.shards[bucket]),\n        bytes,\n      });\n    }\n    next.totalBytes = Object.values(next.shards).reduce(\n      (sum, entry) => sum + entry.bytes,\n      0,\n    );\n    next.eventCount = Object.values(next.shards).reduce(\n      (sum, entry) => sum + entry.eventCount,\n      0,\n    );\n    next.recordCount = Object.values(next.shards).reduce(\n      (sum, entry) => sum + entry.recordCount,\n      0,\n    );\n    next.digest = manifestDigest(next);\n    this._validateManifest(next);\n    const serialized = `${JSON.stringify(next)}\\n`;\n    if (Buffer.byteLength(serialized) > MANIFEST_LIMIT)\n      throw limit(\"manifest exceeds byte limit\");\n    const temporary = join(this.shardDirectory, `manifest-${randomUUID()}.tmp`);\n    const created = [];\n    let published = false;\n    let directorySynced = false;\n    let failure = null;\n    try {\n      for (const { file, bytes } of pending) {\n        // Content-addressed existing files must match, including crash leftovers.\n        if (existsSync(file)) {\n          regular(file);\n          if (\n            !readBoundedState(file, this.maxStoreBytes, true).equals(\n              Buffer.from(bytes),\n            )\n          )\n            throw corruptStore(file, \"immutable shard was modified\");\n          continue;\n        }\n        const fd = openSync(file, \"wx\", 0o600);\n        created.push(file);\n        try {\n          writeFileSync(fd, bytes, \"utf8\");\n          fsyncSync(fd);\n        } finally {\n          closeSync(fd);\n        }\n      }\n      syncDirectory(this.shardDirectory);\n      const fd = openSync(temporary, \"wx\", 0o600);\n      try {\n        writeFileSync(fd, serialized, \"utf8\");\n        fsyncSync(fd);\n      } finally {\n        closeSync(fd);\n      }\n      this._checkDirectories();\n      if (existsSync(this.filePath)) regular(this.filePath);\n      renameSync(temporary, this.filePath);\n      published = true;\n      syncDirectory(dirname(this.filePath));\n      directorySynced = true;\n      this._collect(next);\n      return next;\n    } catch (cause) {\n      failure = cause;\n      if (published) {\n        // The manifest is now authoritative: never roll it back or remove its\n        // shards. Callers must observe the revision before attempting a retry.\n        throw Object.assign(\n          new Error(\n            \"Context/Memory commit was published but post-commit maintenance failed\",\n            { cause },\n          ),\n          {\n            code: \"CONTEXT_MEMORY_COMMIT_PUBLISHED\",\n            committed: true,\n            storeRevision: next.storeRevision,\n            durability:\n              process.platform === \"win32\"\n                ? \"directory-sync-unsupported\"\n                : directorySynced\n                  ? \"directory-sync-completed\"\n                  : \"unknown\",\n            cleanupComplete: false,\n          },\n        );\n      }\n      throw cause;\n    } finally {\n      if (!published) {\n        try {\n          this._checkDirectories();\n          rmSync(temporary, { force: true });\n          for (const file of created) {\n            this._checkDirectories();\n            rmSync(file, { force: true });\n          }\n        } catch {\n          // Preserve the primary failure and leave recoverable private orphans;\n          // never follow a replaced parent directory to perform cleanup.\n          if (failure) failure.unpublishedCleanupIncomplete = true;\n        }\n      }\n    }\n  }\n\n  _installSnapshot(state) {\n    const shards = new Map();\n    const get = (id) => {\n      const bucket = bucketOf(id);\n      if (!shards.has(bucket)) shards.set(bucket, blankShard());\n      return shards.get(bucket);\n    };\n    for (const [id, record] of Object.entries(state.records))\n      put(get(id).records, id, record);\n    for (const [index, event] of state.events.entries()) {\n      // Keep even legacy events without a memoryId; never discard audit data.\n      get(\n        typeof event?.memoryId === \"string\" ? event.memoryId : \"\",\n      ).events.push({ sequence: index + 1, event });\n    }\n    for (const [id, operation] of Object.entries(state.reconciliations))\n      put(get(id).reconciliations, id, operation);\n    const manifest = blankManifest();\n    manifest.storeRevision = state.storeRevision;\n    return this._publish(manifest, shards);\n  }\n\n  /** Explicit atomic import into an empty authority; also used by migration. */\n  async importSnapshot(snapshot) {\n    const state = normalizeState(snapshot, this.filePath);\n    return this._locked(() => {\n      if (existsSync(this.filePath))\n        throw Object.assign(\n          new Error(\"Snapshot import requires an absent authority\"),\n          { code: \"CONTEXT_MEMORY_IMPORT_CONFLICT\" },\n        );\n      const result = this._installSnapshot(state);\n      return {\n        ok: true,\n        storeRevision: result.storeRevision,\n        recordCount: result.recordCount,\n      };\n    });\n  }\n\n  async read(id) {\n    return this._locked(() =>\n      cloneCanonical(\n        own(this._readShard(this._loadManifest(), bucketOf(id)).records, id),\n      ),\n    );\n  }\n  async query() {\n    const snapshot = await this._locked(() => {\n      const manifest = this._loadManifest();\n      if (manifest.schema === STORE_SCHEMA) return { legacy: manifest };\n      let capturedBytes = 0;\n      const shards = Object.keys(manifest.shards).map((bucket) => {\n        const bytes = this._readShardBytes(manifest, bucket);\n        capturedBytes += bytes.length;\n        if (\n          capturedBytes > manifest.totalBytes ||\n          capturedBytes > this.maxTotalBytes\n        )\n          throw limit(\"snapshot exceeds aggregate byte limit\");\n        return [bucket, bytes];\n      });\n      if (capturedBytes !== manifest.totalBytes)\n        throw corruptStore(\n          this.filePath,\n          \"snapshot byte count does not match manifest\",\n        );\n      return { manifest, shards };\n    });\n    if (snapshot.legacy) return Object.values(snapshot.legacy.records);\n    // The lock protects capture of every byte in one manifest generation.\n    // Expensive validation uses owned buffers after releasing the lock, so GC\n    // and other readers/writers need not wait for whole-store JSON validation.\n    return snapshot.shards.flatMap(([bucket, bytes]) =>\n      Object.values(\n        this._decodeShard(snapshot.manifest, bucket, bytes).records,\n      ),\n    );\n  }\n  async getRevision() {\n    return this._locked(() => this._loadManifest().storeRevision);\n  }\n  async exportSnapshot() {\n    return this._locked(() => {\n      const manifest = this._loadManifest();\n      if (manifest.schema === STORE_SCHEMA) return manifest;\n      const state = blankShard();\n      state.storeRevision = manifest.storeRevision;\n      const events = [];\n      for (const bucket of Object.keys(manifest.shards)) {\n        const shard = this._readShard(manifest, bucket);\n        for (const [id, record] of Object.entries(shard.records))\n          put(state.records, id, record);\n        for (const [id, operation] of Object.entries(shard.reconciliations))\n          put(state.reconciliations, id, operation);\n        for (const entry of shard.events) events.push(entry);\n      }\n      events.sort((left, right) => left.sequence - right.sequence);\n      if (events.some((entry, index) => entry.sequence !== index + 1))\n        throw corruptStore(this.filePath, \"audit sequence is invalid\");\n      state.events = events.map((entry) => entry.event);\n      state.digest = stateDigest(state);\n      return state;\n    });\n  }\n  async getReconciliation(id) {\n    return this._locked(() =>\n      cloneCanonical(\n        own(\n          this._readShard(this._loadManifest(), bucketOf(id)).reconciliations,\n          id,\n        ),\n      ),\n    );\n  }\n  _advance(manifest) {\n    if (manifest.storeRevision >= Number.MAX_SAFE_INTEGER)\n      throw limit(\"store revision is exhausted\");\n    manifest.storeRevision += 1;\n  }\n  async commit({ record, event, reconciliation }, expectedRevision = 0) {\n    const normalized = normalizeMemoryRecord(record);\n    return this._locked(() => {\n      const manifest = this._loadManifest();\n      const bucket = bucketOf(normalized.memoryId);\n      const shard = this._readShard(manifest, bucket);\n      const actual = own(shard.records, normalized.memoryId)?.revision || 0;\n      if (actual !== expectedRevision)\n        return {\n          ok: false,\n          currentRevision: actual,\n          storeRevision: manifest.storeRevision,\n        };\n      const changed = new Map([[bucket, shard]]);\n      put(shard.records, normalized.memoryId, normalized);\n      shard.events.push({\n        sequence: manifest.eventCount + 1,\n        event: cloneCanonical(event),\n      });\n      if (reconciliation) {\n        const target = bucketOf(reconciliation.requestId);\n        if (!changed.has(target))\n          changed.set(target, this._readShard(manifest, target));\n        put(\n          changed.get(target).reconciliations,\n          reconciliation.requestId,\n          cloneCanonical(reconciliation),\n        );\n      }\n      this._advance(manifest);\n      this._publish(manifest, changed);\n      return {\n        ok: true,\n        revision: normalized.revision,\n        storeRevision: manifest.storeRevision,\n        reconciliationStored: Boolean(reconciliation),\n      };\n    });\n  }\n  async putReconciliation(operation) {\n    return this._locked(() => {\n      const manifest = this._loadManifest();\n      const bucket = bucketOf(operation.requestId);\n      const shard = this._readShard(manifest, bucket);\n      put(\n        shard.reconciliations,\n        operation.requestId,\n        cloneCanonical(operation),\n      );\n      this._advance(manifest);\n      this._publish(manifest, new Map([[bucket, shard]]));\n      return { ok: true, storeRevision: manifest.storeRevision };\n    });\n  }\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712615286,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 25,
+                "sessionId": "panel-1793712583143-85137b",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_o3lud52zh47gt280jzgjim01",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 8
+          },
+          {
+            "type": "tool_result",
+            "id": "call_s2dxs1hs8fcfjru81z3tbikn",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-ftcgRG\\8aa1e9c8-db65-4a1e-a370-39b13ef9a6ee\\workspace\\packages\\cli\\__tests__\\unit\\segmented-memory-port.test.js",
+              "fileVersion": "15226:1793711966273.3958:1793711966273.3958",
+              "readSpan": {
+                "start": 0,
+                "end": 15226,
+                "total": 15226
+              },
+              "hashed": false,
+              "content": "import { afterEach, describe, expect, it, vi } from \"vitest\";\nimport fs from \"node:fs\";\nimport { syncBuiltinESMExports } from \"node:module\";\nimport {\n  mkdtempSync,\n  readFileSync,\n  writeFileSync,\n  readdirSync,\n  rmSync,\n  linkSync,\n  mkdirSync,\n  symlinkSync,\n} from \"node:fs\";\nimport { tmpdir } from \"node:os\";\nimport { join } from \"node:path\";\nimport { applyMemoryCommand } from \"@chainlesschain/context-memory-kernel\";\nimport { createDurableMemoryFixture } from \"../../scripts/persistent-capacity-benchmark.mjs\";\nimport {\n  DurableJsonMemoryPort,\n  stateDigest,\n} from \"../../src/lib/context-memory-kernel/durable-memory-port.js\";\nimport {\n  SegmentedMemoryPort,\n  SEGMENTED_STORE_SCHEMA,\n} from \"../../src/lib/context-memory-kernel/segmented-memory-port.js\";\n\nconst roots = [];\nfunction location() {\n  const root = mkdtempSync(join(tmpdir(), \"cc-segmented-memory-\"));\n  roots.push(root);\n  return join(root, \"kernel-v1.json\");\n}\nfunction reinforce(record) {\n  return applyMemoryCommand(record, {\n    type: \"reinforce\",\n    expectedRevision: record.revision,\n    confidenceDelta: 0.01,\n    authority: \"test\",\n    at: \"2026-10-04T00:00:00.000Z\",\n  });\n}\nafterEach(() => {\n  vi.restoreAllMocks();\n  syncBuiltinESMExports();\n  while (roots.length) rmSync(roots.pop(), { recursive: true, force: true });\n});\n\ndescribe(\"segmented memory authority\", () => {\n  it.skipIf(process.platform === \"win32\")(\n    \"reports post-publication failure when durable removal of superseded shards cannot be synced\",\n    async () => {\n      const filePath = location();\n      const port = new SegmentedMemoryPort({ filePath });\n      const state = createDurableMemoryFixture(2);\n      await port.importSnapshot(state);\n      const transition = reinforce(Object.values(state.records)[0]);\n      const rename = fs.renameSync;\n      const sync = fs.fsyncSync;\n      let published = false;\n      let directorySyncs = 0;\n      vi.spyOn(fs, \"renameSync\").mockImplementation((from, to) => {\n        rename(from, to);\n        if (to === filePath) published = true;\n      });\n      vi.spyOn(fs, \"fsyncSync\").mockImplementation((fd) => {\n        if (\n          published &&\n          fs.fstatSync(fd).isDirectory() &&\n          ++directorySyncs === 2\n        )\n          throw new Error(\"injected GC directory sync\");\n        return sync(fd);\n      });\n      syncBuiltinESMExports();\n      await expect(port.commit(transition, 1)).rejects.toMatchObject({\n        code: \"CONTEXT_MEMORY_COMMIT_PUBLISHED\",\n        committed: true,\n        cleanupComplete: false,\n      });\n      expect(directorySyncs).toBe(2);\n      vi.restoreAllMocks();\n      syncBuiltinESMExports();\n      expect(\n        await new SegmentedMemoryPort({ filePath }).read(\n          transition.record.memoryId,\n        ),\n      ).toEqual(transition.record);\n    },\n  );\n  it(\"exports concentrated legacy audit without an argument-count limit\", async () => {\n    const state = createDurableMemoryFixture(1);\n    state.events = Array.from({ length: 140000 }, () => ({\n      type: \"legacy.event\",\n    }));\n    state.storeRevision = state.events.length;\n    state.digest = stateDigest(state);\n    const port = new SegmentedMemoryPort({ filePath: location() });\n    await port.importSnapshot(state);\n    expect((await port.exportSnapshot()).digest).toBe(state.digest);\n  }, 30000);\n  it(\"keeps the manifest bound independent from smaller bucket limits on reopen\", async () => {\n    const filePath = location();\n    const port = new SegmentedMemoryPort({ filePath, maxStoreBytes: 8192 });\n    await port.importSnapshot(createDurableMemoryFixture(100));\n    expect(readFileSync(filePath).length).toBeGreaterThan(8192);\n    expect(\n      await new SegmentedMemoryPort({ filePath, maxStoreBytes: 8192 }).query(),\n    ).toHaveLength(100);\n  });\n  it(\"rejects a symlink or junction parent before creating authority directories through it\", async () => {\n    const filePath = location();\n    const root = join(filePath, \"..\");\n    const target = join(root, \"target\");\n    mkdirSync(target);\n    const link = join(root, \"linked\");\n    symlinkSync(\n      target,\n      link,\n      process.platform === \"win32\" ? \"junction\" : \"dir\",\n    );\n    const port = new SegmentedMemoryPort({\n      filePath: join(link, \"nested\", \"authority.json\"),\n    });\n    await expect(port.query()).rejects.toMatchObject({\n      code: \"CONTEXT_MEMORY_STORE_CORRUPT\",\n    });\n    expect(readdirSync(target)).toEqual([]);\n  });\n  it(\"never confuses inherited object keys with stored record or reconciliation entries\", async () => {\n    const port = new SegmentedMemoryPort({ filePath: location() });\n    expect(await port.read(\"constructor\")).toBeNull();\n    expect(await port.getReconciliation(\"constructor\")).toBeNull();\n    const operation = { requestId: \"__proto__\", status: \"pending\" };\n    await port.putReconciliation(operation);\n    expect(await port.getReconciliation(\"__proto__\")).toEqual(operation);\n    expect(\n      Object.hasOwn((await port.exportSnapshot()).reconciliations, \"__proto__\"),\n    ).toBe(true);\n  });\n  it(\"keeps shadow reads write-free for v1 and v2, including orphan collection\", async () => {\n    const filePath = location();\n    const state = createDurableMemoryFixture(2);\n    writeFileSync(filePath, JSON.stringify(state));\n    const before = readFileSync(filePath);\n    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });\n    expect(await shadow.query()).toHaveLength(2);\n    expect(await shadow.exportSnapshot()).toEqual(state);\n    expect(readFileSync(filePath)).toEqual(before);\n    await expect(\n      shadow.commit(reinforce(Object.values(state.records)[0]), 1),\n    ).rejects.toMatchObject({ code: \"CONTEXT_MEMORY_READ_ONLY\" });\n    await new SegmentedMemoryPort({ filePath }).query();\n    const orphan = join(shadow.shardDirectory, `00-${\"a\".repeat(64)}.json`);\n    writeFileSync(orphan, \"orphan\");\n    expect(await shadow.query()).toHaveLength(2);\n    expect(readFileSync(orphan, \"utf8\")).toBe(\"orphan\");\n  });\n  it(\"validates a captured generation after concurrent commit and GC without mixing generations\", async () => {\n    const filePath = location();\n    const port = new SegmentedMemoryPort({ filePath });\n    const state = createDurableMemoryFixture(50);\n    await port.importSnapshot(state);\n    const original = Object.values(state.records)[0];\n    const transition = reinforce(original);\n    const decode = port._decodeShard.bind(port);\n    let changed = false;\n    let write;\n    vi.spyOn(port, \"_decodeShard\").mockImplementation((...args) => {\n      if (!changed) {\n        changed = true;\n        write = new SegmentedMemoryPort({ filePath }).commit(transition, 1);\n      }\n      return decode(...args);\n    });\n    const snapshot = await port.query();\n    expect(await write).toMatchObject({ ok: true });\n    expect(\n      snapshot.find((record) => record.memoryId === original.memoryId),\n    ).toEqual(original);\n    expect(await port.read(original.memoryId)).toEqual(transition.record);\n  });\n  it(\"migrates v1 losslessly, preserves global audit order and rejects old writers\", async () => {\n    const filePath = location();\n    const state = createDurableMemoryFixture(100);\n    writeFileSync(filePath, JSON.stringify(state));\n    const port = new SegmentedMemoryPort({ filePath });\n    expect(await port.exportSnapshot()).toEqual(state);\n    expect(JSON.parse(readFileSync(filePath)).schema).toBe(\n      SEGMENTED_STORE_SCHEMA,\n    );\n    await expect(\n      new DurableJsonMemoryPort({ filePath }).query(),\n    ).rejects.toMatchObject({ code: \"CONTEXT_MEMORY_STORE_CORRUPT\" });\n    expect(await new SegmentedMemoryPort({ filePath }).query()).toHaveLength(\n      100,\n    );\n  });\n\n  it(\"commits record, event and differently sharded reconciliation atomically; rejects stale CAS\", async () => {\n    const filePath = location();\n    const port = new SegmentedMemoryPort({ filePath });\n    const state = createDurableMemoryFixture(20);\n    await port.importSnapshot(state);\n    const record = Object.values(state.records)[0];\n    const transition = {\n      ...reinforce(record),\n      reconciliation: { requestId: \"cross-shard-reconcile\", status: \"pending\" },\n    };\n    const [first, second] = await Promise.all([\n      port.commit(transition, 1),\n      new SegmentedMemoryPort({ filePath }).commit(transition, 1),\n    ]);\n    expect([first.ok, second.ok].sort()).toEqual([false, true]);\n    expect(await port.getRevision()).toBe(21);\n    expect(await port.getReconciliation(\"cross-shard-reconcile\")).toEqual(\n      transition.reconciliation,\n    );\n    const after = await port.exportSnapshot();\n    expect(after.events).toEqual([...state.events, transition.event]);\n    expect(after.records[record.memoryId]).toEqual(transition.record);\n  });\n\n  it.each([\"migration\", \"commit\"])(\n    \"preserves old authority and removes unpublished shards on %s rename failure\",\n    async (kind) => {\n      const filePath = location();\n      const state = createDurableMemoryFixture(10);\n      const port = new SegmentedMemoryPort({ filePath });\n      if (kind === \"migration\") writeFileSync(filePath, JSON.stringify(state));\n      else await port.importSnapshot(state);\n      const before = readFileSync(filePath);\n      const rename = fs.renameSync;\n      vi.spyOn(fs, \"renameSync\").mockImplementation((from, to) => {\n        if (to === filePath)\n          throw Object.assign(new Error(\"injected replacement failure\"), {\n            code: \"EIO\",\n          });\n        return rename(from, to);\n      });\n      syncBuiltinESMExports();\n      await expect(\n        kind === \"migration\"\n          ? port.query()\n          : port.commit(reinforce(Object.values(state.records)[0]), 1),\n      ).rejects.toThrow(\"injected\");\n      expect(readFileSync(filePath)).toEqual(before);\n      vi.restoreAllMocks();\n      syncBuiltinESMExports();\n      expect(await port.exportSnapshot()).toEqual(state);\n      const manifest = JSON.parse(readFileSync(filePath));\n      expect(readdirSync(port.shardDirectory)).toHaveLength(\n        Object.keys(manifest.shards).length,\n      );\n    },\n  );\n\n  it.each([\"maxTotalBytes\", \"maxEvents\", \"maxStoreBytes\"])(\n    \"enforces %s before replacing authority\",\n    async (name) => {\n      const filePath = location();\n      const state = createDurableMemoryFixture(2);\n      const port = new SegmentedMemoryPort({ filePath });\n      await port.importSnapshot(state);\n      const manifest = JSON.parse(readFileSync(filePath));\n      const before = readFileSync(filePath);\n      const limit =\n        name === \"maxTotalBytes\"\n          ? manifest.totalBytes\n          : name === \"maxEvents\"\n            ? 2\n            : 100;\n      const bounded = new SegmentedMemoryPort({ filePath, [name]: limit });\n      await expect(\n        bounded.commit(reinforce(Object.values(state.records)[0]), 1),\n      ).rejects.toBeDefined();\n      expect(readFileSync(filePath)).toEqual(before);\n      expect(await port.exportSnapshot()).toEqual(state);\n    },\n  );\n\n  it.each([\"fsync\", \"gc\"])(\n    \"reports published state after post-rename %s failure and never replays stale CAS\",\n    async (failure) => {\n      const filePath = location();\n      const port = new SegmentedMemoryPort({ filePath });\n      const state = createDurableMemoryFixture(10);\n      await port.importSnapshot(state);\n      const transition = reinforce(Object.values(state.records)[0]);\n      let published = false;\n      const rename = fs.renameSync;\n      const sync = fs.fsyncSync;\n      vi.spyOn(fs, \"renameSync\").mockImplementation((from, to) => {\n        rename(from, to);\n        if (to === filePath) published = true;\n      });\n      if (failure === \"fsync\") {\n        // Windows skips directory fsync, so inject immediately after replacement\n        // through the same post-publication maintenance boundary on that OS.\n        if (process.platform === \"win32\") {\n          const collect = port._collect.bind(port);\n          vi.spyOn(port, \"_collect\").mockImplementation((manifest) => {\n            if (published) throw new Error(\"injected fsync boundary\");\n            return collect(manifest);\n          });\n        } else\n          vi.spyOn(fs, \"fsyncSync\").mockImplementation((fd) => {\n            if (published) throw new Error(\"injected sync\");\n            return sync(fd);\n          });\n      } else {\n        const collect = port._collect.bind(port);\n        vi.spyOn(port, \"_collect\").mockImplementation((manifest) => {\n          if (published) throw new Error(\"injected cleanup\");\n          return collect(manifest);\n        });\n      }\n      syncBuiltinESMExports();\n      await expect(port.commit(transition, 1)).rejects.toMatchObject({\n        code: \"CONTEXT_MEMORY_COMMIT_PUBLISHED\",\n        committed: true,\n        storeRevision: 11,\n        cleanupComplete: false,\n      });\n      vi.restoreAllMocks();\n      syncBuiltinESMExports();\n      const reopened = new SegmentedMemoryPort({ filePath });\n      expect(await reopened.read(transition.record.memoryId)).toEqual(\n        transition.record,\n      );\n      expect(await reopened.commit(transition, 1)).toMatchObject({\n        ok: false,\n        currentRevision: 2,\n        storeRevision: 11,\n      });\n      expect((await reopened.exportSnapshot()).events).toEqual([\n        ...state.events,\n        transition.event,\n      ]);\n    },\n  );\n\n  it(\"detects corrupt shards and hard-linked authorities without mutating them\", async () => {\n    const filePath = location();\n    const port = new SegmentedMemoryPort({ filePath });\n    const state = createDurableMemoryFixture(2);\n    await port.importSnapshot(state);\n    const shard = join(\n      port.shardDirectory,\n      readdirSync(port.shardDirectory)[0],\n    );\n    const bytes = readFileSync(shard);\n    writeFileSync(shard, \"corrupt\");\n    await expect(port.query()).rejects.toMatchObject({\n      code: \"CONTEXT_MEMORY_STORE_CORRUPT\",\n    });\n    writeFileSync(shard, bytes);\n    linkSync(filePath, `${filePath}.linked`);\n    await expect(port.query()).rejects.toMatchObject({\n      code: \"CONTEXT_MEMORY_STORE_CORRUPT\",\n    });\n  });\n\n  it(\"collects crash leftovers under the authority lock and retains unknown files\", async () => {\n    const filePath = location();\n    const port = new SegmentedMemoryPort({ filePath });\n    await port.importSnapshot(createDurableMemoryFixture(2));\n    const orphan = `00-${\"a\".repeat(64)}.json`;\n    writeFileSync(join(port.shardDirectory, orphan), \"interrupted write\");\n    writeFileSync(join(port.shardDirectory, \"user-file\"), \"keep\");\n    expect(await port.query()).toHaveLength(2);\n    expect(readdirSync(port.shardDirectory)).not.toContain(orphan);\n    expect(readFileSync(join(port.shardDirectory, \"user-file\"), \"utf8\")).toBe(\n      \"keep\",\n    );\n  });\n\n  it(\"point reads only open their hash bucket; listing retains production sort semantics\", async () => {\n    const filePath = location();\n    const state = createDurableMemoryFixture(300);\n    const port = new SegmentedMemoryPort({ filePath });\n    await port.importSnapshot(state);\n    const spy = vi.spyOn(port, \"_readShard\");\n    const record = Object.values(state.records)[123];\n    expect(await port.read(record.memoryId)).toEqual(record);\n    expect(spy).toHaveBeenCalledTimes(1);\n    expect(await port.listRecords()).toHaveLength(300);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712615286,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/segmented-memory-port.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 8,
+                "sessionId": "panel-1793712583143-85137b",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/segmented-memory-port.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_s2dxs1hs8fcfjru81z3tbikn",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 9
+          },
+          {
+            "type": "tool_result",
+            "id": "call_xos0u23lal5jgizi7nm6rkcn",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-ftcgRG\\8aa1e9c8-db65-4a1e-a370-39b13ef9a6ee\\workspace\\packages\\cli\\__tests__\\verify-21.test.js",
+              "size": 6056,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 3,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712699210,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-21.test.js",
+                    "content": "import { afterEach, describe, expect, it } from \"vitest\";\nimport {\n  mkdtempSync,\n  readFileSync,\n  writeFileSync,\n  readdirSync,\n  rmSync,\n} from \"node:fs\";\nimport { tmpdir } from \"node:os\";\nimport { join } from \"node:path\";\nimport { applyMemoryCommand } from \"@chainlesschain/context-memory-kernel\";\nimport { createDurableMemoryFixture } from \"../scripts/persistent-capacity-benchmark.mjs\";\nimport {\n  SegmentedMemoryPort,\n  SEGMENTED_STORE_SCHEMA,\n} from \"../src/lib/context-memory-kernel/segmented-memory-port.js\";\nimport { STORE_SCHEMA } from \"../src/lib/context-memory-kernel/durable-memory-port.js\";\n\nconst roots = [];\nfunction location() {\n  const root = mkdtempSync(join(tmpdir(), \"cc-verify21-shadow-\"));\n  roots.push(root);\n  return join(root, \"kernel-v1.json\");\n}\nfunction reinforce(record) {\n  return applyMemoryCommand(record, {\n    type: \"reinforce\",\n    expectedRevision: record.revision,\n    confidenceDelta: 0.01,\n    authority: \"test\",\n    at: \"2026-10-04T00:00:00.000Z\",\n  });\n}\nfunction parentOf(filePath) {\n  return join(filePath, \"..\");\n}\nafterEach(() => {\n  while (roots.length) rmSync(roots.pop(), { recursive: true, force: true });\n});\n\ndescribe(\"Memory shadow reads are write-free (v1/v2)\", () => {\n  it(\"v1 shadow read does not migrate and leaves authority bytes and directory entries unchanged\", async () => {\n    const filePath = location();\n    const parent = parentOf(filePath);\n    const state = createDurableMemoryFixture(2);\n    writeFileSync(filePath, JSON.stringify(state));\n    const bytesBefore = readFileSync(filePath).toString();\n    const entriesBefore = readdirSync(parent).sort();\n\n    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });\n    expect(await shadow.query()).toHaveLength(2);\n    expect(await shadow.getRevision()).toBe(state.storeRevision);\n    const record = Object.values(state.records)[0];\n    expect(await shadow.read(record.memoryId)).toEqual(record);\n    expect(await shadow.exportSnapshot()).toEqual(state);\n\n    // No migration: the authority must still be a v1 (STORE_SCHEMA) store.\n    expect(JSON.parse(readFileSync(filePath)).schema).toBe(STORE_SCHEMA);\n    // No writes: authority bytes and directory entries are byte-identical.\n    expect(readFileSync(filePath).toString()).toBe(bytesBefore);\n    expect(readdirSync(parent).sort()).toEqual(entriesBefore);\n  });\n\n  it(\"a writable v1 port migrates the same store, proving readOnly is the migration guard\", async () => {\n    const filePath = location();\n    const state = createDurableMemoryFixture(2);\n    writeFileSync(filePath, JSON.stringify(state));\n\n    const writable = new SegmentedMemoryPort({ filePath });\n    expect(await writable.query()).toHaveLength(2);\n    // Changing only the readOnly flag flips behavior: migration now occurs.\n    expect(JSON.parse(readFileSync(filePath)).schema).toBe(\n      SEGMENTED_STORE_SCHEMA,\n    );\n  });\n\n  it(\"v2 shadow read keeps an orphan shard and leaves manifest bytes and directory entries unchanged\", async () => {\n    const filePath = location();\n    const parent = parentOf(filePath);\n    const state = createDurableMemoryFixture(2);\n    await new SegmentedMemoryPort({ filePath }).importSnapshot(state);\n    const shardDir = `${filePath}.shards`;\n    const manifestBefore = readFileSync(filePath).toString();\n    const parentBefore = readdirSync(parent).sort();\n    const shardEntriesBefore = readdirSync(shardDir).sort();\n    const orphanName = `00-${\"a\".repeat(64)}.json`;\n    const orphan = join(shardDir, orphanName);\n    writeFileSync(orphan, \"orphan-payload\");\n\n    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });\n    expect(await shadow.query()).toHaveLength(2);\n    expect(await shadow.exportSnapshot()).toEqual(state);\n    expect(await shadow.getRevision()).toBe(state.storeRevision);\n\n    // No GC: the orphan is retained and the shard directory is unchanged.\n    expect(readFileSync(orphan, \"utf8\")).toBe(\"orphan-payload\");\n    expect(readdirSync(shardDir).sort()).toEqual(\n      [...shardEntriesBefore, orphanName].sort(),\n    );\n    // No writes: manifest bytes and parent entries are unchanged.\n    expect(readFileSync(filePath).toString()).toBe(manifestBefore);\n    expect(readdirSync(parent).sort()).toEqual(parentBefore);\n  });\n\n  it(\"a writable v2 port collects the same orphan, proving readOnly is the GC guard\", async () => {\n    const filePath = location();\n    const state = createDurableMemoryFixture(2);\n    await new SegmentedMemoryPort({ filePath }).importSnapshot(state);\n    const shardDir = `${filePath}.shards`;\n    const orphanName = `00-${\"a\".repeat(64)}.json`;\n    writeFileSync(join(shardDir, orphanName), \"orphan-payload\");\n\n    const writable = new SegmentedMemoryPort({ filePath });\n    expect(await writable.query()).toHaveLength(2);\n    // Changing only the readOnly flag flips behavior: GC now removes the orphan.\n    expect(readdirSync(shardDir).sort()).not.toContain(orphanName);\n  });\n\n  it(\"a shadow port rejects commit and import instead of writing\", async () => {\n    const filePath = location();\n    const state = createDurableMemoryFixture(2);\n    await new SegmentedMemoryPort({ filePath }).importSnapshot(state);\n    const manifestBefore = readFileSync(filePath).toString();\n    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });\n    const record = Object.values(state.records)[0];\n\n    await expect(shadow.commit(reinforce(record), 1)).rejects.toMatchObject({\n      code: \"CONTEXT_MEMORY_READ_ONLY\",\n    });\n    expect(readFileSync(filePath).toString()).toBe(manifestBefore);\n\n    // Import into an absent authority must also be refused before any write.\n    const absent = location();\n    const absentParent = parentOf(absent);\n    const absentEntriesBefore = readdirSync(absentParent).sort();\n    await expect(\n      new SegmentedMemoryPort({ filePath: absent, readOnly: true }).importSnapshot(\n        state,\n      ),\n    ).rejects.toMatchObject({ code: \"CONTEXT_MEMORY_READ_ONLY\" });\n    expect(readdirSync(absentParent).sort()).toEqual(absentEntriesBefore);\n  });\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 30,
+                "sessionId": "panel-1793712583143-85137b",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-21.test.js",
+                    "content": "import { afterEach, describe, expect, it } from \"vitest\";\nimport {\n  mkdtempSync,\n  readFileSync,\n  writeFileSync,\n  readdirSync,\n  rmSync,\n} from \"node:fs\";\nimport { tmpdir } from \"node:os\";\nimport { join } from \"node:path\";\nimport { applyMemoryCommand } from \"@chainlesschain/context-memory-kernel\";\nimport { createDurableMemoryFixture } from \"../scripts/persistent-capacity-benchmark.mjs\";\nimport {\n  SegmentedMemoryPort,\n  SEGMENTED_STORE_SCHEMA,\n} from \"../src/lib/context-memory-kernel/segmented-memory-port.js\";\nimport { STORE_SCHEMA } from \"../src/lib/context-memory-kernel/durable-memory-port.js\";\n\nconst roots = [];\nfunction location() {\n  const root = mkdtempSync(join(tmpdir(), \"cc-verify21-shadow-\"));\n  roots.push(root);\n  return join(root, \"kernel-v1.json\");\n}\nfunction reinforce(record) {\n  return applyMemoryCommand(record, {\n    type: \"reinforce\",\n    expectedRevision: record.revision,\n    confidenceDelta: 0.01,\n    authority: \"test\",\n    at: \"2026-10-04T00:00:00.000Z\",\n  });\n}\nfunction parentOf(filePath) {\n  return join(filePath, \"..\");\n}\nafterEach(() => {\n  while (roots.length) rmSync(roots.pop(), { recursive: true, force: true });\n});\n\ndescribe(\"Memory shadow reads are write-free (v1/v2)\", () => {\n  it(\"v1 shadow read does not migrate and leaves authority bytes and directory entries unchanged\", async () => {\n    const filePath = location();\n    const parent = parentOf(filePath);\n    const state = createDurableMemoryFixture(2);\n    writeFileSync(filePath, JSON.stringify(state));\n    const bytesBefore = readFileSync(filePath).toString();\n    const entriesBefore = readdirSync(parent).sort();\n\n    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });\n    expect(await shadow.query()).toHaveLength(2);\n    expect(await shadow.getRevision()).toBe(state.storeRevision);\n    const record = Object.values(state.records)[0];\n    expect(await shadow.read(record.memoryId)).toEqual(record);\n    expect(await shadow.exportSnapshot()).toEqual(state);\n\n    // No migration: the authority must still be a v1 (STORE_SCHEMA) store.\n    expect(JSON.parse(readFileSync(filePath)).schema).toBe(STORE_SCHEMA);\n    // No writes: authority bytes and directory entries are byte-identical.\n    expect(readFileSync(filePath).toString()).toBe(bytesBefore);\n    expect(readdirSync(parent).sort()).toEqual(entriesBefore);\n  });\n\n  it(\"a writable v1 port migrates the same store, proving readOnly is the migration guard\", async () => {\n    const filePath = location();\n    const state = createDurableMemoryFixture(2);\n    writeFileSync(filePath, JSON.stringify(state));\n\n    const writable = new SegmentedMemoryPort({ filePath });\n    expect(await writable.query()).toHaveLength(2);\n    // Changing only the readOnly flag flips behavior: migration now occurs.\n    expect(JSON.parse(readFileSync(filePath)).schema).toBe(\n      SEGMENTED_STORE_SCHEMA,\n    );\n  });\n\n  it(\"v2 shadow read keeps an orphan shard and leaves manifest bytes and directory entries unchanged\", async () => {\n    const filePath = location();\n    const parent = parentOf(filePath);\n    const state = createDurableMemoryFixture(2);\n    await new SegmentedMemoryPort({ filePath }).importSnapshot(state);\n    const shardDir = `${filePath}.shards`;\n    const manifestBefore = readFileSync(filePath).toString();\n    const parentBefore = readdirSync(parent).sort();\n    const shardEntriesBefore = readdirSync(shardDir).sort();\n    const orphanName = `00-${\"a\".repeat(64)}.json`;\n    const orphan = join(shardDir, orphanName);\n    writeFileSync(orphan, \"orphan-payload\");\n\n    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });\n    expect(await shadow.query()).toHaveLength(2);\n    expect(await shadow.exportSnapshot()).toEqual(state);\n    expect(await shadow.getRevision()).toBe(state.storeRevision);\n\n    // No GC: the orphan is retained and the shard directory is unchanged.\n    expect(readFileSync(orphan, \"utf8\")).toBe(\"orphan-payload\");\n    expect(readdirSync(shardDir).sort()).toEqual(\n      [...shardEntriesBefore, orphanName].sort(),\n    );\n    // No writes: manifest bytes and parent entries are unchanged.\n    expect(readFileSync(filePath).toString()).toBe(manifestBefore);\n    expect(readdirSync(parent).sort()).toEqual(parentBefore);\n  });\n\n  it(\"a writable v2 port collects the same orphan, proving readOnly is the GC guard\", async () => {\n    const filePath = location();\n    const state = createDurableMemoryFixture(2);\n    await new SegmentedMemoryPort({ filePath }).importSnapshot(state);\n    const shardDir = `${filePath}.shards`;\n    const orphanName = `00-${\"a\".repeat(64)}.json`;\n    writeFileSync(join(shardDir, orphanName), \"orphan-payload\");\n\n    const writable = new SegmentedMemoryPort({ filePath });\n    expect(await writable.query()).toHaveLength(2);\n    // Changing only the readOnly flag flips behavior: GC now removes the orphan.\n    expect(readdirSync(shardDir).sort()).not.toContain(orphanName);\n  });\n\n  it(\"a shadow port rejects commit and import instead of writing\", async () => {\n    const filePath = location();\n    const state = createDurableMemoryFixture(2);\n    await new SegmentedMemoryPort({ filePath }).importSnapshot(state);\n    const manifestBefore = readFileSync(filePath).toString();\n    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });\n    const record = Object.values(state.records)[0];\n\n    await expect(shadow.commit(reinforce(record), 1)).rejects.toMatchObject({\n      code: \"CONTEXT_MEMORY_READ_ONLY\",\n    });\n    expect(readFileSync(filePath).toString()).toBe(manifestBefore);\n\n    // Import into an absent authority must also be refused before any write.\n    const absent = location();\n    const absentParent = parentOf(absent);\n    const absentEntriesBefore = readdirSync(absentParent).sort();\n    await expect(\n      new SegmentedMemoryPort({ filePath: absent, readOnly: true }).importSnapshot(\n        state,\n      ),\n    ).rejects.toMatchObject({ code: \"CONTEXT_MEMORY_READ_ONLY\" });\n    expect(readdirSync(absentParent).sort()).toEqual(absentEntriesBefore);\n  });\n});\n"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "write_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_xos0u23lal5jgizi7nm6rkcn",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 13
+          },
+          {
+            "type": "tool_result",
+            "id": "call_hmzeoz0nc0jr9p1pv7cwrc4p",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-ftcgRG\\8aa1e9c8-db65-4a1e-a370-39b13ef9a6ee\\workspace\\packages\\cli\\src\\lib\\context-memory-kernel\\segmented-memory-port.js",
+              "fileVersion": "22576:1793711967490.824:1793711967490.824",
+              "range": {
+                "startLine": 300,
+                "endLine": 419,
+                "totalLines": 688
+              },
+              "nextRead": {
+                "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                "offset": 420,
+                "limit": 120
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 8958,
+                "end": 13226,
+                "total": 22576
+              },
+              "hashed": false,
+              "content": "      true,\n    );\n    if (bytes.length !== descriptor.bytes)\n      throw corruptStore(file, \"shard byte length changed\");\n    return bytes;\n  }\n\n  _decodeShard(manifest, bucket, bytes) {\n    const descriptor = manifest.shards[bucket];\n    const file = this._shardPath(bucket, descriptor);\n    let state;\n    try {\n      state = normalizeState(JSON.parse(bytes.toString(\"utf8\")), file);\n    } catch (cause) {\n      throw corruptStore(file, \"shard cannot be validated\", cause);\n    }\n    if (\n      state.digest !== descriptor.digest ||\n      state.events.length !== descriptor.eventCount ||\n      Object.keys(state.records).length !== descriptor.recordCount ||\n      Object.keys(state.records).some((id) => bucketOf(id) !== bucket) ||\n      Object.keys(state.reconciliations).some(\n        (id) => bucketOf(id) !== bucket,\n      ) ||\n      state.events.some(\n        (entry, index) =>\n          !entry ||\n          Object.keys(entry).sort().join() !== \"event,sequence\" ||\n          !Number.isSafeInteger(entry.sequence) ||\n          entry.sequence < 1 ||\n          entry.sequence > manifest.eventCount ||\n          (index > 0 && entry.sequence <= state.events[index - 1].sequence),\n      )\n    ) {\n      throw corruptStore(file, \"shard does not match its manifest\");\n    }\n    return state;\n  }\n\n  _collect(manifest) {\n    this._checkDirectories();\n    const live = new Set(\n      Object.entries(manifest.shards).map(\n        ([bucket, entry]) => `${bucket}-${entry.digest.slice(7)}.json`,\n      ),\n    );\n    // All readers hold the same authority lock. No reader can still be using\n    // a superseded shard here. Unknown files are never treated as our garbage.\n    const directory = opendirSync(this.shardDirectory);\n    let scanned = 0;\n    let removed = false;\n    try {\n      let entry;\n      while ((entry = directory.readSync()) !== null) {\n        if (++scanned > 4096)\n          throw limit(\"shard directory inventory exceeds 4096 entries\");\n        const owned =\n          /^[a-f0-9]{2}-[a-f0-9]{64}\\.json$/u.test(entry.name) ||\n          /^manifest-[a-f0-9-]{36}\\.tmp$/u.test(entry.name);\n        if (owned && !live.has(entry.name)) {\n          const file = join(this.shardDirectory, entry.name);\n          regular(file);\n          this._checkDirectories();\n          rmSync(file);\n          removed = true;\n        }\n      }\n    } finally {\n      directory.closeSync();\n    }\n    // A successful purge must persist the removal of superseded plaintext\n    // shards on platforms supporting directory fsync, not just the manifest.\n    if (removed) syncDirectory(this.shardDirectory);\n  }\n\n  _publish(manifest, changed) {\n    if (this.readOnly)\n      throw Object.assign(\n        new Error(\"Context/Memory shadow authority is read-only\"),\n        { code: \"CONTEXT_MEMORY_READ_ONLY\" },\n      );\n    ensureSafeDirectory(this.shardDirectory);\n    this._checkDirectories();\n    this._collect(manifest);\n    const next = cloneCanonical(manifest);\n    const pending = [];\n    let pendingBytes = manifest.totalBytes;\n    let pendingEvents = manifest.eventCount;\n    for (const [bucket, state] of changed) {\n      state.digest = stateDigest(state);\n      const bytes = `${JSON.stringify(state)}\\n`;\n      const size = Buffer.byteLength(bytes);\n      if (size > this.maxStoreBytes)\n        throw limit(\"shard exceeds configured byte limit\");\n      pendingBytes += size - (next.shards[bucket]?.bytes || 0);\n      pendingEvents +=\n        state.events.length - (next.shards[bucket]?.eventCount || 0);\n      if (pendingBytes > this.maxTotalBytes || pendingEvents > this.maxEvents)\n        throw limit(\"aggregate capacity exceeded\");\n      next.shards[bucket] = {\n        digest: state.digest,\n        bytes: size,\n        eventCount: state.events.length,\n        recordCount: Object.keys(state.records).length,\n      };\n      pending.push({\n        file: this._shardPath(bucket, next.shards[bucket]),\n        bytes,\n      });\n    }\n    next.totalBytes = Object.values(next.shards).reduce(\n      (sum, entry) => sum + entry.bytes,\n      0,\n    );\n    next.eventCount = Object.values(next.shards).reduce(\n      (sum, entry) => sum + entry.eventCount,\n      0,\n    );\n    next.recordCount = Object.values(next.shards).reduce(\n      (sum, entry) => sum + entry.recordCount,",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "22576:1793711967490.824:1793711967490.824"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712717314,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 300,
+                    "limit": 120
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 6,
+                "sessionId": "panel-1793712583143-85137b",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 300,
+                    "limit": 120
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_hmzeoz0nc0jr9p1pv7cwrc4p",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 19
+          },
+          {
+            "type": "tool_result",
+            "id": "call_tp51k05iw4ln8iaac1oy44ad",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-ftcgRG\\8aa1e9c8-db65-4a1e-a370-39b13ef9a6ee\\workspace\\packages\\cli\\src\\lib\\context-memory-kernel\\segmented-memory-port.js",
+              "fileVersion": "22576:1793711967490.824:1793711967490.824",
+              "range": {
+                "startLine": 420,
+                "endLine": 579,
+                "totalLines": 688
+              },
+              "nextRead": {
+                "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                "offset": 580,
+                "limit": 160
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 13226,
+                "end": 18630,
+                "total": 22576
+              },
+              "hashed": false,
+              "content": "      0,\n    );\n    next.digest = manifestDigest(next);\n    this._validateManifest(next);\n    const serialized = `${JSON.stringify(next)}\\n`;\n    if (Buffer.byteLength(serialized) > MANIFEST_LIMIT)\n      throw limit(\"manifest exceeds byte limit\");\n    const temporary = join(this.shardDirectory, `manifest-${randomUUID()}.tmp`);\n    const created = [];\n    let published = false;\n    let directorySynced = false;\n    let failure = null;\n    try {\n      for (const { file, bytes } of pending) {\n        // Content-addressed existing files must match, including crash leftovers.\n        if (existsSync(file)) {\n          regular(file);\n          if (\n            !readBoundedState(file, this.maxStoreBytes, true).equals(\n              Buffer.from(bytes),\n            )\n          )\n            throw corruptStore(file, \"immutable shard was modified\");\n          continue;\n        }\n        const fd = openSync(file, \"wx\", 0o600);\n        created.push(file);\n        try {\n          writeFileSync(fd, bytes, \"utf8\");\n          fsyncSync(fd);\n        } finally {\n          closeSync(fd);\n        }\n      }\n      syncDirectory(this.shardDirectory);\n      const fd = openSync(temporary, \"wx\", 0o600);\n      try {\n        writeFileSync(fd, serialized, \"utf8\");\n        fsyncSync(fd);\n      } finally {\n        closeSync(fd);\n      }\n      this._checkDirectories();\n      if (existsSync(this.filePath)) regular(this.filePath);\n      renameSync(temporary, this.filePath);\n      published = true;\n      syncDirectory(dirname(this.filePath));\n      directorySynced = true;\n      this._collect(next);\n      return next;\n    } catch (cause) {\n      failure = cause;\n      if (published) {\n        // The manifest is now authoritative: never roll it back or remove its\n        // shards. Callers must observe the revision before attempting a retry.\n        throw Object.assign(\n          new Error(\n            \"Context/Memory commit was published but post-commit maintenance failed\",\n            { cause },\n          ),\n          {\n            code: \"CONTEXT_MEMORY_COMMIT_PUBLISHED\",\n            committed: true,\n            storeRevision: next.storeRevision,\n            durability:\n              process.platform === \"win32\"\n                ? \"directory-sync-unsupported\"\n                : directorySynced\n                  ? \"directory-sync-completed\"\n                  : \"unknown\",\n            cleanupComplete: false,\n          },\n        );\n      }\n      throw cause;\n    } finally {\n      if (!published) {\n        try {\n          this._checkDirectories();\n          rmSync(temporary, { force: true });\n          for (const file of created) {\n            this._checkDirectories();\n            rmSync(file, { force: true });\n          }\n        } catch {\n          // Preserve the primary failure and leave recoverable private orphans;\n          // never follow a replaced parent directory to perform cleanup.\n          if (failure) failure.unpublishedCleanupIncomplete = true;\n        }\n      }\n    }\n  }\n\n  _installSnapshot(state) {\n    const shards = new Map();\n    const get = (id) => {\n      const bucket = bucketOf(id);\n      if (!shards.has(bucket)) shards.set(bucket, blankShard());\n      return shards.get(bucket);\n    };\n    for (const [id, record] of Object.entries(state.records))\n      put(get(id).records, id, record);\n    for (const [index, event] of state.events.entries()) {\n      // Keep even legacy events without a memoryId; never discard audit data.\n      get(\n        typeof event?.memoryId === \"string\" ? event.memoryId : \"\",\n      ).events.push({ sequence: index + 1, event });\n    }\n    for (const [id, operation] of Object.entries(state.reconciliations))\n      put(get(id).reconciliations, id, operation);\n    const manifest = blankManifest();\n    manifest.storeRevision = state.storeRevision;\n    return this._publish(manifest, shards);\n  }\n\n  /** Explicit atomic import into an empty authority; also used by migration. */\n  async importSnapshot(snapshot) {\n    const state = normalizeState(snapshot, this.filePath);\n    return this._locked(() => {\n      if (existsSync(this.filePath))\n        throw Object.assign(\n          new Error(\"Snapshot import requires an absent authority\"),\n          { code: \"CONTEXT_MEMORY_IMPORT_CONFLICT\" },\n        );\n      const result = this._installSnapshot(state);\n      return {\n        ok: true,\n        storeRevision: result.storeRevision,\n        recordCount: result.recordCount,\n      };\n    });\n  }\n\n  async read(id) {\n    return this._locked(() =>\n      cloneCanonical(\n        own(this._readShard(this._loadManifest(), bucketOf(id)).records, id),\n      ),\n    );\n  }\n  async query() {\n    const snapshot = await this._locked(() => {\n      const manifest = this._loadManifest();\n      if (manifest.schema === STORE_SCHEMA) return { legacy: manifest };\n      let capturedBytes = 0;\n      const shards = Object.keys(manifest.shards).map((bucket) => {\n        const bytes = this._readShardBytes(manifest, bucket);\n        capturedBytes += bytes.length;\n        if (\n          capturedBytes > manifest.totalBytes ||\n          capturedBytes > this.maxTotalBytes\n        )\n          throw limit(\"snapshot exceeds aggregate byte limit\");\n        return [bucket, bytes];\n      });\n      if (capturedBytes !== manifest.totalBytes)\n        throw corruptStore(\n          this.filePath,\n          \"snapshot byte count does not match manifest\",\n        );",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "22576:1793711967490.824:1793711967490.824"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712726182,
+                "meta": {
+                  "args": {
+                    "offset": 420,
+                    "limit": 160,
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 3,
+                "sessionId": "panel-1793712583143-85137b",
+                "metadata": {
+                  "args": {
+                    "offset": 420,
+                    "limit": 160,
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_tp51k05iw4ln8iaac1oy44ad",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 25
+          },
+          {
+            "type": "tool_result",
+            "id": "call_pqwpnpsn19m0i6c3bhj5pamv",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [],
+              "count": 0,
+              "hasMore": false,
+              "nextOffset": null,
+              "hint": "No literal matches. This pattern contains regex syntax, but this search used literal matching. If alternation or regex was intended, set regex: true; otherwise search one exact symbol. Do not infer that the symbols are absent from this result.",
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-ftcgRG\\8aa1e9c8-db65-4a1e-a370-39b13ef9a6ee\\workspace\\packages\\cli\\src\\lib\\context-memory-kernel\\segmented-memory-port.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712734360,
+                "meta": {
+                  "args": {
+                    "pattern": "_loadManifest|readOnly|_collect\\(|_installSnapshot\\(",
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "content_search": true
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 53,
+                "sessionId": "panel-1793712583143-85137b",
+                "metadata": {
+                  "args": {
+                    "pattern": "_loadManifest|readOnly|_collect\\(|_installSnapshot\\(",
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "content_search": true
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_pqwpnpsn19m0i6c3bhj5pamv",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 31
+          },
+          {
+            "type": "tool_result",
+            "id": "call_h3a01kgywekijvf953pkrs3i",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 140,
+                  "column": 5,
+                  "offset": 3851,
+                  "text": "readOnly",
+                  "context": "ryPort extends DurableJsonMemoryPort {\n  constructor({\n    maxTotalBytes = DEFAULT_MAX_TOTAL_BYTES,\n    maxEvents = DEFAULT_SEGMENTED_MAX_EVENTS,\n    readOnly = false,\n    ...options\n  } = {}) {\n    super({ ...options, maxEvents });\n    if (!Number.isSafeInteger(maxTotalBytes) || maxTotalBytes < 1)\n      th",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 140,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 147,
+                  "column": 10,
+                  "offset": 4126,
+                  "text": "readOnly",
+                  "context": "s) || maxTotalBytes < 1)\n      throw new TypeError(\"maxTotalBytes must be a positive safe integer\");\n    this.maxTotalBytes = maxTotalBytes;\n    this.readOnly = Boolean(readOnly);\n    this.filePath = resolve(this.filePath);\n    this.shardDirectory = `${this.filePath}.shards`;\n  }\n\n  _locked(operation) {\n   ",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 147,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 147,
+                  "column": 29,
+                  "offset": 4145,
+                  "text": "readOnly",
+                  "context": " < 1)\n      throw new TypeError(\"maxTotalBytes must be a positive safe integer\");\n    this.maxTotalBytes = maxTotalBytes;\n    this.readOnly = Boolean(readOnly);\n    this.filePath = resolve(this.filePath);\n    this.shardDirectory = `${this.filePath}.shards`;\n  }\n\n  _locked(operation) {\n    ensureSafeDirector",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 147,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 247,
+                  "column": 3,
+                  "offset": 7233,
+                  "text": "_loadManifest",
+                  "context": " invalid();\n    if (bytes > this.maxTotalBytes || events > this.maxEvents)\n      throw limit(\"aggregate capacity exceeded\");\n    return input;\n  }\n\n  _loadManifest() {\n    if (!existsSync(this.filePath)) return blankManifest();\n    regular(this.filePath);\n    // v1 can be larger than a manifest; preserve its exi",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 247,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 270,
+                  "column": 16,
+                  "offset": 8030,
+                  "text": "readOnly",
+                  "context": "ath,\n          \"legacy store exceeds its configured byte limit\",\n        );\n      const legacy = normalizeState(input, this.filePath);\n      if (this.readOnly) return legacy;\n      return this._installSnapshot(legacy);\n    }\n    const manifest = this._validateManifest(input);\n    if (bytes.length > MANIFEST",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 270,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 271,
+                  "column": 19,
+                  "offset": 8073,
+                  "text": "_installSnapshot",
+                  "context": "nfigured byte limit\",\n        );\n      const legacy = normalizeState(input, this.filePath);\n      if (this.readOnly) return legacy;\n      return this._installSnapshot(legacy);\n    }\n    const manifest = this._validateManifest(input);\n    if (bytes.length > MANIFEST_LIMIT)\n      throw corruptStore(this.filePath, \"ma",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 271,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 277,
+                  "column": 15,
+                  "offset": 8306,
+                  "text": "readOnly",
+                  "context": "\n    if (bytes.length > MANIFEST_LIMIT)\n      throw corruptStore(this.filePath, \"manifest is too large\");\n    this._checkDirectories();\n    if (!this.readOnly) this._collect(manifest);\n    return manifest;\n  }\n\n  _readShard(manifest, bucket) {\n    if (manifest.schema === STORE_SCHEMA) return manifest;\n    c",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 277,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 376,
+                  "column": 14,
+                  "offset": 11603,
+                  "text": "readOnly",
+                  "context": "orting directory fsync, not just the manifest.\n    if (removed) syncDirectory(this.shardDirectory);\n  }\n\n  _publish(manifest, changed) {\n    if (this.readOnly)\n      throw Object.assign(\n        new Error(\"Context/Memory shadow authority is read-only\"),\n        { code: \"CONTEXT_MEMORY_READ_ONLY\" },\n      );",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 376,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 513,
+                  "column": 3,
+                  "offset": 16227,
+                  "text": "_installSnapshot",
+                  "context": "ow a replaced parent directory to perform cleanup.\n          if (failure) failure.unpublishedCleanupIncomplete = true;\n        }\n      }\n    }\n  }\n\n  _installSnapshot(state) {\n    const shards = new Map();\n    const get = (id) => {\n      const bucket = bucketOf(id);\n      if (!shards.has(bucket)) shards.set(bucket,",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 513,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 544,
+                  "column": 27,
+                  "offset": 17520,
+                  "text": "_installSnapshot",
+                  "context": "new Error(\"Snapshot import requires an absent authority\"),\n          { code: \"CONTEXT_MEMORY_IMPORT_CONFLICT\" },\n        );\n      const result = this._installSnapshot(state);\n      return {\n        ok: true,\n        storeRevision: result.storeRevision,\n        recordCount: result.recordCount,\n      };\n    });\n  }\n\n",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 544,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 556,
+                  "column": 34,
+                  "offset": 17790,
+                  "text": "_loadManifest",
+                  "context": "nt: result.recordCount,\n      };\n    });\n  }\n\n  async read(id) {\n    return this._locked(() =>\n      cloneCanonical(\n        own(this._readShard(this._loadManifest(), bucketOf(id)).records, id),\n      ),\n    );\n  }\n  async query() {\n    const snapshot = await this._locked(() => {\n      const manifest = this._loa",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 556,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 562,
+                  "column": 29,
+                  "offset": 17949,
+                  "text": "_loadManifest",
+                  "context": "fest(), bucketOf(id)).records, id),\n      ),\n    );\n  }\n  async query() {\n    const snapshot = await this._locked(() => {\n      const manifest = this._loadManifest();\n      if (manifest.schema === STORE_SCHEMA) return { legacy: manifest };\n      let capturedBytes = 0;\n      const shards = Object.keys(manifest.sh",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 562,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 593,
+                  "column": 36,
+                  "offset": 19204,
+                  "text": "_loadManifest",
+                  "context": "(\n        this._decodeShard(snapshot.manifest, bucket, bytes).records,\n      ),\n    );\n  }\n  async getRevision() {\n    return this._locked(() => this._loadManifest().storeRevision);\n  }\n  async exportSnapshot() {\n    return this._locked(() => {\n      const manifest = this._loadManifest();\n      if (manifest.sche",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 593,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 597,
+                  "column": 29,
+                  "offset": 19327,
+                  "text": "_loadManifest",
+                  "context": "rn this._locked(() => this._loadManifest().storeRevision);\n  }\n  async exportSnapshot() {\n    return this._locked(() => {\n      const manifest = this._loadManifest();\n      if (manifest.schema === STORE_SCHEMA) return manifest;\n      const state = blankShard();\n      state.storeRevision = manifest.storeRevision;",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 597,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 622,
+                  "column": 32,
+                  "offset": 20409,
+                  "text": "_loadManifest",
+                  "context": "rn state;\n    });\n  }\n  async getReconciliation(id) {\n    return this._locked(() =>\n      cloneCanonical(\n        own(\n          this._readShard(this._loadManifest(), bucketOf(id)).reconciliations,\n          id,\n        ),\n      ),\n    );\n  }\n  _advance(manifest) {\n    if (manifest.storeRevision >= Number.MAX_SA",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 622,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 636,
+                  "column": 29,
+                  "offset": 20859,
+                  "text": "_loadManifest",
+                  "context": "iliation }, expectedRevision = 0) {\n    const normalized = normalizeMemoryRecord(record);\n    return this._locked(() => {\n      const manifest = this._loadManifest();\n      const bucket = bucketOf(normalized.memoryId);\n      const shard = this._readShard(manifest, bucket);\n      const actual = own(shard.records,",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 636,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 674,
+                  "column": 29,
+                  "offset": 22167,
+                  "text": "_loadManifest",
+                  "context": "red: Boolean(reconciliation),\n      };\n    });\n  }\n  async putReconciliation(operation) {\n    return this._locked(() => {\n      const manifest = this._loadManifest();\n      const bucket = bucketOf(operation.requestId);\n      const shard = this._readShard(manifest, bucket);\n      put(\n        shard.reconciliation",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 674,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 17,
+              "hasMore": false,
+              "nextOffset": null,
+              "regexWindowChars": 69632,
+              "hint": "Regular expressions are evaluated in overlapping text windows; matches spanning more than 4096 characters across a window boundary may be omitted. Use a literal keyword to locate the section, then read its context.",
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-ftcgRG\\8aa1e9c8-db65-4a1e-a370-39b13ef9a6ee\\workspace\\packages\\cli\\src\\lib\\context-memory-kernel\\segmented-memory-port.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712754775,
+                "meta": {
+                  "args": {
+                    "content_search": true,
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "pattern": "_loadManifest|readOnly|_installSnapshot",
+                    "regex": true
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 46,
+                "sessionId": "panel-1793712583143-85137b",
+                "metadata": {
+                  "args": {
+                    "content_search": true,
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "pattern": "_loadManifest|readOnly|_installSnapshot",
+                    "regex": true
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_h3a01kgywekijvf953pkrs3i",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 39
+          },
+          {
+            "type": "tool_result",
+            "id": "call_paty04ohofjuxiopn65jz85e",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-ftcgRG\\8aa1e9c8-db65-4a1e-a370-39b13ef9a6ee\\workspace\\packages\\cli\\__tests__\\verify-21.test.js",
+              "fileVersion": "6056:1793712699182.2856:1793712699182.2856",
+              "readSpan": {
+                "start": 0,
+                "end": 6056,
+                "total": 6056
+              },
+              "hashed": false,
+              "content": "import { afterEach, describe, expect, it } from \"vitest\";\nimport {\n  mkdtempSync,\n  readFileSync,\n  writeFileSync,\n  readdirSync,\n  rmSync,\n} from \"node:fs\";\nimport { tmpdir } from \"node:os\";\nimport { join } from \"node:path\";\nimport { applyMemoryCommand } from \"@chainlesschain/context-memory-kernel\";\nimport { createDurableMemoryFixture } from \"../scripts/persistent-capacity-benchmark.mjs\";\nimport {\n  SegmentedMemoryPort,\n  SEGMENTED_STORE_SCHEMA,\n} from \"../src/lib/context-memory-kernel/segmented-memory-port.js\";\nimport { STORE_SCHEMA } from \"../src/lib/context-memory-kernel/durable-memory-port.js\";\n\nconst roots = [];\nfunction location() {\n  const root = mkdtempSync(join(tmpdir(), \"cc-verify21-shadow-\"));\n  roots.push(root);\n  return join(root, \"kernel-v1.json\");\n}\nfunction reinforce(record) {\n  return applyMemoryCommand(record, {\n    type: \"reinforce\",\n    expectedRevision: record.revision,\n    confidenceDelta: 0.01,\n    authority: \"test\",\n    at: \"2026-10-04T00:00:00.000Z\",\n  });\n}\nfunction parentOf(filePath) {\n  return join(filePath, \"..\");\n}\nafterEach(() => {\n  while (roots.length) rmSync(roots.pop(), { recursive: true, force: true });\n});\n\ndescribe(\"Memory shadow reads are write-free (v1/v2)\", () => {\n  it(\"v1 shadow read does not migrate and leaves authority bytes and directory entries unchanged\", async () => {\n    const filePath = location();\n    const parent = parentOf(filePath);\n    const state = createDurableMemoryFixture(2);\n    writeFileSync(filePath, JSON.stringify(state));\n    const bytesBefore = readFileSync(filePath).toString();\n    const entriesBefore = readdirSync(parent).sort();\n\n    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });\n    expect(await shadow.query()).toHaveLength(2);\n    expect(await shadow.getRevision()).toBe(state.storeRevision);\n    const record = Object.values(state.records)[0];\n    expect(await shadow.read(record.memoryId)).toEqual(record);\n    expect(await shadow.exportSnapshot()).toEqual(state);\n\n    // No migration: the authority must still be a v1 (STORE_SCHEMA) store.\n    expect(JSON.parse(readFileSync(filePath)).schema).toBe(STORE_SCHEMA);\n    // No writes: authority bytes and directory entries are byte-identical.\n    expect(readFileSync(filePath).toString()).toBe(bytesBefore);\n    expect(readdirSync(parent).sort()).toEqual(entriesBefore);\n  });\n\n  it(\"a writable v1 port migrates the same store, proving readOnly is the migration guard\", async () => {\n    const filePath = location();\n    const state = createDurableMemoryFixture(2);\n    writeFileSync(filePath, JSON.stringify(state));\n\n    const writable = new SegmentedMemoryPort({ filePath });\n    expect(await writable.query()).toHaveLength(2);\n    // Changing only the readOnly flag flips behavior: migration now occurs.\n    expect(JSON.parse(readFileSync(filePath)).schema).toBe(\n      SEGMENTED_STORE_SCHEMA,\n    );\n  });\n\n  it(\"v2 shadow read keeps an orphan shard and leaves manifest bytes and directory entries unchanged\", async () => {\n    const filePath = location();\n    const parent = parentOf(filePath);\n    const state = createDurableMemoryFixture(2);\n    await new SegmentedMemoryPort({ filePath }).importSnapshot(state);\n    const shardDir = `${filePath}.shards`;\n    const manifestBefore = readFileSync(filePath).toString();\n    const parentBefore = readdirSync(parent).sort();\n    const shardEntriesBefore = readdirSync(shardDir).sort();\n    const orphanName = `00-${\"a\".repeat(64)}.json`;\n    const orphan = join(shardDir, orphanName);\n    writeFileSync(orphan, \"orphan-payload\");\n\n    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });\n    expect(await shadow.query()).toHaveLength(2);\n    expect(await shadow.exportSnapshot()).toEqual(state);\n    expect(await shadow.getRevision()).toBe(state.storeRevision);\n\n    // No GC: the orphan is retained and the shard directory is unchanged.\n    expect(readFileSync(orphan, \"utf8\")).toBe(\"orphan-payload\");\n    expect(readdirSync(shardDir).sort()).toEqual(\n      [...shardEntriesBefore, orphanName].sort(),\n    );\n    // No writes: manifest bytes and parent entries are unchanged.\n    expect(readFileSync(filePath).toString()).toBe(manifestBefore);\n    expect(readdirSync(parent).sort()).toEqual(parentBefore);\n  });\n\n  it(\"a writable v2 port collects the same orphan, proving readOnly is the GC guard\", async () => {\n    const filePath = location();\n    const state = createDurableMemoryFixture(2);\n    await new SegmentedMemoryPort({ filePath }).importSnapshot(state);\n    const shardDir = `${filePath}.shards`;\n    const orphanName = `00-${\"a\".repeat(64)}.json`;\n    writeFileSync(join(shardDir, orphanName), \"orphan-payload\");\n\n    const writable = new SegmentedMemoryPort({ filePath });\n    expect(await writable.query()).toHaveLength(2);\n    // Changing only the readOnly flag flips behavior: GC now removes the orphan.\n    expect(readdirSync(shardDir).sort()).not.toContain(orphanName);\n  });\n\n  it(\"a shadow port rejects commit and import instead of writing\", async () => {\n    const filePath = location();\n    const state = createDurableMemoryFixture(2);\n    await new SegmentedMemoryPort({ filePath }).importSnapshot(state);\n    const manifestBefore = readFileSync(filePath).toString();\n    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });\n    const record = Object.values(state.records)[0];\n\n    await expect(shadow.commit(reinforce(record), 1)).rejects.toMatchObject({\n      code: \"CONTEXT_MEMORY_READ_ONLY\",\n    });\n    expect(readFileSync(filePath).toString()).toBe(manifestBefore);\n\n    // Import into an absent authority must also be refused before any write.\n    const absent = location();\n    const absentParent = parentOf(absent);\n    const absentEntriesBefore = readdirSync(absentParent).sort();\n    await expect(\n      new SegmentedMemoryPort({ filePath: absent, readOnly: true }).importSnapshot(\n        state,\n      ),\n    ).rejects.toMatchObject({ code: \"CONTEXT_MEMORY_READ_ONLY\" });\n    expect(readdirSync(absentParent).sort()).toEqual(absentEntriesBefore);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712762943,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-21.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-1793712583143-85137b",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-21.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_paty04ohofjuxiopn65jz85e",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 43
+          },
+          {
+            "type": "tool_result",
+            "id": "call_hko9r3wda8pz3gtb3zfhj6s8",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 131,
+                  "column": 32,
+                  "offset": 3389,
+                  "text": "commit",
+                  "context": ");\n  directories(existing);\n  mkdirSync(directory, { recursive: true, mode: 0o700 });\n  directories(directory);\n}\n\n/**\n * 256 immutable hash buckets, committed by one atomic manifest replacement.\n * The inherited lock is on the original authority path, including during v1\n * migration. A v1-only client th",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 131,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 277,
+                  "column": 30,
+                  "offset": 8321,
+                  "text": "_collect",
+                  "context": "length > MANIFEST_LIMIT)\n      throw corruptStore(this.filePath, \"manifest is too large\");\n    this._checkDirectories();\n    if (!this.readOnly) this._collect(manifest);\n    return manifest;\n  }\n\n  _readShard(manifest, bucket) {\n    if (manifest.schema === STORE_SCHEMA) return manifest;\n    const descriptor",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 277,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 339,
+                  "column": 3,
+                  "offset": 10256,
+                  "text": "_collect",
+                  "context": "tate.events[index - 1].sequence),\n      )\n    ) {\n      throw corruptStore(file, \"shard does not match its manifest\");\n    }\n    return state;\n  }\n\n  _collect(manifest) {\n    this._checkDirectories();\n    const live = new Set(\n      Object.entries(manifest.shards).map(\n        ([bucket, entry]) => `${bucket",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 339,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 375,
+                  "column": 3,
+                  "offset": 11560,
+                  "text": "_publish",
+                  "context": "d plaintext\n    // shards on platforms supporting directory fsync, not just the manifest.\n    if (removed) syncDirectory(this.shardDirectory);\n  }\n\n  _publish(manifest, changed) {\n    if (this.readOnly)\n      throw Object.assign(\n        new Error(\"Context/Memory shadow authority is read-only\"),\n        { c",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 375,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 383,
+                  "column": 10,
+                  "offset": 11847,
+                  "text": "_collect",
+                  "context": "d-only\"),\n        { code: \"CONTEXT_MEMORY_READ_ONLY\" },\n      );\n    ensureSafeDirectory(this.shardDirectory);\n    this._checkDirectories();\n    this._collect(manifest);\n    const next = cloneCanonical(manifest);\n    const pending = [];\n    let pendingBytes = manifest.totalBytes;\n    let pendingEvents = man",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 383,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 468,
+                  "column": 12,
+                  "offset": 14798,
+                  "text": "_collect",
+                  "context": "  renameSync(temporary, this.filePath);\n      published = true;\n      syncDirectory(dirname(this.filePath));\n      directorySynced = true;\n      this._collect(next);\n      return next;\n    } catch (cause) {\n      failure = cause;\n      if (published) {\n        // The manifest is now authoritative: never rol",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 468,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 477,
+                  "column": 29,
+                  "offset": 15138,
+                  "text": "commit",
+                  "context": "// shards. Callers must observe the revision before attempting a retry.\n        throw Object.assign(\n          new Error(\n            \"Context/Memory commit was published but post-commit maintenance failed\",\n            { cause },\n          ),\n          {\n            code: \"CONTEXT_MEMORY_COMMIT_PUBLISHED",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 477,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 477,
+                  "column": 59,
+                  "offset": 15168,
+                  "text": "commit",
+                  "context": "e the revision before attempting a retry.\n        throw Object.assign(\n          new Error(\n            \"Context/Memory commit was published but post-commit maintenance failed\",\n            { cause },\n          ),\n          {\n            code: \"CONTEXT_MEMORY_COMMIT_PUBLISHED\",\n            committed: true",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 477,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 481,
+                  "column": 35,
+                  "offset": 15278,
+                  "text": "COMMIT",
+                  "context": "xt/Memory commit was published but post-commit maintenance failed\",\n            { cause },\n          ),\n          {\n            code: \"CONTEXT_MEMORY_COMMIT_PUBLISHED\",\n            committed: true,\n            storeRevision: next.storeRevision,\n            durability:\n              process.platform === \"w",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 481,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 481,
+                  "column": 41,
+                  "offset": 15284,
+                  "text": "_PUBLISH",
+                  "context": "ory commit was published but post-commit maintenance failed\",\n            { cause },\n          ),\n          {\n            code: \"CONTEXT_MEMORY_COMMIT_PUBLISHED\",\n            committed: true,\n            storeRevision: next.storeRevision,\n            durability:\n              process.platform === \"win32\"\n  ",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 481,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 482,
+                  "column": 13,
+                  "offset": 15309,
+                  "text": "commit",
+                  "context": "but post-commit maintenance failed\",\n            { cause },\n          ),\n          {\n            code: \"CONTEXT_MEMORY_COMMIT_PUBLISHED\",\n            committed: true,\n            storeRevision: next.storeRevision,\n            durability:\n              process.platform === \"win32\"\n                ? \"direct",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 482,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 532,
+                  "column": 17,
+                  "offset": 17054,
+                  "text": "_publish",
+                  "context": " put(get(id).reconciliations, id, operation);\n    const manifest = blankManifest();\n    manifest.storeRevision = state.storeRevision;\n    return this._publish(manifest, shards);\n  }\n\n  /** Explicit atomic import into an empty authority; also used by migration. */\n  async importSnapshot(snapshot) {\n    const",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 532,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 633,
+                  "column": 9,
+                  "offset": 20679,
+                  "text": "commit",
+                  "context": "if (manifest.storeRevision >= Number.MAX_SAFE_INTEGER)\n      throw limit(\"store revision is exhausted\");\n    manifest.storeRevision += 1;\n  }\n  async commit({ record, event, reconciliation }, expectedRevision = 0) {\n    const normalized = normalizeMemoryRecord(record);\n    return this._locked(() => {\n    ",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 633,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 663,
+                  "column": 12,
+                  "offset": 21844,
+                  "text": "_publish",
+                  "context": "iliations,\n          reconciliation.requestId,\n          cloneCanonical(reconciliation),\n        );\n      }\n      this._advance(manifest);\n      this._publish(manifest, changed);\n      return {\n        ok: true,\n        revision: normalized.revision,\n        storeRevision: manifest.storeRevision,\n        re",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 663,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 683,
+                  "column": 12,
+                  "offset": 22448,
+                  "text": "_publish",
+                  "context": "ut(\n        shard.reconciliations,\n        operation.requestId,\n        cloneCanonical(operation),\n      );\n      this._advance(manifest);\n      this._publish(manifest, new Map([[bucket, shard]]));\n      return { ok: true, storeRevision: manifest.storeRevision };\n    });\n  }\n}\n",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 683,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 15,
+              "hasMore": false,
+              "nextOffset": null,
+              "regexWindowChars": 69632,
+              "hint": "Regular expressions are evaluated in overlapping text windows; matches spanning more than 4096 characters across a window boundary may be omitted. Use a literal keyword to locate the section, then read its context.",
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-ftcgRG\\8aa1e9c8-db65-4a1e-a370-39b13ef9a6ee\\workspace\\packages\\cli\\src\\lib\\context-memory-kernel\\segmented-memory-port.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712785564,
+                "meta": {
+                  "args": {
+                    "pattern": "commit|_publish|_collect",
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "regex": true
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 61,
+                "sessionId": "panel-1793712583143-85137b",
+                "metadata": {
+                  "args": {
+                    "pattern": "commit|_publish|_collect",
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "regex": true
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_hko9r3wda8pz3gtb3zfhj6s8",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 51
+          },
+          {
+            "type": "tool_result",
+            "id": "call_cwxp7esbv3jdropqdoxh8564",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 223,
+                  "column": 17,
+                  "offset": 6428,
+                  "text": "createDurableMemoryFixture",
+                  "context": "Digest: record.digest,\n    at: AT,\n  };\n  event.digest = canonicalDigest(event, \"chainlesschain.memory-event/v1\");\n  return event;\n}\n\nexport function createDurableMemoryFixture(recordCount) {\n  const count = positiveInteger(recordCount, null, \"recordCount\");\n  if (count > DEFAULT_MAX_EVENTS) {\n    throw new Error(\n      `rec",
+                  "nextRead": {
+                    "path": "packages/cli/scripts/persistent-capacity-benchmark.mjs",
+                    "offset": 223,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 249,
+                  "column": 17,
+                  "offset": 7198,
+                  "text": "createDurableMemoryFixture",
+                  "context": "st(state);\n  return state;\n}\n\nexport function writeDurableMemoryFixture(filePath, recordCount) {\n  const started = performance.now();\n  const state = createDurableMemoryFixture(recordCount);\n  mkdirSync(dirname(filePath), { recursive: true, mode: 0o700 });\n  const serialized = `${JSON.stringify(state)}\\n`;\n  writeFileSync(fi",
+                  "nextRead": {
+                    "path": "packages/cli/scripts/persistent-capacity-benchmark.mjs",
+                    "offset": 249,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 550,
+                  "column": 19,
+                  "offset": 17016,
+                  "text": "createDurableMemoryFixture",
+                  "context": "SegmentedMemoryPort : DurableJsonMemoryPort;\n  let fixture;\n  if (storage === \"segmented\") {\n    const started = performance.now();\n    const state = createDurableMemoryFixture(recordCount);\n    const seeded = new MemoryPort({ filePath });\n    await seeded.importSnapshot(state);\n    const manifest = JSON.parse(readFileSync(f",
+                  "nextRead": {
+                    "path": "packages/cli/scripts/persistent-capacity-benchmark.mjs",
+                    "offset": 550,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 3,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-ftcgRG\\8aa1e9c8-db65-4a1e-a370-39b13ef9a6ee\\workspace\\packages\\cli\\scripts\\persistent-capacity-benchmark.mjs",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712785745,
+                "meta": {
+                  "args": {
+                    "pattern": "createDurableMemoryFixture",
+                    "path": "packages/cli/scripts/persistent-capacity-benchmark.mjs"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 242,
+                "sessionId": "panel-1793712583143-85137b",
+                "metadata": {
+                  "args": {
+                    "pattern": "createDurableMemoryFixture",
+                    "path": "packages/cli/scripts/persistent-capacity-benchmark.mjs"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_cwxp7esbv3jdropqdoxh8564",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 52
+          },
+          {
+            "type": "tool_result",
+            "id": "call_46ad47zbm2qdea8j1ay28666",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-ftcgRG\\8aa1e9c8-db65-4a1e-a370-39b13ef9a6ee\\workspace\\packages\\cli\\src\\lib\\context-memory-kernel\\segmented-memory-port.js",
+              "fileVersion": "22576:1793711967490.824:1793711967490.824",
+              "range": {
+                "startLine": 147,
+                "endLine": 166,
+                "totalLines": 688
+              },
+              "nextRead": {
+                "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                "offset": 167,
+                "limit": 20
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 4117,
+                "end": 4750,
+                "total": 22576
+              },
+              "hashed": false,
+              "content": "    this.readOnly = Boolean(readOnly);\n    this.filePath = resolve(this.filePath);\n    this.shardDirectory = `${this.filePath}.shards`;\n  }\n\n  _locked(operation) {\n    ensureSafeDirectory(dirname(this.filePath));\n    directories(dirname(this.filePath));\n    return super._locked(() => {\n      directories(dirname(this.filePath));\n      this._parentIdentity = identity(dirname(this.filePath));\n      this._shardIdentity = existsSync(this.shardDirectory)\n        ? identity(this.shardDirectory)\n        : null;\n      if (existsSync(this.filePath)) regular(this.filePath);\n      return operation();\n    });\n  }\n\n  _checkDirectories() {",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "22576:1793711967490.824:1793711967490.824"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712794813,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 147,
+                    "limit": 20
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-1793712583143-85137b",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+                    "offset": 147,
+                    "limit": 20
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_46ad47zbm2qdea8j1ay28666",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 56
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2746,
+              "output_tokens": 119,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 16295,
+              "output_tokens": 9064,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 11
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 17496,
+              "output_tokens": 179,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 17
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6284,
+              "output_tokens": 288,
+              "cache_read_input_tokens": 17408,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 23
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5791,
+              "output_tokens": 293,
+              "cache_read_input_tokens": 19456,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 29
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4150,
+              "output_tokens": 1223,
+              "cache_read_input_tokens": 0,
+              "cache_creation_input_tokens": 0
+            },
+            "source": "semantic-compaction",
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 35
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4983,
+              "output_tokens": 231,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 37
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 7855,
+              "output_tokens": 335,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 41
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5295,
+              "output_tokens": 951,
+              "cache_read_input_tokens": 9216,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 45
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3449,
+              "output_tokens": 366,
+              "cache_read_input_tokens": 12288,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 48
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 7594,
+              "output_tokens": 660,
+              "cache_read_input_tokens": 11520,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 54
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4382,
+              "output_tokens": 1052,
+              "cache_read_input_tokens": 16640,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+            "seq": 58
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 86320,
+          "output_tokens": 14761,
+          "cache_read_input_tokens": 104960,
+          "cache_creation_input_tokens": 0
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 12,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "I've now independently verified the source facts. Let me build my own requirement-to-assertion account:\n\n**Requirement list (derived from task):**\n1. v1 shadow read → directory bytes AND entries identical before/after, no migration triggered.\n2. v2 shadow read → directory bytes AND entries identical before/after, no migration/GC triggered.\n3. Shadow rejects write operations instead of writing (readOnly authority is read-only).\n\n**Per-condition verification against source:**\n\n- **`_locked`** (line 149): `ensureSafeDirectory(dirname(filePath))` runs before the operation. The parent dir is the `mkdtempSync` root (already exists), so no new entries. Critically, it does **not** create `this.shardDirectory` on reads — shard dir only appears via writable `_publish`. This confirms my parent-entry-identical assertions are valid (no shard dir materializes during a shadow read).\n\n- **`_loadManifest`** v1 (line 270): `if (this.readOnly) return legacy;` — readOnly skips `_installSnapshot` migration. My test 1 asserts schema stays `STORE_SCHEMA`; test 2 flips readOnly and asserts schema becomes `SEGMENTED_STORE_SCHEMA`. This is the migration guard.\n\n- **`_loadManifest`** v2 GC (line 277): `if (!this.readOnly) this._collect(manifest);` — readOnly skips collect. Test 3 keeps orphan; test 4 flips readOnly and GC removes it. This is the GC guard.\n\n- **`_publish`** (line 376): throws `CONTEXT_MEMORY_READ_ONLY` as first statement, before `ensureSafeDirectory(this.shardDirectory)` (line 384), `_checkDirectories`, `_collect`. So a readOnly `commit`/`importSnapshot` rejects with **no side effects** — shard dir never created, manifest bytes unchanged. Test 5 asserts this.\n\n- **`importSnapshot`** (line 532): `IMPORT_CONFLICT` check requires an existing authority; my absent-authority control passes that check and reaches `_publish` → READ_ONLY. Valid — the other guard (IMPORT_CONFLICT) cannot mask the rejection because authority is absent.\n\nAll six cases verified. Each negative control flips only `readOnly` with otherwise identical prerequisites. No uncovered requirements. No implementation defect — the frozen source correctly guards migration, GC, and writes.\n\nThe deliverable already covers all requirements within the 6-case cap. No repair needed.\n\n## Final account\n\n**Deliverable:** `packages/cli/__tests__/verify-21.test.js` — six independent regression cases, all verified against the frozen `segmented-memory-port.js` and the real fixtures (`createDurableMemoryFixture` from `../scripts/persistent-capacity-benchmark.mjs`, `applyMemoryCommand` from the kernel package, both confirmed to exist).\n\n**Requirement coverage:**\n- **R1 v1 no-migration + byte/entry identity** — Test 1 (positive) + Test 2 (negative). Positive reaches `_loadManifest`'s `if (this.readOnly) return legacy;`; negative flips only `readOnly` and hits `_installSnapshot`. Assertions: schema stays `STORE_SCHEMA`; authority bytes and parent dir entries byte-identical.\n- **R2 v2 no-GC + byte/entry identity** — Test 3 (positive) + Test 4 (negative). Positive keeps an orphan shard because `_loadManifest` gates `_collect` behind `!readOnly`; negative flips only `readOnly` and GC removes the orphan. Assertions: orphan retained, manifest bytes + parent/shard entries identical.\n- **R3 shadow write rejection** — Test 5. `commit` and `importSnapshot`(absent authority) both reach `_publish`, which throws `CONTEXT_MEMORY_READ_ONLY` as its first statement, before `ensureSafeDirectory(shardDirectory)`/`_collect`. Assertions: rejection code + manifest bytes unchanged; absent-authority parent entries unchanged. The `IMPORT_CONFLICT` guard is bypassed by using an absent authority, so it cannot mask the READ_ONLY result.\n\n**No implementation defect found.** All guards (`readOnly` early-return for migration, `!readOnly` gate for GC, `_publish` first-statement READ_ONLY) are present in the frozen source; every assertion is expected to pass.\n\n**Limitations:** Native host is Windows with no execution/code tools permitted, so I could not run Vitest here. I verified imports, contracts, fixtures, call paths, and observable-effect orderings statically. The network-disabled Linux Docker checker will run baseline, candidate, and coverage tests; this review does not imply those tests passed.",
+          "session_id": "panel-1793712583143-85137b",
+          "turn": 1,
+          "usage": {
+            "input_tokens": 86320,
+            "output_tokens": 14761,
+            "cache_read_input_tokens": 104960,
+            "cache_creation_input_tokens": 0
+          },
+          "transcript_refs": {
+            "schema": "chainlesschain.session-transcript-references/v1",
+            "sessionId": "panel-1793712583143-85137b",
+            "assistantEventId": "b3e6832f97889bb4d4b6474bba48e6952bfad8ab5e3106b76714eae12a9c159d",
+            "userEventId": "5f8e3096d88ff509bd0b328cb3d8a95d54c25a0a9e21fab8d9c2b1d77326f740",
+            "clientMessageId": "adb49b6f-84de-4eb7-b25d-f6c31345ebe2"
+          },
+          "trace_id": "tr-ca01ee76-a106-484a-a9fe-e338ae16c1c0",
+          "seq": 60
+        },
+        "scopePathComparison": "windows-case-insensitive; raw stream retained"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 12,
+        "usageCompleteRequests": 12,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 12,
+        "usageCompleteRequests": 12,
+        "tasks": [
+          {
+            "taskId": "verify-21",
+            "requests": 12,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": 0.40230499999999997,
+        "knownTokenOnlyEstimateCny": 0.40230499999999997,
+        "fxRate": null
+      },
+      "changedPaths": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml",
+        "packages/cli/__tests__/verify-21.test.js"
+      ],
+      "finishedAt": "2026-11-03T13:35:32.051Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-21"
+  ],
+  "generationPassed": true,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 40 model turns, 48 requests, 180 second request timeout, model maximum 393216 output tokens (8192 test cap removed), 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:3185a92e57bc89a9f9c1283aeff4823c409e1bebd48b8d20da509814fded8b29",
+  "group": "win32-jetbrains",
+  "entry": "jetbrains",
+  "platform": "win32",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:3ca5c1bfa5bffdee860665eeb757c24004dfaf0f3075f2a63e1a2600b3f6d600"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:487ed1e27103348c920988130954ec6449a81e66f7973e81ed02e1befd126da3"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:be2edf8e1ced537796d5819e458e4b56f2c1638eab8880b09c2c7fea4a4245fd"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+      "digest": "sha256:82becb2b0b551916e312131bcca48736d9e3f462aed4ea2a89ec00f907457eed"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
+      "digest": "sha256:d2cbc2dee63e7f53c622d61ad314143d6bd4d59a679d9aea29579cb034a829fb"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-public140-full.mjs",
+      "digest": "sha256:4c8b323e6c28b2dafb2f2e71ec2e7825d6b321d2998e3ef5f6ace3c2a10acdb9"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:3e515efc1cff606e2cbbfa977b5674abe6a73c142caa1b0539c0a2698978f8e4"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-plugin-artifact.mjs",
+      "digest": "sha256:ce04147c3e2f97c7d44d37052f5e8329595efe9bbcb852b51952535ba96357bc"
+    },
+    {
+      "file": "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.mjs",
+      "digest": "sha256:b8fc449018df5d188d9aada8469e023bd220ece659620b2323cf796e9d08fdcb"
+    },
+    {
+      "file": "packages/jetbrains-plugin/build.gradle.kts",
+      "digest": "sha256:17510157d489a11ed93bde3b2cb06cf3f939edac6ffd8b26735c047f44e3aba7"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "digest": "sha256:29655e9a949948528018ad85baf368e5240445216caa747719c95d6c83903e0b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/UiFailureDiagnostics.java",
+      "digest": "sha256:5802b749fd82048d196e90ce5f0f2f4e4c7cfc527590f07b62ccafb73d4c6a20"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "digest": "sha256:44cb87d4c64437b64204a4bca9d7faaec68a6cbbff8b7303c491e17e7597337b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "digest": "sha256:b2a5f856e6607ec559b1c7d17be14a110cccd6bcaea323cbab5ae1458109ee5b"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T13:19:35.104Z",
+    "finishedAt": "2026-11-03T13:22:59.807Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "verify-21",
+    "locked": {
+      "version": "0.166.140",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+      "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T13:35:32.057Z"
+}

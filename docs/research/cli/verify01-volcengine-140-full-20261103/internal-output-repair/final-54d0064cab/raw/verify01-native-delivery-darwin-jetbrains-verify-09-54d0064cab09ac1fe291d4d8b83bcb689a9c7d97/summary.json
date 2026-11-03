@@ -1,0 +1,1416 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000,
+    "connectionAttemptTimeoutMs": 10000,
+    "parallelToolCalls": null,
+    "preserveExplicitOutputLimits": true
+  },
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:cea1a2ff4e14a002be1700446ebe97bc7640a79ad6d778839f71bb938a2d25af",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+  "actualPlatform": "darwin",
+  "actualArch": "arm64",
+  "actualEntry": "jetbrains",
+  "changeReview": {
+    "requested": true,
+    "observed": true
+  },
+  "startedAt": "2026-11-03T15:15:05.496Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-09",
+      "taskId": "verify-09",
+      "kind": "task",
+      "runId": "209991e0-8965-407e-b6ae-329e3bd419a1",
+      "stratum": "darwin-jetbrains-volcengine",
+      "declaredActualEntry": {
+        "platform": "darwin",
+        "entry": "jetbrains"
+      },
+      "actualPlatform": "darwin",
+      "actualEntry": "jetbrains",
+      "changeReview": {
+        "requested": true,
+        "observed": true,
+        "reminderCount": 1,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-09.test.js"
+      ],
+      "startedAt": "2026-11-03T15:15:05.499Z",
+      "deadline": "2026-11-03T15:55:05.499Z",
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-09.test.js",
+          "path": "verify-09/candidate/packages/cli/__tests__/verify-09.test.js",
+          "digest": "sha256:26ffbb15a4194680e5abb58119ca859d1c085a6d627cb53ca08bf205b826fed0",
+          "bytes": 3907
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml"
+      ],
+      "unexpectedChanges": [],
+      "generationPassed": true,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T15:15:11.673Z",
+        "finishedAt": "2026-11-03T15:15:40.561Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "verify-09",
+        "locked": {
+          "version": "0.166.140",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+          "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "capturePath": "verify-09/capture",
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 71575,
+            "outputTokens": 8657,
+            "cacheReadInputTokens": 81664,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-1793719355998-e106bf",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "ed9adff1-1dc6-4381-a386-132a2d4f3dda",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_7g4e6vmi9ksndkvg8jq6lx03",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/session-history-origins.js"
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_2aq8oafyx0hvi6dbbffvhrf6",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/session-history-origins.test.js"
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 7
+          },
+          {
+            "type": "tool_use",
+            "id": "call_v9mhkk53f1phea366aiuo3lm",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/session-message-provenance.js"
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 12
+          },
+          {
+            "type": "tool_use",
+            "id": "call_whhk8udfcxoa504be7i2e357",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/checkpoint-summary-projection.js"
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 13
+          },
+          {
+            "type": "tool_use",
+            "id": "call_fivegt2lt1w4r08o2bdld2uh",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-09.test.js",
+              "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createSessionHistoryOrigins,\n  HISTORY_PREFIX_SCHEMA,\n} from \"../src/lib/session-history-origins.js\";\nimport {\n  HISTORY_SUMMARY_SCHEMA,\n  projectCheckpointSummary,\n} from \"../src/lib/checkpoint-summary-projection.js\";\nimport { encodePersistedMessage } from \"../src/lib/session-message-provenance.js\";\n\nconst HEAD = \"a\".repeat(64);\n\nfunction rewindEvent(messages, retainedMessageCount, patch) {\n  const event = {\n    prevHash: HEAD,\n    data: {\n      action: \"restore-conversation\",\n      messages: messages.slice(0, retainedMessageCount),\n      historyPrefix: {\n        schema: HISTORY_PREFIX_SCHEMA,\n        sourceHead: HEAD,\n        sourceMessageCount: messages.length,\n        retainedMessageCount,\n      },\n    },\n  };\n  if (patch) patch(event);\n  return event;\n}\n\nfunction summaryEvent(messages, action, start, end, patch) {\n  const event = {\n    prevHash: HEAD,\n    data: {\n      action,\n      turnId: \"selected\",\n      historySummary: {\n        schema: HISTORY_SUMMARY_SCHEMA,\n        sourceHead: HEAD,\n        sourceMessageCount: messages.length,\n        start,\n        end,\n      },\n      messages: projectCheckpointSummary({\n        messages,\n        action,\n        start,\n        end,\n        turnId: \"selected\",\n      }).map(({ message }) => encodePersistedMessage(message)),\n    },\n  };\n  if (patch) patch(event);\n  return event;\n}\n\nconst baseMessages = [\n  { role: \"user\", content: \"first\" },\n  { role: \"assistant\", content: \"answer\" },\n  { role: \"user\", content: \"selected\" },\n];\n\ndescribe(\"verify-09: history source tampering is rejected\", () => {\n  it(\"reads a correct rewind source (positive control)\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    // Only the source identity is correct here: valid prefix sourceHead and\n    // sourceMessageCount with a matching retained fingerprint.\n    expect(origins.rewind(rewindEvent(baseMessages, 2), 3)).toBe(2);\n  });\n\n  it(\"rejects a rewind whose sourceHead names a different session\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    const event = rewindEvent(baseMessages, 2, (value) => {\n      value.data.historyPrefix.sourceHead = \"b\".repeat(64);\n    });\n    // Fingerprint and every other prerequisite stay valid; only the session\n    // source head was changed, so only the sourceHead guard can reject this.\n    expect(origins.rewind(event, 3)).toBeNull();\n  });\n\n  it(\"rejects a rewind whose sourceMessageCount claims a different history length\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    const event = rewindEvent(baseMessages, 2, (value) => {\n      value.data.historyPrefix.sourceMessageCount = baseMessages.length - 1;\n    });\n    expect(origins.rewind(event, 3)).toBeNull();\n  });\n\n  it(\"reads a correct summary source (positive control)\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    expect(\n      origins.summarize(summaryEvent(baseMessages, \"summary-from\", 0)),\n    ).toBe(true);\n  });\n\n  it(\"rejects a summary whose sourceHead names a different session\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    const event = summaryEvent(baseMessages, \"summary-from\", 0, (value) => {\n      value.data.historySummary.sourceHead = \"b\".repeat(64);\n    });\n    expect(origins.summarize(event)).toBe(false);\n  });\n\n  it(\"rejects a summary whose sourceMessageCount claims a different history length\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    const event = summaryEvent(baseMessages, \"summary-from\", 0, (value) => {\n      value.data.historySummary.sourceMessageCount = baseMessages.length - 1;\n    });\n    expect(origins.summarize(event)).toBe(false);\n  });\n});\n"
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 18
+          },
+          {
+            "type": "tool_use",
+            "id": "call_7niswngfzg38ico0l2apqiyf",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-09.test.js"
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 24
+          },
+          {
+            "type": "tool_use",
+            "id": "call_dptc07nausaf9pjiqt0ol02g",
+            "tool": "search_files",
+            "args": {
+              "pattern": "function rewind|function summarize|sourceHead|sourceMessageCount|prefix.schema|certificate.schema|fingerprint|retainedMessageCount",
+              "path": "packages/cli/src/lib/session-history-origins.js",
+              "contextChars": 400,
+              "maxMatches": 40
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 34
+          },
+          {
+            "type": "tool_use",
+            "id": "call_uneci2hrf8gps9me9h7d4zty",
+            "tool": "search_files",
+            "args": {
+              "pattern": "sourceHead",
+              "path": "packages/cli/src/lib/session-history-origins.js",
+              "contextChars": 500,
+              "maxMatches": 20
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 40
+          },
+          {
+            "type": "tool_use",
+            "id": "call_7yh78qanzwaelyl51xixb473",
+            "tool": "search_files",
+            "args": {
+              "pattern": "sourceMessageCount",
+              "path": "packages/cli/src/lib/session-history-origins.js",
+              "contextChars": 500,
+              "maxMatches": 20
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 41
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_7g4e6vmi9ksndkvg8jq6lx03",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-06rEvd/209991e0-8965-407e-b6ae-329e3bd419a1/workspace/packages/cli/src/lib/session-history-origins.js",
+              "fileVersion": "9470:1791108223000:1793718909690.918",
+              "readSpan": {
+                "start": 0,
+                "end": 9470,
+                "total": 9470
+              },
+              "hashed": false,
+              "content": "import { canonicalDigest } from \"@chainlesschain/context-memory-kernel\";\nimport {\n  contextItemsToMessages,\n  messagesToContextItems,\n} from \"./context-memory-kernel/message-adapter.js\";\nimport {\n  decodeVerifiedPersistedMessage,\n  encodePersistedMessage,\n  getDurableSystemMessageProvenance,\n  DURABLE_SYSTEM_MESSAGE_KINDS,\n} from \"./session-message-provenance.js\";\nimport {\n  HISTORY_SUMMARY_SCHEMA,\n  projectCheckpointSummary,\n} from \"./checkpoint-summary-projection.js\";\n\nexport const HISTORY_PREFIX_SCHEMA = \"chainlesschain.session-history-prefix/v1\";\nconst MAX_CONTEXT_BYTES = 8 * 1024 * 1024;\nconst MAX_CONTEXT_MESSAGES = 32768;\nconst displayable = (message) =>\n  [\"user\", \"assistant\", \"tool\"].includes(message?.role);\nconst derivedSystemKinds = new Set([\n  DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,\n  DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_TOOL_COLLAPSE,\n  DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,\n  DURABLE_SYSTEM_MESSAGE_KINDS.MIGRATION_SUMMARY,\n]);\nconst historyBearing = (entry) =>\n  displayable(entry.message) ||\n  Boolean(entry.origin) ||\n  derivedSystemKinds.has(\n    getDurableSystemMessageProvenance(entry.message)?.kind,\n  );\nconst fingerprint = (messages) =>\n  canonicalDigest(messages.map(encodePersistedMessage));\n\n/**\n * Origins belong to positions in the current display history, never to equal\n * text. Only indexed, digest-checked compaction sources can carry them forward.\n * The optional mapping is bounded independently of the display page; losing it\n * forces a later rewind to use its explicit snapshot.\n */\nexport function createSessionHistoryOrigins() {\n  let context = [];\n  let bytes = 0;\n\n  function replace(entries) {\n    context = [];\n    bytes = 0;\n    for (const entry of entries) {\n      append(entry.message, entry.origin);\n      if (!context) break;\n    }\n  }\n  function append(message, origin) {\n    if (!context || typeof message?.role !== \"string\") return;\n    bytes += Buffer.byteLength(JSON.stringify(message));\n    if (bytes > MAX_CONTEXT_BYTES || context.length >= MAX_CONTEXT_MESSAGES) {\n      context = null;\n      return;\n    }\n    context.push({ message, origin });\n  }\n  function span(entries) {\n    const visible = entries.filter(historyBearing);\n    if (visible.length === 0) return null;\n    if (visible.some((entry) => !entry.origin)) return null;\n    return {\n      first: Math.min(...visible.map((entry) => entry.origin.first)),\n      last: Math.max(...visible.map((entry) => entry.origin.last)),\n    };\n  }\n\n  const api = {\n    appendPersisted(message, ordinal) {\n      if (!context) return;\n      append(\n        decodeVerifiedPersistedMessage(message),\n        displayable(message) ? { first: ordinal, last: ordinal } : null,\n      );\n    },\n    appendMappedPersisted(message, origin) {\n      append(decodeVerifiedPersistedMessage(message), origin);\n    },\n    branchPrefix(messages, head, count) {\n      if (!context) return null;\n      const cutoff = api.rewind(\n        {\n          prevHash: head,\n          data: {\n            action: \"restore-conversation\",\n            messages: messages.map(encodePersistedMessage),\n            historyPrefix: {\n              schema: HISTORY_PREFIX_SCHEMA,\n              sourceHead: head,\n              sourceMessageCount: context.length,\n              retainedMessageCount: messages.length,\n            },\n          },\n        },\n        count,\n      );\n      return cutoff === null\n        ? null\n        : {\n            cutoff,\n            entries: context.map((entry) => ({\n              message: entry.message,\n              origin: entry.origin ? { ...entry.origin } : null,\n            })),\n          };\n    },\n    snapshot(messages) {\n      let ordinal = 0;\n      replace(\n        messages.map((message) => ({\n          message: decodeVerifiedPersistedMessage(message),\n          origin: displayable(message)\n            ? { first: ordinal, last: ordinal++ }\n            : null,\n        })),\n      );\n    },\n    compact(data) {\n      const canonical = data.canonical;\n      let entries = null;\n      try {\n        if (context) {\n          const originals = messagesToContextItems(\n            context.map((entry) => entry.message),\n            { sessionId: canonical.sessionId },\n          );\n          const byDigest = new Map(\n            originals.map((item) => [item.digest, item]),\n          );\n          const bySequence = new Map(\n            originals.map((item) => [item.sourceRef.eventSequence, item]),\n          );\n          const itemEntries = (item) =>\n            context.slice(\n              item.sourceRef.eventSequence,\n              item.sourceRef.eventSequence +\n                contextItemsToMessages([item]).length,\n            );\n          entries = [...canonical.outputItems]\n            .sort(\n              (left, right) =>\n                (left.sourceRef.eventSequence ?? Number.MAX_SAFE_INTEGER) -\n                  (right.sourceRef.eventSequence ?? Number.MAX_SAFE_INTEGER) ||\n                left.itemId.localeCompare(right.itemId, \"en\"),\n            )\n            .flatMap((item) => {\n              const messages = contextItemsToMessages([item]);\n              const source = bySequence.get(item.sourceRef.eventSequence);\n              if (\n                item.sourceRef.store === \"cli-jsonl-session\" &&\n                source?.sourceRef.digest === item.sourceRef.digest &&\n                source.content === item.content\n              ) {\n                return itemEntries(source);\n              }\n              let origin = null;\n              if (\n                item.sourceRef.store === \"cli-context-summary\" &&\n                item.provenance?.parentDigests?.length > 0\n              ) {\n                const digests = item.provenance.parentDigests;\n                if (\n                  digests.length <= originals.length &&\n                  new Set(digests).size === digests.length\n                ) {\n                  const parents = digests.map((digest) => byDigest.get(digest));\n                  if (parents.every(Boolean))\n                    origin = span(parents.flatMap(itemEntries));\n                }\n              }\n              return messages.map((message) => ({ message, origin }));\n            });\n          const persisted = data.messages.map(decodeVerifiedPersistedMessage);\n          if (\n            fingerprint(entries.map((entry) => entry.message)) !==\n            fingerprint(persisted)\n          )\n            entries = null;\n        }\n      } catch {\n        entries = null;\n      }\n      replace(\n        entries ||\n          data.messages.map((message) => ({\n            message: decodeVerifiedPersistedMessage(message),\n            origin: null,\n          })),\n      );\n    },\n    summarize(event) {\n      const data = event.data;\n      const certificate = data.historySummary;\n      if (\n        !context ||\n        certificate?.schema !== HISTORY_SUMMARY_SCHEMA ||\n        !/^[a-f0-9]{64}$/u.test(certificate.sourceHead) ||\n        certificate.sourceHead !== event.prevHash ||\n        certificate.sourceMessageCount !== context.length\n      )\n        return false;\n      try {\n        const projected = projectCheckpointSummary({\n          messages: context.map((entry) => entry.message),\n          action: data.action,\n          turnId: data.turnId,\n          start: certificate.start,\n          end: certificate.end,\n        });\n        if (\n          fingerprint(projected.map((entry) => entry.message)) !==\n          fingerprint(data.messages.map(decodeVerifiedPersistedMessage))\n        )\n          return false;\n        const entries = projected.map(({ message, sourceIndexes }) => ({\n          message,\n          origin: span(sourceIndexes.map((index) => context[index])),\n        }));\n        replace(entries);\n        return true;\n      } catch {\n        return false;\n      }\n    },\n    rewind(event, count) {\n      const data = event.data;\n      const prefix = data.historyPrefix;\n      if (\n        !context ||\n        prefix?.schema !== HISTORY_PREFIX_SCHEMA ||\n        !/^[a-f0-9]{64}$/u.test(prefix.sourceHead) ||\n        prefix.sourceHead !== event.prevHash ||\n        prefix.sourceMessageCount !== context.length ||\n        ![\"restore-conversation\", \"restore-both\"].includes(data.action) ||\n        !Number.isSafeInteger(prefix.retainedMessageCount) ||\n        prefix.retainedMessageCount < 0 ||\n        prefix.retainedMessageCount >= context.length\n      )\n        return null;\n      const retained = context.slice(0, prefix.retainedMessageCount);\n      const removed = context.slice(prefix.retainedMessageCount);\n      const anchor = removed[0];\n      if (\n        anchor.message.role !== \"user\" ||\n        !anchor.origin ||\n        anchor.origin.first !== anchor.origin.last\n      )\n        return null;\n      const cutoff = anchor.origin.first;\n      if (\n        cutoff < 0 ||\n        cutoff > count ||\n        retained.some(\n          (entry) =>\n            historyBearing(entry) &&\n            (!entry.origin || entry.origin.last >= cutoff),\n        ) ||\n        removed.some(\n          (entry) =>\n            historyBearing(entry) &&\n            (!entry.origin || entry.origin.first < cutoff),\n        )\n      )\n        return null;\n      try {\n        if (\n          fingerprint(retained.map((entry) => entry.message)) !==\n          fingerprint(data.messages.map(decodeVerifiedPersistedMessage))\n        )\n          return null;\n      } catch {\n        return null;\n      }\n      replace(retained);\n      return cutoff;\n    },\n  };\n  return api;\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793719369303,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/session-history-origins.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 18,
+                "sessionId": "panel-1793719355998-e106bf",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/session-history-origins.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_7g4e6vmi9ksndkvg8jq6lx03",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 8
+          },
+          {
+            "type": "tool_result",
+            "id": "call_2aq8oafyx0hvi6dbbffvhrf6",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-06rEvd/209991e0-8965-407e-b6ae-329e3bd419a1/workspace/packages/cli/__tests__/unit/session-history-origins.test.js",
+              "fileVersion": "10944:1791108223000:1793718909289.438",
+              "readSpan": {
+                "start": 0,
+                "end": 10944,
+                "total": 10944
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createSessionHistoryOrigins,\n  HISTORY_PREFIX_SCHEMA,\n} from \"../../src/lib/session-history-origins.js\";\nimport {\n  messagesToContextItems,\n  contextItemsToMessages,\n  createSummaryContextItem,\n} from \"../../src/lib/context-memory-kernel/message-adapter.js\";\nimport {\n  HISTORY_SUMMARY_SCHEMA,\n  projectCheckpointSummary,\n} from \"../../src/lib/checkpoint-summary-projection.js\";\nimport {\n  DURABLE_SYSTEM_MESSAGE_KINDS,\n  encodePersistedMessage,\n  markDurableSystemMessage,\n} from \"../../src/lib/session-message-provenance.js\";\n\nconst head = \"a\".repeat(64);\nfunction event(messages, retainedMessageCount) {\n  return {\n    prevHash: head,\n    data: {\n      action: \"restore-conversation\",\n      messages: messages.slice(0, retainedMessageCount),\n      historyPrefix: {\n        schema: HISTORY_PREFIX_SCHEMA,\n        sourceHead: head,\n        sourceMessageCount: messages.length,\n        retainedMessageCount,\n      },\n    },\n  };\n}\n\nfunction summaryEvent(messages, action, start, end = messages.length) {\n  return {\n    prevHash: head,\n    data: {\n      action,\n      turnId: \"selected\",\n      historySummary: {\n        schema: HISTORY_SUMMARY_SCHEMA,\n        sourceHead: head,\n        sourceMessageCount: messages.length,\n        start,\n        end,\n      },\n      messages: projectCheckpointSummary({\n        messages,\n        action,\n        start,\n        end,\n        turnId: \"selected\",\n      }).map(({ message }) => encodePersistedMessage(message)),\n    },\n  };\n}\n\ndescribe(\"display history origins\", () => {\n  it.each([\"summary-from\", \"summary-to\"])(\n    \"carries %s system-summary ancestry into a subsequent rewind\",\n    (action) => {\n      const messages = [\n        { role: \"user\", content: \"first\" },\n        { role: \"assistant\", content: \"answer\" },\n        { role: \"user\", content: \"second\" },\n        { role: \"assistant\", content: \"answer\" },\n      ];\n      const origins = createSessionHistoryOrigins();\n      origins.snapshot(messages);\n      const summarized = summaryEvent(messages, action, 0);\n      expect(origins.summarize(summarized)).toBe(true);\n      const later = { role: \"user\", content: \"later\" };\n      origins.appendPersisted(later, 4);\n      const output = [...summarized.data.messages, later];\n      expect(origins.rewind(event(output, 1), 5)).toBe(4);\n    },\n  );\n\n  it(\"rejects invalid summary certificates and output without changing the source mapping\", () => {\n    const messages = [\n      { role: \"user\", content: \"same\" },\n      { role: \"assistant\", content: \"answer\" },\n      { role: \"user\", content: \"same\" },\n      { role: \"assistant\", content: \"answer\" },\n    ];\n    const changes = [\n      (value) => {\n        delete value.data.historySummary;\n      },\n      (value) => {\n        value.data.historySummary.schema += \"-unknown\";\n      },\n      (value) => {\n        value.data.historySummary.sourceHead = \"b\".repeat(64);\n      },\n      (value) => {\n        value.data.historySummary.sourceMessageCount -= 1;\n      },\n      (value) => {\n        value.data.historySummary.start = 1;\n      },\n      (value) => {\n        value.data.historySummary.end = 3;\n      },\n      (value) => {\n        value.data.historySummary.start = -1;\n      },\n      (value) => {\n        value.data.historySummary.end = 4.5;\n      },\n      (value) => {\n        value.data.action = \"restore-conversation\";\n      },\n      (value) => {\n        value.data.turnId = \"other\";\n      },\n      (value) => {\n        value.data.messages[0].content = \"different\";\n      },\n      (value) => {\n        value.data.messages.at(-1).content += \"\\nextra\";\n      },\n      (value) => {\n        delete value.data.messages.at(-1)._cc_replay;\n      },\n      (value) => {\n        value.data.messages.at(-1).role = \"assistant\";\n      },\n    ];\n    for (const change of changes) {\n      const origins = createSessionHistoryOrigins();\n      origins.snapshot(messages);\n      const summarized = summaryEvent(messages, \"summary-from\", 2);\n      change(summarized);\n      expect(origins.summarize(summarized)).toBe(false);\n      expect(origins.rewind(event(messages, 2), 4)).toBe(2);\n    }\n  });\n\n  it.each([0, 2])(\n    \"rejects a derived system spanning the rewind point at position %i\",\n    (position) => {\n      const origins = createSessionHistoryOrigins();\n      const derived = encodePersistedMessage(\n        markDurableSystemMessage(\n          { role: \"system\", content: \"derived from both sides\" },\n          DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,\n        ),\n      );\n      const messages = [\n        { role: \"assistant\", content: \"first\" },\n        { role: \"user\", content: \"cut\" },\n      ];\n      messages.splice(position, 0, derived);\n      messages.forEach((message) =>\n        origins.appendMappedPersisted(\n          message,\n          message.role === \"system\"\n            ? { first: 0, last: 2 }\n            : message.role === \"user\"\n              ? { first: 2, last: 2 }\n              : { first: 0, last: 0 },\n        ),\n      );\n      expect(\n        origins.rewind(\n          event(\n            messages,\n            messages.findIndex((m) => m.role === \"user\"),\n          ),\n          3,\n        ),\n      ).toBeNull();\n    },\n  );\n\n  it(\"does not lose a system summary dependency during another Kernel summary\", () => {\n    const origins = createSessionHistoryOrigins();\n    const derived = markDurableSystemMessage(\n      { role: \"system\", content: \"earlier derived context\" },\n      DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,\n    );\n    const selected = { role: \"user\", content: \"cut\" };\n    origins.appendMappedPersisted(encodePersistedMessage(derived), {\n      first: 0,\n      last: 3,\n    });\n    origins.appendPersisted(selected, 2);\n    const items = messagesToContextItems([derived, selected], {\n      sessionId: \"session\",\n    });\n    const summary = createSummaryContextItem({\n      messages: [{ role: \"assistant\", content: \"summary of system summary\" }],\n      parents: items.slice(0, 1),\n      operationId: \"system-summary\",\n      now: \"2026-09-27T00:00:00.000Z\",\n    });\n    const outputItems = [summary, items[1]];\n    const messages = contextItemsToMessages(outputItems);\n    origins.compact({\n      messages,\n      canonical: { sessionId: \"session\", outputItems },\n    });\n    expect(origins.rewind(event(messages, 1), 4)).toBeNull();\n  });\n\n  it(\"leaves ancestry unknown when a summary includes an unmapped derived system\", () => {\n    const derived = markDurableSystemMessage(\n      { role: \"system\", content: \"unknown earlier summary\" },\n      DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,\n    );\n    const source = [{ role: \"user\", content: \"first\" }, derived];\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(source.map(encodePersistedMessage));\n    const summarized = summaryEvent(source, \"summary-from\", 0);\n    expect(origins.summarize(summarized)).toBe(true);\n    const later = { role: \"user\", content: \"later\" };\n    origins.appendPersisted(later, 1);\n    expect(\n      origins.rewind(event([...summarized.data.messages, later], 1), 2),\n    ).toBeNull();\n  });\n\n  it(\"drops optional origin tracking at the byte limit, and recovers only from a later explicit snapshot\", () => {\n    const origins = createSessionHistoryOrigins();\n    const messages = Array.from({ length: 70 }, (_, index) => ({\n      role: index % 2 === 0 ? \"user\" : \"assistant\",\n      content: \"x\".repeat(128 * 1024),\n    }));\n    messages.forEach((message, index) =>\n      origins.appendPersisted(message, index),\n    );\n    expect(origins.rewind(event(messages, 2), messages.length)).toBeNull();\n    expect(origins.summarize(summaryEvent(messages, \"summary-from\", 0))).toBe(\n      false,\n    );\n    origins.snapshot(messages.slice(0, 4));\n    expect(origins.rewind(event(messages.slice(0, 4), 2), 4)).toBe(2);\n  });\n\n  it(\"does not infer an origin from equal text at a different indexed source\", () => {\n    const origins = createSessionHistoryOrigins();\n    const persisted = [\n      { role: \"user\", content: \"same\" },\n      { role: \"assistant\", content: \"answer\" },\n    ];\n    persisted.forEach((message, index) =>\n      origins.appendPersisted(message, index),\n    );\n    const otherSource = [{ role: \"assistant\", content: \"other\" }, ...persisted];\n    const item = messagesToContextItems(otherSource, {\n      sessionId: \"session\",\n    })[1];\n    const messages = contextItemsToMessages([item]);\n    origins.compact({\n      messages,\n      canonical: { sessionId: \"session\", outputItems: [item] },\n    });\n    expect(origins.rewind(event(messages, 0), 2)).toBeNull();\n  });\n\n  it(\"requires every summary parent and refuses a prefix that crosses the selected origin\", () => {\n    const messages = [\n      { role: \"user\", content: \"first\" },\n      { role: \"assistant\", content: \"answer\" },\n      { role: \"user\", content: \"selected\" },\n    ];\n    const items = messagesToContextItems(messages, { sessionId: \"session\" });\n    const origins = createSessionHistoryOrigins();\n    messages.forEach((message, index) =>\n      origins.appendPersisted(message, index),\n    );\n    const summary = createSummaryContextItem({\n      messages: [{ role: \"assistant\", content: \"spanning summary\" }],\n      parents: items,\n      operationId: \"crossing\",\n      now: \"2026-09-27T00:00:00.000Z\",\n    });\n    const outputItems = [summary, items[2]];\n    const output = contextItemsToMessages(outputItems);\n    origins.compact({\n      messages: output,\n      canonical: { sessionId: \"session\", outputItems },\n    });\n    expect(origins.rewind(event(output, 1), 3)).toBeNull();\n\n    const differentSource = messagesToContextItems(\n      [{ role: \"assistant\", content: \"unrecorded\" }],\n      { sessionId: \"session\" },\n    );\n    const unknownSummary = createSummaryContextItem({\n      messages: [{ role: \"assistant\", content: \"unknown parent\" }],\n      parents: differentSource,\n      operationId: \"unknown\",\n      now: \"2026-09-27T00:00:00.000Z\",\n    });\n    origins.snapshot(messages);\n    const unknownItems = [unknownSummary, items[2]];\n    const unknownOutput = contextItemsToMessages(unknownItems);\n    origins.compact({\n      messages: unknownOutput,\n      canonical: { sessionId: \"session\", outputItems: unknownItems },\n    });\n    expect(origins.rewind(event(unknownOutput, 1), 3)).toBeNull();\n  });\n\n  it(\"does not treat changed replacement content or a summary action as a retained prefix\", () => {\n    const origins = createSessionHistoryOrigins();\n    const messages = [\n      { role: \"user\", content: \"one\" },\n      { role: \"user\", content: \"two\" },\n    ];\n    origins.snapshot(messages);\n    const changed = event(messages, 1);\n    changed.data.messages[0] = { role: \"user\", content: \"replacement\" };\n    expect(origins.rewind(changed, 2)).toBeNull();\n    const summary = event(messages, 1);\n    summary.data.action = \"summary-to\";\n    expect(origins.rewind(summary, 2)).toBeNull();\n    expect(origins.rewind(event(messages, 0), 2)).toBe(0);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793719369303,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/session-history-origins.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 9,
+                "sessionId": "panel-1793719355998-e106bf",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/session-history-origins.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_2aq8oafyx0hvi6dbbffvhrf6",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 9
+          },
+          {
+            "type": "tool_result",
+            "id": "call_v9mhkk53f1phea366aiuo3lm",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-06rEvd/209991e0-8965-407e-b6ae-329e3bd419a1/workspace/packages/cli/src/lib/session-message-provenance.js",
+              "fileVersion": "13213:1791108223000:1793718909692.2568",
+              "readSpan": {
+                "start": 0,
+                "end": 13213,
+                "total": 13213
+              },
+              "hashed": false,
+              "content": "/**\n * Provenance for durable system messages that are safe to replay after a\n * fresh host system prompt.\n *\n * The JSONL wire tag is hash-chain protected, but it must never reach a model\n * provider. Runtime objects therefore carry the same tag in a private WeakMap;\n * message keys and provider serialization remain byte-for-byte unchanged.\n */\n\nimport { types as utilTypes } from \"node:util\";\n\nexport const SESSION_MESSAGE_PROVENANCE_FIELD = \"_cc_replay\";\nexport const SESSION_FORK_AUTHORITY_FIELD = \"_cc_fork_authority\";\nexport const SESSION_MESSAGE_PROVENANCE_SCHEMA =\n  \"chainlesschain.session-message-provenance/v1\";\n\nconst MICRO_COMPACTED_RUNTIME_FIELD = \"_microCompacted\";\n\nexport const DURABLE_SYSTEM_MESSAGE_KINDS = Object.freeze({\n  COMPACT_SUMMARY: \"compact-summary\",\n  COMPACT_TOOL_COLLAPSE: \"compact-tool-collapse\",\n  CHECKPOINT_SUMMARY: \"checkpoint-summary\",\n  MIGRATION_SUMMARY: \"migration-summary\",\n  FORK_LINEAGE: \"fork-lineage\",\n});\n\nconst DURABLE_KINDS = new Set(Object.values(DURABLE_SYSTEM_MESSAGE_KINDS));\nconst RUNTIME_PROVENANCE = new WeakMap();\nconst INVALID_DATA = Symbol(\"invalid-session-message-data\");\nconst MAX_DATA_DEPTH = 100;\nconst MAX_DATA_NODES = 100_000;\n\nfunction isObjectMessage(value) {\n  return (\n    Boolean(value) &&\n    typeof value === \"object\" &&\n    !utilTypes.isProxy(value) &&\n    !Array.isArray(value)\n  );\n}\n\n/**\n * Snapshot a JSON-shaped object without invoking user-controlled accessors or\n * Proxy traps. Session messages cross persistence and host-adapter trust\n * boundaries, so an accessor-bearing value is invalid rather than executable.\n */\nfunction plainDataSnapshot(value) {\n  if (!isObjectMessage(value) || utilTypes.isProxy(value)) return null;\n  let prototype;\n  let descriptors;\n  try {\n    prototype = Object.getPrototypeOf(value);\n    descriptors = Object.getOwnPropertyDescriptors(value);\n  } catch {\n    return null;\n  }\n  if (prototype !== Object.prototype && prototype !== null) return null;\n\n  const keys = Reflect.ownKeys(descriptors);\n  if (keys.some((key) => typeof key === \"symbol\")) return null;\n  for (const key of keys) {\n    const descriptor = descriptors[key];\n    if (\n      !Object.prototype.hasOwnProperty.call(descriptor, \"value\") ||\n      descriptor.enumerable !== true\n    ) {\n      return null;\n    }\n  }\n  return { value, descriptors, keys };\n}\n\nfunction plainDataArrayValues(value) {\n  if (utilTypes.isProxy(value) || !Array.isArray(value)) return null;\n  let descriptors;\n  try {\n    descriptors = Object.getOwnPropertyDescriptors(value);\n  } catch {\n    return null;\n  }\n  const lengthDescriptor = descriptors.length;\n  const length = lengthDescriptor?.value;\n  const keys = Reflect.ownKeys(descriptors);\n  if (\n    !Number.isSafeInteger(length) ||\n    length < 0 ||\n    keys.some((key) => typeof key === \"symbol\") ||\n    keys.length !== length + 1\n  ) {\n    return null;\n  }\n  const values = [];\n  for (let index = 0; index < length; index += 1) {\n    const descriptor = descriptors[String(index)];\n    if (\n      !descriptor ||\n      !Object.prototype.hasOwnProperty.call(descriptor, \"value\") ||\n      descriptor.enumerable !== true\n    ) {\n      return null;\n    }\n    values.push(descriptor.value);\n  }\n  return values;\n}\n\nfunction dataValue(snapshot, key) {\n  const descriptor = snapshot?.descriptors?.[key];\n  return descriptor && Object.prototype.hasOwnProperty.call(descriptor, \"value\")\n    ? descriptor.value\n    : undefined;\n}\n\nfunction ownDataMessageRole(value) {\n  if (!isObjectMessage(value)) return null;\n  let descriptors;\n  try {\n    descriptors = Object.getOwnPropertyDescriptors(value);\n  } catch {\n    return null;\n  }\n  const descriptor = descriptors.role;\n  if (\n    !descriptor ||\n    !Object.prototype.hasOwnProperty.call(descriptor, \"value\") ||\n    descriptor.enumerable !== true ||\n    typeof descriptor.value !== \"string\"\n  ) {\n    return null;\n  }\n  return descriptor.value;\n}\n\nfunction cloneJsonDataValue(value, state, depth) {\n  if (\n    value === null ||\n    typeof value === \"string\" ||\n    typeof value === \"boolean\" ||\n    (typeof value === \"number\" && Number.isFinite(value))\n  ) {\n    return value;\n  }\n  if (!value || typeof value !== \"object\" || depth > MAX_DATA_DEPTH) {\n    return INVALID_DATA;\n  }\n  if (utilTypes.isProxy(value)) return INVALID_DATA;\n  state.remaining -= 1;\n  if (state.remaining < 0 || state.ancestors.has(value)) return INVALID_DATA;\n  state.ancestors.add(value);\n  try {\n    if (Array.isArray(value)) {\n      const values = plainDataArrayValues(value);\n      if (!values) return INVALID_DATA;\n      const clean = [];\n      for (const item of values) {\n        const cloned = cloneJsonDataValue(item, state, depth + 1);\n        if (cloned === INVALID_DATA) return INVALID_DATA;\n        clean.push(cloned);\n      }\n      return clean;\n    }\n\n    const snapshot = plainDataSnapshot(value);\n    if (!snapshot) return INVALID_DATA;\n    const clean = {};\n    for (const key of snapshot.keys) {\n      const cloned = cloneJsonDataValue(\n        snapshot.descriptors[key].value,\n        state,\n        depth + 1,\n      );\n      if (cloned === INVALID_DATA) return INVALID_DATA;\n      Object.defineProperty(clean, key, {\n        value: cloned,\n        enumerable: true,\n        configurable: true,\n        writable: true,\n      });\n    }\n    return clean;\n  } finally {\n    state.ancestors.delete(value);\n  }\n}\n\nfunction cloneWithoutWireTag(snapshot) {\n  const clean = {};\n  const state = {\n    ancestors: new WeakSet([snapshot.value]),\n    remaining: MAX_DATA_NODES - 1,\n  };\n  for (const key of snapshot.keys) {\n    if (\n      key === SESSION_MESSAGE_PROVENANCE_FIELD ||\n      key === SESSION_FORK_AUTHORITY_FIELD ||\n      key === MICRO_COMPACTED_RUNTIME_FIELD\n    ) {\n      continue;\n    }\n    const cloned = cloneJsonDataValue(\n      snapshot.descriptors[key].value,\n      state,\n      1,\n    );\n    if (cloned === INVALID_DATA) return null;\n    Object.defineProperty(clean, key, {\n      value: cloned,\n      enumerable: true,\n      configurable: true,\n      writable: true,\n    });\n  }\n  return clean;\n}\n\nfunction canonicalTag(kind) {\n  if (!DURABLE_KINDS.has(kind)) {\n    throw new TypeError(`Unsupported durable system message kind: ${kind}`);\n  }\n  return Object.freeze({\n    schema: SESSION_MESSAGE_PROVENANCE_SCHEMA,\n    kind,\n  });\n}\n\nfunction validWireTag(value) {\n  const snapshot = plainDataSnapshot(value);\n  return Boolean(\n    snapshot &&\n    snapshot.keys.length === 2 &&\n    snapshot.keys.includes(\"schema\") &&\n    snapshot.keys.includes(\"kind\") &&\n    dataValue(snapshot, \"schema\") === SESSION_MESSAGE_PROVENANCE_SCHEMA &&\n    DURABLE_KINDS.has(dataValue(snapshot, \"kind\")),\n  );\n}\n\nfunction attachRuntimeTag(message, tag) {\n  RUNTIME_PROVENANCE.set(message, tag);\n  return message;\n}\n\nexport function markDurableSystemMessage(message, kind) {\n  const snapshot = plainDataSnapshot(message);\n  if (!snapshot || dataValue(snapshot, \"role\") !== \"system\") {\n    throw new TypeError(\"Only system messages can carry durable provenance\");\n  }\n  return attachRuntimeTag(message, canonicalTag(kind));\n}\n\nexport function getDurableSystemMessageProvenance(message) {\n  const snapshot = plainDataSnapshot(message);\n  if (!snapshot || dataValue(snapshot, \"role\") !== \"system\") return null;\n  const tag = RUNTIME_PROVENANCE.get(message);\n  return validWireTag(tag) ? tag : null;\n}\n\n/**\n * Preserve an existing runtime capability across one explicitly trusted clone.\n * Generic object spread, structuredClone and JSON round-trips intentionally do\n * not preserve this WeakMap authority.\n */\nexport function preserveDurableSystemMessageProvenance(source, clone) {\n  const tag = getDurableSystemMessageProvenance(source);\n  if (!tag) return clone;\n  const snapshot = plainDataSnapshot(clone);\n  if (!snapshot || dataValue(snapshot, \"role\") !== \"system\") {\n    throw new TypeError(\"Durable system provenance clone is invalid\");\n  }\n  return attachRuntimeTag(clone, canonicalTag(tag.kind));\n}\n\n/** Convert a runtime-only marker to the transcript wire representation. */\nexport function encodePersistedMessage(message) {\n  if (!message || typeof message !== \"object\") return message;\n  if (!isObjectMessage(message)) {\n    throw new TypeError(\"Session message must be a plain data object\");\n  }\n  const snapshot = plainDataSnapshot(message);\n  if (!snapshot) {\n    throw new TypeError(\"Session message must be a plain data object\");\n  }\n  const clean = cloneWithoutWireTag(snapshot);\n  if (!clean) {\n    throw new TypeError(\"Session message must contain JSON-safe data\");\n  }\n  const tag = getDurableSystemMessageProvenance(message);\n  if (!tag) return clean;\n  return {\n    ...clean,\n    [SESSION_MESSAGE_PROVENANCE_FIELD]: tag,\n  };\n}\n\n/**\n * Decode provenance only after the caller has verified the JSONL hash chain\n * and its independent head/count anchor while holding the session lock.\n */\nexport function decodeVerifiedPersistedMessage(message) {\n  if (!message || typeof message !== \"object\") return message;\n  if (!isObjectMessage(message)) return null;\n  const snapshot = plainDataSnapshot(message);\n  if (!snapshot) return null;\n  const wireTag = dataValue(snapshot, SESSION_MESSAGE_PROVENANCE_FIELD);\n  const clean = cloneWithoutWireTag(snapshot);\n  if (!clean) return null;\n  if (dataValue(snapshot, \"role\") === \"system\" && validWireTag(wireTag)) {\n    const tagSnapshot = plainDataSnapshot(wireTag);\n    return attachRuntimeTag(\n      clean,\n      canonicalTag(dataValue(tagSnapshot, \"kind\")),\n    );\n  }\n  return clean;\n}\n\n/** Strip an untrusted wire field without granting runtime replay authority. */\nexport function sanitizePersistedMessage(message) {\n  if (!message || typeof message !== \"object\") return message;\n  if (!isObjectMessage(message)) return null;\n  const snapshot = plainDataSnapshot(message);\n  return snapshot ? cloneWithoutWireTag(snapshot) : null;\n}\n\n/** Deep-sanitize an untrusted persisted message array without granting replay. */\nexport function sanitizePersistedMessages(messages, options = {}) {\n  const strict = options?.strict === true;\n  const rawMessages = plainDataArrayValues(messages);\n  if (!rawMessages) {\n    if (strict) {\n      throw new TypeError(\n        \"Persisted messages must be a plain dense data array\",\n      );\n    }\n    return [];\n  }\n  const clean = [];\n  for (const raw of rawMessages) {\n    const message = sanitizePersistedMessage(raw);\n    if (!message || typeof message !== \"object\" || Array.isArray(message)) {\n      if (strict) {\n        throw new TypeError(\"Persisted message must contain JSON-safe data\");\n      }\n      continue;\n    }\n    clean.push(message);\n  }\n  return clean;\n}\n\n/**\n * Deep-sanitize only conversation messages. The role is inspected through its\n * own data descriptor before the full message is cloned, so a host-owned\n * system notice may carry a private Symbol marker and still be skipped without\n * executing any accessor or Proxy trap. Non-system messages remain strict\n * plain JSON data.\n */\nexport function sanitizePersistedNonSystemMessages(messages, options = {}) {\n  const strict = options?.strict === true;\n  const rawMessages = plainDataArrayValues(messages);\n  if (!rawMessages) {\n    if (strict) {\n      throw new TypeError(\n        \"Persisted messages must be a plain dense data array\",\n      );\n    }\n    return [];\n  }\n  const clean = [];\n  for (const raw of rawMessages) {\n    const role = ownDataMessageRole(raw);\n    if (!role) {\n      if (strict) {\n        throw new TypeError(\"Persisted message role must be plain string data\");\n      }\n      continue;\n    }\n    if (role === \"system\") continue;\n    const message = sanitizePersistedMessage(raw);\n    if (!message || typeof message !== \"object\" || Array.isArray(message)) {\n      if (strict) {\n        throw new TypeError(\"Persisted message must contain JSON-safe data\");\n      }\n      continue;\n    }\n    clean.push(message);\n  }\n  return clean;\n}\n\n/**\n * Canonical host resume projection: conversation messages always replay;\n * system messages replay only when their durable provenance is explicit.\n */\nexport function projectCanonicalResumeMessages(messages, options = {}) {\n  const strict = options?.strict === true;\n  const invalid = (message) => {\n    if (strict) throw new TypeError(message);\n    return null;\n  };\n  const rawMessages = plainDataArrayValues(messages);\n  if (!rawMessages) {\n    invalid(\"Canonical resume messages must be a plain dense data array\");\n    return [];\n  }\n  const projected = [];\n  for (const raw of rawMessages) {\n    const snapshot = plainDataSnapshot(raw);\n    if (!snapshot) {\n      invalid(\"Canonical resume message must be a plain data object\");\n      continue;\n    }\n    const role = dataValue(snapshot, \"role\");\n    if (typeof role !== \"string\") {\n      invalid(\"Canonical resume message role must be a string\");\n      continue;\n    }\n\n    const runtimeTag = getDurableSystemMessageProvenance(raw);\n    const clean = cloneWithoutWireTag(snapshot);\n    if (!clean) {\n      invalid(\"Canonical resume message must contain JSON-safe data\");\n      continue;\n    }\n    if (role !== \"system\") {\n      projected.push(clean);\n    } else if (runtimeTag) {\n      projected.push(attachRuntimeTag(clean, canonicalTag(runtimeTag.kind)));\n    }\n  }\n  return projected;\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793719376465,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/session-message-provenance.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 5,
+                "sessionId": "panel-1793719355998-e106bf",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/session-message-provenance.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_v9mhkk53f1phea366aiuo3lm",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 14
+          },
+          {
+            "type": "tool_result",
+            "id": "call_whhk8udfcxoa504be7i2e357",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-06rEvd/209991e0-8965-407e-b6ae-329e3bd419a1/workspace/packages/cli/src/lib/checkpoint-summary-projection.js",
+              "fileVersion": "3115:1791108223000:1793718909530.568",
+              "readSpan": {
+                "start": 0,
+                "end": 3115,
+                "total": 3115
+              },
+              "hashed": false,
+              "content": "import {\n  buildExtractiveHandoff,\n  formatStructuredHandoff,\n} from \"../harness/structured-handoff.js\";\nimport {\n  DURABLE_SYSTEM_MESSAGE_KINDS,\n  getDurableSystemMessageProvenance,\n  markDurableSystemMessage,\n  projectCanonicalResumeMessages,\n} from \"./session-message-provenance.js\";\n\nexport const HISTORY_SUMMARY_SCHEMA =\n  \"chainlesschain.session-history-summary/v1\";\n\nfunction summaryMessage(messages, action, turnId) {\n  const handoff = buildExtractiveHandoff(messages, {\n    maxFallbackSourceChars: 24_000,\n  });\n  return markDurableSystemMessage(\n    {\n      role: \"system\",\n      content:\n        `[Conversation Summary: ${action} ${turnId}]\\n` +\n        formatStructuredHandoff(handoff),\n    },\n    DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,\n  );\n}\n\n/**\n * Deterministic v1 rewrite shared by the planner and verified history reader.\n * Source indexes describe the conservative dependency of each output, not a\n * claim that the bounded extractive summary quotes every source. Changes to\n * this transform/formatter require a new history schema or a v1 reader.\n */\nexport function projectCheckpointSummary({\n  messages,\n  action,\n  turnId,\n  start,\n  end,\n}) {\n  if (\n    !Array.isArray(messages) ||\n    typeof turnId !== \"string\" ||\n    !turnId ||\n    !Number.isSafeInteger(start) ||\n    !Number.isSafeInteger(end) ||\n    start < 0 ||\n    start >= end ||\n    end > messages.length ||\n    ![\"summary-from\", \"summary-to\"].includes(action)\n  )\n    throw new TypeError(\"Invalid checkpoint summary source range\");\n  const copied = (begin, finish) =>\n    messages.slice(begin, finish).map((message, index) => ({\n      message,\n      sourceIndexes: [begin + index],\n    }));\n  const summarized = (entries) => ({\n    message: summaryMessage(\n      entries.map((entry) => entry.message),\n      action,\n      turnId,\n    ),\n    sourceIndexes: entries.flatMap((entry) => entry.sourceIndexes),\n  });\n  if (action === \"summary-from\") {\n    if (end !== messages.length || messages[start]?.role !== \"user\")\n      throw new TypeError(\"Invalid checkpoint summary suffix\");\n    return [...copied(0, start), summarized(copied(start, end))];\n  }\n  if (\n    start !== (messages[0]?.role === \"system\" ? 1 : 0) ||\n    (end < messages.length && messages[end]?.role !== \"user\")\n  )\n    throw new TypeError(\"Invalid checkpoint summary prefix\");\n\n  const prefix = messages.slice(start, end);\n  // Validate/sanitize before inspecting roles. Unmarked systems must neither\n  // survive the rewrite nor be quoted into a newly authorized summary.\n  const canonical = projectCanonicalResumeMessages(prefix, { strict: true });\n  const indexes = prefix.flatMap((message, index) =>\n    message.role !== \"system\" || getDurableSystemMessageProvenance(message)\n      ? [start + index]\n      : [],\n  );\n  const entries = canonical.map((message, index) => ({\n    message,\n    sourceIndexes: [indexes[index]],\n  }));\n  return [\n    ...copied(0, start),\n    ...entries.filter((entry) => entry.message.role === \"system\"),\n    summarized(entries.filter((entry) => entry.message.role !== \"system\")),\n    ...copied(end, messages.length),\n  ];\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793719376466,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/checkpoint-summary-projection.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 3,
+                "sessionId": "panel-1793719355998-e106bf",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/checkpoint-summary-projection.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_whhk8udfcxoa504be7i2e357",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 15
+          },
+          {
+            "type": "tool_result",
+            "id": "call_fivegt2lt1w4r08o2bdld2uh",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "/private/tmp/cc-native-06rEvd/209991e0-8965-407e-b6ae-329e3bd419a1/workspace/packages/cli/__tests__/verify-09.test.js",
+              "size": 3907,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 3,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793719428910,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-09.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createSessionHistoryOrigins,\n  HISTORY_PREFIX_SCHEMA,\n} from \"../src/lib/session-history-origins.js\";\nimport {\n  HISTORY_SUMMARY_SCHEMA,\n  projectCheckpointSummary,\n} from \"../src/lib/checkpoint-summary-projection.js\";\nimport { encodePersistedMessage } from \"../src/lib/session-message-provenance.js\";\n\nconst HEAD = \"a\".repeat(64);\n\nfunction rewindEvent(messages, retainedMessageCount, patch) {\n  const event = {\n    prevHash: HEAD,\n    data: {\n      action: \"restore-conversation\",\n      messages: messages.slice(0, retainedMessageCount),\n      historyPrefix: {\n        schema: HISTORY_PREFIX_SCHEMA,\n        sourceHead: HEAD,\n        sourceMessageCount: messages.length,\n        retainedMessageCount,\n      },\n    },\n  };\n  if (patch) patch(event);\n  return event;\n}\n\nfunction summaryEvent(messages, action, start, end, patch) {\n  const event = {\n    prevHash: HEAD,\n    data: {\n      action,\n      turnId: \"selected\",\n      historySummary: {\n        schema: HISTORY_SUMMARY_SCHEMA,\n        sourceHead: HEAD,\n        sourceMessageCount: messages.length,\n        start,\n        end,\n      },\n      messages: projectCheckpointSummary({\n        messages,\n        action,\n        start,\n        end,\n        turnId: \"selected\",\n      }).map(({ message }) => encodePersistedMessage(message)),\n    },\n  };\n  if (patch) patch(event);\n  return event;\n}\n\nconst baseMessages = [\n  { role: \"user\", content: \"first\" },\n  { role: \"assistant\", content: \"answer\" },\n  { role: \"user\", content: \"selected\" },\n];\n\ndescribe(\"verify-09: history source tampering is rejected\", () => {\n  it(\"reads a correct rewind source (positive control)\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    // Only the source identity is correct here: valid prefix sourceHead and\n    // sourceMessageCount with a matching retained fingerprint.\n    expect(origins.rewind(rewindEvent(baseMessages, 2), 3)).toBe(2);\n  });\n\n  it(\"rejects a rewind whose sourceHead names a different session\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    const event = rewindEvent(baseMessages, 2, (value) => {\n      value.data.historyPrefix.sourceHead = \"b\".repeat(64);\n    });\n    // Fingerprint and every other prerequisite stay valid; only the session\n    // source head was changed, so only the sourceHead guard can reject this.\n    expect(origins.rewind(event, 3)).toBeNull();\n  });\n\n  it(\"rejects a rewind whose sourceMessageCount claims a different history length\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    const event = rewindEvent(baseMessages, 2, (value) => {\n      value.data.historyPrefix.sourceMessageCount = baseMessages.length - 1;\n    });\n    expect(origins.rewind(event, 3)).toBeNull();\n  });\n\n  it(\"reads a correct summary source (positive control)\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    expect(\n      origins.summarize(summaryEvent(baseMessages, \"summary-from\", 0)),\n    ).toBe(true);\n  });\n\n  it(\"rejects a summary whose sourceHead names a different session\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    const event = summaryEvent(baseMessages, \"summary-from\", 0, (value) => {\n      value.data.historySummary.sourceHead = \"b\".repeat(64);\n    });\n    expect(origins.summarize(event)).toBe(false);\n  });\n\n  it(\"rejects a summary whose sourceMessageCount claims a different history length\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    const event = summaryEvent(baseMessages, \"summary-from\", 0, (value) => {\n      value.data.historySummary.sourceMessageCount = baseMessages.length - 1;\n    });\n    expect(origins.summarize(event)).toBe(false);\n  });\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 34,
+                "sessionId": "panel-1793719355998-e106bf",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-09.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createSessionHistoryOrigins,\n  HISTORY_PREFIX_SCHEMA,\n} from \"../src/lib/session-history-origins.js\";\nimport {\n  HISTORY_SUMMARY_SCHEMA,\n  projectCheckpointSummary,\n} from \"../src/lib/checkpoint-summary-projection.js\";\nimport { encodePersistedMessage } from \"../src/lib/session-message-provenance.js\";\n\nconst HEAD = \"a\".repeat(64);\n\nfunction rewindEvent(messages, retainedMessageCount, patch) {\n  const event = {\n    prevHash: HEAD,\n    data: {\n      action: \"restore-conversation\",\n      messages: messages.slice(0, retainedMessageCount),\n      historyPrefix: {\n        schema: HISTORY_PREFIX_SCHEMA,\n        sourceHead: HEAD,\n        sourceMessageCount: messages.length,\n        retainedMessageCount,\n      },\n    },\n  };\n  if (patch) patch(event);\n  return event;\n}\n\nfunction summaryEvent(messages, action, start, end, patch) {\n  const event = {\n    prevHash: HEAD,\n    data: {\n      action,\n      turnId: \"selected\",\n      historySummary: {\n        schema: HISTORY_SUMMARY_SCHEMA,\n        sourceHead: HEAD,\n        sourceMessageCount: messages.length,\n        start,\n        end,\n      },\n      messages: projectCheckpointSummary({\n        messages,\n        action,\n        start,\n        end,\n        turnId: \"selected\",\n      }).map(({ message }) => encodePersistedMessage(message)),\n    },\n  };\n  if (patch) patch(event);\n  return event;\n}\n\nconst baseMessages = [\n  { role: \"user\", content: \"first\" },\n  { role: \"assistant\", content: \"answer\" },\n  { role: \"user\", content: \"selected\" },\n];\n\ndescribe(\"verify-09: history source tampering is rejected\", () => {\n  it(\"reads a correct rewind source (positive control)\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    // Only the source identity is correct here: valid prefix sourceHead and\n    // sourceMessageCount with a matching retained fingerprint.\n    expect(origins.rewind(rewindEvent(baseMessages, 2), 3)).toBe(2);\n  });\n\n  it(\"rejects a rewind whose sourceHead names a different session\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    const event = rewindEvent(baseMessages, 2, (value) => {\n      value.data.historyPrefix.sourceHead = \"b\".repeat(64);\n    });\n    // Fingerprint and every other prerequisite stay valid; only the session\n    // source head was changed, so only the sourceHead guard can reject this.\n    expect(origins.rewind(event, 3)).toBeNull();\n  });\n\n  it(\"rejects a rewind whose sourceMessageCount claims a different history length\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    const event = rewindEvent(baseMessages, 2, (value) => {\n      value.data.historyPrefix.sourceMessageCount = baseMessages.length - 1;\n    });\n    expect(origins.rewind(event, 3)).toBeNull();\n  });\n\n  it(\"reads a correct summary source (positive control)\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    expect(\n      origins.summarize(summaryEvent(baseMessages, \"summary-from\", 0)),\n    ).toBe(true);\n  });\n\n  it(\"rejects a summary whose sourceHead names a different session\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    const event = summaryEvent(baseMessages, \"summary-from\", 0, (value) => {\n      value.data.historySummary.sourceHead = \"b\".repeat(64);\n    });\n    expect(origins.summarize(event)).toBe(false);\n  });\n\n  it(\"rejects a summary whose sourceMessageCount claims a different history length\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    const event = summaryEvent(baseMessages, \"summary-from\", 0, (value) => {\n      value.data.historySummary.sourceMessageCount = baseMessages.length - 1;\n    });\n    expect(origins.summarize(event)).toBe(false);\n  });\n});\n"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "write_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_fivegt2lt1w4r08o2bdld2uh",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 19
+          },
+          {
+            "type": "tool_result",
+            "id": "call_7niswngfzg38ico0l2apqiyf",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-06rEvd/209991e0-8965-407e-b6ae-329e3bd419a1/workspace/packages/cli/__tests__/verify-09.test.js",
+              "fileVersion": "3907:1793719428878.8154:1793719428878.8154",
+              "readSpan": {
+                "start": 0,
+                "end": 3907,
+                "total": 3907
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createSessionHistoryOrigins,\n  HISTORY_PREFIX_SCHEMA,\n} from \"../src/lib/session-history-origins.js\";\nimport {\n  HISTORY_SUMMARY_SCHEMA,\n  projectCheckpointSummary,\n} from \"../src/lib/checkpoint-summary-projection.js\";\nimport { encodePersistedMessage } from \"../src/lib/session-message-provenance.js\";\n\nconst HEAD = \"a\".repeat(64);\n\nfunction rewindEvent(messages, retainedMessageCount, patch) {\n  const event = {\n    prevHash: HEAD,\n    data: {\n      action: \"restore-conversation\",\n      messages: messages.slice(0, retainedMessageCount),\n      historyPrefix: {\n        schema: HISTORY_PREFIX_SCHEMA,\n        sourceHead: HEAD,\n        sourceMessageCount: messages.length,\n        retainedMessageCount,\n      },\n    },\n  };\n  if (patch) patch(event);\n  return event;\n}\n\nfunction summaryEvent(messages, action, start, end, patch) {\n  const event = {\n    prevHash: HEAD,\n    data: {\n      action,\n      turnId: \"selected\",\n      historySummary: {\n        schema: HISTORY_SUMMARY_SCHEMA,\n        sourceHead: HEAD,\n        sourceMessageCount: messages.length,\n        start,\n        end,\n      },\n      messages: projectCheckpointSummary({\n        messages,\n        action,\n        start,\n        end,\n        turnId: \"selected\",\n      }).map(({ message }) => encodePersistedMessage(message)),\n    },\n  };\n  if (patch) patch(event);\n  return event;\n}\n\nconst baseMessages = [\n  { role: \"user\", content: \"first\" },\n  { role: \"assistant\", content: \"answer\" },\n  { role: \"user\", content: \"selected\" },\n];\n\ndescribe(\"verify-09: history source tampering is rejected\", () => {\n  it(\"reads a correct rewind source (positive control)\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    // Only the source identity is correct here: valid prefix sourceHead and\n    // sourceMessageCount with a matching retained fingerprint.\n    expect(origins.rewind(rewindEvent(baseMessages, 2), 3)).toBe(2);\n  });\n\n  it(\"rejects a rewind whose sourceHead names a different session\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    const event = rewindEvent(baseMessages, 2, (value) => {\n      value.data.historyPrefix.sourceHead = \"b\".repeat(64);\n    });\n    // Fingerprint and every other prerequisite stay valid; only the session\n    // source head was changed, so only the sourceHead guard can reject this.\n    expect(origins.rewind(event, 3)).toBeNull();\n  });\n\n  it(\"rejects a rewind whose sourceMessageCount claims a different history length\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    const event = rewindEvent(baseMessages, 2, (value) => {\n      value.data.historyPrefix.sourceMessageCount = baseMessages.length - 1;\n    });\n    expect(origins.rewind(event, 3)).toBeNull();\n  });\n\n  it(\"reads a correct summary source (positive control)\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    expect(\n      origins.summarize(summaryEvent(baseMessages, \"summary-from\", 0)),\n    ).toBe(true);\n  });\n\n  it(\"rejects a summary whose sourceHead names a different session\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    const event = summaryEvent(baseMessages, \"summary-from\", 0, (value) => {\n      value.data.historySummary.sourceHead = \"b\".repeat(64);\n    });\n    expect(origins.summarize(event)).toBe(false);\n  });\n\n  it(\"rejects a summary whose sourceMessageCount claims a different history length\", () => {\n    const origins = createSessionHistoryOrigins();\n    origins.snapshot(baseMessages);\n    const event = summaryEvent(baseMessages, \"summary-from\", 0, (value) => {\n      value.data.historySummary.sourceMessageCount = baseMessages.length - 1;\n    });\n    expect(origins.summarize(event)).toBe(false);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793719433644,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-09.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-1793719355998-e106bf",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-09.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_7niswngfzg38ico0l2apqiyf",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 25
+          },
+          {
+            "type": "tool_result",
+            "id": "call_dptc07nausaf9pjiqt0ol02g",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [],
+              "count": 0,
+              "hasMore": false,
+              "nextOffset": null,
+              "hint": "No literal matches. This pattern contains regex syntax, but this search used literal matching. If alternation or regex was intended, set regex: true; otherwise search one exact symbol. Do not infer that the symbols are absent from this result.",
+              "path": "/private/tmp/cc-native-06rEvd/209991e0-8965-407e-b6ae-329e3bd419a1/workspace/packages/cli/src/lib/session-history-origins.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793719455683,
+                "meta": {
+                  "args": {
+                    "pattern": "function rewind|function summarize|sourceHead|sourceMessageCount|prefix.schema|certificate.schema|fingerprint|retainedMessageCount",
+                    "path": "packages/cli/src/lib/session-history-origins.js",
+                    "contextChars": 400,
+                    "maxMatches": 40
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 66,
+                "sessionId": "panel-1793719355998-e106bf",
+                "metadata": {
+                  "args": {
+                    "pattern": "function rewind|function summarize|sourceHead|sourceMessageCount|prefix.schema|certificate.schema|fingerprint|retainedMessageCount",
+                    "path": "packages/cli/src/lib/session-history-origins.js",
+                    "contextChars": 400,
+                    "maxMatches": 40
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_dptc07nausaf9pjiqt0ol02g",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 35
+          },
+          {
+            "type": "tool_result",
+            "id": "call_uneci2hrf8gps9me9h7d4zty",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 95,
+                  "column": 15,
+                  "offset": 3184,
+                  "text": "sourceHead",
+                  "context": "inal } : null,\n      );\n    },\n    appendMappedPersisted(message, origin) {\n      append(decodeVerifiedPersistedMessage(message), origin);\n    },\n    branchPrefix(messages, head, count) {\n      if (!context) return null;\n      const cutoff = api.rewind(\n        {\n          prevHash: head,\n          data: {\n            action: \"restore-conversation\",\n            messages: messages.map(encodePersistedMessage),\n            historyPrefix: {\n              schema: HISTORY_PREFIX_SCHEMA,\n              sourceHead: head,\n              sourceMessageCount: context.length,\n              retainedMessageCount: messages.length,\n            },\n          },\n        },\n        count,\n      );\n      return cutoff === null\n        ? null\n        : {\n            cutoff,\n            entries: context.map((entry) => ({\n              message: entry.message,\n              origin: entry.origin ? { ...entry.origin } : null,\n            })),\n          };\n    },\n    snapshot(messages) {\n      let ordinal = 0;\n      replace(\n",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/session-history-origins.js",
+                    "offset": 95,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 203,
+                  "column": 45,
+                  "offset": 6905,
+                  "text": "sourceHead",
+                  "context": "es = null;\n        }\n      } catch {\n        entries = null;\n      }\n      replace(\n        entries ||\n          data.messages.map((message) => ({\n            message: decodeVerifiedPersistedMessage(message),\n            origin: null,\n          })),\n      );\n    },\n    summarize(event) {\n      const data = event.data;\n      const certificate = data.historySummary;\n      if (\n        !context ||\n        certificate?.schema !== HISTORY_SUMMARY_SCHEMA ||\n        !/^[a-f0-9]{64}$/u.test(certificate.sourceHead) ||\n        certificate.sourceHead !== event.prevHash ||\n        certificate.sourceMessageCount !== context.length\n      )\n        return false;\n      try {\n        const projected = projectCheckpointSummary({\n          messages: context.map((entry) => entry.message),\n          action: data.action,\n          turnId: data.turnId,\n          start: certificate.start,\n          end: certificate.end,\n        });\n        if (\n          fingerprint(projected.map((entry) => entry.message)) !==\n        ",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/session-history-origins.js",
+                    "offset": 203,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 204,
+                  "column": 21,
+                  "offset": 6940,
+                  "text": "sourceHead",
+                  "context": "{\n        entries = null;\n      }\n      replace(\n        entries ||\n          data.messages.map((message) => ({\n            message: decodeVerifiedPersistedMessage(message),\n            origin: null,\n          })),\n      );\n    },\n    summarize(event) {\n      const data = event.data;\n      const certificate = data.historySummary;\n      if (\n        !context ||\n        certificate?.schema !== HISTORY_SUMMARY_SCHEMA ||\n        !/^[a-f0-9]{64}$/u.test(certificate.sourceHead) ||\n        certificate.sourceHead !== event.prevHash ||\n        certificate.sourceMessageCount !== context.length\n      )\n        return false;\n      try {\n        const projected = projectCheckpointSummary({\n          messages: context.map((entry) => entry.message),\n          action: data.action,\n          turnId: data.turnId,\n          start: certificate.start,\n          end: certificate.end,\n        });\n        if (\n          fingerprint(projected.map((entry) => entry.message)) !==\n          fingerprint(data.messages.map(dec",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/session-history-origins.js",
+                    "offset": 204,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 237,
+                  "column": 40,
+                  "offset": 8010,
+                  "text": "sourceHead",
+                  "context": "se;\n        const entries = projected.map(({ message, sourceIndexes }) => ({\n          message,\n          origin: span(sourceIndexes.map((index) => context[index])),\n        }));\n        replace(entries);\n        return true;\n      } catch {\n        return false;\n      }\n    },\n    rewind(event, count) {\n      const data = event.data;\n      const prefix = data.historyPrefix;\n      if (\n        !context ||\n        prefix?.schema !== HISTORY_PREFIX_SCHEMA ||\n        !/^[a-f0-9]{64}$/u.test(prefix.sourceHead) ||\n        prefix.sourceHead !== event.prevHash ||\n        prefix.sourceMessageCount !== context.length ||\n        ![\"restore-conversation\", \"restore-both\"].includes(data.action) ||\n        !Number.isSafeInteger(prefix.retainedMessageCount) ||\n        prefix.retainedMessageCount < 0 ||\n        prefix.retainedMessageCount >= context.length\n      )\n        return null;\n      const retained = context.slice(0, prefix.retainedMessageCount);\n      const removed = context.slice(prefix.retainedMessage",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/session-history-origins.js",
+                    "offset": 237,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 238,
+                  "column": 16,
+                  "offset": 8040,
+                  "text": "sourceHead",
+                  "context": "ojected.map(({ message, sourceIndexes }) => ({\n          message,\n          origin: span(sourceIndexes.map((index) => context[index])),\n        }));\n        replace(entries);\n        return true;\n      } catch {\n        return false;\n      }\n    },\n    rewind(event, count) {\n      const data = event.data;\n      const prefix = data.historyPrefix;\n      if (\n        !context ||\n        prefix?.schema !== HISTORY_PREFIX_SCHEMA ||\n        !/^[a-f0-9]{64}$/u.test(prefix.sourceHead) ||\n        prefix.sourceHead !== event.prevHash ||\n        prefix.sourceMessageCount !== context.length ||\n        ![\"restore-conversation\", \"restore-both\"].includes(data.action) ||\n        !Number.isSafeInteger(prefix.retainedMessageCount) ||\n        prefix.retainedMessageCount < 0 ||\n        prefix.retainedMessageCount >= context.length\n      )\n        return null;\n      const retained = context.slice(0, prefix.retainedMessageCount);\n      const removed = context.slice(prefix.retainedMessageCount);\n      const anchor = r",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/session-history-origins.js",
+                    "offset": 238,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 5,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/private/tmp/cc-native-06rEvd/209991e0-8965-407e-b6ae-329e3bd419a1/workspace/packages/cli/src/lib/session-history-origins.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793719467272,
+                "meta": {
+                  "args": {
+                    "pattern": "sourceHead",
+                    "path": "packages/cli/src/lib/session-history-origins.js",
+                    "contextChars": 500,
+                    "maxMatches": 20
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 58,
+                "sessionId": "panel-1793719355998-e106bf",
+                "metadata": {
+                  "args": {
+                    "pattern": "sourceHead",
+                    "path": "packages/cli/src/lib/session-history-origins.js",
+                    "contextChars": 500,
+                    "maxMatches": 20
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_uneci2hrf8gps9me9h7d4zty",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 42
+          },
+          {
+            "type": "tool_result",
+            "id": "call_7yh78qanzwaelyl51xixb473",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 96,
+                  "column": 15,
+                  "offset": 3216,
+                  "text": "sourceMessageCount",
+                  "context": "   appendMappedPersisted(message, origin) {\n      append(decodeVerifiedPersistedMessage(message), origin);\n    },\n    branchPrefix(messages, head, count) {\n      if (!context) return null;\n      const cutoff = api.rewind(\n        {\n          prevHash: head,\n          data: {\n            action: \"restore-conversation\",\n            messages: messages.map(encodePersistedMessage),\n            historyPrefix: {\n              schema: HISTORY_PREFIX_SCHEMA,\n              sourceHead: head,\n              sourceMessageCount: context.length,\n              retainedMessageCount: messages.length,\n            },\n          },\n        },\n        count,\n      );\n      return cutoff === null\n        ? null\n        : {\n            cutoff,\n            entries: context.map((entry) => ({\n              message: entry.message,\n              origin: entry.origin ? { ...entry.origin } : null,\n            })),\n          };\n    },\n    snapshot(messages) {\n      let ordinal = 0;\n      replace(\n        messages.map((message) => ({\n   ",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/session-history-origins.js",
+                    "offset": 96,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 205,
+                  "column": 21,
+                  "offset": 6993,
+                  "text": "sourceMessageCount",
+                  "context": "    entries ||\n          data.messages.map((message) => ({\n            message: decodeVerifiedPersistedMessage(message),\n            origin: null,\n          })),\n      );\n    },\n    summarize(event) {\n      const data = event.data;\n      const certificate = data.historySummary;\n      if (\n        !context ||\n        certificate?.schema !== HISTORY_SUMMARY_SCHEMA ||\n        !/^[a-f0-9]{64}$/u.test(certificate.sourceHead) ||\n        certificate.sourceHead !== event.prevHash ||\n        certificate.sourceMessageCount !== context.length\n      )\n        return false;\n      try {\n        const projected = projectCheckpointSummary({\n          messages: context.map((entry) => entry.message),\n          action: data.action,\n          turnId: data.turnId,\n          start: certificate.start,\n          end: certificate.end,\n        });\n        if (\n          fingerprint(projected.map((entry) => entry.message)) !==\n          fingerprint(data.messages.map(decodeVerifiedPersistedMessage))\n        )\n          return fals",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/session-history-origins.js",
+                    "offset": 205,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 239,
+                  "column": 16,
+                  "offset": 8088,
+                  "text": "sourceMessageCount",
+                  "context": "         message,\n          origin: span(sourceIndexes.map((index) => context[index])),\n        }));\n        replace(entries);\n        return true;\n      } catch {\n        return false;\n      }\n    },\n    rewind(event, count) {\n      const data = event.data;\n      const prefix = data.historyPrefix;\n      if (\n        !context ||\n        prefix?.schema !== HISTORY_PREFIX_SCHEMA ||\n        !/^[a-f0-9]{64}$/u.test(prefix.sourceHead) ||\n        prefix.sourceHead !== event.prevHash ||\n        prefix.sourceMessageCount !== context.length ||\n        ![\"restore-conversation\", \"restore-both\"].includes(data.action) ||\n        !Number.isSafeInteger(prefix.retainedMessageCount) ||\n        prefix.retainedMessageCount < 0 ||\n        prefix.retainedMessageCount >= context.length\n      )\n        return null;\n      const retained = context.slice(0, prefix.retainedMessageCount);\n      const removed = context.slice(prefix.retainedMessageCount);\n      const anchor = removed[0];\n      if (\n        anchor.message.role !== \"u",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/session-history-origins.js",
+                    "offset": 239,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 3,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/private/tmp/cc-native-06rEvd/209991e0-8965-407e-b6ae-329e3bd419a1/workspace/packages/cli/src/lib/session-history-origins.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793719467251,
+                "meta": {
+                  "args": {
+                    "pattern": "sourceMessageCount",
+                    "path": "packages/cli/src/lib/session-history-origins.js",
+                    "contextChars": 500,
+                    "maxMatches": 20
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 36,
+                "sessionId": "panel-1793719355998-e106bf",
+                "metadata": {
+                  "args": {
+                    "pattern": "sourceMessageCount",
+                    "path": "packages/cli/src/lib/session-history-origins.js",
+                    "contextChars": 500,
+                    "maxMatches": 20
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_7yh78qanzwaelyl51xixb473",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 43
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2717,
+              "output_tokens": 102,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 9708,
+              "output_tokens": 343,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 11
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 10185,
+              "output_tokens": 5426,
+              "cache_read_input_tokens": 11264,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 17
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 18829,
+              "output_tokens": 74,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 23
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5152,
+              "output_tokens": 985,
+              "cache_read_input_tokens": 18432,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 29
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3340,
+              "output_tokens": 332,
+              "cache_read_input_tokens": 21504,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 33
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 15401,
+              "output_tokens": 321,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 39
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6243,
+              "output_tokens": 1074,
+              "cache_read_input_tokens": 16128,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+            "seq": 47
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 71575,
+          "output_tokens": 8657,
+          "cache_read_input_tokens": 81664
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 8,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "I have confirmed the exact guard conditions and their order from the source:\n\n**`rewind` guards (in order):** `!context || schema !== PREFIX_SCHEMA || !hex64(sourceHead) || sourceHead !== prevHash || sourceMessageCount !== context.length || action not in [restore-conversation, restore-both] || !safeInteger(retained) || retained < 0 || retained >= context.length`\n\n**`summarize` guards (in order):** `!context || schema !== SUMMARY_SCHEMA || !hex64(sourceHead) || sourceHead !== prevHash || sourceMessageCount !== context.length`\n\nMy negative controls change **exactly one** source-identity condition:\n- **rewind sourceHead**: positive (HEAD=\"a\"×64 valid hex, == prevHash) → negative sets sourceHead=\"b\"×64 (valid hex, ≠ prevHash). Schema, count, action, retained, fingerprint all stay valid → only the `sourceHead !== prevHash` guard rejects. ✓ Isolated.\n- **rewind sourceMessageCount**: positive count=3 → negative count=2 (≠ context.length=3). All other guards valid → only `sourceMessageCount !== context.length` rejects. ✓ Isolated.\n- **summarize sourceHead**: same isolation. ✓\n- **summarize sourceMessageCount**: same isolation. ✓\n\nBoth positive controls (rewind→2, summarize→true) prove correct source is readable.\n\nRequirement mapping:\n1. **错误 session/source 身份被拒绝**: 4 negatives cover sourceHead (session identity) and sourceMessageCount (history-length identity) for both `rewind` and `summarize`.\n2. **正确来源正对照可读**: 2 positives (rewind→2, summarize→true).\n\n6 cases total, within cap. No import of existing suite; no source-text assertions. Fixtures/API verified against actual source (createSessionHistoryOrigins, snapshot, rewind, summarize, HISTORY_PREFIX_SCHEMA, HISTORY_SUMMARY_SCHEMA, projectCheckpointSummary, encodePersistedMessage).\n\nOne thing to double-check: my `summarize` positive control calls `projectCheckpointSummary({messages: baseMessages, action: \"summary-from\", start: 0, end: 3})`. `start < end` (0<3), `start>=0`, `end===messages.length(3)`, `messages[0].role===\"user\"`. Valid. The fingerprint comparison uses `data.messages` derived from the same projection — matches. The `span`/origin assignment runs without throw. Positive returns true. ✓\n\nThe rewrite's `summarize` catch: on throw returns false. My negatives don't throw — they're rejected at the guard before try. Correct observable: `false`.\n\nFor rewind negatives: guards reject before `context.slice` — return `null`. ✓\n\nNo requirement gaps identified. The deliverable is complete and correct. Tests were **not executed** (no execution tools in this environment); acceptance is based on static verification against the actual source guards, their order, and the fixtures' validity.\n\nThe task is complete; no repair needed. Final account:\n\n**Deliverable**: `packages/cli/__tests__/verify-09.test.js` — 6 independent Vitest cases, read back and verified against the frozen source.\n\n**Requirement→assertion mapping (original task)**:\n- \"错误 session/source 身份被拒绝\": four negatives — rewind sourceHead (`expect(...).toBeNull()`), rewind sourceMessageCount (`toBeNull()`), summarize sourceHead (`toBe(false)`), summarize sourceMessageCount (`toBe(false)`). Each changes only that one source-identity field while schema, fingerprint, action, retained count, hex format all remain valid, so only the targeted guard (`sourceHead !== prevHash` / `sourceMessageCount !== context.length`) can reject — no masking.\n- \"正确来源正对照可读\": rewind positive returns cutoff `2`; summarize positive returns `true`.\n- ≤6 cases, no existing-suite import, no source-text assertions. Fixtures constructed from actual exported APIs (`createSessionHistoryOrigins`, `snapshot`, `rewind`, `summarize`, `HISTORY_PREFIX_SCHEMA`, `HISTORY_SUMMARY_SCHEMA`, `projectCheckpointSummary`, `encodePersistedMessage`), verified against the source's guard order.\n\n**Uncovered conditions** (all out of scope for the source-identity requirement, and covered by the existing suite): prefix/certificate schema mismatch, non-hex sourceHead, `rewind` action, `retainedMessageCount` bounds, and retained/projected fingerprint content tampering.\n\n**Implementation**: no defect exposed — the frozen implementation correctly rejects wrong session/source identity and accepts correct sources, so no source change was made.\n\n**Limitation**: tests were **not run** — this environment provides only file tools, no shell/execution. Acceptance claims are based on static inspection of the resolved imports, exported signatures, guard order, and fixture validity; native generation does not imply test execution.",
+          "session_id": "panel-1793719355998-e106bf",
+          "turn": 1,
+          "usage": {
+            "input_tokens": 71575,
+            "output_tokens": 8657,
+            "cache_read_input_tokens": 81664,
+            "cache_creation_input_tokens": 0
+          },
+          "transcript_refs": {
+            "schema": "chainlesschain.session-transcript-references/v1",
+            "sessionId": "panel-1793719355998-e106bf",
+            "assistantEventId": "9e8024fb5e9ce3e6c068e132b7887ce1da6c6282fbae55874fa27f327719c223",
+            "userEventId": "02a94f11f8e50434e00002f627e0a71d298f571752697aed29fad283c07a0937",
+            "clientMessageId": "8de365bf-294e-44b4-a06c-9a25aa4bb596"
+          },
+          "trace_id": "tr-32b2f675-a9e7-4007-bd54-1d9e62ad8b5c",
+          "seq": 48
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 8,
+        "usageCompleteRequests": 8,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 8,
+        "usageCompleteRequests": 8,
+        "tasks": [
+          {
+            "taskId": "verify-09",
+            "requests": 8,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": 0.30080439999999997,
+        "knownTokenOnlyEstimateCny": 0.30080439999999997,
+        "fxRate": null
+      },
+      "changedPaths": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml",
+        "packages/cli/__tests__/verify-09.test.js"
+      ],
+      "finishedAt": "2026-11-03T15:26:10.650Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-09"
+  ],
+  "generationPassed": true,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 40 model turns, 48 requests, 180 second request timeout, model maximum 393216 output tokens (8192 test cap removed), 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:3185a92e57bc89a9f9c1283aeff4823c409e1bebd48b8d20da509814fded8b29",
+  "group": "darwin-jetbrains",
+  "entry": "jetbrains",
+  "platform": "darwin",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:3ca5c1bfa5bffdee860665eeb757c24004dfaf0f3075f2a63e1a2600b3f6d600"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:487ed1e27103348c920988130954ec6449a81e66f7973e81ed02e1befd126da3"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:be2edf8e1ced537796d5819e458e4b56f2c1638eab8880b09c2c7fea4a4245fd"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+      "digest": "sha256:82becb2b0b551916e312131bcca48736d9e3f462aed4ea2a89ec00f907457eed"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
+      "digest": "sha256:d2cbc2dee63e7f53c622d61ad314143d6bd4d59a679d9aea29579cb034a829fb"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-public140-full.mjs",
+      "digest": "sha256:4c8b323e6c28b2dafb2f2e71ec2e7825d6b321d2998e3ef5f6ace3c2a10acdb9"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:3e515efc1cff606e2cbbfa977b5674abe6a73c142caa1b0539c0a2698978f8e4"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-plugin-artifact.mjs",
+      "digest": "sha256:ce04147c3e2f97c7d44d37052f5e8329595efe9bbcb852b51952535ba96357bc"
+    },
+    {
+      "file": "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.mjs",
+      "digest": "sha256:b8fc449018df5d188d9aada8469e023bd220ece659620b2323cf796e9d08fdcb"
+    },
+    {
+      "file": "packages/jetbrains-plugin/build.gradle.kts",
+      "digest": "sha256:17510157d489a11ed93bde3b2cb06cf3f939edac6ffd8b26735c047f44e3aba7"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "digest": "sha256:29655e9a949948528018ad85baf368e5240445216caa747719c95d6c83903e0b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/UiFailureDiagnostics.java",
+      "digest": "sha256:5802b749fd82048d196e90ce5f0f2f4e4c7cfc527590f07b62ccafb73d4c6a20"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "digest": "sha256:44cb87d4c64437b64204a4bca9d7faaec68a6cbbff8b7303c491e17e7597337b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "digest": "sha256:b2a5f856e6607ec559b1c7d17be14a110cccd6bcaea323cbab5ae1458109ee5b"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T15:15:11.673Z",
+    "finishedAt": "2026-11-03T15:15:40.561Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "verify-09",
+    "locked": {
+      "version": "0.166.140",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+      "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T15:26:10.654Z"
+}

@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "runId": 41638188839,
+  "sampleId": "verify-19",
+  "executionSource": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "requestId": 15,
+  "explicitInternalLimit": 2048,
+  "completionTokens": 2048,
+  "finishReason": "length",
+  "toolCount": 0,
+  "all15ProviderReceiptsUsageComplete": true,
+  "modelTerminalSuccess": true,
+  "candidateBytes": 9015,
+  "candidateDigest": "sha256:f89e6eaf64b9b5a2fb86dc458557d7834499700ec57e98f2379b8235ca0fbb28",
+  "rawDeliverySummaryDigest": "sha256:30b648312435e1c28e97c043d7ae2c36674219b988bf7af4d8dc74d34d2e8430",
+  "files": {
+    "request-15.original.json": "sha256:635a49a8ea33142c6b74994f74ef69494c1b97b36668faa79ff5463bfe814447",
+    "request-15.effective.json": "sha256:88fe55c2ecfe24c8d436afd41321b2dafc82bb72f8a9d16c66b726be2956a642",
+    "request-15.receipt.json": "sha256:2770566381e854a2d92c5b2df12ec9a7449dedd0c8229689efc2c3ae7250f0d0",
+    "response-15.json": "sha256:fdd54aa2a7a35fea66577fe6b1f94e40915631045d2d8646a22ad2203e39ef96"
+  },
+  "directFinding": "The internal text summary respected its explicit2048-token limit and returned complete usage. The diagnostic broker made that internal boundary fatal to the entire task although the model terminal was successful and the9015-byte candidate was written.",
+  "repair": "An opt-in policy forwards bounded internal text length responses unchanged with complete usage, preserving the native compaction caller decision. Truncated tool/ordinary output remains fatal; no actual candidate or historic verdict is changed.",
+  "methodology": "Fresh source-bound follow-up selects only original full-round generation failures. No third complete45 generation round is planned; the full45 original results and follow-up are scored separately."
+}

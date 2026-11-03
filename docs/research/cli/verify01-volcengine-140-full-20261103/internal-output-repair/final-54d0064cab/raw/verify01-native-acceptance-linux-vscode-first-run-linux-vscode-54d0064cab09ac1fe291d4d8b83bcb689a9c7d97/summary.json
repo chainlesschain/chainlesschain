@@ -1,0 +1,1719 @@
+{
+  "schema": "chainlesschain.verify01-native-task-acceptance/v1",
+  "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "deliverySourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+  "group": "linux-vscode",
+  "actualGenerationHost": {
+    "platform": "linux",
+    "entry": "vscode",
+    "arch": "x64"
+  },
+  "acceptanceHost": "linux-docker",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+  "sourceSummaryDigest": "sha256:cd9c8bba32a0edaebf5dea0b55adf6a3d265d7f321c198ea384d544fe7554c24",
+  "formalSample": false,
+  "startedAt": "2026-11-03T16:49:41.158Z",
+  "samples": [
+    {
+      "sampleId": "first-run-linux-vscode",
+      "taskId": "verify-05",
+      "kind": "first-run",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+      "originalGenerationPassed": true,
+      "generationPassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 111362,
+            "outputTokens": 13735,
+            "cacheReadInputTokens": 90880,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-6a23eec1-c5e7-4814-8faa-b693e9978818",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "441dd6d6-0eec-45ef-a0e9-327d8148970c",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_v20qd344h8ng1p375cjb199b",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/agent-router.js"
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_8o8b68anpcr0rnxo1epuy438",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/agent-router.test.js"
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 8
+          },
+          {
+            "type": "tool_use",
+            "id": "call_725luxgf1xr14vd6ef0uc6iy",
+            "tool": "search_files",
+            "args": {
+              "pattern": "captureAgentEvolutionIngress",
+              "path": "packages/cli/src/lib/evolution/agent-evolution-ingress.js",
+              "content_search": true
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 12
+          },
+          {
+            "type": "tool_use",
+            "id": "call_i6qpqacmpcv9tz8oy0ts4ha0",
+            "tool": "search_files",
+            "args": {
+              "pattern": "captureAgentEvolutionIngress",
+              "path": "packages/cli/src/lib",
+              "content_search": true,
+              "maxMatches": 20
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 14
+          },
+          {
+            "type": "tool_use",
+            "id": "call_gqm3h3n5m8pvh13e6vk6vuni",
+            "tool": "read_file",
+            "args": {
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js"
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 20
+          },
+          {
+            "type": "tool_use",
+            "id": "call_5kl89exew3f5wwilr84l0go2",
+            "tool": "search_files",
+            "args": {
+              "pattern": "attest",
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js"
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 24
+          },
+          {
+            "type": "tool_use",
+            "id": "call_az8o70itr3bu7svc5q1csjgi",
+            "tool": "search_files",
+            "args": {
+              "pattern": "isCLI",
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js"
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 26
+          },
+          {
+            "type": "tool_use",
+            "id": "call_bkygi8cv6372pbxr2i948myo",
+            "tool": "read_file",
+            "args": {
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+              "offset": 270,
+              "limit": 30
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 30
+          },
+          {
+            "type": "tool_use",
+            "id": "call_094t5wv3hfdze7e95fasewfy",
+            "tool": "read_file",
+            "args": {
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+              "offset": 420,
+              "limit": 140
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 32
+          },
+          {
+            "type": "tool_use",
+            "id": "call_05o2ov5qn13rf9xczvmiaeiw",
+            "tool": "search_files",
+            "args": {
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/__tests__/unit/agent-router.test.js",
+              "pattern": "assertDispatchAvailable|EXTERNAL_MODEL_INGRESS|installed"
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 36
+          },
+          {
+            "type": "tool_use",
+            "id": "call_gpl4kq2d385rk5anrvr4xnqd",
+            "tool": "write_file",
+            "args": {
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/__tests__/verify-05.test.js",
+              "content": "/**\n * Independent regression coverage: \"安装与准入分离\" (installation vs admission).\n *\n * Guard under test: AgentRouter admission is attestation-based (backend.isCLI),\n * never installation-based (backend.installed). An installed-but-unattested CLI\n * backend must still refuse to run, while a usable API backend is preserved.\n *\n * Import path is relative to this file (packages/cli/__tests__/) -> the source\n * at packages/cli/src/lib/agent-router.js.\n *\n * executeViaAPI and captureAgentEvolutionIngress are module-internal imports in\n * the source. They are stubbed here so dispatch()/_runSingleTask() never make a\n * real network call and so a valid ingress shape is not required from the test\n * fixture. Nothing about AgentRouter admission logic is replaced.\n */\nimport { describe, it, expect, vi } from \"vitest\";\n\nvi.mock(\"../src/lib/agent-router.js\", async (importOriginal) => {\n  const mod = await importOriginal();\n  return {\n    ...mod,\n    // Keep ingress capture: pass through any non-null value so dispatch() can\n    // reach the CLI candidate filter without requiring a real ingress payload.\n    captureAgentEvolutionIngress: vi.fn((x) => (x == null ? null : x)),\n    // Deterministic API execution result; no network.\n    executeViaAPI: vi.fn(async () => ({ success: true, output: \"ok\", duration: 1 })),\n  };\n});\n\nimport {\n  AgentRouter,\n  BACKEND_TYPE,\n  AGENT_ROUTER_ERROR,\n} from \"../src/lib/agent-router.js\";\n\n// ─── Fixtures ─────────────────────────────────────────────────────\n\nfunction mockPool() {\n  return { dispatch: vi.fn(), on: vi.fn() };\n}\n\n/**\n * CLI backend that is installed but unattested (isCLI stays true, the ONLY\n * variable we flip across positive/negative controls).\n */\nfunction cliInstalledBackend(type = BACKEND_TYPE.CLAUDE) {\n  return {\n    type,\n    isCLI: true,\n    installed: true,\n    weight: 1,\n    _pool: mockPool(),\n    timeout: 300_000,\n  };\n}\n\n/**\n * API backend, also marked installed:true so the \"installed\" prerequisite stays\n * identical to the CLI control and only the admission-relevant `isCLI` flips.\n */\nfunction apiBackend(type = BACKEND_TYPE.GEMINI) {\n  return {\n    type,\n    isCLI: false,\n    installed: true,\n    weight: 1,\n    provider: type,\n    model: null,\n    apiKey: null,\n    baseUrl: null,\n    timeout: 60_000,\n  };\n}\n\n/** Build a router and pin pre-resolved mock backends (bypasses CLI detection). */\nfunction makeRouter(backends, strategy = \"round-robin\") {\n  const router = new AgentRouter({ backends: [], strategy, maxParallel: 3 });\n  router._backends = backends;\n  return router;\n}\n\nconst TASK = { id: \"t1\", description: \"do a thing\" };\n\n// ─── Condition 1: install does not grant admission (preflight) ──────────────\n\ndescribe(\"安装与准入分离: assertDispatchAvailable()\", () => {\n  it(\"installed CLI-only set is NOT admitted: throws EXTERNAL_MODEL_INGRESS_UNATTESTED\", () => {\n    const router = makeRouter([cliInstalledBackend()]);\n    let err;\n    try {\n      router.assertDispatchAvailable();\n    } catch (e) {\n      err = e;\n    }\n    expect(err).toBeInstanceOf(Error);\n    expect(err.code).toBe(AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED);\n    // The summary must still expose the installed CLI with kind \"cli\" and\n    // governanceAdmitted false: installation is recorded, admission is not.\n    const admitted = err.backends[0];\n    expect(admitted.installed).toBe(true);\n    expect(admitted.kind).toBe(\"cli\");\n    expect(admitted.governanceAdmitted).toBe(false);\n    expect(admitted.dispatchable).toBe(false);\n  });\n\n  it(\"an API backend is preserved: assertDispatchAvailable does NOT throw when only the kind changes\", () => {\n    const router = makeRouter([apiBackend()]);\n    expect(() => router.assertDispatchAvailable()).not.toThrow();\n  });\n});\n\n// ─── Condition 2: installed CLI refuses to run at the execution boundary ─────\n\ndescribe(\"安装与准入分离: _runSingleTask()\", () => {\n  it(\"installed CLI backend refuses to run: throws EXTERNAL_MODEL_INGRESS_UNATTESTED\", async () => {\n    const router = makeRouter([cliInstalledBackend()]);\n    const err = await router\n      ._runSingleTask(TASK, router._backends[0], {\n        cwd: \"/tmp\",\n        evolutionIngress: {},\n      })\n      .catch((e) => e);\n    expect(err).toBeInstanceOf(Error);\n    expect(err.code).toBe(AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED);\n  });\n\n  it(\"API backend runs at the same boundary when only the kind changes\", async () => {\n    const router = makeRouter([apiBackend()]);\n    const result = await router._runSingleTask(TASK, router._backends[0], {\n      cwd: \"/tmp\",\n      evolutionIngress: {},\n    });\n    expect(result.success).toBe(true);\n    expect(result.taskId).toBe(TASK.id);\n  });\n});\n\n// ─── Condition 3: full dispatch() path refuses installed CLI / keeps API ─────\n\ndescribe(\"安装与准入分离: dispatch()\", () => {\n  it(\"installed CLI-only dispatch refuses to run\", async () => {\n    const router = makeRouter([cliInstalledBackend()]);\n    const err = await router\n      .dispatch([TASK], { evolutionIngress: { runId: \"r\" } })\n      .catch((e) => e);\n    expect(err).toBeInstanceOf(Error);\n    expect(err.code).toBe(AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED);\n  });\n\n  it(\"dispatch preserves a usable API backend when only the kind changes\", async () => {\n    const router = makeRouter([apiBackend()]);\n    const results = await router.dispatch([TASK], {\n      evolutionIngress: { runId: \"r\" },\n    });\n    expect(results).toHaveLength(1);\n    expect(results[0].success).toBe(true);\n    expect(results[0].taskId).toBe(TASK.id);\n  });\n});\n"
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 40
+          },
+          {
+            "type": "tool_use",
+            "id": "call_tl7tkoy8h5d2jq3jg7e06a6p",
+            "tool": "search_files",
+            "args": {
+              "pattern": "assertDispatchAvailable",
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+              "regex": false,
+              "contextChars": 900
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 46
+          },
+          {
+            "type": "tool_use",
+            "id": "call_mg8j2i40hjhqpnwb76eg7wwz",
+            "tool": "read_file",
+            "args": {
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/__tests__/verify-05.test.js"
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 56
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_v20qd344h8ng1p375cjb199b",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+              "fileVersion": "41983:1791108223000:1793712076348.5137",
+              "readSpan": {
+                "start": 0,
+                "end": 41339,
+                "total": 41339
+              },
+              "hashed": false,
+              "content": "/**\n * AgentRouter — multi-path agent dispatch.\n *\n * Routes coding subtasks across multiple agent backends in parallel:\n *   - claude     (Claude Code CLI — best for complex reasoning)\n *   - codex      (OpenAI Codex CLI — good for repo context)\n *   - gemini     (Google Gemini via ChainlessChain LLM provider)\n *   - openai     (GPT-4o via ChainlessChain LLM provider)\n *   - ollama     (Local LLM — offline / private)\n *\n * Routing strategies:\n *   round-robin  — distribute evenly across available backends\n *   by-type      — route based on task type keywords\n *   parallel-all — every subtask runs on ALL backends; pick best result\n *   primary      — use first available backend, others as fallback\n *\n * Usage:\n *   const router = new AgentRouter({\n *     backends: [\n *       { type: \"claude\", weight: 2 },\n *       { type: \"gemini\", apiKey: \"...\", model: \"gemini-1.5-pro\", weight: 1 },\n *     ],\n *     strategy: \"round-robin\",\n *   });\n *   const results = await router.dispatch(subtasks, {\n *     cwd: \"/my/project\",\n *     evolutionIngress,\n *   });\n */\n\nimport { EventEmitter } from \"events\";\nimport {\n  ClaudeCodePool,\n  detectClaudeCode,\n  detectCodex,\n} from \"./claude-code-bridge.js\";\nimport { createChatFn } from \"./cowork-adapter.js\";\nimport { captureAgentEvolutionIngress } from \"./evolution/agent-evolution-ingress.js\";\nimport { isTerminalModelFailure } from \"./model-failure-policy.js\";\nimport runtimeClaimsContract from \"@chainlesschain/session-core/runtime-claims\";\n\nconst { RUNTIME_MODE, createRuntimeClaims } = runtimeClaimsContract;\nconst SIMULATED_API_CLAIMS = createRuntimeClaims({\n  mode: RUNTIME_MODE.SIMULATED,\n});\n\n// ─── Backend type constants ───────────────────────────────────────\nexport const BACKEND_TYPE = {\n  CLAUDE: \"claude\",\n  CODEX: \"codex\",\n  GEMINI: \"gemini\",\n  OPENAI: \"openai\",\n  ANTHROPIC: \"anthropic\",\n  OLLAMA: \"ollama\",\n};\n\n// ─── Task type → preferred backend mapping ────────────────────────\nconst TASK_TYPE_ROUTING = {\n  \"code-generation\": BACKEND_TYPE.CLAUDE,\n  \"code-review\": BACKEND_TYPE.CLAUDE,\n  testing: BACKEND_TYPE.CLAUDE,\n  documentation: BACKEND_TYPE.OPENAI,\n  \"data-analysis\": BACKEND_TYPE.GEMINI,\n  research: BACKEND_TYPE.GEMINI,\n};\n\n// Keywords for auto-detecting task type\nconst TYPE_KEYWORDS = {\n  \"code-generation\": [\n    \"implement\",\n    \"create\",\n    \"build\",\n    \"add feature\",\n    \"fix\",\n    \"refactor\",\n  ],\n  \"code-review\": [\"review\", \"audit\", \"check\", \"inspect\", \"analyze\"],\n  testing: [\"test\", \"spec\", \"unit test\", \"e2e\", \"coverage\"],\n  documentation: [\"document\", \"readme\", \"comment\", \"docstring\", \"explain\"],\n  \"data-analysis\": [\"data\", \"analyze\", \"statistics\", \"report\", \"chart\"],\n  research: [\"research\", \"investigate\", \"explore\", \"compare\"],\n};\n\nexport const AGENT_ROUTER_ERROR = Object.freeze({\n  WRITE_ISOLATION_REQUIRED: \"AGENT_ROUTER_WRITE_ISOLATION_REQUIRED\",\n  EXTERNAL_MODEL_INGRESS_UNATTESTED:\n    \"AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED\",\n});\n\nfunction normalizedScopes(task) {\n  if (!Array.isArray(task?.scopePaths) || task.scopePaths.length === 0) {\n    return null;\n  }\n  return task.scopePaths.map(\n    (scope) => String(scope).replace(/\\\\/g, \"/\").replace(/\\/+$/u, \"\") + \"/\",\n  );\n}\n\nexport function assignmentsHaveDisjointWrites(assignments) {\n  if (assignments.every(({ task }) => task?.effects === \"read-only\")) {\n    return true;\n  }\n  const scopes = assignments.map(({ task }) => normalizedScopes(task));\n  if (scopes.some((scope) => scope === null)) return false;\n  for (let i = 0; i < scopes.length; i += 1) {\n    for (let j = i + 1; j < scopes.length; j += 1) {\n      for (const left of scopes[i]) {\n        for (const right of scopes[j]) {\n          if (left.startsWith(right) || right.startsWith(left)) return false;\n        }\n      }\n    }\n  }\n  return true;\n}\n\nfunction detectTaskType(description) {\n  const lower = description.toLowerCase();\n  for (const [type, keywords] of Object.entries(TYPE_KEYWORDS)) {\n    if (keywords.some((kw) => lower.includes(kw))) return type;\n  }\n  return \"code-generation\";\n}\n\n// ─── API-based agent executor ─────────────────────────────────────\n\n/**\n * Execute a task using an LLM API backend (Gemini, GPT, Ollama, etc.)\n * through ChainlessChain's existing llm-providers infrastructure.\n */\nasync function executeViaAPI(task, options) {\n  const {\n    provider,\n    model,\n    apiKey,\n    baseUrl,\n    cwd,\n    timeout = 120_000,\n    evolutionIngress = null,\n  } = options;\n\n  const chat = createChatFn({\n    provider,\n    model,\n    apiKey,\n    baseUrl,\n    ...(evolutionIngress === null ? {} : { evolutionIngress }),\n  });\n\n  const systemPrompt =\n    \"You are an expert software engineer. Implement the requested changes precisely. \" +\n    \"Respond with the complete implementation, file paths, and explanations. \" +\n    `Working directory: ${cwd}`;\n\n  const startTime = Date.now();\n  let timeoutHandle;\n  try {\n    const timeoutPromise = new Promise((_, reject) => {\n      timeoutHandle = setTimeout(\n        () => reject(new Error(\"LLM API timeout\")),\n        timeout,\n      );\n    });\n    const output = await Promise.race([\n      chat(\n        [\n          { role: \"system\", content: systemPrompt },\n          {\n            role: \"user\",\n            content: task.context\n              ? `Context:\\n${task.context}\\n\\nTask:\\n${task.description}`\n              : task.description,\n          },\n        ],\n        { maxTokens: 4096 },\n      ),\n      timeoutPromise,\n    ]);\n\n    return {\n      success: false,\n      status: \"simulated\",\n      output,\n      exitCode: 0,\n      duration: Date.now() - startTime,\n      agentId: `api-${provider}`,\n      runtimeClaims: SIMULATED_API_CLAIMS,\n      terminalEvidence: [],\n    };\n  } catch (err) {\n    if (isTerminalModelFailure(err)) throw err;\n    return {\n      success: false,\n      status: \"failed\",\n      output: \"\",\n      exitCode: -1,\n      duration: Date.now() - startTime,\n      agentId: `api-${provider}`,\n      error: err.message,\n      runtimeClaims: SIMULATED_API_CLAIMS,\n      terminalEvidence: [],\n    };\n  } finally {\n    clearTimeout(timeoutHandle);\n  }\n}\n\n// ─── AgentRouter ──────────────────────────────────────────────────\n\nexport class AgentRouter extends EventEmitter {\n  /**\n   * @param {object} options\n   * @param {Array}   options.backends   - Backend configs (see examples above)\n   * @param {string}  options.strategy   - \"round-robin\"|\"by-type\"|\"parallel-all\"|\"primary\"\n   * @param {number}  options.maxParallel - Max concurrent agent tasks (default 3)\n   */\n  constructor(options = {}) {\n    super();\n    this.strategy = options.strategy || \"round-robin\";\n    this.maxParallel = options.maxParallel || 3;\n    this._backends = this._resolveBackends(options.backends || []);\n    this._rrIndex = 0; // round-robin cursor\n  }\n\n  /**\n   * Auto-detect available backends from the environment.\n   * Includes CLI tools and API providers based on env vars.\n   */\n  static autoDetect(options = {}) {\n    const backends = [];\n    const claude = options.cliDetections?.claude || detectClaudeCode();\n    const codex = options.cliDetections?.codex || detectCodex();\n\n    if (claude.found) {\n      backends.push({ type: BACKEND_TYPE.CLAUDE, weight: 3, installed: true });\n    }\n    if (codex.found) {\n      backends.push({ type: BACKEND_TYPE.CODEX, weight: 2, installed: true });\n    }\n    if (process.env.GEMINI_API_KEY) {\n      backends.push({ type: BACKEND_TYPE.GEMINI, weight: 2 });\n    }\n    if (process.env.OPENAI_API_KEY) {\n      backends.push({ type: BACKEND_TYPE.OPENAI, weight: 2 });\n    }\n    if (process.env.ANTHROPIC_API_KEY) {\n      backends.push({ type: BACKEND_TYPE.ANTHROPIC, weight: 2 });\n    }\n    // Always include Ollama as local fallback\n    backends.push({ type: BACKEND_TYPE.OLLAMA, weight: 1 });\n\n    return new AgentRouter({ ...options, backends });\n  }\n\n  /**\n   * Dispatch subtasks to agent backends according to the routing strategy.\n   *\n   * @param {Array<{id, description, context?, type?}>} subtasks\n   * @param {object} options\n   * @param {string} options.cwd\n   * @param {object} options.evolutionIngress authenticated model ingress\n   * @returns {Promise<Array<{taskId, agentId, backendType, success, output, duration}>>}\n   */\n  async dispatch(subtasks, options = {}) {\n    const { cwd = process.cwd() } = options;\n    if (this._backends.length === 0) {\n      throw new Error(\n        \"No agent backends available. Use cc agent for tool execution; orchestrate API backends produce text only.\",\n      );\n    }\n    const evolutionIngress =\n      options.evolutionIngress == null\n        ? null\n        : captureAgentEvolutionIngress(options.evolutionIngress);\n    if (evolutionIngress === null) {\n      const error = new Error(\n        \"AgentRouter model dispatch requires an authenticated evolution composition\",\n      );\n      error.code = \"CC_AGENT_EVOLUTION_INGRESS_FAILED\";\n      throw error;\n    }\n    const backends = this._backends.filter((backend) => !backend.isCLI);\n\n    if (backends.length === 0) {\n      const error = new Error(\n        \"No backend can attest per-request evolution ingress; external agent CLIs are opaque\",\n      );\n      error.code = AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED;\n      throw error;\n    }\n\n    switch (this.strategy) {\n      case \"parallel-all\":\n        return this._dispatchParallelAll(subtasks, {\n          cwd,\n          evolutionIngress,\n          backends,\n        });\n      case \"by-type\":\n        return this._dispatchByType(subtasks, {\n          cwd,\n          evolutionIngress,\n          backends,\n        });\n      case \"primary\":\n        return this._dispatchPrimary(subtasks, {\n          cwd,\n          evolutionIngress,\n          backends,\n        });\n      default: // round-robin\n        return this._dispatchRoundRobin(subtasks, {\n          cwd,\n          evolutionIngress,\n          backends,\n        });\n    }\n  }\n\n  // ─── Strategies ────────────────────────────────────────────────\n\n  /** Round-robin: distribute tasks evenly across all backends. */\n  async _dispatchRoundRobin(subtasks, { cwd, evolutionIngress, backends }) {\n    // Assign each subtask a backend\n    const assignments = subtasks.map((task) => {\n      const backend = this._weightedNext(backends);\n      return { task, backend };\n    });\n\n    return this._runAssignments(assignments, { cwd, evolutionIngress });\n  }\n\n  /** By-type: route task to the best backend for its type. */\n  async _dispatchByType(subtasks, { cwd, evolutionIngress, backends }) {\n    const assignments = subtasks.map((task) => {\n      const taskType = task.type || detectTaskType(task.description);\n      const preferredType = TASK_TYPE_ROUTING[taskType];\n      const backend =\n        this._findBackend(preferredType, backends) ||\n        this._weightedNext(backends);\n      return { task, backend };\n    });\n\n    return this._runAssignments(assignments, { cwd, evolutionIngress });\n  }\n\n  /** Primary: all tasks go to first backend; fallback on failure. */\n  async _dispatchPrimary(subtasks, { cwd, evolutionIngress, backends }) {\n    const primary = backends[0];\n    const assignments = subtasks.map((task) => ({ task, backend: primary }));\n    const results = await this._runAssignments(assignments, {\n      cwd,\n      evolutionIngress,\n    });\n\n    // Retry failed tasks on next available backend\n    const retries = [];\n    for (let i = 0; i < results.length; i++) {\n      if (!results[i].success && backends.length > 1) {\n        const fallback = backends[1];\n        retries.push(\n          this._runSingleTask(subtasks[i], fallback, {\n            cwd,\n            evolutionIngress,\n          }).then((r) => {\n            results[i] = r;\n          }),\n        );\n      }\n    }\n    await Promise.all(retries);\n    return results;\n  }\n\n  /** Parallel-all: run every task on ALL backends; return best result per task. */\n  async _dispatchParallelAll(subtasks, { cwd, evolutionIngress, backends }) {\n    if (backends.length > 1) {\n      const error = new Error(\n        \"parallel-all requires per-attempt worktrees and accepted-winner merge\",\n      );\n      error.code = AGENT_ROUTER_ERROR.WRITE_ISOLATION_REQUIRED;\n      throw error;\n    }\n    const results = [];\n    for (const task of subtasks) {\n      const allResults = await Promise.all(\n        backends.map((backend) =>\n          this._runSingleTask(task, backend, { cwd, evolutionIngress }),\n        ),\n      );\n      // Pick the first successful result; if all fail, pick the first\n      const best = allResults.find((r) => r.success) || allResults[0];\n      best.allResults = allResults; // attach all results for inspection\n      results.push(best);\n    }\n    return results;\n  }\n\n  // ─── Execution ─────────────────────────────────────────────────\n\n  async _runAssignments(assignments, { cwd, evolutionIngress }) {\n    const results = new Array(assignments.length);\n    const concurrency = assignmentsHaveDisjointWrites(assignments)\n      ? this.maxParallel\n      : 1;\n\n    // Shared writable cwd tasks are serialized unless their declared write\n    // scopes are statically disjoint. Candidate fan-out is rejected above\n    // until it has per-attempt worktrees and winner-only merge semantics.\n    for (let i = 0; i < assignments.length; i += concurrency) {\n      const batch = assignments.slice(i, i + concurrency);\n      const batchResults = await Promise.all(\n        batch.map(({ task, backend }) =>\n          this._runSingleTask(task, backend, { cwd, evolutionIngress }),\n        ),\n      );\n      for (let j = 0; j < batchResults.length; j++) {\n        results[i + j] = batchResults[j];\n      }\n    }\n\n    return results;\n  }\n\n  async _runSingleTask(task, backend, { cwd, evolutionIngress }) {\n    this.emit(\"agent:start\", { taskId: task.id, backend: backend.type });\n\n    let result;\n    if (backend.isCLI) {\n      // Claude/Codex own every provider call made inside their subprocess. A\n      // projected initial prompt cannot prove that later compaction, retry,\n      // tool, or model calls crossed this Run's durable ingress. Until an\n      // authenticated child protocol can bind every such call and return\n      // evidence, admitting the black box would create an unobservable model\n      // bypass. This is deliberately unconditional so a future internal caller\n      // cannot bypass dispatch()'s candidate filter by calling this helper.\n      const error = new Error(\n        `External ${backend.type} CLI does not attest per-request evolution ingress`,\n      );\n      error.code = AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED;\n      throw error;\n    } else {\n      // Use LLM API for API-based backends\n      result = await executeViaAPI(task, {\n        provider: backend.provider,\n        model: backend.model,\n        apiKey: backend.apiKey,\n        baseUrl: backend.baseUrl,\n        cwd,\n        timeout: backend.timeout,\n        evolutionIngress,\n      });\n    }\n\n    result.taskId = task.id;\n    result.backendType = backend.type;\n\n    this.emit(\"agent:complete\", result);\n    return result;\n  }\n\n  // ─── Backend resolution ─────────────────────────────────────────\n\n  _resolveBackends(configs) {\n    return configs.map((cfg) => {\n      const type = cfg.type || BACKEND_TYPE.CLAUDE;\n\n      if (type === BACKEND_TYPE.CLAUDE || type === BACKEND_TYPE.CODEX) {\n        const pool = new ClaudeCodePool({\n          maxParallel: 1,\n          cliCommand: type === BACKEND_TYPE.CODEX ? \"codex\" : \"claude\",\n          model: cfg.model || null,\n          sandbox: cfg.sandbox || null,\n        });\n        pool.on(\"agent:output\", (ev) => this.emit(\"agent:output\", ev));\n        return {\n          type,\n          isCLI: true,\n          installed: cfg.installed ?? null,\n          weight: cfg.weight || 1,\n          _pool: pool,\n          timeout: cfg.timeout || 300_000,\n        };\n      }\n\n      // API-based backend\n      const providerMap = {\n        [BACKEND_TYPE.GEMINI]: \"gemini\",\n        [BACKEND_TYPE.OPENAI]: \"openai\",\n        [BACKEND_TYPE.ANTHROPIC]: \"anthropic\",\n        [BACKEND_TYPE.OLLAMA]: \"ollama\",\n      };\n\n      return {\n        type,\n        isCLI: false,\n        weight: cfg.weight || 1,\n        provider: providerMap[type] || type,\n        model: cfg.model || null,\n        apiKey: cfg.apiKey || null,\n        baseUrl: cfg.baseUrl || null,\n        timeout: cfg.timeout || 120_000,\n      };\n    });\n  }\n\n  /** Find the first backend matching a given type. */\n  _findBackend(type, backends = this._backends) {\n    return backends.find((b) => b.type === type) || null;\n  }\n\n  /** Pick next backend using weighted round-robin. */\n  _weightedNext(backends = this._backends) {\n    if (backends.length === 0) throw new Error(\"No backends\");\n    if (backends.length === 1) return backends[0];\n\n    // Build weighted list\n    const weighted = [];\n    for (const b of backends) {\n      for (let i = 0; i < (b.weight || 1); i++) weighted.push(b);\n    }\n\n    const backend = weighted[this._rrIndex % weighted.length];\n    this._rrIndex++;\n    return backend;\n  }\n\n  /** Summary of all configured backends. */\n  summary() {\n    return this._backends.map((b) => ({\n      type: b.type,\n      kind: b.isCLI ? \"cli\" : \"api\",\n      provider: b.provider || b.type,\n      weight: b.weight,\n      installed: b.isCLI ? (b.installed ?? null) : null,\n      configured: true,\n      governanceAdmitted: b.isCLI ? false : null,\n      requiresAuthenticatedRun: true,\n      dispatchable: !b.isCLI,\n      runnable: false,\n      executionMode: b.isCLI ? \"blocked\" : \"text-only\",\n      blockedReason: b.isCLI\n        ? AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED\n        : \"API_TEXT_ONLY_NO_TOOL_EXECUTION\",\n      alternative: \"cc agent\",\n    }));\n  }\n\n  /** Configuration preflight only; dispatch still authenticates each Run. */\n  assertDispatchAvailable() {\n    if (this._backends.some((backend) => !backend.isCLI)) return;\n    const error = new Error(\n      this._backends.length\n        ? \"External Claude/Codex CLIs are blocked: per-request model governance is unattested. Use cc agent for tool execution.\"\n        : \"No agent backends available. Use cc agent for tool execution.\",\n    );\n    error.code = this._backends.length\n      ? AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED\n      : \"AGENT_ROUTER_NO_BACKENDS\";\n    error.backends = this.summary();\n    throw error;\n  }\n}\n\n// ===== V2 Surface: Agent Router governance overlay (CLI v0.132.0) =====\n// In-memory governance for router profiles + dispatch lifecycle, independent of\n// the AgentRouter class above (legacy ClaudeCodePool/createChatFn untouched).\n\nexport const ROUTER_PROFILE_MATURITY_V2 = Object.freeze({\n  PENDING: \"pending\",\n  ACTIVE: \"active\",\n  DEGRADED: \"degraded\",\n  RETIRED: \"retired\",\n});\n\nexport const ROUTER_DISPATCH_LIFECYCLE_V2 = Object.freeze({\n  QUEUED: \"queued\",\n  DISPATCHING: \"dispatching\",\n  COMPLETED: \"completed\",\n  FAILED: \"failed\",\n  CANCELLED: \"cancelled\",\n});\n\nconst _profileTransitionsV2 = new Map([\n  [\n    ROUTER_PROFILE_MATURITY_V2.PENDING,\n    new Set([\n      ROUTER_PROFILE_MATURITY_V2.ACTIVE,\n      ROUTER_PROFILE_MATURITY_V2.RETIRED,\n    ]),\n  ],\n  [\n    ROUTER_PROFILE_MATURITY_V2.ACTIVE,\n    new Set([\n      ROUTER_PROFILE_MATURITY_V2.DEGRADED,\n      ROUTER_PROFILE_MATURITY_V2.RETIRED,\n    ]),\n  ],\n  [\n    ROUTER_PROFILE_MATURITY_V2.DEGRADED,\n    new Set([\n      ROUTER_PROFILE_MATURITY_V2.ACTIVE,\n      ROUTER_PROFILE_MATURITY_V2.RETIRED,\n    ]),\n  ],\n  [ROUTER_PROFILE_MATURITY_V2.RETIRED, new Set()],\n]);\nconst _profileTerminalV2 = new Set([ROUTER_PROFILE_MATURITY_V2.RETIRED]);\n\nconst _dispatchTransitionsV2 = new Map([\n  [\n    ROUTER_DISPATCH_LIFECYCLE_V2.QUEUED,\n    new Set([\n      ROUTER_DISPATCH_LIFECYCLE_V2.DISPATCHING,\n      ROUTER_DISPATCH_LIFECYCLE_V2.CANCELLED,\n    ]),\n  ],\n  [\n    ROUTER_DISPATCH_LIFECYCLE_V2.DISPATCHING,\n    new Set([\n      ROUTER_DISPATCH_LIFECYCLE_V2.COMPLETED,\n      ROUTER_DISPATCH_LIFECYCLE_V2.FAILED,\n      ROUTER_DISPATCH_LIFECYCLE_V2.CANCELLED,\n    ]),\n  ],\n  [ROUTER_DISPATCH_LIFECYCLE_V2.COMPLETED, new Set()],\n  [ROUTER_DISPATCH_LIFECYCLE_V2.FAILED, new Set()],\n  [ROUTER_DISPATCH_LIFECYCLE_V2.CANCELLED, new Set()],\n]);\nconst _dispatchTerminalV2 = new Set([\n  ROUTER_DISPATCH_LIFECYCLE_V2.COMPLETED,\n  ROUTER_DISPATCH_LIFECYCLE_V2.FAILED,\n  ROUTER_DISPATCH_LIFECYCLE_V2.CANCELLED,\n]);\n\nconst _profilesV2 = new Map();\nconst _dispatchesV2 = new Map();\nlet _maxActiveProfilesPerOwnerRouterV2 = 8;\nlet _maxPendingDispatchesPerProfileV2 = 16;\nlet _profileIdleMsRouterV2 = 6 * 60 * 60 * 1000;\nlet _dispatchStuckMsV2 = 5 * 60 * 1000;\n\nfunction _routerPosIntV2(n, label) {\n  const v = Math.floor(Number(n));\n  if (!Number.isFinite(v) || v <= 0)\n    throw new Error(`${label} must be positive integer`);\n  return v;\n}\n\nexport function setMaxActiveProfilesPerOwnerRouterV2(n) {\n  _maxActiveProfilesPerOwnerRouterV2 = _routerPosIntV2(\n    n,\n    \"maxActiveProfilesPerOwner\",\n  );\n}\nexport function getMaxActiveProfilesPerOwnerRouterV2() {\n  return _maxActiveProfilesPerOwnerRouterV2;\n}\nexport function setMaxPendingDispatchesPerProfileV2(n) {\n  _maxPendingDispatchesPerProfileV2 = _routerPosIntV2(\n    n,\n    \"maxPendingDispatchesPerProfile\",\n  );\n}\nexport function getMaxPendingDispatchesPerProfileV2() {\n  return _maxPendingDispatchesPerProfileV2;\n}\nexport function setProfileIdleMsRouterV2(n) {\n  _profileIdleMsRouterV2 = _routerPosIntV2(n, \"profileIdleMs\");\n}\nexport function getProfileIdleMsRouterV2() {\n  return _profileIdleMsRouterV2;\n}\nexport function setDispatchStuckMsV2(n) {\n  _dispatchStuckMsV2 = _routerPosIntV2(n, \"dispatchStuckMs\");\n}\nexport function getDispatchStuckMsV2() {\n  return _dispatchStuckMsV2;\n}\n\nexport function _resetStateAgentRouterV2() {\n  _profilesV2.clear();\n  _dispatchesV2.clear();\n  _maxActiveProfilesPerOwnerRouterV2 = 8;\n  _maxPendingDispatchesPerProfileV2 = 16;\n  _profileIdleMsRouterV2 = 6 * 60 * 60 * 1000;\n  _dispatchStuckMsV2 = 5 * 60 * 1000;\n}\n\nexport function registerRouterProfileV2({\n  id,\n  owner,\n  strategy,\n  metadata,\n} = {}) {\n  if (!id || typeof id !== \"string\") throw new Error(\"id is required\");\n  if (!owner || typeof owner !== \"string\") throw new Error(\"owner is required\");\n  if (_profilesV2.has(id)) throw new Error(`profile ${id} already registered`);\n  const now = Date.now();\n  const profile = {\n    id,\n    owner,\n    strategy: strategy || \"round-robin\",\n    status: ROUTER_PROFILE_MATURITY_V2.PENDING,\n    createdAt: now,\n    updatedAt: now,\n    activatedAt: null,\n    retiredAt: null,\n    lastTouchedAt: now,\n    metadata: { ...(metadata || {}) },\n  };\n  _profilesV2.set(id, profile);\n  return { ...profile, metadata: { ...profile.metadata } };\n}\n\nfunction _routerCheckTransition(from, to) {\n  const allowed = _profileTransitionsV2.get(from);\n  if (!allowed || !allowed.has(to))\n    throw new Error(`invalid profile transition ${from} → ${to}`);\n}\n\nfunction _countActiveProfilesByOwner(owner) {\n  let n = 0;\n  for (const p of _profilesV2.values()) {\n    if (p.owner === owner && p.status === ROUTER_PROFILE_MATURITY_V2.ACTIVE)\n      n++;\n  }\n  return n;\n}\n\nexport function activateRouterProfileV2(id) {\n  const p = _profilesV2.get(id);\n  if (!p) throw new Error(`profile ${id} not found`);\n  _routerCheckTransition(p.status, ROUTER_PROFILE_MATURITY_V2.ACTIVE);\n  const isRecovery = p.status === ROUTER_PROFILE_MATURITY_V2.DEGRADED;\n  if (!isRecovery) {\n    const active = _countActiveProfilesByOwner(p.owner);\n    if (active >= _maxActiveProfilesPerOwnerRouterV2) {\n      throw new Error(\n        `max active profiles per owner (${_maxActiveProfilesPerOwnerRouterV2}) reached for ${p.owner}`,\n      );\n    }\n  }\n  const now = Date.now();\n  p.status = ROUTER_PROFILE_MATURITY_V2.ACTIVE;\n  p.updatedAt = now;\n  p.lastTouchedAt = now;\n  if (!p.activatedAt) p.activatedAt = now;\n  return { ...p, metadata: { ...p.metadata } };\n}\n\nexport function degradeRouterProfileV2(id) {\n  const p = _profilesV2.get(id);\n  if (!p) throw new Error(`profile ${id} not found`);\n  _routerCheckTransition(p.status, ROUTER_PROFILE_MATURITY_V2.DEGRADED);\n  const now = Date.now();\n  p.status = ROUTER_PROFILE_MATURITY_V2.DEGRADED;\n  p.updatedAt = now;\n  return { ...p, metadata: { ...p.metadata } };\n}\n\nexport function retireRouterProfileV2(id) {\n  const p = _profilesV2.get(id);\n  if (!p) throw new Error(`profile ${id} not found`);\n  _routerCheckTransition(p.status, ROUTER_PROFILE_MATURITY_V2.RETIRED);\n  const now = Date.now();\n  p.status = ROUTER_PROFILE_MATURITY_V2.RETIRED;\n  p.updatedAt = now;\n  if (!p.retiredAt) p.retiredAt = now;\n  return { ...p, metadata: { ...p.metadata } };\n}\n\nexport function touchRouterProfileV2(id) {\n  const p = _profilesV2.get(id);\n  if (!p) throw new Error(`profile ${id} not found`);\n  if (_profileTerminalV2.has(p.status))\n    throw new Error(`cannot touch terminal profile ${id}`);\n  const now = Date.now();\n  p.lastTouchedAt = now;\n  p.updatedAt = now;\n  return { ...p, metadata: { ...p.metadata } };\n}\n\nexport function getRouterProfileV2(id) {\n  const p = _profilesV2.get(id);\n  if (!p) return null;\n  return { ...p, metadata: { ...p.metadata } };\n}\n\nexport function listRouterProfilesV2() {\n  return [..._profilesV2.values()].map((p) => ({\n    ...p,\n    metadata: { ...p.metadata },\n  }));\n}\n\nfunction _countPendingDispatchesByProfile(profileId) {\n  let n = 0;\n  for (const d of _dispatchesV2.values()) {\n    if (\n      d.profileId === profileId &&\n      (d.status === ROUTER_DISPATCH_LIFECYCLE_V2.QUEUED ||\n        d.status === ROUTER_DISPATCH_LIFECYCLE_V2.DISPATCHING)\n    )\n      n++;\n  }\n  return n;\n}\n\nexport function createDispatchV2({ id, profileId, task, metadata } = {}) {\n  if (!id || typeof id !== \"string\") throw new Error(\"id is required\");\n  if (!profileId || typeof profileId !== \"string\")\n    throw new Error(\"profileId is required\");\n  if (_dispatchesV2.has(id)) throw new Error(`dispatch ${id} already exists`);\n  const profile = _profilesV2.get(profileId);\n  if (!profile) throw new Error(`profile ${profileId} not found`);\n  const pending = _countPendingDispatchesByProfile(profileId);\n  if (pending >= _maxPendingDispatchesPerProfileV2) {\n    throw new Error(\n      `max pending dispatches per profile (${_maxPendingDispatchesPerProfileV2}) reached for ${profileId}`,\n    );\n  }\n  const now = Date.now();\n  const d = {\n    id,\n    profileId,\n    task: task || \"\",\n    status: ROUTER_DISPATCH_LIFECYCLE_V2.QUEUED,\n    createdAt: now,\n    updatedAt: now,\n    dispatchedAt: null,\n    settledAt: null,\n    metadata: { ...(metadata || {}) },\n  };\n  _dispatchesV2.set(id, d);\n  return { ...d, metadata: { ...d.metadata } };\n}\n\nfunction _dispatchCheckTransition(from, to) {\n  const allowed = _dispatchTransitionsV2.get(from);\n  if (!allowed || !allowed.has(to))\n    throw new Error(`invalid dispatch transition ${from} → ${to}`);\n}\n\nexport function dispatchDispatchV2(id) {\n  const d = _dispatchesV2.get(id);\n  if (!d) throw new Error(`dispatch ${id} not found`);\n  _dispatchCheckTransition(d.status, ROUTER_DISPATCH_LIFECYCLE_V2.DISPATCHING);\n  const now = Date.now();\n  d.status = ROUTER_DISPATCH_LIFECYCLE_V2.DISPATCHING;\n  d.updatedAt = now;\n  if (!d.dispatchedAt) d.dispatchedAt = now;\n  return { ...d, metadata: { ...d.metadata } };\n}\n\nexport function completeDispatchV2(id) {\n  const d = _dispatchesV2.get(id);\n  if (!d) throw new Error(`dispatch ${id} not found`);\n  _dispatchCheckTransition(d.status, ROUTER_DISPATCH_LIFECYCLE_V2.COMPLETED);\n  const now = Date.now();\n  d.status = ROUTER_DISPATCH_LIFECYCLE_V2.COMPLETED;\n  d.updatedAt = now;\n  if (!d.settledAt) d.settledAt = now;\n  return { ...d, metadata: { ...d.metadata } };\n}\n\nexport function failDispatchV2(id, reason) {\n  const d = _dispatchesV2.get(id);\n  if (!d) throw new Error(`dispatch ${id} not found`);\n  _dispatchCheckTransition(d.status, ROUTER_DISPATCH_LIFECYCLE_V2.FAILED);\n  const now = Date.now();\n  d.status = ROUTER_DISPATCH_LIFECYCLE_V2.FAILED;\n  d.updatedAt = now;\n  if (!d.settledAt) d.settledAt = now;\n  if (reason) d.metadata.failReason = String(reason);\n  return { ...d, metadata: { ...d.metadata } };\n}\n\nexport function cancelDispatchV2(id, reason) {\n  const d = _dispatchesV2.get(id);\n  if (!d) throw new Error(`dispatch ${id} not found`);\n  _dispatchCheckTransition(d.status, ROUTER_DISPATCH_LIFECYCLE_V2.CANCELLED);\n  const now = Date.now();\n  d.status = ROUTER_DISPATCH_LIFECYCLE_V2.CANCELLED;\n  d.updatedAt = now;\n  if (!d.settledAt) d.settledAt = now;\n  if (reason) d.metadata.cancelReason = String(reason);\n  return { ...d, metadata: { ...d.metadata } };\n}\n\nexport function getDispatchV2(id) {\n  const d = _dispatchesV2.get(id);\n  if (!d) return null;\n  return { ...d, metadata: { ...d.metadata } };\n}\n\nexport function listDispatchesV2() {\n  return [..._dispatchesV2.values()].map((d) => ({\n    ...d,\n    metadata: { ...d.metadata },\n  }));\n}\n\nexport function autoDegradeIdleProfilesRouterV2({ now } = {}) {\n  const t = now ?? Date.now();\n  const flipped = [];\n  for (const p of _profilesV2.values()) {\n    if (\n      p.status === ROUTER_PROFILE_MATURITY_V2.ACTIVE &&\n      t - p.lastTouchedAt >= _profileIdleMsRouterV2\n    ) {\n      p.status = ROUTER_PROFILE_MATURITY_V2.DEGRADED;\n      p.updatedAt = t;\n      flipped.push(p.id);\n    }\n  }\n  return { flipped, count: flipped.length };\n}\n\nexport function autoFailStuckDispatchesV2({ now } = {}) {\n  const t = now ?? Date.now();\n  const flipped = [];\n  for (const d of _dispatchesV2.values()) {\n    if (\n      d.status === ROUTER_DISPATCH_LIFECYCLE_V2.DISPATCHING &&\n      d.dispatchedAt != null &&\n      t - d.dispatchedAt >= _dispatchStuckMsV2\n    ) {\n      d.status = ROUTER_DISPATCH_LIFECYCLE_V2.FAILED;\n      d.updatedAt = t;\n      if (!d.settledAt) d.settledAt = t;\n      d.metadata.failReason = \"auto-fail-stuck\";\n      flipped.push(d.id);\n    }\n  }\n  return { flipped, count: flipped.length };\n}\n\nexport function getAgentRouterStatsV2() {\n  const profilesByStatus = {};\n  for (const s of Object.values(ROUTER_PROFILE_MATURITY_V2))\n    profilesByStatus[s] = 0;\n  for (const p of _profilesV2.values()) profilesByStatus[p.status]++;\n  const dispatchesByStatus = {};\n  for (const s of Object.values(ROUTER_DISPATCH_LIFECYCLE_V2))\n    dispatchesByStatus[s] = 0;\n  for (const d of _dispatchesV2.values()) dispatchesByStatus[d.status]++;\n  return {\n    totalProfilesV2: _profilesV2.size,\n    totalDispatchesV2: _dispatchesV2.size,\n    maxActiveProfilesPerOwner: _maxActiveProfilesPerOwnerRouterV2,\n    maxPendingDispatchesPerProfile: _maxPendingDispatchesPerProfileV2,\n    profileIdleMs: _profileIdleMsRouterV2,\n    dispatchStuckMs: _dispatchStuckMsV2,\n    profilesByStatus,\n    dispatchesByStatus,\n  };\n}\n\n// =====================================================================\n// agent-router V2 governance overlay (iter25)\n// =====================================================================\nexport const ARGOV_PROFILE_MATURITY_V2 = Object.freeze({\n  PENDING: \"pending\",\n  ACTIVE: \"active\",\n  STALE: \"stale\",\n  ARCHIVED: \"archived\",\n});\nexport const ARGOV_ROUTING_LIFECYCLE_V2 = Object.freeze({\n  QUEUED: \"queued\",\n  ROUTING_RUN: \"routing\",\n  ROUTED: \"routed\",\n  FAILED: \"failed\",\n  CANCELLED: \"cancelled\",\n});\nconst _argovPTrans = new Map([\n  [\n    ARGOV_PROFILE_MATURITY_V2.PENDING,\n    new Set([\n      ARGOV_PROFILE_MATURITY_V2.ACTIVE,\n      ARGOV_PROFILE_MATURITY_V2.ARCHIVED,\n    ]),\n  ],\n  [\n    ARGOV_PROFILE_MATURITY_V2.ACTIVE,\n    new Set([\n      ARGOV_PROFILE_MATURITY_V2.STALE,\n      ARGOV_PROFILE_MATURITY_V2.ARCHIVED,\n    ]),\n  ],\n  [\n    ARGOV_PROFILE_MATURITY_V2.STALE,\n    new Set([\n      ARGOV_PROFILE_MATURITY_V2.ACTIVE,\n      ARGOV_PROFILE_MATURITY_V2.ARCHIVED,\n    ]),\n  ],\n  [ARGOV_PROFILE_MATURITY_V2.ARCHIVED, new Set()],\n]);\nconst _argovPTerminal = new Set([ARGOV_PROFILE_MATURITY_V2.ARCHIVED]);\nconst _argovJTrans = new Map([\n  [\n    ARGOV_ROUTING_LIFECYCLE_V2.QUEUED,\n    new Set([\n      ARGOV_ROUTING_LIFECYCLE_V2.ROUTING_RUN,\n      ARGOV_ROUTING_LIFECYCLE_V2.CANCELLED,\n    ]),\n  ],\n  [\n    ARGOV_ROUTING_LIFECYCLE_V2.ROUTING_RUN,\n    new Set([\n      ARGOV_ROUTING_LIFECYCLE_V2.ROUTED,\n      ARGOV_ROUTING_LIFECYCLE_V2.FAILED,\n      ARGOV_ROUTING_LIFECYCLE_V2.CANCELLED,\n    ]),\n  ],\n  [ARGOV_ROUTING_LIFECYCLE_V2.ROUTED, new Set()],\n  [ARGOV_ROUTING_LIFECYCLE_V2.FAILED, new Set()],\n  [ARGOV_ROUTING_LIFECYCLE_V2.CANCELLED, new Set()],\n]);\nconst _argovPsV2 = new Map();\nconst _argovJsV2 = new Map();\nlet _argovMaxActive = 8,\n  _argovMaxPending = 20,\n  _argovIdleMs = 30 * 24 * 60 * 60 * 1000,\n  _argovStuckMs = 60 * 1000;\nfunction _argovPos(n, label) {\n  const v = Math.floor(Number(n));\n  if (!Number.isFinite(v) || v <= 0)\n    throw new Error(`${label} must be positive integer`);\n  return v;\n}\nfunction _argovCheckP(from, to) {\n  const a = _argovPTrans.get(from);\n  if (!a || !a.has(to))\n    throw new Error(`invalid argov profile transition ${from} → ${to}`);\n}\nfunction _argovCheckJ(from, to) {\n  const a = _argovJTrans.get(from);\n  if (!a || !a.has(to))\n    throw new Error(`invalid argov routing transition ${from} → ${to}`);\n}\nfunction _argovCountActive(owner) {\n  let c = 0;\n  for (const p of _argovPsV2.values())\n    if (p.owner === owner && p.status === ARGOV_PROFILE_MATURITY_V2.ACTIVE) c++;\n  return c;\n}\nfunction _argovCountPending(profileId) {\n  let c = 0;\n  for (const j of _argovJsV2.values())\n    if (\n      j.profileId === profileId &&\n      (j.status === ARGOV_ROUTING_LIFECYCLE_V2.QUEUED ||\n        j.status === ARGOV_ROUTING_LIFECYCLE_V2.ROUTING_RUN)\n    )\n      c++;\n  return c;\n}\nexport function setMaxActiveArgovProfilesPerOwnerV2(n) {\n  _argovMaxActive = _argovPos(n, \"maxActiveArgovProfilesPerOwner\");\n}\nexport function getMaxActiveArgovProfilesPerOwnerV2() {\n  return _argovMaxActive;\n}\nexport function setMaxPendingArgovRoutingsPerProfileV2(n) {\n  _argovMaxPending = _argovPos(n, \"maxPendingArgovRoutingsPerProfile\");\n}\nexport function getMaxPendingArgovRoutingsPerProfileV2() {\n  return _argovMaxPending;\n}\nexport function setArgovProfileIdleMsV2(n) {\n  _argovIdleMs = _argovPos(n, \"argovProfileIdleMs\");\n}\nexport function getArgovProfileIdleMsV2() {\n  return _argovIdleMs;\n}\nexport function setArgovRoutingStuckMsV2(n) {\n  _argovStuckMs = _argovPos(n, \"argovRoutingStuckMs\");\n}\nexport function getArgovRoutingStuckMsV2() {\n  return _argovStuckMs;\n}\nexport function _resetStateAgentRouterGovV2() {\n  _argovPsV2.clear();\n  _argovJsV2.clear();\n  _argovMaxActive = 8;\n  _argovMaxPending = 20;\n  _argovIdleMs = 30 * 24 * 60 * 60 * 1000;\n  _argovStuckMs = 60 * 1000;\n}\nexport function registerArgovProfileV2({ id, owner, strategy, metadata } = {}) {\n  if (!id || !owner) throw new Error(\"id and owner required\");\n  if (_argovPsV2.has(id)) throw new Error(`argov profile ${id} already exists`);\n  const now = Date.now();\n  const p = {\n    id,\n    owner,\n    strategy: strategy || \"round-robin\",\n    status: ARGOV_PROFILE_MATURITY_V2.PENDING,\n    createdAt: now,\n    updatedAt: now,\n    lastTouchedAt: now,\n    activatedAt: null,\n    archivedAt: null,\n    metadata: { ...(metadata || {}) },\n  };\n  _argovPsV2.set(id, p);\n  return { ...p, metadata: { ...p.metadata } };\n}\nexport function activateArgovProfileV2(id) {\n  const p = _argovPsV2.get(id);\n  if (!p) throw new Error(`argov profile ${id} not found`);\n  const isInitial = p.status === ARGOV_PROFILE_MATURITY_V2.PENDING;\n  _argovCheckP(p.status, ARGOV_PROFILE_MATURITY_V2.ACTIVE);\n  if (isInitial && _argovCountActive(p.owner) >= _argovMaxActive)\n    throw new Error(`max active argov profiles for owner ${p.owner} reached`);\n  const now = Date.now();\n  p.status = ARGOV_PROFILE_MATURITY_V2.ACTIVE;\n  p.updatedAt = now;\n  p.lastTouchedAt = now;\n  if (!p.activatedAt) p.activatedAt = now;\n  return { ...p, metadata: { ...p.metadata } };\n}\nexport function staleArgovProfileV2(id) {\n  const p = _argovPsV2.get(id);\n  if (!p) throw new Error(`argov profile ${id} not found`);\n  _argovCheckP(p.status, ARGOV_PROFILE_MATURITY_V2.STALE);\n  p.status = ARGOV_PROFILE_MATURITY_V2.STALE;\n  p.updatedAt = Date.now();\n  return { ...p, metadata: { ...p.metadata } };\n}\nexport function archiveArgovProfileV2(id) {\n  const p = _argovPsV2.get(id);\n  if (!p) throw new Error(`argov profile ${id} not found`);\n  _argovCheckP(p.status, ARGOV_PROFILE_MATURITY_V2.ARCHIVED);\n  const now = Date.now();\n  p.status = ARGOV_PROFILE_MATURITY_V2.ARCHIVED;\n  p.updatedAt = now;\n  if (!p.archivedAt) p.archivedAt = now;\n  return { ...p, metadata: { ...p.metadata } };\n}\nexport function touchArgovProfileV2(id) {\n  const p = _argovPsV2.get(id);\n  if (!p) throw new Error(`argov profile ${id} not found`);\n  if (_argovPTerminal.has(p.status))\n    throw new Error(`cannot touch terminal argov profile ${id}`);\n  const now = Date.now();\n  p.lastTouchedAt = now;\n  p.updatedAt = now;\n  return { ...p, metadata: { ...p.metadata } };\n}\nexport function getArgovProfileV2(id) {\n  const p = _argovPsV2.get(id);\n  if (!p) return null;\n  return { ...p, metadata: { ...p.metadata } };\n}\nexport function listArgovProfilesV2() {\n  return [..._argovPsV2.values()].map((p) => ({\n    ...p,\n    metadata: { ...p.metadata },\n  }));\n}\nexport function createArgovRoutingV2({ id, profileId, target, metadata } = {}) {\n  if (!id || !profileId) throw new Error(\"id and profileId required\");\n  if (_argovJsV2.has(id)) throw new Error(`argov routing ${id} already exists`);\n  if (!_argovPsV2.has(profileId))\n    throw new Error(`argov profile ${profileId} not found`);\n  if (_argovCountPending(profileId) >= _argovMaxPending)\n    throw new Error(\n      `max pending argov routings for profile ${profileId} reached`,\n    );\n  const now = Date.now();\n  const j = {\n    id,\n    profileId,\n    target: target || \"\",\n    status: ARGOV_ROUTING_LIFECYCLE_V2.QUEUED,\n    createdAt: now,\n    updatedAt: now,\n    startedAt: null,\n    settledAt: null,\n    metadata: { ...(metadata || {}) },\n  };\n  _argovJsV2.set(id, j);\n  return { ...j, metadata: { ...j.metadata } };\n}\nexport function runningArgovRoutingV2(id) {\n  const j = _argovJsV2.get(id);\n  if (!j) throw new Error(`argov routing ${id} not found`);\n  _argovCheckJ(j.status, ARGOV_ROUTING_LIFECYCLE_V2.ROUTING_RUN);\n  const now = Date.now();\n  j.status = ARGOV_ROUTING_LIFECYCLE_V2.ROUTING_RUN;\n  j.updatedAt = now;\n  if (!j.startedAt) j.startedAt = now;\n  return { ...j, metadata: { ...j.metadata } };\n}\nexport function completeRoutingArgovV2(id) {\n  const j = _argovJsV2.get(id);\n  if (!j) throw new Error(`argov routing ${id} not found`);\n  _argovCheckJ(j.status, ARGOV_ROUTING_LIFECYCLE_V2.ROUTED);\n  const now = Date.now();\n  j.status = ARGOV_ROUTING_LIFECYCLE_V2.ROUTED;\n  j.updatedAt = now;\n  if (!j.settledAt) j.settledAt = now;\n  return { ...j, metadata: { ...j.metadata } };\n}\nexport function failArgovRoutingV2(id, reason) {\n  const j = _argovJsV2.get(id);\n  if (!j) throw new Error(`argov routing ${id} not found`);\n  _argovCheckJ(j.status, ARGOV_ROUTING_LIFECYCLE_V2.FAILED);\n  const now = Date.now();\n  j.status = ARGOV_ROUTING_LIFECYCLE_V2.FAILED;\n  j.updatedAt = now;\n  if (!j.settledAt) j.settledAt = now;\n  if (reason) j.metadata.failReason = String(reason);\n  return { ...j, metadata: { ...j.metadata } };\n}\nexport function cancelArgovRoutingV2(id, reason) {\n  const j = _argovJsV2.get(id);\n  if (!j) throw new Error(`argov routing ${id} not found`);\n  _argovCheckJ(j.status, ARGOV_ROUTING_LIFECYCLE_V2.CANCELLED);\n  const now = Date.now();\n  j.status = ARGOV_ROUTING_LIFECYCLE_V2.CANCELLED;\n  j.updatedAt = now;\n  if (!j.settledAt) j.settledAt = now;\n  if (reason) j.metadata.cancelReason = String(reason);\n  return { ...j, metadata: { ...j.metadata } };\n}\nexport function getArgovRoutingV2(id) {\n  const j = _argovJsV2.get(id);\n  if (!j) return null;\n  return { ...j, metadata: { ...j.metadata } };\n}\nexport function listArgovRoutingsV2() {\n  return [..._argovJsV2.values()].map((j) => ({\n    ...j,\n    metadata: { ...j.metadata },\n  }));\n}\nexport function autoStaleIdleArgovProfilesV2({ now } = {}) {\n  const t = now ?? Date.now();\n  const flipped = [];\n  for (const p of _argovPsV2.values())\n    if (\n      p.status === ARGOV_PROFILE_MATURITY_V2.ACTIVE &&\n      t - p.lastTouchedAt >= _argovIdleMs\n    ) {\n      p.status = ARGOV_PROFILE_MATURITY_V2.STALE;\n      p.updatedAt = t;\n      flipped.push(p.id);\n    }\n  return { flipped, count: flipped.length };\n}\nexport function autoFailStuckArgovRoutingsV2({ now } = {}) {\n  const t = now ?? Date.now();\n  const flipped = [];\n  for (const j of _argovJsV2.values())\n    if (\n      j.status === ARGOV_ROUTING_LIFECYCLE_V2.ROUTING_RUN &&\n      j.startedAt != null &&\n      t - j.startedAt >= _argovStuckMs\n    ) {\n      j.status = ARGOV_ROUTING_LIFECYCLE_V2.FAILED;\n      j.updatedAt = t;\n      if (!j.settledAt) j.settledAt = t;\n      j.metadata.failReason = \"auto-fail-stuck\";\n      flipped.push(j.id);\n    }\n  return { flipped, count: flipped.length };\n}\nexport function getAgentRouterGovStatsV2() {\n  const profilesByStatus = {};\n  for (const v of Object.values(ARGOV_PROFILE_MATURITY_V2))\n    profilesByStatus[v] = 0;\n  for (const p of _argovPsV2.values()) profilesByStatus[p.status]++;\n  const routingsByStatus = {};\n  for (const v of Object.values(ARGOV_ROUTING_LIFECYCLE_V2))\n    routingsByStatus[v] = 0;\n  for (const j of _argovJsV2.values()) routingsByStatus[j.status]++;\n  return {\n    totalArgovProfilesV2: _argovPsV2.size,\n    totalArgovRoutingsV2: _argovJsV2.size,\n    maxActiveArgovProfilesPerOwner: _argovMaxActive,\n    maxPendingArgovRoutingsPerProfile: _argovMaxPending,\n    argovProfileIdleMs: _argovIdleMs,\n    argovRoutingStuckMs: _argovStuckMs,\n    profilesByStatus,\n    routingsByStatus,\n  };\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712126327,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/agent-router.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 8,
+                "sessionId": "panel-6a23eec1-c5e7-4814-8faa-b693e9978818",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/agent-router.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_v20qd344h8ng1p375cjb199b",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 7
+          },
+          {
+            "type": "tool_result",
+            "id": "call_8o8b68anpcr0rnxo1epuy438",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/__tests__/unit/agent-router.test.js",
+              "fileVersion": "17752:1791108223000:1793712076261.5125",
+              "readSpan": {
+                "start": 0,
+                "end": 16984,
+                "total": 16984
+              },
+              "hashed": false,
+              "content": "/**\n * Unit tests: AgentRouter\n * Tests backend resolution, routing strategies, task dispatch.\n */\n\nimport { describe, it, expect, beforeEach, afterEach, vi } from \"vitest\";\nimport {\n  _deps,\n  detectClaudeCode,\n  detectCodex,\n} from \"../../src/lib/claude-code-bridge.js\";\nimport { AgentRouter, BACKEND_TYPE } from \"../../src/lib/agent-router.js\";\n\n// ─── Helpers ─────────────────────────────────────────────────────\n\n/** Create a mock ClaudeCodePool that returns success immediately. */\nfunction mockPool(resultOverride = {}) {\n  return {\n    dispatch: vi.fn(async (tasks) =>\n      tasks.map((t) => ({\n        taskId: t.id,\n        agentId: `mock-agent`,\n        success: true,\n        output: \"done\",\n        exitCode: 0,\n        duration: 100,\n        ...resultOverride,\n      })),\n    ),\n    on: vi.fn(),\n  };\n}\n\n/**\n * Build an AgentRouter with pre-resolved mock backends (bypasses real CLI detection).\n */\nfunction makeRouter(backends, strategy = \"round-robin\") {\n  const router = new AgentRouter({ backends: [], strategy, maxParallel: 3 });\n  // Override resolved backends directly for testing\n  router._backends = backends;\n  return router;\n}\n\nfunction makeCliBackend(type = BACKEND_TYPE.CLAUDE) {\n  const pool = mockPool();\n  return { type, isCLI: true, weight: 1, _pool: pool, timeout: 300_000 };\n}\n\nfunction makeApiBackend(type = BACKEND_TYPE.GEMINI) {\n  return {\n    type,\n    isCLI: false,\n    weight: 1,\n    provider: type,\n    model: null,\n    apiKey: null,\n    baseUrl: null,\n    timeout: 60_000,\n  };\n}\n\n// ─── AgentRouter.autoDetect ───────────────────────────────────────\n\ndescribe(\"AgentRouter.autoDetect\", () => {\n  let originalDeps;\n\n  beforeEach(() => {\n    originalDeps = { ..._deps };\n  });\n  afterEach(() => {\n    Object.assign(_deps, originalDeps);\n    vi.clearAllMocks();\n  });\n\n  it(\"includes claude backend when claude CLI is found\", () => {\n    _deps.execSync = vi.fn((cmd) => {\n      if (cmd.includes(\"claude\")) return \"2.0.0\";\n      throw new Error(\"not found\");\n    });\n    const router = AgentRouter.autoDetect();\n    const types = router._backends.map((b) => b.type);\n    expect(types).toContain(BACKEND_TYPE.CLAUDE);\n  });\n\n  it(\"always includes ollama as local fallback\", () => {\n    _deps.execSync = vi.fn(() => {\n      throw new Error(\"not found\");\n    });\n    const router = AgentRouter.autoDetect();\n    const types = router._backends.map((b) => b.type);\n    expect(types).toContain(BACKEND_TYPE.OLLAMA);\n  });\n\n  it(\"includes openai when OPENAI_API_KEY is set\", () => {\n    _deps.execSync = vi.fn(() => {\n      throw new Error(\"not found\");\n    });\n    const origKey = process.env.OPENAI_API_KEY;\n    process.env.OPENAI_API_KEY = \"test-key\";\n    const router = AgentRouter.autoDetect();\n    process.env.OPENAI_API_KEY = origKey;\n    const types = router._backends.map((b) => b.type);\n    expect(types).toContain(BACKEND_TYPE.OPENAI);\n  });\n});\n\n// ─── AgentRouter.summary ──────────────────────────────────────────\n\ndescribe(\"AgentRouter.summary()\", () => {\n  it(\"separates installation, admission and real execution\", () => {\n    const router = new AgentRouter({\n      backends: [{ type: \"claude\", installed: true }, { type: \"openai\" }],\n    });\n    expect(router.summary()).toEqual([\n      expect.objectContaining({\n        installed: true,\n        configured: true,\n        governanceAdmitted: false,\n        runnable: false,\n        dispatchable: false,\n        blockedReason: \"AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED\",\n      }),\n      expect.objectContaining({\n        installed: null,\n        configured: true,\n        governanceAdmitted: null,\n        runnable: false,\n        dispatchable: true,\n        executionMode: \"text-only\",\n      }),\n    ]);\n    expect(() => router.assertDispatchAvailable()).not.toThrow();\n    expect(() =>\n      new AgentRouter({\n        backends: [{ type: \"codex\" }],\n      }).assertDispatchAvailable(),\n    ).toThrow(\"blocked\");\n  });\n  it(\"returns array of backend summaries\", () => {\n    const router = makeRouter([\n      makeCliBackend(BACKEND_TYPE.CLAUDE),\n      makeApiBackend(BACKEND_TYPE.GEMINI),\n    ]);\n    const summary = router.summary();\n    expect(summary).toHaveLength(2);\n    expect(summary[0]).toMatchObject({\n      type: BACKEND_TYPE.CLAUDE,\n      kind: \"cli\",\n      weight: 1,\n    });\n    expect(summary[1]).toMatchObject({\n      type: BACKEND_TYPE.GEMINI,\n      kind: \"api\",\n      weight: 1,\n    });\n  });\n});\n\n// ─── Round-robin strategy ─────────────────────────────────────────\n\ndescribe(\"AgentRouter round-robin strategy\", () => {\n  it(\"uses weighted round-robin based on backend weight\", async () => {\n    const heavy = makeCliBackend(BACKEND_TYPE.CLAUDE);\n    heavy.weight = 3;\n    const light = makeApiBackend(BACKEND_TYPE.GEMINI);\n    light.weight = 1;\n    // Patch api backend with a dispatch-like mock\n    const dispatchCounts = { claude: 0, gemini: 0 };\n\n    const router = makeRouter([heavy, light], \"round-robin\");\n    // Manually check weighted distribution by calling _weightedNext multiple times\n    for (let i = 0; i < 8; i++) {\n      const b = router._weightedNext();\n      dispatchCounts[b.type]++;\n    }\n    // claude weight=3, gemini weight=1 → expect more claude selections\n    expect(dispatchCounts[BACKEND_TYPE.CLAUDE]).toBeGreaterThan(\n      dispatchCounts[BACKEND_TYPE.GEMINI],\n    );\n  });\n});\n\n// ─── Primary strategy ─────────────────────────────────────────────\n\ndescribe(\"AgentRouter default-deny dispatch\", () => {\n  it.each([\"round-robin\", \"primary\", \"by-type\", \"parallel-all\"])(\n    \"rejects ungoverned %s dispatch before starting a backend\",\n    async (strategy) => {\n      const cli = makeCliBackend(BACKEND_TYPE.CLAUDE);\n      const router = makeRouter([cli, makeApiBackend()], strategy);\n      const fetch = vi.fn();\n      vi.stubGlobal(\"fetch\", fetch);\n      try {\n        await expect(\n          router.dispatch([{ id: \"t1\", description: \"task\" }], {\n            cwd: \"/tmp\",\n          }),\n        ).rejects.toMatchObject({ code: \"CC_AGENT_EVOLUTION_INGRESS_FAILED\" });\n        expect(cli._pool.dispatch).not.toHaveBeenCalled();\n        expect(fetch).not.toHaveBeenCalled();\n      } finally {\n        vi.unstubAllGlobals();\n      }\n    },\n  );\n\n  it(\"refuses a direct internal CLI execution attempt without starting its pool\", async () => {\n    const cli = makeCliBackend(BACKEND_TYPE.CLAUDE);\n    const router = makeRouter([cli]);\n\n    await expect(\n      router._runSingleTask({ id: \"t1\", description: \"task\" }, cli, {\n        cwd: \"/tmp\",\n        evolutionIngress: null,\n      }),\n    ).rejects.toMatchObject({\n      code: \"AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED\",\n    });\n    expect(cli._pool.dispatch).not.toHaveBeenCalled();\n  });\n});\n\n// ─── by-type strategy ─────────────────────────────────────────────\n\n// ─── parallel-all strategy ────────────────────────────────────────\n\n// ─── Error cases ──────────────────────────────────────────────────\n\ndescribe(\"AgentRouter edge cases\", () => {\n  it(\"throws when no backends are available\", async () => {\n    const router = makeRouter([], \"round-robin\");\n    await expect(\n      router.dispatch([{ id: \"t1\", description: \"x\" }], { cwd: \"/tmp\" }),\n    ).rejects.toThrow(\"No agent backends available\");\n  });\n});\n\n// ===== V2 Tests: Agent Router governance overlay =====\nimport {\n  ROUTER_PROFILE_MATURITY_V2,\n  ROUTER_DISPATCH_LIFECYCLE_V2,\n  registerRouterProfileV2,\n  activateRouterProfileV2,\n  degradeRouterProfileV2,\n  retireRouterProfileV2,\n  touchRouterProfileV2,\n  getRouterProfileV2,\n  listRouterProfilesV2,\n  createDispatchV2,\n  dispatchDispatchV2,\n  completeDispatchV2,\n  failDispatchV2,\n  cancelDispatchV2,\n  getDispatchV2,\n  listDispatchesV2,\n  autoDegradeIdleProfilesRouterV2,\n  autoFailStuckDispatchesV2,\n  getAgentRouterStatsV2,\n  _resetStateAgentRouterV2,\n  setMaxActiveProfilesPerOwnerRouterV2,\n  getMaxActiveProfilesPerOwnerRouterV2,\n  setMaxPendingDispatchesPerProfileV2,\n  getMaxPendingDispatchesPerProfileV2,\n  setProfileIdleMsRouterV2,\n  getProfileIdleMsRouterV2,\n  setDispatchStuckMsV2,\n  getDispatchStuckMsV2,\n} from \"../../src/lib/agent-router.js\";\n\ndescribe(\"Agent Router V2 governance overlay\", () => {\n  beforeEach(() => {\n    _resetStateAgentRouterV2();\n  });\n\n  describe(\"enums\", () => {\n    it(\"profile maturity has 4 states\", () => {\n      expect(Object.keys(ROUTER_PROFILE_MATURITY_V2).sort()).toEqual([\n        \"ACTIVE\",\n        \"DEGRADED\",\n        \"PENDING\",\n        \"RETIRED\",\n      ]);\n      expect(Object.isFrozen(ROUTER_PROFILE_MATURITY_V2)).toBe(true);\n    });\n    it(\"dispatch lifecycle has 5 states\", () => {\n      expect(Object.keys(ROUTER_DISPATCH_LIFECYCLE_V2).sort()).toEqual([\n        \"CANCELLED\",\n        \"COMPLETED\",\n        \"DISPATCHING\",\n        \"FAILED\",\n        \"QUEUED\",\n      ]);\n      expect(Object.isFrozen(ROUTER_DISPATCH_LIFECYCLE_V2)).toBe(true);\n    });\n  });\n\n  describe(\"profile lifecycle\", () => {\n    it(\"registers with pending status\", () => {\n      const p = registerRouterProfileV2({ id: \"r1\", owner: \"u1\" });\n      expect(p.status).toBe(\"pending\");\n      expect(p.activatedAt).toBeNull();\n    });\n    it(\"rejects duplicate id\", () => {\n      registerRouterProfileV2({ id: \"r1\", owner: \"u1\" });\n      expect(() => registerRouterProfileV2({ id: \"r1\", owner: \"u1\" })).toThrow(\n        /already/,\n      );\n    });\n    it(\"pending → active stamps activatedAt\", () => {\n      registerRouterProfileV2({ id: \"r1\", owner: \"u1\" });\n      const p = activateRouterProfileV2(\"r1\");\n      expect(p.status).toBe(\"active\");\n      expect(p.activatedAt).not.toBeNull();\n    });\n    it(\"active → degraded → active preserves activatedAt (recovery)\", () => {\n      registerRouterProfileV2({ id: \"r1\", owner: \"u1\" });\n      activateRouterProfileV2(\"r1\");\n      const t1 = getRouterProfileV2(\"r1\").activatedAt;\n      degradeRouterProfileV2(\"r1\");\n      const p = activateRouterProfileV2(\"r1\");\n      expect(p.status).toBe(\"active\");\n      expect(p.activatedAt).toBe(t1);\n    });\n    it(\"retire stamps retiredAt and blocks further transitions\", () => {\n      registerRouterProfileV2({ id: \"r1\", owner: \"u1\" });\n      const p = retireRouterProfileV2(\"r1\");\n      expect(p.retiredAt).not.toBeNull();\n      expect(() => activateRouterProfileV2(\"r1\")).toThrow(/invalid/);\n    });\n    it(\"invalid transition throws\", () => {\n      registerRouterProfileV2({ id: \"r1\", owner: \"u1\" });\n      expect(() => degradeRouterProfileV2(\"r1\")).toThrow(/invalid/);\n    });\n    it(\"touch on terminal throws\", () => {\n      registerRouterProfileV2({ id: \"r1\", owner: \"u1\" });\n      retireRouterProfileV2(\"r1\");\n      expect(() => touchRouterProfileV2(\"r1\")).toThrow(/terminal/);\n    });\n  });\n\n  describe(\"active profile cap\", () => {\n    it(\"recovery (degraded→active) exempt from cap\", () => {\n      setMaxActiveProfilesPerOwnerRouterV2(1);\n      registerRouterProfileV2({ id: \"a\", owner: \"u\" });\n      activateRouterProfileV2(\"a\");\n      degradeRouterProfileV2(\"a\");\n      registerRouterProfileV2({ id: \"b\", owner: \"u\" });\n      activateRouterProfileV2(\"b\");\n      const p = activateRouterProfileV2(\"a\");\n      expect(p.status).toBe(\"active\");\n    });\n    it(\"initial activation enforces cap\", () => {\n      setMaxActiveProfilesPerOwnerRouterV2(1);\n      registerRouterProfileV2({ id: \"a\", owner: \"u\" });\n      activateRouterProfileV2(\"a\");\n      registerRouterProfileV2({ id: \"b\", owner: \"u\" });\n      expect(() => activateRouterProfileV2(\"b\")).toThrow(/max active/);\n    });\n  });\n\n  describe(\"dispatch lifecycle\", () => {\n    beforeEach(() => {\n      registerRouterProfileV2({ id: \"p1\", owner: \"u1\" });\n    });\n    it(\"creates queued dispatch\", () => {\n      const d = createDispatchV2({ id: \"d1\", profileId: \"p1\", task: \"t\" });\n      expect(d.status).toBe(\"queued\");\n    });\n    it(\"missing profile throws\", () => {\n      expect(() => createDispatchV2({ id: \"d1\", profileId: \"nope\" })).toThrow(\n        /not found/,\n      );\n    });\n    it(\"dispatch stamps dispatchedAt\", () => {\n      createDispatchV2({ id: \"d1\", profileId: \"p1\" });\n      const d = dispatchDispatchV2(\"d1\");\n      expect(d.status).toBe(\"dispatching\");\n      expect(d.dispatchedAt).not.toBeNull();\n    });\n    it(\"complete stamps settledAt\", () => {\n      createDispatchV2({ id: \"d1\", profileId: \"p1\" });\n      dispatchDispatchV2(\"d1\");\n      const d = completeDispatchV2(\"d1\");\n      expect(d.status).toBe(\"completed\");\n      expect(d.settledAt).not.toBeNull();\n    });\n    it(\"fail records reason\", () => {\n      createDispatchV2({ id: \"d1\", profileId: \"p1\" });\n      dispatchDispatchV2(\"d1\");\n      const d = failDispatchV2(\"d1\", \"boom\");\n      expect(d.status).toBe(\"failed\");\n      expect(d.metadata.failReason).toBe(\"boom\");\n    });\n    it(\"cancel from queued works\", () => {\n      createDispatchV2({ id: \"d1\", profileId: \"p1\" });\n      const d = cancelDispatchV2(\"d1\", \"stop\");\n      expect(d.status).toBe(\"cancelled\");\n      expect(d.metadata.cancelReason).toBe(\"stop\");\n    });\n    it(\"invalid transition throws\", () => {\n      createDispatchV2({ id: \"d1\", profileId: \"p1\" });\n      expect(() => completeDispatchV2(\"d1\")).toThrow(/invalid/);\n    });\n  });\n\n  describe(\"pending dispatch cap\", () => {\n    it(\"enforces cap at createDispatchV2\", () => {\n      setMaxPendingDispatchesPerProfileV2(2);\n      registerRouterProfileV2({ id: \"p1\", owner: \"u1\" });\n      createDispatchV2({ id: \"d1\", profileId: \"p1\" });\n      createDispatchV2({ id: \"d2\", profileId: \"p1\" });\n      expect(() => createDispatchV2({ id: \"d3\", profileId: \"p1\" })).toThrow(\n        /max pending/,\n      );\n    });\n    it(\"frees cap slot on settle\", () => {\n      setMaxPendingDispatchesPerProfileV2(1);\n      registerRouterProfileV2({ id: \"p1\", owner: \"u1\" });\n      createDispatchV2({ id: \"d1\", profileId: \"p1\" });\n      dispatchDispatchV2(\"d1\");\n      completeDispatchV2(\"d1\");\n      const d = createDispatchV2({ id: \"d2\", profileId: \"p1\" });\n      expect(d.status).toBe(\"queued\");\n    });\n  });\n\n  describe(\"auto flip\", () => {\n    it(\"auto-degrade idle active profiles\", () => {\n      setProfileIdleMsRouterV2(1000);\n      registerRouterProfileV2({ id: \"p1\", owner: \"u1\" });\n      activateRouterProfileV2(\"p1\");\n      const base = getRouterProfileV2(\"p1\").lastTouchedAt;\n      const r = autoDegradeIdleProfilesRouterV2({ now: base + 5000 });\n      expect(r.count).toBe(1);\n      expect(getRouterProfileV2(\"p1\").status).toBe(\"degraded\");\n    });\n    it(\"auto-fail stuck dispatches\", () => {\n      setDispatchStuckMsV2(500);\n      registerRouterProfileV2({ id: \"p1\", owner: \"u1\" });\n      createDispatchV2({ id: \"d1\", profileId: \"p1\" });\n      dispatchDispatchV2(\"d1\");\n      const base = getDispatchV2(\"d1\").dispatchedAt;\n      const r = autoFailStuckDispatchesV2({ now: base + 5000 });\n      expect(r.count).toBe(1);\n      expect(getDispatchV2(\"d1\").status).toBe(\"failed\");\n    });\n  });\n\n  describe(\"config setters\", () => {\n    it(\"rejects non-positive ints\", () => {\n      expect(() => setMaxActiveProfilesPerOwnerRouterV2(0)).toThrow();\n      expect(() => setMaxActiveProfilesPerOwnerRouterV2(-1)).toThrow();\n      expect(() => setDispatchStuckMsV2(\"abc\")).toThrow();\n    });\n    it(\"floors non-integer\", () => {\n      setMaxActiveProfilesPerOwnerRouterV2(7.9);\n      expect(getMaxActiveProfilesPerOwnerRouterV2()).toBe(7);\n    });\n    it(\"all getters round-trip\", () => {\n      setMaxPendingDispatchesPerProfileV2(42);\n      setProfileIdleMsRouterV2(100);\n      setDispatchStuckMsV2(200);\n      expect(getMaxPendingDispatchesPerProfileV2()).toBe(42);\n      expect(getProfileIdleMsRouterV2()).toBe(100);\n      expect(getDispatchStuckMsV2()).toBe(200);\n    });\n  });\n\n  describe(\"listing & defensive copy\", () => {\n    it(\"lists profiles\", () => {\n      registerRouterProfileV2({ id: \"p1\", owner: \"u1\" });\n      registerRouterProfileV2({ id: \"p2\", owner: \"u1\" });\n      expect(listRouterProfilesV2().length).toBe(2);\n    });\n    it(\"lists dispatches\", () => {\n      registerRouterProfileV2({ id: \"p1\", owner: \"u1\" });\n      createDispatchV2({ id: \"d1\", profileId: \"p1\" });\n      expect(listDispatchesV2().length).toBe(1);\n    });\n    it(\"defensive copy on profile get\", () => {\n      registerRouterProfileV2({ id: \"p1\", owner: \"u1\", metadata: { k: \"v\" } });\n      const p = getRouterProfileV2(\"p1\");\n      p.metadata.k = \"tampered\";\n      expect(getRouterProfileV2(\"p1\").metadata.k).toBe(\"v\");\n    });\n  });\n\n  describe(\"stats & reset\", () => {\n    it(\"stats zero-initialized\", () => {\n      const s = getAgentRouterStatsV2();\n      for (const v of Object.values(ROUTER_PROFILE_MATURITY_V2))\n        expect(s.profilesByStatus[v]).toBe(0);\n      for (const v of Object.values(ROUTER_DISPATCH_LIFECYCLE_V2))\n        expect(s.dispatchesByStatus[v]).toBe(0);\n    });\n    it(\"reset clears maps and config\", () => {\n      setMaxActiveProfilesPerOwnerRouterV2(99);\n      registerRouterProfileV2({ id: \"p1\", owner: \"u1\" });\n      _resetStateAgentRouterV2();\n      expect(getAgentRouterStatsV2().totalProfilesV2).toBe(0);\n      expect(getMaxActiveProfilesPerOwnerRouterV2()).toBe(8);\n    });\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712126366,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/agent-router.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-6a23eec1-c5e7-4814-8faa-b693e9978818",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/agent-router.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_8o8b68anpcr0rnxo1epuy438",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 9
+          },
+          {
+            "type": "tool_result",
+            "id": "call_725luxgf1xr14vd6ef0uc6iy",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 615,
+                  "column": 17,
+                  "offset": 22434,
+                  "text": "captureAgentEvolutionIngress",
+                  "context": "eleaseTrain.run();\n          }\n          return projection;\n        }),\n      ),\n  });\n  INGRESSES.add(ingress);\n  return ingress;\n}\n\nexport function captureAgentEvolutionIngress(value, options = {}) {\n  if (!INGRESSES.has(value)) {\n    throw new TypeError(\"a branded Agent evolution ingress is required\");\n  }\n  if (options.ten",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/evolution/agent-evolution-ingress.js",
+                    "offset": 615,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 1,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/evolution/agent-evolution-ingress.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712157423,
+                "meta": {
+                  "args": {
+                    "pattern": "captureAgentEvolutionIngress",
+                    "path": "packages/cli/src/lib/evolution/agent-evolution-ingress.js",
+                    "content_search": true
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 40,
+                "sessionId": "panel-6a23eec1-c5e7-4814-8faa-b693e9978818",
+                "metadata": {
+                  "args": {
+                    "pattern": "captureAgentEvolutionIngress",
+                    "path": "packages/cli/src/lib/evolution/agent-evolution-ingress.js",
+                    "content_search": true
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_725luxgf1xr14vd6ef0uc6iy",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 13
+          },
+          {
+            "type": "tool_result",
+            "id": "call_i6qpqacmpcv9tz8oy0ts4ha0",
+            "tool": "search_files",
+            "is_error": true,
+            "error": "search_files path must name a file; use directory for a folder search",
+            "result": {
+              "error": "search_files path must name a file; use directory for a folder search",
+              "code": "ERR_TEXT_SEARCH_DIRECTORY",
+              "hint": "For text inside this directory, retry search_files with directory, pattern and content_search:true, omitting path. Without content_search:true, directory searches match filenames only.",
+              "suggestedArguments": {
+                "directory": "packages/cli/src/lib",
+                "pattern": "captureAgentEvolutionIngress",
+                "content_search": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712157459,
+                "meta": {
+                  "args": {
+                    "pattern": "captureAgentEvolutionIngress",
+                    "path": "packages/cli/src/lib",
+                    "content_search": true,
+                    "maxMatches": 20
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "error",
+                "durationMs": 1,
+                "sessionId": "panel-6a23eec1-c5e7-4814-8faa-b693e9978818",
+                "metadata": {
+                  "args": {
+                    "pattern": "captureAgentEvolutionIngress",
+                    "path": "packages/cli/src/lib",
+                    "content_search": true,
+                    "maxMatches": 20
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_i6qpqacmpcv9tz8oy0ts4ha0",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 15
+          },
+          {
+            "type": "tool_result",
+            "id": "call_gqm3h3n5m8pvh13e6vk6vuni",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+              "fileVersion": "41983:1791108223000:1793712076348.5137",
+              "range": {
+                "startLine": 1,
+                "endLine": 80,
+                "totalLines": 1292
+              },
+              "nextRead": {
+                "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                "offset": 81,
+                "limit": 80
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 0,
+                "end": 2665,
+                "total": 41339
+              },
+              "hashed": false,
+              "content": "/**\n * AgentRouter — multi-path agent dispatch.\n *\n * Routes coding subtasks across multiple agent backends in parallel:\n *   - claude     (Claude Code CLI — best for complex reasoning)\n *   - codex      (OpenAI Codex CLI — good for repo context)\n *   - gemini     (Google Gemini via ChainlessChain LLM provider)\n *   - openai     (GPT-4o via ChainlessChain LLM provider)\n *   - ollama     (Local LLM — offline / private)\n *\n * Routing strategies:\n *   round-robin  — distribute evenly across available backends\n *   by-type      — route based on task type keywords\n *   parallel-all — every subtask runs on ALL backends; pick best result\n *   primary      — use first available backend, others as fallback\n *\n * Usage:\n *   const router = new AgentRouter({\n *     backends: [\n *       { type: \"claude\", weight: 2 },\n *       { type: \"gemini\", apiKey: \"...\", model: \"gemini-1.5-pro\", weight: 1 },\n *     ],\n *     strategy: \"round-robin\",\n *   });\n *   const results = await router.dispatch(subtasks, {\n *     cwd: \"/my/project\",\n *     evolutionIngress,\n *   });\n */\n\nimport { EventEmitter } from \"events\";\nimport {\n  ClaudeCodePool,\n  detectClaudeCode,\n  detectCodex,\n} from \"./claude-code-bridge.js\";\nimport { createChatFn } from \"./cowork-adapter.js\";\nimport { captureAgentEvolutionIngress } from \"./evolution/agent-evolution-ingress.js\";\nimport { isTerminalModelFailure } from \"./model-failure-policy.js\";\nimport runtimeClaimsContract from \"@chainlesschain/session-core/runtime-claims\";\n\nconst { RUNTIME_MODE, createRuntimeClaims } = runtimeClaimsContract;\nconst SIMULATED_API_CLAIMS = createRuntimeClaims({\n  mode: RUNTIME_MODE.SIMULATED,\n});\n\n// ─── Backend type constants ───────────────────────────────────────\nexport const BACKEND_TYPE = {\n  CLAUDE: \"claude\",\n  CODEX: \"codex\",\n  GEMINI: \"gemini\",\n  OPENAI: \"openai\",\n  ANTHROPIC: \"anthropic\",\n  OLLAMA: \"ollama\",\n};\n\n// ─── Task type → preferred backend mapping ────────────────────────\nconst TASK_TYPE_ROUTING = {\n  \"code-generation\": BACKEND_TYPE.CLAUDE,\n  \"code-review\": BACKEND_TYPE.CLAUDE,\n  testing: BACKEND_TYPE.CLAUDE,\n  documentation: BACKEND_TYPE.OPENAI,\n  \"data-analysis\": BACKEND_TYPE.GEMINI,\n  research: BACKEND_TYPE.GEMINI,\n};\n\n// Keywords for auto-detecting task type\nconst TYPE_KEYWORDS = {\n  \"code-generation\": [\n    \"implement\",\n    \"create\",\n    \"build\",\n    \"add feature\",\n    \"fix\",\n    \"refactor\",\n  ],\n  \"code-review\": [\"review\", \"audit\", \"check\", \"inspect\", \"analyze\"],\n  testing: [\"test\", \"spec\", \"unit test\", \"e2e\", \"coverage\"],\n  documentation: [\"document\", \"readme\", \"comment\", \"docstring\", \"explain\"],\n  \"data-analysis\": [\"data\", \"analyze\", \"statistics\", \"report\", \"chart\"],",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "41983:1791108223000:1793712076348.5137"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712162101,
+                "meta": {
+                  "args": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 59,
+                "sessionId": "panel-6a23eec1-c5e7-4814-8faa-b693e9978818",
+                "metadata": {
+                  "args": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_gqm3h3n5m8pvh13e6vk6vuni",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 21
+          },
+          {
+            "type": "tool_result",
+            "id": "call_5kl89exew3f5wwilr84l0go2",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 86,
+                  "column": 28,
+                  "offset": 2878,
+                  "text": "ATTEST",
+                  "context": "};\n\nexport const AGENT_ROUTER_ERROR = Object.freeze({\n  WRITE_ISOLATION_REQUIRED: \"AGENT_ROUTER_WRITE_ISOLATION_REQUIRED\",\n  EXTERNAL_MODEL_INGRESS_UNATTESTED:\n    \"AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED\",\n});\n\nfunction normalizedScopes(task) {\n  if (!Array.isArray(task?.scopePaths) || task.scopeP",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 86,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 87,
+                  "column": 44,
+                  "offset": 2931,
+                  "text": "ATTEST",
+                  "context": "\n  WRITE_ISOLATION_REQUIRED: \"AGENT_ROUTER_WRITE_ISOLATION_REQUIRED\",\n  EXTERNAL_MODEL_INGRESS_UNATTESTED:\n    \"AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED\",\n});\n\nfunction normalizedScopes(task) {\n  if (!Array.isArray(task?.scopePaths) || task.scopePaths.length === 0) {\n    return null;\n  }\n  return ta",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 87,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 286,
+                  "column": 25,
+                  "offset": 9016,
+                  "text": "attest",
+                  "context": "ckends = this._backends.filter((backend) => !backend.isCLI);\n\n    if (backends.length === 0) {\n      const error = new Error(\n        \"No backend can attest per-request evolution ingress; external agent CLIs are opaque\",\n      );\n      error.code = AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED;\n   ",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 286,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 288,
+                  "column": 64,
+                  "offset": 9159,
+                  "text": "ATTEST",
+                  "context": "nd can attest per-request evolution ingress; external agent CLIs are opaque\",\n      );\n      error.code = AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED;\n      throw error;\n    }\n\n    switch (this.strategy) {\n      case \"parallel-all\":\n        return this._dispatchParallelAll(subtasks, {\n          c",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 288,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 438,
+                  "column": 48,
+                  "offset": 14368,
+                  "text": "attest",
+                  "context": " // cannot bypass dispatch()'s candidate filter by calling this helper.\n      const error = new Error(\n        `External ${backend.type} CLI does not attest per-request evolution ingress`,\n      );\n      error.code = AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED;\n      throw error;\n    } else {\n   ",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 438,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 440,
+                  "column": 64,
+                  "offset": 14479,
+                  "text": "ATTEST",
+                  "context": "`External ${backend.type} CLI does not attest per-request evolution ingress`,\n      );\n      error.code = AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED;\n      throw error;\n    } else {\n      // Use LLM API for API-based backends\n      result = await executeViaAPI(task, {\n        provider: backend.p",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 440,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 543,
+                  "column": 55,
+                  "offset": 17509,
+                  "text": "ATTEST",
+                  "context": "le: false,\n      executionMode: b.isCLI ? \"blocked\" : \"text-only\",\n      blockedReason: b.isCLI\n        ? AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED\n        : \"API_TEXT_ONLY_NO_TOOL_EXECUTION\",\n      alternative: \"cc agent\",\n    }));\n  }\n\n  /** Configuration preflight only; dispatch still authen",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 543,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 554,
+                  "column": 86,
+                  "offset": 17924,
+                  "text": "attest",
+                  "context": "return;\n    const error = new Error(\n      this._backends.length\n        ? \"External Claude/Codex CLIs are blocked: per-request model governance is unattested. Use cc agent for tool execution.\"\n        : \"No agent backends available. Use cc agent for tool execution.\",\n    );\n    error.code = this._backend",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 554,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 558,
+                  "column": 53,
+                  "offset": 18141,
+                  "text": "ATTEST",
+                  "context": "kends available. Use cc agent for tool execution.\",\n    );\n    error.code = this._backends.length\n      ? AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED\n      : \"AGENT_ROUTER_NO_BACKENDS\";\n    error.backends = this.summary();\n    throw error;\n  }\n}\n\n// ===== V2 Surface: Agent Router governance overl",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 558,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 9,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712166720,
+                "meta": {
+                  "args": {
+                    "pattern": "attest",
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 38,
+                "sessionId": "panel-6a23eec1-c5e7-4814-8faa-b693e9978818",
+                "metadata": {
+                  "args": {
+                    "pattern": "attest",
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_5kl89exew3f5wwilr84l0go2",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 25
+          },
+          {
+            "type": "tool_result",
+            "id": "call_az8o70itr3bu7svc5q1csjgi",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 282,
+                  "column": 66,
+                  "offset": 8919,
+                  "text": "isCLI",
+                  "context": " );\n      error.code = \"CC_AGENT_EVOLUTION_INGRESS_FAILED\";\n      throw error;\n    }\n    const backends = this._backends.filter((backend) => !backend.isCLI);\n\n    if (backends.length === 0) {\n      const error = new Error(\n        \"No backend can attest per-request evolution ingress; external agent CLIs ",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 282,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 429,
+                  "column": 17,
+                  "offset": 13742,
+                  "text": "isCLI",
+                  "context": "ask, backend, { cwd, evolutionIngress }) {\n    this.emit(\"agent:start\", { taskId: task.id, backend: backend.type });\n\n    let result;\n    if (backend.isCLI) {\n      // Claude/Codex own every provider call made inside their subprocess. A\n      // projected initial prompt cannot prove that later compaction",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 429,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 478,
+                  "column": 11,
+                  "offset": 15568,
+                  "text": "isCLI",
+                  "context": ": cfg.sandbox || null,\n        });\n        pool.on(\"agent:output\", (ev) => this.emit(\"agent:output\", ev));\n        return {\n          type,\n          isCLI: true,\n          installed: cfg.installed ?? null,\n          weight: cfg.weight || 1,\n          _pool: pool,\n          timeout: cfg.timeout || 300_00",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 478,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 496,
+                  "column": 9,
+                  "offset": 16018,
+                  "text": "isCLI",
+                  "context": "AI]: \"openai\",\n        [BACKEND_TYPE.ANTHROPIC]: \"anthropic\",\n        [BACKEND_TYPE.OLLAMA]: \"ollama\",\n      };\n\n      return {\n        type,\n        isCLI: false,\n        weight: cfg.weight || 1,\n        provider: providerMap[type] || type,\n        model: cfg.model || null,\n        apiKey: cfg.apiKey ||",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 496,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 532,
+                  "column": 15,
+                  "offset": 17063,
+                  "text": "isCLI",
+                  "context": "rn backend;\n  }\n\n  /** Summary of all configured backends. */\n  summary() {\n    return this._backends.map((b) => ({\n      type: b.type,\n      kind: b.isCLI ? \"cli\" : \"api\",\n      provider: b.provider || b.type,\n      weight: b.weight,\n      installed: b.isCLI ? (b.installed ?? null) : null,\n      configu",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 532,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 535,
+                  "column": 20,
+                  "offset": 17167,
+                  "text": "isCLI",
+                  "context": "p((b) => ({\n      type: b.type,\n      kind: b.isCLI ? \"cli\" : \"api\",\n      provider: b.provider || b.type,\n      weight: b.weight,\n      installed: b.isCLI ? (b.installed ?? null) : null,\n      configured: true,\n      governanceAdmitted: b.isCLI ? false : null,\n      requiresAuthenticatedRun: true,\n     ",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 535,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 537,
+                  "column": 29,
+                  "offset": 17257,
+                  "text": "isCLI",
+                  "context": "vider || b.type,\n      weight: b.weight,\n      installed: b.isCLI ? (b.installed ?? null) : null,\n      configured: true,\n      governanceAdmitted: b.isCLI ? false : null,\n      requiresAuthenticatedRun: true,\n      dispatchable: !b.isCLI,\n      runnable: false,\n      executionMode: b.isCLI ? \"blocked\" :",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 537,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 539,
+                  "column": 24,
+                  "offset": 17340,
+                  "text": "isCLI",
+                  "context": " null) : null,\n      configured: true,\n      governanceAdmitted: b.isCLI ? false : null,\n      requiresAuthenticatedRun: true,\n      dispatchable: !b.isCLI,\n      runnable: false,\n      executionMode: b.isCLI ? \"blocked\" : \"text-only\",\n      blockedReason: b.isCLI\n        ? AGENT_ROUTER_ERROR.EXTERNAL_MO",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 539,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 541,
+                  "column": 24,
+                  "offset": 17393,
+                  "text": "isCLI",
+                  "context": "ceAdmitted: b.isCLI ? false : null,\n      requiresAuthenticatedRun: true,\n      dispatchable: !b.isCLI,\n      runnable: false,\n      executionMode: b.isCLI ? \"blocked\" : \"text-only\",\n      blockedReason: b.isCLI\n        ? AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED\n        : \"API_TEXT_ONLY_NO_TO",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 541,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 542,
+                  "column": 24,
+                  "offset": 17449,
+                  "text": "isCLI",
+                  "context": "ticatedRun: true,\n      dispatchable: !b.isCLI,\n      runnable: false,\n      executionMode: b.isCLI ? \"blocked\" : \"text-only\",\n      blockedReason: b.isCLI\n        ? AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED\n        : \"API_TEXT_ONLY_NO_TOOL_EXECUTION\",\n      alternative: \"cc agent\",\n    }));\n ",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 542,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 551,
+                  "column": 51,
+                  "offset": 17766,
+                  "text": "isCLI",
+                  "context": "nfiguration preflight only; dispatch still authenticates each Run. */\n  assertDispatchAvailable() {\n    if (this._backends.some((backend) => !backend.isCLI)) return;\n    const error = new Error(\n      this._backends.length\n        ? \"External Claude/Codex CLIs are blocked: per-request model governance is",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 551,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 11,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712166792,
+                "meta": {
+                  "args": {
+                    "pattern": "isCLI",
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 36,
+                "sessionId": "panel-6a23eec1-c5e7-4814-8faa-b693e9978818",
+                "metadata": {
+                  "args": {
+                    "pattern": "isCLI",
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_az8o70itr3bu7svc5q1csjgi",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 27
+          },
+          {
+            "type": "tool_result",
+            "id": "call_bkygi8cv6372pbxr2i948myo",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+              "fileVersion": "41983:1791108223000:1793712076348.5137",
+              "range": {
+                "startLine": 210,
+                "endLine": 563,
+                "totalLines": 1292
+              },
+              "readSpan": {
+                "start": 6143,
+                "end": 18246,
+                "total": 41339
+              },
+              "hashed": false,
+              "content": "export class AgentRouter extends EventEmitter {\n  /**\n   * @param {object} options\n   * @param {Array}   options.backends   - Backend configs (see examples above)\n   * @param {string}  options.strategy   - \"round-robin\"|\"by-type\"|\"parallel-all\"|\"primary\"\n   * @param {number}  options.maxParallel - Max concurrent agent tasks (default 3)\n   */\n  constructor(options = {}) {\n    super();\n    this.strategy = options.strategy || \"round-robin\";\n    this.maxParallel = options.maxParallel || 3;\n    this._backends = this._resolveBackends(options.backends || []);\n    this._rrIndex = 0; // round-robin cursor\n  }\n\n  /**\n   * Auto-detect available backends from the environment.\n   * Includes CLI tools and API providers based on env vars.\n   */\n  static autoDetect(options = {}) {\n    const backends = [];\n    const claude = options.cliDetections?.claude || detectClaudeCode();\n    const codex = options.cliDetections?.codex || detectCodex();\n\n    if (claude.found) {\n      backends.push({ type: BACKEND_TYPE.CLAUDE, weight: 3, installed: true });\n    }\n    if (codex.found) {\n      backends.push({ type: BACKEND_TYPE.CODEX, weight: 2, installed: true });\n    }\n    if (process.env.GEMINI_API_KEY) {\n      backends.push({ type: BACKEND_TYPE.GEMINI, weight: 2 });\n    }\n    if (process.env.OPENAI_API_KEY) {\n      backends.push({ type: BACKEND_TYPE.OPENAI, weight: 2 });\n    }\n    if (process.env.ANTHROPIC_API_KEY) {\n      backends.push({ type: BACKEND_TYPE.ANTHROPIC, weight: 2 });\n    }\n    // Always include Ollama as local fallback\n    backends.push({ type: BACKEND_TYPE.OLLAMA, weight: 1 });\n\n    return new AgentRouter({ ...options, backends });\n  }\n\n  /**\n   * Dispatch subtasks to agent backends according to the routing strategy.\n   *\n   * @param {Array<{id, description, context?, type?}>} subtasks\n   * @param {object} options\n   * @param {string} options.cwd\n   * @param {object} options.evolutionIngress authenticated model ingress\n   * @returns {Promise<Array<{taskId, agentId, backendType, success, output, duration}>>}\n   */\n  async dispatch(subtasks, options = {}) {\n    const { cwd = process.cwd() } = options;\n    if (this._backends.length === 0) {\n      throw new Error(\n        \"No agent backends available. Use cc agent for tool execution; orchestrate API backends produce text only.\",\n      );\n    }\n    const evolutionIngress =\n      options.evolutionIngress == null\n        ? null\n        : captureAgentEvolutionIngress(options.evolutionIngress);\n    if (evolutionIngress === null) {\n      const error = new Error(\n        \"AgentRouter model dispatch requires an authenticated evolution composition\",\n      );\n      error.code = \"CC_AGENT_EVOLUTION_INGRESS_FAILED\";\n      throw error;\n    }\n    const backends = this._backends.filter((backend) => !backend.isCLI);\n\n    if (backends.length === 0) {\n      const error = new Error(\n        \"No backend can attest per-request evolution ingress; external agent CLIs are opaque\",\n      );\n      error.code = AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED;\n      throw error;\n    }\n\n    switch (this.strategy) {\n      case \"parallel-all\":\n        return this._dispatchParallelAll(subtasks, {\n          cwd,\n          evolutionIngress,\n          backends,\n        });\n      case \"by-type\":\n        return this._dispatchByType(subtasks, {\n          cwd,\n          evolutionIngress,\n          backends,\n        });\n      case \"primary\":\n        return this._dispatchPrimary(subtasks, {\n          cwd,\n          evolutionIngress,\n          backends,\n        });\n      default: // round-robin\n        return this._dispatchRoundRobin(subtasks, {\n          cwd,\n          evolutionIngress,\n          backends,\n        });\n    }\n  }\n\n  // ─── Strategies ────────────────────────────────────────────────\n\n  /** Round-robin: distribute tasks evenly across all backends. */\n  async _dispatchRoundRobin(subtasks, { cwd, evolutionIngress, backends }) {\n    // Assign each subtask a backend\n    const assignments = subtasks.map((task) => {\n      const backend = this._weightedNext(backends);\n      return { task, backend };\n    });\n\n    return this._runAssignments(assignments, { cwd, evolutionIngress });\n  }\n\n  /** By-type: route task to the best backend for its type. */\n  async _dispatchByType(subtasks, { cwd, evolutionIngress, backends }) {\n    const assignments = subtasks.map((task) => {\n      const taskType = task.type || detectTaskType(task.description);\n      const preferredType = TASK_TYPE_ROUTING[taskType];\n      const backend =\n        this._findBackend(preferredType, backends) ||\n        this._weightedNext(backends);\n      return { task, backend };\n    });\n\n    return this._runAssignments(assignments, { cwd, evolutionIngress });\n  }\n\n  /** Primary: all tasks go to first backend; fallback on failure. */\n  async _dispatchPrimary(subtasks, { cwd, evolutionIngress, backends }) {\n    const primary = backends[0];\n    const assignments = subtasks.map((task) => ({ task, backend: primary }));\n    const results = await this._runAssignments(assignments, {\n      cwd,\n      evolutionIngress,\n    });\n\n    // Retry failed tasks on next available backend\n    const retries = [];\n    for (let i = 0; i < results.length; i++) {\n      if (!results[i].success && backends.length > 1) {\n        const fallback = backends[1];\n        retries.push(\n          this._runSingleTask(subtasks[i], fallback, {\n            cwd,\n            evolutionIngress,\n          }).then((r) => {\n            results[i] = r;\n          }),\n        );\n      }\n    }\n    await Promise.all(retries);\n    return results;\n  }\n\n  /** Parallel-all: run every task on ALL backends; return best result per task. */\n  async _dispatchParallelAll(subtasks, { cwd, evolutionIngress, backends }) {\n    if (backends.length > 1) {\n      const error = new Error(\n        \"parallel-all requires per-attempt worktrees and accepted-winner merge\",\n      );\n      error.code = AGENT_ROUTER_ERROR.WRITE_ISOLATION_REQUIRED;\n      throw error;\n    }\n    const results = [];\n    for (const task of subtasks) {\n      const allResults = await Promise.all(\n        backends.map((backend) =>\n          this._runSingleTask(task, backend, { cwd, evolutionIngress }),\n        ),\n      );\n      // Pick the first successful result; if all fail, pick the first\n      const best = allResults.find((r) => r.success) || allResults[0];\n      best.allResults = allResults; // attach all results for inspection\n      results.push(best);\n    }\n    return results;\n  }\n\n  // ─── Execution ─────────────────────────────────────────────────\n\n  async _runAssignments(assignments, { cwd, evolutionIngress }) {\n    const results = new Array(assignments.length);\n    const concurrency = assignmentsHaveDisjointWrites(assignments)\n      ? this.maxParallel\n      : 1;\n\n    // Shared writable cwd tasks are serialized unless their declared write\n    // scopes are statically disjoint. Candidate fan-out is rejected above\n    // until it has per-attempt worktrees and winner-only merge semantics.\n    for (let i = 0; i < assignments.length; i += concurrency) {\n      const batch = assignments.slice(i, i + concurrency);\n      const batchResults = await Promise.all(\n        batch.map(({ task, backend }) =>\n          this._runSingleTask(task, backend, { cwd, evolutionIngress }),\n        ),\n      );\n      for (let j = 0; j < batchResults.length; j++) {\n        results[i + j] = batchResults[j];\n      }\n    }\n\n    return results;\n  }\n\n  async _runSingleTask(task, backend, { cwd, evolutionIngress }) {\n    this.emit(\"agent:start\", { taskId: task.id, backend: backend.type });\n\n    let result;\n    if (backend.isCLI) {\n      // Claude/Codex own every provider call made inside their subprocess. A\n      // projected initial prompt cannot prove that later compaction, retry,\n      // tool, or model calls crossed this Run's durable ingress. Until an\n      // authenticated child protocol can bind every such call and return\n      // evidence, admitting the black box would create an unobservable model\n      // bypass. This is deliberately unconditional so a future internal caller\n      // cannot bypass dispatch()'s candidate filter by calling this helper.\n      const error = new Error(\n        `External ${backend.type} CLI does not attest per-request evolution ingress`,\n      );\n      error.code = AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED;\n      throw error;\n    } else {\n      // Use LLM API for API-based backends\n      result = await executeViaAPI(task, {\n        provider: backend.provider,\n        model: backend.model,\n        apiKey: backend.apiKey,\n        baseUrl: backend.baseUrl,\n        cwd,\n        timeout: backend.timeout,\n        evolutionIngress,\n      });\n    }\n\n    result.taskId = task.id;\n    result.backendType = backend.type;\n\n    this.emit(\"agent:complete\", result);\n    return result;\n  }\n\n  // ─── Backend resolution ─────────────────────────────────────────\n\n  _resolveBackends(configs) {\n    return configs.map((cfg) => {\n      const type = cfg.type || BACKEND_TYPE.CLAUDE;\n\n      if (type === BACKEND_TYPE.CLAUDE || type === BACKEND_TYPE.CODEX) {\n        const pool = new ClaudeCodePool({\n          maxParallel: 1,\n          cliCommand: type === BACKEND_TYPE.CODEX ? \"codex\" : \"claude\",\n          model: cfg.model || null,\n          sandbox: cfg.sandbox || null,\n        });\n        pool.on(\"agent:output\", (ev) => this.emit(\"agent:output\", ev));\n        return {\n          type,\n          isCLI: true,\n          installed: cfg.installed ?? null,\n          weight: cfg.weight || 1,\n          _pool: pool,\n          timeout: cfg.timeout || 300_000,\n        };\n      }\n\n      // API-based backend\n      const providerMap = {\n        [BACKEND_TYPE.GEMINI]: \"gemini\",\n        [BACKEND_TYPE.OPENAI]: \"openai\",\n        [BACKEND_TYPE.ANTHROPIC]: \"anthropic\",\n        [BACKEND_TYPE.OLLAMA]: \"ollama\",\n      };\n\n      return {\n        type,\n        isCLI: false,\n        weight: cfg.weight || 1,\n        provider: providerMap[type] || type,\n        model: cfg.model || null,\n        apiKey: cfg.apiKey || null,\n        baseUrl: cfg.baseUrl || null,\n        timeout: cfg.timeout || 120_000,\n      };\n    });\n  }\n\n  /** Find the first backend matching a given type. */\n  _findBackend(type, backends = this._backends) {\n    return backends.find((b) => b.type === type) || null;\n  }\n\n  /** Pick next backend using weighted round-robin. */\n  _weightedNext(backends = this._backends) {\n    if (backends.length === 0) throw new Error(\"No backends\");\n    if (backends.length === 1) return backends[0];\n\n    // Build weighted list\n    const weighted = [];\n    for (const b of backends) {\n      for (let i = 0; i < (b.weight || 1); i++) weighted.push(b);\n    }\n\n    const backend = weighted[this._rrIndex % weighted.length];\n    this._rrIndex++;\n    return backend;\n  }\n\n  /** Summary of all configured backends. */\n  summary() {\n    return this._backends.map((b) => ({\n      type: b.type,\n      kind: b.isCLI ? \"cli\" : \"api\",\n      provider: b.provider || b.type,\n      weight: b.weight,\n      installed: b.isCLI ? (b.installed ?? null) : null,\n      configured: true,\n      governanceAdmitted: b.isCLI ? false : null,\n      requiresAuthenticatedRun: true,\n      dispatchable: !b.isCLI,\n      runnable: false,\n      executionMode: b.isCLI ? \"blocked\" : \"text-only\",\n      blockedReason: b.isCLI\n        ? AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED\n        : \"API_TEXT_ONLY_NO_TOOL_EXECUTION\",\n      alternative: \"cc agent\",\n    }));\n  }\n\n  /** Configuration preflight only; dispatch still authenticates each Run. */\n  assertDispatchAvailable() {\n    if (this._backends.some((backend) => !backend.isCLI)) return;\n    const error = new Error(\n      this._backends.length\n        ? \"External Claude/Codex CLIs are blocked: per-request model governance is unattested. Use cc agent for tool execution.\"\n        : \"No agent backends available. Use cc agent for tool execution.\",\n    );\n    error.code = this._backends.length\n      ? AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED\n      : \"AGENT_ROUTER_NO_BACKENDS\";\n    error.backends = this.summary();\n    throw error;\n  }\n}\n",
+              "sourceRecovery": {
+                "action": "complete-source-container",
+                "fileVersion": "41983:1791108223000:1793712076348.5137",
+                "requestedRange": {
+                  "startLine": 270,
+                  "endLine": 299,
+                  "totalLines": 1292
+                },
+                "requestedSpan": {
+                  "start": 8455,
+                  "end": 9401,
+                  "total": 41339
+                },
+                "note": "The requested excerpt cut a source container. These complete surrounding statements come from the same file version; the range and readSpan describe the content actually returned."
+              },
+              "nextRead": {
+                "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                "offset": 564,
+                "limit": 30,
+                "column": 1
+              },
+              "hint": "Continue with nextRead only if more source is needed.",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "41983:1791108223000:1793712076348.5137"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712173450,
+                "meta": {
+                  "args": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 270,
+                    "limit": 30
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 28,
+                "sessionId": "panel-6a23eec1-c5e7-4814-8faa-b693e9978818",
+                "metadata": {
+                  "args": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 270,
+                    "limit": 30
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_bkygi8cv6372pbxr2i948myo",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 31
+          },
+          {
+            "type": "tool_result",
+            "id": "call_094t5wv3hfdze7e95fasewfy",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+              "fileVersion": "41983:1791108223000:1793712076348.5137",
+              "range": {
+                "startLine": 420,
+                "endLine": 559,
+                "totalLines": 1292
+              },
+              "nextRead": {
+                "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                "offset": 560,
+                "limit": 140
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 13536,
+                "end": 18186,
+                "total": 41339
+              },
+              "hashed": false,
+              "content": "    }\n\n    return results;\n  }\n\n  async _runSingleTask(task, backend, { cwd, evolutionIngress }) {\n    this.emit(\"agent:start\", { taskId: task.id, backend: backend.type });\n\n    let result;\n    if (backend.isCLI) {\n      // Claude/Codex own every provider call made inside their subprocess. A\n      // projected initial prompt cannot prove that later compaction, retry,\n      // tool, or model calls crossed this Run's durable ingress. Until an\n      // authenticated child protocol can bind every such call and return\n      // evidence, admitting the black box would create an unobservable model\n      // bypass. This is deliberately unconditional so a future internal caller\n      // cannot bypass dispatch()'s candidate filter by calling this helper.\n      const error = new Error(\n        `External ${backend.type} CLI does not attest per-request evolution ingress`,\n      );\n      error.code = AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED;\n      throw error;\n    } else {\n      // Use LLM API for API-based backends\n      result = await executeViaAPI(task, {\n        provider: backend.provider,\n        model: backend.model,\n        apiKey: backend.apiKey,\n        baseUrl: backend.baseUrl,\n        cwd,\n        timeout: backend.timeout,\n        evolutionIngress,\n      });\n    }\n\n    result.taskId = task.id;\n    result.backendType = backend.type;\n\n    this.emit(\"agent:complete\", result);\n    return result;\n  }\n\n  // ─── Backend resolution ─────────────────────────────────────────\n\n  _resolveBackends(configs) {\n    return configs.map((cfg) => {\n      const type = cfg.type || BACKEND_TYPE.CLAUDE;\n\n      if (type === BACKEND_TYPE.CLAUDE || type === BACKEND_TYPE.CODEX) {\n        const pool = new ClaudeCodePool({\n          maxParallel: 1,\n          cliCommand: type === BACKEND_TYPE.CODEX ? \"codex\" : \"claude\",\n          model: cfg.model || null,\n          sandbox: cfg.sandbox || null,\n        });\n        pool.on(\"agent:output\", (ev) => this.emit(\"agent:output\", ev));\n        return {\n          type,\n          isCLI: true,\n          installed: cfg.installed ?? null,\n          weight: cfg.weight || 1,\n          _pool: pool,\n          timeout: cfg.timeout || 300_000,\n        };\n      }\n\n      // API-based backend\n      const providerMap = {\n        [BACKEND_TYPE.GEMINI]: \"gemini\",\n        [BACKEND_TYPE.OPENAI]: \"openai\",\n        [BACKEND_TYPE.ANTHROPIC]: \"anthropic\",\n        [BACKEND_TYPE.OLLAMA]: \"ollama\",\n      };\n\n      return {\n        type,\n        isCLI: false,\n        weight: cfg.weight || 1,\n        provider: providerMap[type] || type,\n        model: cfg.model || null,\n        apiKey: cfg.apiKey || null,\n        baseUrl: cfg.baseUrl || null,\n        timeout: cfg.timeout || 120_000,\n      };\n    });\n  }\n\n  /** Find the first backend matching a given type. */\n  _findBackend(type, backends = this._backends) {\n    return backends.find((b) => b.type === type) || null;\n  }\n\n  /** Pick next backend using weighted round-robin. */\n  _weightedNext(backends = this._backends) {\n    if (backends.length === 0) throw new Error(\"No backends\");\n    if (backends.length === 1) return backends[0];\n\n    // Build weighted list\n    const weighted = [];\n    for (const b of backends) {\n      for (let i = 0; i < (b.weight || 1); i++) weighted.push(b);\n    }\n\n    const backend = weighted[this._rrIndex % weighted.length];\n    this._rrIndex++;\n    return backend;\n  }\n\n  /** Summary of all configured backends. */\n  summary() {\n    return this._backends.map((b) => ({\n      type: b.type,\n      kind: b.isCLI ? \"cli\" : \"api\",\n      provider: b.provider || b.type,\n      weight: b.weight,\n      installed: b.isCLI ? (b.installed ?? null) : null,\n      configured: true,\n      governanceAdmitted: b.isCLI ? false : null,\n      requiresAuthenticatedRun: true,\n      dispatchable: !b.isCLI,\n      runnable: false,\n      executionMode: b.isCLI ? \"blocked\" : \"text-only\",\n      blockedReason: b.isCLI\n        ? AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED\n        : \"API_TEXT_ONLY_NO_TOOL_EXECUTION\",\n      alternative: \"cc agent\",\n    }));\n  }\n\n  /** Configuration preflight only; dispatch still authenticates each Run. */\n  assertDispatchAvailable() {\n    if (this._backends.some((backend) => !backend.isCLI)) return;\n    const error = new Error(\n      this._backends.length\n        ? \"External Claude/Codex CLIs are blocked: per-request model governance is unattested. Use cc agent for tool execution.\"\n        : \"No agent backends available. Use cc agent for tool execution.\",\n    );\n    error.code = this._backends.length\n      ? AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED\n      : \"AGENT_ROUTER_NO_BACKENDS\";",
+              "readRecovery": {
+                "action": "targeted-review"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712173500,
+                "meta": {
+                  "args": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 420,
+                    "limit": 140
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-6a23eec1-c5e7-4814-8faa-b693e9978818",
+                "metadata": {
+                  "args": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 420,
+                    "limit": 140
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_094t5wv3hfdze7e95fasewfy",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 33
+          },
+          {
+            "type": "tool_result",
+            "id": "call_05o2ov5qn13rf9xczvmiaeiw",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [],
+              "count": 0,
+              "hasMore": false,
+              "nextOffset": null,
+              "hint": "No literal matches. This pattern contains regex syntax, but this search used literal matching. If alternation or regex was intended, set regex: true; otherwise search one exact symbol. Do not infer that the symbols are absent from this result.",
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/__tests__/unit/agent-router.test.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712188968,
+                "meta": {
+                  "args": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/__tests__/unit/agent-router.test.js",
+                    "pattern": "assertDispatchAvailable|EXTERNAL_MODEL_INGRESS|installed"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 36,
+                "sessionId": "panel-6a23eec1-c5e7-4814-8faa-b693e9978818",
+                "metadata": {
+                  "args": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/__tests__/unit/agent-router.test.js",
+                    "pattern": "assertDispatchAvailable|EXTERNAL_MODEL_INGRESS|installed"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_05o2ov5qn13rf9xczvmiaeiw",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 37
+          },
+          {
+            "type": "tool_result",
+            "id": "call_gpl4kq2d385rk5anrvr4xnqd",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/__tests__/verify-05.test.js",
+              "size": 5761,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712261002,
+                "meta": {
+                  "args": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/__tests__/verify-05.test.js",
+                    "content": "/**\n * Independent regression coverage: \"安装与准入分离\" (installation vs admission).\n *\n * Guard under test: AgentRouter admission is attestation-based (backend.isCLI),\n * never installation-based (backend.installed). An installed-but-unattested CLI\n * backend must still refuse to run, while a usable API backend is preserved.\n *\n * Import path is relative to this file (packages/cli/__tests__/) -> the source\n * at packages/cli/src/lib/agent-router.js.\n *\n * executeViaAPI and captureAgentEvolutionIngress are module-internal imports in\n * the source. They are stubbed here so dispatch()/_runSingleTask() never make a\n * real network call and so a valid ingress shape is not required from the test\n * fixture. Nothing about AgentRouter admission logic is replaced.\n */\nimport { describe, it, expect, vi } from \"vitest\";\n\nvi.mock(\"../src/lib/agent-router.js\", async (importOriginal) => {\n  const mod = await importOriginal();\n  return {\n    ...mod,\n    // Keep ingress capture: pass through any non-null value so dispatch() can\n    // reach the CLI candidate filter without requiring a real ingress payload.\n    captureAgentEvolutionIngress: vi.fn((x) => (x == null ? null : x)),\n    // Deterministic API execution result; no network.\n    executeViaAPI: vi.fn(async () => ({ success: true, output: \"ok\", duration: 1 })),\n  };\n});\n\nimport {\n  AgentRouter,\n  BACKEND_TYPE,\n  AGENT_ROUTER_ERROR,\n} from \"../src/lib/agent-router.js\";\n\n// ─── Fixtures ─────────────────────────────────────────────────────\n\nfunction mockPool() {\n  return { dispatch: vi.fn(), on: vi.fn() };\n}\n\n/**\n * CLI backend that is installed but unattested (isCLI stays true, the ONLY\n * variable we flip across positive/negative controls).\n */\nfunction cliInstalledBackend(type = BACKEND_TYPE.CLAUDE) {\n  return {\n    type,\n    isCLI: true,\n    installed: true,\n    weight: 1,\n    _pool: mockPool(),\n    timeout: 300_000,\n  };\n}\n\n/**\n * API backend, also marked installed:true so the \"installed\" prerequisite stays\n * identical to the CLI control and only the admission-relevant `isCLI` flips.\n */\nfunction apiBackend(type = BACKEND_TYPE.GEMINI) {\n  return {\n    type,\n    isCLI: false,\n    installed: true,\n    weight: 1,\n    provider: type,\n    model: null,\n    apiKey: null,\n    baseUrl: null,\n    timeout: 60_000,\n  };\n}\n\n/** Build a router and pin pre-resolved mock backends (bypasses CLI detection). */\nfunction makeRouter(backends, strategy = \"round-robin\") {\n  const router = new AgentRouter({ backends: [], strategy, maxParallel: 3 });\n  router._backends = backends;\n  return router;\n}\n\nconst TASK = { id: \"t1\", description: \"do a thing\" };\n\n// ─── Condition 1: install does not grant admission (preflight) ──────────────\n\ndescribe(\"安装与准入分离: assertDispatchAvailable()\", () => {\n  it(\"installed CLI-only set is NOT admitted: throws EXTERNAL_MODEL_INGRESS_UNATTESTED\", () => {\n    const router = makeRouter([cliInstalledBackend()]);\n    let err;\n    try {\n      router.assertDispatchAvailable();\n    } catch (e) {\n      err = e;\n    }\n    expect(err).toBeInstanceOf(Error);\n    expect(err.code).toBe(AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED);\n    // The summary must still expose the installed CLI with kind \"cli\" and\n    // governanceAdmitted false: installation is recorded, admission is not.\n    const admitted = err.backends[0];\n    expect(admitted.installed).toBe(true);\n    expect(admitted.kind).toBe(\"cli\");\n    expect(admitted.governanceAdmitted).toBe(false);\n    expect(admitted.dispatchable).toBe(false);\n  });\n\n  it(\"an API backend is preserved: assertDispatchAvailable does NOT throw when only the kind changes\", () => {\n    const router = makeRouter([apiBackend()]);\n    expect(() => router.assertDispatchAvailable()).not.toThrow();\n  });\n});\n\n// ─── Condition 2: installed CLI refuses to run at the execution boundary ─────\n\ndescribe(\"安装与准入分离: _runSingleTask()\", () => {\n  it(\"installed CLI backend refuses to run: throws EXTERNAL_MODEL_INGRESS_UNATTESTED\", async () => {\n    const router = makeRouter([cliInstalledBackend()]);\n    const err = await router\n      ._runSingleTask(TASK, router._backends[0], {\n        cwd: \"/tmp\",\n        evolutionIngress: {},\n      })\n      .catch((e) => e);\n    expect(err).toBeInstanceOf(Error);\n    expect(err.code).toBe(AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED);\n  });\n\n  it(\"API backend runs at the same boundary when only the kind changes\", async () => {\n    const router = makeRouter([apiBackend()]);\n    const result = await router._runSingleTask(TASK, router._backends[0], {\n      cwd: \"/tmp\",\n      evolutionIngress: {},\n    });\n    expect(result.success).toBe(true);\n    expect(result.taskId).toBe(TASK.id);\n  });\n});\n\n// ─── Condition 3: full dispatch() path refuses installed CLI / keeps API ─────\n\ndescribe(\"安装与准入分离: dispatch()\", () => {\n  it(\"installed CLI-only dispatch refuses to run\", async () => {\n    const router = makeRouter([cliInstalledBackend()]);\n    const err = await router\n      .dispatch([TASK], { evolutionIngress: { runId: \"r\" } })\n      .catch((e) => e);\n    expect(err).toBeInstanceOf(Error);\n    expect(err.code).toBe(AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED);\n  });\n\n  it(\"dispatch preserves a usable API backend when only the kind changes\", async () => {\n    const router = makeRouter([apiBackend()]);\n    const results = await router.dispatch([TASK], {\n      evolutionIngress: { runId: \"r\" },\n    });\n    expect(results).toHaveLength(1);\n    expect(results[0].success).toBe(true);\n    expect(results[0].taskId).toBe(TASK.id);\n  });\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 9,
+                "sessionId": "panel-6a23eec1-c5e7-4814-8faa-b693e9978818",
+                "metadata": {
+                  "args": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/__tests__/verify-05.test.js",
+                    "content": "/**\n * Independent regression coverage: \"安装与准入分离\" (installation vs admission).\n *\n * Guard under test: AgentRouter admission is attestation-based (backend.isCLI),\n * never installation-based (backend.installed). An installed-but-unattested CLI\n * backend must still refuse to run, while a usable API backend is preserved.\n *\n * Import path is relative to this file (packages/cli/__tests__/) -> the source\n * at packages/cli/src/lib/agent-router.js.\n *\n * executeViaAPI and captureAgentEvolutionIngress are module-internal imports in\n * the source. They are stubbed here so dispatch()/_runSingleTask() never make a\n * real network call and so a valid ingress shape is not required from the test\n * fixture. Nothing about AgentRouter admission logic is replaced.\n */\nimport { describe, it, expect, vi } from \"vitest\";\n\nvi.mock(\"../src/lib/agent-router.js\", async (importOriginal) => {\n  const mod = await importOriginal();\n  return {\n    ...mod,\n    // Keep ingress capture: pass through any non-null value so dispatch() can\n    // reach the CLI candidate filter without requiring a real ingress payload.\n    captureAgentEvolutionIngress: vi.fn((x) => (x == null ? null : x)),\n    // Deterministic API execution result; no network.\n    executeViaAPI: vi.fn(async () => ({ success: true, output: \"ok\", duration: 1 })),\n  };\n});\n\nimport {\n  AgentRouter,\n  BACKEND_TYPE,\n  AGENT_ROUTER_ERROR,\n} from \"../src/lib/agent-router.js\";\n\n// ─── Fixtures ─────────────────────────────────────────────────────\n\nfunction mockPool() {\n  return { dispatch: vi.fn(), on: vi.fn() };\n}\n\n/**\n * CLI backend that is installed but unattested (isCLI stays true, the ONLY\n * variable we flip across positive/negative controls).\n */\nfunction cliInstalledBackend(type = BACKEND_TYPE.CLAUDE) {\n  return {\n    type,\n    isCLI: true,\n    installed: true,\n    weight: 1,\n    _pool: mockPool(),\n    timeout: 300_000,\n  };\n}\n\n/**\n * API backend, also marked installed:true so the \"installed\" prerequisite stays\n * identical to the CLI control and only the admission-relevant `isCLI` flips.\n */\nfunction apiBackend(type = BACKEND_TYPE.GEMINI) {\n  return {\n    type,\n    isCLI: false,\n    installed: true,\n    weight: 1,\n    provider: type,\n    model: null,\n    apiKey: null,\n    baseUrl: null,\n    timeout: 60_000,\n  };\n}\n\n/** Build a router and pin pre-resolved mock backends (bypasses CLI detection). */\nfunction makeRouter(backends, strategy = \"round-robin\") {\n  const router = new AgentRouter({ backends: [], strategy, maxParallel: 3 });\n  router._backends = backends;\n  return router;\n}\n\nconst TASK = { id: \"t1\", description: \"do a thing\" };\n\n// ─── Condition 1: install does not grant admission (preflight) ──────────────\n\ndescribe(\"安装与准入分离: assertDispatchAvailable()\", () => {\n  it(\"installed CLI-only set is NOT admitted: throws EXTERNAL_MODEL_INGRESS_UNATTESTED\", () => {\n    const router = makeRouter([cliInstalledBackend()]);\n    let err;\n    try {\n      router.assertDispatchAvailable();\n    } catch (e) {\n      err = e;\n    }\n    expect(err).toBeInstanceOf(Error);\n    expect(err.code).toBe(AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED);\n    // The summary must still expose the installed CLI with kind \"cli\" and\n    // governanceAdmitted false: installation is recorded, admission is not.\n    const admitted = err.backends[0];\n    expect(admitted.installed).toBe(true);\n    expect(admitted.kind).toBe(\"cli\");\n    expect(admitted.governanceAdmitted).toBe(false);\n    expect(admitted.dispatchable).toBe(false);\n  });\n\n  it(\"an API backend is preserved: assertDispatchAvailable does NOT throw when only the kind changes\", () => {\n    const router = makeRouter([apiBackend()]);\n    expect(() => router.assertDispatchAvailable()).not.toThrow();\n  });\n});\n\n// ─── Condition 2: installed CLI refuses to run at the execution boundary ─────\n\ndescribe(\"安装与准入分离: _runSingleTask()\", () => {\n  it(\"installed CLI backend refuses to run: throws EXTERNAL_MODEL_INGRESS_UNATTESTED\", async () => {\n    const router = makeRouter([cliInstalledBackend()]);\n    const err = await router\n      ._runSingleTask(TASK, router._backends[0], {\n        cwd: \"/tmp\",\n        evolutionIngress: {},\n      })\n      .catch((e) => e);\n    expect(err).toBeInstanceOf(Error);\n    expect(err.code).toBe(AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED);\n  });\n\n  it(\"API backend runs at the same boundary when only the kind changes\", async () => {\n    const router = makeRouter([apiBackend()]);\n    const result = await router._runSingleTask(TASK, router._backends[0], {\n      cwd: \"/tmp\",\n      evolutionIngress: {},\n    });\n    expect(result.success).toBe(true);\n    expect(result.taskId).toBe(TASK.id);\n  });\n});\n\n// ─── Condition 3: full dispatch() path refuses installed CLI / keeps API ─────\n\ndescribe(\"安装与准入分离: dispatch()\", () => {\n  it(\"installed CLI-only dispatch refuses to run\", async () => {\n    const router = makeRouter([cliInstalledBackend()]);\n    const err = await router\n      .dispatch([TASK], { evolutionIngress: { runId: \"r\" } })\n      .catch((e) => e);\n    expect(err).toBeInstanceOf(Error);\n    expect(err.code).toBe(AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED);\n  });\n\n  it(\"dispatch preserves a usable API backend when only the kind changes\", async () => {\n    const router = makeRouter([apiBackend()]);\n    const results = await router.dispatch([TASK], {\n      evolutionIngress: { runId: \"r\" },\n    });\n    expect(results).toHaveLength(1);\n    expect(results[0].success).toBe(true);\n    expect(results[0].taskId).toBe(TASK.id);\n  });\n});\n"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "write_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_gpl4kq2d385rk5anrvr4xnqd",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 41
+          },
+          {
+            "type": "tool_result",
+            "id": "call_tl7tkoy8h5d2jq3jg7e06a6p",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 550,
+                  "column": 3,
+                  "offset": 17688,
+                  "text": "assertDispatchAvailable",
+                  "context": "); i++) weighted.push(b);\n    }\n\n    const backend = weighted[this._rrIndex % weighted.length];\n    this._rrIndex++;\n    return backend;\n  }\n\n  /** Summary of all configured backends. */\n  summary() {\n    return this._backends.map((b) => ({\n      type: b.type,\n      kind: b.isCLI ? \"cli\" : \"api\",\n      provider: b.provider || b.type,\n      weight: b.weight,\n      installed: b.isCLI ? (b.installed ?? null) : null,\n      configured: true,\n      governanceAdmitted: b.isCLI ? false : null,\n      requiresAuthenticatedRun: true,\n      dispatchable: !b.isCLI,\n      runnable: false,\n      executionMode: b.isCLI ? \"blocked\" : \"text-only\",\n      blockedReason: b.isCLI\n        ? AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED\n        : \"API_TEXT_ONLY_NO_TOOL_EXECUTION\",\n      alternative: \"cc agent\",\n    }));\n  }\n\n  /** Configuration preflight only; dispatch still authenticates each Run. */\n  assertDispatchAvailable() {\n    if (this._backends.some((backend) => !backend.isCLI)) return;\n    const error = new Error(\n      this._backends.length\n        ? \"External Claude/Codex CLIs are blocked: per-request model governance is unattested. Use cc agent for tool execution.\"\n        : \"No agent backends available. Use cc agent for tool execution.\",\n    );\n    error.code = this._backends.length\n      ? AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED\n      : \"AGENT_ROUTER_NO_BACKENDS\";\n    error.backends = this.summary();\n    throw error;\n  }\n}\n\n// ===== V2 Surface: Agent Router governance overlay (CLI v0.132.0) =====\n// In-memory governance for router profiles + dispatch lifecycle, independent of\n// the AgentRouter class above (legacy ClaudeCodePool/createChatFn untouched).\n\nexport const ROUTER_PROFILE_MATURITY_V2 = Object.freeze({\n  PENDING: \"pending\",\n  ACTIVE: \"active\",\n  DEGRADED: \"degraded\",\n  RET",
+                  "nextRead": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "offset": 550,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 1,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712271570,
+                "meta": {
+                  "args": {
+                    "pattern": "assertDispatchAvailable",
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "regex": false,
+                    "contextChars": 900
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 40,
+                "sessionId": "panel-6a23eec1-c5e7-4814-8faa-b693e9978818",
+                "metadata": {
+                  "args": {
+                    "pattern": "assertDispatchAvailable",
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/src/lib/agent-router.js",
+                    "regex": false,
+                    "contextChars": 900
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_tl7tkoy8h5d2jq3jg7e06a6p",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 47
+          },
+          {
+            "type": "tool_result",
+            "id": "call_mg8j2i40hjhqpnwb76eg7wwz",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/__tests__/verify-05.test.js",
+              "fileVersion": "5761:1793712260993.3179:1793712260993.3179",
+              "readSpan": {
+                "start": 0,
+                "end": 5527,
+                "total": 5527
+              },
+              "hashed": false,
+              "content": "/**\n * Independent regression coverage: \"安装与准入分离\" (installation vs admission).\n *\n * Guard under test: AgentRouter admission is attestation-based (backend.isCLI),\n * never installation-based (backend.installed). An installed-but-unattested CLI\n * backend must still refuse to run, while a usable API backend is preserved.\n *\n * Import path is relative to this file (packages/cli/__tests__/) -> the source\n * at packages/cli/src/lib/agent-router.js.\n *\n * executeViaAPI and captureAgentEvolutionIngress are module-internal imports in\n * the source. They are stubbed here so dispatch()/_runSingleTask() never make a\n * real network call and so a valid ingress shape is not required from the test\n * fixture. Nothing about AgentRouter admission logic is replaced.\n */\nimport { describe, it, expect, vi } from \"vitest\";\n\nvi.mock(\"../src/lib/agent-router.js\", async (importOriginal) => {\n  const mod = await importOriginal();\n  return {\n    ...mod,\n    // Keep ingress capture: pass through any non-null value so dispatch() can\n    // reach the CLI candidate filter without requiring a real ingress payload.\n    captureAgentEvolutionIngress: vi.fn((x) => (x == null ? null : x)),\n    // Deterministic API execution result; no network.\n    executeViaAPI: vi.fn(async () => ({ success: true, output: \"ok\", duration: 1 })),\n  };\n});\n\nimport {\n  AgentRouter,\n  BACKEND_TYPE,\n  AGENT_ROUTER_ERROR,\n} from \"../src/lib/agent-router.js\";\n\n// ─── Fixtures ─────────────────────────────────────────────────────\n\nfunction mockPool() {\n  return { dispatch: vi.fn(), on: vi.fn() };\n}\n\n/**\n * CLI backend that is installed but unattested (isCLI stays true, the ONLY\n * variable we flip across positive/negative controls).\n */\nfunction cliInstalledBackend(type = BACKEND_TYPE.CLAUDE) {\n  return {\n    type,\n    isCLI: true,\n    installed: true,\n    weight: 1,\n    _pool: mockPool(),\n    timeout: 300_000,\n  };\n}\n\n/**\n * API backend, also marked installed:true so the \"installed\" prerequisite stays\n * identical to the CLI control and only the admission-relevant `isCLI` flips.\n */\nfunction apiBackend(type = BACKEND_TYPE.GEMINI) {\n  return {\n    type,\n    isCLI: false,\n    installed: true,\n    weight: 1,\n    provider: type,\n    model: null,\n    apiKey: null,\n    baseUrl: null,\n    timeout: 60_000,\n  };\n}\n\n/** Build a router and pin pre-resolved mock backends (bypasses CLI detection). */\nfunction makeRouter(backends, strategy = \"round-robin\") {\n  const router = new AgentRouter({ backends: [], strategy, maxParallel: 3 });\n  router._backends = backends;\n  return router;\n}\n\nconst TASK = { id: \"t1\", description: \"do a thing\" };\n\n// ─── Condition 1: install does not grant admission (preflight) ──────────────\n\ndescribe(\"安装与准入分离: assertDispatchAvailable()\", () => {\n  it(\"installed CLI-only set is NOT admitted: throws EXTERNAL_MODEL_INGRESS_UNATTESTED\", () => {\n    const router = makeRouter([cliInstalledBackend()]);\n    let err;\n    try {\n      router.assertDispatchAvailable();\n    } catch (e) {\n      err = e;\n    }\n    expect(err).toBeInstanceOf(Error);\n    expect(err.code).toBe(AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED);\n    // The summary must still expose the installed CLI with kind \"cli\" and\n    // governanceAdmitted false: installation is recorded, admission is not.\n    const admitted = err.backends[0];\n    expect(admitted.installed).toBe(true);\n    expect(admitted.kind).toBe(\"cli\");\n    expect(admitted.governanceAdmitted).toBe(false);\n    expect(admitted.dispatchable).toBe(false);\n  });\n\n  it(\"an API backend is preserved: assertDispatchAvailable does NOT throw when only the kind changes\", () => {\n    const router = makeRouter([apiBackend()]);\n    expect(() => router.assertDispatchAvailable()).not.toThrow();\n  });\n});\n\n// ─── Condition 2: installed CLI refuses to run at the execution boundary ─────\n\ndescribe(\"安装与准入分离: _runSingleTask()\", () => {\n  it(\"installed CLI backend refuses to run: throws EXTERNAL_MODEL_INGRESS_UNATTESTED\", async () => {\n    const router = makeRouter([cliInstalledBackend()]);\n    const err = await router\n      ._runSingleTask(TASK, router._backends[0], {\n        cwd: \"/tmp\",\n        evolutionIngress: {},\n      })\n      .catch((e) => e);\n    expect(err).toBeInstanceOf(Error);\n    expect(err.code).toBe(AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED);\n  });\n\n  it(\"API backend runs at the same boundary when only the kind changes\", async () => {\n    const router = makeRouter([apiBackend()]);\n    const result = await router._runSingleTask(TASK, router._backends[0], {\n      cwd: \"/tmp\",\n      evolutionIngress: {},\n    });\n    expect(result.success).toBe(true);\n    expect(result.taskId).toBe(TASK.id);\n  });\n});\n\n// ─── Condition 3: full dispatch() path refuses installed CLI / keeps API ─────\n\ndescribe(\"安装与准入分离: dispatch()\", () => {\n  it(\"installed CLI-only dispatch refuses to run\", async () => {\n    const router = makeRouter([cliInstalledBackend()]);\n    const err = await router\n      .dispatch([TASK], { evolutionIngress: { runId: \"r\" } })\n      .catch((e) => e);\n    expect(err).toBeInstanceOf(Error);\n    expect(err.code).toBe(AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED);\n  });\n\n  it(\"dispatch preserves a usable API backend when only the kind changes\", async () => {\n    const router = makeRouter([apiBackend()]);\n    const results = await router.dispatch([TASK], {\n      evolutionIngress: { runId: \"r\" },\n    });\n    expect(results).toHaveLength(1);\n    expect(results[0].success).toBe(true);\n    expect(results[0].taskId).toBe(TASK.id);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712298233,
+                "meta": {
+                  "args": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/__tests__/verify-05.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-6a23eec1-c5e7-4814-8faa-b693e9978818",
+                "metadata": {
+                  "args": {
+                    "path": "/tmp/cc-native-Y2ffKh/4433258c-c37e-4961-8b09-0df45de178fb/workspace/packages/cli/__tests__/verify-05.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_mg8j2i40hjhqpnwb76eg7wwz",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 57
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2709,
+              "output_tokens": 107,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 23632,
+              "output_tokens": 2345,
+              "cache_read_input_tokens": 4352,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 11
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5078,
+              "output_tokens": 105,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 19
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4458,
+              "output_tokens": 222,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 23
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 8490,
+              "output_tokens": 247,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 29
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 11271,
+              "output_tokens": 1093,
+              "cache_read_input_tokens": 9728,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 35
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 8230,
+              "output_tokens": 7355,
+              "cache_read_input_tokens": 14336,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 39
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 18780,
+              "output_tokens": 361,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 45
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6371,
+              "output_tokens": 690,
+              "cache_read_input_tokens": 17920,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 51
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 1186,
+              "output_tokens": 255,
+              "cache_read_input_tokens": 24064,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 55
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 21157,
+              "output_tokens": 955,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+            "seq": 61
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 111362,
+          "output_tokens": 13735,
+          "cache_read_input_tokens": 90880
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 11,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "The deliverable is confirmed as written. Let me now independently map each requirement to concrete fixtures/call paths/assertions, verifying against the frozen source I've read.\n\n**Requirement 1: 已安装未 attested 的 CLI 后端仍拒绝运行 (installed-but-unattested CLI still refuses to run)**\n\nCovered by three positive controls:\n- **Case 1** (`assertDispatchAvailable`): fixture = router with `{isCLI:true, installed:true}` backend. Production path = `assertDispatchAvailable()` → `_backends.some(!isCLI)` false → throws. Observable assertion = `err.code === EXTERNAL_MODEL_INGRESS_UNATTESTED`, and the summary shows `installed:true`, `kind:\"cli\"`, `governanceAdmitted:false`, `dispatchable:false`. This is the correct guard (verified in source line 550+).\n- **Case 3** (`_runSingleTask`): fixture = installed CLI backend. Path = `_runSingleTask` → `backend.isCLI` true → unconditional throw `EXTERNAL_MODEL_INGRESS_UNATTESTED` (verified in source, this branch never consults `installed`). Assertion = `err.code` matches.\n- **Case 5** (`dispatch`): fixture = installed CLI-only, valid ingress via mocked capture. Path = `dispatch` → ingress passes → `_backends.filter(!isCLI)` empty → throws UNATTESTED. Assertion = `err.code` matches. Crucially, mocking `captureAgentEvolutionIngress` to pass through non-null guarantees the rejection is from the candidate filter, not the `CC_AGENT_EVOLUTION_INGRESS_FAILED` guard — so no other guard masks this.\n\n**Requirement 2: 可用 API 后端保留 (usable API backend preserved)**\n\nCovered by three negative controls that flip ONLY `isCLI` (true→false), keeping `installed:true` and all else constant:\n- **Case 2** (`assertDispatchAvailable`): API backend → `_backends.some(!isCLI)` true → returns. Assertion = does not throw.\n- **Case 4** (`_runSingleTask`): API backend → executes mocked `executeViaAPI` → `{success, taskId}`. Assertion = `result.success===true`, `result.taskId===TASK.id`.\n- **Case 6** (`dispatch`): API backend, valid ingress → filter keeps it → `_runSingleTask` → mocked executeViaAPI → resolves with 1 result. Assertion = length 1, success, taskId.\n\nThe only variable flipped between each pos/neg pair is `isCLI`; `installed` stays `true` in both so the \"installed\" prerequisite is identical. This confirms the intended condition difference.\n\n**Order of observable effects check:** In Case 5, dispatch checks `_backends.length===0` first (not empty, so no throw), then the ingress guard. Since I mock captureAgentEvolutionIngress to return non-null for `{runId:\"r\"}`, the ingress guard passes, so the throw that Case 5 observes can only come from the CLI candidate filter (UNATTESTED). Good — not masked.\n\nIn Case 6, dispatch → filter keeps API → `_runSingleTask` → CLI branch skipped, executeViaAPI mocked → resolve. No network. Good.\n\n**One concern to double-check:** Case 4 and Case 6 rely on `executeViaAPI` being module-scoped and my `vi.mock` replacing it. Since `executeViaAPI` is imported into the module (module-internal), spreading `...mod` and overriding `executeViaAPI` replaces the binding that `_runSingleTask` references. This is the standard Vitest pattern and correct.\n\nAll six cases are independent controls covering the two acceptance requirements across three code boundaries (preflight, execution boundary, full dispatch), and they differ only in `isCLI`. No uncovered requirement remains. No source defect was exposed — the frozen implementation correctly separates install from admission.\n\nI don't need any repair. The deliverable is complete and consistent with the source. My final account: tests could not be executed here (no execution tools; network-disabled Docker later), so I do not claim they passed — I verified fixtures/call-paths/assertions against the read source.\n\nI've confirmed the deliverable is correct and complete against both explicit requirements. No repair needed.",
+          "session_id": "panel-6a23eec1-c5e7-4814-8faa-b693e9978818",
+          "turn": 1,
+          "usage": {
+            "input_tokens": 111362,
+            "output_tokens": 13735,
+            "cache_read_input_tokens": 90880,
+            "cache_creation_input_tokens": 0
+          },
+          "transcript_refs": {
+            "schema": "chainlesschain.session-transcript-references/v1",
+            "sessionId": "panel-6a23eec1-c5e7-4814-8faa-b693e9978818",
+            "assistantEventId": "d2003713c29d1877385d6af26f5aa156e9db5f921d6aa944c89854e3ec95af11",
+            "userEventId": "89ce1cdb8021e105ede158e280b9bed2427283a9b84b94f041565da209c24260",
+            "clientMessageId": "2818f120-3207-4983-b13e-02e9cdd88c99"
+          },
+          "trace_id": "tr-90d9b28f-6056-4c53-91ca-7ad86da0edb9",
+          "seq": 62
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateAcceptancePassed": false,
+      "passed": false,
+      "generationAssessment": {
+        "passed": true,
+        "originalGenerationPassed": true,
+        "originalTerminalVerified": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 111362,
+            "outputTokens": 13735,
+            "cacheReadInputTokens": 90880,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "dialect": "persistent-IDE-with-validated-session-end"
+      },
+      "sourceScopePassed": true,
+      "unexpectedChanges": [],
+      "frozenSourceAssessment": {
+        "exact": true,
+        "contentVerified": true,
+        "filenameEncoding": "utf8"
+      },
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-05-setup-e7dee38f-e090-4561-b101-8a9798bbec80.json",
+        "receiptDigest": "sha256:2e125b6e660028c6861cf566981e824d2b91740d0d308e219c6fcd1ed9b07eca",
+        "scriptDigest": "sha256:7caabf8e86e53a5b6064994a86f4f1f85e35dd02bda83f02a498c1cf0055b902",
+        "receiptPath": "pack/acceptance-evidence/verify-05-setup-e7dee38f-e090-4561-b101-8a9798bbec80.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 42,
+            "passed": 42,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate or baseline regression failed",
+        "receipt": "verify-05-check-83129f22-8b44-4a69-bef9-6bad51a9a9ef.json",
+        "receiptDigest": "sha256:ed64aac5fdc5707b7e53137cf35791722876ce86f2a3d0f958513db0230fa503",
+        "scriptDigest": "sha256:d4efe680717851b3cab48d931cebc3f9c0fdc6d781e23904a5ad076eaff0a4f9",
+        "receiptPath": "pack/acceptance-evidence/verify-05-check-83129f22-8b44-4a69-bef9-6bad51a9a9ef.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 42,
+            "passed": 42,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "finishedAt": "2026-11-03T16:50:43.483Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "first-run-linux-vscode"
+  ],
+  "passed": false,
+  "finishedAt": "2026-11-03T16:50:43.487Z"
+}

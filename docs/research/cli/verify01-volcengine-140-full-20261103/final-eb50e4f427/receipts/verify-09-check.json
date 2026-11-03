@@ -1,0 +1,78 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-09",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 11,
+      "passed": 11,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 156,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1228,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":11,\"numPassedTests\":11,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793721071743,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins carries summary-from system-summary ancestry into a subsequent rewind\",\"status\":\"passed\",\"title\":\"carries summary-from system-summary ancestry into a subsequent rewind\",\"duration\":7.5721960000000195,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins carries summary-to system-summary ancestry into a subsequent rewind\",\"status\":\"passed\",\"title\":\"carries summary-to system-summary ancestry into a subsequent rewind\",\"duration\":1.3337640000000022,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins rejects invalid summary certificates and output without changing the source mapping\",\"status\":\"passed\",\"title\":\"rejects invalid summary certificates and output without changing the source mapping\",\"duration\":5.869970999999964,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins rejects a derived system spanning the rewind point at position 0\",\"status\":\"passed\",\"title\":\"rejects a derived system spanning the rewind point at position 0\",\"duration\":0.4602740000000267,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins rejects a derived system spanning the rewind point at position 2\",\"status\":\"passed\",\"title\":\"rejects a derived system spanning the rewind point at position 2\",\"duration\":0.2917279999999778,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins does not lose a system summary dependency during another Kernel summary\",\"status\":\"passed\",\"title\":\"does not lose a system summary dependency during another Kernel summary\",\"duration\":4.495609999999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins leaves ancestry unknown when a summary includes an unmapped derived system\",\"status\":\"passed\",\"title\":\"leaves ancestry unknown when a summary includes an unmapped derived system\",\"duration\":0.5820819999999571,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins drops optional origin tracking at the byte limit, and recovers only from a later explicit snapshot\",\"status\":\"passed\",\"title\":\"drops optional origin tracking at the byte limit, and recovers only from a later explicit snapshot\",\"duration\":418.07713899999993,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins does not infer an origin from equal text at a different indexed source\",\"status\":\"passed\",\"title\":\"does not infer an origin from equal text at a different indexed source\",\"duration\":1.7581629999999677,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins requires every summary parent and refuses a prefix that crosses the selected origin\",\"status\":\"passed\",\"title\":\"requires every summary parent and refuses a prefix that crosses the selected origin\",\"duration\":3.179834000000028,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins does not treat changed replacement content or a summary action as a retained prefix\",\"status\":\"passed\",\"title\":\"does not treat changed replacement content or a summary action as a retained prefix\",\"duration\":0.4140670000000455,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793721072051,\"endTime\":1793721072495.414,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/session-history-origins.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 817,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":4,\"numFailedTests\":2,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793721072974,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"historical source tampering rejection (verify-09)\"],\"fullName\":\"historical source tampering rejection (verify-09) accepts the correct source identity and exposes the retained prefix\",\"status\":\"failed\",\"title\":\"accepts the correct source identity and exposes the retained prefix\",\"duration\":9.470663000000002,\"failureMessages\":[\"AssertionError: expected null to be +0 // Object.is equality\\n    at /workspace/packages/cli/__tests__/verify-09.test.js:62:37\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"historical source tampering rejection (verify-09)\"],\"fullName\":\"historical source tampering rejection (verify-09) rejects rewind when a forged sourceHead is tampered while other prerequisites stay valid\",\"status\":\"passed\",\"title\":\"rejects rewind when a forged sourceHead is tampered while other prerequisites stay valid\",\"duration\":0.7540870000000268,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"historical source tampering rejection (verify-09)\"],\"fullName\":\"historical source tampering rejection (verify-09) rejects rewind when a forged prevHash (session head) is tampered while other prerequisites stay valid\",\"status\":\"passed\",\"title\":\"rejects rewind when a forged prevHash (session head) is tampered while other prerequisites stay valid\",\"duration\":0.4586810000000128,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"historical source tampering rejection (verify-09)\"],\"fullName\":\"historical source tampering rejection (verify-09) rejects rewind when a forged sourceMessageCount is tampered while other prerequisites stay valid\",\"status\":\"passed\",\"title\":\"rejects rewind when a forged sourceMessageCount is tampered while other prerequisites stay valid\",\"duration\":0.674697999999978,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"historical source tampering rejection (verify-09)\"],\"fullName\":\"historical source tampering rejection (verify-09) rejects rewind when tampered retained content is tampered while other prerequisites stay valid\",\"status\":\"failed\",\"title\":\"rejects rewind when tampered retained content is tampered while other prerequisites stay valid\",\"duration\":1.2405300000000352,\"failureMessages\":[\"AssertionError: expected null to be 1 // Object.is equality\\n    at /workspace/packages/cli/__tests__/verify-09.test.js:87:44\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"historical source tampering rejection (verify-09)\"],\"fullName\":\"historical source tampering rejection (verify-09) rejects rewind when a moved cut point that no longer anchors on a user message is tampered while other prerequisites stay valid\",\"status\":\"passed\",\"title\":\"rejects rewind when a moved cut point that no longer anchors on a user message is tampered while other prerequisites stay valid\",\"duration\":0.3395179999999982,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793721073290,\"endTime\":1793721073303.3396,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-09.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate or baseline regression failed"
+}

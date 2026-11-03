@@ -1,0 +1,79 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+const DOCUMENTED_MODELS = ["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"];
+
+describe("precise model capability identity resolution", () => {
+  it.each(DOCUMENTED_MODELS)(
+    "resolves exact identity %s as the documented tool model",
+    (model) => {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+        baseUrl: "https://api.openai.com/v1",
+      });
+      expect(profile).toMatchObject({
+        provider: "openai",
+        model,
+        windowSource: "official-model-docs",
+        windowAssumed: false,
+        runtimeProtocol: "openai-responses",
+        advertisedMaxOutputTokens: 128000,
+        runtimeVerified: false,
+      });
+      expect(profile.sources.length).toBeGreaterThan(0);
+      expect(profile.windowSource).not.toBe("provider-default");
+    },
+  );
+
+  it.each(DOCUMENTED_MODELS)(
+    "does not treat unknown suffix %s-future as an authenticated tool model",
+    (model) => {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model: `${model}-future`,
+      });
+      expect(profile).toMatchObject({
+        provider: "openai",
+        model: `${model}-future`,
+        windowSource: "provider-default",
+        windowAssumed: true,
+        runtimeProtocol: "chat-completions",
+        advertisedMaxOutputTokens: null,
+        runtimeVerified: false,
+      });
+      expect(profile.sources).toEqual([]);
+      expect(profile.runtimeProtocol).not.toBe("openai-responses");
+    },
+  );
+
+  it("does not certify an unknown model even at the exact known base url", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra-future",
+      baseUrl: "https://api.openai.com/v1",
+    });
+    expect(profile).toMatchObject({
+      windowSource: "provider-default",
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+      runtimeProtocol: "chat-completions",
+    });
+    expect(profile.sources).toEqual([]);
+  });
+
+  it("does not apply official specs to a custom endpoint for a documented model", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-sol",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(profile).toMatchObject({
+      model: "gpt-6-sol",
+      windowSource: "provider-default",
+      windowAssumed: true,
+      runtimeProtocol: "chat-completions",
+      advertisedMaxOutputTokens: null,
+    });
+  });
+});

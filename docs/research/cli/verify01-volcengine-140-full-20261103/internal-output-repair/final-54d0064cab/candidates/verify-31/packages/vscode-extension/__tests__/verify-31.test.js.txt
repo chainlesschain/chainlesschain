@@ -1,0 +1,128 @@
+import { describe, expect, it, vi } from "vitest";
+import { readImageSnapshot } from "../src/chat/image-file-snapshot.js";
+
+function fileStat(size, overrides = {}) {
+  return {
+    isFile: () => true,
+    size,
+    dev: 1,
+    ino: 2,
+    mtimeMs: 100,
+    ctimeMs: 200,
+    ...overrides,
+  };
+}
+
+// A handle whose read() mirrors real fs semantics: copies the file bytes into
+// the caller buffer and reports bytesRead, returning 0 past the end so the
+// caller loop terminates. close() is recorded.
+function harness({ size, content, readImpl, statImpl, openStat }) {
+  const data = Buffer.from(content ?? "x".repeat(size));
+  const calls = { close: 0, open: 0, unlink: 0 };
+  const handle = {
+    stat: vi.fn(async () => (statImpl ? statImpl() : fileStat(size))),
+    read: vi.fn(
+      readImpl ??
+        (async (buf, offset, len, pos) => {
+          const n = Math.min(len, data.length - pos);
+          if (n <= 0) return { bytesRead: 0 };
+          data.copy(buf, offset, pos, pos + n);
+          return { bytesRead: n };
+        }),
+    ),
+    close: vi.fn(async () => {
+      calls.close += 1;
+    }),
+  };
+  const io = {
+    lstat: vi.fn(async () => fileStat(size)),
+    open: vi.fn(async () => {
+      calls.open += 1;
+      if (openStat) return openStat(handle);
+      return handle;
+    }),
+    unlink: vi.fn(async () => {
+      calls.unlink += 1;
+    }),
+  };
+  return { io, handle, calls, data };
+}
+
+describe("image file snapshot resource cleanup", () => {
+  it("returns the snapshot and closes the handle on success", async () => {
+    const { io, handle, calls, data } = harness({ size: 5, content: "hello" });
+    const snapshot = await readImageSnapshot("/img.png", 5, { io });
+    expect(snapshot.equals(data)).toBe(true);
+    expect(handle.close).toHaveBeenCalledTimes(1);
+    expect(calls.open).toBe(1);
+    expect(io.unlink).not.toHaveBeenCalled();
+  });
+
+  it("closes the handle when a read fails mid-loop", async () => {
+    const { io, handle, calls } = harness({
+      size: 5,
+      readImpl: async () => {
+        throw new Error("disk read error");
+      },
+    });
+    await expect(readImageSnapshot("/img.png", 5, { io })).rejects.toThrow(
+      "disk read error",
+    );
+    expect(handle.close).toHaveBeenCalledTimes(1);
+    expect(calls.open).toBe(1);
+    expect(io.unlink).not.toHaveBeenCalled();
+  });
+
+  it("closes the handle when the file changes after open", async () => {
+    const { io, handle, calls } = harness({
+      size: 5,
+      statImpl: () => fileStat(5, { size: 6 }), // differs from lstat before
+    });
+    await expect(readImageSnapshot("/img.png", 5, { io })).rejects.toThrow(
+      "changed while opening",
+    );
+    expect(handle.close).toHaveBeenCalledTimes(1);
+    expect(io.unlink).not.toHaveBeenCalled();
+  });
+
+  it("does not open a handle when lstat fails before open", async () => {
+    const { io, calls } = harness({ size: 5 });
+    io.lstat.mockRejectedValueOnce(new Error("ENOENT"));
+    await expect(readImageSnapshot("/img.png", 5, { io })).rejects.toThrow(
+      "ENOENT",
+    );
+    expect(calls.open).toBe(0);
+    expect(io.unlink).not.toHaveBeenCalled();
+  });
+
+  it("never deletes the referenced image on success or failure", async () => {
+    const ok = harness({ size: 3, content: "abc" });
+    await readImageSnapshot("/img.png", 3, { io: ok.io });
+    expect(ok.calls.unlink).toBe(0);
+    expect(ok.io.unlink).not.toHaveBeenCalled();
+
+    const fail = harness({
+      size: 3,
+      readImpl: async () => {
+        throw new Error("read failed");
+      },
+    });
+    await expect(readImageSnapshot("/img.png", 3, { io: fail.io })).rejects.toThrow(
+      "read failed",
+    );
+    expect(fail.calls.unlink).toBe(0);
+    expect(fail.io.unlink).not.toHaveBeenCalled();
+  });
+
+  it("accepts the exact expected size and rejects the first mismatch", async () => {
+    const { io, data } = harness({ size: 4, content: "wxyz" });
+    const snapshot = await readImageSnapshot("/img.png", 4, { io });
+    expect(snapshot.equals(data)).toBe(true);
+
+    const { io: io2, calls } = harness({ size: 4 });
+    await expect(readImageSnapshot("/img.png", 5, { io: io2 })).rejects.toThrow(
+      "missing or changed",
+    );
+    expect(calls.open).toBe(0);
+  });
+});

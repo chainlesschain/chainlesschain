@@ -1,0 +1,112 @@
+import { describe, it, expect, vi } from "vitest";
+import {
+  createImagePreviewGate,
+  drawImagePreview,
+} from "../src/chat/image-preview-gate.js";
+
+// Regression coverage for "预览取消失效" (preview cancellation becoming
+// ineffective). Acceptance: after a page switch or a cancel, a late preview
+// from the superseded page must NOT be delivered/written to the current page,
+// and the current page must keep displaying normally.
+//
+// The gate model: each validate() cancels the previously active decode
+// (calling its `finish` with an error and setting `settled = true`) and then
+// installs a fresh `finish` as `active`. Any worker message that arrives after
+// its `finish` already settled is disposed and ignored. These tests exercise
+// that `settled` guard directly with bitmaps, so they cannot pass for the wrong
+// reason.
+
+function makeWorker() {
+  return { postMessage() {}, terminate: vi.fn() };
+}
+
+// A gate whose workerFactory records every worker it creates.
+function gateWithWorkers() {
+  const workers = [];
+  const gate = createImagePreviewGate({
+    workerFactory: () => {
+      const worker = makeWorker();
+      workers.push(worker);
+      return worker;
+    },
+  });
+  return { gate, workers };
+}
+
+describe("page switch / cancel: late preview must not reach the current page", () => {
+  it("current page resolves and draws normally after a page switch (positive)", async () => {
+    const { gate, workers } = gateWithWorkers();
+    // Old page starts a decode, then the user switches to a new page.
+    const oldPage = gate.validate([{ data: "old" }]);
+    const oldRejected = expect(oldPage).rejects.toThrow("cancelled");
+    const newPage = gate.validate([{ data: "new" }]);
+    // The new page's worker completes; only its result may be delivered.
+    const newResult = { thumbnails: [{ bitmap: "new-frame" }], repetitions: 1 };
+    workers[1].onmessage({ data: { results: [newResult] } });
+    expect(await newPage).toEqual([newResult]);
+    await oldRejected;
+    // The current page displays its own thumbnails normally.
+    const context = { clearRect() {}, drawImage: vi.fn() };
+    const stop = drawImagePreview(
+      { getContext: () => context },
+      newResult,
+    );
+    expect(context.drawImage).toHaveBeenCalledWith("new-frame", 0, 0);
+    expect(context.drawImage).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
+  it("late old-page preview after a switch is cancelled and its bitmap closed, not delivered (negative)", async () => {
+    const { gate, workers } = gateWithWorkers();
+    const oldPage = gate.validate([{ data: "old" }]);
+    const oldRejected = expect(oldPage).rejects.toThrow("cancelled");
+    const newPage = gate.validate([{ data: "new" }]);
+    // The old worker was killed at the switch; its late message is stale.
+    const lateBitmap = { close: vi.fn() };
+    workers[0].onmessage({
+      data: {
+        results: [{ thumbnails: [{ bitmap: lateBitmap }] }],
+      },
+    });
+    await oldRejected;
+    // Its only transferred bitmap is disposed, so nothing is written.
+    expect(lateBitmap.close).toHaveBeenCalledOnce();
+    // Deliver the genuine new-page result afterwards; it is unaffected.
+    const newResult = { thumbnails: [{ bitmap: "new-frame" }] };
+    workers[1].onmessage({ data: { results: [newResult] } });
+    expect(await newPage).toEqual([newResult]);
+    expect(lateBitmap.close).toHaveBeenCalledOnce();
+  });
+
+  it("a late message after the new page already resolved is disposed and cannot rewrite it (negative)", async () => {
+    const { gate, workers } = gateWithWorkers();
+    const page = gate.validate([{ data: "current" }]);
+    const currentResult = { thumbnails: [{ bitmap: "current-frame" }] };
+    workers[0].onmessage({ data: { results: [currentResult] } });
+    expect(await page).toEqual([currentResult]);
+    // A straggling message from the same worker arrives after resolution.
+    const strayBitmap = { close: vi.fn() };
+    workers[0].onmessage({
+      data: { results: [{ thumbnails: [{ bitmap: strayBitmap }] }] },
+    });
+    // The already-resolved value is unchanged and the stray bitmap is closed.
+    expect(await page).toEqual([currentResult]);
+    expect(strayBitmap.close).toHaveBeenCalledOnce();
+  });
+
+  it("explicit cancel ignores a late preview and closes its bitmap (negative)", async () => {
+    const { gate, workers } = gateWithWorkers();
+    const pending = gate.validate([{ data: "current" }]);
+    const rejected = expect(pending).rejects.toThrow("cancelled");
+    gate.cancel();
+    const lateBitmap = { close: vi.fn() };
+    workers[0].onmessage({
+      data: {
+        results: [{ thumbnails: [{ bitmap: lateBitmap }] }],
+      },
+    });
+    await rejected;
+    expect(lateBitmap.close).toHaveBeenCalledOnce();
+    expect(workers[0].terminate).toHaveBeenCalledOnce();
+  });
+});

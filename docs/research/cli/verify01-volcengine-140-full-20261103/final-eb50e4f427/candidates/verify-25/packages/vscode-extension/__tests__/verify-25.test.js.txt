@@ -1,0 +1,106 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { DraftStore } from "../src/chat/draft-store.js";
+
+const roots = [];
+afterEach(async () => {
+  for (const root of roots.splice(0))
+    await fs.rm(root, { recursive: true, force: true });
+});
+async function storage() {
+  const root = await fs.mkdtemp(path.join(tmpdir(), "cc-verify25-"));
+  roots.push(root);
+  return root;
+}
+const image = {
+  data: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+};
+const pngNames = (root, key) =>
+  fs.readdir(path.join(root, key)).then((names) =>
+    names.filter((n) => n.endsWith(".png")),
+  );
+
+describe("draft write failure retains old record", () => {
+  it("persists a plain save, giving the later failure a distinguishable old record", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "original" });
+    expect((await new DraftStore(root).view(key)).composer.text).toBe(
+      "original",
+    );
+  });
+
+  it("keeps the old draft recoverable when the atomic rename fails during save", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "original", images: [image] });
+    const rename = vi
+      .spyOn(fs, "rename")
+      .mockRejectedValueOnce(new Error("ENOSPC"));
+    try {
+      await expect(
+        store.save(key, { text: "new", images: [image] }),
+      ).rejects.toThrow("ENOSPC");
+    } finally {
+      rename.mockRestore();
+    }
+    // A fresh store reads only the committed manifest: the old draft survived.
+    const composer = (await new DraftStore(root).view(key)).composer;
+    expect(composer.text).toBe("original");
+    expect(composer.images).toHaveLength(1);
+    expect(composer.images[0].data).toBe(image.data);
+    // The abandoned replacement attachment was cleaned, not leaked.
+    expect(await pngNames(root, key)).toHaveLength(1);
+    expect((await fs.readdir(path.join(root, key))).some((n) => n.endsWith(".tmp"))).toBe(false);
+  });
+
+  it("does not clear the composer or add a pending record when a send save fails", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "original", images: [image] });
+    const rename = vi
+      .spyOn(fs, "rename")
+      .mockRejectedValueOnce(new Error("ENOSPC"));
+    try {
+      await expect(
+        store.prepare(key, "session-1", "input-1", {
+          text: "submitted",
+          images: [image],
+        }),
+      ).rejects.toThrow("ENOSPC");
+    } finally {
+      rename.mockRestore();
+    }
+    const restored = await new DraftStore(root).view(key);
+    // Sending must not clear the composer unless the submission is persisted.
+    expect(restored.composer.text).toBe("original");
+    expect(restored.composer.images[0].data).toBe(image.data);
+    expect(restored.pending).toEqual([]);
+    expect(await pngNames(root, key)).toHaveLength(1);
+  });
+
+  it("clears the composer only after a successful send save", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "original" });
+    await store.prepare(key, "session-1", "input-1", {
+      text: "submitted",
+      images: [],
+    });
+    const restored = await new DraftStore(root).view(key);
+    expect(restored.composer.text).toBe("");
+    expect(restored.pending).toHaveLength(1);
+    expect(restored.pending[0]).toMatchObject({
+      id: "input-1",
+      status: "prepared",
+      text: "submitted",
+    });
+  });
+});
