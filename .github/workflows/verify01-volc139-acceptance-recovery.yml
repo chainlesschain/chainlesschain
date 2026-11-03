@@ -1,0 +1,78 @@
+name: VERIFY01 account-free Volcengine acceptance recovery
+
+on:
+  push:
+    tags: [verify01-volc139-accept-recovery-*]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  accept-existing-verify11:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        timeout-minutes: 5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Fetch only the original frozen project commit
+        timeout-minutes: 5
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GIT_TERMINAL_PROMPT: "0"
+        run: >-
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential'
+          fetch --no-tags --depth=1 origin b2aa3aba082873570e85dce39b00754e5504ff37
+      - name: Prepare operator workspace dependency
+        run: >-
+          npm ci --workspace @chainlesschain/context-memory-kernel
+          --include-workspace-root=false --omit=dev --ignore-scripts
+          --legacy-peer-deps --no-audit --no-fund
+      - name: Download the original completed delivery without running a model
+        uses: actions/download-artifact@v6
+        with:
+          name: verify01-native-delivery-win32-vscode-verify-11-c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6
+          run-id: 41599436044
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/native-delivery
+      - name: Bind provider, runtime and original frozen project identity
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import {assertNativeProviderIdentity} from './packages/cli/scripts/verify01-native-provider-profile.mjs';
+          import {loadNativePackageSet} from './packages/cli/scripts/verify01-native-task-campaign.mjs';
+          import {DIAGNOSTIC} from './packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs';
+          const summary = JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP, 'native-delivery', 'summary.json'), 'utf8'));
+          assertNativeProviderIdentity(summary, 'volcengine', 'c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6',
+            loadNativePackageSet('docs/research/cli/verify01-package-sets/2026-11-03-volcengine-historical11-runtime-repair.json'),
+            {projectCommit:DIAGNOSTIC.projectCommit,planDigest:DIAGNOSTIC.planDigest,revisionBinding:null});
+          NODE
+      - name: Pin the independent checker image
+        run: |
+          docker pull node:22.12.0-bookworm
+          echo "REVIEW_IMAGE_ID=$(docker image inspect node:22.12.0-bookworm --format '{{.Id}}')" >> "$GITHUB_ENV"
+      - name: Run original independent acceptance without model credentials
+        run: >-
+          node packages/cli/scripts/verify01-native-task-checker.mjs
+          --input-dir "${{ runner.temp }}/native-delivery"
+          --output-dir "${{ runner.temp }}/native-acceptance"
+          --source-sha c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6
+          --checker-source-sha "${{ github.sha }}"
+          --image-id "$REVIEW_IMAGE_ID" --samples verify-11
+          --versions-file docs/research/cli/verify01-package-sets/2026-11-03-volcengine-historical11-runtime-repair.json
+      - name: Preserve the account-free recovery including failures
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: verify01-volc139-acceptance-recovery-verify11-${{ github.sha }}
+          path: ${{ runner.temp }}/native-acceptance/
+          if-no-files-found: error
+          retention-days: 14
