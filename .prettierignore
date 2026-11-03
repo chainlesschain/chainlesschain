@@ -96,3 +96,11 @@ docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory
 docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt2-aggregate.json
 docs/research/cli/evidence/tool-argument-recovery-20261103/windows-storage-diagnostic-5fa-failure.json
 docs/research/cli/evidence/tool-argument-recovery-20261103/windows-storage-diagnostic-5fa.jsonl
+
+# Byte-digest-bound full Volcengine round evidence and package identity.
+docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139.json
+docs/research/cli/verify01-volcengine-139-20261103/**
+!docs/research/cli/verify01-volcengine-139-20261103/README.md
+docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139-budget40.json
+docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139-budget40-host-recovery.json
+docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139-provider-output.json

@@ -1,0 +1,160 @@
+{
+  "schema": "chainlesschain.native-package-set/v1",
+  "resolvedAt": "2026-11-03T07:48:24.240580+00:00",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "prepublication": {
+    "schema": "chainlesschain.verify01-prerelease-package-set/v1",
+    "sourceCommit": "284bb5f24c95faed45e9d7e2503640888de92766",
+    "runId": 41597482236,
+    "versions": {
+      "cli": "0.166.139",
+      "vscode": "0.37.175",
+      "jetbrains": "0.4.192",
+      "vscodeHost": "1.132.0",
+      "jetbrainsHost": "2025.2"
+    },
+    "files": {
+      "cli": {
+        "file": "chainlesschain-0.166.139.tgz",
+        "digest": "sha256:fbfe7169415dc8209e1b8dbc1a776a0f97eaf990ffc73094b08e6e7ee38ab4c9",
+        "integrity": "sha512-eIDp8SyyqXBSa/ddtmQI24oBvFE7hVGeKPYkILVtv5Tmj5mnJ6uaskvTdL5BM2+Ni8xRNiDyvWlrY8umhO6BAw==",
+        "bytes": 9539146
+      },
+      "vscode": {
+        "file": "chainlesschain-ide-0.37.175.vsix",
+        "digest": "sha256:aa4f5200f112fef0ab50df25cd10e08ad51d8a5ab138dd0878ea7c78f5f9cdf9",
+        "integrity": "sha512-yDa2Yn8RHW73wXmGiPkncjRQgDitqv6eRs+080SCZFa/oBgu644B/tEyf2ONvIvdUFD9iDUvMVJ0OEb39XMDjA==",
+        "bytes": 749066
+      },
+      "jetbrains": {
+        "file": "chainlesschain-ide-bridge-0.4.192.zip",
+        "digest": "sha256:6e3e028d752d8e5ebb3f319d2557ccf74859b27534f1a6f7dd50cde6fd7b1ccd",
+        "integrity": "sha512-d9V//Ghpf52jzy/jdlgqFcDG13LnciqEPibPUa6udsnX00EfhA3Efa1KZFei4xLQM09y0Qo7m51lL4oR6zFe6w==",
+        "bytes": 1555768
+      }
+    },
+    "cliSourceFiles": [
+      {
+        "file": "bin/chainlesschain.js",
+        "digest": "sha256:32339064da330222d3f1129c201a5e9473441ed3d12b4758193696d3c3565547"
+      },
+      {
+        "file": "src/commands/agent.js",
+        "digest": "sha256:cfa3c35dbf5e8940650d10742b5b25eec377150bf9268363415e558d01053d4e"
+      },
+      {
+        "file": "src/runtime/agent-core.js",
+        "digest": "sha256:e88d93975701247e486ca99f2b5bcafb826b8052f82c0aa1e5c8e0f05ddb6d6c"
+      },
+      {
+        "file": "src/lib/read-file-loop-guard.js",
+        "digest": "sha256:334fd1844dec51b9640a6e6a460c3858c465911af27ef3351be3de66737a10e9"
+      },
+      {
+        "file": "src/lib/coding-change-review-context.js",
+        "digest": "sha256:41fb28f0ee7f99721e4153b7f73b8c6cd44b6aaebaf1931da152b20f6947e8f1"
+      },
+      {
+        "file": "src/lib/coding-task-guidance.js",
+        "digest": "sha256:8b219afd335e5f67baf08c1e59bc5efb6bcf8bd33e2e4eec2ecbf359b2c99e46"
+      },
+      {
+        "file": "src/lib/tool-result-preview.js",
+        "digest": "sha256:f19f3bab0394f82fc6872a9c69aa5d9749627d7ba1466bc9166b90bf330fb7fe"
+      },
+      {
+        "file": "src/lib/evolution/evidence-json-text.js",
+        "digest": "sha256:2023b1958e107fb27314b0518e73970e5ae0bab94fba4da72e7b1dcd197820d2"
+      },
+      {
+        "file": "src/lib/evolution/evolution-evidence-projector.js",
+        "digest": "sha256:2267fb233d9f9806795606abd68ebeffd34547bde1ae3809d190afaee90ae641"
+      },
+      {
+        "file": "src/lib/model-capabilities.js",
+        "digest": "sha256:3153beb805ac7e044fb77e1594d39c140a55c5585067db49f111d5f92a35e865"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/provider-context.js",
+        "digest": "sha256:d075c4c4fb91b64fe9d590ff8403600de83648a898137e14399d6af9da45b272"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/live-compaction.js",
+        "digest": "sha256:6eb8adc555688c25d99bbcf4f6e9302dfe41926d0cb34ba9f02b5baa3c0019f8"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/message-adapter.js",
+        "digest": "sha256:bfb6aab468818c9fff56f9fdaf878e93e9f39cf4ee7322304c348f380fbd3ce3"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/task-binding.js",
+        "digest": "sha256:44415b38b941fc0828a9830e20c46cdc13a87453aab94cd6ab0642f44a046257"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/jsonl-session-context-port.js",
+        "digest": "sha256:af56de83f273d89d4688d40e4f40493e683ff23db156f5bf93d73c71400f0a22"
+      },
+      {
+        "file": "src/runtime/message-roles.js",
+        "digest": "sha256:e60dcd7d2f24f5517d3ff706e9a5df9958aabd4390eb6fd655760ce1187b7a66"
+      },
+      {
+        "file": "src/runtime/tool-argument-recovery.js",
+        "digest": "sha256:749ca33229ff71c3438f8621b2ef0dc603355a6c0ab93c055bc37986731ebc7c"
+      }
+    ],
+    "published": false,
+    "repository": "chainlesschain/chainlesschain",
+    "workflow": ".github/workflows/verify01-prerelease-packages.yml",
+    "distribution": "prerelease-actions-artifact",
+    "artifactId": 13213440350,
+    "artifactName": "verify01-prerelease-packages-284bb5f24c95faed45e9d7e2503640888de92766",
+    "artifactDigest": "sha256:118231877cbe5643aa2656fc703cc5d75c007d69f2f0b9a1cb7454767e05d584",
+    "contextWindowTokens": 32768
+  },
+  "runtimeRepair": {
+    "id": "volcengine-historical11-runtime-repair-20261103",
+    "runtimeSourceCommit": "284bb5f24c95faed45e9d7e2503640888de92766",
+    "taskProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+    "taskInputsChanged": false,
+    "formalSample": false
+  },
+  "volcengineBudgetRetry": {
+    "id": "volcengine-historical11-runtime-repair-20261103",
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "outputPolicy": "model-maximum",
+    "parallelToolCalls": null,
+    "connectionAttemptTimeoutMs": 10000,
+    "reviewChanges": true,
+    "historicalStatus": {
+      "path": "docs/research/cli/verify01-volcengine-139-20261103/history-reconciliation/cumulative-status.json",
+      "digest": "sha256:c9166fdaa2ec9b2f6cfb0bdd6067b63e9c264d73652976e2fd5061e63bbf9732"
+    },
+    "modelMetadata": {
+      "path": "docs/research/cli/verify01-volcengine-139-20261103/provider-output/model-catalog.json",
+      "digest": "sha256:d41d2bc44dc88271b5053ee8fc43a68612d9c96c0bf78791e9385ac4286e7743"
+    },
+    "selectedSampleIds": [
+      "first-run-darwin-cli",
+      "first-run-darwin-jetbrains",
+      "verify-04",
+      "verify-07",
+      "verify-08",
+      "verify-09",
+      "verify-10",
+      "verify-11",
+      "verify-13",
+      "verify-19",
+      "verify-30"
+    ]
+  },
+  "authorization": "User authorizes retesting failed tasks, increasing turns, removing the artificial output cap, repairing CLI/IDE defects and comparing Sol successes. Test only 11 historically unresolved samples; preserve prior successes, original task project and independent review/acceptance. Explicit unpublished runtime candidates, no package publication."
+}

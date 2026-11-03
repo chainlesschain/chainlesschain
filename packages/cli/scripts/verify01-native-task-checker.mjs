@@ -17,6 +17,7 @@ import { parseArgs } from "node:util";
 import { generateReviewPack } from "./verify01-review-pack.mjs";
 import { REVIEW_IMAGE, reviewEnvironment } from "./verify01-review-runtime.mjs";
 import { DIAGNOSTIC } from "./verify01-volcengine-task-diagnostic.mjs";
+import { runtimeRepairBinding } from "./verify01-volcengine-historical-retry.mjs";
 import {
   selectNativeSamples,
   parseNativeSampleIds,
@@ -291,18 +292,30 @@ export async function checkNativeCampaign({
   );
   assert.equal(source.projectCommit, projectCommit);
   assert.equal(source.planDigest, planDigest);
-  const { versions, packageSetDigest, prepublication } = assertNativePackageSet(
-    source,
-    versionsFile,
+  const {
+    versions,
+    packageSetDigest,
+    prepublication,
+    bytes: manifestBytes,
+  } = assertNativePackageSet(source, versionsFile);
+  const runtimeRepair = runtimeRepairBinding(
+    manifestBytes ? JSON.parse(manifestBytes.toString("utf8")) : null,
+    {
+      provider: source.modelTransport?.provider,
+      projectCommit,
+      revisionBinding,
+    },
   );
+  assert.deepEqual(source.runtimeRepair ?? null, runtimeRepair);
   const packageBinding = {
     ...(packageSetDigest ? { packageSetDigest } : {}),
     ...(prepublication ? { prepublication } : {}),
   };
   if (prepublication) {
-    assert.equal(prepublication.sourceCommit, projectCommit);
+    if (!runtimeRepair)
+      assert.equal(prepublication.sourceCommit, projectCommit);
     const proof = json(artifactFile(input, "prerelease-bundle.json"));
-    assert.equal(proof.sourceCommit, projectCommit);
+    assert.equal(proof.sourceCommit, prepublication.sourceCommit);
     assert.equal(proof.runId, prepublication.runId);
     assert.deepEqual(proof.versions, versions);
     assert.deepEqual(proof.files, prepublication.files);
@@ -321,7 +334,7 @@ export async function checkNativeCampaign({
     assert.match(locked.resolved, /^file:/u);
     assert.equal(
       source.install.candidateInstallation.sourceCommit,
-      projectCommit,
+      prepublication.sourceCommit,
     );
     assert.equal(
       source.install.candidateInstallation.sourceFilesVerified,
@@ -378,6 +391,7 @@ export async function checkNativeCampaign({
     projectCommit: source.projectCommit,
     planDigest: source.planDigest,
     ...(revisionBinding ? { projectRevision: revisionBinding } : {}),
+    ...(runtimeRepair ? { runtimeRepair } : {}),
     versions,
     ...packageBinding,
     group: source.group,

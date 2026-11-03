@@ -78,7 +78,8 @@ function validateConfig(config) {
   assert.ok(
     Number.isSafeInteger(config.deadline) &&
       config.deadline > Date.now() &&
-      config.deadline - Date.now() <= 1800000,
+      config.deadline - Date.now() <=
+        (config.modelTurns === 40 ? 3600000 : 1800000),
   );
   for (const key of [
     "workspace",

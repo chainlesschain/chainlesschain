@@ -42,6 +42,48 @@ function fixture({ maxChars = 2600 } = {}) {
 }
 
 describe("ReadFileLoopGuard recovery", () => {
+  it("does not prescribe an impossible reread after the allowance is exhausted and source is evicted", () => {
+    const { guard, read } = fixture();
+    const visible = (page) => ({ role: "tool", content: JSON.stringify(page) });
+    guard.observeVisibleMessages([]);
+    const original = read({ offset: 1, limit: 80 });
+    guard.observeVisibleMessages([visible(original)]);
+    for (const offset of [1, 2, 3]) {
+      const review = read({ offset, limit: 1 });
+      expect(review.contentOmitted).not.toBe(true);
+      guard.observeVisibleMessages([visible(original), visible(review)]);
+    }
+    guard.observeVisibleMessages([
+      { role: "user", content: "Continue after compaction." },
+    ]);
+    const blocked = read({ offset: 4, limit: 1 });
+    expect(blocked.contentOmitted).toBe(true);
+    expect(blocked.recoveryRead).toBeUndefined();
+    expect(blocked.hint).toContain("search_files");
+    expect([...guard.progress.values()][0].rereads.size).toBe(3);
+  });
+
+  it("offers only a bounded recovery request that can actually return source", () => {
+    const { guard, read } = fixture({ maxChars: 10000 });
+    const visible = (page) => ({ role: "tool", content: JSON.stringify(page) });
+    guard.observeVisibleMessages([]);
+    const original = read({ offset: 1, limit: 1 });
+    guard.observeVisibleMessages([visible(original)]);
+    const review = read({ offset: 1, limit: 1 });
+    guard.observeVisibleMessages([visible(original), visible(review)]);
+    const blocked = read({ offset: 1, limit: 1 });
+    expect(blocked.contentOmitted).toBe(true);
+    expect(blocked.recoveryRead).toMatchObject({ offset: 1, limit: 80 });
+    const recovered = read(blocked.recoveryRead);
+    expect(recovered.content).toBe(document);
+    guard.observeVisibleMessages([visible(original), visible(recovered)]);
+    const fullReview = read({ offset: 1, limit: 80 });
+    guard.observeVisibleMessages([visible(recovered), visible(fullReview)]);
+    const again = read({ offset: 1, limit: 80 });
+    expect(again.contentOmitted).toBe(true);
+    expect(again.recoveryRead).toBeUndefined();
+  });
+
   it("confirms delivered JavaScript trailing commas as visible source", () => {
     const { guard, read } = fixture();
     const source = "const values = [1, 2,];";
@@ -551,7 +593,9 @@ describe("ReadFileLoopGuard recovery", () => {
     expect(resumed.range).toMatchObject({ startLine: 2, endLine: 3 });
     expect(resumed.reachedEnd).toBe(false);
     expect(resumed.contentOmitted).toBe(true);
-    expect(resumed.recoveryRead.offset).toBe(2);
+    // The fixed 80-line hint would be truncated and cannot honor this range.
+    expect(resumed.recoveryRead).toBeUndefined();
+    expect(resumed.hint).toContain("search_files");
   });
 
   it("honors a complete explicit 240-line range after another section was read", () => {

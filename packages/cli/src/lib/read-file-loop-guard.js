@@ -26,6 +26,13 @@ function mergeSpan(spans, span) {
   return merged;
 }
 
+function rereadFingerprint(span, restoring) {
+  return (
+    (restoring ? "restore:" : "review:") +
+    createHash("sha256").update(JSON.stringify(span)).digest("hex")
+  );
+}
+
 /** Per-run read coverage and recovery, independent of compacted transcripts. */
 export class ReadFileLoopGuard {
   constructor() {
@@ -309,9 +316,7 @@ export class ReadFileLoopGuard {
         this.visiblePages !== null &&
         entry.lastReadRequest < this.visibleRequest &&
         !this.isPageVisible(page);
-      const fingerprint =
-        (restoring ? "restore:" : "review:") +
-        createHash("sha256").update(JSON.stringify(span)).digest("hex");
+      const fingerprint = rereadFingerprint(span, restoring);
       if (
         targeted &&
         !entry.rereads.has(fingerprint) &&
@@ -354,6 +359,40 @@ export class ReadFileLoopGuard {
               hint: "This range has a read pending in the current tool batch. Historical source coverage is recorded only after content reaches the model.",
             };
           }
+          const recoveryRead = {
+            path: filePath,
+            offset: explicitRange ? page.range.startLine : 1,
+            limit: 80,
+            ...(args.hashed === true ? { hashed: true } : {}),
+            ...(args.raw === true ? { raw: true } : {}),
+          };
+          const recoveryPage = readPage(recoveryRead);
+          const validRecoveryPage =
+            !recoveryPage.error &&
+            !!recoveryPage.readSpan &&
+            !recoveryPage.truncated;
+          const recoveryCovered =
+            validRecoveryPage &&
+            entry.spans.some(
+              ([start, end]) =>
+                start <= recoveryPage.readSpan.start &&
+                end >= recoveryPage.readSpan.end,
+            );
+          const recoveryRestoring =
+            validRecoveryPage &&
+            this.visiblePages !== null &&
+            entry.lastReadRequest < this.visibleRequest &&
+            !this.isPageVisible(recoveryPage);
+          // A recovery hint is a contract. Do not prescribe a read that this
+          // same guard would immediately omit again. This checks a pure page
+          // from the already-authorized file without minting a new allowance.
+          const canRecover =
+            validRecoveryPage &&
+            (!recoveryCovered ||
+              (entry.rereads.size < 3 &&
+                !entry.rereads.has(
+                  rereadFingerprint(recoveryPage.readSpan, recoveryRestoring),
+                )));
           return {
             path: filePath,
             fileVersion,
@@ -367,14 +406,10 @@ export class ReadFileLoopGuard {
             ...(entry.summary?.outline
               ? { outline: entry.summary.outline }
               : {}),
-            recoveryRead: {
-              path: filePath,
-              offset: explicitRange ? page.range.startLine : 1,
-              limit: 80,
-              ...(args.hashed === true ? { hashed: true } : {}),
-              ...(args.raw === true ? { raw: true } : {}),
-            },
-            hint: "This requested range was read earlier, but historical coverage does not mean its source is visible now. The runtime has not substituted an unrelated file range. Use source actually present in this request; recover missing details with a focused search or the bounded recoveryRead. Reading the file is not task completion.",
+            ...(canRecover ? { recoveryRead } : {}),
+            hint: canRecover
+              ? "This requested range was read earlier, but historical coverage does not mean its source is visible now. Recover missing details with a focused search or the bounded recoveryRead. Reading the file is not task completion."
+              : "This unchanged range cannot be reread within the remaining read allowance. Do not repeat it. Use source still visible in this request, or search_files for a precise symbol (set regex:true when using a regular expression). If required source is unavailable, report the limitation instead of guessing APIs.",
           };
         }
       }

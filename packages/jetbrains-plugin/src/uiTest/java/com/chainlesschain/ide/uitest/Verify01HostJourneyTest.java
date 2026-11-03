@@ -30,6 +30,16 @@ final class Verify01HostJourneyTest {
         return record("output", "{\"type\":\"system\",\"subtype\":\"init\",\"session_id\":\"" + session + "\"}");
     }
 
+    @Test void expandedDeadlineRequiresExplicit40TurnBudgetAndRemainsBounded() {
+        long now = 1700000000000L;
+        assertDoesNotThrow(() -> Verify01HostJourney.validateDeadline(now + 1200000, now, "20"));
+        assertThrows(AssertionError.class, () -> Verify01HostJourney.validateDeadline(now + 2400000, now, "20"));
+        assertDoesNotThrow(() -> Verify01HostJourney.validateDeadline(now + 2400000, now, "40"));
+        assertThrows(AssertionError.class, () -> Verify01HostJourney.validateDeadline(now + 2400001, now, "40"));
+        assertThrows(AssertionError.class, () -> Verify01HostJourney.validateDeadline(now, now, "40"));
+        assertThrows(AssertionError.class, () -> Verify01HostJourney.validateDeadline(now + 1200000, now, "41"));
+    }
+
     @Test void soleRealExitFailsImmediatelyAndRetainsExactOriginalBytes() throws Exception {
         // Exact record shape from the failed public Windows first-run capture.
         String raw = "{\"schema\":\"chainlesschain.ide-protocol-record/v1\",\"generation\":\"" + GENERATION

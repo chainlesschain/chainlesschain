@@ -20,6 +20,11 @@ on:
         required: true
         default: volcengine
         options: [volcengine, openai]
+      fresh_volcengine_round:
+        description: "Explicit new full Volcengine 36+9 round, retaining historical scores and using a dedicated key"
+        type: boolean
+        required: false
+        default: false
       hosts:
         description: "Run all hosts or repeat a host after an infrastructure correction"
         type: choice
@@ -131,6 +136,9 @@ jobs:
           packages/cli/test-node/verify01-openai-transport-preload.node-test.mjs
           packages/cli/test-node/verify01-native-provider-profile.node-test.mjs
           packages/cli/test-node/verify01-native-round-matrix.node-test.mjs
+          packages/cli/test-node/verify01-volcengine-fresh-round.node-test.mjs
+          packages/cli/test-node/verify01-native-execution-budgets.node-test.mjs
+          packages/cli/test-node/verify01-volcengine-historical-retry.node-test.mjs
           packages/jetbrains-plugin/scripts/verify01-native-task-adapter.test.mjs
       - name: Select requested native hosts
         id: select
@@ -144,6 +152,10 @@ jobs:
           PACKAGE_SET_SELECTION: ${{ inputs.package_set || 'latest' }}
           FETCH_DIAGNOSTICS: ${{ inputs.fetch_diagnostics && 'true' || 'false' }}
           NATIVE_PROJECT_REVISION_FILE: ${{ inputs.project_revision_file || '' }}
+          FRESH_VOLCENGINE_ROUND: ${{ inputs.fresh_volcengine_round && 'true' || 'false' }}
+          VOLCENGINE_CREDENTIAL_PRESENT: ${{ secrets.VOLCENGINE_VERIFY01_API_KEY != '' }}
+          REVIEW_CHANGES: ${{ inputs.review_changes && 'true' || 'false' }}
+          VOLCENGINE_API_KEY: ${{ inputs.fresh_volcengine_round && secrets.VOLCENGINE_VERIFY01_API_KEY || '' }}
           OPENAI_API_KEY: ${{ inputs.provider == 'openai' && secrets.OPENAI_API_KEY || '' }}
         run: |
           node --input-type=module <<'NODE'
@@ -156,6 +168,7 @@ jobs:
             import {nativeProviderProfile} from "./packages/cli/scripts/verify01-native-provider-profile.mjs";
             import {prereleasePackageBinding} from "./packages/cli/scripts/verify01-prerelease-package-set.mjs";
             import {loadPublicGeneratorProof} from "./packages/cli/scripts/verify01-public-generator-binding.mjs";
+            import {assertFreshVolcengineRound, assertFreshVolcengineBudgetRetry, verifyFreshVolcengineCredential} from "./packages/cli/scripts/verify01-volcengine-fresh-round.mjs";
             const provider = nativeProviderProfile(process.env.NATIVE_PROVIDER || "volcengine").provider;
             const run = process.env.DELIVERY_RUN, commit = process.env.DELIVERY_COMMIT;
             if (!!run !== !!commit || (run && (!/^[1-9][0-9]+$/.test(run) || !/^[a-f0-9]{40}$/.test(commit)))) throw new Error("paired exact delivery run and commit required");
@@ -174,6 +187,35 @@ jobs:
               baseProjectCommit: DIAGNOSTIC.projectCommit, basePlanDigest: DIAGNOSTIC.planDigest,
             });
             validateNativeProjectSelection(project.revisionBinding, parseNativeSampleIds(process.env.SAMPLE_SELECTION));
+            const freshVolcengineRound = process.env.FRESH_VOLCENGINE_ROUND === "true";
+            let budgetRetry = null;
+            if (freshVolcengineRound) {
+              const declaration = JSON.parse(packageBinding.bytes.toString("utf8"));
+              const checkRound = declaration.volcengineBudgetRetry ? assertFreshVolcengineBudgetRetry : assertFreshVolcengineRound;
+              const checked = checkRound({
+                provider, packageSet, packageBinding,
+                hosts: process.env.HOST_SELECTION, entries: process.env.ENTRY_SELECTION,
+                sampleIds: parseNativeSampleIds(process.env.SAMPLE_SELECTION),
+                revisionBinding: project.revisionBinding,
+                runAttempt: run ? 1 : Number(process.env.GITHUB_RUN_ATTEMPT || "1"),
+                credentialPresent: Boolean(run) || process.env.VOLCENGINE_CREDENTIAL_PRESENT === "true",
+                repositoryRoot: process.cwd(),
+                reviewChanges: process.env.REVIEW_CHANGES === "true",
+              }, JSON.parse(fs.readFileSync(`${basePlanDir}/plan.json`, "utf8")));
+              if (declaration.volcengineBudgetRetry) budgetRetry = checked;
+              if (!run) {
+                const authentication = await verifyFreshVolcengineCredential(process.env.VOLCENGINE_API_KEY);
+                console.log(JSON.stringify({credentialMetadataPreflight: authentication}));
+                const manifest = JSON.parse(packageBinding.bytes.toString("utf8"));
+                for (const [name, url] of (candidate ? [] : [
+                  ["cli", "https://registry.npmjs.org/chainlesschain/latest"],
+                  ["vscode", "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/latest"],
+                ])) {
+                  const response = await fetch(url, {signal: AbortSignal.timeout(30000), headers: {"cache-control": "no-cache"}});
+                  if (!response.ok || (await response.json()).version !== manifest.versions[name]) throw new Error("Fresh round requires the latest public " + name);
+                }
+              }
+            }
             if (project.revisionBinding && provider !== "openai") throw new Error("repaired-source follow-up requires the explicit OpenAI diagnostic cohort");
             if (provider === "openai") {
               if (!["latest", "prerelease"].includes(packageSet)) throw new Error("OpenAI cohort requires an explicit public or prerelease package set");
@@ -204,7 +246,7 @@ jobs:
             const ids = parseNativeSampleIds(process.env.SAMPLE_SELECTION);
             const sampleKey = ids ? [...ids].sort().join("-") : "all";
             if (sampleKey.length > 160 || !/^[a-z0-9-]+$/.test(sampleKey)) throw new Error("sample concurrency key exceeds canonical bounds");
-            if (provider === "volcengine" && !run && entries.includes("jetbrains") && (!ids || ids.length !== 1)) throw new Error("JetBrains generation requires exactly one explicit sample per dispatch");
+            if (provider === "volcengine" && !freshVolcengineRound && !run && entries.includes("jetbrains") && (!ids || ids.length !== 1)) throw new Error("JetBrains generation requires exactly one explicit sample per dispatch");
             const fetchDiagnostics = process.env.FETCH_DIAGNOSTICS || "false";
             if (!["true", "false"].includes(fetchDiagnostics)) throw new Error("invalid fetch diagnostics flag");
             if (fetchDiagnostics === "true" && (run || rows.length !== 1 || rows[0].entry !== "cli" || !ids)) throw new Error("fetch diagnostics require new CLI generation, exactly one host and explicit sample IDs");
@@ -213,11 +255,11 @@ jobs:
               const plan = JSON.parse(fs.readFileSync("docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json", "utf8"));
               selectNativeSamples(plan, rows[0].group.split("-")[0], rows[0].entry, ids);
             }
-            if (!run && provider === "volcengine") {
+            if (!run && provider === "volcengine" && !freshVolcengineRound) {
               assertUnfinishedNativeSamples(ids, {versionsFile: process.env.NATIVE_PACKAGE_SET_FILE || undefined});
             }
             const taskPlan = JSON.parse(fs.readFileSync("docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json", "utf8"));
-            rows = nativeProviderCells(rows, taskPlan, ids, provider);
+            rows = nativeProviderCells(rows, taskPlan, ids, provider, {isolateJetbrains: freshVolcengineRound, isolateAllSamples: Boolean(budgetRetry), sampleIdsByGroup: budgetRetry?.sampleIdsByGroup});
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify({include: rows})}\ngroups=${JSON.stringify([...new Set(rows.map(row => row.group))])}\n`);
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `acceptance_matrix=${JSON.stringify({include: rows.map(({group, cell_id, sample_ids}) => ({group, cell_id, sample_ids}))})}\n`);
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `sample_key=${sampleKey}\n`);
@@ -310,7 +352,7 @@ jobs:
         timeout-minutes: 115
         shell: bash
         env:
-          VOLCENGINE_API_KEY: ${{ inputs.provider != 'openai' && secrets.CC_LLM_API_KEY || '' }}
+          VOLCENGINE_API_KEY: ${{ inputs.provider != 'openai' && (inputs.fresh_volcengine_round && secrets.VOLCENGINE_VERIFY01_API_KEY || secrets.CC_LLM_API_KEY) || '' }}
           OPENAI_API_KEY: ${{ inputs.provider == 'openai' && secrets.OPENAI_API_KEY || '' }}
           NATIVE_ENTRY: ${{ matrix.entry }}
           EXECUTION_SOURCE_SHA: ${{ github.sha }}
@@ -358,6 +400,41 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  collect_fresh_volcengine:
+    needs: [validate, generate, accept]
+    if: always() && inputs.fresh_volcengine_round && needs.validate.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Prepare operator workspace dependency
+        run: >-
+          npm ci --workspace @chainlesschain/context-memory-kernel
+          --include-workspace-root=false --omit=dev --ignore-scripts
+          --legacy-peer-deps --no-audit --no-fund
+      - name: Collect every sample with source and artifact digest verification without model credentials
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node packages/cli/scripts/verify01-volcengine-fresh-collect.mjs
+          --run-id "${{ github.run_id }}" --source "${{ github.sha }}"
+          --package-set-file "$NATIVE_PACKAGE_SET_FILE"
+          --output-dir "${{ runner.temp }}/verify01-volc139-results" --in-workflow
+      - name: Preserve full round results and independent acceptance receipts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: verify01-volc139-results-${{ github.sha }}
+          path: ${{ runner.temp }}/verify01-volc139-results/
+          if-no-files-found: error
+          retention-days: 14
+
   accept:
     needs: [validate, generate]
     if: always() && needs.validate.result == 'success'
@@ -388,8 +465,8 @@ jobs:
           path: ${{ runner.temp }}/native-delivery
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ inputs.accept_existing_run || github.run_id }}
-      - name: Bind OpenAI delivery identity before acceptance
-        if: inputs.provider == 'openai'
+      - name: Bind fresh provider delivery identity before acceptance
+        if: inputs.provider == 'openai' || inputs.fresh_volcengine_round
         env:
           EXPECTED_DELIVERY_SHA: ${{ inputs.accept_existing_commit || github.sha }}
           NATIVE_PROJECT_REVISION_FILE: ${{ inputs.project_revision_file || '' }}
@@ -412,7 +489,7 @@ jobs:
               bindings: JSON.parse(fs.readFileSync(`${basePlanDir}/comparison-bindings.json`, "utf8")),
               baseProjectCommit: DIAGNOSTIC.projectCommit, basePlanDigest: DIAGNOSTIC.planDigest,
             });
-            assertNativeProviderIdentity(summary, "openai", process.env.EXPECTED_DELIVERY_SHA, packageBinding, project);
+            assertNativeProviderIdentity(summary, process.env.NATIVE_PROVIDER, process.env.EXPECTED_DELIVERY_SHA, packageBinding, project);
           NODE
       - name: Pin independent Linux checker image
         run: |

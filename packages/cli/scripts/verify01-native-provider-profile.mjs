@@ -3,16 +3,21 @@ import { createHash } from "node:crypto";
 import { DIAGNOSTIC } from "./verify01-volcengine-task-diagnostic.mjs";
 import { prereleasePackageBinding } from "./verify01-prerelease-package-set.mjs";
 import {
-  BROKER,
   createVolcengineDiagnosticBroker,
+  volcengineBudgetRetryPolicy,
 } from "./verify01-volcengine-diagnostic-broker.mjs";
 import {
   OPENAI_BROKER,
   createOpenAiDiagnosticBroker,
 } from "./verify01-openai-diagnostic-broker.mjs";
+import { nativeExecutionBudgets } from "./verify01-native-execution-budgets.mjs";
+import { runtimeRepairBinding } from "./verify01-volcengine-historical-retry.mjs";
 
 /** Operator selection only; existing Volcengine cohorts retain their policy. */
-export function nativeProviderProfile(provider = DIAGNOSTIC.provider) {
+export function nativeProviderProfile(
+  provider = DIAGNOSTIC.provider,
+  { budgets } = {},
+) {
   assert.ok(
     ["volcengine", "openai"].includes(provider),
     "unsupported diagnostic provider",
@@ -30,8 +35,16 @@ export function nativeProviderProfile(provider = DIAGNOSTIC.provider) {
         provider,
         model: DIAGNOSTIC.model,
         keyEnvironment: "VOLCENGINE_API_KEY",
-        policy: BROKER,
-        createBroker: createVolcengineDiagnosticBroker,
+        policy: volcengineBudgetRetryPolicy(budgets),
+        createBroker:
+          budgets?.modelTurns === 40
+            ? (options) =>
+                createVolcengineDiagnosticBroker({
+                  ...options,
+                  executionBudgets: budgets,
+                  maximumRequestsPerTask: budgets.physicalRequests,
+                })
+            : createVolcengineDiagnosticBroker,
         defaultThinkingPreserved: false,
       });
 }
@@ -44,12 +57,24 @@ export function assertNativeProviderIdentity(
   packageBinding,
   projectIdentity,
 ) {
-  const profile = nativeProviderProfile(provider);
+  const manifest = packageBinding?.bytes
+    ? JSON.parse(packageBinding.bytes.toString("utf8"))
+    : null;
+  const budgets = nativeExecutionBudgets(manifest, provider);
+  const profile = nativeProviderProfile(provider, { budgets });
+  if (manifest?.volcengineBudgetRetry)
+    assert.deepEqual(summary.executionBudgets, budgets);
   const hash = (value) =>
     `sha256:${createHash("sha256").update(value).digest("hex")}`;
   assert.match(sourceSha, /^[a-f0-9]{40}$/u);
   assert.equal(summary.executionSourceCommit, sourceSha);
   const revision = projectIdentity?.revisionBinding ?? null;
+  const runtimeRepair = runtimeRepairBinding(manifest, {
+    provider,
+    projectCommit: projectIdentity?.projectCommit,
+    revisionBinding: revision,
+  });
+  assert.deepEqual(summary.runtimeRepair ?? null, runtimeRepair);
   assert.deepEqual(summary.projectRevision ?? null, revision);
   if (projectIdentity) {
     assert.equal(summary.projectCommit, projectIdentity.projectCommit);
@@ -58,11 +83,13 @@ export function assertNativeProviderIdentity(
   if (revision) assert.equal(provider, "openai");
   assert.equal(
     summary.cohortKind,
-    revision
-      ? "repaired-source-followup"
-      : provider === "openai"
-        ? "new-openai-provider-diagnostic"
-        : "volcengine-native-diagnostic",
+    runtimeRepair
+      ? "volcengine-runtime-repair-frozen-project"
+      : revision
+        ? "repaired-source-followup"
+        : provider === "openai"
+          ? "new-openai-provider-diagnostic"
+          : "volcengine-native-diagnostic",
   );
   assert.deepEqual(summary.modelTransport, {
     provider: profile.provider,
@@ -81,7 +108,7 @@ export function assertNativeProviderIdentity(
         )
       : null;
     assert.deepEqual(summary.prepublication ?? null, candidate);
-    if (candidate)
+    if (candidate && !runtimeRepair)
       assert.equal(candidate.sourceCommit, projectIdentity?.projectCommit);
   }
   assert.equal(

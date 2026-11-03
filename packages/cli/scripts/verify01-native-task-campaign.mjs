@@ -18,6 +18,11 @@ import {
   changedFiles,
 } from "./verify01-volcengine-task-diagnostic.mjs";
 import { nativeProviderProfile } from "./verify01-native-provider-profile.mjs";
+import { runtimeRepairBinding } from "./verify01-volcengine-historical-retry.mjs";
+import {
+  nativeExecutionBudgets,
+  loadVolcengineBudgetRetry,
+} from "./verify01-native-execution-budgets.mjs";
 import { openAiNativeCliLauncher } from "./verify01-openai-transport-preload.mjs";
 import { VERIFY01_REVIEW_SPECS } from "./verify01-review-specs.mjs";
 import { requireUnscopedModelTransport } from "../src/lib/formal-budget-provider-scope.js";
@@ -236,7 +241,7 @@ export function nativeTaskPrompt(
   task,
   spec,
   sample,
-  { repairedSource = false } = {},
+  { repairedSource = false, modelTurns = 20 } = {},
 ) {
   return `${task.prompt}\n\nThis is an unseeded native ${sample.stratum} execution, sample ${sample.id}, kind ${sample.kind}. No previous candidate or repair feedback is supplied. First-run and ordinary samples use independent profiles and workspaces.
 Read the frozen source and relevant existing tests before writing. Verify actual exported APIs, argument names, return fields and fixture construction. Read bounded slices and avoid repeated unchanged reads.
@@ -250,7 +255,7 @@ Before finishing, audit your selected independent conditions against the actual 
 If an intended behavioral assertion exposes a defect in the frozen implementation, keep that assertion and explain the implementation defect in your final response; distinguish it from a test assumption or fixture error.
 Source and existing tests are read-only. Describe implementation defects in your final response instead of modifying source. Only six file tools are available; no shell, code execution, MCP or network tools. Do not inspect node_modules or paths outside the project.
 An independent checker runs baseline, candidate and behavioral coverage tests later in network-disabled Linux Docker. Native generation does not imply native test execution. Do not claim tests passed.
-You have 20 model turns. Write early enough to read back the completed deliverable, then finish with a concise account and limitations.`;
+You have ${modelTurns} model turns. Write early enough to read back the completed deliverable, then finish with a concise account and limitations.`;
 }
 
 /** Includes links and empty directories; never follows links. */
@@ -403,8 +408,9 @@ export function inspectNativeChangeReview(stream, requested = false) {
 
 export function nativeCliAdapterSource(
   cliPath,
-  { reviewChanges = false } = {},
+  { reviewChanges = false, maxTurns = 20 } = {},
 ) {
+  assert.ok([20, 40].includes(maxTurns));
   const flags = [
     ...nativeReviewFlags(reviewChanges),
     "--allowed-tools",
@@ -416,6 +422,7 @@ export function nativeCliAdapterSource(
     "--no-project-memory",
     "--no-file-refs",
     "--no-slash-macros",
+    ...(maxTurns === 20 ? [] : ["--max-turns", String(maxTurns)]),
   ];
   return `const {spawn}=require('node:child_process');const a=process.argv.slice(2);if(a[0]==='agent')a.push(...${JSON.stringify(flags)});const c=spawn(${JSON.stringify(process.execPath)},[${JSON.stringify(cliPath)},...a],{stdio:'inherit',env:{...process.env,CC_TASK_WORKLOG:'0'}});c.on('error',e=>{console.error(e.message);process.exitCode=1});c.on('exit',code=>{process.exitCode=code??1});`;
 }
@@ -435,6 +442,7 @@ export async function runVSCodeNativeTask({
   reviewChanges = false,
   provider = DIAGNOSTIC.provider,
   model = DIAGNOSTIC.model,
+  maxTurns = 20,
 }) {
   const root = path.dirname(profileHome),
     captureDir = path.join(root, "capture"),
@@ -446,7 +454,10 @@ export async function runVSCodeNativeTask({
       root,
       process.platform === "win32" ? "cli.cmd" : "cli",
     );
-  fs.writeFileSync(adapter, nativeCliAdapterSource(cliPath, { reviewChanges }));
+  fs.writeFileSync(
+    adapter,
+    nativeCliAdapterSource(cliPath, { reviewChanges, maxTurns }),
+  );
   const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
   fs.writeFileSync(
     launcher,
@@ -462,7 +473,7 @@ export async function runVSCodeNativeTask({
       "chainlesschain.ide.enabled": true,
       "chainlesschain.cli.managed.enabled": false,
       "chainlesschain.cli.path": launcher,
-      "chainlesschain.chat.maxTurns": 20,
+      "chainlesschain.chat.maxTurns": maxTurns,
       "extensions.autoCheckUpdates": false,
       "extensions.autoUpdate": false,
       "telemetry.telemetryLevel": "off",
@@ -483,6 +494,7 @@ export async function runVSCodeNativeTask({
     hostVersion: versions.vscodeHost,
     extensionVersion: versions.vscode,
     deadline,
+    ...(maxTurns === 20 ? {} : { modelTurns: maxTurns }),
   };
   const configFile = path.join(root, "host-config.json");
   fs.writeFileSync(configFile, JSON.stringify(config));
@@ -622,7 +634,7 @@ export async function runNativeCampaign(options) {
     reviewChanges = false,
     provider = DIAGNOSTIC.provider,
   } = options;
-  const providerProfile = nativeProviderProfile(provider);
+  let providerProfile = nativeProviderProfile(provider);
   const key = options.key ?? process.env[providerProfile.keyEnvironment];
   assert.equal(typeof fetchDiagnostics, "boolean");
   nativeReviewFlags(reviewChanges);
@@ -638,6 +650,8 @@ export async function runNativeCampaign(options) {
   const packageManifest = packageSetBytes
     ? JSON.parse(packageSetBytes.toString("utf8"))
     : null;
+  const budgets = nativeExecutionBudgets(packageManifest, provider);
+  providerProfile = nativeProviderProfile(provider, { budgets });
   const candidatePackages = readPrereleasePackages(
     packageManifest,
     process.env.CC_VERIFY01_PRERELEASE_DIRECTORY,
@@ -674,6 +688,8 @@ export async function runNativeCampaign(options) {
     "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
     "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
     "packages/cli/scripts/verify01-native-provider-profile.mjs",
+    "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+    "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
     "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
     "packages/cli/scripts/verify01-openai-transport-preload.mjs",
     "packages/cli/scripts/verify01-review-specs.mjs",
@@ -772,7 +788,27 @@ export async function runNativeCampaign(options) {
       basePlanDigest: DIAGNOSTIC.planDigest,
     });
   validateNativeProjectSelection(revisionBinding, sampleIds);
-  if (candidatePackages) {
+  if (packageManifest?.volcengineBudgetRetry) {
+    assert.equal(
+      reviewChanges,
+      true,
+      "Expanded-budget retry must retain change review",
+    );
+    const retry = loadVolcengineBudgetRetry(packageManifest, {
+      repositoryRoot: repository,
+      plan: basePlan,
+    });
+    assert.ok(
+      sampleIds?.length === 1 && retry.selectedSampleIds.includes(sampleIds[0]),
+      "Budget retries require one explicitly selected budget-limited sample",
+    );
+  }
+  const runtimeRepair = runtimeRepairBinding(packageManifest, {
+    provider,
+    projectCommit,
+    revisionBinding,
+  });
+  if (candidatePackages && !runtimeRepair) {
     assert.ok(
       revisionBinding,
       "candidate generation requires an explicit repaired project",
@@ -813,6 +849,10 @@ export async function runNativeCampaign(options) {
     projectCommit,
     planDigest,
     ...revisionMetadata,
+    ...(runtimeRepair ? { runtimeRepair } : {}),
+    ...(packageManifest?.volcengineBudgetRetry
+      ? { executionBudgets: budgets }
+      : {}),
     frozenArchiveDigest: hash(fs.readFileSync(archive)),
     versions,
     modelTransport: {
@@ -841,17 +881,19 @@ export async function runNativeCampaign(options) {
     formalSample: false,
     limitations: [
       "Native generation; independent Linux acceptance pending",
-      `${providerProfile.defaultThinkingPreserved ? "Default model thinking preserved" : "Broker thinking disabled"}, six file tools only, 20 model turns, 24 requests, 180 second request timeout, 8192 output tokens, 16 MiB response transport limit`,
+      `${providerProfile.defaultThinkingPreserved ? "Default model thinking preserved" : "Broker thinking disabled"}, six file tools only, ${budgets.modelTurns} model turns, ${budgets.physicalRequests} requests, 180 second request timeout, ${budgets.outputTokens === 393216 ? "model maximum 393216 output tokens (8192 test cap removed)" : `${budgets.outputTokens} output tokens`}, 16 MiB response transport limit`,
       "IDE context bridges and optional task worklog disabled; real UI and restart retained",
       "No prior candidates or repair seeds supplied",
     ],
   };
   Object.assign(summary, {
-    cohortKind: revisionBinding
-      ? "repaired-source-followup"
-      : providerProfile.provider === "openai"
-        ? "new-openai-provider-diagnostic"
-        : "volcengine-native-diagnostic",
+    cohortKind: runtimeRepair
+      ? "volcengine-runtime-repair-frozen-project"
+      : revisionBinding
+        ? "repaired-source-followup"
+        : providerProfile.provider === "openai"
+          ? "new-openai-provider-diagnostic"
+          : "volcengine-native-diagnostic",
     executionIdentityDigest: hash(
       JSON.stringify({
         sourceSha,
@@ -918,7 +960,10 @@ export async function runNativeCampaign(options) {
     [workspace, profile].forEach(mkdir);
     mkdir(sampleOutput);
     const deadline =
-      Date.now() + (sample.kind === "first-run" ? 1800000 : 1200000);
+      Date.now() +
+      (sample.kind === "first-run"
+        ? budgets.firstRunDeadlineMs
+        : budgets.ordinaryDeadlineMs);
     const row = {
       schema: "chainlesschain.verify01-native-task-sample/v1",
       sampleId: sample.id,
@@ -1165,7 +1210,8 @@ export async function runNativeCampaign(options) {
         outputDir: path.join(sampleOutput, "broker"),
         key,
         allowedTaskIds: [sample.id],
-        maximumRequestsPerTask: 24,
+        maximumRequestsPerTask: budgets.physicalRequests,
+        executionBudgets: budgets,
         requestTimeoutMs: 180000,
         maximumResponseBytes: 16 * 1024 * 1024,
         allowTextOnlyRequests: true,
@@ -1253,7 +1299,10 @@ export async function runNativeCampaign(options) {
         task,
         VERIFY01_REVIEW_SPECS.find((spec) => spec.taskId === task.id),
         sample,
-        { repairedSource: revisionBinding !== null },
+        {
+          repairedSource: revisionBinding !== null,
+          modelTurns: budgets.modelTurns,
+        },
       );
       save(`${sample.id}/prompt.txt`, prompt);
       const args = {
@@ -1273,6 +1322,7 @@ export async function runNativeCampaign(options) {
         reviewChanges,
         provider: providerProfile.provider,
         model: providerProfile.model,
+        maxTurns: budgets.modelTurns,
         ...packageBinding,
       };
       let result;
@@ -1294,7 +1344,7 @@ export async function runNativeCampaign(options) {
           "--output-format",
           "stream-json",
           "--max-turns",
-          "20",
+          String(budgets.modelTurns),
           "--allowed-tools",
           FILE_TOOLS,
           "--ephemeral",

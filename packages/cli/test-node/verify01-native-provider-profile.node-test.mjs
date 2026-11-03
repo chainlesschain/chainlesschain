@@ -187,7 +187,7 @@ test("the real acceptance workflow binds explicit repaired source and rejects su
     "utf8",
   );
   const step = workflow
-    .split("- name: Bind OpenAI delivery identity before acceptance")[1]
+    .split("- name: Bind fresh provider delivery identity before acceptance")[1]
     .split("- name: Pin independent Linux checker image")[0];
   assert.match(
     step,
@@ -203,7 +203,6 @@ test("the real acceptance workflow binds explicit repaired source and rejects su
   const packageFile =
     "docs/research/cli/verify01-package-sets/2026-10-31-openai-136.json";
   const packages = validateNativePackageSetFile(packageFile);
-  const profile = nativeProviderProfile("openai");
   const hash = (value) =>
     `sha256:${createHash("sha256").update(value).digest("hex")}`;
   const planRoot = path.join(
@@ -212,10 +211,12 @@ test("the real acceptance workflow binds explicit repaired source and rejects su
   );
   const read = (name) =>
     JSON.parse(fs.readFileSync(path.join(planRoot, name), "utf8"));
-  for (const revisionFile of [
-    undefined,
-    "docs/research/cli/verify01-openai-137/project-revision.json",
+  for (const [provider, revisionFile] of [
+    ["openai", undefined],
+    ["openai", "docs/research/cli/verify01-openai-137/project-revision.json"],
+    ["volcengine", undefined],
   ]) {
+    const profile = nativeProviderProfile(provider);
     const project = loadNativeProjectRevision({
       revisionFile,
       plan: read("plan.json"),
@@ -228,7 +229,9 @@ test("the real acceptance workflow binds explicit repaired source and rejects su
       executionSourceCommit: sourceSha,
       cohortKind: project.revisionBinding
         ? "repaired-source-followup"
-        : "new-openai-provider-diagnostic",
+        : provider === "openai"
+          ? "new-openai-provider-diagnostic"
+          : "volcengine-native-diagnostic",
       projectCommit: project.projectCommit,
       planDigest: project.planDigest,
       ...(project.revisionBinding
@@ -240,7 +243,7 @@ test("the real acceptance workflow binds explicit repaired source and rejects su
         model: profile.model,
         endpoint: profile.policy.endpoint,
         policyDigest: hash(JSON.stringify(profile.policy)),
-        defaultThinkingPreserved: true,
+        defaultThinkingPreserved: profile.defaultThinkingPreserved,
         formalSample: false,
       },
     };
@@ -271,6 +274,7 @@ test("the real acceptance workflow binds explicit repaired source and rejects su
             RUNNER_TEMP: root,
             EXPECTED_DELIVERY_SHA: sourceSha,
             NATIVE_PACKAGE_SET_FILE: packageFile,
+            NATIVE_PROVIDER: provider,
             NATIVE_PROJECT_REVISION_FILE: selectedRevision || "",
           },
         },

@@ -309,7 +309,7 @@ tasks.register<Test>("uiSmokeTest") {
     systemProperty("ui.cold.root", System.getProperty("ui.cold.root") ?: "")
     systemProperty("ui.cold.boundaries", System.getProperty("ui.cold.boundaries") ?: "false")
     systemProperty("ui.plugin.archive", System.getProperty("ui.plugin.archive") ?: "")
-    for (name in listOf("captureRoot", "sampleId", "promptFile", "deadlineMs", "permissionMode", "workspace", "pluginVersion")) {
+    for (name in listOf("captureRoot", "sampleId", "promptFile", "deadlineMs", "modelTurns", "permissionMode", "workspace", "pluginVersion")) {
         System.getProperty("ui.verify01.$name")?.let { systemProperty("ui.verify01.$name", it) }
     }
     systemProperty("file.encoding", "UTF-8")
