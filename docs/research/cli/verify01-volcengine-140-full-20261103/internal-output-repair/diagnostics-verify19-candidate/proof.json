@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "runId": 41638188839,
+  "sampleId": "verify-19",
+  "executionSource": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "rawAcceptanceSummaryDigest": "sha256:abc58f7ad09076685198a75a8ab4ee2a2b456fceabb5f8444adad3651caab951",
+  "rawDeliverySummaryDigest": "sha256:30b648312435e1c28e97c043d7ae2c36674219b988bf7af4d8dc74d34d2e8430",
+  "receipt": {
+    "path": "check.json",
+    "digest": "sha256:ea07815e3acedc2ce0fb702aa514a6e6179d43aafefc3f8eb6d0e8ecbae740dd"
+  },
+  "baselinePassed": true,
+  "candidateTests": {
+    "total": 3,
+    "passed": 2,
+    "failed": 1
+  },
+  "independentAcceptancePassed": false,
+  "generationPassed": false,
+  "frameworkBoundaryIssueAlsoPresent": true,
+  "directFinding": "There are two independent problems in this attempt. The broker treated an internal2048-token summary length boundary as a whole-task failure. Separately, the actual candidate fails one nominal test: it expects two skipped(denied) results after cancellation, while the runtime emits only one. The broker repair cannot by itself make this candidate pass.",
+  "originalScoresUnchanged": true,
+  "retestHeldByUser": true
+}
