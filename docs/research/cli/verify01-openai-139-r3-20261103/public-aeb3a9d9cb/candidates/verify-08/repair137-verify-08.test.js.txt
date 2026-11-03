@@ -1,0 +1,149 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+const root = mkdtempSync(join(tmpdir(), "cc-fork-owner-08-"));
+// From this file, ../src resolves to packages/cli/src (not packages/src).
+vi.mock("../src/lib/paths.js", () => ({
+  getHomeDir: () => join(root, "home"),
+  getSessionStoreDir: () => join(root, "home", "sessions"),
+  getClaudeProjectStorageDir: () => null,
+  getStatePath: () => join(root, "home", "state"),
+  getMachineSecurityAnchorDir: () => join(root, "security"),
+}));
+const store = await import("../src/harness/jsonl-session-store.js");
+const {
+  createSessionTranscriptBranchProjection,
+  readSessionTranscriptHistory,
+} = await import("../src/lib/session-transcript-history.js");
+const {
+  BRANCH_HISTORY_MESSAGE,
+  resolveSessionBranchHistory,
+} = await import("../src/lib/session-branch-history.js");
+
+afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+const conversation = (id) => store.readVerifiedMessages(id)
+  .filter(({ role }) => role === "user" || role === "assistant");
+const display = (id) => readSessionTranscriptHistory(id).messages
+  .filter(({ role }) => role === "user" || role === "assistant")
+  .map(({ role, text }) => ({ role, content: text }));
+const pair = (label) => [
+  { role: "user", content: `${label}:question` },
+  { role: "assistant", content: `${label}:answer` },
+];
+function appendPair(id, label) {
+  const messages = pair(label);
+  store.appendUserMessage(id, messages[0].content);
+  store.appendAssistantMessage(id, messages[1].content);
+  return store.findLatestEvent(id, "assistant_message").hash;
+}
+function withHistory(parentSessionId, messages, consume) {
+  const head = store.findLatestEvent(parentSessionId, null).hash;
+  return store.withSessionAuthorityTransaction(parentSessionId, head,
+    (transaction) => transaction.readProjection(() =>
+      createSessionTranscriptBranchProjection(parentSessionId, messages, consume)));
+}
+function fork(parentSessionId, branchSessionId, count) {
+  const messages = store.readVerifiedMessages(parentSessionId).slice(0, count);
+  return withHistory(parentSessionId, messages, (history) => {
+    expect(history).not.toBeNull();
+    return store.createBranchSession({
+      parentSessionId, branchSessionId, parentTurnId: "chosen-turn", messages, history,
+    });
+  });
+}
+
+// No suite imports or history mocks: these use verified source projections,
+// locked branch creation, persisted imports, and both resume/display readers.
+describe("fork history ownership (independent regression)", () => {
+  it("binds a live history capability to its parent and exact context, then expires it", () => {
+    const parent = "capability-parent";
+    const other = "capability-other";
+    for (const id of [parent, other]) {
+      store.startSession(id, { provider: "test", model: "test" });
+      appendPair(id, "same-valid-context");
+    }
+    const messages = store.readVerifiedMessages(parent);
+    let captured;
+    withHistory(parent, messages, (history) => {
+      expect(history).not.toBeNull();
+      captured = history;
+      // All negative controls first prove the same live capability works.
+      const resolve = (capability = history, id = parent, context = messages) =>
+        resolveSessionBranchHistory(capability, id, context);
+      expect(resolve()).toMatchObject({ parentSessionId: parent });
+      expect(() => resolve(history, other)).toThrow(/expired or does not match/);
+      expect(resolve()).toMatchObject({ parentSessionId: parent });
+      const changed = messages.map((message, index) => index === 0
+        ? { ...message, content: "different-but-valid-user-text" } : message);
+      expect(() => resolve(history, parent, changed)).toThrow(/expired or does not match/);
+      expect(resolve()).toMatchObject({ parentSessionId: parent });
+      expect(() => resolve({})).toThrow(/expired or does not match/);
+      expect(resolve()).toMatchObject({ parentSessionId: parent });
+    });
+    // Only lifetime changes here: same object, parent and context after return.
+    expect(() => resolveSessionBranchHistory(captured, parent, messages))
+      .toThrow(/expired or does not match/);
+    expect(resolveSessionBranchHistory(null, parent, messages)).toBeNull();
+  });
+
+  it("restores two siblings at their own cutoffs without later parent/sibling text", () => {
+    const parent = "owner-parent";
+    const left = "owner-left";
+    const right = "owner-right";
+    store.startSession(parent, { provider: "test", model: "test" });
+    const firstHash = appendPair(parent, "ancestor-1");
+    const secondHash = appendPair(parent, "ancestor-2");
+    appendPair(parent, "parent-before-fork-but-after-cutoff");
+    fork(parent, left, 2);
+    fork(parent, right, 4);
+
+    // Positive ancestor controls and negative cutoff controls at the same readers.
+    expect(conversation(left)).toEqual(pair("ancestor-1"));
+    expect(display(left)).toEqual(pair("ancestor-1"));
+    expect(conversation(right)).toEqual([...pair("ancestor-1"), ...pair("ancestor-2")]);
+    expect(display(right)).toEqual([...pair("ancestor-1"), ...pair("ancestor-2")]);
+    // Content equality alone cannot establish provenance. Compare independently
+    // recorded source event hashes with the persisted archive identities.
+    for (const [id, sourceEventId] of [[left, firstHash], [right, secondHash]]) {
+      expect(store.findLatestEvent(id, BRANCH_HISTORY_MESSAGE).data).toMatchObject({
+        role: "assistant", sourceEventId, sourceItemIndex: 0,
+      });
+      expect(store.findLatestEvent(id, "session_branch").data).toMatchObject({
+        parentSessionId: parent, parentTurnId: "chosen-turn",
+      });
+    }
+    const assertHistory = (id, messages) => {
+      expect(conversation(id)).toEqual(messages);
+      expect(display(id)).toEqual(messages);
+    };
+    // Each step changes one owner only. Its own positive control proves the
+    // write happened; unchanged peers are the matching no-leak controls.
+    appendPair(left, "left-body");
+    assertHistory(left, [...pair("ancestor-1"), ...pair("left-body")]);
+    assertHistory(right, [...pair("ancestor-1"), ...pair("ancestor-2")]);
+    assertHistory(parent, [...pair("ancestor-1"), ...pair("ancestor-2"),
+      ...pair("parent-before-fork-but-after-cutoff")]);
+    appendPair(right, "right-body");
+    assertHistory(right, [...pair("ancestor-1"), ...pair("ancestor-2"), ...pair("right-body")]);
+    assertHistory(left, [...pair("ancestor-1"), ...pair("left-body")]);
+    assertHistory(parent, [...pair("ancestor-1"), ...pair("ancestor-2"),
+      ...pair("parent-before-fork-but-after-cutoff")]);
+    appendPair(parent, "parent-later");
+    const expected = [
+      [left, [...pair("ancestor-1"), ...pair("left-body")]],
+      [right, [...pair("ancestor-1"), ...pair("ancestor-2"), ...pair("right-body")]],
+      [parent, [...pair("ancestor-1"), ...pair("ancestor-2"),
+        ...pair("parent-before-fork-but-after-cutoff"), ...pair("parent-later")]],
+    ];
+    // Repeated persisted reads must not append imported context a second time.
+    for (let pass = 0; pass < 2; pass++) {
+      for (const [id, messages] of expected) {
+        expect(conversation(id)).toEqual(messages);
+        expect(display(id)).toEqual(messages);
+      }
+    }
+  });
+});
