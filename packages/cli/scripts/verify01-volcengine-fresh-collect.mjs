@@ -240,7 +240,12 @@ async function main() {
         modelFailure: delivery?.model?.failureCategory ?? null,
         modelError: delivery?.model?.final?.error ?? null,
         modelResultSubtype: delivery?.model?.final?.subtype ?? null,
-        error: acceptance?.error ?? acceptance?.failure ?? delivery?.error ?? delivery?.failure ?? null,
+        error:
+          acceptance?.error ??
+          acceptance?.failure ??
+          delivery?.error ??
+          delivery?.failure ??
+          null,
         setup: acceptance?.setup ?? null,
         check: acceptance?.check ?? null,
         broker: delivery?.brokerStatus ?? null,
@@ -272,9 +277,13 @@ async function main() {
     versions: packages.versions,
     packageSetDigest: packages.packageSetDigest,
     formalSample: false,
-    roundKind: retry ? "expanded-budget-retry" : "fresh-full-36-plus-9",
+    roundKind: manifest.volcengineFullRound
+      ? "public140-full-36-plus-9"
+      : retry
+        ? "expanded-budget-retry"
+        : "fresh-full-36-plus-9",
     executionBudgets: nativeExecutionBudgets(manifest),
-    ...(retry
+    ...(manifest.volcengineBudgetRetry
       ? { baselineRunId: manifest.volcengineBudgetRetry.baselineRunId }
       : {}),
     historicalScoresUnchanged: true,

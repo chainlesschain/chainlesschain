@@ -139,6 +139,7 @@ jobs:
           packages/cli/test-node/verify01-volcengine-fresh-round.node-test.mjs
           packages/cli/test-node/verify01-native-execution-budgets.node-test.mjs
           packages/cli/test-node/verify01-volcengine-historical-retry.node-test.mjs
+          packages/cli/test-node/verify01-volcengine-public140-full.node-test.mjs
           packages/jetbrains-plugin/scripts/verify01-native-task-adapter.test.mjs
       - name: Select requested native hosts
         id: select
@@ -202,7 +203,7 @@ jobs:
                 repositoryRoot: process.cwd(),
                 reviewChanges: process.env.REVIEW_CHANGES === "true",
               }, JSON.parse(fs.readFileSync(`${basePlanDir}/plan.json`, "utf8")));
-              if (declaration.volcengineBudgetRetry) budgetRetry = checked;
+              if (declaration.volcengineBudgetRetry || declaration.volcengineFullRound) budgetRetry = checked;
               if (!run) {
                 const authentication = await verifyFreshVolcengineCredential(process.env.VOLCENGINE_API_KEY);
                 console.log(JSON.stringify({credentialMetadataPreflight: authentication}));

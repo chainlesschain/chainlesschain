@@ -3,6 +3,10 @@ import net from "node:net";
 import { loadPublicGeneratorProof } from "./verify01-public-generator-binding.mjs";
 import { loadVolcengineBudgetRetry } from "./verify01-native-execution-budgets.mjs";
 import {
+  isPublic140FullRound,
+  assertPublic140FullDispatch,
+} from "./verify01-volcengine-public140-full.mjs";
+import {
   isHistoricalRetry,
   runtimeRepairBinding,
   ORIGINAL_PROJECT,
@@ -58,7 +62,15 @@ export async function verifyFreshVolcengineCredential(
 }
 
 /** Explicit new full round, separate from the historical unfinished-task chain. */
-export function assertFreshVolcengineRound({
+export function assertFreshVolcengineRound(options, plan) {
+  const declaration = options.packageBinding?.bytes
+    ? JSON.parse(options.packageBinding.bytes.toString("utf8"))
+    : null;
+  if (isPublic140FullRound(declaration))
+    return assertPublic140FullDispatch(options, plan);
+  return assertLegacyFreshVolcengineRound(options);
+}
+function assertLegacyFreshVolcengineRound({
   provider,
   packageSet,
   packageBinding,

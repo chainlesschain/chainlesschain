@@ -6,6 +6,11 @@ import {
   isHistoricalRetry,
   loadHistoricalRetry,
 } from "./verify01-volcengine-historical-retry.mjs";
+import {
+  isPublic140FullRound,
+  public140FullBudgets,
+  loadPublic140FullRound,
+} from "./verify01-volcengine-public140-full.mjs";
 
 export const DEFAULT_NATIVE_BUDGETS = Object.freeze({
   modelTurns: 20,
@@ -62,6 +67,8 @@ function readBoundEvidence(
 }
 
 export function nativeExecutionBudgets(manifest, provider = "volcengine") {
+  if (manifest?.volcengineFullRound !== undefined)
+    return public140FullBudgets(manifest, provider);
   const retry = manifest?.volcengineBudgetRetry;
   if (retry === undefined) return DEFAULT_NATIVE_BUDGETS;
   assert.equal(provider, "volcengine", "Expanded budget is Volcengine-only");
@@ -125,6 +132,8 @@ export function isBudgetLimitedNativeSample(row, outputTokens) {
 }
 
 export function loadVolcengineBudgetRetry(manifest, { repositoryRoot, plan }) {
+  if (isPublic140FullRound(manifest))
+    return loadPublic140FullRound(manifest, { repositoryRoot, plan });
   const retry = manifest?.volcengineBudgetRetry;
   if (retry === undefined) return null;
   const budgets = nativeExecutionBudgets(manifest);

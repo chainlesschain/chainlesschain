@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-03T11:45:03.169Z",
+  "source": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+  "cli": {
+    "version": "0.166.140",
+    "status": "verified-public",
+    "source": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+    "method": "GitHub Actions OIDC Trusted Publishing",
+    "runId": 41610020835,
+    "tag": "v-npm-0-166-140",
+    "publicRegistryBytesVerified": true,
+    "sha256": "99e673b86c98795482b541c11d4187471d9babdd599f1c94f0ea37db9698faa9",
+    "officialWorkflowConclusion": "success"
+  },
+  "ide": {
+    "vscode": {
+      "version": "0.37.176",
+      "status": "verified-public",
+      "source": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+      "runId": 41614441062,
+      "officialWorkflowConclusion": "success"
+    },
+    "jetbrains": {
+      "version": "0.4.193",
+      "status": "uploaded-pending-review",
+      "source": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+      "runId": 41614441190,
+      "tag": "ide-jetbrains-v0.4.193",
+      "marketplaceUploaded": true,
+      "marketplaceListingClaimed": false,
+      "publicAvailabilityVerified": false
+    }
+  },
+  "modelGenerationRequests": 0
+}
