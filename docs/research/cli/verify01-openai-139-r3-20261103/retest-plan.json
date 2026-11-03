@@ -1,0 +1,154 @@
+{
+  "schema": "chainlesschain.published-engine-unfinished-retest/v1",
+  "createdAt": "2026-11-03",
+  "status": "prepared-after-latest-version-recheck",
+  "scope": "fresh-round-three-only-verify08",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "api": "Responses",
+  "formalSample": false,
+  "reviewChanges": true,
+  "projectSource": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "projectRevisionFile": "docs/research/cli/verify01-openai-137/public139-r3-project-revision.json",
+  "projectRevisionDigest": "sha256:ad6e57feb8d7ab0e5c518b43182d413f618f1e8babe3c1ead70bdf43a0bd6bf0",
+  "packageSelection": "latest",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-03-openai-139-r2.json",
+  "packageResolutionPath": "docs/research/cli/verify01-openai-139-r2-20261103/package-resolution.json",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "distribution": "mixed-public-and-official-artifact",
+  "selectedSampleIds": [
+    "verify-08"
+  ],
+  "skippedSamples": [
+    {
+      "sampleId": "verify-19",
+      "reason": "User requested no repeat of previously accepted tasks",
+      "acceptedEvidence": "docs/research/cli/verify01-openai-136/retest-five-23e26368c8/results.json",
+      "acceptedEvidenceDigest": "sha256:62a0fdf5ed2a1377151ebdd8e77368c9d301b5ae0d600257d5c96253b2df950b",
+      "acceptedCliVersion": "0.166.136",
+      "latestReviewEnabledFailureRetained": true,
+      "countedAsCli139Acceptance": false
+    },
+    {
+      "sampleId": "verify-13",
+      "reason": "Already accepted at CLI138; rerun only the two remaining unsuccessful tasks",
+      "acceptedEvidence": "docs/research/cli/verify01-openai-138/public-c472d664eb/results.json",
+      "acceptedEvidenceDigest": "sha256:87c87c01e400b276358728865415bde556a765f391684ee27031ade21055846f",
+      "acceptedCliVersion": "0.166.138",
+      "countedAsCli139Acceptance": false
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "reason": "Already accepted at CLI138; rerun only the two remaining unsuccessful tasks",
+      "acceptedEvidence": "docs/research/cli/verify01-openai-138/public-c472d664eb/results.json",
+      "acceptedEvidenceDigest": "sha256:87c87c01e400b276358728865415bde556a765f391684ee27031ade21055846f",
+      "acceptedCliVersion": "0.166.138",
+      "countedAsCli139Acceptance": false
+    },
+    {
+      "sampleId": "verify-36",
+      "reason": "Already accepted in the preceding native CLI139 round; must not repeat",
+      "acceptedEvidence": "docs/research/cli/verify01-openai-139-r2-20261103/public-fbe0b5949b/results.json",
+      "acceptedEvidenceDigest": "sha256:9abd922dd1dbeab1de22618f063e38c68d8b7e43faff5f513cc79851692afeae",
+      "acceptedCliVersion": "0.166.139",
+      "countedAsThisRoundAcceptance": false
+    }
+  ],
+  "requestBudgets": {
+    "modelTurns": 20,
+    "physicalRequests": 24,
+    "outputTokens": 8192,
+    "requestBodyBytes": 262144,
+    "requestTimeoutMs": 180000,
+    "contextWindowTokens": 32768,
+    "largerThanPriorRound": false
+  },
+  "maximumPhysicalRequestsAcrossSelectedSamples": 24,
+  "historicalFrozen": {
+    "accepted": 41,
+    "total": 45,
+    "changed": false
+  },
+  "priorRepairedEngine": {
+    "path": "docs/research/cli/verify01-openai-137/candidate-engine3-a531924f36/results.json",
+    "digest": "sha256:b558e039764cf22fd006546f1af24e948e6e535ce610a9798c9f1802cefb09b9",
+    "accepted": 0,
+    "total": 5,
+    "reviewChanges": true,
+    "notCombined": true
+  },
+  "independentAcceptance": {
+    "freshGeneration": true,
+    "separateLinuxDocker": true,
+    "originalBehavioralMutants": true,
+    "sourceScopeExact": true,
+    "requireNormalGenerationTermination": true,
+    "requireCompleteUsage": true
+  },
+  "dispatches": [
+    {
+      "group": "darwin-vscode",
+      "hosts": "macos",
+      "entries": "vscode",
+      "sampleIds": [
+        "verify-08"
+      ]
+    }
+  ],
+  "marketplaceApprovalRequired": false,
+  "modelRequestsStarted": 0,
+  "priorPublic138": {
+    "accepted": 2,
+    "total": 4,
+    "path": "docs/research/cli/verify01-openai-138/public-c472d664eb/results.json",
+    "changed": false
+  },
+  "priorNative139": {
+    "path": "docs/research/cli/verify01-openai-139/public-24a6e3857f/results.json",
+    "digest": "sha256:bedccf675a0e98cd525e50d11749d668ee7612b7963e08a16c7424cb5f88e8e1",
+    "accepted": 0,
+    "total": 2,
+    "unchanged": true
+  },
+  "priorAssisted139": {
+    "path": "docs/research/cli/verify01-openai-139/assisted-results.json",
+    "digest": "sha256:09fd3482bcebd01c6e9137dae241c2e63430df164ae0443586c04abf5205907e",
+    "accepted": 2,
+    "total": 2,
+    "countedAsNative": false
+  },
+  "authorization": "User explicitly requests submitting a fresh GitHub Actions test after being told no CLI/IDE republication is needed. Only verify-08 remains natively unaccepted; use the existing session-authorized OpenAI credential and original per-sample limits. Do not rerun verify-36 or expose assisted answers.",
+  "packageSetDigest": "sha256:2fe5d5536c4e8e273388dfc71e7fced77bc06f5a8db3da79028340e2f8eec61e",
+  "packageResolutionDigest": "sha256:d5c696e97179c52d9ef4a40756bd3f67fc5f7aff1b290ff2dd6fb673856e9f2c",
+  "packagePreflightRun": 41546976889,
+  "previousRound": {
+    "path": "docs/research/cli/verify01-openai-139-r2-20261103/public-fbe0b5949b/results.json",
+    "digest": "sha256:9abd922dd1dbeab1de22618f063e38c68d8b7e43faff5f513cc79851692afeae",
+    "accepted": 1,
+    "total": 2,
+    "unchanged": true
+  },
+  "priorAssistedR2": {
+    "path": "docs/research/cli/verify01-openai-139-r2-20261103/assisted-verify08/acceptance/result.json",
+    "digest": "sha256:69d97df9b351fdd3db63cb2cc6a85abb2a05382809ebebe918573b2948c087e1",
+    "accepted": 1,
+    "total": 1,
+    "countedAsNative": false,
+    "answerNotProvidedToModel": true
+  },
+  "latestVersionObservation": {
+    "path": "docs/research/cli/verify01-openai-139-r3-20261103/latest-versions.json",
+    "digest": "sha256:e99808c5090f2196cd96f88bd3a9cbb5ecebe31447a94c57d753e6410621a015"
+  },
+  "packageIdentityReuse": {
+    "originalRound": "docs/research/cli/verify01-openai-139-r2-20261103",
+    "versionsUnchanged": true,
+    "originalManifestAndResolutionBytesPreserved": true
+  }
+}

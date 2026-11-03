@@ -633,6 +633,38 @@ describe("CLI release workflow contracts", () => {
     }
   });
 
+  it("runs all installed assisted regressions on the three exact-source hosts", () => {
+    const verification = workflowJob(workflow("cli-ci.yml"), "verify-cli");
+    expect(verification).toContain(
+      "os: [ubuntu-latest, windows-latest, macos-latest]",
+    );
+    expect(verification).toContain(
+      "ref: ${{ github.event.pull_request.head.sha || github.sha }}",
+    );
+    const step = verification
+      .split(
+        "- name: Verify assisted pricing, pagination, history, attachment and launch policy regressions",
+      )[1]
+      ?.split(/\n      - /u)[0];
+    expect(step).toBeDefined();
+    expect(step).toContain("working-directory: packages/cli");
+    expect(step).toContain("npx vitest run");
+    for (const id of ["04", "07", "08", "09", "10", "13", "36"]) {
+      expect(step).toContain(`__tests__/verify-${id}.test.js`);
+      expect(
+        fs.existsSync(
+          path.join(
+            repositoryRoot,
+            `packages/cli/__tests__/verify-${id}.test.js`,
+          ),
+        ),
+      ).toBe(true);
+    }
+    expect(step).not.toMatch(
+      /continue-on-error|--passWithNoTests|--testNamePattern/u,
+    );
+  });
+
   it("gates Core DB and Session Core on all exact-SHA CLI verification platforms", () => {
     const ci = workflow("cli-ci.yml");
     const verification = ci

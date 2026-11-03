@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-03T01:09:12.694Z",
+  "modelRequests": 0,
+  "versions": {
+    "cli": {
+      "version": "0.166.139",
+      "url": "https://registry.npmjs.org/chainlesschain/latest"
+    },
+    "vscode": {
+      "version": "0.37.175",
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/latest"
+    },
+    "jetbrains": {
+      "version": "0.4.192",
+      "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=5",
+      "updateId": 1209958,
+      "approve": true,
+      "listed": true
+    }
+  }
+}

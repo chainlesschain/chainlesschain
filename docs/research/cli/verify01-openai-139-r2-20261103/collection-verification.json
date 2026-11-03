@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-03T00:43:43.753Z",
+  "runId": 41554602070,
+  "collectorSource": "1da95a8d2284c19e9d60ab8ffeb597ac7090b835",
+  "artifactId": 13194155956,
+  "artifactDigest": "sha256:b705a21d1f155477e1b199a93bbb13f35a7c8b0028a8369a16a1e7ee0c65b81e",
+  "archiveZipDigestVerified": true,
+  "originalArtifactZipsVerified": 4,
+  "filesVerified": 13,
+  "filesBytes": 1695836,
+  "modelRequests": 0,
+  "resultsDigest": "sha256:9abd922dd1dbeab1de22618f063e38c68d8b7e43faff5f513cc79851692afeae"
+}

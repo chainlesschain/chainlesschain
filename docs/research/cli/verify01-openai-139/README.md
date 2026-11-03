@@ -1,11 +1,17 @@
 # CLI 0.166.139：剩余两项公开版本复测
 
+最新第三轮 verify-08 已获 **原生 1/1 通过**，基线 59/59、候选 2/2、原变异检出 1/1，见[第三轮记录](../verify01-openai-139-r3-20261103/README.md)。下方各轮历史成绩保持原身份。
+
+后续 **2026-11-03 第二轮原生复测 1/2 通过**：verify-36 通过，verify-08 候选测试虽通过但漏检父会话 capability 错绑变异；42/42 请求用量完整，临时模型 Secret 已删除。见[第二轮独立记录](../verify01-openai-139-r2-20261103/README.md)。以下本轮原生 0/2 与辅助 2/2 的历史记录保持原身份。
+
 两项失败已定位并修复，**辅助修复独立验收 2/2 通过**。原生生成这次均正常结束，但生成测试各有错误断言，原生独立验收为 **0/2**；两类结果分别保留，未把辅助修复写成模型原生交付通过。
 
-| 样本 | 修复内容 | 基线 | 修复测试 | 行为变异检出 | GitHub Actions |
-| --- | --- | --- | --- | --- | --- |
-| verify-08 | 分开校验分支显示身份与原始来源，保留祖先及正文隔离，并补齐 capability 正反对照 | 59/59 | 3/3 | 1/1 | [41451396249](https://github.com/chainlesschain/chainlesschain/actions/runs/41451396249) |
-| verify-36 | 正确处理 null/缺省预算，验证实际恢复的权限、沙箱、工具与预算参数 | 12/12 | 17/17 | 1/1 | [41453819130](https://github.com/chainlesschain/chainlesschain/actions/runs/41453819130) |
+后续已将两份辅助候选安装到 `packages/cli/__tests__/verify-08.test.js` 与 `verify-36.test.js`，仅经 Prettier 格式化。相关本机回归 **10 文件 84/84、零跳过**，三系统 CLI CI 定向步骤已纳入这两项；准确新提交的完整云端矩阵尚待运行。[安装记录](../../cli-ide/cli-ide-assisted-0836-install-progress-2026-11-02.md)单独保存候选、安装文件及原验收来源绑定，不改写上述原生成绩。
+
+| 样本      | 修复内容                                                                       | 基线  | 修复测试 | 行为变异检出 | GitHub Actions                                                                           |
+| --------- | ------------------------------------------------------------------------------ | ----- | -------- | ------------ | ---------------------------------------------------------------------------------------- |
+| verify-08 | 分开校验分支显示身份与原始来源，保留祖先及正文隔离，并补齐 capability 正反对照 | 59/59 | 3/3      | 1/1          | [41451396249](https://github.com/chainlesschain/chainlesschain/actions/runs/41451396249) |
+| verify-36 | 正确处理 null/缺省预算，验证实际恢复的权限、沙箱、工具与预算参数               | 12/12 | 17/17    | 1/1          | [41453819130](https://github.com/chainlesschain/chainlesschain/actions/runs/41453819130) |
 
 修复经过 Astra 独立分析与审阅；根因均为生成测试对已有 API 合同的错误假设，未发现需要修改产品实现的证据。两次修复验收使用各自原生运行的**原始验收脚本字节与原始 Docker 镜像**，没有额外模型请求。修复候选、脚本摘要及原始回执见 [verify-08](assisted-verify08/acceptance/result.json)、[verify-36](assisted-verify36/acceptance/result.json)，汇总见[修复结果](assisted-results.json)。
 

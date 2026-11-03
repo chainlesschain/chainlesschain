@@ -1,0 +1,35 @@
+name: VERIFY01 collect public 139 round 2 results
+
+on:
+  push:
+    tags: [verify01-139r2-collect-*]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  collect:
+    if: github.repository == 'chainlesschain/chainlesschain'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Collect exact original artifacts without model credentials
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node packages/cli/scripts/verify01-public139-collect.mjs
+          --round-directory docs/research/cli/verify01-openai-139-r2-20261103
+      - name: Preserve original receipts and binding index
+        uses: actions/upload-artifact@v6
+        with:
+          name: verify01-public139-r2-collected-results
+          path: docs/research/cli/verify01-openai-139-r2-20261103/public-*/
+          include-hidden-files: true
+          if-no-files-found: error

@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { gunzipSync } from "node:zlib";
 import { execFileSync, spawnSync } from "node:child_process";
+import { public139RoundDirectory } from "./verify01-public139-dispatch.mjs";
 
 assert.equal(process.platform, "linux");
 assert.equal(process.version, "v22.12.0");
@@ -13,10 +14,8 @@ const root = process.cwd();
 const sampleId = process.argv[2] || "verify-08";
 assert.ok(["verify-08", "verify-36"].includes(sampleId));
 const fixtureKey = sampleId.replace("-", "");
-const fixture = path.join(
-  root,
-  `docs/research/cli/verify01-openai-139/assisted-${fixtureKey}`,
-);
+const roundDirectory = public139RoundDirectory(process.argv[3]);
+const fixture = path.join(root, `${roundDirectory}/assisted-${fixtureKey}`);
 const manifestBytes = fs.readFileSync(path.join(fixture, "repair.json"));
 const manifest = JSON.parse(manifestBytes);
 const hash = (b) => "sha256:" + createHash("sha256").update(b).digest("hex");
