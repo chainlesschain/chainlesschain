@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.fresh-volcengine-native-round/v1",
   "createdAt": "2026-11-03T01:26:26.468532+00:00",
-  "status": "dispatched-after-complete-key-and-catalog-network-corrections",
+  "status": "native-generation-in-progress",
   "provider": "volcengine",
   "model": "deepseek-v4-flash-ga-260731",
   "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
@@ -154,5 +154,13 @@
     "authenticated": true,
     "requiredModelListed": true,
     "beforeAnyGenerationJobs": true
-  }
+  },
+  "latestNativeProgress": {
+    "checkedAt": "2026-11-03T02:39:21.978192+00:00",
+    "completedNativeJobs": 15,
+    "totalNativeJobs": 21,
+    "workflowStatus": "queued",
+    "independentAcceptancePending": true
+  },
+  "generationCheckpointPath": "docs/research/cli/verify01-volcengine-139-20261103/generation-checkpoint.json"
 }
