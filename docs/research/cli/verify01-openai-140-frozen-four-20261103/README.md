@@ -7,6 +7,7 @@
 - 项目及发行源码：`e2a91bf54332ff3d252c40ecc25c5887e0f0430d`，包含 .138 / .139 的相关源码修正。采用明确的修正源码修订，不将其记录为原 `b2aa3aba` 项目的成绩。
 - CLI `0.166.140`、VS Code `0.37.176`、JetBrains `0.4.193`；VS Code 宿主 `1.132.0`、IntelliJ IDEA `2025.2`。
 - CLI 通过 GitHub Actions OIDC 发布，配套插件随后发布；公开包与官方构件的关系见 [包证明](package-resolution.json) 和本轮 `public-readback.json`。旧发布证明保留原字节，本轮另行核对 JetBrains 商店状态。
+- 本轮公开回读确认 JetBrains `0.4.193`（update `1211021`）已获批、列出且可公开下载；商店包内容与官方构件逐项一致。CLI 与 VS Code 的公开包 SHA-256 均与官方发布字节匹配。
 - 模型保持 `OpenAI / gpt-6.1-sol / Responses`，默认思考，`review_changes=true`，规划上下文 `32768` tokens。
 - 维持每样本 20 轮、24 个物理请求、8192 输出 tokens，四项总上限 96 个物理请求；普通任务 20 分钟、首次安装 30 分钟。准备工作不启动模型请求。
 
@@ -19,3 +20,15 @@ macOS VS Code 执行 `verify-08` 和独立首次安装；Linux CLI 执行 `verif
 原冻结项目历史 **41/45**、修正源码跨版本累计 **45/45** 与本轮四项成绩分别报告。此次不重开原正式冻结计划的财务准入，正式状态继续为 `NOT_RUN`。
 
 [复测计划](retest-plan.json) 与 [包清单](../verify01-package-sets/2026-11-03-openai140-frozen-four.json) 固定范围和摘要。实际派发、不可变执行提交及最终逐项结果将以 `dispatch.json`、原始回执和 `results.json` 记录；准备完成不表示模型补测完成。临时仓库模型凭据只在授权执行期间使用，结束后删除并核对，不改动用户提供的本地文件。
+
+## 本轮运行
+
+执行提交冻结为 `802c51a9f20568d06268b12c0326087eca697278`，标签 `verify01-public140-run-802c51a9f2`。四份计划绑定摘要均与此提交的原始 Git blob 核对一致；后续文档或排版提交不替代执行源码。
+
+| 宿主 / 入口 | 样本 | 原生运行 |
+| --- | --- | --- |
+| macOS / VS Code | `verify-08`、`first-run-darwin-vscode` | [41665846234](https://github.com/chainlesschain/chainlesschain/actions/runs/41665846234) |
+| Linux / CLI | `verify-13` | [41665868150](https://github.com/chainlesschain/chainlesschain/actions/runs/41665868150) |
+| macOS / JetBrains | `verify-36` | [41666324429](https://github.com/chainlesschain/chainlesschain/actions/runs/41666324429) |
+
+三次 POST 均只提交一次。GitHub 的按 head SHA 查询一度未返回已受理的 Linux 运行，派发器依合同停止；随后从相同不可变标签的分支列表确认原运行，保留回执并仅提交尚未提交的 JetBrains 作业，没有重发 Linux 请求。见 [派发 journal](dispatch.json)。运行结束后按实际原始回执填写成绩；排队或启动不算通过。

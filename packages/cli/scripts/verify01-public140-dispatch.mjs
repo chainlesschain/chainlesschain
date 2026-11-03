@@ -42,7 +42,10 @@ export function assertAuthorizedPublic140Dispatch(
   assert.equal(plan.independentAcceptance.freshGeneration, true);
   assert.equal(plan.independentAcceptance.separateLinuxDocker, true);
   assert.equal(plan.independentAcceptance.originalBehavioralMutants, true);
-  assert.equal(plan.independentAcceptance.requireNormalGenerationTermination, true);
+  assert.equal(
+    plan.independentAcceptance.requireNormalGenerationTermination,
+    true,
+  );
   assert.equal(plan.independentAcceptance.requireCompleteUsage, true);
   assert.equal(plan.provider, "openai");
   assert.equal(plan.model, "gpt-6.1-sol");
@@ -124,7 +127,10 @@ async function main() {
   };
   const save = () =>
     fs.writeFileSync(file, JSON.stringify(state, null, 2) + "\n");
-  assert.ok(dry || !fs.existsSync(file), "Existing dispatch journal must be reconciled, never overwritten");
+  assert.ok(
+    dry || !fs.existsSync(file),
+    "Existing dispatch journal must be reconciled, never overwritten",
+  );
   assertAuthorizedPublic140Dispatch(plan, {
     source,
     ref,
@@ -148,7 +154,10 @@ async function main() {
   assert.equal(readback.jetbrains.publiclyDownloadable, true);
   loadPublicGeneratorProof(manifest, { repositoryRoot: root });
   assert.equal(manifest.releaseSourceCommits.cli, plan.projectSource);
-  assert.equal(read(plan.projectRevisionFile).projectCommit, plan.projectSource);
+  assert.equal(
+    read(plan.projectRevisionFile).projectCommit,
+    plan.projectSource,
+  );
   if (dry) {
     console.log(
       JSON.stringify({

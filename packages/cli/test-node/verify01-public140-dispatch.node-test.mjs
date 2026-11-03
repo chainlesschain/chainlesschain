@@ -31,7 +31,12 @@ test("rejects absent credentials, retries, wrong source references and changed t
   for (const change of [
     { projectSource: "f".repeat(40) },
     { formalSample: true },
-    { independentAcceptance: { ...plan.independentAcceptance, requireNormalGenerationTermination: false } },
+    {
+      independentAcceptance: {
+        ...plan.independentAcceptance,
+        requireNormalGenerationTermination: false,
+      },
+    },
     { selectedSampleIds: [...plan.selectedSampleIds, "verify-19"] },
     { reviewChanges: false },
     { requestBudgets: { ...plan.requestBudgets, modelTurns: 40 } },

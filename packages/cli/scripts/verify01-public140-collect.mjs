@@ -5,12 +5,24 @@ import os from "node:os";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { listZipEntries, readZipEntry } from "../../vscode-extension/scripts/verify-vsix.mjs";
+import {
+  listZipEntries,
+  readZipEntry,
+} from "../../vscode-extension/scripts/verify-vsix.mjs";
 const directory = "docs/research/cli/verify01-openai-140-frozen-four-20261103";
-const expectedIds = ["verify-08", "verify-13", "verify-36", "first-run-darwin-vscode"];
-const token = process.env.GH_TOKEN || execFileSync("gh", ["auth", "token"], {encoding: "utf8", windowsHide: true}).trim();
-const githubEnvironment = {...process.env, GH_TOKEN: token, GH_DEBUG: ""};
-
+const expectedIds = [
+  "verify-08",
+  "verify-13",
+  "verify-36",
+  "first-run-darwin-vscode",
+];
+const token =
+  process.env.GH_TOKEN ||
+  execFileSync("gh", ["auth", "token"], {
+    encoding: "utf8",
+    windowsHide: true,
+  }).trim();
+const githubEnvironment = { ...process.env, GH_TOKEN: token, GH_DEBUG: "" };
 
 const dispatch = JSON.parse(
   fs.readFileSync(`${directory}/dispatch.json`, "utf8"),
@@ -23,8 +35,12 @@ assert.match(source, /^[a-f0-9]{40}$/u);
 const repo = "chainlesschain/chainlesschain";
 const output = `${directory}/public-${source.slice(0, 10)}`;
 const selections = dispatch.dispatches.map((row) => ({
-  id: row.runId, originalRunId: row.runId,
-  group: row.entries === "jetbrains" ? `${row.group}-${row.sampleIds[0]}` : row.group,
+  id: row.runId,
+  originalRunId: row.runId,
+  group:
+    row.entries === "jetbrains"
+      ? `${row.group}-${row.sampleIds[0]}`
+      : row.group,
   samples: row.sampleIds,
 }));
 assert.equal(selections.length, 3);
@@ -115,13 +131,18 @@ for (const selection of selections) {
     let expanded = 0;
     for (const [name, entry] of listZipEntries(zip)) {
       if (name.endsWith("/")) continue;
-      assert.ok(!/[\\:\r\n]/u.test(name) && name.split("/").every((part) => part && part !== "." && part !== ".."));
+      assert.ok(
+        !/[\\:\r\n]/u.test(name) &&
+          name
+            .split("/")
+            .every((part) => part && part !== "." && part !== ".."),
+      );
       const target = path.resolve(extracted, name);
       assert.ok(target.startsWith(path.resolve(extracted) + path.sep));
       const bytes = readZipEntry(zip, entry);
       expanded += bytes.length;
       assert.ok(expanded < 134217728);
-      fs.mkdirSync(path.dirname(target), {recursive: true});
+      fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.writeFileSync(target, bytes);
     }
     const summaryBytes = fs.readFileSync(path.join(extracted, "summary.json"));
