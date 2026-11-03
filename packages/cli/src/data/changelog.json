@@ -9,7 +9,7 @@
       "title": "",
       "sections": [
         {
-          "heading": "Fixed - cc CLI 0.166.139: complete author work and independent review within one budget (candidate, 2026-11-02)",
+          "heading": "Fixed - cc CLI 0.166.139: complete author work and independent review within one budget (released, 2026-11-02)",
           "body": "- Reserve fresh independent inspection, repair, read-back and final reporting inside the original model-turn limit, including when the author continues calling tools. Unknown usage and insufficient remaining review capacity fail explicitly; last-turn tool calls cannot become a successful terminal result.\n- Recover complete surrounding JavaScript statements from the same file snapshot when a partial page cannot be projected. Preserve the original requested range and actual returned range, the existing JSON/source validation, provider delivery accounting and output metadata headroom.\n- Preserve focused explicit read ranges instead of silently substituting an unrelated unread section. Broad truncated scans retain bounded cursor progress.\n- Pair CLI 0.166.139 with Open VSX 0.37.175 and JetBrains 0.4.192 after complete exact-source release gates and verified upstream publication. SDK 0.2.17 and Kernel 0.1.11 remain unchanged and must pass upstream reuse checks.\n- Retest only verify-08 and verify-36 with the new package set, keeping independent review and the original budget. Prior CLI .138 result remains 2/4; previously accepted samples are not repeated. These engineering repairs do not claim new real-model success."
         }
       ]

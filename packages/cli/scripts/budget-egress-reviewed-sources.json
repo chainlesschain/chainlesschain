@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.budget-egress-source-review/v1",
-  "reviewedAt": "2026-11-02",
+  "reviewedAt": "2026-11-03",
   "scope": ["packages/cli/src", "packages/cli/scripts"],
   "basis": "Implementation source inspection; byte-bound classifications only. Not an independent financial/OS admission decision.",
   "entries": [
@@ -105,6 +105,18 @@
       "digest": "sha256:00f32ec92dc7fe3017a4ce7067eedfd0ec2cce579725c2fe24216b83f0526b0a",
       "category": "DISTRIBUTION",
       "rationale": "2026-11-02 source review: operator preparation for the fixed CLI 0.166.138, Open VSX 0.37.174 and JetBrains 0.4.191 pairing. Fetches public npm/Open VSX metadata and HTTPS package URLs, and uses GitHub CLI read-only run/artifact APIs and downloads for pinned official release runs. Checks exact source commits, tags, workflow names, successful completion, artifact metadata, registry integrity and official manifests/payload hashes before writing a package manifest and proof report. The pending JetBrains artifact is bound through publication-proof and artifact validators without claiming Marketplace approval. GitHub authentication may be used by gh, but no model credential is read and no model endpoint, workflow dispatch, package publication or generation is invoked; modelRequests remains zero. Local report writes and distribution reads do not grant paid/native admission or model-task acceptance."
+    },
+    {
+      "path": "packages/cli/scripts/verify01-public139-package-snapshot.mjs",
+      "digest": "sha256:783075bcb508867cd4c83bda617d2fd705d2e7197a0b4a9de1f8c2326c8d001a",
+      "category": "DISTRIBUTION",
+      "rationale": "Operator-only public distribution snapshot: GETs npm/Open VSX metadata and package payloads, reads fixed same-repository release-run/artifact metadata through gh, downloads official artifacts, verifies release/source/version and payload bindings, and writes local package-set/evidence JSON. No model credential access, inference, workflow dispatch, publication or execution of downloaded packages. GitHub authentication, inherited child environment and download redirects remain external service boundaries; only the initial HTTPS URL is checked and payload size is checked after buffering. This byte-bound source review does not grant paid admission or change paidReady."
+    },
+    {
+      "path": "packages/cli/scripts/verify01-public139-r2-package-snapshot.mjs",
+      "digest": "sha256:c79195f3519d7c8cb8bbf42856fc13a061d31dc99d84968ecb3a4d92ad093a97",
+      "category": "DISTRIBUTION",
+      "rationale": "Operator-only public distribution snapshot: GETs npm/Open VSX metadata and package payloads, reads fixed same-repository release-run/artifact metadata through gh, downloads official artifacts, verifies release/source/version and payload bindings, and writes local package-set/evidence JSON. No model credential access, inference, workflow dispatch, publication or execution of downloaded packages. GitHub authentication, inherited child environment and download redirects remain external service boundaries; only the initial HTTPS URL is checked and payload size is checked after buffering. This byte-bound source review does not grant paid admission or change paidReady. Also reads the public JetBrains update API and ZIP and compares its entry payload digests with the official release artifact."
     },
     {
       "path": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
