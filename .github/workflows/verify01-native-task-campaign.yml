@@ -165,7 +165,7 @@ jobs:
             import {nativeProviderProfile} from "./packages/cli/scripts/verify01-native-provider-profile.mjs";
             import {prereleasePackageBinding} from "./packages/cli/scripts/verify01-prerelease-package-set.mjs";
             import {loadPublicGeneratorProof} from "./packages/cli/scripts/verify01-public-generator-binding.mjs";
-            import {assertFreshVolcengineRound} from "./packages/cli/scripts/verify01-volcengine-fresh-round.mjs";
+            import {assertFreshVolcengineRound, verifyFreshVolcengineCredential} from "./packages/cli/scripts/verify01-volcengine-fresh-round.mjs";
             const provider = nativeProviderProfile(process.env.NATIVE_PROVIDER || "volcengine").provider;
             const run = process.env.DELIVERY_RUN, commit = process.env.DELIVERY_COMMIT;
             if (!!run !== !!commit || (run && (!/^[1-9][0-9]+$/.test(run) || !/^[a-f0-9]{40}$/.test(commit)))) throw new Error("paired exact delivery run and commit required");
@@ -196,14 +196,8 @@ jobs:
                 repositoryRoot: process.cwd(),
               });
               if (!run) {
-                if (!process.env.VOLCENGINE_API_KEY?.trim()) throw new Error("Dedicated complete Volcengine key is required");
-                const modelResponse = await fetch("https://ark.cn-beijing.volces.com/api/v3/models", {
-                  signal: AbortSignal.timeout(30000),
-                  headers: {Authorization: "Bearer " + process.env.VOLCENGINE_API_KEY.trim()},
-                });
-                if (!modelResponse.ok) throw new Error("Volcengine credential metadata preflight failed: HTTP " + modelResponse.status);
-                const modelList = await modelResponse.json();
-                if (!modelList.data?.some(row => row.id === "deepseek-v4-flash-ga-260731")) throw new Error("Required DeepSeek model missing from authenticated model catalog");
+                const authentication = await verifyFreshVolcengineCredential(process.env.VOLCENGINE_API_KEY);
+                console.log(JSON.stringify({credentialMetadataPreflight: authentication}));
                 const manifest = JSON.parse(packageBinding.bytes.toString("utf8"));
                 for (const [name, url] of [
                   ["cli", "https://registry.npmjs.org/chainlesschain/latest"],

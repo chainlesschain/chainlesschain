@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.fresh-volcengine-native-round/v1",
   "createdAt": "2026-11-03T01:26:26.468532+00:00",
-  "status": "dispatched-after-complete-credential-correction",
+  "status": "ready-after-catalog-network-preflight-correction",
   "provider": "volcengine",
   "model": "deepseek-v4-flash-ga-260731",
   "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
@@ -121,6 +121,24 @@
     "modelGenerationRequestsInMetadataPreflight": 0,
     "checkedAt": "2026-11-03T01:47:12.177561+00:00"
   },
-  "executionSource": "12691dec300e3048f93e9211cbe54d794ae3ba3f",
-  "runId": 41562280904
+  "catalogNetworkAttempt": {
+    "runId": 41562280904,
+    "source": "12691dec300e3048f93e9211cbe54d794ae3ba3f",
+    "conclusion": "failure",
+    "stage": "Select requested native hosts, before any generation jobs",
+    "error": "Node fetch connection timeout during authenticated GET /models",
+    "networkCodes": [
+      "ETIMEDOUT",
+      "ENETUNREACH"
+    ],
+    "httpAuthenticationResponseReceived": false,
+    "modelGenerationRequests": 0,
+    "countsAsModelCapabilityFailure": false
+  },
+  "catalogNetworkCorrection": {
+    "connectionAttemptTimeoutMs": 2000,
+    "maximumReadOnlyCatalogAttempts": 3,
+    "authenticationRejectionsRetried": false,
+    "modelGenerationPolicyChanged": false
+  }
 }

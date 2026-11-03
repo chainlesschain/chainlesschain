@@ -1,5 +1,55 @@
 import assert from "node:assert/strict";
+import net from "node:net";
 import { loadPublicGeneratorProof } from "./verify01-public-generator-binding.mjs";
+
+/** Read-only authentication. Retry only catalog network failures, never generation. */
+export async function verifyFreshVolcengineCredential(
+  key,
+  { fetchImpl = globalThis.fetch } = {},
+) {
+  assert.ok(key?.trim(), "Dedicated complete Volcengine key is required");
+  const previous = net.getDefaultAutoSelectFamilyAttemptTimeout();
+  net.setDefaultAutoSelectFamilyAttemptTimeout(2000);
+  try {
+    let response;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        response = await fetchImpl(
+          "https://ark.cn-beijing.volces.com/api/v3/models",
+          {
+            signal: AbortSignal.timeout(30000),
+            headers: { Authorization: "Bearer " + key.trim() },
+          },
+        );
+        break;
+      } catch (error) {
+        if (attempt === 2) {
+          throw new Error(
+            "Volcengine catalog network preflight failed before authentication",
+            { cause: error },
+          );
+        }
+      }
+    }
+    assert.ok(
+      response.ok,
+      "Volcengine credential metadata preflight failed: HTTP " +
+        response.status,
+    );
+    const models = await response.json();
+    assert.ok(
+      models.data?.some((row) => row.id === "deepseek-v4-flash-ga-260731"),
+      "Required DeepSeek model missing from authenticated model catalog",
+    );
+    return {
+      authenticated: true,
+      modelListed: true,
+      modelGenerationRequests: 0,
+    };
+  } finally {
+    net.setDefaultAutoSelectFamilyAttemptTimeout(previous);
+  }
+}
 
 /** Explicit new full round, separate from the historical unfinished-task chain. */
 export function assertFreshVolcengineRound({

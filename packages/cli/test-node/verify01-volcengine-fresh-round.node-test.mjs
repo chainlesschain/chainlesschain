@@ -6,7 +6,10 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { assertFreshVolcengineRound } from "../scripts/verify01-volcengine-fresh-round.mjs";
+import {
+  assertFreshVolcengineRound,
+  verifyFreshVolcengineCredential,
+} from "../scripts/verify01-volcengine-fresh-round.mjs";
 import { nativeProviderCells } from "../scripts/verify01-native-round-matrix.mjs";
 import { selectNativeSamples } from "../scripts/verify01-native-task-campaign.mjs";
 
@@ -44,6 +47,51 @@ const options = (changed = {}) => ({
   credentialPresent: true,
   repositoryRoot,
   ...changed,
+});
+
+test("catalog authentication retries network failures but never retries a rejected credential or starts generation", async () => {
+  let calls = 0;
+  const result = await verifyFreshVolcengineCredential(
+    "offline-placeholder-never-sent",
+    {
+      fetchImpl: async (url) => {
+        assert.ok(url.endsWith("/models"));
+        if (++calls < 3) throw new TypeError("offline TCP timeout");
+        return {
+          ok: true,
+          json: async () => ({ data: [{ id: "deepseek-v4-flash-ga-260731" }] }),
+        };
+      },
+    },
+  );
+  assert.equal(calls, 3);
+  assert.deepEqual(result, {
+    authenticated: true,
+    modelListed: true,
+    modelGenerationRequests: 0,
+  });
+  calls = 0;
+  await assert.rejects(
+    verifyFreshVolcengineCredential("offline-placeholder-never-sent", {
+      fetchImpl: async () => {
+        calls++;
+        return { ok: false, status: 401 };
+      },
+    }),
+    /HTTP 401/u,
+  );
+  assert.equal(calls, 1);
+  calls = 0;
+  await assert.rejects(
+    verifyFreshVolcengineCredential("offline-placeholder-never-sent", {
+      fetchImpl: async () => {
+        calls++;
+        throw new TypeError("offline TCP timeout");
+      },
+    }),
+    /before authentication/u,
+  );
+  assert.equal(calls, 3);
 });
 
 test("fresh Volcengine round requires explicit full scope, original inputs, verified packages and its dedicated key", () => {
