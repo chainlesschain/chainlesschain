@@ -1,0 +1,329 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+// From packages/cli/__tests__, ../src resolves to packages/cli/src.
+import { readBoundedImage } from "../src/lib/image-file-boundary.js";
+
+const BYTE_LIMIT = 20 * 1024 * 1024;
+const HEADER_LIMIT = 1024 * 1024;
+const roots = [];
+afterEach(() => {
+  for (const root of roots.splice(0)) {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+function png(width = 1, height = 1) {
+  // A complete 1x1 PNG; this API admits headers, not full codec decoding.
+  const data = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",
+    "base64",
+  );
+  data.writeUInt32BE(width, 16);
+  data.writeUInt32BE(height, 20);
+  return data;
+}
+
+function fixture(data = png(), size = data.length) {
+  const root = fs.mkdtempSync(join(tmpdir(), "repair137-handle-"));
+  roots.push(root);
+  const path = join(root, "input.png");
+  fs.writeFileSync(path, data);
+  fs.truncateSync(path, size);
+  const io = {
+    openSync: vi.fn((...args) => fs.openSync(...args)),
+    fstatSync: vi.fn((...args) => fs.fstatSync(...args)),
+    readSync: vi.fn((...args) => fs.readSync(...args)),
+    closeSync: vi.fn((...args) => fs.closeSync(...args)),
+  };
+  return { path, io, data };
+}
+
+function read(f, budget = BYTE_LIMIT, type = "image/png") {
+  return readBoundedImage(f.path, type, budget, f.io);
+}
+
+function closed(f) {
+  expect(f.io.openSync).toHaveBeenCalledTimes(1);
+  const fd = f.io.openSync.mock.results[0].value;
+  expect(f.io.openSync.mock.calls[0]).toEqual([
+    f.path,
+    fs.constants.O_RDONLY | (fs.constants.O_NONBLOCK || 0),
+  ]);
+  for (const call of [...f.io.fstatSync.mock.calls, ...f.io.readSync.mock.calls]) {
+    expect(call[0]).toBe(fd);
+  }
+  expect(f.io.closeSync.mock.calls).toEqual([[fd]]);
+  expect(() => fs.fstatSync(fd)).toThrow(expect.objectContaining({ code: "EBADF" }));
+}
+
+// Mutate immediately before the body pass, after the header has been admitted.
+// Pin metadata deliberately: each negative control isolates the named guard.
+function beforeBody(f, change) {
+  const original = fs.statSync(f.path);
+  f.io.fstatSync.mockImplementation(() => original);
+  let starts = 0;
+  f.io.readSync.mockImplementation((fd, buffer, offset, length, position) => {
+    if (position === 0 && ++starts === 2) change(fd);
+    return fs.readSync(fd, buffer, offset, length, position);
+  });
+}
+
+// Put a complete SOF segment exactly at the header window's end (or one
+// byte beyond it). APP segments remain well formed in both controls.
+function jpegAtHeaderEnd(extra) {
+  const sof = Buffer.from([255, 192, 0, 8, 8, 0, 1, 0, 1, 0]);
+  const parts = [Buffer.from([255, 216])];
+  let padding = HEADER_LIMIT + extra - 2 - sof.length;
+  while (padding > 0) {
+    const size = Math.min(padding, 65537);
+    const segment = Buffer.alloc(size);
+    segment[0] = 255;
+    segment[1] = 224;
+    segment.writeUInt16BE(size - 2, 2);
+    parts.push(segment);
+    padding -= size;
+  }
+  return Buffer.concat([...parts, sof]);
+}
+
+// Coverage audit (all calls enter the real readBoundedImage):
+// - size/budget/pixels/header-window: accepted upper boundary and next value;
+// - width/height: 1 versus 0; type/signature/isFile: only that input differs;
+// - replacement/count/final-stat races: unchanged control versus one change.
+//   Metadata is pinned for byte/count races; bytes remain intact for stat races.
+// - path replacement before either pass: original bytes, not pathname bytes;
+//   metadata is pinned for the before-body case to isolate handle ownership.
+// - every opened descriptor is checked for same-handle use and actual closure,
+//   including isolated header/body read failures versus successful reads.
+// Not selected: invalid/empty initial stat sizes, other codec parser branches,
+// open/close syscall failures, and mutations beyond the inspected header
+// whose size and timestamps also remain unchanged (not promised by this API).
+
+describe("independent admission controls", () => {
+  it("accepts exactly 20 MiB and rejects the next byte before reading", () => {
+    const expected = Buffer.alloc(BYTE_LIMIT);
+    png().copy(expected);
+    const valid = fixture(expected);
+    const result = read(valid, BYTE_LIMIT + 1);
+    expect(result.length).toBe(BYTE_LIMIT);
+    expect(result.equals(expected)).toBe(true);
+    closed(valid);
+
+    // Sparse oversized input; no large negative-control body is allocated.
+    const invalid = fixture(png(), BYTE_LIMIT + 1);
+    expect(() => read(invalid, BYTE_LIMIT + 1)).toThrow(/1 byte to 20 MiB/);
+    expect(invalid.io.readSync).not.toHaveBeenCalled();
+    closed(invalid);
+  });
+
+  it("accepts exactly the remaining budget and rejects one byte beyond it", () => {
+    const valid = fixture();
+    expect(read(valid, valid.data.length).equals(valid.data)).toBe(true);
+    closed(valid);
+    const invalid = fixture();
+    expect(() => read(invalid, invalid.data.length - 1)).toThrow(
+      /Total image attachments exceed 20 MiB/,
+    );
+    expect(invalid.io.readSync).not.toHaveBeenCalled();
+    closed(invalid);
+  });
+
+  it.each([
+    ["pixel cap", [40_000_000, 1], [40_000_001, 1]],
+    ["positive width", [1, 1], [0, 1]],
+    ["positive height", [1, 1], [1, 0]],
+  ])("checks %s independently", (_name, accepted, rejected) => {
+    const valid = fixture(png(...accepted));
+    expect(read(valid).equals(valid.data)).toBe(true);
+    closed(valid);
+    const invalid = fixture(png(...rejected));
+    expect(() => read(invalid)).toThrow(/positive and at most 40 megapixels/);
+    // Header read only: rejection must precede body allocation/read.
+    expect(invalid.io.readSync).toHaveBeenCalledTimes(1);
+    closed(invalid);
+  });
+
+  it("requires a regular opened handle, with size and header otherwise valid", () => {
+    for (const regular of [true, false]) {
+      const f = fixture();
+      const stat = fs.statSync(f.path);
+      f.io.fstatSync.mockImplementation(() => ({
+        size: stat.size,
+        mtimeMs: stat.mtimeMs,
+        ctimeMs: stat.ctimeMs,
+        isFile: () => regular,
+      }));
+      if (regular) expect(read(f).equals(f.data)).toBe(true);
+      else {
+        expect(() => read(f)).toThrow(/must be a regular file/);
+        expect(f.io.readSync).not.toHaveBeenCalled();
+      }
+      closed(f);
+    }
+  });
+
+  it("rejects a malformed header independently of the declared media type", () => {
+    const valid = fixture();
+    expect(read(valid).equals(valid.data)).toBe(true);
+    closed(valid);
+    const bytes = png();
+    bytes[0] = 0;
+    const invalid = fixture(bytes);
+    expect(() => read(invalid)).toThrow(/Unsupported or malformed image header/);
+    expect(invalid.io.readSync).toHaveBeenCalledTimes(1);
+    closed(invalid);
+  });
+
+  it("checks the expected media type against an otherwise admissible PNG", () => {
+    const valid = fixture();
+    expect(read(valid, BYTE_LIMIT, "image/png").equals(valid.data)).toBe(true);
+    closed(valid);
+    const invalid = fixture();
+    expect(() => read(invalid, BYTE_LIMIT, "image/jpeg")).toThrow(
+      /extension does not match its file header/,
+    );
+    expect(invalid.io.readSync).toHaveBeenCalledTimes(1);
+    closed(invalid);
+  });
+
+  it("admits dimensions ending at 1 MiB but not one byte past the header window", () => {
+    const valid = fixture(jpegAtHeaderEnd(0));
+    expect(read(valid, BYTE_LIMIT, "image/jpeg").equals(valid.data)).toBe(true);
+    closed(valid);
+    const invalid = fixture(jpegAtHeaderEnd(1));
+    expect(() => read(invalid, BYTE_LIMIT, "image/jpeg")).toThrow(/first 1 MiB/);
+    expect(invalid.io.readSync).toHaveBeenCalledTimes(1);
+    expect(invalid.io.readSync.mock.calls[0][1].length).toBe(HEADER_LIMIT);
+    closed(invalid);
+  });
+});
+
+describe("independent same-handle image boundary regressions", () => {
+  it("reads a small image through short descriptor reads and closes it", () => {
+    const f = fixture();
+    f.io.readSync.mockImplementation((fd, data, offset, length, position) =>
+      fs.readSync(fd, data, offset, Math.min(length, 7), position),
+    );
+    const result = read(f);
+    expect(Buffer.isBuffer(result)).toBe(true);
+    expect(result.length).toBe(f.data.length);
+    expect(result.equals(f.data)).toBe(true);
+    closed(f);
+  });
+
+  it.each(["before header", "before body"])(
+    "pins the opened inode when the pathname is replaced %s",
+    (phase) => {
+      for (const replaced of [false, true]) {
+        const f = fixture();
+        const replacement = png(2, 1);
+        const replace = () => {
+          if (replaced) {
+            fs.renameSync(f.path, `${f.path}.original`);
+            fs.writeFileSync(f.path, replacement);
+          }
+        };
+        if (phase === "before header") {
+          f.io.openSync.mockImplementation((...args) => {
+            const fd = fs.openSync(...args);
+            replace();
+            return fd;
+          });
+        } else {
+          // Renaming can change ctime. Pin metadata in both controls so this
+          // tests descriptor ownership, not the separately tested stat guard.
+          beforeBody(f, replace);
+        }
+        const result = read(f);
+        expect(result.equals(f.data)).toBe(true);
+        expect(result.equals(replacement)).toBe(false);
+        expect(fs.readFileSync(f.path).equals(replaced ? replacement : f.data)).toBe(true);
+        if (replaced) {
+          expect(fs.readFileSync(`${f.path}.original`).equals(f.data)).toBe(true);
+        }
+        closed(f);
+      }
+    },
+  );
+
+  it.each(["header", "body"])("closes the pinned descriptor on a %s read failure", (phase) => {
+    for (const fails of [false, true]) {
+      const f = fixture();
+      const failure = new Error(`injected ${phase} read failure`);
+      let starts = 0;
+      const failAt = phase === "header" ? 1 : 2;
+      f.io.readSync.mockImplementation((fd, data, offset, length, position) => {
+        if (position === 0 && ++starts === failAt && fails) throw failure;
+        return fs.readSync(fd, data, offset, length, position);
+      });
+      if (fails) {
+        expect(() => read(f)).toThrow(failure);
+        expect(starts).toBe(failAt);
+        // A throwing read precedes the final stat; cleanup still owns the fd.
+        expect(f.io.fstatSync).toHaveBeenCalledTimes(1);
+      } else {
+        expect(read(f).equals(f.data)).toBe(true);
+        expect(f.io.fstatSync).toHaveBeenCalledTimes(2);
+      }
+      closed(f);
+    }
+  });
+
+  it("rejects same-size replacement between header admission and body read", () => {
+    for (const replaced of [false, true]) {
+      const f = fixture();
+      beforeBody(f, () => {
+        if (replaced) fs.writeFileSync(f.path, png(2, 1));
+      });
+      if (replaced) expect(() => read(f)).toThrow(/changed while being read/);
+      else expect(read(f).equals(f.data)).toBe(true);
+      // Both complete the body and second stat; only header bytes differ.
+      expect(f.io.fstatSync).toHaveBeenCalledTimes(2);
+      closed(f);
+    }
+  });
+
+  it.each(["grow", "shrink"])("rejects %s during reading with bounded requests", (mode) => {
+    for (const changed of [false, true]) {
+      // A zero trailer keeps the header comparison equal even after shrinking:
+      // the unread last byte in the zero-filled body buffer is also zero.
+      const f = fixture(Buffer.concat([png(), Buffer.alloc(1)]));
+      beforeBody(f, () => {
+        if (changed) fs.truncateSync(f.path, f.data.length + (mode === "grow" ? 1 : -1));
+      });
+      if (changed) expect(() => read(f)).toThrow(/changed while being read/);
+      else expect(read(f).equals(f.data)).toBe(true);
+      // Metadata is fixed, so count (not a timestamp/size stat) rejects this.
+      for (const [, buffer, , length] of f.io.readSync.mock.calls) {
+        expect(buffer.length).toBeLessThanOrEqual(f.data.length + 1);
+        expect(length).toBeLessThanOrEqual(f.data.length + 1);
+      }
+      expect(f.io.fstatSync).toHaveBeenCalledTimes(2);
+      closed(f);
+    }
+  });
+
+  it.each(["size", "mtimeMs", "ctimeMs"])("independently checks final %s", (field) => {
+    for (const changed of [false, true]) {
+      const f = fixture();
+      const initial = fs.statSync(f.path);
+      let calls = 0;
+      f.io.fstatSync.mockImplementation(() => {
+        calls++;
+        return {
+          isFile: () => true,
+          size: initial.size,
+          mtimeMs: initial.mtimeMs,
+          ctimeMs: initial.ctimeMs,
+          ...(changed && calls === 2 ? { [field]: initial[field] + 1 } : {}),
+        };
+      });
+      if (changed) expect(() => read(f)).toThrow(/changed while being read/);
+      else expect(read(f).equals(f.data)).toBe(true);
+      expect(calls).toBe(2);
+      closed(f);
+    }
+  });
+});

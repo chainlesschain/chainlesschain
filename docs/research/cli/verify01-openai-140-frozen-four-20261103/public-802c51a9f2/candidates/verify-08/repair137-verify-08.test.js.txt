@@ -1,0 +1,85 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+const root = mkdtempSync(join(tmpdir(), "cc-fork-ownership-"));
+// This file lives in __tests__, not __tests__/unit: ../src resolves to
+// packages/cli/src. Only storage paths are mocked, never history or the store.
+vi.mock("../src/lib/paths.js", () => ({
+  getHomeDir: () => join(root, "home"),
+  getSessionStoreDir: () => join(root, "home", "sessions"),
+  getClaudeProjectStorageDir: () => null,
+  getStatePath: () => join(root, "home", "state"),
+  getMachineSecurityAnchorDir: () => join(root, "security"),
+}));
+const store = await import("../src/harness/jsonl-session-store.js");
+const { readSessionTranscriptHistory, createSessionTranscriptBranchProjection } =
+  await import("../src/lib/session-transcript-history.js");
+
+afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+function turn(id, question, answer) {
+  store.appendUserMessage(id, question);
+  store.appendAssistantMessage(id, answer);
+}
+
+function branch(parentSessionId, branchSessionId, count) {
+  const messages = store.readVerifiedMessages(parentSessionId).slice(0, count);
+  const head = store.findLatestEvent(parentSessionId, null).hash;
+  return store.withSessionAuthorityTransaction(parentSessionId, head, (tx) =>
+    tx.readProjection(() =>
+      createSessionTranscriptBranchProjection(parentSessionId, messages, (history) =>
+        store.createBranchSession({
+          parentSessionId,
+          branchSessionId,
+          parentTurnId: "selected",
+          messages,
+          history,
+        }),
+      ),
+    ),
+  );
+}
+
+function expectRestored(id, expected) {
+  // Model context and display archive are independently persisted projections.
+  expect(store.readVerifiedMessages(id).map((m) => [m.role, m.content])).toEqual(
+    expected.map((text, i) => [i % 2 ? "assistant" : "user", text]),
+  );
+  const page = readSessionTranscriptHistory(id);
+  expect(page.totalMessages).toBe(expected.length);
+  expect(page.messages.map((m) => m.text)).toEqual(expected);
+  return page;
+}
+
+describe("fork history ownership (real persisted branch imports)", () => {
+  it("restores both siblings' ancestors but never the parent's suffix or the sibling's body", () => {
+    const parent = "ownership-root";
+    const left = "ownership-left";
+    const right = "ownership-right";
+    store.startSession(parent, { provider: "test", model: "test" });
+    turn(parent, "ancestor question", "ancestor answer");
+    turn(parent, "past-cut question", "past-cut answer");
+    const original = readSessionTranscriptHistory(parent);
+    expect(branch(parent, left, 2).created).toBe(true);
+    expect(branch(parent, right, 2).created).toBe(true);
+    turn(left, "left question", "left answer");
+    turn(right, "right question", "right answer");
+    turn(parent, "parent later question", "parent later answer");
+
+    for (const [id, body] of [
+      [left, ["left question", "left answer"]],
+      [right, ["right question", "right answer"]],
+    ]) {
+      const page = expectRestored(id, ["ancestor question", "ancestor answer", ...body]);
+      // Compare complete independently captured rows, not merely equal text.
+      expect(page.messages.slice(0, 2)).toEqual(original.messages.slice(0, 2));
+      expect(page.messages.slice(2)).not.toEqual(original.messages.slice(2));
+    }
+    expectRestored(parent, [
+      "ancestor question", "ancestor answer", "past-cut question", "past-cut answer",
+      "parent later question", "parent later answer",
+    ]);
+  });
+});

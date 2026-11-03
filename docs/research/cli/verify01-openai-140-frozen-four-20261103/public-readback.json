@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-03T15:20:47.079Z",
+  "projectSource": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelRequests": 0,
+  "cli": {
+    "version": "0.166.140",
+    "digest": "sha256:99e673b86c98795482b541c11d4187471d9babdd599f1c94f0ea37db9698faa9",
+    "latest": true,
+    "matchesOfficialArchive": true
+  },
+  "vscode": {
+    "version": "0.37.176",
+    "digest": "sha256:38c22fc843876c2cbc67d28af19ed21f917a2499705075ca492388e8162f0807",
+    "latest": true,
+    "matchesOfficialArchive": true
+  },
+  "jetbrains": {
+    "version": "0.4.193",
+    "updateId": 1211021,
+    "approved": true,
+    "listed": true,
+    "publiclyDownloadable": true,
+    "digest": "sha256:5303d3c23176edcfe3639bf2ca1ac545364d3d81d2108914eb42abb955e99f46",
+    "officialArtifactDigest": "sha256:02835c272e2ab701724fa99845a7eb8968a5a757ab8d6655bbf10ce52a02aa75",
+    "matchesOfficialPayload": true
+  }
+}

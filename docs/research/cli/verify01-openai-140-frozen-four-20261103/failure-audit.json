@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "executionSource": "802c51a9f20568d06268b12c0326087eca697278",
+  "projectSource": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+  "readOnlyDiagnosis": true,
+  "additionalModelRequests": 0,
+  "sourceEvidence": {
+    "path": "packages/cli/src/lib/session-transcript-history.js",
+    "digest": "sha256:117b2b9822bb8a88df33aa8f2b55067cc43309738cee1877eaa28f14c289910b",
+    "line": 159,
+    "idExpression": "`${sessionId}:${event.hash}:${index}`"
+  },
+  "rows": [
+    {
+      "sampleId": "verify-08",
+      "receiptPath": "docs/research/cli/verify01-openai-140-frozen-four-20261103/public-802c51a9f2/receipts/verify-08-check.json",
+      "receiptDigest": "sha256:7e1950a1738b98b0e0de67d5d9a4ded2d15f1074111560cbbb8f749a3e05591b",
+      "candidatePath": "docs/research/cli/verify01-openai-140-frozen-four-20261103/public-802c51a9f2/candidates/verify-08/repair137-verify-08.test.js.txt",
+      "candidateDigest": "sha256:2921bcd3dba62e35d7e4e0f819d798eb86134c4749d37835645c6ca76ee74e12",
+      "baseline": [
+        {
+          "kind": "baseline",
+          "total": 59,
+          "passed": 59,
+          "failed": 0
+        }
+      ],
+      "candidateTests": {
+        "total": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "behavioralMutantsExecuted": false,
+      "failures": [
+        {
+          "ancestorTitles": [
+            "fork history ownership (real persisted branch imports)"
+          ],
+          "fullName": "fork history ownership (real persisted branch imports) restores both siblings' ancestors but never the parent's suffix or the sibling's body",
+          "status": "failed",
+          "title": "restores both siblings' ancestors but never the parent's suffix or the sibling's body",
+          "duration": 139.28110400000003,
+          "failureMessages": [
+            "AssertionError: expected [ { …(7) }, { …(7) } ] to deeply equal [ { …(7) }, { …(7) } ]\n    at /workspace/packages/cli/__tests__/repair137-verify-08.test.js:77:41\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "cause": "Generated candidate compares entire display rows, including target-session-specific id, to the parent rows.",
+      "candidateModifiedByCollector": false
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "receiptPath": "docs/research/cli/verify01-openai-140-frozen-four-20261103/public-802c51a9f2/receipts/first-run-darwin-vscode-check.json",
+      "receiptDigest": "sha256:cd4b8a49d39fd49600d0cc11cf7c8b6ef715a9cba94a022473bd8a536c955a27",
+      "candidatePath": "docs/research/cli/verify01-openai-140-frozen-four-20261103/public-802c51a9f2/candidates/first-run-darwin-vscode/repair137-verify-08.test.js.txt",
+      "candidateDigest": "sha256:be8064e89ed4aa40f87c8911edfa8908c2eca126736505cc99fe74a5b354f256",
+      "baseline": [
+        {
+          "kind": "baseline",
+          "total": 59,
+          "passed": 59,
+          "failed": 0
+        }
+      ],
+      "candidateTests": {
+        "total": 2,
+        "passed": 1,
+        "failed": 1
+      },
+      "behavioralMutantsExecuted": false,
+      "failures": [
+        {
+          "ancestorTitles": [
+            "fork history belongs to the selected lineage"
+          ],
+          "fullName": "fork history belongs to the selected lineage binds a live history capability independently to parent, context and lifetime",
+          "status": "failed",
+          "title": "binds a live history capability independently to parent, context and lifetime",
+          "duration": 9.471021000000064,
+          "failureMessages": [
+            "TypeError: store.createSession is not a function\n    at /workspace/packages/cli/__tests__/repair137-verify-08.test.js:83:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "cause": "Generated candidate invokes nonexistent store.createSession; the exported session initializer is startSession.",
+      "candidateModifiedByCollector": false
+    }
+  ],
+  "historicalSuccessesUnchanged": true,
+  "acceptanceUnchanged": true
+}

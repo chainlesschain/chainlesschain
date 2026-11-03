@@ -1,0 +1,99 @@
+{
+  "schema": "chainlesschain.published-engine-unfinished-retest/v1",
+  "createdAt": "2026-11-03",
+  "status": "prepared-not-dispatched",
+  "scope": "frozen-public140-four-historically-unfinished-openai-samples",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "api": "Responses",
+  "formalSample": false,
+  "reviewChanges": true,
+  "projectSource": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+  "projectRevisionFile": "docs/research/cli/verify01-openai-137/public140-frozen-four-project-revision.json",
+  "projectRevisionDigest": "sha256:afd8fd7e1019664c03887aa4bc79a94d1cfef947bbcae2e55e1b91d5689f9519",
+  "packageSelection": "latest",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-03-openai140-frozen-four.json",
+  "packageSetDigest": "sha256:369f04b1e3ba63d3d9be33dcf8928a5851f588db78e651a18832d418ec4b317f",
+  "packageResolutionPath": "docs/research/cli/verify01-openai-140-frozen-four-20261103/package-resolution.json",
+  "packageResolutionDigest": "sha256:d63d1f500e2b181325a09585dbde4333737c146494f886525782323afc4416ff",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "distribution": "mixed-public-and-official-artifact",
+  "selectedSampleIds": [
+    "verify-08",
+    "verify-13",
+    "verify-36",
+    "first-run-darwin-vscode"
+  ],
+  "skippedSamples": [
+    {
+      "reason": "Only the four specified historical unfinished IDs are selected; all other 41 samples remain unchanged.",
+      "count": 41
+    }
+  ],
+  "requestBudgets": {
+    "modelTurns": 20,
+    "physicalRequests": 24,
+    "outputTokens": 8192,
+    "requestBodyBytes": 262144,
+    "requestTimeoutMs": 180000,
+    "contextWindowTokens": 32768,
+    "largerThanPriorRound": false
+  },
+  "maximumPhysicalRequestsAcrossSelectedSamples": 96,
+  "historicalFrozen": {
+    "accepted": 41,
+    "total": 45,
+    "changed": false
+  },
+  "independentAcceptance": {
+    "freshGeneration": true,
+    "separateLinuxDocker": true,
+    "originalBehavioralMutants": true,
+    "sourceScopeExact": true,
+    "requireNormalGenerationTermination": true,
+    "requireCompleteUsage": true
+  },
+  "dispatches": [
+    {
+      "group": "darwin-vscode",
+      "hosts": "macos",
+      "entries": "vscode",
+      "sampleIds": [
+        "verify-08",
+        "first-run-darwin-vscode"
+      ]
+    },
+    {
+      "group": "linux-cli",
+      "hosts": "linux",
+      "entries": "cli",
+      "sampleIds": [
+        "verify-13"
+      ]
+    },
+    {
+      "group": "darwin-jetbrains",
+      "hosts": "macos",
+      "entries": "jetbrains",
+      "sampleIds": [
+        "verify-36"
+      ]
+    }
+  ],
+  "marketplaceApprovalRequired": false,
+  "modelRequestsStarted": 0,
+  "crossVersionRepairedCoverage": {
+    "accepted": 45,
+    "total": 45,
+    "unchanged": true,
+    "notClaimedAsSingleVersionFullRun": true
+  },
+  "publicReadbackPath": "docs/research/cli/verify01-openai-140-frozen-four-20261103/public-readback.json",
+  "publicReadbackDigest": "sha256:dd6d2f22062ee6a1257c6def6164931be40d8a5baea321f9952979f18217e508"
+}

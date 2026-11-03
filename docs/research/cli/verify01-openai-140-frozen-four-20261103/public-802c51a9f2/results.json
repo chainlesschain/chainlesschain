@@ -1,0 +1,696 @@
+{
+  "schema": 1,
+  "source": "802c51a9f20568d06268b12c0326087eca697278",
+  "projectSource": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+  "packageDigest": "sha256:369f04b1e3ba63d3d9be33dcf8928a5851f588db78e651a18832d418ec4b317f",
+  "collectorSource": "2dfb523306e2398c755c68a3174531d5ffaab062",
+  "collectorTriggerSource": null,
+  "complete": true,
+  "expected": 4,
+  "accepted": 2,
+  "failed": 2,
+  "skippedHistoricalPass": "Only the four specified historical unfinished IDs are selected; all other 41 samples remain unchanged.",
+  "historical45Unchanged": true,
+  "previous137r3Unchanged": "0/5",
+  "previous138Unchanged": "2/4",
+  "infrastructureRetry": null,
+  "physicalRequestsStarted": 81,
+  "usageCompleteRequests": 81,
+  "knownTokenOnlyEstimateUsd": 2.7350963000000004,
+  "actualBilledCostUsd": null,
+  "runs": [
+    {
+      "id": 41665846234,
+      "originalRunId": 41665846234,
+      "source": "802c51a9f20568d06268b12c0326087eca697278",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41665846234",
+      "updatedAt": "2026-11-03T16:00:28Z",
+      "jobs": [
+        {
+          "id": 126020808129,
+          "name": "validate",
+          "status": "completed",
+          "conclusion": "success",
+          "failedStep": null
+        },
+        {
+          "id": 126021905377,
+          "name": "Native darwin-vscode (selected samples)",
+          "status": "completed",
+          "conclusion": "success",
+          "failedStep": null
+        },
+        {
+          "id": 126031373665,
+          "name": "Linux acceptance of darwin-vscode deliveries",
+          "status": "completed",
+          "conclusion": "failure",
+          "failedStep": "Check source and candidate binding then execute baseline and behavioral controls"
+        },
+        {
+          "id": 126034395943,
+          "name": "collect_fresh_volcengine",
+          "status": "completed",
+          "conclusion": "skipped",
+          "failedStep": null
+        }
+      ]
+    },
+    {
+      "id": 41665868150,
+      "originalRunId": 41665868150,
+      "source": "802c51a9f20568d06268b12c0326087eca697278",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41665868150",
+      "updatedAt": "2026-11-03T15:52:15Z",
+      "jobs": [
+        {
+          "id": 126020884422,
+          "name": "validate",
+          "status": "completed",
+          "conclusion": "success",
+          "failedStep": null
+        },
+        {
+          "id": 126022483643,
+          "name": "Native linux-cli (selected samples)",
+          "status": "completed",
+          "conclusion": "success",
+          "failedStep": null
+        },
+        {
+          "id": 126025571878,
+          "name": "Linux acceptance of linux-cli deliveries",
+          "status": "completed",
+          "conclusion": "success",
+          "failedStep": null
+        },
+        {
+          "id": 126029554888,
+          "name": "collect_fresh_volcengine",
+          "status": "completed",
+          "conclusion": "skipped",
+          "failedStep": null
+        }
+      ]
+    },
+    {
+      "id": 41666324429,
+      "originalRunId": 41666324429,
+      "source": "802c51a9f20568d06268b12c0326087eca697278",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41666324429",
+      "updatedAt": "2026-11-03T16:18:09Z",
+      "jobs": [
+        {
+          "id": 126022509882,
+          "name": "validate",
+          "status": "completed",
+          "conclusion": "success",
+          "failedStep": null
+        },
+        {
+          "id": 126023759201,
+          "name": "Native darwin-jetbrains-verify-36 (selected samples)",
+          "status": "completed",
+          "conclusion": "success",
+          "failedStep": null
+        },
+        {
+          "id": 126039040289,
+          "name": "Linux acceptance of darwin-jetbrains-verify-36 deliveries",
+          "status": "completed",
+          "conclusion": "success",
+          "failedStep": null
+        },
+        {
+          "id": 126045260928,
+          "name": "collect_fresh_volcengine",
+          "status": "completed",
+          "conclusion": "skipped",
+          "failedStep": null
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13247456004,
+      "name": "verify01-native-subset-delivery-darwin-vscode-802c51a9f20568d06268b12c0326087eca697278",
+      "runId": 41665846234,
+      "digest": "sha256:6171f4c2d7a193937aa1af7c6e76fda5e84f7ba6925130a9162f8de18bdf6e6d",
+      "zipDigestVerified": true,
+      "summaryDigest": "sha256:f86db2a6ee5c2e5e6a88a9e0d22a3579e794b47cb48ee583a77c813f563dae6d",
+      "sizeInBytes": 10728411
+    },
+    {
+      "id": 13247756157,
+      "name": "verify01-native-subset-acceptance-darwin-vscode-802c51a9f20568d06268b12c0326087eca697278",
+      "runId": 41665846234,
+      "digest": "sha256:dfba90b67838761912c652a7986a097a6ba185e47bdcd5bf122d1c3b323a5c9f",
+      "zipDigestVerified": true,
+      "summaryDigest": "sha256:b0c86c53bfe273ba72638e69d001970bab837298c8717a51bcab5e3930433eb4",
+      "sizeInBytes": 874123
+    },
+    {
+      "id": 13245682779,
+      "name": "verify01-native-subset-delivery-linux-cli-802c51a9f20568d06268b12c0326087eca697278",
+      "runId": 41665868150,
+      "digest": "sha256:47831eb7e0c55fe894635ff172e410ffb179f06dd955409ba1df9b59b5552253",
+      "zipDigestVerified": true,
+      "summaryDigest": "sha256:93bc8f466d8ccc058f2600d8f11528971d771020183e173170d454b5758d6f8f",
+      "sizeInBytes": 4618189
+    },
+    {
+      "id": 13247465516,
+      "name": "verify01-native-subset-acceptance-linux-cli-802c51a9f20568d06268b12c0326087eca697278",
+      "runId": 41665868150,
+      "digest": "sha256:bb6455667512213d0f7990bb2b4b2669fabb058cba19dd0a6fab6366e1d6e455",
+      "zipDigestVerified": true,
+      "summaryDigest": "sha256:1b3052cb8735323200962d1b01bd704a9fa48d4a03974b26686a80b60af561a2",
+      "sizeInBytes": 634685
+    },
+    {
+      "id": 13247013780,
+      "name": "verify01-native-subset-delivery-darwin-jetbrains-verify-36-802c51a9f20568d06268b12c0326087eca697278",
+      "runId": 41666324429,
+      "digest": "sha256:c1924d10ef23101c04a6fc876475e3375396116cda9fda29527844b1eeebe82f",
+      "zipDigestVerified": true,
+      "summaryDigest": "sha256:aeb8fbfc32788fc61600e298b368bb9f57b1a064899ff4085f109175dedf10ee",
+      "sizeInBytes": 5483217
+    },
+    {
+      "id": 13249097352,
+      "name": "verify01-native-subset-acceptance-darwin-jetbrains-verify-36-802c51a9f20568d06268b12c0326087eca697278",
+      "runId": 41666324429,
+      "digest": "sha256:bf2b489355f6654a3447cd1bb7484e0ca5d91b7dab169ee4bf7e49490b43a2eb",
+      "zipDigestVerified": true,
+      "summaryDigest": "sha256:7df1cf4939b74ea16ec5008ab21fcb664a060229bc16572557c3cab75ac85a91",
+      "sizeInBytes": 696832
+    }
+  ],
+  "rows": [
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "runId": 41665846234,
+      "group": "darwin-vscode",
+      "originalGenerationPassed": true,
+      "generationPassed": true,
+      "accepted": false,
+      "candidateAcceptancePassed": false,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "terminal": {
+        "type": "result",
+        "subtype": "success",
+        "is_error": false,
+        "result": "已修改唯一授权文件：\n`packages/cli/__tests__/repair137-verify-08.test.js`，未修改生产源码。\n\n新增覆盖意图：\n- 在不同祖先前缀创建两个真实分支，分别追加正文；通过恢复消息和 transcript 的完整序列断言，排除父分支后续内容及兄弟分支正文串入。\n- 对 history capability 的父会话身份、正文匹配、有效期分别设置正负对照。\n\n**交付尚未完成验证，不能宣称通过。** 静态审查发现并修正了部分 fixture 使用不存在的 `createSession` API，但另一处 `store.createSession({ sessionId: other })` 仍未修正，会阻断第二个测试。最终文件的部分回读也被工具省略，未完成完整审计。\n\n当前仅有文件持久化及相对导入检查记录；环境没有执行工具，因此未运行 Vitest。尚无证据证明冻结实现存在缺陷，不能据此报告实现问题。",
+        "session_id": "panel-96cd42ce-9952-40d5-a9b5-64269dde61ec",
+        "turn": 1,
+        "usage": {
+          "input_tokens": 9835,
+          "output_tokens": 6780,
+          "cache_read_input_tokens": 70180,
+          "cache_creation_input_tokens": 298683
+        },
+        "transcript_refs": {
+          "schema": "chainlesschain.session-transcript-references/v1",
+          "sessionId": "panel-96cd42ce-9952-40d5-a9b5-64269dde61ec",
+          "assistantEventId": "7911494ecd17ce36e8e490cb0ab5eb92371b448ec766a43541a5e9158fb35c0f",
+          "userEventId": "9a122f969f476a8a6787e8a1336e7f72e8f7ff11720645adf19aa5aa4873d00a",
+          "clientMessageId": "07b6791b-1599-40c2-9893-d454fcf5ac32"
+        },
+        "trace_id": "tr-7e639a54-e72c-41d8-8b5c-d52ecb72284f",
+        "seq": 203
+      },
+      "modelFailure": null,
+      "modelPass": true,
+      "sourceScopePassed": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 21,
+        "usageCompleteRequests": 21,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 21,
+        "usageCompleteRequests": 21,
+        "tasks": [
+          {
+            "taskId": "first-run-darwin-vscode",
+            "requests": 21,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostUsd": null,
+        "tokenOnlyEstimateUsd": 0.691854,
+        "knownTokenOnlyEstimateUsd": 0.691854,
+        "fxRate": null
+      },
+      "observedUsage": {
+        "input_tokens": 9835,
+        "output_tokens": 6780,
+        "cache_read_input_tokens": 70180,
+        "cache_creation_input_tokens": 298683,
+        "reasoning_tokens": 141
+      },
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 59,
+            "passed": 59,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:b76179de59f66bb694080f50808d946802c71940d12b909a07f27c749a367bc4"
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate or baseline regression failed",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 59,
+            "passed": 59,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:cd4b8a49d39fd49600d0cc11cf7c8b6ef715a9cba94a022473bd8a536c955a27"
+      },
+      "generationAssessment": {
+        "passed": true,
+        "originalGenerationPassed": true,
+        "originalTerminalVerified": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 9835,
+            "outputTokens": 6780,
+            "cacheReadInputTokens": 70180,
+            "cacheCreationInputTokens": 298683
+          },
+          "totalCostUsd": null
+        },
+        "dialect": "persistent-IDE-with-validated-session-end"
+      }
+    },
+    {
+      "sampleId": "verify-08",
+      "runId": 41665846234,
+      "group": "darwin-vscode",
+      "originalGenerationPassed": true,
+      "generationPassed": true,
+      "accepted": false,
+      "candidateAcceptancePassed": false,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "terminal": {
+        "type": "result",
+        "subtype": "success",
+        "is_error": false,
+        "result": "指定测试文件已包含真实存储回归用例，未修改生产源码。\n\n已核对的覆盖：\n- 从同一父会话创建两个分支，分别追加独立正文。\n- 同时检查 `readVerifiedMessages` 与历史投影的精确内容和数量，验证有效祖先与各自正文恢复。\n- 父会话中截点后的内容、父会话后续追加内容及另一分支正文作为排除对照；均使用正常持久化消息，不依赖异常拒绝路径。\n- 导入路径使用 `../src/...`，从指定测试文件所在目录解析到 `packages/cli/src/...`。\n\n**验证仍不完整**：文件读取工具多次省略测试文件内容，未能完成末尾断言及祖先来源身份断言的完整回读审计，因此不能宣称所有验收项均已覆盖。当前无执行工具，未运行 Vitest，也未获得独立评测结果。没有证据证明冻结实现存在缺陷。",
+        "session_id": "panel-e7863099-25dd-4b26-a668-236ef625caf0",
+        "turn": 1,
+        "usage": {
+          "input_tokens": 10667,
+          "output_tokens": 5560,
+          "cache_read_input_tokens": 69536,
+          "cache_creation_input_tokens": 308044
+        },
+        "transcript_refs": {
+          "schema": "chainlesschain.session-transcript-references/v1",
+          "sessionId": "panel-e7863099-25dd-4b26-a668-236ef625caf0",
+          "assistantEventId": "48a4758864cdce6976a3267490556e899dc05d4f807b8573885bca2bf7bb748c",
+          "userEventId": "55a54fe7e15544fdd8538ae2daa066dae11a2312f5a000d27a0d68d942005778",
+          "clientMessageId": "2eb35723-4867-4d49-bf09-1a3c6ae7021d"
+        },
+        "trace_id": "tr-143b0b2c-5f5e-46fe-9130-2385be7ea074",
+        "seq": 191
+      },
+      "modelFailure": null,
+      "modelPass": true,
+      "sourceScopePassed": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 21,
+        "usageCompleteRequests": 21,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 21,
+        "usageCompleteRequests": 21,
+        "tasks": [
+          {
+            "taskId": "verify-08",
+            "requests": 21,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostUsd": null,
+        "tokenOnlyEstimateUsd": 0.6999756000000001,
+        "knownTokenOnlyEstimateUsd": 0.6999756000000001,
+        "fxRate": null
+      },
+      "observedUsage": {
+        "input_tokens": 10667,
+        "output_tokens": 5560,
+        "cache_read_input_tokens": 69536,
+        "cache_creation_input_tokens": 308044,
+        "reasoning_tokens": 201
+      },
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 59,
+            "passed": 59,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:bf84bb74c06e0ed6f7d70ca3113ac889462435fa6331f7423601884251e55720"
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate or baseline regression failed",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 59,
+            "passed": 59,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:7e1950a1738b98b0e0de67d5d9a4ded2d15f1074111560cbbb8f749a3e05591b"
+      },
+      "generationAssessment": {
+        "passed": true,
+        "originalGenerationPassed": true,
+        "originalTerminalVerified": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 10667,
+            "outputTokens": 5560,
+            "cacheReadInputTokens": 69536,
+            "cacheCreationInputTokens": 308044
+          },
+          "totalCostUsd": null
+        },
+        "dialect": "persistent-IDE-with-validated-session-end"
+      }
+    },
+    {
+      "sampleId": "verify-13",
+      "runId": 41665868150,
+      "group": "linux-cli",
+      "originalGenerationPassed": true,
+      "generationPassed": true,
+      "accepted": true,
+      "candidateAcceptancePassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      },
+      "terminal": {
+        "type": "result",
+        "subtype": "success",
+        "is_error": false,
+        "result": "已更新唯一授权文件：`packages/cli/__tests__/repair137-verify-13.test.js`，未修改生产实现或现有测试。\n\n覆盖与审计：\n- 正常小 PNG、短读：校验返回字节，并确认同一文件描述符被关闭且随后得到 `EBADF`。\n- 超限：覆盖 20 MiB、剩余预算、4000 万像素和 1 MiB 头窗口的接受边界及首个拒绝值。\n- 读取期间变化：分别隔离同尺寸头内容替换、增长、缩短及最终元数据变化，配有不变正对照。\n- 路径替换：验证仍读取已打开的原文件，而非新路径内容；这与“原文件内容变化后拒绝”分开断言。\n- 另覆盖类型不匹配、非法头、非普通文件、零尺寸及读取异常后的关闭。\n\n未覆盖其他编解码器分支、非法初始 stat 数值及 open/close 系统调用失败，已在文件中注明。\n\n实际验证仅完成源码/API、相对导入及补丁回读检查；工具未报告诊断。**没有执行 Vitest，也不宣称测试通过。** 未获得证明生产实现存在缺陷的执行证据。",
+        "session_id": "headless-1793720510536-2535",
+        "num_turns": 19,
+        "duration_ms": 221497,
+        "usage": {
+          "input_tokens": 2614,
+          "output_tokens": 11568,
+          "cache_read_input_tokens": 45360,
+          "cache_creation_input_tokens": 247055
+        },
+        "total_cost_usd": 0,
+        "compaction_degradations": [
+          {
+            "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+            "summary_mode": "none"
+          }
+        ]
+      },
+      "modelFailure": null,
+      "modelPass": true,
+      "sourceScopePassed": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 19,
+        "usageCompleteRequests": 19,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 19,
+        "usageCompleteRequests": 19,
+        "tasks": [
+          {
+            "taskId": "verify-13",
+            "requests": 19,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostUsd": null,
+        "tokenOnlyEstimateUsd": 0.619554,
+        "knownTokenOnlyEstimateUsd": 0.619554,
+        "fxRate": null
+      },
+      "observedUsage": {
+        "input_tokens": 2614,
+        "output_tokens": 11568,
+        "cache_read_input_tokens": 45360,
+        "cache_creation_input_tokens": 247055,
+        "reasoning_tokens": 4621
+      },
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 15,
+            "passed": 15,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:df0432c225509127e8e7e66ece44130af0c631c8027a17ea0df8d0ecfc839861"
+      },
+      "check": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 15,
+            "passed": 15,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 20,
+            "passed": 20,
+            "failed": 0
+          }
+        ],
+        "mutations": [
+          {
+            "name": "ignore-image-change-on-pinned-handle",
+            "sourceSha256": "e0cd0906e581ae0516fbb93f51b6cb9b157cf0c7175abb9d8e702733ce8c432b",
+            "total": 20,
+            "passed": 18,
+            "failed": 2
+          },
+          {
+            "name": "allow-over-pixel-budget",
+            "sourceSha256": "cf9ee6fedbba1f82dc1bcec09406855c30f3ce2dcba62937838c9d2eb9a84d3b",
+            "total": 20,
+            "passed": 19,
+            "failed": 1
+          }
+        ],
+        "receiptDigest": "sha256:324c92b0e5ffafaf5e7a8be42fee2e06ac001453cd96434b3323d86fea0b4402"
+      },
+      "generationAssessment": {
+        "passed": true,
+        "originalGenerationPassed": true,
+        "originalTerminalVerified": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 2614,
+            "outputTokens": 11568,
+            "cacheReadInputTokens": 45360,
+            "cacheCreationInputTokens": 247055
+          },
+          "totalCostUsd": 0
+        },
+        "dialect": "one-shot"
+      }
+    },
+    {
+      "sampleId": "verify-36",
+      "runId": 41666324429,
+      "group": "darwin-jetbrains-verify-36",
+      "originalGenerationPassed": true,
+      "generationPassed": true,
+      "accepted": true,
+      "candidateAcceptancePassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "terminal": {
+        "type": "result",
+        "subtype": "success",
+        "is_error": false,
+        "result": "补丁文件位于 `packages/cli/__tests__/repair137-verify-36.test.js`；源码和原有测试未修改。\n\n**当前交付审计未完成，不能宣称满足验收。**\n- 已核对生产接口的配置捕获、规范化及非法字段拒绝逻辑，并阅读相关原有测试。\n- 已确认交付文件中的 `../src/lib/background-launch-profile.js` 从其目录解析到指定源码。\n- 最终回读交付文件时，工具连续省略正文，未能独立核实完整断言，因而尚未完成各条件的正反控制、有效前提及边界覆盖审计。\n- 没有执行工具，**未运行 Vitest，也不声称测试通过**。\n- 没有经实际反例确认的实现缺陷；不将审查限制当作源码缺陷。\n\n仍需完成：完整回读交付测试，逐项确认“保存／恢复后策略身份一致”和“非法配置不被放宽”的具体断言及独立负控，并执行测试验证。",
+        "session_id": "panel-1793721823127-2c66ce",
+        "turn": 1,
+        "usage": {
+          "input_tokens": 2734,
+          "output_tokens": 5536,
+          "cache_read_input_tokens": 75487,
+          "cache_creation_input_tokens": 327668
+        },
+        "transcript_refs": {
+          "schema": "chainlesschain.session-transcript-references/v1",
+          "sessionId": "panel-1793721823127-2c66ce",
+          "assistantEventId": "b1f7fa4cdeab4ac318fbf3708a277f02c79f3ad384e641e5e84c53492b7a2cb9",
+          "userEventId": "ae085b5d37cfb0fff61a1d38f7b5468fb506c7eeed33461fc904f6cc4e11bdad",
+          "clientMessageId": "a33a0a46-8ea2-4318-885d-fce1a9b8f64e"
+        },
+        "trace_id": "tr-d439c100-5040-4900-b975-f84c50b5204c",
+        "seq": 123
+      },
+      "modelFailure": null,
+      "modelPass": true,
+      "sourceScopePassed": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 20,
+        "usageCompleteRequests": 20,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 20,
+        "usageCompleteRequests": 20,
+        "tasks": [
+          {
+            "taskId": "verify-36",
+            "requests": 20,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostUsd": null,
+        "tokenOnlyEstimateUsd": 0.7237127000000001,
+        "knownTokenOnlyEstimateUsd": 0.7237127000000001,
+        "fxRate": null
+      },
+      "observedUsage": {
+        "input_tokens": 2734,
+        "output_tokens": 5536,
+        "cache_read_input_tokens": 75487,
+        "cache_creation_input_tokens": 327668,
+        "reasoning_tokens": 88
+      },
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 12,
+            "passed": 12,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:61c7cb2569818cff5e6a84a8caf1ddf1702b3b8cdcc898da67a4f47e0a5ba236"
+      },
+      "check": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 12,
+            "passed": 12,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 63,
+            "passed": 63,
+            "failed": 0
+          }
+        ],
+        "mutations": [
+          {
+            "name": "restore-more-permissive-mode",
+            "sourceSha256": "5fde36e42eba32cacb70b29b9bc80ceb250c656af337c83bab29bc734539044d",
+            "total": 63,
+            "passed": 60,
+            "failed": 3
+          }
+        ],
+        "receiptDigest": "sha256:680e2e19f903f10b83a21aa756737fa511c8e5df7ddb473b4d55b33b1643cf46"
+      },
+      "generationAssessment": {
+        "passed": true,
+        "originalGenerationPassed": true,
+        "originalTerminalVerified": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 2734,
+            "outputTokens": 5536,
+            "cacheReadInputTokens": 75487,
+            "cacheCreationInputTokens": 327668
+          },
+          "totalCostUsd": null
+        },
+        "dialect": "persistent-IDE-with-validated-session-end"
+      }
+    }
+  ]
+}
