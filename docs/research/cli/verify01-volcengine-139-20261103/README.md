@@ -42,9 +42,18 @@
 
 修复将 40 轮声明经 adapter、Gradle 传递到 Java 驱动；默认仍限定 20 分钟，显式 40 轮最多 40 分钟。新增离线 Java 边界回归，并在真实 IDE 任务之前执行。
 
-[仅恢复零请求样本的执行 41576842146](https://github.com/chainlesschain/chainlesschain/actions/runs/41576842146)，源码 `cc4cd3180f226a7365f97b26f37a8da3306c1b07`，只补 `verify-06`。清单绑定上次源码与原始 summary/receipt 摘要；任何非零模型请求证据都会拒绝作为启动恢复运行。结果待该执行结束后独立归档。
+[仅恢复零请求样本的执行 41576842146](https://github.com/chainlesschain/chainlesschain/actions/runs/41576842146)，源码 `cc4cd3180f226a7365f97b26f37a8da3306c1b07`，只补 `verify-06`。清单绑定上次源码与原始 summary/receipt 摘要；任何非零模型请求证据都会拒绝作为启动恢复运行。
+
+修复后 Java 驱动离线回归 **9/9** 通过，真实 IDE 任务与重启检查通过，35/35 次请求用量完整且无代理截断错误。模型返回 success，但写入 `packages/cli/__tests__/integration/verify-06.test.js`，而提示词指定 `packages/cli/__tests__/verify-06.test.js`；因此 `sourceScopePassed:false`、`tool-scope-unverified`。增加轮次消除了本次的迭代耗尽，却没有保证正确交付路径。独立验收最终 **0/1**，指定候选没有有效测试用例；31/31 项基线仍通过，最终生成及验收证据齐全。
+
+[原始请求、模型流、提示词及原生测试日志](budget-retry/host-recovery/details-cc4cd3180f/provenance.json)保留该错误。另存的错路径文件内容逐字节来自 write_file 调用，并与最终工作区树摘要一致；没有移动到指定路径或替换验收候选。
 
 40 轮结果与原 20 轮完整队列分开报告，不合并成统一预算下的新通过率。
+
+| 40 轮目标 | 最终运行 | 独立验收 | 观察到的终止原因 |
+| --- | --- | --- | --- |
+| macOS CLI `verify-07` | `41574308573` | 0/1 | 17 次请求后触及单次 8192 输出 token 上限 |
+| Linux JetBrains `verify-06` | `41576842146` | 0/1 | 35 次请求，模型写错目录；原生 UI 和重启通过，交付范围与候选验收失败 |
 
 ## 与 OpenAI Sol 历史结果的关系
 
@@ -59,6 +68,7 @@
 - [完整轮次原始结果](full-e7788a0931/results.json)：包含 42 份归档的摘要与独立 receipt；候选文件由已验证的固定基线补齐，21 份交付 summary 逐字节匹配，[候选索引](full-e7788a0931/candidate-archive-index.json)保留摘要。
 - [不可变的生成基线](baseline-e7788a0931/results.json)：用于 40 轮失败样本选择，当时独立验收尚未全部结束，不以它代替最终分数。
 - [40 轮首轮原始结果](budget-retry/final-98bf47be5a/results.json)和[零请求启动失败证据](budget-retry/attempt-98bf47be5a/diagnosis.json)。
+- [修复启动问题后的最终独立验收](budget-retry/host-recovery/final-cc4cd3180f/results.json)：`completeEvidence:true`，0/1；与已核查的原始交付 summary 逐字节一致。
 - [补跑派发记录](budget-retry/host-recovery/dispatch.json)。全部历史派发、无效认证和目录网络失败的记录保留在本目录。
 
-本次工程修改的本地相关 Node 合同测试 **42/42** 通过；Java 离线边界回归及真实 IDE 运行由补跑 Actions 验证。未发布任何包、未合并 PR。
+本次工程修改的本地相关 Node 合同测试 **42/42** 通过；补跑 Actions 的 Java 离线驱动回归 **9/9** 和真实 IDE/重启检查通过。模型任务分数仍由独立验收决定。未发布任何包、未合并 PR。
