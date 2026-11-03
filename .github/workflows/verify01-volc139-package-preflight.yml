@@ -1,0 +1,40 @@
+name: VERIFY01 Volcengine 139 package preflight
+
+on:
+  push:
+    tags: [verify01-volc139-preflight-*]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  resolve:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Check fresh-round scope and provider isolation without model calls
+        run: >-
+          node --test
+          packages/cli/test-node/verify01-volcengine-fresh-round.node-test.mjs
+          packages/cli/test-node/verify01-native-provider-profile.node-test.mjs
+          packages/cli/test-node/verify01-native-round-matrix.node-test.mjs
+      - name: Verify latest registry bytes against original release artifacts without model calls
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node packages/cli/scripts/verify01-public139-package-snapshot.mjs --volcengine-full-round
+      - name: Preserve the independently resolved package identity
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: verify01-volc139-package-preflight-${{ github.sha }}
+          path: |
+            docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139.json
+            docs/research/cli/verify01-volcengine-139-20261103/package-resolution.json
+          if-no-files-found: error

@@ -2,17 +2,18 @@ import assert from "node:assert/strict";
 import { selectNativeSamples } from "./verify01-native-task-campaign.mjs";
 import { nativeProviderProfile } from "./verify01-native-provider-profile.mjs";
 
-/** A fresh OpenAI cohort uses one independent host job per JetBrains sample. */
+/** Fresh provider cohorts use one independent host job per JetBrains sample. */
 export function nativeProviderCells(
   rows,
   plan,
   sampleIds,
   provider = "volcengine",
+  { isolateJetbrains = false } = {},
 ) {
   nativeProviderProfile(provider);
   assert.ok(Array.isArray(rows) && rows.length > 0);
   assert.equal(new Set(rows.map((row) => row.group)).size, rows.length);
-  if (provider === "volcengine") return rows;
+  if (provider === "volcengine" && !isolateJetbrains) return rows;
   const result = rows.flatMap((row) => {
     const platform = row.group.split("-")[0];
     assert.ok(["win32", "linux", "darwin"].includes(platform));

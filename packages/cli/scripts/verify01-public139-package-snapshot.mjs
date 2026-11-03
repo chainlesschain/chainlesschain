@@ -12,6 +12,7 @@ import { loadPublicGeneratorProof } from "./verify01-public-generator-binding.mj
 import { verifyNativePluginArtifactMetadata } from "./verify01-native-plugin-artifact.mjs";
 
 const root = process.cwd();
+const freshVolcengineRound = process.argv.includes("--volcengine-full-round");
 const cliSource = "eec8b97b6040d19004670bfead0bec1b8a27b71b";
 const jetSource = "eec8b97b6040d19004670bfead0bec1b8a27b71b";
 const work = path.join(
@@ -243,6 +244,18 @@ const manifest = {
   authorization:
     "User authorizes GitHub Actions retesting of verify-08 and verify-36 using the newly published CLI and IDE plugins. Use the original official JetBrains release ZIP and preserve prior accepted samples, budgets and independent acceptance. No model call in this preflight.",
 };
+if (freshVolcengineRound) {
+  manifest.freshVolcengineRound = {
+    id: "volcengine-public139-20261103",
+    taskCount: 36,
+    firstRunCount: 9,
+    repeatPreviouslyAccepted: true,
+    historicalScoresUnchanged: true,
+    formalSample: false,
+  };
+  manifest.authorization =
+    "User requests a fresh full 36+9 GitHub Actions round with the latest CLI and IDE plugins using the supplied Volcengine key on 2026-11-03. Preserve original task inputs, historical scores, per-sample budgets and independent acceptance. No model call in this preflight.";
+}
 const { binding } = loadPublicGeneratorProof(manifest, {
   repositoryRoot: root,
 });
@@ -251,8 +264,9 @@ verifyNativePluginArtifactMetadata(
   jet.run,
   jet.artifact,
 );
-const manifestPath =
-  "docs/research/cli/verify01-package-sets/2026-11-02-openai-139.json";
+const manifestPath = freshVolcengineRound
+  ? "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139.json"
+  : "docs/research/cli/verify01-package-sets/2026-11-02-openai-139.json";
 fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
 fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
 const report = {
@@ -276,8 +290,9 @@ const report = {
     jetbrains: jet.artifact,
   },
 };
-const reportPath =
-  "docs/research/cli/verify01-openai-139/package-resolution.json";
+const reportPath = freshVolcengineRound
+  ? "docs/research/cli/verify01-volcengine-139-20261103/package-resolution.json"
+  : "docs/research/cli/verify01-openai-139/package-resolution.json";
 fs.mkdirSync(path.dirname(reportPath), { recursive: true });
 fs.writeFileSync(reportPath, JSON.stringify(report, null, 2) + "\n");
 console.log(
