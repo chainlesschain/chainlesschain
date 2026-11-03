@@ -2,7 +2,7 @@
   "schema": 1,
   "checkedAt": "2026-11-03T11:45:03.280Z",
   "manifestPath": "docs/research/cli/verify01-package-sets/2026-11-03-openai140-frozen-four.json",
-  "manifestDigest": "sha256:e60b46fb27dba71718ffe8f7fbf063f2f20abd29135ab11bce02449eb1c2eaa5",
+  "manifestDigest": "sha256:369f04b1e3ba63d3d9be33dcf8928a5851f588db78e651a18832d418ec4b317f",
   "versions": {
     "cli": "0.166.140",
     "vscode": "0.37.176",
