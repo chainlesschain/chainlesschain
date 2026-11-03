@@ -7,16 +7,17 @@ const jetBrainsPending = [
   "pending-approval",
   "published-unverified",
   "uploaded_public_listing_pending",
+  "uploaded-pending-review",
 ].includes(releaseStatus.jetBrainsPublicationStatus);
 const items = english
   ? [
-      ["Confirm source delivery to the model", "Read coverage is confirmed only for source spans selected into the model request. Omitted source remains recoverable; repeated delivery failures report an explicit limitation."],
-      ["Keep the original task through compaction", "Context compaction, tool tails and persistent sessions retain the original user task. The public four-sample retest accepted 2/4; two author max-turn failures remain."],
+      ["Resume after rejected tool arguments", "Malformed arguments are rejected before execution. The model can submit a complete call on the next turn; durable history is preserved and rejected calls are never replayed."],
+      ["Preserve authenticated transport digests", "Projection v10 prevents image and reasoning SHA-256 metadata from triggering phone-number checks. User text, forged markers and sensitive data remain checked."],
       ["Separate product downloads", `Kernel ${releaseStatus.contextMemoryKernelVersion} stays unchanged. PC/mobile ${releaseStatus.productVersion} remain independent releases; the IDE updates recommend the paired CLI without a separate UI change.`],
     ]
   : [
-      ["确认源码实际交付模型", "源码片段实际选入模型请求后才确认读取覆盖；被省略的内容仍可恢复，重复交付失败给出明确限制。"],
-      ["压缩后保留原始任务", "上下文压缩、工具尾部和持久会话保留原始用户任务。公开包四项复验 2/4 通过，两项作者轮次耗尽仍失败。"],
+      ["损坏工具参数拒绝后可续接", "非法参数在执行前拒绝，模型可在下一回合重新提交完整调用；保留原会话历史，被拒绝调用不会重放，权限与预算继续生效。"],
+      ["可信图片与推理摘要保留", "投影 v10 避免可信图片、推理传输块的 SHA-256 被误判为手机号；用户文本、伪造标记及敏感信息仍接受原有检查。"],
       ["客户端继续独立升级", `Kernel ${releaseStatus.contextMemoryKernelVersion} 不变，PC / 移动端 ${releaseStatus.productVersion} 继续独立发行；本轮 IDE 更新推荐配套 CLI，没有单独的界面改动。`],
     ];
 ---
@@ -31,8 +32,8 @@ const items = english
     </h2>
     <p class="mt-4 text-muted leading-relaxed max-w-4xl">
       {english
-        ? `CLI ${releaseStatus.recommendedCliVersion} and Agent SDK ${releaseStatus.agentSdkVersion} are public with verified bytes and provenance. Open VSX ${releaseStatus.openVsxVersion} recommends this CLI. Marketplace lists approved JetBrains ${releaseStatus.jetBrainsMarketplaceVersion}, recommending CLI ${releaseStatus.jetBrainsRecommendedCliVersion}; public ZIP payload verification remains pending. Native product ${releaseStatus.productVersion} remains a separate download.`
-        : `CLI ${releaseStatus.recommendedCliVersion} 与 Agent SDK ${releaseStatus.agentSdkVersion} 已公开并完成字节与来源签名核验；Open VSX ${releaseStatus.openVsxVersion} 推荐该 CLI。Marketplace 已批准并列出 JetBrains ${releaseStatus.jetBrainsMarketplaceVersion}，推荐 CLI ${releaseStatus.jetBrainsRecommendedCliVersion}；公开 ZIP 负载核验待完成。原生产品 ${releaseStatus.productVersion} 继续独立下载升级。`}
+        ? `CLI ${releaseStatus.recommendedCliVersion} and Agent SDK ${releaseStatus.agentSdkVersion} are public with verified bytes and provenance. Open VSX ${releaseStatus.openVsxVersion} recommends this CLI. The verified public JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} still recommends CLI ${releaseStatus.jetBrainsRecommendedCliVersion}; its JAR payloads match the official build. Native product ${releaseStatus.productVersion} is independently public.`
+        : `CLI ${releaseStatus.recommendedCliVersion} 与 Agent SDK ${releaseStatus.agentSdkVersion} 已公开并完成字节与来源签名核验；Open VSX ${releaseStatus.openVsxVersion} 推荐该 CLI。已核验公开的 JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} 仍推荐 CLI ${releaseStatus.jetBrainsRecommendedCliVersion}，商店包内 JAR 与正式构建一致。客户端 ${releaseStatus.productVersion} 已独立公开。`}
     </p>
     {jetBrainsPending && (
       <p class="mt-3 text-sm text-muted">
@@ -56,13 +57,13 @@ const items = english
     </p>
     <p class="mt-3 text-sm text-muted">
       {english
-        ? `Main-only standalone WebSocket host-model-policy repair 2e97ce3d79 is not in public CLI .138. NOT_PAID_READY / NOT_ADMITTED / HOLD remain. Microsoft Marketplace is deferred; stock VS Code can install the versioned Open VSX VSIX.`
-        : `主分支独立 WebSocket 宿主模型策略修复 2e97ce3d79 尚未进入公开 CLI .138。NOT_PAID_READY / NOT_ADMITTED / HOLD 保留。Microsoft Marketplace 暂缓，官方 VS Code 可安装 Open VSX 的版本化 VSIX。`}
+        ? `The .140 full 36+9 Volcengine retest has no verified final score yet; the follow-up adapter repair preserves smaller internal output limits and is tracked separately. Later main-branch read-recovery hints and Web Panel bundle fixes are outside the immutable CLI .140 source. NOT_PAID_READY / NOT_ADMITTED / HOLD remain. Microsoft Marketplace is deferred.`
+        : `公开 .140 的火山 36+9 全量复测尚无已核验最终成绩；保留内部较小输出限制的适配器修复另行记录。后续主线读取恢复提示与 Web Panel bundle 修复不在不可变 CLI .140 发行源中。NOT_PAID_READY / NOT_ADMITTED / HOLD 保留，Microsoft Marketplace 暂缓。`}
     </p>
     <div class="mt-6 flex flex-wrap gap-4">
       <a class="btn-ghost" href={`https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${releaseStatus.openVsxVersion}/file/chainlesschain.chainlesschain-ide-${releaseStatus.openVsxVersion}.vsix`}>{english ? "Download VSIX" : "下载 VSIX"} {releaseStatus.openVsxVersion} ↗</a>
       <a class="btn-ghost" href="https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge/versions">{english ? "JetBrains public versions" : "JetBrains 公开版本"} ↗</a>
-      {jetBrainsPending && <a class="btn-ghost" href="https://github.com/chainlesschain/chainlesschain/actions/runs/41327724484#artifacts">{english ? "Official pending-review build" : "官方待审构建"} {releaseStatus.jetBrainsCandidateVersion} ↗</a>}
+      {jetBrainsPending && <a class="btn-ghost" href={releaseStatus.jetBrainsCandidateArtifactsUrl}>{english ? "Official pending-review build" : "官方待审构建"} {releaseStatus.jetBrainsCandidateVersion} ↗</a>}
       <a class="btn-ghost" href={releaseStatus.upgradeGuide}>{english ? "Upgrade guide ↗" : "升级指南 ↗"}</a>
       <a class="btn-ghost" href={releaseStatus.evolutionConfigurationGuide}>{english ? "Self-evolution settings ↗" : "自进化开关配置 ↗"}</a>
       <a class="btn-ghost" href={releaseStatus.recoveryGuide}>{english ? "Image budgets and recovery ↗" : "图片预算与恢复 ↗"}</a>
