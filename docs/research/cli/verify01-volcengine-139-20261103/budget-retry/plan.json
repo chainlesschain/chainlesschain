@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.volcengine-expanded-budget-retry/v1",
-  "status": "prepared-after-local-contracts",
+  "status": "dispatched",
   "authorization": "???????",
   "provider": "volcengine",
   "model": "deepseek-v4-flash-ga-260731",
@@ -27,5 +27,7 @@
   "formalSample": false,
   "outputCapChanged": false,
   "initialAcceptanceContinues": true,
-  "baselineResultsDigest": "sha256:8fa412018c35bfc07bbf33205689fa9fd55a9c43a19cab95231c240c76c2820a"
+  "baselineResultsDigest": "sha256:8fa412018c35bfc07bbf33205689fa9fd55a9c43a19cab95231c240c76c2820a",
+  "executionSource": "98bf47be5a72442cc7e2655dfbf3aebb7770d409",
+  "runId": 41574308573
 }
