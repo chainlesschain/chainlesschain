@@ -1,0 +1,148 @@
+{
+  "schema": "chainlesschain.tool-argument-recovery-live/v1",
+  "startedAt": "2026-11-03T06:48:38.922Z",
+  "sourceCommit": null,
+  "sourceBaseCommit": "eb0fe7a8a14a38d762901ceb9c75bc9c9583043a",
+  "provider": "volcengine",
+  "model": "deepseek-v4-1-flash-economy-261017",
+  "runtime": "isolated-cli-0.166.140-candidate-with-installed-public-dependencies",
+  "published": false,
+  "sourceWorktreeDirty": true,
+  "projectionPolicyVersion": 10,
+  "authority": "isolated signed test deployment with real production composition; not production release acceptance",
+  "limits": {
+    "maxPhysicalRequests": 8,
+    "maxRequestsPerScenario": 4,
+    "maxOutputTokensPerRequest": 1536,
+    "requestTimeoutMs": 90000
+  },
+  "scenarios": [
+    {
+      "name": "new-malformed-response",
+      "inject": true,
+      "injected": true,
+      "requests": 3,
+      "receipts": [
+        {
+          "responseId": "0217936885303748bdd423d62f122d9a8ca392648b1c570f37705",
+          "requestId": "0217936885303748bdd423d62f122d9a8ca392648b1c570f37705",
+          "usage": {
+            "completion_tokens": 40,
+            "prompt_tokens": 877,
+            "total_tokens": 917,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          "finishReason": "tool_calls"
+        },
+        {
+          "responseId": "0217936885379648bdd423d62f122d9a8ca392648b1c57055a696",
+          "requestId": "0217936885379648bdd423d62f122d9a8ca392648b1c57055a696",
+          "usage": {
+            "completion_tokens": 65,
+            "prompt_tokens": 989,
+            "total_tokens": 1054,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 25
+            }
+          },
+          "finishReason": "tool_calls"
+        },
+        {
+          "responseId": "0217936885491678bdd423d62f122d9a8ca392648b1c5701a9087",
+          "requestId": "0217936885491678bdd423d62f122d9a8ca392648b1c5701a9087",
+          "usage": {
+            "completion_tokens": 37,
+            "prompt_tokens": 1627,
+            "total_tokens": 1664,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 23
+            }
+          },
+          "finishReason": "stop"
+        }
+      ],
+      "invalidCallId": "call_00_a4igepkwb136x21dbxzplm06",
+      "assertions": {
+        "strictEvolutionCompleted": true,
+        "realModelReturnedUnknownFileContent": true,
+        "invalidArgumentsAbsentFromOutboundRequests": true,
+        "originalHistoryUnchanged": true,
+        "rejectedCallNeverExecutedOrReplayed": true
+      },
+      "status": "passed"
+    },
+    {
+      "name": "legacy-session-resume",
+      "inject": false,
+      "injected": false,
+      "requests": 2,
+      "receipts": [
+        {
+          "responseId": "0217936885643268bdd423d62f122d9a8ca392648b1c570ac6cd8",
+          "requestId": "0217936885643268bdd423d62f122d9a8ca392648b1c570ac6cd8",
+          "usage": {
+            "completion_tokens": 76,
+            "prompt_tokens": 1000,
+            "total_tokens": 1076,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 36
+            }
+          },
+          "finishReason": "tool_calls"
+        },
+        {
+          "responseId": "0217936885714718bdd423d62f122d9a8ca392648b1c5709dfd84",
+          "requestId": "0217936885714718bdd423d62f122d9a8ca392648b1c5709dfd84",
+          "usage": {
+            "completion_tokens": 155,
+            "prompt_tokens": 1635,
+            "total_tokens": 1790,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 141
+            }
+          },
+          "finishReason": "stop"
+        }
+      ],
+      "assertions": {
+        "strictEvolutionCompleted": true,
+        "realModelReturnedUnknownFileContent": true,
+        "invalidArgumentsAbsentFromOutboundRequests": true,
+        "originalHistoryUnchanged": true,
+        "rejectedCallNeverExecutedOrReplayed": true
+      },
+      "status": "passed"
+    }
+  ],
+  "files": {
+    "src/runtime/agent-core.js": "sha256:e88d93975701247e486ca99f2b5bcafb826b8052f82c0aa1e5c8e0f05ddb6d6c",
+    "src/runtime/tool-argument-recovery.js": "sha256:749ca33229ff71c3438f8621b2ef0dc603355a6c0ab93c055bc37986731ebc7c",
+    "src/lib/evolution/evolution-evidence-projector.js": "sha256:bb9a0f805b682614a9c9743bd797dee2180b83d6b71e684f44f364c420f0dad5",
+    "src/lib/evolution/agent-model-projection.js": "sha256:e86dfc8b05000ea1063f4fc63ca557c0f7fa0c3fc6ea50add93d4cf917d46701"
+  },
+  "sourceDiffSha256": "4913c2912eef61bf2bcbca5f3261ce5557e96a7c56f5dc3b504a7d3a051808db",
+  "sourceIdentity": "source base plus explicit candidate diff and exact runtime file hashes; not release qualification",
+  "projectionRulesetDigest": "sha256:8f24ae807ab9ac74c2c4892063abd7b3be58d03594e57da84f85addc7a0c737b",
+  "historicalV9RulesetDigest": "sha256:3e255559e6f20702d997a0ab1319776db25c455c5ca7f0209ae851dc780bc50f",
+  "status": "passed",
+  "physicalRequests": 5,
+  "finishedAt": "2026-11-03T06:49:44.411Z",
+  "publicEvidenceNote": "Temporary filesystem paths omitted; exact runtime file hashes and source-base/diff identity retained. Candidate snapshot only, not publication or broad model acceptance."
+}

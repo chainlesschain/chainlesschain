@@ -14,6 +14,10 @@ The focused Windows checks passed 129 tests. Two bounded real Volcengine recover
 
 [Focused recovery evidence](docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine.json).
 
+Agent projection v10 also prevents genuine image and reasoning transport SHA-256 digests from being mistaken for phone numbers. Only authenticated protocol metadata uses the scan view; the original digest and byte-length restoration binding is unchanged. Real phone numbers, user-supplied digest-like text and forged markers retain their existing checks, and v1-v9 historical rules are preserved.
+
+The v10 candidate passed both recovery scenarios again with **five real Volcengine requests and 6,501 tokens**, using runtime source hashes matching this candidate. See the [additional live evidence](docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine-v10.json).
+
 <!-- release140-candidate:end -->
 
 <!-- release139-current:start -->

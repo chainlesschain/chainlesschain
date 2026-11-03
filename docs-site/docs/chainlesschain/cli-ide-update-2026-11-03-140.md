@@ -16,6 +16,8 @@
 
 ## 系统架构
 
+内部投影规则 v10 同时修复图片及推理传输块的 SHA-256 摘要被手机号扫描误判的问题。仅可信传输元数据使用扫描视图，原始摘要和字节长度绑定不变；真实手机号、用户文本中的摘要样字符串及伪造标记仍受检查。v1–v9 历史规则定义和读取校验保留。
+
 修复由 CLI 的工具调用和模型请求准备层承担，两款 IDE 通过推荐同一 CLI 获得恢复能力。IDE 通信协议保持原有版本。
 
 | 组件      | 配套候选版本 |
@@ -46,6 +48,8 @@ Agent SDK **0.2.17**、Protocol **0.1.12**、Kernel **0.1.11** 和其他子包�
 
 ## 测试覆盖
 
+内部摘要修复的完整相关测试 **393/393 通过**；新增确定性真实 PNG / 推理摘要回归，覆盖手机号、伪造标记、绑定篡改、验签失败和旧规则读取。v10 候选再次通过两条真实火山恢复路径，共 **5 次请求 / 6,501 tokens**，源码哈希与当前运行时一致。见[追加实测证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine-v10.json)。
+
 Windows 相关回归检查 **129 项通过**。两条真实火山模型恢复路径分别验证新调用被拒绝后继续，以及旧版失败历史续接；新调用场景明确向一次真实响应注入了日志中的损坏参数。两条路径均验证未执行/未重放失败调用、原历史不变、成功读取未知文件内容和自进化运行正常结束。
 
 正式发行另外要求最终提交的 Linux、Windows、macOS **CLI CI** 与 **CLI Strict Sandbox** 全部配置作业通过，使用 GitHub Actions OIDC 发布并核验公开包；两款 IDE 各自完成准确源码宿主门禁。工程和恢复实测不增加历史大任务验收成绩。
@@ -57,6 +61,8 @@ Windows 相关回归检查 **129 项通过**。两条真实火山模型恢复路
 密钥未写入版本库或测试回执。JetBrains 上传、商店批准和公开可下载状态分别记录；Microsoft Marketplace 继续暂缓。
 
 ## 故障排查
+
+旧候选 `eb0fe7a8a1` 曾在 Windows 证据索引完整性组合校验处中止，随后原规则的三平台各 100 次完整回环复测通过。具体拒绝子条件仍未定位，完整性校验继续生效；[首次失败](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt1-failure.json)和[完整复测](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt2-aggregate.json)保留各自的历史源码范围。
 
 升级后仍报错时，先运行 cc --version 和 cc doctor，核对 IDE 实际使用的 CLI 路径，再重启现有 Agent。旧进程可能仍持有升级前的模块。
 

@@ -12,6 +12,8 @@ Publication uses GitHub Actions OIDC after the exact release commit passes CLI C
 
 The focused Windows checks passed 129 tests. Two bounded real Volcengine recovery scenarios passed through the installed runtime with five physical requests and 6,401 tokens; the first scenario explicitly injected the exact logged malformed argument into one inbound model response. These results cover this recovery defect and do not rescore historical model-task acceptance. SDK 0.2.17, Protocol 0.1.12, Kernel 0.1.11 and the other child packages retain their published versions. Microsoft Marketplace and the independent PC/mobile product release are outside this patch.
 
+The paired CLI also corrects phone-shaped internal image/reasoning digests under Agent projection v10. Exact transport binding, real PII checks, forged-marker rejection and v1-v9 historical verification remain in place.
+
 <!-- release140-candidate:end -->
 
 <!-- release138-current:start -->

@@ -1,0 +1,26 @@
+{
+  "schema": "chainlesschain.ide-roadmap-live-provider-trajectory-aggregate.v1",
+  "schemaVersion": 1,
+  "manifestVersion": "1.9.41",
+  "caseId": "s0-live-provider-trajectory",
+  "releaseCommit": "eb0fe7a8a14a38d762901ceb9c75bc9c9583043a",
+  "generatedAt": "2026-11-03T06:10:27.202Z",
+  "mode": "loopback",
+  "expectedOperatingSystems": [
+    "linux",
+    "windows",
+    "macos"
+  ],
+  "minimumRunsPerOperatingSystem": 100,
+  "counts": {
+    "linux": 100,
+    "windows": 100,
+    "macos": 100
+  },
+  "evidenceFileCount": 3,
+  "runCount": 300,
+  "manifestMatrixEligible": false,
+  "manifestCoverageComplete": false,
+  "provenanceClaim": "structural-envelope-only",
+  "evidenceDigest": "sha256:292e19d223a73cc4ba696581a45d737553c970eb3c6dd6721897e6bc7498cf5b"
+}

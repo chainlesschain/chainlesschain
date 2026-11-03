@@ -16,6 +16,10 @@
 
 [本次恢复实测证据](docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine.json)。
 
+同时修复图片及推理传输块的内部 SHA-256 摘要被手机号扫描误判的问题。内部投影规则 v10 仅为可信传输元数据生成扫描视图，原始摘要与字节长度绑定保持不变。真实手机号、用户文本中的摘要样字符串和伪造标记继续接受原有检查，v1–v9 历史规则保留。
+
+v10 候选已追加两条真实火山恢复复测，**5 次请求 / 6,501 tokens**；运行时源码哈希与当前候选一致。见[追加实测](docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine-v10.json)。
+
 <!-- release140-candidate:end -->
 
 <!-- release139-current:start -->

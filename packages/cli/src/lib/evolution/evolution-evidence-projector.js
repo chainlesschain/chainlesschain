@@ -14,6 +14,7 @@ import {
   AGENT_MODEL_REQUEST_LIMITS,
   AGENT_MODEL_IMAGE_LIMITS,
   projectAgentOpaqueTransportBlock,
+  isAgentOpaqueTransportBlockAtPath,
   snapshotAgentModelRequest,
 } from "./agent-model-projection.js";
 import { snapshotSkillDecisionPayload } from "./skill-decision-projection.js";
@@ -632,7 +633,7 @@ export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V8_DIGEST = `sha256:${crea
     "utf8",
   )
   .digest("hex")}`;
-const AGENT_MODEL_RULESET = Object.freeze({
+const AGENT_MODEL_RULESET_V9 = Object.freeze({
   ...AGENT_MODEL_RULESET_V8,
   schema: "chainlesschain.evolution-agent-model-projection-rules/v9",
   version: 9,
@@ -642,6 +643,20 @@ const AGENT_MODEL_RULESET = Object.freeze({
     sourceLiteralPolicy: "explicit-source-containers-v1",
     maxSourceTokens: 32768,
   }),
+});
+export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V9_DIGEST = `sha256:${createHash(
+  "sha256",
+)
+  .update(
+    `${AGENT_MODEL_RULESET_V9.schema}\0${JSON.stringify(AGENT_MODEL_RULESET_V9)}`,
+    "utf8",
+  )
+  .digest("hex")}`;
+const AGENT_MODEL_RULESET = Object.freeze({
+  ...AGENT_MODEL_RULESET_V9,
+  schema: "chainlesschain.evolution-agent-model-projection-rules/v10",
+  version: 10,
+  opaqueDigestScanPolicy: "authenticated-protocol-block-digest-scan-view-v1",
 });
 export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST = `sha256:${createHash(
   "sha256",
@@ -668,6 +683,7 @@ export const EVOLUTION_SKILL_DECISION_PROJECTION_RULESET_DIGEST = `sha256:${crea
   .digest("hex")}`;
 
 const SUPPORTED_RULESETS = new Map([
+  [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V9_DIGEST, AGENT_MODEL_RULESET_V9],
   [EVOLUTION_SKILL_DECISION_PROJECTION_RULESET_DIGEST, SKILL_DECISION_RULESET],
   [RULESET_DIGEST, RULESET],
   [RAW_RULESET_V3_DIGEST, RAW_RULESET_V3],
@@ -754,6 +770,7 @@ const AGENT_VALUE_PATTERNS = Object.freeze([
 function valuePatterns(ruleset) {
   return ruleset === SKILL_DECISION_RULESET ||
     ruleset === AGENT_MODEL_RULESET ||
+    ruleset === AGENT_MODEL_RULESET_V9 ||
     ruleset === AGENT_MODEL_RULESET_V8 ||
     ruleset === AGENT_MODEL_RULESET_V7 ||
     ruleset === AGENT_MODEL_RULESET_V6 ||
@@ -963,9 +980,35 @@ function deepFreeze(value, seen = new WeakSet()) {
   return Object.freeze(value);
 }
 
-function assertNoKnownSecrets(content, patterns = VALUE_PATTERNS) {
+function opaqueDigestScanView(value, opaqueBlocks) {
+  if (!value || typeof value !== "object") return value;
+  if (opaqueBlocks.has(value)) {
+    // Only the digest is protocol metadata; continue scanning every other
+    // field. The real commitment remains unchanged in the persisted content.
+    return { ...value, digest: "[OPAQUE_TRANSPORT_DIGEST]" };
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry) => opaqueDigestScanView(entry, opaqueBlocks));
+  }
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [
+      key,
+      opaqueDigestScanView(entry, opaqueBlocks),
+    ]),
+  );
+}
+
+function assertNoKnownSecrets(
+  content,
+  patterns = VALUE_PATTERNS,
+  opaqueBlocks = null,
+) {
   const serialized =
-    typeof content === "string" ? content : canonicalJson(content);
+    typeof content === "string"
+      ? content
+      : canonicalJson(
+          opaqueBlocks ? opaqueDigestScanView(content, opaqueBlocks) : content,
+        );
   for (const pattern of patterns) {
     pattern.regex.lastIndex = 0;
     if (pattern.regex.test(serialized)) {
@@ -1521,7 +1564,15 @@ function sanitizePayload(
   payload,
   ruleset = RULESET,
   patterns = valuePatterns(ruleset),
+  projectedOpaqueBlocks = null,
 ) {
+  // Raw Agent inputs cannot contain opaque markers. Only the v10 bundle
+  // verifier supplies a set for already-projected, protocol-validated blocks;
+  // its result is never published without successful attestation verification.
+  const opaqueBlocks =
+    ruleset === AGENT_MODEL_RULESET
+      ? (projectedOpaqueBlocks ?? new WeakSet())
+      : null;
   const findings = [];
   const injections = [];
   let nodes = 0;
@@ -1545,8 +1596,17 @@ function sanitizePayload(
       return "[TRUNCATED:CONTENT_BUDGET]";
     }
     const toolArguments = jsonText && isAgentToolArgumentsPath(path);
+    if (
+      opaqueBlocks &&
+      projectedOpaqueBlocks &&
+      isAgentOpaqueTransportBlockAtPath(value, path.join("."))
+    ) {
+      opaqueBlocks.add(value);
+      return value;
+    }
     const opaqueTransportBlock =
       ruleset === AGENT_MODEL_RULESET ||
+      ruleset === AGENT_MODEL_RULESET_V9 ||
       ruleset === AGENT_MODEL_RULESET_V8 ||
       ruleset === AGENT_MODEL_RULESET_V7 ||
       ruleset === AGENT_MODEL_RULESET_V6 ||
@@ -1555,7 +1615,10 @@ function sanitizePayload(
       ruleset === AGENT_MODEL_RULESET_V3
         ? projectAgentOpaqueTransportBlock(value, path.join("."))
         : null;
-    if (opaqueTransportBlock !== null) return opaqueTransportBlock;
+    if (opaqueTransportBlock !== null) {
+      opaqueBlocks?.add(opaqueTransportBlock);
+      return opaqueTransportBlock;
+    }
     if (toolArguments && typeof value !== "string" && !isPlainRecord(value)) {
       throw projectionError(
         EVOLUTION_PROJECTION_INVALID_CODE,
@@ -1766,7 +1829,7 @@ function sanitizePayload(
     byType,
     paths: [...paths].sort(),
   };
-  assertNoKnownSecrets(content, patterns);
+  assertNoKnownSecrets(content, patterns, opaqueBlocks);
   return deepFreeze({
     content,
     redactionSummary,
@@ -3435,6 +3498,8 @@ function validateBundleIntegrity(bundle) {
     );
   }
   if (model.content !== null) {
+    const projectedOpaqueBlocks =
+      ruleset === AGENT_MODEL_RULESET ? new WeakSet() : null;
     if (ruleset === SKILL_DECISION_RULESET) {
       snapshotSkillDecisionPayload(model.content);
       if (
@@ -3449,6 +3514,7 @@ function validateBundleIntegrity(bundle) {
     }
     if (
       ruleset === AGENT_MODEL_RULESET ||
+      ruleset === AGENT_MODEL_RULESET_V9 ||
       ruleset === AGENT_MODEL_RULESET_V8 ||
       ruleset === AGENT_MODEL_RULESET_V7 ||
       ruleset === AGENT_MODEL_RULESET_V6 ||
@@ -3462,6 +3528,7 @@ function validateBundleIntegrity(bundle) {
         allowStructuredArgumentText: ruleset !== AGENT_MODEL_RULESET_V1,
         allowOpaqueTransportBlocks:
           ruleset === AGENT_MODEL_RULESET ||
+          ruleset === AGENT_MODEL_RULESET_V9 ||
           ruleset === AGENT_MODEL_RULESET_V8 ||
           ruleset === AGENT_MODEL_RULESET_V7 ||
           ruleset === AGENT_MODEL_RULESET_V6 ||
@@ -3481,15 +3548,25 @@ function validateBundleIntegrity(bundle) {
     }
     if (
       (ruleset.jsonTextPolicy || ruleset.numericScalarPolicy) &&
-      canonicalJson(sanitizePayload(model.content, ruleset).content) !==
-        canonicalJson(model.content)
+      canonicalJson(
+        sanitizePayload(
+          model.content,
+          ruleset,
+          valuePatterns(ruleset),
+          projectedOpaqueBlocks,
+        ).content,
+      ) !== canonicalJson(model.content)
     ) {
       throw projectionError(
         EVOLUTION_PROJECTION_INVALID_CODE,
         "Agent model JSON content is not a safe projection",
       );
     }
-    assertNoKnownSecrets(model.content, valuePatterns(ruleset));
+    assertNoKnownSecrets(
+      model.content,
+      valuePatterns(ruleset),
+      projectedOpaqueBlocks,
+    );
     assertNoInjectionText(model.content);
   }
   if (trusted.content !== null) {

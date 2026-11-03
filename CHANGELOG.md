@@ -11,11 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed - cc CLI 0.166.140: recover rejected malformed tool arguments (candidate, 2026-11-03)
+### Fixed - cc CLI 0.166.140: recover tool arguments and opaque digest scanning (candidate, 2026-11-03)
 
 - Reject malformed JSON and non-object provider tool arguments before checkpoints, hooks or tool execution instead of executing an empty-object fallback.
 - Derive model-only placeholders for uniquely paired explicit pre-execution rejections, including legacy run_code snapshot denials. Preserve original durable history and never replay the rejected call.
 - Keep valid object argument handling, duplicate-key and nested JSON rejection, redaction and projection budgets unchanged.
+- Prevent genuine image and reasoning transport SHA-256 digests from being mistaken for phone numbers. Internal Agent projection v10 uses a scan view for authenticated protocol metadata while preserving exact digest/byte-length restoration, real PII checks, forged-marker rejection, and the unchanged v1-v9 historical rules.
 - Pair with Open VSX 0.37.176 and JetBrains 0.4.193. Child npm versions are unchanged; require exact-source three-platform CLI CI / Strict Sandbox, Actions OIDC publication, public package readback and downstream IDE host gates.
 - Focused local validation passed 129 checks; two bounded real Volcengine recovery scenarios passed with five physical requests and 6,401 tokens. This is defect-specific recovery evidence, not a new broad model-task acceptance result.
 
