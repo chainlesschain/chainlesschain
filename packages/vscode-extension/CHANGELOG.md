@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.176] - rejected tool argument recovery pairing (candidate, 2026-11-03)
+
+- Recommend CLI 0.166.140 and pair with JetBrains 0.4.193 after verified upstream publication.
+- Carry pre-execution argument rejection and model-only recovery of uniquely paired invalid tool requests, preserving original history and strict evolution projection.
+- Require complete exact-source IDE host gates. The two bounded Volcengine recovery checks cover this defect; historical task acceptance and Marketplace approval retain their separate scopes.
+
 ## [0.37.175] - CLI author/review completion repair (candidate, 2026-11-02)
 
 - Recommend CLI 0.166.139 and pair with JetBrains 0.4.192 after verified upstream publication.

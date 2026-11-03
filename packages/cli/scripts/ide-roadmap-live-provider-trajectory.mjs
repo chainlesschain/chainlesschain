@@ -206,6 +206,38 @@ const SAFE_PROVIDER_ERROR_CODES = new Set([
   "UND_ERR_HEADERS_TIMEOUT",
 ]);
 
+function isSafeRepoStackSite(site) {
+  if (
+    typeof site !== "string" ||
+    !/^packages\/cli\/(?:src|scripts|bin|__tests__|test|test-node)\/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*\/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*\.[cm]?[jt]s:[1-9]\d{0,15}$/u.test(
+      site,
+    )
+  )
+    return false;
+  const separator = site.lastIndexOf(":");
+  const relative = site.slice(0, separator);
+  if (
+    relative.length > 180 ||
+    !Number.isSafeInteger(Number(site.slice(separator + 1)))
+  )
+    return false;
+  try {
+    const root = fs.realpathSync(path.join(DEFAULT_REPO_ROOT, "packages/cli"));
+    const target = fs.realpathSync(path.join(DEFAULT_REPO_ROOT, relative));
+    const physicalRelative = path.relative(root, target).replaceAll("\\", "/");
+    // A stack can be provider-controlled. Existence alone is insufficient:
+    // reject aliases and symlinks escaping the actual CLI source tree too.
+    return (
+      !physicalRelative.startsWith("../") &&
+      !path.isAbsolute(physicalRelative) &&
+      `packages/cli/${physicalRelative}` === relative &&
+      fs.statSync(target).isFile()
+    );
+  } catch {
+    return false;
+  }
+}
+
 function safeRepoStackSite(error) {
   if (typeof error?.stack !== "string") return null;
   for (const frame of error.stack.split(/\r?\n/u).slice(1, 12)) {
@@ -224,9 +256,8 @@ function safeRepoStackSite(error) {
     const relative = path
       .relative(DEFAULT_REPO_ROOT, absolute)
       .replaceAll("\\", "/");
-    if (relative.startsWith("packages/cli/") && relative.length <= 180) {
-      return `${relative}:${Number(match[2])}`;
-    }
+    const site = `${relative}:${Number(match[2])}`;
+    if (isSafeRepoStackSite(site)) return site;
   }
   return null;
 }
@@ -934,8 +965,14 @@ function validatedTrajectoryFailureDiagnostic(value) {
         value.providerError.some(
           (entry) =>
             !isRecord(entry) ||
-            canonicalJson(Object.keys(entry).sort()) !==
-              canonicalJson(["code", "name", "status"]) ||
+            canonicalJson(
+              Object.keys(entry)
+                .filter((key) => key !== "site")
+                .sort(),
+            ) !== canonicalJson(["code", "name", "status"]) ||
+            (Object.hasOwn(entry, "site") &&
+              entry.site !== null &&
+              !isSafeRepoStackSite(entry.site)) ||
             (entry.name !== "other" &&
               !SAFE_PROVIDER_ERROR_NAMES.has(entry.name)) ||
             (entry.code !== null &&
@@ -1253,11 +1290,11 @@ async function runOneTrajectory({ fixture, profile, runIndex, timeoutMs }) {
           events,
           eventOrder,
         );
-        // Retain the already allowlisted failure class across the evidence
-        // boundary. Provider messages, stacks, paths and requests are omitted.
+        // Retain the allowlisted failure class and bounded repository site.
+        // Provider messages, raw stacks, absolute paths and requests are omitted.
         if (diagnostic.length > 0)
           failure.safeDiagnostic.providerError = diagnostic.map(
-            ({ name, code, status }) => ({ name, code, status }),
+            ({ name, code, status, site }) => ({ name, code, status, site }),
           );
         throw failure;
       }

@@ -90,3 +90,9 @@ docs/research/cli/verify01-openai-139-r2-20261103/**
 # Preserve round-three source identities and original provider/acceptance receipts.
 docs/research/cli/verify01-openai-139-r3-20261103/**
 !docs/research/cli/verify01-openai-139-r3-20261103/README.md
+
+# Preserve the original bytes of the CLI .140 historical CI/diagnostic receipts.
+docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt1-failure.json
+docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt2-aggregate.json
+docs/research/cli/evidence/tool-argument-recovery-20261103/windows-storage-diagnostic-5fa-failure.json
+docs/research/cli/evidence/tool-argument-recovery-20261103/windows-storage-diagnostic-5fa.jsonl
