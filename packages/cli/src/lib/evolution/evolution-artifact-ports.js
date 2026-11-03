@@ -3131,11 +3131,74 @@ export class EvolutionArtifactPorts {
       createdAtMs < core.issuedAtMs ||
       !storeRetentionIsAdmissible
     ) {
-      throw artifactError(
+      const error = artifactError(
         EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
         "ArtifactStore index entry is not exactly admissible for this envelope",
         { artifactId: id },
       );
+      // Diagnostic branch only: observe the already-rejected guard without
+      // retaining any entry values or changing its decision or original error.
+      try {
+        if (process.env.CC_R140_STORAGE_DIAGNOSTIC) {
+          const failures = [
+            ["file", file !== `${id}.json` || path.basename(file) !== file],
+            [
+              "title",
+              ownData(entry, "title", "ArtifactStore index entry") !==
+                `Evolution ${core.type} artifact`,
+            ],
+            [
+              "kind",
+              ownData(entry, "kind", "ArtifactStore index entry") !== "data",
+            ],
+            [
+              "mime",
+              ownData(entry, "mime", "ArtifactStore index entry") !==
+                "application/json",
+            ],
+            [
+              "size",
+              !Number.isSafeInteger(size) ||
+                size < 1 ||
+                size > EVOLUTION_ARTIFACT_MAX_CANONICAL_BYTES,
+            ],
+            [
+              "hash",
+              ownData(entry, "sha256", "ArtifactStore index entry") !==
+                core.recordDigest.slice("sha256:".length),
+            ],
+            [
+              "sourcePath",
+              ownData(entry, "sourcePath", "ArtifactStore index entry") !==
+                null,
+            ],
+            [
+              "sessionId",
+              ownData(entry, "sessionId", "ArtifactStore index entry") !== null,
+            ],
+            [
+              "immutable",
+              ownData(entry, "immutable", "ArtifactStore index entry") !== true,
+            ],
+            [
+              "recordDigest",
+              ownData(entry, "recordDigest", "ArtifactStore index entry") !==
+                core.recordDigest,
+            ],
+            ["expiry-order", storeExpiresAtMs <= createdAtMs],
+            ["created-before-issued", createdAtMs < core.issuedAtMs],
+            ["retention", !storeRetentionIsAdmissible],
+          ]
+            .filter(([, failed]) => failed)
+            .map(([label]) => label);
+          Object.defineProperty(error, "r140IndexFailures", {
+            value: Object.freeze(failures),
+          });
+        }
+      } catch {
+        // Observation must never replace the original rejection.
+      }
+      throw error;
     }
     const lineage = this.#validateLineage(
       ownData(entry, "lineage", "ArtifactStore index entry"),

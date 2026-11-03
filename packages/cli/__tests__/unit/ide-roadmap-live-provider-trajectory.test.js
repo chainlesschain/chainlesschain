@@ -686,14 +686,11 @@ describe("IDE roadmap live-provider trajectory", () => {
     );
   });
 
-  it("keeps real-provider execution manual/scheduled and secrets out of arguments", () => {
+  it("keeps real-provider execution disabled and secrets out of arguments", () => {
     const workflow = fs.readFileSync(WORKFLOW_PATH, "utf8");
     expect(workflow).toContain('LOOPBACK_RUNS: "100"');
     expect(workflow).toContain('LIVE_PROVIDER_RUNS_PER_SHARD: "10"');
     expect(workflow).toContain("shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]");
-    expect(workflow).toContain(
-      "if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'",
-    );
     expect(workflow).toContain("CC_LLM_API_KEY: ${{ secrets.CC_LLM_API_KEY }}");
     expect(workflow).toContain(
       "--expected-operating-systems linux,windows,macos",
@@ -710,6 +707,14 @@ describe("IDE roadmap live-provider trajectory", () => {
       workflow.indexOf("  live-provider:\n"),
       workflow.indexOf("  live-provider-verify:\n"),
     );
+    const liveProviderVerifyJob = workflow.slice(
+      workflow.indexOf("  live-provider-verify:\n"),
+    );
+    // GitHub always() is true even for cancelled runs. Its negation keeps both
+    // jobs disabled for every event without relaxing the actionlint baseline.
+    for (const job of [liveProviderJob, liveProviderVerifyJob]) {
+      expect(job).toMatch(/^    if: \$\{\{ !always\(\) \}\}$/m);
+    }
     const liveProviderRunStep = liveProviderJob.slice(
       liveProviderJob.indexOf(
         "      - name: Run a real-provider trajectory without fallback\n",

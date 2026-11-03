@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-11-03T01:39:28.767Z",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192"
+  },
+  "native": {
+    "accepted": 1,
+    "expected": 1,
+    "sampleId": "verify-08",
+    "results": "public-aeb3a9d9cb/results.json",
+    "source": "aeb3a9d9cb97e23313bb1c316db00722a296e970",
+    "projectSource": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+    "baseline": 59,
+    "candidate": 2,
+    "originalMutantsDetected": 1
+  },
+  "physicalRequestsStarted": 21,
+  "usageCompleteRequests": 21,
+  "knownTokenOnlyEstimateUsd": 0.5873909,
+  "actualBilledCostUsd": null,
+  "currentOpenaiRetestQueue": [],
+  "scope": "Only the latest previously-unaccepted OpenAI follow-up queue; not a same-version full 45-task rerun",
+  "historicalScoresUnchanged": true,
+  "secretRemoved": true,
+  "newPublicRelease": false,
+  "productRuntimeChanged": false,
+  "archiveFilesVerified": 7
+}

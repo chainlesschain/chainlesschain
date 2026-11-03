@@ -343,7 +343,9 @@ jobs:
   # invocation, so the per-arch matrix is no longer needed.
   build-macos:
     needs: [publish-deps]
-    runs-on: macos-latest
+    # The arm64 hosted pool failed to acquire runners during product144.
+    # Intel hosts can package both targets; SQLite is staged as universal below.
+    runs-on: macos-15-intel
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -417,6 +419,15 @@ jobs:
           # hoist back to root.
           bash "$GITHUB_WORKSPACE/.github/scripts/ci-install-cli-production-deps.sh"
 
+      - name: Test Mac resource and ASAR native inspection before packaging
+        working-directory: desktop-app-vue
+        run: >-
+          npx vitest run
+          tests/unit/scripts/verify-macos-sqlite.test.js
+          tests/unit/scripts/stage-macos-sqlite.test.js
+          tests/unit/scripts/patch-macos-sqlite.test.js
+          tests/unit/scripts/asar-surgery.test.js
+
       - name: Rebuild bs3mc native bindings for Electron ABI (macOS)
         # See Windows job for full rationale. Strategy here: rebuild
         # desktop-app-vue's bs3mc via @electron/rebuild (prebuild-install
@@ -425,41 +436,70 @@ jobs:
         # @electron/rebuild on packages/cli avoids the source-build
         # fallback that hits removed V8 API.
         #
-        # macOS dual-arch caveat: macos-latest is arm64; @electron/rebuild
-        # without --arch fetches the arm64 prebuild. electron-builder still
-        # ships both x64 + arm64 DMGs (mac.target.arch: [x64, arm64]) so
-        # the x64 DMG carries an arm64 .node → crash on Intel Macs.
-        # Followup: per-arch staging dirs or electron-builder install-app-
-        # deps. Apple Silicon users (M1+) dominate macOS install base in
-        # 2026; Intel mac is the regression window until followup lands.
+        # Both app targets consume this dependency tree. Stage both Electron
+        # architectures as a universal Mach-O rather than copying host-only
+        # bindings into the other architecture's app. Include the plain SQLite
+        # fallback used directly by file-integrity and identity-context code.
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
           ELECTRON_VER=$(node -p "require(require.resolve('electron/package.json', { paths: [require('node:path').resolve('desktop-app-vue')] })).version")
-          echo "Rebuilding bs3mc for Electron $ELECTRON_VER (arm64, single-arch)"
-          (cd desktop-app-vue && npx --yes @electron/rebuild@^4 \
-            --version "$ELECTRON_VER" \
-            --only better-sqlite3-multiple-ciphers \
-            --force)
-
-          REBUILT="desktop-app-vue/node_modules/better-sqlite3-multiple-ciphers/build/Release/better_sqlite3.node"
-          if [ ! -f "$REBUILT" ]; then
-            echo "::error ::Expected rebuilt binary not at $REBUILT"
-            exit 1
-          fi
-          echo "Rebuilt binary size: $(stat -f%z "$REBUILT" 2>/dev/null || wc -c < "$REBUILT") bytes"
-
-          echo "=== Copying rebuilt .node into all other bs3mc copies ==="
-          copied=0
-          while IFS= read -r target; do
-            if [ "$(realpath "$target")" = "$(realpath "$REBUILT")" ]; then
-              continue
-            fi
-            cp -f "$REBUILT" "$target"
-            echo "  copied → $target"
-            copied=$((copied + 1))
-          done < <(find packages -path "*/better-sqlite3-multiple-ciphers/build/Release/better_sqlite3.node" 2>/dev/null)
-          echo "Total copied: $copied"
+          NATIVE_STAGE=$(mktemp -d "$RUNNER_TEMP/product144-sqlite.XXXXXX")
+          trap 'rm -rf "$NATIVE_STAGE"' EXIT
+          # The root and standalone desktop lockfiles contain different SQLite
+          # versions. Rebuild each version, then stage only matching payloads.
+          for scope in . desktop-app-vue packages/core-db; do
+            BUILD_PROJECT="$NATIVE_STAGE/build-$scope"
+            # Hoisted root dependencies are not declared by the aggregate root
+            # package, so rebuild's normal dependency scan skips them. Give the
+            # installed modules an explicit standalone production dependency set.
+            node - "$BUILD_PROJECT" "$PWD/$scope" <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const { patchMacSqlite } = require('./desktop-app-vue/scripts/patch-macos-sqlite');
+          const [project, source] = process.argv.slice(2);
+          const dependencies = {};
+          fs.mkdirSync(path.join(project, 'node_modules'), { recursive: true });
+          for (const name of ['better-sqlite3', 'better-sqlite3-multiple-ciphers']) {
+            const modulePath = path.join(source, 'node_modules', name);
+            dependencies[name] = require(path.join(modulePath, 'package.json')).version;
+            // V8 in Electron 39 removed Context::GetIsolate. Keep core-db's
+            // published 11.10.0 API/SQLite version and backport this initializer.
+            console.log('V8 compatibility patches:', name, patchMacSqlite(modulePath));
+            fs.symlinkSync(modulePath, path.join(project, 'node_modules', name), 'dir');
+          }
+          fs.writeFileSync(path.join(project, 'package.json'), JSON.stringify({name:'product144-native-build',version:'1.0.0',private:true,dependencies}));
+          console.log('Explicit native build inputs:', dependencies);
+          NODE
+            for arch in x64 arm64; do
+              (cd "$BUILD_PROJECT" && npx --yes @electron/rebuild@^4 \
+                --version "$ELECTRON_VER" --arch "$arch" \
+                --only better-sqlite3-multiple-ciphers,better-sqlite3 --force)
+              for pkg in better-sqlite3-multiple-ciphers better-sqlite3; do
+                version=$(node -p "require('./$scope/node_modules/$pkg/package.json').version")
+                target_arch="$arch"
+                [ "$arch" != x64 ] || target_arch=x86_64
+                lipo "$scope/node_modules/$pkg/build/Release/better_sqlite3.node" -verify_arch "$target_arch"
+                cp "$scope/node_modules/$pkg/build/Release/better_sqlite3.node" \
+                  "$NATIVE_STAGE/$pkg-$version-$arch.node"
+              done
+            done
+          done
+          for pkg in better-sqlite3-multiple-ciphers better-sqlite3; do
+            versions=$(node -p "[...new Set([require('./node_modules/$pkg/package.json').version,require('./desktop-app-vue/node_modules/$pkg/package.json').version,require('./packages/core-db/node_modules/$pkg/package.json').version])].join(' ')")
+            for version in $versions; do
+              REBUILT="$NATIVE_STAGE/$pkg-$version-universal.node"
+              lipo -create "$NATIVE_STAGE/$pkg-$version-x64.node" "$NATIVE_STAGE/$pkg-$version-arm64.node" -output "$REBUILT"
+              lipo "$REBUILT" -verify_arch x86_64 arm64
+              lipo -info "$REBUILT"
+            done
+          done
+          node desktop-app-vue/scripts/stage-macos-sqlite.js "$NATIVE_STAGE"
+          ELECTRON_PATH=$(node -p "require(require.resolve('electron', {paths:[require('node:path').resolve('desktop-app-vue')]}))")
+          ELECTRON_RUN_AS_NODE=1 "$ELECTRON_PATH" -e 'const assert=require("node:assert/strict"); for(const p of process.argv.slice(1)){const DB=require(p);const db=new DB(":memory:");try{assert.equal(db.prepare("SELECT 1 AS n").get().n,1)}finally{db.close()}console.log("Electron SQLite smoke passed: "+p)}' \
+            "$PWD/node_modules/better-sqlite3" "$PWD/node_modules/better-sqlite3-multiple-ciphers" \
+            "$PWD/desktop-app-vue/node_modules/better-sqlite3" "$PWD/desktop-app-vue/node_modules/better-sqlite3-multiple-ciphers" \
+            "$PWD/packages/core-db/node_modules/better-sqlite3" "$PWD/packages/core-db/node_modules/better-sqlite3-multiple-ciphers"
 
       - name: Merge hoisted modules into nested (preserve non-hoistable deps)
         run: |
@@ -567,7 +607,9 @@ jobs:
 
       - name: Package macOS (electron-builder, x64 + arm64)
         working-directory: desktop-app-vue
-        run: npm run make:mac:builder
+        # Main, renderer, panel and CLI dependencies were already prepared.
+        # Reinstalling CLI dependencies here would replace the universal natives.
+        run: npx electron-builder --mac --config electron-builder.yml --publish never
         env:
           CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
           SKIP_BACKEND_CHECK: "true"
@@ -575,6 +617,13 @@ jobs:
           # Unsigned CI build by default. Add APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD
           # / APPLE_TEAM_ID secrets later to enable signing + notarization.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Verify SQLite architectures in packaged Mac apps
+        working-directory: desktop-app-vue
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-macos-sqlite.js out/build/mac/*.app out/build/mac-arm64/*.app
 
       - name: Verify differential-update artifacts (macOS)
         working-directory: desktop-app-vue
@@ -842,7 +891,8 @@ jobs:
   # 两路径均**无 mask**：失败就真失败（前 16 iter 收口的教训）。
   build-ios:
     needs: [publish-deps]
-    runs-on: macos-latest
+    # Avoid the arm64 hosted pool's capacity constraint; Xcode cross-compiles iOS.
+    runs-on: macos-15-intel
     timeout-minutes: 60
     steps:
       - name: Checkout code

@@ -1,0 +1,9 @@
+{
+  "channel": "open-vsx",
+  "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide",
+  "status": "ready",
+  "version": "0.37.175",
+  "latest": "0.37.175",
+  "downloadable": true,
+  "listed": true
+}

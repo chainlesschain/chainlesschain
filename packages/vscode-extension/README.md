@@ -4,23 +4,51 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming
 chat, inline assistance, governed review, sessions, automation, and a localhost
 MCP bridge.
 
-## Next release candidate
+## Current extension release: 0.37.176
 
-<!-- release139-candidate:start -->
+<!-- release140-current:start -->
 
-Source candidate **0.37.175** recommends CLI **0.166.139**. The extension has not been published; publish only after verified upstream CLI publication and complete exact-source IDE gates.
+## CLI 0.166.140 / rejected tool argument recovery
 
-The next package set is CLI **0.166.139**, Open VSX **0.37.175** and JetBrains **0.4.192**, with unchanged upstream SDK **0.2.17** and Kernel **0.1.11**. These versions are release candidates until their exact-source GitHub Actions gates and public readbacks succeed. After publication, install `npm i -g chainlesschain@0.166.139 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, and check `cc --version` and `cc doctor`.
+As checked at **2026-11-03T11:42:31.329Z**, CLI **0.166.140** is verified public through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/41610020835) from exact source `e2a91bf54332ff3d252c40ecc25c5887e0f0430d`. Public npm bytes, signed provenance, installation and startup have been verified. The same source passed every configured Linux, Windows and macOS CLI CI / CLI Strict Sandbox job.
 
-The repair reserves author, fresh independent review and final reporting work within the original total request budget. Partial JavaScript reads recover complete surrounding statements from the same file snapshot within the existing output limit; focused reads do not silently switch to unrelated ranges. The previously merged standalone WebSocket host-model-policy repair is included in this candidate.
+Open VSX **0.37.176** is public, listed and downloadable; its VSIX matches the official build byte for byte. JetBrains **0.4.193** has been uploaded and awaits Marketplace review or public indexing; public availability has not been verified. The previously verified public JetBrains release remains **0.4.192**, whose recommendation is CLI **0.166.139**. Both new IDE versions recommend CLI **0.166.140**.
 
-CLI .138 acceptance remains **2/4**: verify-13 and first-run-darwin-vscode passed; verify-08 and verify-36 failed on author-stage iteration exhaustion despite passing candidate checks. Only those two failures will be regenerated with this new package set. CLI .136 verify-19 remains a separate historical pass; historical **41/45** and .137 **0/5** are unchanged. Review stays enabled, with 20 model turns, 24 physical requests per case and the 32768-token planning context. Engineering checks do not establish model-task success. JetBrains may be tested using the official pending-review ZIP without waiting for Marketplace approval. Microsoft Marketplace and PC/mobile are outside this release.
+[Publication and channel receipts](../../docs/research/cli/evidence/release140-public/publication-readback.json) · [Exact-source gates](../../docs/research/cli/evidence/release140-public/gates.json) · [CLI public readback](../../docs/research/cli/evidence/release140-public/cli.json) · [Open VSX readback](../../docs/research/cli/evidence/release140-public/open-vsx.json) · [JetBrains status](../../docs/research/cli/evidence/release140-public/jetbrains.json)
 
-<!-- release139-candidate:end -->
+Install `npm i -g chainlesschain@0.166.140 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, then run `cc --version` and `cc doctor`.
+
+Malformed provider tool arguments are rejected before tool execution. A uniquely paired pre-execution rejection produces a model-only placeholder so the next turn can continue through strict self-evolution projection. Legacy run_code snapshot rejections can resume without replaying the rejected call; original durable history stays unchanged. Valid object arguments, duplicate-key rejection, nested JSON checks, redaction and decoding budgets retain their existing boundaries.
+
+Agent projection v10 also prevents genuine image and reasoning transport SHA-256 digests from being mistaken for phone numbers. Only authenticated protocol metadata uses the scan view; the original digest and byte-length restoration binding is unchanged. Real phone numbers, user-supplied digest-like text and forged markers retain their existing checks, and v1–v9 historical rules are preserved.
+
+The focused Windows checks passed **129 tests**. The earlier v9 recovery check used **five real Volcengine requests and 6,401 tokens**; its first scenario explicitly injected the exact logged malformed argument into one inbound model response. [Original scoped evidence](../../docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine.json). The separate v10 check passed both recovery scenarios with **five real Volcengine requests and 6,501 tokens**, with runtime source hashes matching this release. [Additional scoped evidence](../../docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine-v10.json). The complete related projector/agent-model tests passed **393/393**. These runs remain separate and add no historical model-task acceptance.
+
+Earlier candidate `eb0fe7a8a1` failed at the Windows ArtifactStore post-index integrity guard, then passed a complete three-OS loopback rerun. The exact rejected condition remains unresolved; the guard stays enforced. The [original failure](../../docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt1-failure.json) and [complete rerun](../../docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt2-aggregate.json) retain their historical source scope. The final release source separately passed 100 loopback runs on each of three operating systems; these 300 structural-envelope-only runs are not paid-provider task acceptance or a replacement for CLI CI / Strict Sandbox. Local composition runs timed out on both the v10 source and the earlier baseline and are not counted as passing.
+
+Agent SDK **0.2.17**, Protocol **0.1.12**, Kernel **0.1.11** and the other child packages retain their published versions; required upstream packages were fetched and dependency alignment verified before CLI publication. Microsoft Marketplace remains deferred. PC/mobile **v5.0.3.144** is already public as an independent release; this CLI/IDE follow-up does not republish clients. Historical .138 **2/4**, .137 **0/5** and cumulative **41/45** retain separate scopes.
+
+Immutable tag `ide-vscode-v0.37.176` identifies source `e2a91bf54332ff3d252c40ecc25c5887e0f0430d`. Download the verified [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.176/file/chainlesschain.chainlesschain-ide-0.37.176.vsix). [Official release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062).
+
+<!-- release140-current:end -->
+
+## Previous public release: 0.37.175
+
+<!-- release175-status -->
+
+Open VSX version **0.37.175** pairs with public CLI `0.166.139`.
+
+| Component                 | Current public status                                          |
+| ------------------------- | -------------------------------------------------------------- |
+| VS Code extension         | **0.37.175**; verified public release                          |
+| Recommended CLI           | **`chainlesschain@0.166.139`**; verified public npm package    |
+| Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI |
+
+Immutable tag `ide-vscode-v0.37.175` identifies the release. Install `npm i -g chainlesschain@0.166.139`. Using `@0.166.139` selects this pairing. CLI `0.166.139` is the recommended public CLI. The public artifact is `chainlesschain-ide-0.37.175.vsix`: [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.175/file/chainlesschain.chainlesschain-ide-0.37.175.vsix). [Public verification](../../docs/research/cli/evidence/release139-public/open-vsx.json).
 
 <!-- release138-current:start -->
 
-## Current release
+## Previous public release: 0.37.174
 
 <!-- release174-status -->
 

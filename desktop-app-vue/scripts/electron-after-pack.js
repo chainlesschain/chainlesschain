@@ -43,6 +43,7 @@
 const fs = require("fs");
 const path = require("path");
 const { runSurgery } = require("./asar-surgery");
+const { findMacApp, verifyMacApp } = require("./verify-macos-sqlite");
 
 // Read declared devDependencies once. These are top-level packages that the
 // runtime (src/main) does not require — Vite bundles renderer-side ones
@@ -120,6 +121,14 @@ function topLevelPkg(relUnix) {
 exports.default = async function afterPack(context) {
   const { appOutDir, electronPlatformName } = context;
   const tag = "[after-pack:nuclear-replace]";
+
+  if (electronPlatformName === "darwin") {
+    // Mac resources live inside .app/Contents/Resources. Inspect ASAR without
+    // rewriting it, preserving Electron's embedded archive integrity metadata.
+    // Fail before expensive DMG/ZIP compression if either SQLite slice is absent.
+    verifyMacApp(findMacApp(appOutDir));
+    return;
+  }
 
   const sourceNm = path.resolve(__dirname, "..", "node_modules");
   const targetAppRoot = path.join(appOutDir, "resources", "app");

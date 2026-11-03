@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-11-02T19:05:14.231Z",
+  "version": "0.4.192",
+  "updateId": 1209958,
+  "approve": true,
+  "listed": true,
+  "hidden": false,
+  "downloadUrl": "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=1209958",
+  "bytes": 1561527,
+  "sha256": "e9d984f07cdb73c44484ba63e2a21c6e3f8a6ba467ff4e63edb66abf7e1b41f9",
+  "officialBuildComparison": {
+    "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+    "officialArchiveSha256": "6877397281524ef1e296cd0f95ac8c6e43c71bb958a7edc3b3091c7306b75628",
+    "runId": 41434982670,
+    "payloadEntryEquality": true,
+    "entries": [
+      {
+        "name": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.192.jar",
+        "bytes": 1650644,
+        "sha256": "60a5abe50e6cb88aaac86908e3249f996f7a8bbb4d82f307c8b62e27f7161604"
+      },
+      {
+        "name": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.192-searchableOptions.jar",
+        "bytes": 1263,
+        "sha256": "c7913edeb2fa4d0d9a5088e05b89f1f4646a97eb12cd4c4ee09d2188cd11bdd8"
+      }
+    ],
+    "artifact": "chainlesschain-ide-jetbrains-1",
+    "archiveByteEquality": false
+  }
+}

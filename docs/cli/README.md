@@ -1,16 +1,28 @@
 # CLI 文档
 
-<!-- release139-candidate:start -->
+<!-- release140-current:start -->
 
-## CLI 0.166.139 / IDE repair candidate
+## 当前公开 CLI：0.166.140 / IDE 恢复补丁
 
-The next package set is CLI **0.166.139**, Open VSX **0.37.175** and JetBrains **0.4.192**, with unchanged upstream SDK **0.2.17** and Kernel **0.1.11**. These versions are release candidates until their exact-source GitHub Actions gates and public readbacks succeed. After publication, install `npm i -g chainlesschain@0.166.139 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, and check `cc --version` and `cc doctor`.
+截至 **2026-11-03T11:42:31.329Z**，CLI **0.166.140** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/41610020835) 公开发布，准确发行源码为 `e2a91bf54332ff3d252c40ecc25c5887e0f0430d`。公开 npm 字节、来源签名、安装与启动均已核验；同一源码的 Linux、Windows、macOS CLI CI / CLI Strict Sandbox 全部配置作业通过。
 
-The repair reserves author, fresh independent review and final reporting work within the original total request budget. Partial JavaScript reads recover complete surrounding statements from the same file snapshot within the existing output limit; focused reads do not silently switch to unrelated ranges. The previously merged standalone WebSocket host-model-policy repair is included in this candidate.
+Open VSX **0.37.176** 已公开列出且可下载，VSIX 与正式构建逐字节一致。JetBrains **0.4.193** 已上传，等待商店审核或公开索引；公开可用性未核验。上一已核验公开版仍为 **0.4.192**，其推荐标记为 CLI **0.166.139**。 两个新 IDE 版本均推荐 CLI **0.166.140**。
 
-CLI .138 acceptance remains **2/4**: verify-13 and first-run-darwin-vscode passed; verify-08 and verify-36 failed on author-stage iteration exhaustion despite passing candidate checks. Only those two failures will be regenerated with this new package set. CLI .136 verify-19 remains a separate historical pass; historical **41/45** and .137 **0/5** are unchanged. Review stays enabled, with 20 model turns, 24 physical requests per case and the 32768-token planning context. Engineering checks do not establish model-task success. JetBrains may be tested using the official pending-review ZIP without waiting for Marketplace approval. Microsoft Marketplace and PC/mobile are outside this release.
+[发行与各渠道回执](../research/cli/evidence/release140-public/publication-readback.json) · [准确源码门禁](../research/cli/evidence/release140-public/gates.json) · [CLI 公开回读](../research/cli/evidence/release140-public/cli.json) · [Open VSX 回读](../research/cli/evidence/release140-public/open-vsx.json) · [JetBrains 状态](../research/cli/evidence/release140-public/jetbrains.json)
 
-<!-- release139-candidate:end -->
+安装：`npm i -g chainlesschain@0.166.140 --registry https://registry.npmjs.org`，重启 CLI 与 IDE 聊天宿主，再运行 `cc --version`、`cc doctor`。
+
+修复模型返回损坏工具参数后自进化解析退出的问题：非法参数在执行前被拒绝，后续请求只为唯一配对、明确未执行的记录生成临时占位；原始会话历史保持完整，旧版失败调用不会被重放。有效对象、重复键与嵌套 JSON 校验、脱敏和预算边界继续生效。
+
+内部投影规则 v10 同时修复图片及推理传输块的内部 SHA-256 摘要被手机号扫描误判的问题。仅可信传输元数据使用扫描视图，原始摘要与字节长度绑定不变。真实手机号、用户文本中的摘要样字符串和伪造标记继续接受原有检查，v1–v9 历史规则保留。
+
+Windows 聚焦检查 **129 项通过**。较早 v9 恢复实测共 **5 次真实火山请求 / 6,401 tokens**，首个场景明确向一次模型响应注入日志中的损坏参数，见[原始实测](../research/cli/evidence/tool-argument-recovery-20261103/live-volcengine.json)。独立 v10 复测再次通过两条恢复路径，共 **5 次请求 / 6,501 tokens**，运行时源码哈希与本次发行一致，见[追加实测](../research/cli/evidence/tool-argument-recovery-20261103/live-volcengine-v10.json)。完整相关投影测试 **393/393 通过**。两轮实测独立记录，不合并为历史大任务验收成绩。
+
+旧候选 `eb0fe7a8a1` 曾在 Windows ArtifactStore post-index 完整性组合校验处失败，随后完整三平台回环复测通过；具体拒绝子条件仍未知，校验继续生效。[原始失败](../research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt1-failure.json)与[完整复测](../research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt2-aggregate.json)保留历史源码范围。最终发行源码另有三平台各 100 次回环通过，共 300 次仅覆盖结构封套，不代表付费模型任务验收，也不替代 CLI CI / Strict Sandbox。本地 composition 在 v10 源码与较早基线上均出现超时，未计为通过。
+
+Agent SDK **0.2.17**、Protocol **0.1.12**、Kernel **0.1.11** 和其他子包沿用已公开版本；CLI 发布前已回读必需上游包并核验依赖对齐。Microsoft Marketplace 继续暂缓。PC/移动端 **v5.0.3.144** 已独立公开，本次 CLI/IDE 后续不重复发布客户端。历史 .138 **2/4**、.137 **0/5**、累计 **41/45** 各自范围保留。
+
+<!-- release140-current:end -->
 
 <!-- release138-current:start -->
 

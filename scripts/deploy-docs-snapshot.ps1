@@ -10,7 +10,10 @@ $bash = 'C:\Program Files\Git\bin\bash.exe'
 $ssh = 'C:\Program Files\Git\usr\bin\ssh.exe'
 $scp = 'C:\Program Files\Git\usr\bin\scp.exe'
 $cygpath = 'C:\Program Files\Git\usr\bin\cygpath.exe'
-$sshOptions = @('-o', 'BatchMode=yes', '-o', 'ConnectTimeout=20', '-o', 'StrictHostKeyChecking=yes', '-o', 'UpdateHostKeys=no')
+# Keep informational SSH warnings off stderr: Windows PowerShell can turn them
+# into terminating NativeCommandError records under ErrorActionPreference=Stop.
+# Authentication, host verification and nonzero SSH exit codes remain enforced.
+$sshOptions = @('-o', 'BatchMode=yes', '-o', 'ConnectTimeout=20', '-o', 'StrictHostKeyChecking=yes', '-o', 'UpdateHostKeys=no', '-o', 'LogLevel=ERROR')
 
 foreach ($tool in @($bash, $ssh, $scp, $cygpath)) {
     if (-not (Test-Path -LiteralPath $tool -PathType Leaf)) { throw "Missing tool: $tool" }

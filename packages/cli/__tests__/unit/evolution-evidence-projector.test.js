@@ -16,7 +16,10 @@ import { crc32, deflateSync } from "node:zlib";
 import { describe, expect, it, vi } from "vitest";
 
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
-import { buildAgentModelRequest } from "../../src/lib/evolution/agent-model-projection.js";
+import {
+  buildAgentModelRequest,
+  projectAgentOpaqueTransportBlock,
+} from "../../src/lib/evolution/agent-model-projection.js";
 import { TaskProgressTracker } from "../../src/lib/task-progress-tracker.js";
 import { ReadFileLoopGuard } from "../../src/lib/read-file-loop-guard.js";
 import { RemoteReadLoopGuard } from "../../src/lib/remote-read-loop-guard.js";
@@ -53,6 +56,7 @@ import {
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V6_DIGEST,
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V7_DIGEST,
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V8_DIGEST,
+  EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V9_DIGEST,
   EVOLUTION_SKILL_DECISION_PROJECTION_RULESET_DIGEST,
   EVOLUTION_PROJECTION_SOURCE_DENIED_CODE,
   EVOLUTION_PROJECTION_STORAGE_FAILED_CODE,
@@ -86,6 +90,31 @@ const TENANT_COMMITMENT_KEYS = Object.freeze({
   "local-ui-12345678-12344567-81231234-56789012": Buffer.alloc(32, 0xc3),
 });
 const LEGACY_NUMERIC_TENANT = "local-ui-12345678-12344567-81231234-56789012";
+
+// Real 1x1 RGBA PNG, with valid CRCs and a tEXt nonce of 443 found offline.
+// Its actual block SHA-256 contains phone-shaped digits; never mock the hash.
+const PHONE_DIGEST_PNG =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXRFWHRub25jZQA0NDNe7wwOAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==";
+const PHONE_DIGEST_IMAGE = {
+  type: "image_url",
+  image_url: { url: `data:image/png;base64,${PHONE_DIGEST_PNG}` },
+};
+const PHONE_DIGEST_THINKING = {
+  type: "thinking",
+  thinking: "deterministic reasoning 3",
+  signature: "signed_fixture_signature",
+};
+const phoneDigestRequest = () => ({
+  messages: [
+    { role: "user", content: [structuredClone(PHONE_DIGEST_IMAGE)] },
+    {
+      role: "assistant",
+      content: "",
+      _thinkingBlocks: [structuredClone(PHONE_DIGEST_THINKING)],
+    },
+  ],
+  tools: [],
+});
 
 function canonicalJson(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -2812,6 +2841,221 @@ settings = {'\u0070assword': 'unprefixedSecretValue'}`,
     await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
       verified: true,
     });
+  });
+
+  it("round-trips real opaque digests containing phone-shaped digits under Agent v10", async () => {
+    const h = harness();
+    const payload = phoneDigestRequest();
+    const image = projectAgentOpaqueTransportBlock(
+      payload.messages[0].content[0],
+      "messages.0.content.0",
+    );
+    const thinking = projectAgentOpaqueTransportBlock(
+      payload.messages[1]._thinkingBlocks[0],
+      "messages.1._thinkingBlocks.0",
+    );
+    expect(image.digest).toBe(
+      "sha256:4cbdeb3f9d75e5ed18963970785f5e4247e50ebe57372829cafacc0a934807ac",
+    );
+    expect(thinking.digest).toBe(
+      "sha256:54022ac932eb95aecd63a986a93858e54907a6f32e94feb8b14006234637b1d0",
+    );
+    for (const block of [image, thinking]) {
+      expect(block.digest).toMatch(/(?<!\d)(?:\+?86[- ]?)?1[3-9]\d{9}(?!\d)/u);
+    }
+    const bundle = await h.projector.projectAgentModelRequest(
+      input(payload, "signed-source:free-form-tool"),
+    );
+    expect(bundle.modelProjection.rulesetDigest).toBe(
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST,
+    );
+    expect(bundle.modelProjection.content.messages[0].content[0]).toEqual(
+      image,
+    );
+    expect(
+      bundle.modelProjection.content.messages[1]._thinkingBlocks[0],
+    ).toEqual(thinking);
+    const serialized = JSON.parse(JSON.stringify(bundle));
+    await expect(h.verifier.verify(serialized)).resolves.toMatchObject({
+      verified: true,
+    });
+    expect(
+      buildAgentModelRequest(
+        payload,
+        serialized.modelProjection,
+      ).messages.slice(1),
+    ).toEqual(payload.messages);
+    expect(JSON.stringify(serialized)).not.toContain(
+      "[OPAQUE_TRANSPORT_DIGEST]",
+    );
+    expect(bundle.modelProjection.redactionSummary.total).toBe(0);
+  });
+
+  it("scans real phone text, sha256-like user strings and forged opaque markers", async () => {
+    const h = harness();
+    const marker = projectAgentOpaqueTransportBlock(
+      PHONE_DIGEST_IMAGE,
+      "messages.0.content.0",
+    );
+    for (const text of [
+      "phone 13800138000",
+      marker.digest,
+      JSON.stringify(marker),
+    ]) {
+      const payload = {
+        messages: [{ role: "user", content: text }],
+        tools: [],
+      };
+      const bundle = await h.projector.projectAgentModelRequest(
+        input(payload, "signed-source:free-form-tool"),
+      );
+      expect(
+        bundle.modelProjection.redactionSummary.byType.phone,
+      ).toBeGreaterThan(0);
+      expect(JSON.stringify(bundle.modelProjection.content)).toContain(
+        "[REDACTED:phone]",
+      );
+      await expect(
+        h.verifier.verify(await reattest(h, bundle, payload)),
+      ).rejects.toThrow();
+    }
+    await expect(
+      h.projector.projectAgentModelRequest(
+        input(
+          {
+            messages: [{ role: "user", content: [marker] }],
+            tools: [],
+          },
+          "signed-source:free-form-tool",
+        ),
+      ),
+    ).rejects.toThrow(/unsupported/u);
+    const nested = await h.projector.projectAgentModelRequest(
+      input(
+        jsonRequest({ nested: marker }, true),
+        "signed-source:free-form-tool",
+      ),
+    );
+    expect(
+      nested.modelProjection.redactionSummary.byType.phone,
+    ).toBeGreaterThan(0);
+  });
+
+  it("requires authenticated bundles and exact image/thinking commitments despite the scan view", async () => {
+    const h = harness();
+    const payload = phoneDigestRequest();
+    const bundle = await h.projector.projectAgentModelRequest(
+      input(payload, "signed-source:free-form-tool"),
+    );
+    const altered = JSON.parse(JSON.stringify(bundle));
+    altered.modelProjection.content.messages[0].content[0].digest = `sha256:${"a".repeat(64)}`;
+    await expect(h.verifier.verify(altered)).rejects.toThrow();
+    expect(() =>
+      buildAgentModelRequest(payload, altered.modelProjection),
+    ).toThrow(/commitment changed/u);
+    for (const change of ["image", "thinking"]) {
+      const original = structuredClone(payload);
+      if (change === "image")
+        original.messages[0].content[0].image_url.detail = "high";
+      else
+        original.messages[1]._thinkingBlocks[0].signature =
+          "different_fixture_signature";
+      expect(() =>
+        buildAgentModelRequest(original, bundle.modelProjection),
+      ).toThrow(/commitment changed/u);
+    }
+    const rebound = await reattest(h, bundle, altered.modelProjection.content);
+    rebound.attestation = redigest(
+      {
+        ...rebound.attestation,
+        signature: bundle.attestation.signature,
+      },
+      "attestationDigest",
+      "chainlesschain.evolution-projection-attestation/v1",
+    );
+    await expect(h.verifier.verify(rebound)).rejects.toMatchObject({
+      code: EVOLUTION_PROJECTION_ATTESTATION_FAILED_CODE,
+    });
+    await expect(
+      h.reader.readModelVisible(
+        rebound,
+        "principal-token:owner",
+        "agent-model-request",
+      ),
+    ).rejects.toMatchObject({
+      code: EVOLUTION_PROJECTION_ATTESTATION_FAILED_CODE,
+    });
+  });
+
+  it("does not exempt malformed or misplaced opaque markers in re-signed bundles", async () => {
+    const h = harness();
+    const current = await h.projector.projectAgentModelRequest(
+      input(phoneDigestRequest(), "signed-source:free-form-tool"),
+    );
+    const marker = current.modelProjection.content.messages[0].content[0];
+    for (const invalid of [
+      { ...marker, kind: "thinking" },
+      { ...marker, schema: "untrusted-opaque-block" },
+      { ...marker, note: "13800138000" },
+      { ...marker, byteLength: 13800138000 },
+    ]) {
+      const content = structuredClone(current.modelProjection.content);
+      content.messages[0].content[0] = invalid;
+      await expect(
+        h.verifier.verify(await reattest(h, current, content)),
+      ).rejects.toThrow();
+    }
+    await expect(
+      h.verifier.verify(
+        await reattest(h, current, jsonRequest({ nested: marker }, true)),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("retains the exact Agent v9 digest, historical reads and historical digest scanning", async () => {
+    expect(EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V9_DIGEST).toBe(
+      "sha256:3e255559e6f20702d997a0ab1319776db25c455c5ca7f0209ae851dc780bc50f",
+    );
+    const h = harness();
+    const current = await h.projector.projectAgentModelRequest(
+      input(phoneDigestRequest(), "signed-source:free-form-tool"),
+    );
+    const historical = await reattest(
+      h,
+      current,
+      current.modelProjection.content,
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V9_DIGEST,
+    );
+    await expect(h.verifier.verify(historical)).rejects.toThrow(
+      /phone|safe projection/u,
+    );
+    const safePayload = {
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: { url: "data:image/png;base64,c2FmZQ==" },
+            },
+          ],
+        },
+      ],
+      tools: [],
+    };
+    const safe = await h.projector.projectAgentModelRequest(
+      input(safePayload, "signed-source:free-form-tool"),
+    );
+    await expect(
+      h.verifier.verify(
+        await reattest(
+          h,
+          safe,
+          safe.modelProjection.content,
+          EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V9_DIGEST,
+        ),
+      ),
+    ).resolves.toMatchObject({ verified: true });
   });
 
   it("round-trips large text and real PNG transport through encrypted Raw and bounded durable artifacts", async () => {

@@ -1,0 +1,307 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-03T11:42:31.329Z",
+  "releaseSource": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+  "releaseSourceIdentity": "Published runtime and tags identify this exact source; later documentation commits are not the published runtime source.",
+  "evidenceFiles": {
+    "cli": {
+      "file": "cli.json",
+      "sha256": "3ae3cef30e94a7281ca382f91229b81f65ffa9f3259f9fa85eb1fc7a5a42c032"
+    },
+    "gates": {
+      "file": "gates.json",
+      "sha256": "28904ddaec1caef3ec0b09470affbbee3980de8cdd97dc99bba3e1ff092e4fdb"
+    },
+    "open-vsx": {
+      "file": "open-vsx.json",
+      "sha256": "5b3c8c0790a012bcec80faed9b24e3d70a3149ff1fadc84ba325e38233607013"
+    },
+    "jetbrains": {
+      "file": "jetbrains.json",
+      "sha256": "2a72c4321755d0425ed8206a5bc2820ea1bc1f569e556df1dffabd7b304a87d0"
+    }
+  },
+  "gates": {
+    "cliCi": {
+      "runId": 41593487500,
+      "attempt": 2,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41593487500",
+      "conclusion": "success",
+      "successfulJobs": 76,
+      "source": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d"
+    },
+    "strictSandbox": {
+      "runId": 41593487785,
+      "attempt": 1,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41593487785",
+      "conclusion": "success",
+      "successfulJobs": 6,
+      "source": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d"
+    }
+  },
+  "cli": {
+    "package": "chainlesschain",
+    "version": "0.166.140",
+    "status": "verified-public",
+    "method": "GitHub Actions OIDC Trusted Publishing",
+    "tag": "v-npm-0-166-140",
+    "publishRun": {
+      "id": 41610020835,
+      "attempt": 1,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41610020835",
+      "conclusion": "success",
+      "mandatorySteps": [
+        {
+          "name": "Verify public child bytes and registry-only dependencies before CLI publish",
+          "conclusion": "success",
+          "startedAt": "2026-11-03T09:41:18Z",
+          "completedAt": "2026-11-03T09:41:57Z"
+        },
+        {
+          "name": "Publish chainlesschain (CLI)",
+          "conclusion": "success",
+          "startedAt": "2026-11-03T09:41:57Z",
+          "completedAt": "2026-11-03T09:48:33Z"
+        },
+        {
+          "name": "Verify published CLI npm provenance",
+          "conclusion": "success",
+          "startedAt": "2026-11-03T09:48:33Z",
+          "completedAt": "2026-11-03T09:48:56Z"
+        }
+      ]
+    },
+    "independentReadbackRun": {
+      "id": 41613355537,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41613355537",
+      "conclusion": "success"
+    },
+    "publicArchiveSha256": "99e673b86c98795482b541c11d4187471d9babdd599f1c94f0ea37db9698faa9",
+    "publicArchiveSha512": "5a0d4962efdce90b91d31a1597f1b45f0d25c29cdfdd43d85147f319fa02096cc2d0bafea94580f20fbb861e45690f6321ce9e27dd1817c9424a9d3e3d86153d",
+    "publicBytesMatchOfficial": true,
+    "signedProvenanceVerified": true,
+    "installAndStartupVerified": true,
+    "registryPropagation": {
+      "publishedAt": "2026-11-03T09:42:07.454Z",
+      "firstVerifiedRegistryDownload": "2026-11-03T09:48:33Z",
+      "unavailablePollNotices": 37,
+      "configurationChanged": false,
+      "originalPublishJobId": 125838137419,
+      "originalPublishLogSha256": "bb3912a4a5a3cec22d60f0cc7899b667b347402aaeaeda47e98627ddd099301a"
+    }
+  },
+  "upstreamPackages": [
+    {
+      "name": "@chainlesschain/agent-protocol",
+      "version": "0.1.12",
+      "status": "unchanged-public-version-reused",
+      "publicArchiveVerified": true
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "version": "0.1.2",
+      "status": "unchanged-public-version-reused",
+      "publicArchiveVerified": true
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "version": "0.2.3",
+      "status": "unchanged-public-version-reused",
+      "publicArchiveVerified": true
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "version": "0.1.4",
+      "status": "unchanged-public-version-reused",
+      "publicArchiveVerified": true
+    },
+    {
+      "name": "@chainlesschain/core-settlement",
+      "version": "0.1.2",
+      "status": "unchanged-public-version-reused",
+      "publicArchiveVerified": true
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "version": "0.1.1",
+      "status": "unchanged-public-version-reused",
+      "publicArchiveVerified": true
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "version": "0.1.2",
+      "status": "unchanged-public-version-reused",
+      "publicArchiveVerified": true
+    },
+    {
+      "name": "@chainlesschain/core-db",
+      "version": "0.1.5",
+      "status": "unchanged-public-version-reused",
+      "publicArchiveVerified": true
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "version": "0.1.1",
+      "status": "unchanged-public-version-reused",
+      "publicArchiveVerified": true
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "version": "0.3.24",
+      "status": "unchanged-public-version-reused",
+      "publicArchiveVerified": true
+    },
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.11",
+      "status": "unchanged-public-version-reused",
+      "publicArchiveVerified": true
+    },
+    {
+      "name": "@chainlesschain/agent-sdk",
+      "version": "0.2.17",
+      "status": "unchanged-public-version-reused",
+      "publicArchiveVerified": true
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "version": "0.4.66",
+      "status": "unchanged-public-version-reused",
+      "publicArchiveVerified": true
+    }
+  ],
+  "dependencyAlignment": {
+    "registryOnlyDirectDependenciesVerified": 10,
+    "evidence": "cli.json"
+  },
+  "openVsx": {
+    "version": "0.37.176",
+    "recommendedCliVersion": "0.166.140",
+    "status": "verified-public",
+    "tag": "ide-vscode-v0.37.176",
+    "workflow": {
+      "id": 41614441062,
+      "attempt": 1,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062",
+      "conclusion": "success"
+    },
+    "publicArchiveSha256": "38c22fc843876c2cbc67d28af19ed21f917a2499705075ca492388e8162f0807",
+    "officialArchiveSha256": "38c22fc843876c2cbc67d28af19ed21f917a2499705075ca492388e8162f0807",
+    "downloadUrl": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.176/file/chainlesschain.chainlesschain-ide-0.37.176.vsix",
+    "listed": true,
+    "downloadable": true,
+    "publicBytesMatchOfficial": true
+  },
+  "jetbrains": {
+    "version": "0.4.193",
+    "recommendedCliVersion": "0.166.140",
+    "status": "uploaded-pending-review",
+    "tag": "ide-jetbrains-v0.4.193",
+    "workflow": {
+      "id": 41614441190,
+      "attempt": 2,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190",
+      "conclusion": "success"
+    },
+    "uploadVerified": true,
+    "marketplace": {
+      "status": "pending",
+      "approvalStatus": "not-observed",
+      "updateId": null,
+      "publicAvailabilityVerified": false
+    },
+    "publicPayloadComparison": null,
+    "firstFailure": {
+      "jobId": 125844485801,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125844485801",
+      "httpStatus": 504,
+      "phase": "Gradle 8.7 distribution download before IDE startup or host assertions",
+      "artifactId": 13221325052,
+      "artifactUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/artifacts/13221325052",
+      "artifactDigest": "sha256:716853b09ac8c07a09fd8d5ca51c9bb059ce9f015653a98c07b0e0405987a8c0",
+      "originalLogSha256": "03e41f0f4d668bb8709e7d8533c5fc87a82250626ba896afb77ee26724d91048",
+      "retryJobId": 125881031349,
+      "retryUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881031349",
+      "originalConfigurationRetained": true,
+      "wholeHostJobRetriedOnce": true,
+      "retryConclusion": "success"
+    }
+  },
+  "retainedGateFailures": [
+    {
+      "kind": "macOS temporary-directory cleanup ENOTEMPTY",
+      "runId": 41593487500,
+      "attempt": 1,
+      "jobId": 125788752578,
+      "configurationChanged": false,
+      "failedShardRetriedOnce": true,
+      "firstFailureRetained": true,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41593487500/job/125788752578"
+    },
+    {
+      "kind": "PDH Windows 30-second test timeout",
+      "runId": 41593487773,
+      "attempt": 1,
+      "jobId": 125775568906,
+      "configurationChanged": false,
+      "wholeJobRetriedOnce": true,
+      "retryConclusion": "success",
+      "firstFailureRetained": true,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41593487773/job/125775568906"
+    }
+  ],
+  "trajectory": {
+    "source": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+    "runId": 41593487672,
+    "attempt": 1,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41593487672",
+    "mode": "loopback",
+    "count": 300,
+    "operatingSystemCounts": {
+      "linux": 100,
+      "windows": 100,
+      "macos": 100
+    },
+    "qualification": "structural-envelope-only",
+    "aggregateArtifact": {
+      "id": 13212632483,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41593487672/artifacts/13212632483",
+      "digest": "sha256:a59ad46e4ac519425ffb17bd15d5d8f8d1308ac644ebbabae924d3ea6ca3f72a"
+    },
+    "paidProviderOrModelTaskAcceptance": false,
+    "replacesCliOrStrictGate": false
+  },
+  "scopedLiveEvidence": {
+    "v9": {
+      "requests": 5,
+      "tokens": 6401,
+      "evidence": "../tool-argument-recovery-20261103/live-volcengine.json"
+    },
+    "v10": {
+      "requests": 5,
+      "tokens": 6501,
+      "evidence": "../tool-argument-recovery-20261103/live-volcengine-v10.json",
+      "runtimeModuleIdentity": "cli.json#runtimeModuleIdentity"
+    },
+    "combinedAsAcceptance": false,
+    "postPublicationRetestClaimed": false
+  },
+  "boundaries": {
+    "newModelTaskAcceptanceClaimed": false,
+    "historicalResults": {
+      "cli138": "2/4",
+      "cli137": "0/5",
+      "cumulative": "41/45",
+      "scopesCombined": false
+    },
+    "historicalWindowsStorageGuardRejectedCondition": "unknown; guard remains enforced; old source failures and reruns retain their scope",
+    "localComposition": "v10 and earlier baseline local timeout not counted passed",
+    "microsoftMarketplace": "deferred-not-published",
+    "pcMobile": {
+      "version": "v5.0.3.144",
+      "status": "independently-public",
+      "republishedByThisFollowup": false,
+      "evidence": "../release144-public/publication.json"
+    }
+  }
+}

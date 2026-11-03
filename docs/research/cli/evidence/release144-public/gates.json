@@ -1,0 +1,3333 @@
+{
+  "schema": 1,
+  "source": "7be0ebbcd9c9e1b52151f32e7229f6868ce320c7",
+  "requiredChecks": [
+    {
+      "bucket": "pass",
+      "link": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986282/job/125614311939",
+      "name": "Quality Gate",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352/job/125611898408",
+      "name": "PDH Data Hub Tests (windows-latest)",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352/job/125611898251",
+      "name": "PDH Data Hub Tests (ubuntu-latest)",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986576/job/125611832831",
+      "name": "Run All Tests (ubuntu-latest)",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986576/job/125611832844",
+      "name": "Run All Tests (windows-latest)",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986282/job/125611783504",
+      "name": "Lint & Format Check",
+      "state": "SUCCESS"
+    }
+  ],
+  "productWorkflow": {
+    "conclusion": "success",
+    "headSha": "7be0ebbcd9c9e1b52151f32e7229f6868ce320c7",
+    "jobs": [
+      {
+        "completedAt": "2026-11-02T23:10:01Z",
+        "conclusion": "success",
+        "databaseId": 125611542968,
+        "name": "Verify authorized CLI release precondition",
+        "startedAt": "2026-11-02T23:08:12Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:08:14Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:08:13Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:08:53Z",
+            "conclusion": "success",
+            "name": "Checkout code and release tags",
+            "number": 2,
+            "startedAt": "2026-11-02T23:08:14Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:08:58Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 3,
+            "startedAt": "2026-11-02T23:08:53Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:02Z",
+            "conclusion": "success",
+            "name": "Enable npm attestation verification",
+            "number": 4,
+            "startedAt": "2026-11-02T23:08:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:41Z",
+            "conclusion": "success",
+            "name": "Verify registry, tag, provenance, and exact-SHA gates",
+            "number": 5,
+            "startedAt": "2026-11-02T23:09:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:41Z",
+            "conclusion": "success",
+            "name": "Restore exact product source before IDE verification",
+            "number": 6,
+            "startedAt": "2026-11-02T23:09:41Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:42Z",
+            "conclusion": "success",
+            "name": "Test scoped JetBrains upload authorization",
+            "number": 7,
+            "startedAt": "2026-11-02T23:09:41Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:44Z",
+            "conclusion": "success",
+            "name": "Require public paired IDE releases before mobile and PC builds",
+            "number": 8,
+            "startedAt": "2026-11-02T23:09:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:46Z",
+            "conclusion": "success",
+            "name": "Upload consumed CLI gate attestation",
+            "number": 9,
+            "startedAt": "2026-11-02T23:09:44Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:46Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 17,
+            "startedAt": "2026-11-02T23:09:46Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:46Z",
+            "conclusion": "success",
+            "name": "Post Checkout code and release tags",
+            "number": 18,
+            "startedAt": "2026-11-02T23:09:46Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:46Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 19,
+            "startedAt": "2026-11-02T23:09:46Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542995529/job/125611542968"
+      },
+      {
+        "completedAt": "2026-11-02T23:10:54Z",
+        "conclusion": "success",
+        "databaseId": 125612400053,
+        "name": "Verify public workspace dependencies (no publishing)",
+        "startedAt": "2026-11-02T23:10:07Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:10:08Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:10:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:27Z",
+            "conclusion": "success",
+            "name": "Checkout exact product source",
+            "number": 2,
+            "startedAt": "2026-11-02T23:10:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:32Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 3,
+            "startedAt": "2026-11-02T23:10:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:50Z",
+            "conclusion": "success",
+            "name": "Fetch every exact public workspace package",
+            "number": 4,
+            "startedAt": "2026-11-02T23:10:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:50Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 7,
+            "startedAt": "2026-11-02T23:10:50Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:50Z",
+            "conclusion": "success",
+            "name": "Post Checkout exact product source",
+            "number": 8,
+            "startedAt": "2026-11-02T23:10:50Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:50Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-02T23:10:50Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542995529/job/125612400053"
+      },
+      {
+        "completedAt": "2026-11-02T23:59:51Z",
+        "conclusion": "success",
+        "databaseId": 125612813942,
+        "name": "build-macos",
+        "startedAt": "2026-11-02T23:12:25Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:12:27Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:12:26Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:24Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:12:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:36Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 3,
+            "startedAt": "2026-11-02T23:13:24Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:18:18Z",
+            "conclusion": "success",
+            "name": "Install dependencies",
+            "number": 4,
+            "startedAt": "2026-11-02T23:13:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:20:43Z",
+            "conclusion": "success",
+            "name": "Install desktop-app-vue dependencies (standalone post-workspace-refactor)",
+            "number": 5,
+            "startedAt": "2026-11-02T23:18:18Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:20:47Z",
+            "conclusion": "success",
+            "name": "Build main process",
+            "number": 6,
+            "startedAt": "2026-11-02T23:20:43Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:25:30Z",
+            "conclusion": "success",
+            "name": "Build renderer",
+            "number": 7,
+            "startedAt": "2026-11-02T23:20:47Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:25:53Z",
+            "conclusion": "success",
+            "name": "Install web-panel dependencies (standalone post-workspace-refactor)",
+            "number": 8,
+            "startedAt": "2026-11-02T23:25:30Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:26:21Z",
+            "conclusion": "success",
+            "name": "Build web-panel SPA (consumed by extraResources copy)",
+            "number": 9,
+            "startedAt": "2026-11-02T23:25:53Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:26:52Z",
+            "conclusion": "success",
+            "name": "Install packages/cli prod deps standalone (consumed by extraResources)",
+            "number": 10,
+            "startedAt": "2026-11-02T23:26:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:26:57Z",
+            "conclusion": "success",
+            "name": "Test Mac resource and ASAR native inspection before packaging",
+            "number": 11,
+            "startedAt": "2026-11-02T23:26:52Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:30:31Z",
+            "conclusion": "success",
+            "name": "Rebuild bs3mc native bindings for Electron ABI (macOS)",
+            "number": 12,
+            "startedAt": "2026-11-02T23:26:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:31:29Z",
+            "conclusion": "success",
+            "name": "Merge hoisted modules into nested (preserve non-hoistable deps)",
+            "number": 13,
+            "startedAt": "2026-11-02T23:30:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:31:31Z",
+            "conclusion": "success",
+            "name": "Remove nested duplicates of split deps (macOS)",
+            "number": 14,
+            "startedAt": "2026-11-02T23:31:29Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:31:31Z",
+            "conclusion": "success",
+            "name": "Verify express@5 transitive deps + entry files intact (macOS)",
+            "number": 15,
+            "startedAt": "2026-11-02T23:31:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:31:31Z",
+            "conclusion": "success",
+            "name": "Verify macOS packaging dependencies",
+            "number": 16,
+            "startedAt": "2026-11-02T23:31:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:57:32Z",
+            "conclusion": "success",
+            "name": "Package macOS (electron-builder, x64 + arm64)",
+            "number": 17,
+            "startedAt": "2026-11-02T23:31:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:57:39Z",
+            "conclusion": "success",
+            "name": "Verify SQLite architectures in packaged Mac apps",
+            "number": 18,
+            "startedAt": "2026-11-02T23:57:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:57:41Z",
+            "conclusion": "success",
+            "name": "Verify differential-update artifacts (macOS)",
+            "number": 19,
+            "startedAt": "2026-11-02T23:57:39Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:59:47Z",
+            "conclusion": "success",
+            "name": "Upload macOS artifacts",
+            "number": 20,
+            "startedAt": "2026-11-02T23:57:41Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:59:47Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 39,
+            "startedAt": "2026-11-02T23:59:47Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:59:48Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 40,
+            "startedAt": "2026-11-02T23:59:47Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:59:48Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 41,
+            "startedAt": "2026-11-02T23:59:48Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542995529/job/125612813942"
+      },
+      {
+        "completedAt": "2026-11-02T23:18:10Z",
+        "conclusion": "success",
+        "databaseId": 125612813943,
+        "name": "build-android",
+        "startedAt": "2026-11-02T23:11:18Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:11:20Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:11:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:23Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:11:20Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:52Z",
+            "conclusion": "success",
+            "name": "Set up JDK 17",
+            "number": 3,
+            "startedAt": "2026-11-02T23:12:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:52Z",
+            "conclusion": "success",
+            "name": "Grant execute permission for gradlew",
+            "number": 4,
+            "startedAt": "2026-11-02T23:12:52Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:52Z",
+            "conclusion": "success",
+            "name": "Setup signing",
+            "number": 5,
+            "startedAt": "2026-11-02T23:12:52Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:52Z",
+            "conclusion": "success",
+            "name": "Tune Gradle for CI",
+            "number": 6,
+            "startedAt": "2026-11-02T23:12:52Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:38Z",
+            "conclusion": "success",
+            "name": "Stage internal binaries (cc-cli.tgz bundle)",
+            "number": 7,
+            "startedAt": "2026-11-02T23:12:52Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:19Z",
+            "conclusion": "success",
+            "name": "Build release APK",
+            "number": 8,
+            "startedAt": "2026-11-02T23:13:38Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:17:15Z",
+            "conclusion": "success",
+            "name": "Build App Bundle",
+            "number": 9,
+            "startedAt": "2026-11-02T23:16:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:17:30Z",
+            "conclusion": "success",
+            "name": "Verify cc bundle packed into APKs (hard gate)",
+            "number": 10,
+            "startedAt": "2026-11-02T23:17:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:17:32Z",
+            "conclusion": "success",
+            "name": "Preserve Android verification diagnostics",
+            "number": 11,
+            "startedAt": "2026-11-02T23:17:30Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:17:32Z",
+            "conclusion": "success",
+            "name": "List build outputs",
+            "number": 12,
+            "startedAt": "2026-11-02T23:17:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:17:32Z",
+            "conclusion": "success",
+            "name": "Clean up signing files",
+            "number": 13,
+            "startedAt": "2026-11-02T23:17:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:18:07Z",
+            "conclusion": "success",
+            "name": "Upload Android artifacts",
+            "number": 14,
+            "startedAt": "2026-11-02T23:17:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:18:07Z",
+            "conclusion": "success",
+            "name": "Post Set up JDK 17",
+            "number": 27,
+            "startedAt": "2026-11-02T23:18:07Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:18:08Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 28,
+            "startedAt": "2026-11-02T23:18:07Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:18:08Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 29,
+            "startedAt": "2026-11-02T23:18:08Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542995529/job/125612813943"
+      },
+      {
+        "completedAt": "2026-11-02T23:38:01Z",
+        "conclusion": "success",
+        "databaseId": 125612813978,
+        "name": "build-linux",
+        "startedAt": "2026-11-02T23:11:31Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:11:32Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:11:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:53Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:11:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:58Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 3,
+            "startedAt": "2026-11-02T23:11:53Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:08Z",
+            "conclusion": "success",
+            "name": "Install system dependencies",
+            "number": 4,
+            "startedAt": "2026-11-02T23:11:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:14:07Z",
+            "conclusion": "success",
+            "name": "Install dependencies",
+            "number": 5,
+            "startedAt": "2026-11-02T23:12:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:15:06Z",
+            "conclusion": "success",
+            "name": "Install desktop-app-vue dependencies (standalone post-workspace-refactor)",
+            "number": 6,
+            "startedAt": "2026-11-02T23:14:07Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:15:06Z",
+            "conclusion": "success",
+            "name": "Build main process",
+            "number": 7,
+            "startedAt": "2026-11-02T23:15:06Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:17:51Z",
+            "conclusion": "success",
+            "name": "Build renderer",
+            "number": 8,
+            "startedAt": "2026-11-02T23:15:06Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:17:57Z",
+            "conclusion": "success",
+            "name": "Install web-panel dependencies (standalone post-workspace-refactor)",
+            "number": 9,
+            "startedAt": "2026-11-02T23:17:51Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:18:12Z",
+            "conclusion": "success",
+            "name": "Build web-panel SPA (consumed by extraResources copy)",
+            "number": 10,
+            "startedAt": "2026-11-02T23:17:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:18:32Z",
+            "conclusion": "success",
+            "name": "Install packages/cli prod deps standalone (consumed by extraResources)",
+            "number": 11,
+            "startedAt": "2026-11-02T23:18:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:18:37Z",
+            "conclusion": "success",
+            "name": "Rebuild bs3mc native bindings for Electron ABI (Linux)",
+            "number": 12,
+            "startedAt": "2026-11-02T23:18:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:18:43Z",
+            "conclusion": "success",
+            "name": "Merge hoisted modules into nested (preserve non-hoistable deps)",
+            "number": 13,
+            "startedAt": "2026-11-02T23:18:37Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:18:44Z",
+            "conclusion": "success",
+            "name": "Remove nested duplicates of split deps (Linux)",
+            "number": 14,
+            "startedAt": "2026-11-02T23:18:43Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:18:44Z",
+            "conclusion": "success",
+            "name": "Verify express@5 transitive deps + entry files intact (Linux)",
+            "number": 15,
+            "startedAt": "2026-11-02T23:18:44Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:37:11Z",
+            "conclusion": "success",
+            "name": "Package Linux (electron-builder, AppImage + deb + rpm)",
+            "number": 16,
+            "startedAt": "2026-11-02T23:18:44Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:37:11Z",
+            "conclusion": "success",
+            "name": "Verify differential-update artifacts (Linux)",
+            "number": 17,
+            "startedAt": "2026-11-02T23:37:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:37:56Z",
+            "conclusion": "success",
+            "name": "Upload Linux artifacts",
+            "number": 18,
+            "startedAt": "2026-11-02T23:37:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:37:56Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 35,
+            "startedAt": "2026-11-02T23:37:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:37:56Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 36,
+            "startedAt": "2026-11-02T23:37:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:37:56Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 37,
+            "startedAt": "2026-11-02T23:37:56Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542995529/job/125612813978"
+      },
+      {
+        "completedAt": "2026-11-02T23:35:22Z",
+        "conclusion": "success",
+        "databaseId": 125612813997,
+        "name": "build-windows",
+        "startedAt": "2026-11-02T23:11:37Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:11:39Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:11:38Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:12Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:11:39Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:21Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 3,
+            "startedAt": "2026-11-02T23:12:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:21Z",
+            "conclusion": "success",
+            "name": "Setup Python 3.11 (node-gyp distutils)",
+            "number": 4,
+            "startedAt": "2026-11-02T23:12:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:17:00Z",
+            "conclusion": "success",
+            "name": "Install dependencies",
+            "number": 5,
+            "startedAt": "2026-11-02T23:12:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:18:58Z",
+            "conclusion": "success",
+            "name": "Install desktop-app-vue dependencies (standalone post-workspace-refactor)",
+            "number": 6,
+            "startedAt": "2026-11-02T23:17:00Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:19:19Z",
+            "conclusion": "success",
+            "name": "Build main process",
+            "number": 7,
+            "startedAt": "2026-11-02T23:18:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:23:05Z",
+            "conclusion": "success",
+            "name": "Build renderer",
+            "number": 8,
+            "startedAt": "2026-11-02T23:19:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:23:26Z",
+            "conclusion": "success",
+            "name": "Install web-panel dependencies (standalone post-workspace-refactor)",
+            "number": 9,
+            "startedAt": "2026-11-02T23:23:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:23:45Z",
+            "conclusion": "success",
+            "name": "Build web-panel SPA (consumed by extraResources copy)",
+            "number": 10,
+            "startedAt": "2026-11-02T23:23:26Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:24:14Z",
+            "conclusion": "success",
+            "name": "Install packages/cli prod deps standalone (consumed by extraResources)",
+            "number": 11,
+            "startedAt": "2026-11-02T23:23:45Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:24:36Z",
+            "conclusion": "success",
+            "name": "Rebuild bs3mc native bindings for Electron ABI (Windows)",
+            "number": 12,
+            "startedAt": "2026-11-02T23:24:14Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:24:53Z",
+            "conclusion": "success",
+            "name": "Merge hoisted modules into nested (preserve non-hoistable deps)",
+            "number": 13,
+            "startedAt": "2026-11-02T23:24:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:24:54Z",
+            "conclusion": "success",
+            "name": "Remove nested duplicates of split deps (Windows)",
+            "number": 14,
+            "startedAt": "2026-11-02T23:24:53Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:24:54Z",
+            "conclusion": "success",
+            "name": "Verify express@5 transitive deps + entry files intact in nested (Windows)",
+            "number": 15,
+            "startedAt": "2026-11-02T23:24:54Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:34:48Z",
+            "conclusion": "success",
+            "name": "Package Windows (electron-builder, with .blockmap)",
+            "number": 16,
+            "startedAt": "2026-11-02T23:24:54Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:34:49Z",
+            "conclusion": "success",
+            "name": "Verify differential-update artifacts (Windows)",
+            "number": 17,
+            "startedAt": "2026-11-02T23:34:48Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:35:17Z",
+            "conclusion": "success",
+            "name": "Upload Windows artifacts",
+            "number": 18,
+            "startedAt": "2026-11-02T23:34:49Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:35:17Z",
+            "conclusion": "success",
+            "name": "Post Setup Python 3.11 (node-gyp distutils)",
+            "number": 34,
+            "startedAt": "2026-11-02T23:35:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:35:17Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 35,
+            "startedAt": "2026-11-02T23:35:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:35:19Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 36,
+            "startedAt": "2026-11-02T23:35:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:35:20Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 37,
+            "startedAt": "2026-11-02T23:35:19Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542995529/job/125612813997"
+      },
+      {
+        "completedAt": "2026-11-02T23:24:23Z",
+        "conclusion": "success",
+        "databaseId": 125612814079,
+        "name": "build-ios",
+        "startedAt": "2026-11-02T23:13:16Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:13:20Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:13:18Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:14:24Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:13:20Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:14:24Z",
+            "conclusion": "success",
+            "name": "Select Xcode version",
+            "number": 3,
+            "startedAt": "2026-11-02T23:14:24Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:14:30Z",
+            "conclusion": "success",
+            "name": "Show toolchain version",
+            "number": 4,
+            "startedAt": "2026-11-02T23:14:24Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:17:11Z",
+            "conclusion": "success",
+            "name": "Build SPM modules (Phase ***-5 sanity)",
+            "number": 5,
+            "startedAt": "2026-11-02T23:14:30Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:17:47Z",
+            "conclusion": "success",
+            "name": "Resolve Swift Package dependencies for xcodeproj",
+            "number": 6,
+            "startedAt": "2026-11-02T23:17:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:17:48Z",
+            "conclusion": "success",
+            "name": "Decode signing certificate (if secrets configured)",
+            "number": 7,
+            "startedAt": "2026-11-02T23:17:47Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:23:59Z",
+            "conclusion": "success",
+            "name": "Build iOS app archive (signed)",
+            "number": 8,
+            "startedAt": "2026-11-02T23:17:48Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:24:03Z",
+            "conclusion": "success",
+            "name": "Export IPA (signed)",
+            "number": 9,
+            "startedAt": "2026-11-02T23:23:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:24:03Z",
+            "conclusion": "success",
+            "name": "Verify signed iOS distribution artifact",
+            "number": 10,
+            "startedAt": "2026-11-02T23:24:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:24:03Z",
+            "conclusion": "skipped",
+            "name": "Build iOS app for Simulator (unsigned fallback)",
+            "number": 11,
+            "startedAt": "2026-11-02T23:24:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:24:03Z",
+            "conclusion": "success",
+            "name": "Clean up keychain",
+            "number": 12,
+            "startedAt": "2026-11-02T23:24:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:24:05Z",
+            "conclusion": "success",
+            "name": "Upload xcodebuild logs (diagnostics, always)",
+            "number": 13,
+            "startedAt": "2026-11-02T23:24:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:24:09Z",
+            "conclusion": "success",
+            "name": "Upload iOS artifacts",
+            "number": 14,
+            "startedAt": "2026-11-02T23:24:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:24:10Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 28,
+            "startedAt": "2026-11-02T23:24:09Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:24:11Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 29,
+            "startedAt": "2026-11-02T23:24:10Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542995529/job/125612814079"
+      },
+      {
+        "completedAt": "2026-11-03T00:04:44Z",
+        "conclusion": "success",
+        "databaseId": 125633554461,
+        "name": "create-release",
+        "startedAt": "2026-11-02T23:59:56Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:59:58Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:59:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:00:38Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:59:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:01:27Z",
+            "conclusion": "success",
+            "name": "Download all artifacts",
+            "number": 3,
+            "startedAt": "2026-11-03T00:00:38Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:01:27Z",
+            "conclusion": "success",
+            "name": "Display artifact structure",
+            "number": 4,
+            "startedAt": "2026-11-03T00:01:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:01:28Z",
+            "conclusion": "success",
+            "name": "Install pinned release metadata parser",
+            "number": 5,
+            "startedAt": "2026-11-03T00:01:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:01:29Z",
+            "conclusion": "success",
+            "name": "Validate product source and asset failure gates",
+            "number": 6,
+            "startedAt": "2026-11-03T00:01:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:01:29Z",
+            "conclusion": "success",
+            "name": "Get version",
+            "number": 7,
+            "startedAt": "2026-11-03T00:01:29Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:01:29Z",
+            "conclusion": "success",
+            "name": "Generate changelog",
+            "number": 8,
+            "startedAt": "2026-11-03T00:01:29Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:01:58Z",
+            "conclusion": "success",
+            "name": "Prepare release assets",
+            "number": 9,
+            "startedAt": "2026-11-03T00:01:29Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:01:59Z",
+            "conclusion": "success",
+            "name": "Upload exact release asset integrity receipt",
+            "number": 10,
+            "startedAt": "2026-11-03T00:01:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:04:40Z",
+            "conclusion": "success",
+            "name": "Create Release with artifacts (DRAFT)",
+            "number": 11,
+            "startedAt": "2026-11-03T00:01:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:04:40Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 22,
+            "startedAt": "2026-11-03T00:04:40Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:04:40Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 23,
+            "startedAt": "2026-11-03T00:04:40Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542995529/job/125633554461"
+      },
+      {
+        "completedAt": "2026-11-03T00:07:48Z",
+        "conclusion": "success",
+        "databaseId": 125635619167,
+        "name": "update-changelog",
+        "startedAt": "2026-11-03T00:04:47Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-03T00:04:48Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-03T00:04:48Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:05:28Z",
+            "conclusion": "success",
+            "name": "Checkout main",
+            "number": 2,
+            "startedAt": "2026-11-03T00:04:48Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:05:32Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 3,
+            "startedAt": "2026-11-03T00:05:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:07:08Z",
+            "conclusion": "success",
+            "name": "Install dependencies (workspace-aware)",
+            "number": 4,
+            "startedAt": "2026-11-03T00:05:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:07:40Z",
+            "conclusion": "success",
+            "name": "Install desktop-app-vue deps (post-workspace-refactor)",
+            "number": 5,
+            "startedAt": "2026-11-03T00:07:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:07:40Z",
+            "conclusion": "success",
+            "name": "Regenerate CHANGELOG.md",
+            "number": 6,
+            "startedAt": "2026-11-03T00:07:40Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:07:42Z",
+            "conclusion": "success",
+            "name": "Upload generated changelog for a follow-up PR",
+            "number": 7,
+            "startedAt": "2026-11-03T00:07:40Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:07:42Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 13,
+            "startedAt": "2026-11-03T00:07:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:07:42Z",
+            "conclusion": "success",
+            "name": "Post Checkout main",
+            "number": 14,
+            "startedAt": "2026-11-03T00:07:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:07:42Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 15,
+            "startedAt": "2026-11-03T00:07:42Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542995529/job/125635619167"
+      },
+      {
+        "completedAt": "2026-11-03T00:08:39Z",
+        "conclusion": "success",
+        "databaseId": 125636900985,
+        "name": "finalize-release",
+        "startedAt": "2026-11-03T00:07:51Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-03T00:07:54Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-03T00:07:52Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:08:32Z",
+            "conclusion": "success",
+            "name": "Checkout exact product source and tags",
+            "number": 2,
+            "startedAt": "2026-11-03T00:07:54Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:08:33Z",
+            "conclusion": "success",
+            "name": "Download exact asset integrity receipt",
+            "number": 3,
+            "startedAt": "2026-11-03T00:08:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:08:33Z",
+            "conclusion": "success",
+            "name": "Resolve version",
+            "number": 4,
+            "startedAt": "2026-11-03T00:08:33Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:08:34Z",
+            "conclusion": "success",
+            "name": "Skip finalize when user requested draft",
+            "number": 5,
+            "startedAt": "2026-11-03T00:08:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:08:34Z",
+            "conclusion": "skipped",
+            "name": "Publish draft release",
+            "number": 6,
+            "startedAt": "2026-11-03T00:08:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:08:34Z",
+            "conclusion": "success",
+            "name": "Upload final product release readback",
+            "number": 7,
+            "startedAt": "2026-11-03T00:08:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:08:34Z",
+            "conclusion": "success",
+            "name": "Post Checkout exact product source and tags",
+            "number": 14,
+            "startedAt": "2026-11-03T00:08:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-03T00:08:34Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 15,
+            "startedAt": "2026-11-03T00:08:34Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542995529/job/125636900985"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542995529"
+  },
+  "ciTests": {
+    "conclusion": "success",
+    "headSha": "7be0ebbcd9c9e1b52151f32e7229f6868ce320c7",
+    "jobs": [
+      {
+        "completedAt": "2026-11-02T23:08:55Z",
+        "conclusion": "success",
+        "databaseId": 125611503009,
+        "name": "Scoped documentation check / Detect and validate scoped documentation",
+        "startedAt": "2026-11-02T23:08:07Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:08:08Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:08:07Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:08:45Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v5",
+            "number": 2,
+            "startedAt": "2026-11-02T23:08:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:08:52Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@v5",
+            "number": 3,
+            "startedAt": "2026-11-02T23:08:45Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:08:52Z",
+            "conclusion": "success",
+            "name": "Classify complete diff and validate allowed documentation",
+            "number": 4,
+            "startedAt": "2026-11-02T23:08:52Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:08:52Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@v5",
+            "number": 7,
+            "startedAt": "2026-11-02T23:08:52Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:08:52Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v5",
+            "number": 8,
+            "startedAt": "2026-11-02T23:08:52Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:08:52Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-02T23:08:52Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352/job/125611503009"
+      },
+      {
+        "completedAt": "2026-11-02T23:10:41Z",
+        "conclusion": "success",
+        "databaseId": 125611898153,
+        "name": "Backend model-egress and real startup regressions",
+        "startedAt": "2026-11-02T23:08:58Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:09:00Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:08:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:19Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:09:00Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:19Z",
+            "conclusion": "success",
+            "name": "Verify exact model-egress source commit",
+            "number": 3,
+            "startedAt": "2026-11-02T23:09:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:19Z",
+            "conclusion": "success",
+            "name": "Setup Python",
+            "number": 4,
+            "startedAt": "2026-11-02T23:09:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:44Z",
+            "conclusion": "success",
+            "name": "Install tested service-import dependencies",
+            "number": 5,
+            "startedAt": "2026-11-02T23:09:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:48Z",
+            "conclusion": "success",
+            "name": "Verify backend model denial and real FastAPI startup",
+            "number": 6,
+            "startedAt": "2026-11-02T23:09:44Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:50Z",
+            "conclusion": "success",
+            "name": "Upload backend model-egress results",
+            "number": 7,
+            "startedAt": "2026-11-02T23:09:48Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:50Z",
+            "conclusion": "success",
+            "name": "Post Setup Python",
+            "number": 13,
+            "startedAt": "2026-11-02T23:09:50Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:50Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 14,
+            "startedAt": "2026-11-02T23:09:50Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:50Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 15,
+            "startedAt": "2026-11-02T23:09:50Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352/job/125611898153"
+      },
+      {
+        "completedAt": "2026-11-02T23:35:05Z",
+        "conclusion": "success",
+        "databaseId": 125611898248,
+        "name": "Unit Tests (macos-latest, 22.x)",
+        "startedAt": "2026-11-02T23:09:15Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:09:18Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:09:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:57Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:09:18Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:58Z",
+            "conclusion": "success",
+            "name": "Verify exact Desktop and UniApp source commit",
+            "number": 3,
+            "startedAt": "2026-11-02T23:10:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:17Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 4,
+            "startedAt": "2026-11-02T23:10:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:14:23Z",
+            "conclusion": "success",
+            "name": "Install dependencies",
+            "number": 5,
+            "startedAt": "2026-11-02T23:11:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:15:05Z",
+            "conclusion": "success",
+            "name": "Install packages/cli production dependencies standalone",
+            "number": 6,
+            "startedAt": "2026-11-02T23:14:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:15:05Z",
+            "conclusion": "skipped",
+            "name": "Verify UniApp model-egress default deny",
+            "number": 7,
+            "startedAt": "2026-11-02T23:15:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:04Z",
+            "conclusion": "success",
+            "name": "Run TypeScript type check",
+            "number": 8,
+            "startedAt": "2026-11-02T23:15:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:05Z",
+            "conclusion": "success",
+            "name": "Fetch base branch for diff",
+            "number": 9,
+            "startedAt": "2026-11-02T23:16:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:30Z",
+            "conclusion": "success",
+            "name": "Verify governed project host boundaries",
+            "number": 10,
+            "startedAt": "2026-11-02T23:16:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:47Z",
+            "conclusion": "success",
+            "name": "Verify governed project controls",
+            "number": 11,
+            "startedAt": "2026-11-02T23:16:30Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:47Z",
+            "conclusion": "success",
+            "name": "Run intelligent test selection",
+            "number": 12,
+            "startedAt": "2026-11-02T23:16:47Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:34:56Z",
+            "conclusion": "success",
+            "name": "Run stable unit tests (fallback)",
+            "number": 13,
+            "startedAt": "2026-11-02T23:16:47Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:34:56Z",
+            "conclusion": "success",
+            "name": "Enforce selector or fallback result",
+            "number": 14,
+            "startedAt": "2026-11-02T23:34:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:34:56Z",
+            "conclusion": "success",
+            "name": "Test Summary",
+            "number": 15,
+            "startedAt": "2026-11-02T23:34:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:34:57Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 29,
+            "startedAt": "2026-11-02T23:34:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:34:58Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 30,
+            "startedAt": "2026-11-02T23:34:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:35:03Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 31,
+            "startedAt": "2026-11-02T23:34:58Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352/job/125611898248"
+      },
+      {
+        "completedAt": "2026-11-02T23:11:35Z",
+        "conclusion": "success",
+        "databaseId": 125611898251,
+        "name": "PDH Data Hub Tests (ubuntu-latest)",
+        "startedAt": "2026-11-02T23:09:03Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:09:06Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:09:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:06Z",
+            "conclusion": "success",
+            "name": "Enforce exact-source documentation decision",
+            "number": 2,
+            "startedAt": "2026-11-02T23:09:06Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:39Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 3,
+            "startedAt": "2026-11-02T23:09:06Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:39Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 4,
+            "startedAt": "2026-11-02T23:09:39Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:02Z",
+            "conclusion": "success",
+            "name": "Run PDH suite in an isolated install (host-ABI native drivers)",
+            "number": 5,
+            "startedAt": "2026-11-02T23:09:39Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:03Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 9,
+            "startedAt": "2026-11-02T23:11:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:03Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 10,
+            "startedAt": "2026-11-02T23:11:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:03Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 11,
+            "startedAt": "2026-11-02T23:11:03Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352/job/125611898251"
+      },
+      {
+        "completedAt": "2026-11-02T23:16:35Z",
+        "conclusion": "success",
+        "databaseId": 125611898278,
+        "name": "Build Check (windows-latest)",
+        "startedAt": "2026-11-02T23:09:12Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:09:16Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:09:13Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:37Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:09:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:10Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 3,
+            "startedAt": "2026-11-02T23:09:37Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:34Z",
+            "conclusion": "success",
+            "name": "Install dependencies",
+            "number": 4,
+            "startedAt": "2026-11-02T23:10:10Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:35Z",
+            "conclusion": "success",
+            "name": "Build main process",
+            "number": 5,
+            "startedAt": "2026-11-02T23:13:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:26Z",
+            "conclusion": "success",
+            "name": "Build renderer",
+            "number": 6,
+            "startedAt": "2026-11-02T23:13:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:31Z",
+            "conclusion": "success",
+            "name": "Archive build artifacts",
+            "number": 7,
+            "startedAt": "2026-11-02T23:16:26Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:31Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 13,
+            "startedAt": "2026-11-02T23:16:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:33Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 14,
+            "startedAt": "2026-11-02T23:16:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:33Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 15,
+            "startedAt": "2026-11-02T23:16:33Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352/job/125611898278"
+      },
+      {
+        "completedAt": "2026-11-02T23:13:22Z",
+        "conclusion": "success",
+        "databaseId": 125611898295,
+        "name": "Build Check (ubuntu-latest)",
+        "startedAt": "2026-11-02T23:10:04Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:10:05Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:10:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:17Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:10:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:23Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 3,
+            "startedAt": "2026-11-02T23:10:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:18Z",
+            "conclusion": "success",
+            "name": "Install dependencies",
+            "number": 4,
+            "startedAt": "2026-11-02T23:10:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:19Z",
+            "conclusion": "success",
+            "name": "Build main process",
+            "number": 5,
+            "startedAt": "2026-11-02T23:11:18Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:13Z",
+            "conclusion": "success",
+            "name": "Build renderer",
+            "number": 6,
+            "startedAt": "2026-11-02T23:11:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:16Z",
+            "conclusion": "success",
+            "name": "Archive build artifacts",
+            "number": 7,
+            "startedAt": "2026-11-02T23:13:13Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:16Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 13,
+            "startedAt": "2026-11-02T23:13:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:16Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 14,
+            "startedAt": "2026-11-02T23:13:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:16Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 15,
+            "startedAt": "2026-11-02T23:13:16Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352/job/125611898295"
+      },
+      {
+        "completedAt": "2026-11-02T23:11:16Z",
+        "conclusion": "success",
+        "databaseId": 125611898312,
+        "name": "CLI Global Install Smoke (ubuntu-latest)",
+        "startedAt": "2026-11-02T23:10:10Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:10:12Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:10:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:31Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:10:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:31Z",
+            "conclusion": "success",
+            "name": "Verify exact installed CLI source commit",
+            "number": 3,
+            "startedAt": "2026-11-02T23:10:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:32Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 4,
+            "startedAt": "2026-11-02T23:10:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:32Z",
+            "conclusion": "success",
+            "name": "Verify installed runtime identity guard contracts",
+            "number": 5,
+            "startedAt": "2026-11-02T23:10:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:37Z",
+            "conclusion": "success",
+            "name": "Pack CLI and exact internal dependency candidates",
+            "number": 6,
+            "startedAt": "2026-11-02T23:10:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:55Z",
+            "conclusion": "success",
+            "name": "Global install from tarball (exercises postinstall)",
+            "number": 7,
+            "startedAt": "2026-11-02T23:10:37Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:55Z",
+            "conclusion": "success",
+            "name": "Verify CLI executable",
+            "number": 8,
+            "startedAt": "2026-11-02T23:10:55Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:10Z",
+            "conclusion": "success",
+            "name": "Verify installed evolution runtime and PR recovery smoke",
+            "number": 9,
+            "startedAt": "2026-11-02T23:10:55Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:10Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 17,
+            "startedAt": "2026-11-02T23:11:10Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:11Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 18,
+            "startedAt": "2026-11-02T23:11:10Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:11Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 19,
+            "startedAt": "2026-11-02T23:11:11Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352/job/125611898312"
+      },
+      {
+        "completedAt": "2026-11-02T23:12:58Z",
+        "conclusion": "success",
+        "databaseId": 125611898323,
+        "name": "Code Quality",
+        "startedAt": "2026-11-02T23:08:58Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:09:00Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:08:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:15Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:09:00Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:23Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 3,
+            "startedAt": "2026-11-02T23:09:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:02Z",
+            "conclusion": "success",
+            "name": "Install dependencies",
+            "number": 4,
+            "startedAt": "2026-11-02T23:09:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:24Z",
+            "conclusion": "success",
+            "name": "Run ESLint",
+            "number": 5,
+            "startedAt": "2026-11-02T23:11:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:51Z",
+            "conclusion": "success",
+            "name": "Run rules validator",
+            "number": 6,
+            "startedAt": "2026-11-02T23:12:24Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:52Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 11,
+            "startedAt": "2026-11-02T23:12:51Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:52Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 12,
+            "startedAt": "2026-11-02T23:12:52Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:52Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 13,
+            "startedAt": "2026-11-02T23:12:52Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352/job/125611898323"
+      },
+      {
+        "completedAt": "2026-11-02T23:34:12Z",
+        "conclusion": "success",
+        "databaseId": 125611898371,
+        "name": "Unit Tests (ubuntu-latest, 22.x)",
+        "startedAt": "2026-11-02T23:09:28Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:09:30Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:09:29Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:15Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:09:30Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:15Z",
+            "conclusion": "success",
+            "name": "Verify exact Desktop and UniApp source commit",
+            "number": 3,
+            "startedAt": "2026-11-02T23:10:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:26Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 4,
+            "startedAt": "2026-11-02T23:10:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:09Z",
+            "conclusion": "success",
+            "name": "Install dependencies",
+            "number": 5,
+            "startedAt": "2026-11-02T23:10:26Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:31Z",
+            "conclusion": "success",
+            "name": "Install packages/cli production dependencies standalone",
+            "number": 6,
+            "startedAt": "2026-11-02T23:12:09Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:32Z",
+            "conclusion": "success",
+            "name": "Verify UniApp model-egress default deny",
+            "number": 7,
+            "startedAt": "2026-11-02T23:12:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:14Z",
+            "conclusion": "success",
+            "name": "Run TypeScript type check",
+            "number": 8,
+            "startedAt": "2026-11-02T23:12:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:14Z",
+            "conclusion": "success",
+            "name": "Fetch base branch for diff",
+            "number": 9,
+            "startedAt": "2026-11-02T23:13:14Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:28Z",
+            "conclusion": "success",
+            "name": "Verify governed project host boundaries",
+            "number": 10,
+            "startedAt": "2026-11-02T23:13:14Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:41Z",
+            "conclusion": "success",
+            "name": "Verify governed project controls",
+            "number": 11,
+            "startedAt": "2026-11-02T23:13:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:41Z",
+            "conclusion": "success",
+            "name": "Run intelligent test selection",
+            "number": 12,
+            "startedAt": "2026-11-02T23:13:41Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:34:04Z",
+            "conclusion": "success",
+            "name": "Run stable unit tests (fallback)",
+            "number": 13,
+            "startedAt": "2026-11-02T23:13:41Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:34:04Z",
+            "conclusion": "success",
+            "name": "Enforce selector or fallback result",
+            "number": 14,
+            "startedAt": "2026-11-02T23:34:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:34:04Z",
+            "conclusion": "success",
+            "name": "Test Summary",
+            "number": 15,
+            "startedAt": "2026-11-02T23:34:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:34:04Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 29,
+            "startedAt": "2026-11-02T23:34:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:34:05Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 30,
+            "startedAt": "2026-11-02T23:34:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:34:05Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 31,
+            "startedAt": "2026-11-02T23:34:05Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352/job/125611898371"
+      },
+      {
+        "completedAt": "2026-11-02T23:16:44Z",
+        "conclusion": "success",
+        "databaseId": 125611898408,
+        "name": "PDH Data Hub Tests (windows-latest)",
+        "startedAt": "2026-11-02T23:10:54Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:10:56Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:10:55Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:57Z",
+            "conclusion": "success",
+            "name": "Enforce exact-source documentation decision",
+            "number": 2,
+            "startedAt": "2026-11-02T23:10:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:32Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 3,
+            "startedAt": "2026-11-02T23:10:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:38Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 4,
+            "startedAt": "2026-11-02T23:11:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:37Z",
+            "conclusion": "success",
+            "name": "Run PDH suite in an isolated install (host-ABI native drivers)",
+            "number": 5,
+            "startedAt": "2026-11-02T23:11:38Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:37Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 9,
+            "startedAt": "2026-11-02T23:16:37Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:39Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 10,
+            "startedAt": "2026-11-02T23:16:37Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:39Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 11,
+            "startedAt": "2026-11-02T23:16:39Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352/job/125611898408"
+      },
+      {
+        "completedAt": "2026-11-02T23:13:02Z",
+        "conclusion": "success",
+        "databaseId": 125611898437,
+        "name": "CLI Global Install Smoke (macos-latest)",
+        "startedAt": "2026-11-02T23:11:06Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:11:08Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:11:07Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:55Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:11:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:55Z",
+            "conclusion": "success",
+            "name": "Verify exact installed CLI source commit",
+            "number": 3,
+            "startedAt": "2026-11-02T23:11:55Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:56Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 4,
+            "startedAt": "2026-11-02T23:11:55Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:56Z",
+            "conclusion": "success",
+            "name": "Verify installed runtime identity guard contracts",
+            "number": 5,
+            "startedAt": "2026-11-02T23:11:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:00Z",
+            "conclusion": "success",
+            "name": "Pack CLI and exact internal dependency candidates",
+            "number": 6,
+            "startedAt": "2026-11-02T23:11:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:21Z",
+            "conclusion": "success",
+            "name": "Global install from tarball (exercises postinstall)",
+            "number": 7,
+            "startedAt": "2026-11-02T23:12:00Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:21Z",
+            "conclusion": "success",
+            "name": "Verify CLI executable",
+            "number": 8,
+            "startedAt": "2026-11-02T23:12:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:37Z",
+            "conclusion": "success",
+            "name": "Verify installed evolution runtime and PR recovery smoke",
+            "number": 9,
+            "startedAt": "2026-11-02T23:12:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:37Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 17,
+            "startedAt": "2026-11-02T23:12:37Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:38Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 18,
+            "startedAt": "2026-11-02T23:12:37Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:39Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 19,
+            "startedAt": "2026-11-02T23:12:38Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352/job/125611898437"
+      },
+      {
+        "completedAt": "2026-11-02T23:55:09Z",
+        "conclusion": "success",
+        "databaseId": 125611898463,
+        "name": "Unit Tests (windows-latest, 22.x)",
+        "startedAt": "2026-11-02T23:10:33Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:10:35Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:10:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:14:00Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:10:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:14:00Z",
+            "conclusion": "success",
+            "name": "Verify exact Desktop and UniApp source commit",
+            "number": 3,
+            "startedAt": "2026-11-02T23:14:00Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:14:36Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 4,
+            "startedAt": "2026-11-02T23:14:00Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:18:43Z",
+            "conclusion": "success",
+            "name": "Install dependencies",
+            "number": 5,
+            "startedAt": "2026-11-02T23:14:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:19:35Z",
+            "conclusion": "success",
+            "name": "Install packages/cli production dependencies standalone",
+            "number": 6,
+            "startedAt": "2026-11-02T23:18:43Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:19:35Z",
+            "conclusion": "skipped",
+            "name": "Verify UniApp model-egress default deny",
+            "number": 7,
+            "startedAt": "2026-11-02T23:19:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:20:44Z",
+            "conclusion": "success",
+            "name": "Run TypeScript type check",
+            "number": 8,
+            "startedAt": "2026-11-02T23:19:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:20:45Z",
+            "conclusion": "success",
+            "name": "Fetch base branch for diff",
+            "number": 9,
+            "startedAt": "2026-11-02T23:20:44Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:21:44Z",
+            "conclusion": "success",
+            "name": "Verify governed project host boundaries",
+            "number": 10,
+            "startedAt": "2026-11-02T23:20:45Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:22:03Z",
+            "conclusion": "success",
+            "name": "Verify governed project controls",
+            "number": 11,
+            "startedAt": "2026-11-02T23:21:44Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:22:04Z",
+            "conclusion": "success",
+            "name": "Run intelligent test selection",
+            "number": 12,
+            "startedAt": "2026-11-02T23:22:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:55:03Z",
+            "conclusion": "success",
+            "name": "Run stable unit tests (fallback)",
+            "number": 13,
+            "startedAt": "2026-11-02T23:22:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:55:03Z",
+            "conclusion": "success",
+            "name": "Enforce selector or fallback result",
+            "number": 14,
+            "startedAt": "2026-11-02T23:55:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:55:03Z",
+            "conclusion": "success",
+            "name": "Test Summary",
+            "number": 15,
+            "startedAt": "2026-11-02T23:55:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:55:04Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 29,
+            "startedAt": "2026-11-02T23:55:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:55:06Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 30,
+            "startedAt": "2026-11-02T23:55:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:55:06Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 31,
+            "startedAt": "2026-11-02T23:55:06Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352/job/125611898463"
+      },
+      {
+        "completedAt": "2026-11-02T23:19:14Z",
+        "conclusion": "success",
+        "databaseId": 125611898483,
+        "name": "CLI Global Install Smoke (windows-latest)",
+        "startedAt": "2026-11-02T23:10:50Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:10:52Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:10:51Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:26Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:10:52Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:27Z",
+            "conclusion": "success",
+            "name": "Verify exact installed CLI source commit",
+            "number": 3,
+            "startedAt": "2026-11-02T23:11:26Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:32Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 4,
+            "startedAt": "2026-11-02T23:11:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:33Z",
+            "conclusion": "success",
+            "name": "Verify installed runtime identity guard contracts",
+            "number": 5,
+            "startedAt": "2026-11-02T23:11:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:44Z",
+            "conclusion": "success",
+            "name": "Pack CLI and exact internal dependency candidates",
+            "number": 6,
+            "startedAt": "2026-11-02T23:11:33Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:17:54Z",
+            "conclusion": "success",
+            "name": "Global install from tarball (exercises postinstall)",
+            "number": 7,
+            "startedAt": "2026-11-02T23:11:44Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:17:58Z",
+            "conclusion": "success",
+            "name": "Verify CLI executable",
+            "number": 8,
+            "startedAt": "2026-11-02T23:17:54Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:19:05Z",
+            "conclusion": "success",
+            "name": "Verify installed evolution runtime and PR recovery smoke",
+            "number": 9,
+            "startedAt": "2026-11-02T23:17:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:19:06Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 17,
+            "startedAt": "2026-11-02T23:19:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:19:08Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 18,
+            "startedAt": "2026-11-02T23:19:06Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:19:08Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 19,
+            "startedAt": "2026-11-02T23:19:08Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352/job/125611898483"
+      },
+      {
+        "completedAt": "2026-11-02T23:13:00Z",
+        "conclusion": "success",
+        "databaseId": 125611898501,
+        "name": "Database Tests",
+        "startedAt": "2026-11-02T23:10:57Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:10:59Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:10:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:21Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:10:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:29Z",
+            "conclusion": "success",
+            "name": "Setup Node.js",
+            "number": 3,
+            "startedAt": "2026-11-02T23:11:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:45Z",
+            "conclusion": "success",
+            "name": "Install dependencies",
+            "number": 4,
+            "startedAt": "2026-11-02T23:11:29Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:46Z",
+            "conclusion": "success",
+            "name": "Run database tests",
+            "number": 5,
+            "startedAt": "2026-11-02T23:12:45Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:46Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js",
+            "number": 9,
+            "startedAt": "2026-11-02T23:12:46Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:46Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 10,
+            "startedAt": "2026-11-02T23:12:46Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:12:46Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 11,
+            "startedAt": "2026-11-02T23:12:46Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352/job/125611898501"
+      },
+      {
+        "completedAt": "2026-11-02T23:08:55Z",
+        "conclusion": "skipped",
+        "databaseId": 125611900850,
+        "name": "Full Test Suite",
+        "startedAt": "2026-11-02T23:08:55Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352/job/125611900850"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986352"
+  },
+  "e2e": {
+    "conclusion": "success",
+    "headSha": "7be0ebbcd9c9e1b52151f32e7229f6868ce320c7",
+    "jobs": [
+      {
+        "completedAt": "2026-11-02T23:16:29Z",
+        "conclusion": "success",
+        "databaseId": 125611504939,
+        "name": "E2E Tests (Electron + Playwright) (windows-latest, 22.x)",
+        "startedAt": "2026-11-02T23:08:07Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:08:09Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:08:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:08:40Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:08:09Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:09:13Z",
+            "conclusion": "success",
+            "name": "Setup Node.js 22.x",
+            "number": 3,
+            "startedAt": "2026-11-02T23:08:40Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:35Z",
+            "conclusion": "success",
+            "name": "Install root dependencies",
+            "number": 4,
+            "startedAt": "2026-11-02T23:09:13Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:40Z",
+            "conclusion": "success",
+            "name": "Install Electron runtime (Windows)",
+            "number": 5,
+            "startedAt": "2026-11-02T23:11:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:43Z",
+            "conclusion": "success",
+            "name": "Build desktop app main process",
+            "number": 6,
+            "startedAt": "2026-11-02T23:11:40Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:15:12Z",
+            "conclusion": "success",
+            "name": "Build desktop app renderer",
+            "number": 7,
+            "startedAt": "2026-11-02T23:11:43Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:15:16Z",
+            "conclusion": "success",
+            "name": "Cache Playwright browsers",
+            "number": 8,
+            "startedAt": "2026-11-02T23:15:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:15:16Z",
+            "conclusion": "skipped",
+            "name": "Install Playwright browsers (cache miss)",
+            "number": 9,
+            "startedAt": "2026-11-02T23:15:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:15:16Z",
+            "conclusion": "skipped",
+            "name": "Install Playwright system deps only (cache hit, Linux)",
+            "number": 10,
+            "startedAt": "2026-11-02T23:15:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:15:16Z",
+            "conclusion": "skipped",
+            "name": "Install Xvfb for Linux",
+            "number": 11,
+            "startedAt": "2026-11-02T23:15:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:24Z",
+            "conclusion": "success",
+            "name": "Run E2E smoke tests",
+            "number": 12,
+            "startedAt": "2026-11-02T23:15:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:25Z",
+            "conclusion": "success",
+            "name": "Upload test results",
+            "number": 13,
+            "startedAt": "2026-11-02T23:16:24Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:26Z",
+            "conclusion": "success",
+            "name": "Upload HTML report",
+            "number": 14,
+            "startedAt": "2026-11-02T23:16:25Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:26Z",
+            "conclusion": "success",
+            "name": "Post Cache Playwright browsers",
+            "number": 26,
+            "startedAt": "2026-11-02T23:16:26Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:26Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js 22.x",
+            "number": 27,
+            "startedAt": "2026-11-02T23:16:26Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:28Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 28,
+            "startedAt": "2026-11-02T23:16:26Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:16:29Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 29,
+            "startedAt": "2026-11-02T23:16:28Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986562/job/125611504939"
+      },
+      {
+        "completedAt": "2026-11-02T23:14:34Z",
+        "conclusion": "success",
+        "databaseId": 125611504950,
+        "name": "E2E Tests (Electron + Playwright) (ubuntu-latest, 22.x)",
+        "startedAt": "2026-11-02T23:08:07Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:08:09Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:08:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:08:30Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:08:09Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:08:36Z",
+            "conclusion": "success",
+            "name": "Setup Node.js 22.x",
+            "number": 3,
+            "startedAt": "2026-11-02T23:08:30Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:15Z",
+            "conclusion": "success",
+            "name": "Install root dependencies",
+            "number": 4,
+            "startedAt": "2026-11-02T23:08:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:15Z",
+            "conclusion": "skipped",
+            "name": "Install Electron runtime (Windows)",
+            "number": 5,
+            "startedAt": "2026-11-02T23:10:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:10:15Z",
+            "conclusion": "success",
+            "name": "Build desktop app main process",
+            "number": 6,
+            "startedAt": "2026-11-02T23:10:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:22Z",
+            "conclusion": "success",
+            "name": "Build desktop app renderer",
+            "number": 7,
+            "startedAt": "2026-11-02T23:10:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:26Z",
+            "conclusion": "success",
+            "name": "Cache Playwright browsers",
+            "number": 8,
+            "startedAt": "2026-11-02T23:13:22Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:26Z",
+            "conclusion": "skipped",
+            "name": "Install Playwright browsers (cache miss)",
+            "number": 9,
+            "startedAt": "2026-11-02T23:13:26Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:44Z",
+            "conclusion": "success",
+            "name": "Install Playwright system deps only (cache hit, Linux)",
+            "number": 10,
+            "startedAt": "2026-11-02T23:13:26Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:13:45Z",
+            "conclusion": "success",
+            "name": "Install Xvfb for Linux",
+            "number": 11,
+            "startedAt": "2026-11-02T23:13:44Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:14:30Z",
+            "conclusion": "success",
+            "name": "Run E2E smoke tests",
+            "number": 12,
+            "startedAt": "2026-11-02T23:13:45Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:14:30Z",
+            "conclusion": "success",
+            "name": "Upload test results",
+            "number": 13,
+            "startedAt": "2026-11-02T23:14:30Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:14:31Z",
+            "conclusion": "success",
+            "name": "Upload HTML report",
+            "number": 14,
+            "startedAt": "2026-11-02T23:14:30Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:14:32Z",
+            "conclusion": "success",
+            "name": "Post Cache Playwright browsers",
+            "number": 26,
+            "startedAt": "2026-11-02T23:14:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:14:32Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js 22.x",
+            "number": 27,
+            "startedAt": "2026-11-02T23:14:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:14:32Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 28,
+            "startedAt": "2026-11-02T23:14:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:14:32Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 29,
+            "startedAt": "2026-11-02T23:14:32Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986562/job/125611504950"
+      },
+      {
+        "completedAt": "2026-11-02T23:22:05Z",
+        "conclusion": "success",
+        "databaseId": 125611505063,
+        "name": "E2E Tests (Electron + Playwright) (macos-latest, 22.x)",
+        "startedAt": "2026-11-02T23:08:16Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:08:19Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:08:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:08:42Z",
+            "conclusion": "success",
+            "name": "Checkout code",
+            "number": 2,
+            "startedAt": "2026-11-02T23:08:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:08:54Z",
+            "conclusion": "success",
+            "name": "Setup Node.js 22.x",
+            "number": 3,
+            "startedAt": "2026-11-02T23:08:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:34Z",
+            "conclusion": "success",
+            "name": "Install root dependencies",
+            "number": 4,
+            "startedAt": "2026-11-02T23:08:54Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:34Z",
+            "conclusion": "skipped",
+            "name": "Install Electron runtime (Windows)",
+            "number": 5,
+            "startedAt": "2026-11-02T23:11:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:11:36Z",
+            "conclusion": "success",
+            "name": "Build desktop app main process",
+            "number": 6,
+            "startedAt": "2026-11-02T23:11:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:20:30Z",
+            "conclusion": "success",
+            "name": "Build desktop app renderer",
+            "number": 7,
+            "startedAt": "2026-11-02T23:11:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:20:36Z",
+            "conclusion": "success",
+            "name": "Cache Playwright browsers",
+            "number": 8,
+            "startedAt": "2026-11-02T23:20:30Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:20:36Z",
+            "conclusion": "skipped",
+            "name": "Install Playwright browsers (cache miss)",
+            "number": 9,
+            "startedAt": "2026-11-02T23:20:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:20:36Z",
+            "conclusion": "skipped",
+            "name": "Install Playwright system deps only (cache hit, Linux)",
+            "number": 10,
+            "startedAt": "2026-11-02T23:20:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:20:36Z",
+            "conclusion": "skipped",
+            "name": "Install Xvfb for Linux",
+            "number": 11,
+            "startedAt": "2026-11-02T23:20:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:21:53Z",
+            "conclusion": "success",
+            "name": "Run E2E smoke tests",
+            "number": 12,
+            "startedAt": "2026-11-02T23:20:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:21:53Z",
+            "conclusion": "success",
+            "name": "Upload test results",
+            "number": 13,
+            "startedAt": "2026-11-02T23:21:53Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:21:55Z",
+            "conclusion": "success",
+            "name": "Upload HTML report",
+            "number": 14,
+            "startedAt": "2026-11-02T23:21:53Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:21:55Z",
+            "conclusion": "success",
+            "name": "Post Cache Playwright browsers",
+            "number": 26,
+            "startedAt": "2026-11-02T23:21:55Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:21:55Z",
+            "conclusion": "success",
+            "name": "Post Setup Node.js 22.x",
+            "number": 27,
+            "startedAt": "2026-11-02T23:21:55Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:21:56Z",
+            "conclusion": "success",
+            "name": "Post Checkout code",
+            "number": 28,
+            "startedAt": "2026-11-02T23:21:55Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:22:02Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 29,
+            "startedAt": "2026-11-02T23:21:56Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986562/job/125611505063"
+      },
+      {
+        "completedAt": "2026-11-02T23:22:18Z",
+        "conclusion": "success",
+        "databaseId": 125617911788,
+        "name": "Test Summary",
+        "startedAt": "2026-11-02T23:22:09Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-02T23:22:10Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-02T23:22:10Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:22:12Z",
+            "conclusion": "success",
+            "name": "Download all test results",
+            "number": 2,
+            "startedAt": "2026-11-02T23:22:10Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:22:12Z",
+            "conclusion": "success",
+            "name": "Generate test summary",
+            "number": 3,
+            "startedAt": "2026-11-02T23:22:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-02T23:22:12Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 4,
+            "startedAt": "2026-11-02T23:22:12Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986562/job/125617911788"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41542986562"
+  },
+  "localSupplementaryTests": {
+    "macNativeInspectionStagingAndV8Compatibility": 23,
+    "cliWorkflowContract": 26
+  },
+  "releaseGate": "Every five-platform producer and required exact-source check passed before publication."
+}

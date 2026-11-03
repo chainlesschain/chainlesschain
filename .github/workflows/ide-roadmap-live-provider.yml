@@ -85,11 +85,144 @@ jobs:
 
       - uses: ./.github/actions/setup-node-deps
 
-      - name: Run 100 independent production-path loopback trajectories
+      - name: Prepare observation-only storage diagnostics
         shell: bash
         run: |
           set -euo pipefail
-          node packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs \
+          cat > "${RUNNER_TEMP}/r140-storage-diagnostic.mjs" <<'PRELOAD'
+          import fs from "node:fs";
+          import path from "node:path";
+          import { pathToFileURL } from "node:url";
+          import { types } from "node:util";
+
+          // This branch adds failure-only observations; it is not release evidence.
+          // Never persist messages, stacks, filenames, or arbitrary error fields.
+          try {
+            const {
+              storageFailureCauseCodes,
+              storageFailureReason,
+              storageFailureStage,
+            } = await import(pathToFileURL(path.join(
+              process.env.GITHUB_WORKSPACE,
+              "packages/cli/src/lib/storage-failure-cause-codes.js",
+            )).href);
+            const artifactSource = path.join(
+              process.env.GITHUB_WORKSPACE,
+              "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+            );
+            const artifactSourceUrl = pathToFileURL(artifactSource).href;
+            const artifactLineCount = fs.readFileSync(artifactSource, "utf8").split("\n").length;
+            const sidecar = process.env.CC_R140_STORAGE_DIAGNOSTIC;
+            const metadata = {
+              observabilityOnly: true,
+              runtimeSourceParent: "eb0fe7a8a14a38d762901ceb9c75bc9c9583043a",
+              platform: process.platform,
+            };
+            let rows = 0;
+            function append(row) {
+              try {
+                if (rows >= 256) return;
+                fs.appendFileSync(sidecar, JSON.stringify({ ...metadata, ...row }) + "\n");
+                rows++;
+              } catch {
+                // Observation failures must not replace the original exception.
+              }
+            }
+            function artifactGuardLine(frames) {
+              for (const frame of frames) {
+                const file = frame.getFileName();
+                if (file !== artifactSource && file !== artifactSourceUrl) continue;
+                const functionName = frame.getFunctionName();
+                if (functionName === "EvolutionArtifactPortError" || functionName === "artifactError") continue;
+                const line = frame.getLineNumber();
+                if (Number.isInteger(line) && line >= 1 && line <= artifactLineCount) return line;
+              }
+              return undefined;
+            }
+            const indexFailureLabels = new Map([
+              "file", "title", "kind", "mime", "size", "hash", "sourcePath",
+              "sessionId", "immutable", "recordDigest", "expiry-order",
+              "created-before-issued", "retention",
+            ].map((label) => [label, label]));
+            function indexFailures(error) {
+              try {
+                const seen = new Set();
+                let current = error;
+                for (let depth = 0; depth < 6 && current; depth++) {
+                  if (typeof current !== "object" || types.isProxy(current) || seen.has(current)) return undefined;
+                  seen.add(current);
+                  const descriptor = Object.getOwnPropertyDescriptor(current, "r140IndexFailures");
+                  if (descriptor) {
+                    const code = Object.getOwnPropertyDescriptor(current, "code");
+                    if (code?.value !== "CC_EVOLUTION_ARTIFACT_INTEGRITY_FAILED" ||
+                        !("value" in descriptor) || descriptor.writable || descriptor.configurable) return undefined;
+                    const values = descriptor.value;
+                    if (types.isProxy(values) || !Array.isArray(values) || !Object.isFrozen(values)) return undefined;
+                    const length = Object.getOwnPropertyDescriptor(values, "length")?.value;
+                    if (!Number.isInteger(length) || length < 1 || length > indexFailureLabels.size ||
+                        Reflect.ownKeys(values).length !== length + 1) return undefined;
+                    const result = [];
+                    for (let index = 0; index < length; index++) {
+                      const item = Object.getOwnPropertyDescriptor(values, String(index));
+                      const known = item && "value" in item ? indexFailureLabels.get(item.value) : undefined;
+                      if (!known || result.includes(known)) return undefined;
+                      result.push(known);
+                    }
+                    return result;
+                  }
+                  const cause = Object.getOwnPropertyDescriptor(current, "cause");
+                  current = cause && "value" in cause ? cause.value : undefined;
+                }
+              } catch {
+                // Reject malformed metadata without invoking error accessors.
+              }
+              return undefined;
+            }
+            const previousFormatter = Error.prepareStackTrace;
+            let observing = false;
+            Error.prepareStackTrace = function (error, frames) {
+              if (!observing) {
+                observing = true;
+                try {
+                  const codes = storageFailureCauseCodes(error);
+                  const reason = storageFailureReason(error);
+                  const stage = storageFailureStage(error);
+                  if (codes.length || reason || stage) {
+                    append({
+                      event: "storage-failure",
+                      codes,
+                      reason,
+                      stage,
+                      artifactGuardLine: artifactGuardLine(frames),
+                      r140IndexFailures: indexFailures(error),
+                    });
+                  }
+                } catch {
+                  // Keep ordinary stack formatting and the runtime outcome intact.
+                } finally {
+                  observing = false;
+                }
+              }
+              if (typeof previousFormatter === "function") {
+                return previousFormatter.call(this, error, frames);
+              }
+              const header = Error.prototype.toString.call(error);
+              return header + frames.map(String).map((frame) => "\n    at " + frame).join("");
+            };
+            append({ event: "observer-ready" });
+          } catch {
+            // A diagnostic setup failure must not prevent the original trajectory.
+          }
+          PRELOAD
+
+      - name: Run 100 independent production-path loopback trajectories
+        shell: bash
+        env:
+          CC_R140_STORAGE_DIAGNOSTIC: ${{ runner.temp }}/live-provider-trajectory-loopback-${{ matrix.operating-system }}-storage.jsonl
+        run: |
+          set -euo pipefail
+          PRELOAD_URL="$(node -e 'process.stdout.write(require("node:url").pathToFileURL(process.argv[1]).href)' "${RUNNER_TEMP}/r140-storage-diagnostic.mjs")"
+          node --import "${PRELOAD_URL}" packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs \
             --mode loopback \
             --runs "${LOOPBACK_RUNS}" \
             --release-commit "${LIVE_TRAJECTORY_COMMIT}" \
@@ -100,7 +233,9 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: live-provider-trajectory-loopback-${{ matrix.operating-system }}-${{ env.LIVE_TRAJECTORY_COMMIT }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/live-provider-trajectory-loopback-${{ matrix.operating-system }}.json
+          path: |
+            ${{ runner.temp }}/live-provider-trajectory-loopback-${{ matrix.operating-system }}.json
+            ${{ runner.temp }}/live-provider-trajectory-loopback-${{ matrix.operating-system }}-storage.jsonl
           if-no-files-found: error
           retention-days: 30
 
@@ -159,7 +294,9 @@ jobs:
 
   live-provider:
     name: "Real-provider trajectory (shard ${{ matrix.shard }})"
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # Diagnostic branch: never invoke paid real providers. always() is true for
+    # every run state, so its negation stays false without a lint exception.
+    if: ${{ !always() }}
     strategy:
       fail-fast: false
       matrix:
@@ -230,7 +367,8 @@ jobs:
 
   live-provider-verify:
     name: Verify 100-run real-provider trajectory
-    if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && needs.live-provider.result == 'success'
+    # The same unconditional runtime guard keeps verification disabled too.
+    if: ${{ !always() }}
     needs: live-provider
     runs-on: ubuntu-latest
     timeout-minutes: 15
