@@ -17,9 +17,13 @@ import {
 import { nativeProviderCells } from "./verify01-native-round-matrix.mjs";
 import { assertNativeProviderIdentity } from "./verify01-native-provider-profile.mjs";
 import { DIAGNOSTIC } from "./verify01-volcengine-task-diagnostic.mjs";
+import {
+  nativeExecutionBudgets,
+  loadVolcengineBudgetRetry,
+} from "./verify01-native-execution-budgets.mjs";
 
 const repository = "chainlesschain/chainlesschain";
-const packageFile =
+const defaultPackageFile =
   "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139.json";
 const hash = (bytes) =>
   "sha256:" + createHash("sha256").update(bytes).digest("hex");
@@ -32,6 +36,7 @@ async function main() {
       source: { type: "string" },
       "output-dir": { type: "string" },
       "in-workflow": { type: "boolean", default: false },
+      "package-set-file": { type: "string", default: defaultPackageFile },
     },
   });
   assert.match(values["run-id"] ?? "", /^[1-9][0-9]+$/u);
@@ -55,6 +60,11 @@ async function main() {
     run.status === "completed" ||
       (values["in-workflow"] && ["in_progress", "queued"].includes(run.status)),
   );
+  const packageFile = values["package-set-file"];
+  assert.match(
+    packageFile,
+    /^docs\/research\/cli\/verify01-package-sets\/[A-Za-z0-9._-]+\.json$/u,
+  );
   const packages = loadNativePackageSet(packageFile);
   assert.equal(
     hash(execFileSync("git", ["show", `${values.source}:${packageFile}`])),
@@ -63,6 +73,13 @@ async function main() {
   const plan = read(
     "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
   );
+  const manifest = JSON.parse(packages.bytes.toString("utf8"));
+  const retry = loadVolcengineBudgetRetry(manifest, {
+    repositoryRoot: process.cwd(),
+    plan,
+  });
+  const expectedIds =
+    retry?.selectedSampleIds ?? plan.samples.map((row) => row.id);
   const rows = [
     ["win32", "windows-latest"],
     ["linux", "ubuntu-24.04"],
@@ -76,6 +93,8 @@ async function main() {
   );
   const cells = nativeProviderCells(rows, plan, undefined, "volcengine", {
     isolateJetbrains: true,
+    isolateAllSamples: Boolean(retry),
+    sampleIdsByGroup: retry?.sampleIdsByGroup,
   });
   const listed = api(
     `/actions/runs/${run.id}/artifacts?per_page=100`,
@@ -218,6 +237,8 @@ async function main() {
         deliveryAvailable: Boolean(delivery),
         acceptanceAvailable: Boolean(acceptance),
         modelFailure: delivery?.model?.failureCategory ?? null,
+        modelError: delivery?.model?.final?.error ?? null,
+        modelResultSubtype: delivery?.model?.final?.subtype ?? null,
         error: acceptance?.error ?? delivery?.error ?? null,
         setup: acceptance?.setup ?? null,
         check: acceptance?.check ?? null,
@@ -226,8 +247,11 @@ async function main() {
       });
     }
   }
-  assert.equal(results.length, 45);
-  assert.equal(new Set(results.map((r) => r.sampleId)).size, 45);
+  assert.equal(results.length, expectedIds.length);
+  assert.deepEqual(
+    results.map((row) => row.sampleId).sort(),
+    [...expectedIds].sort(),
+  );
   const count = (selected) => ({
     accepted: selected.filter((r) => r.accepted).length,
     total: selected.length,
@@ -247,7 +271,13 @@ async function main() {
     versions: packages.versions,
     packageSetDigest: packages.packageSetDigest,
     formalSample: false,
+    roundKind: retry ? "expanded-budget-retry" : "fresh-full-36-plus-9",
+    executionBudgets: nativeExecutionBudgets(manifest),
+    ...(retry
+      ? { baselineRunId: manifest.volcengineBudgetRetry.baselineRunId }
+      : {}),
     historicalScoresUnchanged: true,
+    completeGenerationEvidence: results.every((r) => r.deliveryAvailable),
     completeEvidence:
       missing.length === 0 &&
       results.every((r) => r.deliveryAvailable && r.acceptanceAvailable),
@@ -271,8 +301,8 @@ async function main() {
   };
   save("results.json", JSON.stringify(report, null, 2) + "\n");
   const summary = report.completeEvidence
-    ? `Volcengine ${DIAGNOSTIC.model}: ${report.accepted}/45 accepted; tasks ${report.tasks.accepted}/36; first runs ${report.firstRuns.accepted}/9. Historical scores unchanged.\n`
-    : `Incomplete collection: ${results.filter((r) => r.deliveryAvailable).length}/45 delivery records and ${results.filter((r) => r.acceptanceAvailable).length}/45 acceptance records. Final score pending; missing evidence: ${missing.length}. Historical scores unchanged.\n`;
+    ? `Volcengine ${DIAGNOSTIC.model}: ${report.accepted}/${report.total} accepted; tasks ${report.tasks.accepted}/${report.tasks.total}; first runs ${report.firstRuns.accepted}/${report.firstRuns.total}. Historical scores unchanged.\n`
+    : `Incomplete collection: ${results.filter((r) => r.deliveryAvailable).length}/${report.total} delivery records and ${results.filter((r) => r.acceptanceAvailable).length}/${report.total} acceptance records. Final score pending; missing evidence: ${missing.length}. Historical scores unchanged.\n`;
   if (process.env.GITHUB_STEP_SUMMARY)
     fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
   console.log(summary.trim());

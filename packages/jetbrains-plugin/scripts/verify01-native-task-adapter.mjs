@@ -215,8 +215,13 @@ function captureCliStderr(node, cli, args, options) {
   });
 }
 
-export function adapterArgv(cliPath, capture, { reviewChanges = false } = {}) {
+export function adapterArgv(
+  cliPath,
+  capture,
+  { reviewChanges = false, maxTurns = 20 } = {},
+) {
   assert.equal(typeof reviewChanges, "boolean");
+  assert.ok([20, 40].includes(maxTurns));
   if (capture) {
     const options = {
       maxBytes: 1024 * 1024,
@@ -227,13 +232,13 @@ export function adapterArgv(cliPath, capture, { reviewChanges = false } = {}) {
     for (const key of ["maxBytes", "maxLineBytes"])
       assert.ok(Number.isSafeInteger(options[key]) && options[key] > 0);
     return (
-      adapterArgv(cliPath, undefined, { reviewChanges }).replace(
+      adapterArgv(cliPath, undefined, { reviewChanges, maxTurns }).replace(
         "const child=spawn(",
         `if(args[0]==='agent'){(${captureCliStderr.toString()})(${JSON.stringify(process.execPath)},${JSON.stringify(cliPath)},args,${JSON.stringify(options)});}else{const child=spawn(`,
       ) + "}"
     );
   }
-  return `const {spawn}=require('node:child_process');const args=process.argv.slice(2);if(args[0]==='agent')args.push('--allowed-tools','read_file,search_files,list_dir,write_file,edit_file,edit_file_hashed','--no-ide','--no-mcp','--no-pdh','--no-jetbrains','--no-project-memory','--no-file-refs','--no-slash-macros','--max-turns','20');${reviewChanges ? "if(args[0]==='agent')args.push('--review-changes');" : ""}const child=spawn(${JSON.stringify(process.execPath)},[${JSON.stringify(cliPath)},...args],{stdio:'inherit',env:{...process.env,CC_TASK_WORKLOG:'0'}});child.on('error',e=>{console.error(e.message);process.exitCode=1});child.on('exit',code=>{process.exitCode=code??1});`;
+  return `const {spawn}=require('node:child_process');const args=process.argv.slice(2);if(args[0]==='agent')args.push('--allowed-tools','read_file,search_files,list_dir,write_file,edit_file,edit_file_hashed','--no-ide','--no-mcp','--no-pdh','--no-jetbrains','--no-project-memory','--no-file-refs','--no-slash-macros','--max-turns','${maxTurns}');${reviewChanges ? "if(args[0]==='agent')args.push('--review-changes');" : ""}const child=spawn(${JSON.stringify(process.execPath)},[${JSON.stringify(cliPath)},...args],{stdio:'inherit',env:{...process.env,CC_TASK_WORKLOG:'0'}});child.on('error',e=>{console.error(e.message);process.exitCode=1});child.on('exit',code=>{process.exitCode=code??1});`;
 }
 
 export async function runJetBrainsNativeTask({
@@ -251,10 +256,15 @@ export async function runJetBrainsNativeTask({
   pluginDigest,
   versions,
   reviewChanges = false,
+  maxTurns = 20,
 }) {
   assert.equal(profile, path.join(profileHome, ".chainlesschain"));
-  assert.ok(deadline > Date.now() && deadline - Date.now() <= 30 * 60 * 1000);
-  const uiDeadline = Math.min(deadline, Date.now() + 20 * 60 * 1000);
+  assert.ok([20, 40].includes(maxTurns));
+  assert.ok(
+    deadline > Date.now() &&
+      deadline - Date.now() <= (maxTurns === 40 ? 60 : 30) * 60 * 1000,
+  );
+  const uiDeadline = Math.min(deadline, Date.now() + maxTurns * 60 * 1000);
   assert.equal(digest(fs.readFileSync(pluginArchive)), pluginDigest);
   const captureDir = path.join(outputDir, "capture");
   fs.mkdirSync(captureDir);
@@ -276,7 +286,7 @@ export async function runJetBrainsNativeTask({
       {
         captureDir: path.join(outputDir, "cli-stderr-diagnostics"),
       },
-      { reviewChanges },
+      { reviewChanges, maxTurns },
     ),
     { flag: "wx" },
   );

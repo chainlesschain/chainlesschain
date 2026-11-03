@@ -8,19 +8,28 @@ export function nativeProviderCells(
   plan,
   sampleIds,
   provider = "volcengine",
-  { isolateJetbrains = false } = {},
+  {
+    isolateJetbrains = false,
+    isolateAllSamples = false,
+    sampleIdsByGroup,
+  } = {},
 ) {
   nativeProviderProfile(provider);
   assert.ok(Array.isArray(rows) && rows.length > 0);
   assert.equal(new Set(rows.map((row) => row.group)).size, rows.length);
-  if (provider === "volcengine" && !isolateJetbrains) return rows;
+  if (provider === "volcengine" && !isolateJetbrains && !isolateAllSamples)
+    return rows;
   const result = rows.flatMap((row) => {
     const platform = row.group.split("-")[0];
     assert.ok(["win32", "linux", "darwin"].includes(platform));
     assert.ok(["cli", "vscode", "jetbrains"].includes(row.entry));
     assert.equal(row.group, `${platform}-${row.entry}`);
-    const samples = selectNativeSamples(plan, platform, row.entry, sampleIds);
-    return row.entry === "jetbrains"
+    const selectedIds = sampleIdsByGroup
+      ? sampleIdsByGroup[row.group]
+      : sampleIds;
+    if (sampleIdsByGroup && !selectedIds?.length) return [];
+    const samples = selectNativeSamples(plan, platform, row.entry, selectedIds);
+    return row.entry === "jetbrains" || isolateAllSamples
       ? samples.map((sample) => ({
           ...row,
           cell_id: `${row.group}-${sample.id}`,
@@ -31,7 +40,7 @@ export function nativeProviderCells(
           {
             ...row,
             cell_id: row.group,
-            sample_ids: sampleIds?.join(",") || "",
+            sample_ids: selectedIds?.join(",") || "",
             sample_count: samples.length,
           },
         ];

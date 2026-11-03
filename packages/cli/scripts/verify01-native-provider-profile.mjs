@@ -3,16 +3,20 @@ import { createHash } from "node:crypto";
 import { DIAGNOSTIC } from "./verify01-volcengine-task-diagnostic.mjs";
 import { prereleasePackageBinding } from "./verify01-prerelease-package-set.mjs";
 import {
-  BROKER,
   createVolcengineDiagnosticBroker,
+  volcengineBudgetRetryPolicy,
 } from "./verify01-volcengine-diagnostic-broker.mjs";
 import {
   OPENAI_BROKER,
   createOpenAiDiagnosticBroker,
 } from "./verify01-openai-diagnostic-broker.mjs";
+import { nativeExecutionBudgets } from "./verify01-native-execution-budgets.mjs";
 
 /** Operator selection only; existing Volcengine cohorts retain their policy. */
-export function nativeProviderProfile(provider = DIAGNOSTIC.provider) {
+export function nativeProviderProfile(
+  provider = DIAGNOSTIC.provider,
+  { budgets } = {},
+) {
   assert.ok(
     ["volcengine", "openai"].includes(provider),
     "unsupported diagnostic provider",
@@ -30,8 +34,16 @@ export function nativeProviderProfile(provider = DIAGNOSTIC.provider) {
         provider,
         model: DIAGNOSTIC.model,
         keyEnvironment: "VOLCENGINE_API_KEY",
-        policy: BROKER,
-        createBroker: createVolcengineDiagnosticBroker,
+        policy: volcengineBudgetRetryPolicy(budgets),
+        createBroker:
+          budgets?.modelTurns === 40
+            ? (options) =>
+                createVolcengineDiagnosticBroker({
+                  ...options,
+                  executionBudgets: budgets,
+                  maximumRequestsPerTask: budgets.physicalRequests,
+                })
+            : createVolcengineDiagnosticBroker,
         defaultThinkingPreserved: false,
       });
 }
@@ -44,7 +56,13 @@ export function assertNativeProviderIdentity(
   packageBinding,
   projectIdentity,
 ) {
-  const profile = nativeProviderProfile(provider);
+  const manifest = packageBinding?.bytes
+    ? JSON.parse(packageBinding.bytes.toString("utf8"))
+    : null;
+  const budgets = nativeExecutionBudgets(manifest, provider);
+  const profile = nativeProviderProfile(provider, { budgets });
+  if (manifest?.volcengineBudgetRetry)
+    assert.deepEqual(summary.executionBudgets, budgets);
   const hash = (value) =>
     `sha256:${createHash("sha256").update(value).digest("hex")}`;
   assert.match(sourceSha, /^[a-f0-9]{40}$/u);

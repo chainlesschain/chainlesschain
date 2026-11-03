@@ -113,7 +113,17 @@ export function parseDiagnosticJson(text) {
   return JSON.parse(text);
 }
 
-export function diagnosticBody(input, { allowTextOnlyRequests = false } = {}) {
+export function diagnosticBody(
+  input,
+  {
+    allowTextOnlyRequests = false,
+    maximumAnswerTokens = BROKER.maximumAnswerTokens,
+  } = {},
+) {
+  check(
+    [8192, 16384].includes(maximumAnswerTokens),
+    "DIAGNOSTIC_OUTPUT_POLICY_INVALID",
+  );
   check(input?.model === BROKER.model, "DIAGNOSTIC_MODEL_MISMATCH");
   check(
     input.stream === undefined || typeof input.stream === "boolean",
@@ -152,7 +162,7 @@ export function diagnosticBody(input, { allowTextOnlyRequests = false } = {}) {
     ...(input.tools?.length ? { tools: input.tools } : {}),
     stream: streaming,
     ...(streaming ? { stream_options: { include_usage: true } } : {}),
-    max_tokens: BROKER.maximumAnswerTokens,
+    max_tokens: maximumAnswerTokens,
     thinking: { type: "disabled" },
     service_tier: "default",
     parallel_tool_calls: false,
@@ -164,7 +174,7 @@ export function diagnosticBody(input, { allowTextOnlyRequests = false } = {}) {
   return body;
 }
 
-export function diagnosticJsonUsage(raw) {
+export function diagnosticJsonUsage(raw, options = {}) {
   // Validate the actual JSON envelope first. The shared accounting validator
   // below receives its existing facts, never manufactured identity or usage.
   const response = parseDiagnosticJson(raw);
@@ -217,10 +227,18 @@ export function diagnosticJsonUsage(raw) {
     check(message.tool_calls?.length > 0, "DIAGNOSTIC_TOOL_CALLS_MISSING");
   return diagnosticUsage(
     `data: ${JSON.stringify({ ...response, choices: [{ index: choice.index, delta: choice.message, finish_reason: choice.finish_reason }] })}\n\ndata: [DONE]\n\n`,
+    options,
   );
 }
 
-export function diagnosticUsage(raw) {
+export function diagnosticUsage(
+  raw,
+  { maximumAnswerTokens = BROKER.maximumAnswerTokens } = {},
+) {
+  check(
+    [8192, 16384].includes(maximumAnswerTokens),
+    "DIAGNOSTIC_OUTPUT_POLICY_INVALID",
+  );
   let done = false,
     usage = null,
     finish = null;
@@ -288,7 +306,7 @@ export function diagnosticUsage(raw) {
     "DIAGNOSTIC_USAGE_INCONSISTENT",
   );
   check(
-    usage.completion_tokens <= BROKER.maximumAnswerTokens,
+    usage.completion_tokens <= maximumAnswerTokens,
     "DIAGNOSTIC_OUTPUT_LIMIT_EXCEEDED",
   );
   const cached = usage.prompt_tokens_details?.cached_tokens;
@@ -480,15 +498,40 @@ export function requestFixedDiagnosticEndpoint(body, key, options, policy) {
   });
 }
 
+export function volcengineBudgetRetryPolicy(budgets) {
+  if (!budgets || budgets.modelTurns === 20) return BROKER;
+  check(
+    budgets.modelTurns === 40 &&
+      budgets.physicalRequests === 48 &&
+      [8192, 16384].includes(budgets.outputTokens),
+    "DIAGNOSTIC_EXPANDED_BUDGET_INVALID",
+  );
+  return Object.freeze({
+    ...BROKER,
+    maximumRequestsPerTask: 48,
+    maximumAnswerTokens: budgets.outputTokens,
+    timeoutMs: 180000,
+    maximumResponseBytes: 16 * 1024 * 1024,
+  });
+}
+
 export async function createVolcengineDiagnosticBroker(options) {
+  const policy = volcengineBudgetRetryPolicy(options.executionBudgets);
+  const usageOptions = { maximumAnswerTokens: policy.maximumAnswerTokens };
   return createBoundedDiagnosticBroker(options, {
-    policy: BROKER,
+    policy,
+    maximumRequestAllowance: policy === BROKER ? 32 : 48,
     route: "/api/v3/chat/completions",
     basePath: "/api/v3",
-    request: requestArk,
-    body: diagnosticBody,
-    sseUsage: diagnosticUsage,
-    jsonUsage: diagnosticJsonUsage,
+    request:
+      policy === BROKER
+        ? requestArk
+        : (body, key, options) =>
+            requestFixedDiagnosticEndpoint(body, key, options, policy),
+    body: (input, options) =>
+      diagnosticBody(input, { ...options, ...usageOptions }),
+    sseUsage: (raw) => diagnosticUsage(raw, usageOptions),
+    jsonUsage: (raw) => diagnosticJsonUsage(raw, usageOptions),
     estimateField: "tokenOnlyEstimateCny",
     billedField: "actualBilledCostCny",
     defaultThinkingPreserved: false,
@@ -522,7 +565,9 @@ export async function createBoundedDiagnosticBroker(options, profile) {
       ) &&
       Number.isSafeInteger(maximumRequestsPerTask) &&
       maximumRequestsPerTask > 0 &&
-      maximumRequestsPerTask <= 32,
+      (maximumRequestsPerTask <= 32 ||
+        (profile.maximumRequestAllowance === 48 &&
+          maximumRequestsPerTask <= 48)),
     "DIAGNOSTIC_TASK_POLICY_INVALID",
   );
   check(

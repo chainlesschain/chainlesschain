@@ -2,7 +2,12 @@ name: VERIFY01 collect full Volcengine 139 results
 
 on:
   push:
-    tags: [verify01-volc139-collect-*]
+    tags:
+      [
+        verify01-volc139-collect-*,
+        verify01-volc139-baseline-*,
+        verify01-volc139-budget-collect-*,
+      ]
 
 permissions:
   contents: read
@@ -31,19 +36,24 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           import assert from 'node:assert/strict';
-          const d = JSON.parse(fs.readFileSync('docs/research/cli/verify01-volcengine-139-20261103/dispatch.json', 'utf8'));
+          const retry = process.env.GITHUB_REF_NAME.startsWith('verify01-volc139-budget-collect-');
+          const file = retry ? 'docs/research/cli/verify01-volcengine-139-20261103/budget-retry/dispatch.json' : 'docs/research/cli/verify01-volcengine-139-20261103/dispatch.json';
+          const d = JSON.parse(fs.readFileSync(file, 'utf8'));
           assert.equal(d.submitted, true);
           assert.ok(Number.isSafeInteger(d.runId) && d.runId > 0);
           assert.match(d.source, /^[a-f0-9]{40}$/u);
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `run_id=${d.runId}\nsource=${d.source}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `run_id=${d.runId}\nsource=${d.source}\npackage_set_file=${d.packageSetPath}\n`);
           NODE
       - name: Collect original deliveries and independent receipts without model credentials or model calls
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          node packages/cli/scripts/verify01-volcengine-fresh-collect.mjs
-          --run-id "${{ steps.round.outputs.run_id }}" --source "${{ steps.round.outputs.source }}"
-          --output-dir "${{ runner.temp }}/verify01-volc139-collected"
+        run: |
+          phase=()
+          if [[ "$GITHUB_REF_NAME" == verify01-volc139-baseline-* ]]; then phase=(--in-workflow); fi
+          node packages/cli/scripts/verify01-volcengine-fresh-collect.mjs \
+            --run-id "${{ steps.round.outputs.run_id }}" --source "${{ steps.round.outputs.source }}" \
+            --package-set-file "${{ steps.round.outputs.package_set_file }}" \
+            --output-dir "${{ runner.temp }}/verify01-volc139-collected" "${phase[@]}"
       - name: Preserve full-round report and independent acceptance evidence
         if: always()
         uses: actions/upload-artifact@v6

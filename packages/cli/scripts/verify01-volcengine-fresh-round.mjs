@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import net from "node:net";
 import { loadPublicGeneratorProof } from "./verify01-public-generator-binding.mjs";
+import { loadVolcengineBudgetRetry } from "./verify01-native-execution-budgets.mjs";
 
 /** Read-only authentication. Retry only catalog network failures, never generation. */
 export async function verifyFreshVolcengineCredential(
@@ -101,4 +102,46 @@ export function assertFreshVolcengineRound({
     jetbrainsHost: "2025.2",
   });
   return loadPublicGeneratorProof(manifest, { repositoryRoot });
+}
+
+export function assertFreshVolcengineBudgetRetry(options, plan) {
+  const {
+    provider,
+    packageSet,
+    packageBinding,
+    hosts,
+    entries,
+    sampleIds,
+    revisionBinding,
+    runAttempt,
+    credentialPresent,
+    repositoryRoot,
+  } = options;
+  assert.equal(provider, "volcengine");
+  assert.equal(packageSet, "latest");
+  assert.equal(hosts, "all");
+  assert.equal(entries, "all");
+  assert.equal(
+    sampleIds,
+    undefined,
+    "Retry selection comes only from the committed baseline manifest",
+  );
+  assert.equal(revisionBinding, null);
+  assert.equal(runAttempt, 1);
+  assert.equal(credentialPresent, true);
+  const manifest = JSON.parse(packageBinding.bytes.toString("utf8"));
+  assert.equal(
+    manifest.freshVolcengineRound,
+    undefined,
+    "A subset retry must not claim a full 45-sample round",
+  );
+  assert.deepEqual(packageBinding.versions, {
+    cli: "0.166.139",
+    vscode: "0.37.175",
+    jetbrains: "0.4.192",
+    vscodeHost: "1.132.0",
+    jetbrainsHost: "2025.2",
+  });
+  loadPublicGeneratorProof(manifest, { repositoryRoot });
+  return loadVolcengineBudgetRetry(manifest, { repositoryRoot, plan });
 }

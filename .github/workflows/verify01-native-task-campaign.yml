@@ -137,6 +137,7 @@ jobs:
           packages/cli/test-node/verify01-native-provider-profile.node-test.mjs
           packages/cli/test-node/verify01-native-round-matrix.node-test.mjs
           packages/cli/test-node/verify01-volcengine-fresh-round.node-test.mjs
+          packages/cli/test-node/verify01-native-execution-budgets.node-test.mjs
           packages/jetbrains-plugin/scripts/verify01-native-task-adapter.test.mjs
       - name: Select requested native hosts
         id: select
@@ -165,7 +166,7 @@ jobs:
             import {nativeProviderProfile} from "./packages/cli/scripts/verify01-native-provider-profile.mjs";
             import {prereleasePackageBinding} from "./packages/cli/scripts/verify01-prerelease-package-set.mjs";
             import {loadPublicGeneratorProof} from "./packages/cli/scripts/verify01-public-generator-binding.mjs";
-            import {assertFreshVolcengineRound, verifyFreshVolcengineCredential} from "./packages/cli/scripts/verify01-volcengine-fresh-round.mjs";
+            import {assertFreshVolcengineRound, assertFreshVolcengineBudgetRetry, verifyFreshVolcengineCredential} from "./packages/cli/scripts/verify01-volcengine-fresh-round.mjs";
             const provider = nativeProviderProfile(process.env.NATIVE_PROVIDER || "volcengine").provider;
             const run = process.env.DELIVERY_RUN, commit = process.env.DELIVERY_COMMIT;
             if (!!run !== !!commit || (run && (!/^[1-9][0-9]+$/.test(run) || !/^[a-f0-9]{40}$/.test(commit)))) throw new Error("paired exact delivery run and commit required");
@@ -185,8 +186,11 @@ jobs:
             });
             validateNativeProjectSelection(project.revisionBinding, parseNativeSampleIds(process.env.SAMPLE_SELECTION));
             const freshVolcengineRound = process.env.FRESH_VOLCENGINE_ROUND === "true";
+            let budgetRetry = null;
             if (freshVolcengineRound) {
-              assertFreshVolcengineRound({
+              const declaration = JSON.parse(packageBinding.bytes.toString("utf8"));
+              const checkRound = declaration.volcengineBudgetRetry ? assertFreshVolcengineBudgetRetry : assertFreshVolcengineRound;
+              const checked = checkRound({
                 provider, packageSet, packageBinding,
                 hosts: process.env.HOST_SELECTION, entries: process.env.ENTRY_SELECTION,
                 sampleIds: parseNativeSampleIds(process.env.SAMPLE_SELECTION),
@@ -194,7 +198,8 @@ jobs:
                 runAttempt: run ? 1 : Number(process.env.GITHUB_RUN_ATTEMPT || "1"),
                 credentialPresent: Boolean(run) || process.env.VOLCENGINE_CREDENTIAL_PRESENT === "true",
                 repositoryRoot: process.cwd(),
-              });
+              }, JSON.parse(fs.readFileSync(`${basePlanDir}/plan.json`, "utf8")));
+              if (declaration.volcengineBudgetRetry) budgetRetry = checked;
               if (!run) {
                 const authentication = await verifyFreshVolcengineCredential(process.env.VOLCENGINE_API_KEY);
                 console.log(JSON.stringify({credentialMetadataPreflight: authentication}));
@@ -251,7 +256,7 @@ jobs:
               assertUnfinishedNativeSamples(ids, {versionsFile: process.env.NATIVE_PACKAGE_SET_FILE || undefined});
             }
             const taskPlan = JSON.parse(fs.readFileSync("docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json", "utf8"));
-            rows = nativeProviderCells(rows, taskPlan, ids, provider, {isolateJetbrains: freshVolcengineRound});
+            rows = nativeProviderCells(rows, taskPlan, ids, provider, {isolateJetbrains: freshVolcengineRound, isolateAllSamples: Boolean(budgetRetry), sampleIdsByGroup: budgetRetry?.sampleIdsByGroup});
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify({include: rows})}\ngroups=${JSON.stringify([...new Set(rows.map(row => row.group))])}\n`);
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `acceptance_matrix=${JSON.stringify({include: rows.map(({group, cell_id, sample_ids}) => ({group, cell_id, sample_ids}))})}\n`);
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `sample_key=${sampleKey}\n`);
@@ -416,6 +421,7 @@ jobs:
         run: >-
           node packages/cli/scripts/verify01-volcengine-fresh-collect.mjs
           --run-id "${{ github.run_id }}" --source "${{ github.sha }}"
+          --package-set-file "$NATIVE_PACKAGE_SET_FILE"
           --output-dir "${{ runner.temp }}/verify01-volc139-results" --in-workflow
       - name: Preserve full round results and independent acceptance receipts
         if: always()
