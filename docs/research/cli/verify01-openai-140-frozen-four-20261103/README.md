@@ -32,3 +32,26 @@ macOS VS Code 执行 `verify-08` 和独立首次安装；Linux CLI 执行 `verif
 | macOS / JetBrains | `verify-36` | [41666324429](https://github.com/chainlesschain/chainlesschain/actions/runs/41666324429) |
 
 三次 POST 均只提交一次。GitHub 的按 head SHA 查询一度未返回已受理的 Linux 运行，派发器依合同停止；随后从相同不可变标签的分支列表确认原运行，保留回执并仅提交尚未提交的 JetBrains 作业，没有重发 Linux 请求。见 [派发 journal](dispatch.json)。运行结束后按实际原始回执填写成绩；排队或启动不算通过。
+
+## 最终结果
+
+**四项均正常生成，独立验收与端到端结果均为 2/4 通过、2/4 未通过。**
+
+| 样本 | 基线 | 候选测试 | 行为变异检出 | 本轮结果 |
+| --- | --- | --- | --- | --- |
+| `verify-08` | 59/59 | 0/1 | 未执行 | 未通过 |
+| `verify-13` | 15/15 | 20/20 | 2/2 | 通过 |
+| `verify-36` | 12/12 | 63/63 | 1/1 | 通过 |
+| `first-run-darwin-vscode` | 59/59 | 1/2 | 未执行 | 未通过 |
+
+两个 VS Code 候选的具体错误和原始失败回执见[失败分析](failure-audit.json)。Linux 图片输入候选与 JetBrains 启动配置候选均经原始独立验收通过；未修改模型生成候选。
+
+本轮 **81/81** 个物理请求用量完整，token 费用估算 **$2.7350963**，实际账单未知。六份原始 ZIP 的 GitHub 制品摘要、交付/验收 summary、候选、回执之间的绑定均经核验；本机再次核对归档 **22/22** 文件。收集、归因和清理未启动额外模型请求。
+
+- [完整成绩与用量](public-802c51a9f2/results.json)
+- [原始文件摘要索引](public-802c51a9f2/archive-index.json)
+- [本机完整回读核验](collection-verification.json)
+- [失败候选归因](failure-audit.json)
+- [临时密钥清理回执](secret-cleanup.json)
+
+原冻结项目 41/45 与修正源码跨版本累计 45/45 保持各自历史身份；本轮两项失败不扣减旧成功，也不宣称本次完成同版本全量 45/45。当前冻结补测仍有 `verify-08`、`first-run-darwin-vscode` 两项未通过。

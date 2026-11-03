@@ -1,0 +1,112 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+const root = mkdtempSync(join(tmpdir(), "cc-fork-ownership-"));
+// From __tests__ (not __tests__/unit), ../src resolves to packages/cli/src.
+vi.mock("../src/lib/paths.js", () => ({
+  getHomeDir: () => join(root, "home"),
+  getSessionStoreDir: () => join(root, "home", "sessions"),
+  getClaudeProjectStorageDir: () => null,
+  getStatePath: () => join(root, "home", "state"),
+  getMachineSecurityAnchorDir: () => join(root, "security"),
+}));
+const store = await import("../src/harness/jsonl-session-store.js");
+const { readSessionTranscriptHistory, createSessionTranscriptBranchProjection } =
+  await import("../src/lib/session-transcript-history.js");
+const { resolveSessionBranchHistory } =
+  await import("../src/lib/session-branch-history.js");
+
+afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+function branch(parentSessionId, branchSessionId, count) {
+  const messages = store.readVerifiedMessages(parentSessionId).slice(0, count);
+  const head = store.findLatestEvent(parentSessionId, null).hash;
+  return store.withSessionAuthorityTransaction(parentSessionId, head, (tx) =>
+    tx.readProjection(() =>
+      createSessionTranscriptBranchProjection(parentSessionId, messages, (history) =>
+        store.createBranchSession({
+          parentSessionId, branchSessionId, parentTurnId: "selected", messages, history,
+        }),
+      ),
+    ),
+  );
+}
+
+function pair(id, user, assistant) {
+  store.appendUserMessage(id, user);
+  store.appendAssistantMessage(id, assistant);
+}
+
+const bodies = (id) => store.readVerifiedMessages(id)
+  .filter((m) => m.role === "user" || m.role === "assistant")
+  .map(({ role, content }) => ({ role, content }));
+const expectedPair = (user, assistant) => [
+  { role: "user", content: user }, { role: "assistant", content: assistant },
+];
+
+// Independent regression: real persisted branches, not a mocked history reader.
+describe("fork history belongs to the selected lineage", () => {
+  it("restores two sibling prefixes and their own bodies without importing later writes", () => {
+    const parent = "ownership-parent";
+    store.startSession(parent);
+    pair(parent, "ancestor user", "ancestor assistant");
+    branch(parent, "ownership-left", 2);
+    pair(parent, "second ancestor user", "second ancestor assistant");
+    branch(parent, "ownership-right", 4);
+    pair(parent, "parent after fork", "parent-only answer");
+    pair("ownership-left", "left body", "left answer");
+    pair("ownership-right", "right body", "right answer");
+    const common = expectedPair("ancestor user", "ancestor assistant");
+    const second = expectedPair("second ancestor user", "second ancestor assistant");
+    const expected = new Map([
+      ["ownership-left", [...common, ...expectedPair("left body", "left answer")]],
+      ["ownership-right", [...common, ...second, ...expectedPair("right body", "right answer")]],
+      [parent, [...common, ...second, ...expectedPair("parent after fork", "parent-only answer")]],
+    ]);
+    // Read each twice, interleaved, so neither a cached sibling nor a live parent
+    // can provide the branch's restored context or display history.
+    for (const id of ["ownership-left", "ownership-right", parent, "ownership-right", "ownership-left"]) {
+      expect(bodies(id)).toEqual(expected.get(id));
+      const history = readSessionTranscriptHistory(id);
+      expect(history.totalMessages).toBe(expected.get(id).length);
+      expect(history.messages.map(({ role, text }) => ({ role, content: text })))
+        .toEqual(expected.get(id));
+    }
+  });
+
+  it("binds a live history capability independently to parent, context and lifetime", () => {
+    const parent = "capability-parent";
+    const other = "capability-other";
+    store.startSession(parent);
+    store.createSession({ sessionId: other });
+    pair(parent, "same user", "same assistant");
+    pair(other, "same user", "same assistant");
+    const messages = store.readVerifiedMessages(parent);
+    let escaped;
+    const head = store.findLatestEvent(parent, null).hash;
+    store.withSessionAuthorityTransaction(parent, head, (tx) =>
+      tx.readProjection(() => createSessionTranscriptBranchProjection(parent, messages, (history) => {
+        escaped = history;
+        const positive = () => resolveSessionBranchHistory(history, parent, messages);
+        expect(positive().parentSessionId).toBe(parent);
+        // Only parent identity changes; both parents exist and have equal bodies.
+        expect(() => resolveSessionBranchHistory(history, other, messages))
+          .toThrow(/expired or does not match/);
+        expect(positive().parentSessionId).toBe(parent);
+        // Only the canonical body changes, retaining a valid role and shape.
+        const changed = messages.map((m, i) => i === 0 ? { ...m, content: "different user" } : m);
+        expect(() => resolveSessionBranchHistory(history, parent, changed))
+          .toThrow(/expired or does not match/);
+        expect(positive().parentSessionId).toBe(parent);
+        store.createBranchSession({ branchSessionId: "capability-child", parentSessionId: parent,
+          parentTurnId: "selected", messages, history });
+      })),
+    );
+    // Exactly the same capability, parent and body; only its scope has ended.
+    expect(() => resolveSessionBranchHistory(escaped, parent, messages))
+      .toThrow(/expired or does not match/);
+    expect(bodies("capability-child")).toEqual(expectedPair("same user", "same assistant"));
+  });
+});

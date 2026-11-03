@@ -1,0 +1,155 @@
+import { describe, expect, it } from "vitest";
+import {
+  assessBackgroundLaunchProfileCompatibility as assess,
+  buildArgvFromBackgroundLaunchProfile as build,
+  canonicalBackgroundLaunchProfileJson as canonical,
+  captureBackgroundLaunchProfile as capture,
+  fingerprintBackgroundLaunchProfile as fingerprint,
+  normalizeBackgroundLaunchProfile as normalize,
+} from "../src/lib/background-launch-profile.js";
+
+// From packages/cli/__tests__, ../src resolves to packages/cli/src (not ../../src).
+const copy = (value) => JSON.parse(JSON.stringify(value));
+const base = () => ({ version: 1, workspace: { cwd: process.cwd() } });
+const persisted = (group, field, value) => ({
+  ...base(),
+  [group]: { [field]: value },
+});
+const invalid = (call, field) => {
+  expect(call).toThrowError(expect.objectContaining({
+    code: "BACKGROUND_LAUNCH_PROFILE_INVALID",
+    message: `Invalid background launch profile field: ${field}`,
+  }));
+};
+
+function rejectAtBoundaries(profile, field) {
+  const saved = copy(profile);
+  invalid(() => normalize(saved), field);
+  invalid(() => build(saved), field);
+  invalid(() => canonical(saved), field);
+  invalid(() => fingerprint(saved), field);
+  invalid(() => assess(base(), saved), field);
+  expect(saved).toEqual(profile);
+}
+
+const budgets = [
+  ["maxTurns", "--max-turns", false],
+  ["maxCostUsd", "--max-budget-usd", true],
+  ["thinkingTokens", "--thinking-budget", false],
+  ["maxRewakes", "--max-rewakes", false],
+  ["maxOuterTurns", "--max-outer-turns", false],
+  ["goalMaxTokens", "--goal-max-tokens", false],
+  ["goalMaxCostUsd", "--goal-max-cost", true],
+  ["goalMaxTimeMs", "--goal-max-time", false],
+];
+
+describe("launch policy identity across persistence and reconstruction", () => {
+  it.each([null, [], ["read_file", "write_file"]])(
+    "preserves the distinct allowlist policy %j through JSON and argv",
+    (allowed) => {
+      const input = {
+        ...base(),
+        tools: { allowed, disallowed: ["run_shell"] },
+        permission: { mode: "plan", unattended: true, unattendedAllow: ["read_file"] },
+        sandbox: { enabled: true, image: "policy-image", mode: "strict", network: false },
+        mcp: { strict: true, ide: "disabled", pdh: "enabled", jetbrains: "disabled" },
+        budget: Object.fromEntries(budgets.map(([key, , cost]) => [key, cost ? 0.25 : 1])),
+        llm: { fallbackModels: ["second", "first"] },
+      };
+      const original = normalize(input);
+      const restored = normalize(copy(original));
+      expect(restored).toEqual(original);
+      expect(restored.tools.allowed).toEqual(allowed);
+      expect(restored.llm.fallbackModels).toEqual(["second", "first"]);
+      expect(canonical(restored)).toBe(canonical(original));
+      expect(fingerprint(restored)).toBe(fingerprint(original));
+      expect(assess(original, restored)).toEqual({ compatible: true, reasons: [] });
+      const argv = build(restored);
+      if (allowed === null) expect(argv).not.toContain("--allowed-tools");
+      else expect(argv.slice(argv.indexOf("--allowed-tools"), argv.indexOf("--allowed-tools") + 2))
+        .toEqual(["--allowed-tools", allowed.join(",")]);
+      const recaptured = capture({ argv, cwd: original.workspace.cwd });
+      for (const group of ["tools", "permission", "sandbox", "mcp", "budget", "llm"])
+        expect(recaptured[group]).toEqual(original[group]);
+      // Capture discovers environmental config sources; compare policy identity
+      // with the same source snapshot, rather than pretending those are policy drift.
+      const expected = { ...original, configuration: recaptured.configuration };
+      expect(fingerprint(recaptured)).toBe(fingerprint(expected));
+      expect(assess(expected, recaptured)).toEqual({ compatible: true, reasons: [] });
+    },
+  );
+
+  it.each([
+    ["tools", "allowed", [], null, "tool-policy-loosened"],
+    ["tools", "disallowed", ["run_shell"], [], "tool-policy-loosened"],
+    ["permission", "mode", "plan", "auto", "permission-mode-loosened"],
+    ["permission", "dangerousBypass", false, true, "permission-bypass-enabled"],
+    ["sandbox", "mode", "strict", "off", "sandbox-loosened"],
+    ["sandbox", "network", false, true, "sandbox-loosened"],
+    ...budgets.map(([key]) => ["budget", key, 1, null, "budget-loosened"]),
+  ])("detects single-field weakening of %s.%s", (group, field, before, after, reason) => {
+    const original = normalize(persisted(group, field, before));
+    expect(assess(original, copy(original))).toEqual({ compatible: true, reasons: [] });
+    const changed = copy(original);
+    changed[group][field] = after;
+    expect(fingerprint(changed)).not.toBe(fingerprint(original));
+    expect(assess(original, changed)).toEqual({ compatible: false, reasons: [reason] });
+  });
+});
+
+// Each negative differs from an admitted positive in just the named field.
+describe("invalid persisted policy must not become a permissive default", () => {
+  it.each([
+    ["permission", "mode", ["manual", "auto", "dontAsk", "default", "plan", "acceptEdits", "bypassPermissions"]],
+    ["sandbox", "mode", ["off", "workspace-write", "strict"]],
+    ...["ide", "pdh", "jetbrains"].map((field) => ["mcp", field, ["auto", "enabled", "disabled"]]),
+  ])("validates the enum %s.%s", (group, field, values) => {
+    for (const value of values) expect(normalize(persisted(group, field, value))[group][field]).toBe(value);
+    rejectAtBoundaries(persisted(group, field, "not-a-mode"), `${group}.${field}`);
+  });
+
+  const booleans = {
+    permission: ["dangerousBypass", "unattended", "interactiveApprovals", "remoteControl"],
+    sandbox: ["enabled", "network"],
+    mcp: ["disabled", "strict", "project"],
+    plugins: ["disabled"],
+    runtime: ["safeMode", "bare", "managedCheckpoint", "noProjectMemory", "noFileRefs", "noSlashMacros", "noRecallMemory", "noMcpAutoConnect", "autoRewake", "autoPin", "noStream", "noParkOnExit"],
+  };
+  it.each(Object.entries(booleans).flatMap(([group, fields]) => fields.map((field) => [group, field])))(
+    "rejects boolean coercion at %s.%s", (group, field) => {
+      for (const value of [false, true]) expect(normalize(persisted(group, field, value))[group][field]).toBe(value);
+      for (const value of ["false", 0, null]) rejectAtBoundaries(persisted(group, field, value), `${group}.${field}`);
+    },
+  );
+
+  it.each([["tools", "allowed"], ["tools", "disallowed"], ["permission", "unattendedAllow"]])(
+    "rejects malformed tool lists at %s.%s", (group, field) => {
+      for (const value of [[], ["read_file"]]) expect(normalize(persisted(group, field, value))[group][field]).toEqual(value);
+      for (const value of ["read_file", [""], [" "], [17]]) rejectAtBoundaries(persisted(group, field, value), `${group}.${field}`);
+    },
+  );
+
+  it.each(["llm", "tools", "permission", "sandbox", "mcp", "plugins", "runtime", "budget"])(
+    "rejects a non-object %s container", (group) => {
+      expect(() => normalize({ ...base(), [group]: {} })).not.toThrow();
+      for (const value of [[], "invalid", 1]) rejectAtBoundaries({ ...base(), [group]: value }, group);
+    },
+  );
+
+  it.each(budgets)("validates %s limits at persistence and argv boundaries", (field, flag, cost) => {
+    const good = cost ? [0.25, "1e-3", 1] : [1, Number.MAX_SAFE_INTEGER];
+    for (const value of good) {
+      const profile = persisted("budget", field, value);
+      expect(normalize(copy(profile)).budget[field]).toBe(Number(value));
+      expect(capture({ argv: ["agent", flag, String(value)] }).budget[field]).toBe(Number(value));
+      expect(build(profile)).toContain(String(Number(value)));
+    }
+    const bad = cost ? [0, -1, "Infinity", "NaN", "1usd", ""]
+      : [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, "1e3", "1turn", ""];
+    for (const value of bad) {
+      rejectAtBoundaries(persisted("budget", field, value), `budget.${field}`);
+      invalid(() => capture({ argv: ["agent", `${flag}=${value}`] }),
+        value === "" ? `argv.${flag}` : `budget.${field}`);
+    }
+  });
+});
