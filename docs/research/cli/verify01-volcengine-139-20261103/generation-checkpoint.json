@@ -1,0 +1,194 @@
+{
+  "schema": "chainlesschain.native-generation-checkpoint/v1",
+  "checkedAt": "2026-11-03T02:24:27.225854+00:00",
+  "runId": 41563424430,
+  "executionSource": "e7788a09316abb6f637932ae09254a441168742e",
+  "model": "deepseek-v4-flash-ga-260731",
+  "generationPassed": 8,
+  "observedSamples": 11,
+  "finalAcceptancePending": true,
+  "formalSample": false,
+  "historicalScoresUnchanged": true,
+  "samples": [
+    {
+      "sampleId": "first-run-linux-cli",
+      "group": "linux-cli",
+      "generationPassed": true,
+      "candidateAcceptancePassed": null,
+      "independentAcceptancePending": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 15,
+        "usageCompleteRequests": 15,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      }
+    },
+    {
+      "sampleId": "verify-04",
+      "group": "linux-cli",
+      "generationPassed": false,
+      "candidateAcceptancePassed": null,
+      "independentAcceptancePending": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 4,
+        "usageCompleteRequests": 4,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      }
+    },
+    {
+      "sampleId": "verify-13",
+      "group": "linux-cli",
+      "generationPassed": true,
+      "candidateAcceptancePassed": null,
+      "independentAcceptancePending": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 13,
+        "usageCompleteRequests": 13,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      }
+    },
+    {
+      "sampleId": "verify-22",
+      "group": "linux-cli",
+      "generationPassed": true,
+      "candidateAcceptancePassed": null,
+      "independentAcceptancePending": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 18,
+        "usageCompleteRequests": 18,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      }
+    },
+    {
+      "sampleId": "verify-31",
+      "group": "linux-cli",
+      "generationPassed": true,
+      "candidateAcceptancePassed": null,
+      "independentAcceptancePending": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 16,
+        "usageCompleteRequests": 16,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      }
+    },
+    {
+      "sampleId": "first-run-linux-vscode",
+      "group": "linux-vscode",
+      "generationPassed": true,
+      "candidateAcceptancePassed": null,
+      "independentAcceptancePending": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 20,
+        "usageCompleteRequests": 20,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      }
+    },
+    {
+      "sampleId": "verify-05",
+      "group": "linux-vscode",
+      "generationPassed": true,
+      "candidateAcceptancePassed": null,
+      "independentAcceptancePending": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 19,
+        "usageCompleteRequests": 19,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      }
+    },
+    {
+      "sampleId": "verify-14",
+      "group": "linux-vscode",
+      "generationPassed": false,
+      "candidateAcceptancePassed": null,
+      "independentAcceptancePending": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 5,
+        "usageCompleteRequests": 5,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      }
+    },
+    {
+      "sampleId": "verify-23",
+      "group": "linux-vscode",
+      "generationPassed": true,
+      "candidateAcceptancePassed": null,
+      "independentAcceptancePending": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 19,
+        "usageCompleteRequests": 19,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      }
+    },
+    {
+      "sampleId": "verify-32",
+      "group": "linux-vscode",
+      "generationPassed": false,
+      "candidateAcceptancePassed": null,
+      "independentAcceptancePending": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 3,
+        "usageCompleteRequests": 3,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      }
+    },
+    {
+      "sampleId": "verify-30",
+      "group": "win32-jetbrains",
+      "generationPassed": true,
+      "candidateAcceptancePassed": null,
+      "independentAcceptancePending": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 12,
+        "usageCompleteRequests": 12,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      }
+    }
+  ],
+  "files": [
+    {
+      "path": "generation-checkpoint/linux-cli-summary.json",
+      "digest": "sha256:d906a88be1dfbb2675dc4579846acf0db1c3c09f3f423722159e401e526f69f1"
+    },
+    {
+      "path": "generation-checkpoint/linux-vscode-summary.json",
+      "digest": "sha256:951cf09fd04e5b8612eb3f2e064c7c2fead61e8fe5deeb5ff41c9265f7301e3f"
+    },
+    {
+      "path": "generation-checkpoint/verify-04-request-4.receipt.json",
+      "digest": "sha256:48d1fd39d588a57a46c3167bbc763003a0d76586762c6aaeace4dce0fa1b2207"
+    },
+    {
+      "path": "generation-checkpoint/verify-14-request-5.receipt.json",
+      "digest": "sha256:4519b4eda47616a983f4ed21821bb884a3958ad1656a765c533666b6d41ccdb1"
+    },
+    {
+      "path": "generation-checkpoint/verify-32-request-3.receipt.json",
+      "digest": "sha256:ab005fb16c4eb643a3d63e26acce913dfcd11a253eb5b479ad9c6cc793dd0625"
+    },
+    {
+      "path": "generation-checkpoint/win32-jb30-summary.json",
+      "digest": "sha256:4802422dfd775d9c5c4669c8d42b577566f753da371bf7c488ee1f65c4668e1f"
+    }
+  ]
+}

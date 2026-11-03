@@ -144,6 +144,24 @@ async function main() {
             planDigest: DIAGNOSTIC.planDigest,
           },
         );
+        for (const row of summary.samples) {
+          for (const candidate of row.candidates ?? []) {
+            const relative = candidate.file;
+            assert.ok(
+              typeof relative === "string" &&
+                !/[\\:\r\n]/u.test(relative) &&
+                relative
+                  .split("/")
+                  .every((part) => part && part !== "." && part !== ".."),
+              "Repository-relative candidate path required",
+            );
+            const entry = entries.get(candidate.path);
+            assert.ok(entry);
+            const candidateBytes = readZipEntry(zip, entry);
+            assert.equal(hash(candidateBytes), candidate.digest);
+            save(`candidates/${row.sampleId}/${relative}.txt`, candidateBytes);
+          }
+        }
       } else {
         assert.equal(summary.deliverySourceCommit, values.source);
         assert.equal(summary.acceptanceHost, "linux-docker");
@@ -252,7 +270,9 @@ async function main() {
     samples: results,
   };
   save("results.json", JSON.stringify(report, null, 2) + "\n");
-  const summary = `Volcengine ${DIAGNOSTIC.model}: ${report.accepted}/45 accepted; tasks ${report.tasks.accepted}/36; first runs ${report.firstRuns.accepted}/9. Missing artifacts: ${missing.length}. Historical scores unchanged.\n`;
+  const summary = report.completeEvidence
+    ? `Volcengine ${DIAGNOSTIC.model}: ${report.accepted}/45 accepted; tasks ${report.tasks.accepted}/36; first runs ${report.firstRuns.accepted}/9. Historical scores unchanged.\n`
+    : `Incomplete collection: ${results.filter((r) => r.deliveryAvailable).length}/45 delivery records and ${results.filter((r) => r.acceptanceAvailable).length}/45 acceptance records. Final score pending; missing evidence: ${missing.length}. Historical scores unchanged.\n`;
   if (process.env.GITHUB_STEP_SUMMARY)
     fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
   console.log(summary.trim());
