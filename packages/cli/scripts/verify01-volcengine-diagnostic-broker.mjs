@@ -120,6 +120,8 @@ export function diagnosticBody(
     maximumAnswerTokens = BROKER.maximumAnswerTokens,
     parallelToolCalls = false,
     preserveExplicitOutputLimits = false,
+    internalSummaryTokenMultiplier = 1,
+    maximumInternalSummaryTokens,
   } = {},
 ) {
   check(
@@ -133,6 +135,13 @@ export function diagnosticBody(
   check(
     typeof preserveExplicitOutputLimits === "boolean",
     "DIAGNOSTIC_EXPLICIT_OUTPUT_POLICY_INVALID",
+  );
+  check(
+    internalSummaryTokenMultiplier === 1 ||
+      (internalSummaryTokenMultiplier === 2 &&
+        maximumInternalSummaryTokens === 4096 &&
+        preserveExplicitOutputLimits),
+    "DIAGNOSTIC_INTERNAL_SUMMARY_BUDGET_INVALID",
   );
   if (preserveExplicitOutputLimits && input?.max_tokens !== undefined) {
     check(
@@ -186,6 +195,21 @@ export function diagnosticBody(
     service_tier: "default",
     ...(parallelToolCalls === null ? {} : { parallel_tool_calls: false }),
   };
+  // Scale the caller's internal-summary allowance only under the new explicit
+  // user policy. Ordinary explicit limits and all historical policies stay intact.
+  if (
+    internalSummaryTokenMultiplier === 2 &&
+    !streaming &&
+    (input.tools?.length ?? 0) === 0 &&
+    Number.isSafeInteger(input.max_tokens) &&
+    input.max_tokens > 0
+  ) {
+    body.max_tokens = Math.min(
+      input.max_tokens * 2,
+      maximumInternalSummaryTokens,
+      maximumAnswerTokens,
+    );
+  }
   check(
     Buffer.byteLength(JSON.stringify(body)) <= BROKER.maximumRequestBytes,
     "DIAGNOSTIC_REQUEST_BYTES_LIMIT",
@@ -537,6 +561,25 @@ export function volcengineBudgetRetryPolicy(budgets) {
         budgets.preserveExplicitOutputLimits === true),
     "DIAGNOSTIC_INTERNAL_TEXT_LENGTH_POLICY_INVALID",
   );
+  const tokenFields = [
+    "solTokenBudgetMultiple",
+    "maximumTaskTokens",
+    "maximumTaskOutputTokens",
+    "internalSummaryTokenMultiplier",
+    "maximumInternalSummaryTokens",
+  ];
+  const boundedTokens = tokenFields.some((k) => budgets[k] !== undefined);
+  if (boundedTokens)
+    check(
+      budgets.solTokenBudgetMultiple === 2 &&
+        budgets.outputTokens === 16384 &&
+        budgets.maximumTaskTokens === 1966080 &&
+        budgets.maximumTaskOutputTokens === 393216 &&
+        budgets.internalSummaryTokenMultiplier === 2 &&
+        budgets.maximumInternalSummaryTokens === 4096 &&
+        budgets.preserveExplicitOutputLimits === true,
+      "DIAGNOSTIC_TASK_TOKEN_POLICY_INVALID",
+    );
   return Object.freeze({
     ...BROKER,
     maximumRequestsPerTask: 48,
@@ -553,6 +596,9 @@ export function volcengineBudgetRetryPolicy(budgets) {
     ...(budgets.allowInternalTextLength === true
       ? { allowInternalTextLength: true }
       : {}),
+    ...(boundedTokens
+      ? Object.fromEntries(tokenFields.map((k) => [k, budgets[k]]))
+      : {}),
   });
 }
 
@@ -562,6 +608,12 @@ export async function createVolcengineDiagnosticBroker(options) {
     maximumAnswerTokens: policy.maximumAnswerTokens,
     parallelToolCalls: policy.parallelToolCalls === null ? null : false,
     preserveExplicitOutputLimits: policy.preserveExplicitOutputLimits === true,
+    ...(policy.internalSummaryTokenMultiplier === 2
+      ? {
+          internalSummaryTokenMultiplier: 2,
+          maximumInternalSummaryTokens: policy.maximumInternalSummaryTokens,
+        }
+      : {}),
   };
   const readUsage = (reader, raw, effective) => {
     const result = reader(raw, usageOptions);
@@ -690,6 +742,71 @@ export async function createBoundedDiagnosticBroker(options, profile) {
   let active = null,
     pending = false,
     poisoned = null;
+  const tokenBudgetEnabled = policy.maximumTaskTokens !== undefined;
+  function taskTokenStatus(taskId) {
+    const rows = receipts.filter((r) => r.taskId === taskId);
+    const known = rows.filter((r) => r.usage !== null);
+    const unsettled = rows.filter(
+      (r) =>
+        r.usage === null && r.errorCode !== "DIAGNOSTIC_REQUEST_NOT_DISPATCHED",
+    );
+    const knownTotalTokens = known.reduce(
+      (n, r) => n + r.usage.total_tokens,
+      0,
+    );
+    const knownOutputTokens = known.reduce(
+      (n, r) => n + r.usage.completion_tokens,
+      0,
+    );
+    const unsettledReservedTokens = unsettled.reduce(
+      (n, r) => n + (r.tokenReservation?.reservedTotalTokens ?? 0),
+      0,
+    );
+    const unsettledReservedOutputTokens = unsettled.reduce(
+      (n, r) => n + (r.tokenReservation?.maximumOutputTokens ?? 0),
+      0,
+    );
+    return {
+      maximumTaskTokens: policy.maximumTaskTokens,
+      maximumTaskOutputTokens: policy.maximumTaskOutputTokens,
+      knownTotalTokens,
+      knownOutputTokens,
+      unsettledRequests: unsettled.length,
+      unsettledReservedTokens,
+      unsettledReservedOutputTokens,
+      remainingTokens:
+        policy.maximumTaskTokens - knownTotalTokens - unsettledReservedTokens,
+      remainingOutputTokens:
+        policy.maximumTaskOutputTokens -
+        knownOutputTokens -
+        unsettledReservedOutputTokens,
+    };
+  }
+  function reserveTaskTokens(effective) {
+    const status = taskTokenStatus(active.taskId);
+    // Conservative byte bound plus message/tool framing, not an unverified
+    // tokenizer estimate. A provider usage above this bound fails closed.
+    const inputTokenUpperBound =
+      Buffer.byteLength(JSON.stringify(effective)) +
+      4096 +
+      16 * effective.messages.length +
+      128 * (effective.tools?.length ?? 0);
+    const maximumOutputTokens = Math.min(
+      effective.max_tokens,
+      status.remainingOutputTokens,
+      status.remainingTokens - inputTokenUpperBound,
+    );
+    check(
+      Number.isSafeInteger(maximumOutputTokens) && maximumOutputTokens > 0,
+      "DIAGNOSTIC_TASK_TOKEN_BUDGET_EXHAUSTED",
+    );
+    effective.max_tokens = maximumOutputTokens;
+    return {
+      inputTokenUpperBound,
+      maximumOutputTokens,
+      reservedTotalTokens: inputTokenUpperBound + maximumOutputTokens,
+    };
+  }
   const server = http.createServer(async (req, res) => {
     const rejectLocal = (code) => {
       if (!res.destroyed) {
@@ -737,6 +854,9 @@ export async function createBoundedDiagnosticBroker(options, profile) {
         new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks)),
       );
       const effective = profile.body(original, { allowTextOnlyRequests });
+      const tokenReservation = tokenBudgetEnabled
+        ? reserveTaskTokens(effective)
+        : null;
       const id = receipts.length + 1;
       save(`request-${id}.original.json`, original);
       save(`request-${id}.effective.json`, effective);
@@ -750,6 +870,7 @@ export async function createBoundedDiagnosticBroker(options, profile) {
         [profile.billedField]: null,
         errorCode: null,
         responseMode: effective.stream ? "sse" : "json",
+        ...(tokenReservation ? { tokenReservation } : {}),
       };
       // Persist the physical dispatch slot before network egress.
       save(`request-${id}.dispatch.json`, row);
@@ -766,6 +887,23 @@ export async function createBoundedDiagnosticBroker(options, profile) {
           effective,
         ),
       );
+      if (tokenBudgetEnabled) {
+        check(
+          row.usage.prompt_tokens <= row.tokenReservation.inputTokenUpperBound,
+          "DIAGNOSTIC_INPUT_TOKEN_BOUND_EXCEEDED",
+        );
+        check(
+          row.usage.completion_tokens <=
+            row.tokenReservation.maximumOutputTokens,
+          "DIAGNOSTIC_TASK_OUTPUT_RESERVATION_EXCEEDED",
+        );
+        const settled = taskTokenStatus(active.taskId);
+        check(
+          settled.knownTotalTokens <= policy.maximumTaskTokens &&
+            settled.knownOutputTokens <= policy.maximumTaskOutputTokens,
+          "DIAGNOSTIC_TASK_TOKEN_BUDGET_EXCEEDED",
+        );
+      }
       const internalBoundary =
         row.finish === "length" &&
         profile.acceptInternalTextLength?.({
@@ -783,7 +921,13 @@ export async function createBoundedDiagnosticBroker(options, profile) {
       // An oversized request is rejected before dispatch. It invalidates this
       // task, but no provider usage or response is left unknown for the next.
       captured ||= error.captured || null;
-      if (error.message === "DIAGNOSTIC_REQUEST_BYTES_LIMIT" && !row) {
+      if (
+        [
+          "DIAGNOSTIC_REQUEST_BYTES_LIMIT",
+          "DIAGNOSTIC_TASK_TOKEN_BUDGET_EXHAUSTED",
+        ].includes(error.message) &&
+        !row
+      ) {
         active.errorCode = error.message;
       } else if (
         error.message === "DIAGNOSTIC_REQUEST_NOT_DISPATCHED" &&
@@ -901,6 +1045,7 @@ export async function createBoundedDiagnosticBroker(options, profile) {
           rows.every((r) => r.usage !== null && r.errorCode === null),
         poisoned,
         errorCode: task?.errorCode || null,
+        ...(tokenBudgetEnabled ? { tokenBudget: taskTokenStatus(taskId) } : {}),
       };
     },
     async close() {

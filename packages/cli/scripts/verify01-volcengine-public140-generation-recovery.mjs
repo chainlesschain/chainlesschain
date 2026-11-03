@@ -8,10 +8,15 @@ import {
   PUBLIC140_MODEL_METADATA,
   loadPublic140FullRound,
 } from "./verify01-volcengine-public140-full.mjs";
+import {
+  SOL_TOKEN_BUDGET_REFERENCE,
+  VOLCENGINE_SOL_RELATIVE_TOKEN_BUDGETS,
+} from "./verify01-sol-relative-token-budget.mjs";
 export const PUBLIC140_GENERATION_RECOVERY_ID =
   "volcengine-public140-generation-recovery-20261103";
 export const PUBLIC140_GENERATION_RECOVERY_BUDGETS = Object.freeze({
   ...PUBLIC140_FIXED_FULL_BUDGETS,
+  ...VOLCENGINE_SOL_RELATIVE_TOKEN_BUDGETS,
   allowInternalTextLength: true,
 });
 export const PUBLIC140_RECOVERY_BASE_PACKAGE =
@@ -50,7 +55,8 @@ export function public140GenerationRecoveryBudgets(manifest, provider) {
     reviewChanges: true,
     formalSample: false,
     historicalScoresUnchanged: true,
-    outputPolicy: "model-maximum",
+    outputPolicy: "sol-relative-bounded",
+    solBudgetReference: SOL_TOKEN_BUDGET_REFERENCE,
     ...PUBLIC140_GENERATION_RECOVERY_BUDGETS,
     baseline: {
       runId,
@@ -197,6 +203,18 @@ export function loadPublic140GenerationRecovery(
   return { budgets, selectedSampleIds: selected, sampleIdsByGroup };
 }
 export function assertPublic140GenerationRecoveryDispatch(options, plan) {
+  const userPolicyFile = path.join(
+    options.repositoryRoot,
+    "docs/research/cli/verify01-volcengine-140-full-20261103/execution-policy.json",
+  );
+  if (fs.existsSync(userPolicyFile)) {
+    const policy = JSON.parse(fs.readFileSync(userPolicyFile, "utf8"));
+    assert.equal(
+      policy.newRetestsHeld,
+      false,
+      "User has held new retests; do not dispatch generation for already tested samples",
+    );
+  }
   assert.equal(options.provider, "volcengine");
   assert.equal(options.packageSet, "latest");
   assert.equal(options.hosts, "all");

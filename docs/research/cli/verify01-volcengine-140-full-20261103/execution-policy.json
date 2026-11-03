@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "updatedAt": "2026-11-03T15:17:00Z",
+  "provider": "volcengine",
+  "newRetestsHeld": true,
+  "currentDispatchedFullRoundsContinue": [41630636517, 41638188839],
+  "continueIndependentAcceptanceOfExistingDeliveries": true,
+  "futureSolTokenBudgetMultiple": 2,
+  "futureInternalSummaryTokenBudgetMultiple": 2,
+  "futurePerRequestOutputTokens": 16384,
+  "futureInternalSummaryMaximumOutputTokens": 4096,
+  "futureMaximumTaskOutputTokens": 393216,
+  "futureMaximumTaskInputPlusOutputTokens": 1966080,
+  "futureMaximumModelTurns": 40,
+  "futureMaximumPhysicalRequests": 48,
+  "referenceDefinition": "Sol configuration reference:24 requests,32768 planning tokens and8192 output tokens per request; internal summaries2048. Future Volcengine allowance is2x this configured reference, not2x historical spend. Each dispatch reserves conservative input framing plus output; known usage settles it. Unknown usage retains its reservation and blocks further dispatch. No automatic budget increases or new attempts.",
+  "userInstructions": [
+    "以后火山引擎token预算比openai的sol提高两倍但不要无限，这样太消耗token了。",
+    "内部摘要相对openai的sol也可以提高2倍",
+    "已测试的暂时不要重测"
+  ],
+  "interpretation": "Use Sol's configured token allowances multiplied by2 for future new tests; both normal output and internal summaries remain bounded. Retain current dispatched rounds and independently accept existing deliveries. No additional model generation for already tested samples until the user explicitly resumes retesting."
+}

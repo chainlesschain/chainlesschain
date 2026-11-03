@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { PUBLIC140_MODEL_METADATA } from "../scripts/verify01-volcengine-public140-full.mjs";
+import { SOL_TOKEN_BUDGET_REFERENCE } from "../scripts/verify01-sol-relative-token-budget.mjs";
 import {
   PUBLIC140_GENERATION_RECOVERY_ID,
   PUBLIC140_GENERATION_RECOVERY_BUDGETS,
@@ -113,7 +114,8 @@ function fixture(t) {
     reviewChanges: true,
     formalSample: false,
     historicalScoresUnchanged: true,
-    outputPolicy: "model-maximum",
+    outputPolicy: "sol-relative-bounded",
+    solBudgetReference: SOL_TOKEN_BUDGET_REFERENCE,
     ...PUBLIC140_GENERATION_RECOVERY_BUDGETS,
     baseline: {
       runId: report.runId,
@@ -260,7 +262,10 @@ test("delivery identity binds the narrow internal-text policy without changing h
       packageSetDigest: hash(f.options().packageBinding.bytes),
     };
   assert.equal(profile.policy.allowInternalTextLength, true);
-  assert.equal(profile.policy.maximumAnswerTokens, 393216);
+  assert.equal(profile.policy.maximumAnswerTokens, 16384);
+  assert.equal(profile.policy.maximumTaskTokens, 1966080);
+  assert.equal(profile.policy.maximumTaskOutputTokens, 393216);
+  assert.equal(profile.policy.maximumInternalSummaryTokens, 4096);
   assert.equal(
     nativeProviderProfile("volcengine", {
       budgets: nativeExecutionBudgets(read(PUBLIC140_RECOVERY_BASE_PACKAGE)),
@@ -312,5 +317,17 @@ test("delivery identity binds the narrow internal-text policy without changing h
       binding,
       project,
     ),
+  );
+});
+
+test("the user's hold prevents a new paid generation dispatch even with an otherwise valid recovery manifest", (t) => {
+  const f = fixture(t);
+  f.record(
+    "docs/research/cli/verify01-volcengine-140-full-20261103/execution-policy.json",
+    { newRetestsHeld: true },
+  );
+  assert.throws(
+    () => assertPublic140GenerationRecoveryDispatch(f.options(), plan),
+    /User has held new retests/u,
   );
 });
