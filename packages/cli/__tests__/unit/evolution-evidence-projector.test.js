@@ -23,6 +23,8 @@ import {
 import { TaskProgressTracker } from "../../src/lib/task-progress-tracker.js";
 import { ReadFileLoopGuard } from "../../src/lib/read-file-loop-guard.js";
 import { RemoteReadLoopGuard } from "../../src/lib/remote-read-loop-guard.js";
+import { safeHostToolResultForModel } from "../../src/lib/tool-result-preview.js";
+import { toOpenAIResponsesInput } from "../../src/lib/openai-responses.js";
 import { createTaskWorklogHarness } from "../helpers/task-worklog-harness.js";
 import { createSkillDecisionRequest } from "../../src/lib/decision-layer/contracts.js";
 import { buildSkillDecisionPayload } from "../../src/lib/evolution/skill-decision-projection.js";
@@ -768,6 +770,68 @@ function forgeContent(bundle) {
 }
 
 describe("EvolutionEvidenceProjector", () => {
+  it.each(["first-run-darwin-vscode", "verify-08"])(
+    "delivers the unchanged archived spread candidate through Responses (%s)",
+    async (sampleId) => {
+      // These are the original failed candidates, used as source text only.
+      // Preserving them proves delivery, not correctness or task acceptance.
+      const source = fs.readFileSync(
+        new URL(
+          `../fixtures/source-spread-${sampleId}.js.txt`,
+          import.meta.url,
+        ),
+        "utf8",
+      );
+      const lines = source.split("\n").length;
+      const readResult = safeHostToolResultForModel("read_file", {
+        path: "/workspace/candidate.test.js",
+        fileVersion: "frozen-cli140",
+        range: { startLine: 1, endLine: lines, totalLines: lines },
+        readSpan: { start: 0, end: source.length, total: source.length },
+        content: source,
+      });
+      expect(readResult.contentOmitted).toBeUndefined();
+      const request = {
+        messages: [
+          { role: "user", content: "Review the current candidate file." },
+          {
+            role: "assistant",
+            content: "",
+            tool_calls: [
+              {
+                id: "candidate-read",
+                type: "function",
+                function: {
+                  name: "read_file",
+                  arguments: JSON.stringify({ path: "candidate.test.js" }),
+                },
+              },
+            ],
+          },
+          {
+            role: "tool",
+            tool_call_id: "candidate-read",
+            content: JSON.stringify(readResult),
+          },
+        ],
+        tools: [],
+      };
+      const h = harness();
+      const bundle = await h.projector.projectAgentModelRequest(
+        input(request, "signed-source:free-form-tool"),
+      );
+      await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+        verified: true,
+      });
+      const projected = buildAgentModelRequest(request, bundle.modelProjection);
+      const output = toOpenAIResponsesInput(projected.messages).find(
+        (item) => item.type === "function_call_output",
+      );
+      expect(JSON.parse(output.output)).toEqual(readResult);
+      expect(JSON.parse(output.output).content).toBe(source);
+    },
+  );
+
   it("captures only genuine distinct scoped typed Evidence ports and rejects substituted routing maps", async () => {
     const root = fs.mkdtempSync(
       path.join(fs.realpathSync.native(os.tmpdir()), "cc-typed-evidence-"),
