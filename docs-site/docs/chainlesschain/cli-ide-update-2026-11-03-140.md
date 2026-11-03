@@ -1,21 +1,88 @@
 # CLI 与 IDE 升级：损坏工具参数恢复补丁
 
-<!-- release140-candidate:start -->
+## 概述
 
-## CLI 0.166.140 / IDE 恢复补丁准备（2026-11-03）
+<!-- release140-guide-status:start -->
 
-计划配套 CLI **0.166.140**、Open VSX **0.37.176**、JetBrains **0.4.193**。新版本完成准确源码检查和 OIDC 发布前，已核验公开 CLI 仍为 **0.166.139**。
+计划发布 CLI **0.166.140**、Open VSX **0.37.176** 和 JetBrains **0.4.193**。目前是发行候选；新版本完成准确源码检查和 OIDC 发布前，已核验公开 CLI 仍为 **0.166.139**。同一最终提交必须通过完整三平台检查，公开 CLI 验证通过后才发布 IDE 插件。
 
-修复模型返回损坏工具参数后自进化解析退出的问题：非法参数在执行前被拒绝，后续请求只为唯一配对、明确未执行的记录生成临时占位；原始会话历史保持完整，旧版失败调用不会被重放。有效对象、重复键与嵌套 JSON 校验、脱敏和预算边界继续生效。
+<!-- release140-guide-status:end -->
 
-本地相关检查 **129 项通过**；两条真实火山模型恢复路径通过，共 **5 次请求 / 6,401 tokens**，其中新请求场景明确注入了日志中的损坏参数。这些结果仅验证本缺陷，不增加历史大任务验收成绩。SDK **0.2.17**、Protocol **0.1.12**、Kernel **0.1.11** 和其他子包版本不变。
+## 核心特性
 
-同一发行提交必须通过 Linux、Windows、macOS 的 CLI CI / Strict Sandbox，再由 GitHub Actions OIDC 发布并验证公开 CLI，随后发布并核验两款 IDE。JetBrains 上传、商店审核和公开可下载状态分别记录。Microsoft Marketplace 与独立 PC/移动产品不在本补丁范围。
+修复模型返回损坏工具参数后，自进化输入解析失败并退出的问题。非法 JSON、null、数组和其他非对象参数会在执行前被拒绝，模型可以在原权限和预算内重新发出正确调用。
 
-发布后安装：`npm i -g chainlesschain@0.166.140 --registry https://registry.npmjs.org`，重启 CLI 与 IDE Agent，运行 `cc --version`、`cc doctor`。
+对于明确未执行、唯一配对的失败调用，下一次模型请求会省略损坏参数并附上错误说明。旧版 run_code 参数快照拒绝记录也能续接；已保存的原始历史保持完整，失败调用不会被重放。
 
-[本次恢复实测证据](docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine.json)。
+## 系统架构
 
-<!-- release140-candidate:end -->
+修复由 CLI 的工具调用和模型请求准备层承担，两款 IDE 通过推荐同一 CLI 获得恢复能力。IDE 通信协议保持原有版本。
 
-升级后可继续原会话，不需要删除历史。若自进化被关闭，普通 Agent 工具参数校验同样适用；重新启用后按原配置启动。
+| 组件      | 配套候选版本 |
+| --------- | ------------ |
+| CLI       | 0.166.140    |
+| Open VSX  | 0.37.176     |
+| JetBrains | 0.4.193      |
+
+Agent SDK **0.2.17**、Protocol **0.1.12**、Kernel **0.1.11** 和其他子包版本不变。PC/移动产品使用独立版本，本补丁不触发客户端发行。
+
+## 配置参考
+
+升级保留现有模型、审批、权限和预算配置。自进化仍由用户配置中的 evolution.enabled 控制，默认关闭；升级不会自动改变开关。切换后停止并重新启动 Agent。
+
+```json
+{
+  "evolution": {
+    "enabled": true
+  }
+}
+```
+
+普通 Agent 同样执行工具参数校验。模型重新调用工具时仍须提供完整参数，例如 run_code 所需的 language 和 code。
+
+## 性能指标
+
+两条限定恢复实测共使用 **5 次真实模型请求、6,401 tokens**。这些数字只描述本次检查，不是延迟、费用或吞吐量承诺，也不代表其他模型任务的成功率。
+
+## 测试覆盖
+
+Windows 相关回归检查 **129 项通过**。两条真实火山模型恢复路径分别验证新调用被拒绝后继续，以及旧版失败历史续接；新调用场景明确向一次真实响应注入了日志中的损坏参数。两条路径均验证未执行/未重放失败调用、原历史不变、成功读取未知文件内容和自进化运行正常结束。
+
+正式发行另外要求最终提交的 Linux、Windows、macOS **CLI CI** 与 **CLI Strict Sandbox** 全部配置作业通过，使用 GitHub Actions OIDC 发布并核验公开包；两款 IDE 各自完成准确源码宿主门禁。工程和恢复实测不增加历史大任务验收成绩。
+
+## 安全考虑
+
+损坏参数不会被猜测修补成可执行命令，恢复也不会授予新的权限。有效对象参数、重复键和嵌套 JSON 校验、脱敏与解析预算保留原有边界。没有明确未执行结果或配对不唯一的历史仍交由严格校验处理。
+
+密钥未写入版本库或测试回执。JetBrains 上传、商店批准和公开可下载状态分别记录；Microsoft Marketplace 继续暂缓。
+
+## 故障排查
+
+升级后仍报错时，先运行 cc --version 和 cc doctor，核对 IDE 实际使用的 CLI 路径，再重启现有 Agent。旧进程可能仍持有升级前的模块。
+
+若模型仍报告缺少参数，应让它重新发出完整调用。可以继续原会话，无需删除历史；保留会话 ID 和错误日志便于定位，分享前移除密钥和私人内容。
+
+## 关键文件
+
+- [工具参数校验与历史恢复](https://github.com/chainlesschain/chainlesschain/blob/main/packages/cli/src/runtime/tool-argument-recovery.js)
+- [CLI Agent 执行入口](https://github.com/chainlesschain/chainlesschain/blob/main/packages/cli/src/runtime/agent-core.js)
+- [脱敏的真实恢复实测](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine.json)
+
+## 使用示例
+
+待本页概述确认新版本已公开后，使用 Node.js **22.12.0+**、npm **10+** 升级：
+
+```bash
+npm i -g chainlesschain@0.166.140 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+CLI 应报告 0.166.140。再安装对应 IDE 版本，重启聊天宿主，并从原会话继续。
+
+## 相关文档
+
+- [Agent Platform 发布与升级指南](./agent-platform-release)
+- [自进化开关配置](./self-evolution-configuration)
+- [CLI Agent](./cli-agent)
+- [IDE 插件](./ide-plugin)
