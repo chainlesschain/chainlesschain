@@ -1,28 +1,32 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-<!-- release140-candidate:start -->
+<!-- release140-current:start -->
 
-## CLI 0.166.140 / IDE recovery release preparation (2026-11-03)
+## CLI 0.166.140 / rejected tool argument recovery
 
-The proposed pairing is CLI **0.166.140**, Open VSX **0.37.176** and JetBrains **0.4.193**. The current verified public CLI remains **0.166.139** until the new exact-source gates and OIDC publication complete. Malformed provider tool arguments are rejected before tool execution. A uniquely paired pre-execution rejection produces a model-only placeholder so the next turn can continue through strict self-evolution projection. Legacy run_code snapshot rejections can resume without replaying the rejected call; original durable history stays unchanged. Valid object arguments, duplicate-key rejection, nested JSON checks, redaction and decoding budgets retain their existing boundaries.
+As checked at **2026-11-03T11:42:31.329Z**, CLI **0.166.140** is verified public through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/41610020835) from exact source `e2a91bf54332ff3d252c40ecc25c5887e0f0430d`. Public npm bytes, signed provenance, installation and startup have been verified. The same source passed every configured Linux, Windows and macOS CLI CI / CLI Strict Sandbox job.
 
-Publication uses GitHub Actions OIDC after the exact release commit passes CLI CI and CLI Strict Sandbox on every configured Linux, Windows and macOS runner. IDE publication follows verified public CLI installation and its own exact-source host gates. JetBrains upload, Marketplace approval and public availability are reported separately.
+Open VSX **0.37.176** is public, listed and downloadable; its VSIX matches the official build byte for byte. JetBrains **0.4.193** has been uploaded and awaits Marketplace review or public indexing; public availability has not been verified. The previously verified public JetBrains release remains **0.4.192**, whose recommendation is CLI **0.166.139**. Both new IDE versions recommend CLI **0.166.140**.
 
-After publication, install `npm i -g chainlesschain@0.166.140 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, then check `cc --version` and `cc doctor`.
+[Publication and channel receipts](docs/research/cli/evidence/release140-public/publication.json) · [Exact-source gates](docs/research/cli/evidence/release140-public/gates.json) · [CLI public readback](docs/research/cli/evidence/release140-public/cli.json) · [Open VSX readback](docs/research/cli/evidence/release140-public/open-vsx.json) · [JetBrains status](docs/research/cli/evidence/release140-public/jetbrains.json)
 
-The focused Windows checks passed 129 tests. Two bounded real Volcengine recovery scenarios passed through the installed runtime with five physical requests and 6,401 tokens; the first scenario explicitly injected the exact logged malformed argument into one inbound model response. These results cover this recovery defect and do not rescore historical model-task acceptance. SDK 0.2.17, Protocol 0.1.12, Kernel 0.1.11 and the other child packages retain their published versions. Microsoft Marketplace and the independent PC/mobile product release are outside this patch.
+Install `npm i -g chainlesschain@0.166.140 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, then run `cc --version` and `cc doctor`.
 
-[Focused recovery evidence](docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine.json).
+Malformed provider tool arguments are rejected before tool execution. A uniquely paired pre-execution rejection produces a model-only placeholder so the next turn can continue through strict self-evolution projection. Legacy run_code snapshot rejections can resume without replaying the rejected call; original durable history stays unchanged. Valid object arguments, duplicate-key rejection, nested JSON checks, redaction and decoding budgets retain their existing boundaries.
 
-Agent projection v10 also prevents genuine image and reasoning transport SHA-256 digests from being mistaken for phone numbers. Only authenticated protocol metadata uses the scan view; the original digest and byte-length restoration binding is unchanged. Real phone numbers, user-supplied digest-like text and forged markers retain their existing checks, and v1-v9 historical rules are preserved.
+Agent projection v10 also prevents genuine image and reasoning transport SHA-256 digests from being mistaken for phone numbers. Only authenticated protocol metadata uses the scan view; the original digest and byte-length restoration binding is unchanged. Real phone numbers, user-supplied digest-like text and forged markers retain their existing checks, and v1–v9 historical rules are preserved.
 
-The v10 candidate passed both recovery scenarios again with **five real Volcengine requests and 6,501 tokens**, using runtime source hashes matching this candidate. See the [additional live evidence](docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine-v10.json).
+The focused Windows checks passed **129 tests**. The earlier v9 recovery check used **five real Volcengine requests and 6,401 tokens**; its first scenario explicitly injected the exact logged malformed argument into one inbound model response. [Original scoped evidence](docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine.json). The separate v10 check passed both recovery scenarios with **five real Volcengine requests and 6,501 tokens**, with runtime source hashes matching this release. [Additional scoped evidence](docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine-v10.json). The complete related projector/agent-model tests passed **393/393**. These runs remain separate and add no historical model-task acceptance.
 
-<!-- release140-candidate:end -->
+Earlier candidate `eb0fe7a8a1` failed at the Windows ArtifactStore post-index integrity guard, then passed a complete three-OS loopback rerun. The exact rejected condition remains unresolved; the guard stays enforced. The [original failure](docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt1-failure.json) and [complete rerun](docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt2-aggregate.json) retain their historical source scope. The final release source separately passed 100 loopback runs on each of three operating systems; these 300 structural-envelope-only runs are not paid-provider task acceptance or a replacement for CLI CI / Strict Sandbox. Local composition runs timed out on both the v10 source and the earlier baseline and are not counted as passing.
 
-<!-- release139-current:start -->
+Agent SDK **0.2.17**, Protocol **0.1.12**, Kernel **0.1.11** and the other child packages retain their published versions; required upstream packages were fetched and dependency alignment verified before CLI publication. Microsoft Marketplace remains deferred. PC/mobile **v5.0.3.144** is already public as an independent release; this CLI/IDE follow-up does not republish clients. Historical .138 **2/4**, .137 **0/5** and cumulative **41/45** retain separate scopes.
 
-## Current public CLI: 0.166.139 (2026-11-02)
+<!-- release140-current:end -->
+
+<!-- release139-previous:start -->
+
+## Previous public CLI: 0.166.139 (2026-11-02)
 
 CLI **0.166.139** is published through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/41431711290) from exact source `eec8b97b6040d19004670bfead0bec1b8a27b71b`. All **76/76 CLI CI** and **6/6 Strict Sandbox** jobs passed across every configured platform. Public npm archive bytes, signed provenance, and install/startup checks passed. Install `npm i -g chainlesschain@0.166.139 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, then run `cc --version` and `cc doctor`.
 
@@ -32,7 +36,7 @@ This release reserves author, fresh independent review and final reporting work 
 
 [Publication evidence](docs/research/cli/evidence/release139-public/publication.json) · [Exact-source gates](docs/research/cli/evidence/release139-public/gates.json) · [Open VSX public readback](docs/research/cli/evidence/release139-public/open-vsx.json).
 
-<!-- release139-current:end -->
+<!-- release139-previous:end -->
 
 <!-- release138-current:start -->
 

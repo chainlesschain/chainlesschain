@@ -4,7 +4,11 @@
 
 <!-- release140-guide-status:start -->
 
-计划发布 CLI **0.166.140**、Open VSX **0.37.176** 和 JetBrains **0.4.193**。目前是发行候选；新版本完成准确源码检查和 OIDC 发布前，已核验公开 CLI 仍为 **0.166.139**。同一最终提交必须通过完整三平台检查，公开 CLI 验证通过后才发布 IDE 插件。
+截至 **2026-11-03T11:42:31.329Z**，CLI **0.166.140** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/41610020835) 公开发布，准确发行源码为 `e2a91bf54332ff3d252c40ecc25c5887e0f0430d`。公开 npm 字节、来源签名、安装与启动均已核验；同一源码的 Linux、Windows、macOS CLI CI / CLI Strict Sandbox 全部配置作业通过。
+
+Open VSX **0.37.176** 已公开列出且可下载，VSIX 与正式构建逐字节一致。JetBrains **0.4.193** 已上传，等待商店审核或公开索引；公开可用性未核验。上一已核验公开版仍为 **0.4.192**，其推荐标记为 CLI **0.166.139**。 两个新 IDE 版本均推荐 CLI **0.166.140**。
+
+[发行与各渠道回执](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release140-public/publication.json) · [准确源码门禁](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release140-public/gates.json) · [CLI 公开回读](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release140-public/cli.json) · [Open VSX 回读](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release140-public/open-vsx.json) · [JetBrains 状态](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release140-public/jetbrains.json)
 
 <!-- release140-guide-status:end -->
 
@@ -20,13 +24,13 @@
 
 修复由 CLI 的工具调用和模型请求准备层承担，两款 IDE 通过推荐同一 CLI 获得恢复能力。IDE 通信协议保持原有版本。
 
-| 组件      | 配套候选版本 |
-| --------- | ------------ |
-| CLI       | 0.166.140    |
-| Open VSX  | 0.37.176     |
-| JetBrains | 0.4.193      |
+| 组件      | 配套版本  |
+| --------- | --------- |
+| CLI       | 0.166.140 |
+| Open VSX  | 0.37.176  |
+| JetBrains | 0.4.193   |
 
-Agent SDK **0.2.17**、Protocol **0.1.12**、Kernel **0.1.11** 和其他子包版本不变。PC/移动产品使用独立版本，本补丁不触发客户端发行。
+Agent SDK **0.2.17**、Protocol **0.1.12**、Kernel **0.1.11** 和其他子包版本不变。PC/移动端 **v5.0.3.144** 已独立公开，本补丁不重复发布客户端。
 
 ## 配置参考
 
@@ -44,15 +48,17 @@ Agent SDK **0.2.17**、Protocol **0.1.12**、Kernel **0.1.11** 和其他子包�
 
 ## 性能指标
 
-两条限定恢复实测共使用 **5 次真实模型请求、6,401 tokens**。这些数字只描述本次检查，不是延迟、费用或吞吐量承诺，也不代表其他模型任务的成功率。
+较早 v9 的两条限定恢复实测共使用 **5 次真实模型请求、6,401 tokens**，与下方 v10 的 6,501 tokens 复测独立记录。这些数字只描述本次检查，不是延迟、费用或吞吐量承诺，也不代表其他模型任务的成功率。
 
 ## 测试覆盖
 
-内部摘要修复的完整相关测试 **393/393 通过**；新增确定性真实 PNG / 推理摘要回归，覆盖手机号、伪造标记、绑定篡改、验签失败和旧规则读取。v10 候选再次通过两条真实火山恢复路径，共 **5 次请求 / 6,501 tokens**，源码哈希与当前运行时一致。见[追加实测证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine-v10.json)。
+内部摘要修复的完整相关测试 **393/393 通过**；新增确定性真实 PNG / 推理摘要回归，覆盖手机号、伪造标记、绑定篡改、验签失败和旧规则读取。v10 发行源码再次通过两条真实火山恢复路径，共 **5 次请求 / 6,501 tokens**，源码哈希与当前运行时一致。见[追加实测证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine-v10.json)。
 
 Windows 相关回归检查 **129 项通过**。两条真实火山模型恢复路径分别验证新调用被拒绝后继续，以及旧版失败历史续接；新调用场景明确向一次真实响应注入了日志中的损坏参数。两条路径均验证未执行/未重放失败调用、原历史不变、成功读取未知文件内容和自进化运行正常结束。
 
-正式发行另外要求最终提交的 Linux、Windows、macOS **CLI CI** 与 **CLI Strict Sandbox** 全部配置作业通过，使用 GitHub Actions OIDC 发布并核验公开包；两款 IDE 各自完成准确源码宿主门禁。工程和恢复实测不增加历史大任务验收成绩。
+准确发行源码 `e2a91bf54332ff3d252c40ecc25c5887e0f0430d` 的 Linux、Windows、macOS **CLI CI** 与 **CLI Strict Sandbox** 全部配置作业通过，GitHub Actions OIDC 发布及公开 CLI 回读已核验；两款 IDE 的准确源码宿主门禁通过，各渠道公开状态见概述。工程和恢复实测不增加历史大任务验收成绩。
+
+同一发行源码三平台各 100 次回环通过，共 300 次仅覆盖结构封套，不是付费模型任务验收，也不替代 CLI CI / Strict Sandbox。本地 composition 在 v10 源码与较早基线上均出现超时，未计为通过。
 
 ## 安全考虑
 
@@ -76,7 +82,7 @@ Windows 相关回归检查 **129 项通过**。两条真实火山模型恢复路
 
 ## 使用示例
 
-待本页概述确认新版本已公开后，使用 Node.js **22.12.0+**、npm **10+** 升级：
+使用 Node.js **22.12.0+**、npm **10+** 升级：
 
 ```bash
 npm i -g chainlesschain@0.166.140 --registry https://registry.npmjs.org
@@ -84,7 +90,7 @@ cc --version
 cc doctor
 ```
 
-CLI 应报告 0.166.140。再安装对应 IDE 版本，重启聊天宿主，并从原会话继续。
+CLI 应报告 0.166.140。Open VSX 0.37.176 已公开；JetBrains 0.4.193 等待商店审核或公开索引，公开可用性未核验，公开用户应等待上架。上一已核验公开版 0.4.192 的推荐标记仍为 CLI 0.166.139。重启聊天宿主后从原会话继续。
 
 ## 相关文档
 
