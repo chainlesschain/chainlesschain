@@ -4,6 +4,8 @@
 
 执行状态以 `dispatch.json` 和最终 `results.json` 为准。配置、离线检查和发布验证不计为任务完成。
 
+已从不可变提交 `eb50e4f42778d6be457595cc0f39fcada025d5f0` 启动[完整 Actions 41630636517](https://github.com/chainlesschain/chainlesschain/actions/runs/41630636517)，标签 `verify01-volc140-full45-eb50e4f427`，45 项生成及45 项独立验收均保留。启动成功不计作任务通过，最终成绩待完整回执核验。
+
 ## 固定身份
 
 - CLI `0.166.140`，VS Code 插件 `0.37.176`，JetBrains 插件 `0.4.193`；发行源码 `e2a91bf54332ff3d252c40ecc25c5887e0f0430d`。
