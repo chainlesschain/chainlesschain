@@ -278,7 +278,9 @@ async function main() {
     packageSetDigest: packages.packageSetDigest,
     formalSample: false,
     roundKind: manifest.volcengineFullRound
-      ? "public140-full-36-plus-9"
+      ? manifest.volcengineFullRound.normalizationRepair
+        ? "public140-full-preserve-explicit-output"
+        : "public140-full-36-plus-9"
       : retry
         ? "expanded-budget-retry"
         : "fresh-full-36-plus-9",

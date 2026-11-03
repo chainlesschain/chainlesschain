@@ -6,6 +6,8 @@
 
 已从不可变提交 `eb50e4f42778d6be457595cc0f39fcada025d5f0` 启动[完整 Actions 41630636517](https://github.com/chainlesschain/chainlesschain/actions/runs/41630636517)，标签 `verify01-volc140-full45-eb50e4f427`，45 项生成及45 项独立验收均保留。启动成功不计作任务通过，最终成绩待完整回执核验。
 
+**复测中确认的适配器问题：** 火山转发器把 CLI 内部摘要的显式 `2048` 输出预算覆盖为 `393216`，而 Sol 转发器会保留更小的调用方限制。已保存[实际请求、未知用量及源码摘要](./diagnostics-output-limits/proof.json)，修复采用新策略并保持任务答复模型最大输出。为得到一致配置的全量成绩，将同一三包字节与原任务源码的 **45 项完整再测** 单列在[修复后完整复测](./internal-output-repair/README.md)。当前轮保留作对照，不回写历史结果；该问题不能自动解释所有候选覆盖失败或证明超时的单一原因。
+
 ## 固定身份
 
 - CLI `0.166.140`，VS Code 插件 `0.37.176`，JetBrains 插件 `0.4.193`；发行源码 `e2a91bf54332ff3d252c40ecc25c5887e0f0430d`。

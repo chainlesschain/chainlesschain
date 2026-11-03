@@ -1,0 +1,10 @@
+{
+  "id": 3,
+  "taskId": "first-run-linux-vscode",
+  "startedAt": "2026-11-03T12:15:26.099Z",
+  "usage": null,
+  "tokenOnlyEstimateCny": null,
+  "actualBilledCostCny": null,
+  "errorCode": null,
+  "responseMode": "json"
+}

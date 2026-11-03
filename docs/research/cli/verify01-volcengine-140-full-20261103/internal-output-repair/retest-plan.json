@@ -1,0 +1,102 @@
+{
+  "schema": 1,
+  "id": "volcengine-public140-full45-explicit-limits-20261103",
+  "createdAt": "2026-11-03T12:31:59.064Z",
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "taskProject": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "packageSetFile": "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-public140-full45-explicit-limits.json",
+  "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+  "selectedSampleIds": [
+    "first-run-darwin-cli",
+    "first-run-darwin-jetbrains",
+    "first-run-darwin-vscode",
+    "first-run-linux-cli",
+    "first-run-linux-jetbrains",
+    "first-run-linux-vscode",
+    "first-run-win32-cli",
+    "first-run-win32-jetbrains",
+    "first-run-win32-vscode",
+    "verify-01",
+    "verify-02",
+    "verify-03",
+    "verify-04",
+    "verify-05",
+    "verify-06",
+    "verify-07",
+    "verify-08",
+    "verify-09",
+    "verify-10",
+    "verify-11",
+    "verify-12",
+    "verify-13",
+    "verify-14",
+    "verify-15",
+    "verify-16",
+    "verify-17",
+    "verify-18",
+    "verify-19",
+    "verify-20",
+    "verify-21",
+    "verify-22",
+    "verify-23",
+    "verify-24",
+    "verify-25",
+    "verify-26",
+    "verify-27",
+    "verify-28",
+    "verify-29",
+    "verify-30",
+    "verify-31",
+    "verify-32",
+    "verify-33",
+    "verify-34",
+    "verify-35",
+    "verify-36"
+  ],
+  "taskCount": 36,
+  "firstRunCount": 9,
+  "budgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000,
+    "connectionAttemptTimeoutMs": 10000,
+    "parallelToolCalls": null,
+    "preserveExplicitOutputLimits": true
+  },
+  "thinking": "disabled",
+  "planningWindowTokens": 32768,
+  "normalizationRepair": {
+    "baselineRunId": 41630636517,
+    "baselineExecutionSource": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+    "baselinePackageSet": {
+      "path": "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-public140-full45.json",
+      "digest": "sha256:9df4efc5365ed381684a1990009c4b162ec96ae9ce229df13d4b583860a3559c"
+    },
+    "evidence": {
+      "path": "docs/research/cli/verify01-volcengine-140-full-20261103/diagnostics-output-limits/proof.json",
+      "digest": "sha256:c46ecea13a5d9d51af2a71bf25991aec0a8de9d74da10a7a2286e79663a1c6d2"
+    },
+    "preserveAllOriginalPackageBytes": true,
+    "outstandingUsageCarryForward": [
+      {
+        "runId": 41630636517,
+        "sampleId": "first-run-linux-vscode",
+        "requestId": 3,
+        "billedCost": null,
+        "usageKnown": false
+      }
+    ]
+  },
+  "modelGenerationRequests": 0,
+  "authorization": "User explicitly requested all36+9 tasks retested with the latest CLI and IDE plugins and authorized repairs for CLI/IDE testing failures. A proven diagnostic normalizer bug replaced the CLI internal2048-token compaction budget with393216, unlike the Sol adapter. Run all45 under one corrected policy, including previous successes, to provide a uniform complete retest. Keep initial round and historical scores, original public package bytes, model, frozen task project, independent review/acceptance and40/48 allowances. Preserve internal explicit output limits while uncapped agent requests still use the model maximum. Carry forward unknown usage honestly; never infer zero billing. No publishing or model calls during manifest preparation."
+}

@@ -119,6 +119,7 @@ export function diagnosticBody(
     allowTextOnlyRequests = false,
     maximumAnswerTokens = BROKER.maximumAnswerTokens,
     parallelToolCalls = false,
+    preserveExplicitOutputLimits = false,
   } = {},
 ) {
   check(
@@ -129,6 +130,16 @@ export function diagnosticBody(
     parallelToolCalls === false || parallelToolCalls === null,
     "DIAGNOSTIC_PARALLEL_POLICY_INVALID",
   );
+  check(
+    typeof preserveExplicitOutputLimits === "boolean",
+    "DIAGNOSTIC_EXPLICIT_OUTPUT_POLICY_INVALID",
+  );
+  if (preserveExplicitOutputLimits && input?.max_tokens !== undefined) {
+    check(
+      Number.isSafeInteger(input.max_tokens) && input.max_tokens > 0,
+      "DIAGNOSTIC_EXPLICIT_OUTPUT_LIMIT_INVALID",
+    );
+  }
   check(input?.model === BROKER.model, "DIAGNOSTIC_MODEL_MISMATCH");
   check(
     input.stream === undefined || typeof input.stream === "boolean",
@@ -167,7 +178,10 @@ export function diagnosticBody(
     ...(input.tools?.length ? { tools: input.tools } : {}),
     stream: streaming,
     ...(streaming ? { stream_options: { include_usage: true } } : {}),
-    max_tokens: maximumAnswerTokens,
+    max_tokens:
+      preserveExplicitOutputLimits && input.max_tokens !== undefined
+        ? Math.min(input.max_tokens, maximumAnswerTokens)
+        : maximumAnswerTokens,
     thinking: { type: "disabled" },
     service_tier: "default",
     ...(parallelToolCalls === null ? {} : { parallel_tool_calls: false }),
@@ -513,6 +527,10 @@ export function volcengineBudgetRetryPolicy(budgets) {
       [undefined, null].includes(budgets.parallelToolCalls),
     "DIAGNOSTIC_EXPANDED_BUDGET_INVALID",
   );
+  check(
+    [undefined, true].includes(budgets.preserveExplicitOutputLimits),
+    "DIAGNOSTIC_EXPLICIT_OUTPUT_POLICY_INVALID",
+  );
   return Object.freeze({
     ...BROKER,
     maximumRequestsPerTask: 48,
@@ -523,6 +541,9 @@ export function volcengineBudgetRetryPolicy(budgets) {
       ? { connectionAttemptTimeoutMs: 10000 }
       : {}),
     ...(budgets.parallelToolCalls === null ? { parallelToolCalls: null } : {}),
+    ...(budgets.preserveExplicitOutputLimits === true
+      ? { preserveExplicitOutputLimits: true }
+      : {}),
   });
 }
 
@@ -531,6 +552,17 @@ export async function createVolcengineDiagnosticBroker(options) {
   const usageOptions = {
     maximumAnswerTokens: policy.maximumAnswerTokens,
     parallelToolCalls: policy.parallelToolCalls === null ? null : false,
+    preserveExplicitOutputLimits: policy.preserveExplicitOutputLimits === true,
+  };
+  const readUsage = (reader, raw, effective) => {
+    const result = reader(raw, usageOptions);
+    if (policy.preserveExplicitOutputLimits) {
+      check(
+        result.usage.completion_tokens <= effective.max_tokens,
+        "DIAGNOSTIC_EXPLICIT_OUTPUT_LIMIT_EXCEEDED",
+      );
+    }
+    return result;
   };
   return createBoundedDiagnosticBroker(options, {
     policy,
@@ -544,8 +576,9 @@ export async function createVolcengineDiagnosticBroker(options) {
             requestFixedDiagnosticEndpoint(body, key, options, policy),
     body: (input, options) =>
       diagnosticBody(input, { ...options, ...usageOptions }),
-    sseUsage: (raw) => diagnosticUsage(raw, usageOptions),
-    jsonUsage: (raw) => diagnosticJsonUsage(raw, usageOptions),
+    sseUsage: (raw, effective) => readUsage(diagnosticUsage, raw, effective),
+    jsonUsage: (raw, effective) =>
+      readUsage(diagnosticJsonUsage, raw, effective),
     estimateField: "tokenOnlyEstimateCny",
     billedField: "actualBilledCostCny",
     defaultThinkingPreserved: false,
@@ -700,6 +733,7 @@ export async function createBoundedDiagnosticBroker(options, profile) {
         row,
         (effective.stream ? profile.sseUsage : profile.jsonUsage)(
           new TextDecoder("utf-8", { fatal: true }).decode(captured.raw),
+          effective,
         ),
       );
       check(row.finish !== "length", "DIAGNOSTIC_OUTPUT_TRUNCATED");
