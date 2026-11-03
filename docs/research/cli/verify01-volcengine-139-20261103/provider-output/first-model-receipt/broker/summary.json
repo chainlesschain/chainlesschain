@@ -1,0 +1,17 @@
+{
+  "formalSample": false,
+  "physicalRequestsStarted": 16,
+  "usageCompleteRequests": 16,
+  "tasks": [
+    {
+      "taskId": "first-run-darwin-cli",
+      "requests": 16,
+      "errorCode": null
+    }
+  ],
+  "poisoned": null,
+  "actualBilledCostCny": null,
+  "tokenOnlyEstimateCny": 0.37363739999999995,
+  "knownTokenOnlyEstimateCny": 0.37363739999999995,
+  "fxRate": null
+}

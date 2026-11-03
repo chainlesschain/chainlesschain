@@ -1,0 +1,2354 @@
+{
+  "schema": "chainlesschain.verify01-native-task-acceptance/v1",
+  "executionSourceCommit": "ba504a7869c14c11787e1547dc8611eef9aace71",
+  "deliverySourceCommit": "ba504a7869c14c11787e1547dc8611eef9aace71",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "packageSetDigest": "sha256:2f00fcaea2f423b761563ebd9543228a488298ba735a8e87b7c3e95e11bef031",
+  "group": "linux-cli",
+  "actualGenerationHost": {
+    "platform": "linux",
+    "entry": "cli",
+    "arch": "x64"
+  },
+  "acceptanceHost": "linux-docker",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+  "sourceSummaryDigest": "sha256:cd17197f5d02522ae4a9a94d9fc1ce2e2fccae99f3179c47485c7e0bf043813c",
+  "formalSample": false,
+  "startedAt": "2026-11-03T06:24:05.823Z",
+  "samples": [
+    {
+      "sampleId": "verify-04",
+      "taskId": "verify-04",
+      "kind": "task",
+      "versions": {
+        "cli": "0.166.139",
+        "vscode": "0.37.175",
+        "jetbrains": "0.4.192",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:2f00fcaea2f423b761563ebd9543228a488298ba735a8e87b7c3e95e11bef031",
+      "originalGenerationPassed": true,
+      "generationPassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      },
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 138213,
+            "outputTokens": 16501,
+            "cacheReadInputTokens": 205056,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": 0.026840884000000006
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "headless-1793685026901-2535",
+          "session_persistence": false,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "isolation_level": "policy-only",
+          "max_turns": 40,
+          "resumed_from": null,
+          "history_messages": 0,
+          "additional_directories": [],
+          "goal_id": null
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_yuoce48gxfhp076m0qhh1ojj",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/usage-pricing-context.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_1fb7dfjfbhqwrtl5icafgv0q",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/session-usage.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_xdyhzvmbka4l6o5tmqheykfs",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/model-release-contract.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_m837h80brcit1qh2yw0a5rbq",
+            "tool": "search_files",
+            "args": {
+              "pattern": "longContext",
+              "path": "packages/cli/src/lib/model-context-catalog.js",
+              "contextChars": 200
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_8tac19qqgn6bwgnwzjza98pt",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/cli/src/lib/model-context-catalog.js",
+              "pattern": "gpt-6-sol",
+              "contextChars": 60
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_i79el0hcxx8d5p204nrfuulu",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-04.test.js",
+              "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  mergeUsagePricingBucket,\n  projectUsagePricingContext,\n} from \"../src/lib/usage-pricing-context.js\";\n\n// GPT6_PRICING_TERMS.longContext.threshold === 272000\n// Requests are bucketed per-request by whether the prompt crosses the\n// long-context threshold, and cache-read tokens are preserved separately so\n// the per-request pricing contract (cacheReadMultiplier 0.1) stays intact.\nconst LONG_THRESHOLD = 272000;\n\ndescribe(\"request-level cache & long-context pricing buckets\", () => {\n  it(\"keeps same-total requests in separate buckets when long-context membership differs\", () => {\n    const entry = { provider: \"openai\", model: \"gpt-6-sol\" };\n    // Both requests total 281000 tokens; the difference is the per-request\n    // prompt distribution (one crosses the long-context threshold, one does not).\n    mergeUsagePricingBucket(entry, {\n      inputTokens: 280000,\n      outputTokens: 1000,\n    });\n    mergeUsagePricingBucket(entry, {\n      inputTokens: 250000,\n      outputTokens: 31000,\n    });\n\n    expect(entry.pricingBuckets).toHaveLength(2);\n    const longBucket = entry.pricingBuckets.find(\n      (b) => b.requestInputTokens > LONG_THRESHOLD,\n    );\n    const shortBucket = entry.pricingBuckets.find(\n      (b) => b.requestInputTokens <= LONG_THRESHOLD,\n    );\n    expect(longBucket).toMatchObject({ inputTokens: 280000, calls: 1 });\n    expect(shortBucket).toMatchObject({ inputTokens: 250000, calls: 1 });\n  });\n\n  it(\"does not split requests that stay below the threshold\", () => {\n    const entry = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(entry, { inputTokens: 100000, outputTokens: 1000 });\n    mergeUsagePricingBucket(entry, { inputTokens: 60000, outputTokens: 1000 });\n\n    // Negative control: both short requests merge into one bucket (summed).\n    expect(entry.pricingBuckets).toHaveLength(1);\n    expect(entry.pricingBuckets[0]).toMatchObject({\n      inputTokens: 160000,\n      calls: 2,\n      requestInputTokens: 100000,\n    });\n  });\n\n  it(\"records cache-read tokens separately so identical totals price differently\", () => {\n    const cached = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(cached, {\n      inputTokens: 150000,\n      cacheReadTokens: 50000,\n      outputTokens: 1000,\n    });\n    mergeUsagePricingBucket(cached, {\n      inputTokens: 200000,\n      cacheReadTokens: 0,\n      outputTokens: 1000,\n    });\n    // Same total promptTokens (200000 per request) but a different\n    // cache-read split; the merged bucket keeps cacheReadTokens distinct from\n    // fresh inputTokens so the 0.1x cacheReadMultiplier can be applied.\n    expect(cached.pricingBuckets[0]).toMatchObject({\n      inputTokens: 350000,\n      cacheReadTokens: 50000,\n      calls: 2,\n    });\n\n    const fresh = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(fresh, {\n      inputTokens: 200000,\n      cacheReadTokens: 0,\n      outputTokens: 1000,\n    });\n    mergeUsagePricingBucket(fresh, {\n      inputTokens: 200000,\n      cacheReadTokens: 0,\n      outputTokens: 1000,\n    });\n    expect(fresh.pricingBuckets[0]).toMatchObject({\n      inputTokens: 400000,\n      cacheReadTokens: 0,\n      calls: 2,\n    });\n    // Same 2 calls × 201000 tokens, but the cached distribution carries\n    // separate cacheReadTokens (priced at cacheReadMultiplier).\n    expect(cached.pricingBuckets[0].cacheReadTokens).toBeGreaterThan(0);\n    expect(fresh.pricingBuckets[0].cacheReadTokens).toBe(0);\n  });\n\n  it(\"treats requestInputTokens as authoritative for the long-context test\", () => {\n    const entry = { provider: \"openai\", model: \"gpt-6-sol\" };\n    // Composed input+cache would be short, but the explicit per-request\n    // requestInputTokens claims the long tier.\n    mergeUsagePricingBucket(entry, {\n      inputTokens: 50000,\n      cacheReadTokens: 50000,\n      requestInputTokens: 300000,\n      outputTokens: 1000,\n    });\n    expect(entry.pricingBuckets).toHaveLength(1);\n    expect(entry.pricingBuckets[0]).toMatchObject({\n      requestInputTokens: 300000,\n      inputTokens: 50000,\n      cacheReadTokens: 50000,\n    });\n    expect(entry.pricingBuckets[0].requestInputTokens).toBeGreaterThan(\n      LONG_THRESHOLD,\n    );\n  });\n\n  it(\"honors the accepted boundary and first rejected long-context value\", () => {\n    const at = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(at, {\n      inputTokens: LONG_THRESHOLD,\n      outputTokens: 1000,\n    });\n    expect(at.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD);\n\n    const over = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(over, {\n      inputTokens: LONG_THRESHOLD + 1,\n      outputTokens: 1000,\n    });\n    // The bucket identity differs once the threshold is crossed.\n    expect(at.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD);\n    expect(over.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD + 1);\n    expect(\n      over.pricingBuckets[0].requestInputTokens > LONG_THRESHOLD,\n    ).toBe(true);\n    expect(\n      at.pricingBuckets[0].requestInputTokens > LONG_THRESHOLD,\n    ).toBe(false);\n  });\n\n  it(\"does not open a pricing bucket for a non-OpenAI or undocumented model\", () => {\n    const anthropic = { provider: \"anthropic\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(anthropic, { inputTokens: 300000 });\n    expect(anthropic.pricingBuckets).toBeUndefined();\n\n    const future = { provider: \"openai\", model: \"gpt-6-sol-future\" };\n    mergeUsagePricingBucket(future, { inputTokens: 300000 });\n    expect(future.pricingBuckets).toBeUndefined();\n\n    // projectUsagePricingContext still projects a non-boolean regional flag.\n    expect(() =>\n      projectUsagePricingContext({ regional_processing: \"yes\" }),\n    ).toThrow(TypeError);\n  });\n});\n"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_dua7h5j66aaahfhlzh30s4gs",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-04.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_9u5lyzjs0pbo9pcegxyb6x2o",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/usage-pricing-context.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_mw0uecp5bol3u76sd9q55haw",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/session-usage.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_fbo8rpelvgc8o6nlilq8qvzt",
+            "tool": "search_files",
+            "args": {
+              "pattern": "GPT6_PRICING_TERMS|DOCUMENTED_OPENAI_MODELS|longContext",
+              "path": "packages/cli/src/lib/model-context-catalog.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_buy8kxpohicd4bihqp0nbw06",
+            "tool": "search_files",
+            "args": {
+              "pattern": "longContext|DOCUMENTED_OPENAI_MODELS|GPT6_PRICING_TERMS",
+              "path": "packages/cli/src/lib/model-context-catalog.js",
+              "regex": true
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_rnypzeqizxlw9rhc82easede",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/model-context-catalog.js",
+              "offset": 85,
+              "limit": 100
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_9em3uz6j2uoppt4pk1bhin0k",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/cli/__tests__/unit/model-release-contract.test.js",
+              "pattern": "pricingBuckets|mergeUsagePricingBucket|projectUsagePricingContext|longContext|threshold",
+              "regex": true
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_fq84gp76yt13sa11ih6pqtgd",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/cli/src/lib",
+              "pattern": "pricingBuckets",
+              "regex": true
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_90zayzprg2fcydgwqlfw0tqy",
+            "tool": "search_files",
+            "args": {
+              "directory": "packages/cli/src/lib",
+              "pattern": "pricingBuckets",
+              "content_search": true
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_ekxqbyi6d2reokatqn19uykp",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/cli/src/lib/llm-pricing.js",
+              "pattern": "pricingBuckets|multiplier|cacheRead|longContext|requestInputTokens",
+              "regex": true
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_333hrqtswo7lnhrpwbwrtrql",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/llm-pricing.js",
+              "offset": 253,
+              "limit": 70
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_kfevdjyxrsyyige04h5ara1f",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/llm-pricing.js",
+              "offset": 323,
+              "limit": 92
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_alz3awz6ol7yfagd4nmjk34b",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/llm-pricing.js",
+              "offset": 323,
+              "limit": 60
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_awof07a11jjqs73cg3h2i45l",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/cli/src/lib/session-usage.js",
+              "pattern": "mergeUsagePricingBucket|pricingBuckets|aggregateUsage",
+              "regex": true
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_i6wzy8ubjkgcy648txmgdbgy",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-04.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_brx4buul085qg1z6vleulf7j",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/usage-pricing-context.js"
+            }
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_yuoce48gxfhp076m0qhh1ojj",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/src/lib/usage-pricing-context.js",
+              "fileVersion": "2847:1791108223000:1793685007953.9314",
+              "readSpan": {
+                "start": 0,
+                "end": 2847,
+                "total": 2847
+              },
+              "hashed": false,
+              "content": "import {\n  DOCUMENTED_OPENAI_MODELS,\n  GPT6_PRICING_TERMS,\n} from \"./model-context-catalog.js\";\n\n/** Only bounded, non-secret pricing labels may enter the durable usage ledger. */\nexport function projectUsagePricingContext(usage = {}) {\n  const projected = {};\n  for (const [key, alias] of [\n    [\"service_tier\", \"serviceTier\"],\n    [\"regional_processing\", \"regionalProcessing\"],\n  ]) {\n    if (!Object.hasOwn(usage, key) && !Object.hasOwn(usage, alias)) continue;\n    if (\n      Object.hasOwn(usage, key) &&\n      Object.hasOwn(usage, alias) &&\n      usage[key] !== usage[alias]\n    ) {\n      throw new TypeError(`usage pricing aliases conflict: ${key}`);\n    }\n    const value = Object.hasOwn(usage, key) ? usage[key] : usage[alias];\n    if (key === \"service_tier\") {\n      projected[key] =\n        typeof value === \"string\" &&\n        Object.hasOwn(GPT6_PRICING_TERMS.serviceMultipliers, value)\n          ? value\n          : \"unknown\";\n    } else {\n      if (typeof value !== \"boolean\")\n        throw new TypeError(\"usage regional processing must be boolean\");\n      projected[key] = value;\n    }\n  }\n  return projected;\n}\n\n/** Preserve per-request thresholds in a bounded set of aggregate price buckets. */\nexport function mergeUsagePricingBucket(entry, usage) {\n  if (\n    String(entry.provider).toLowerCase() !== \"openai\" ||\n    !DOCUMENTED_OPENAI_MODELS[String(entry.model).toLowerCase()]?.pricing\n  )\n    return;\n  const metadata = projectUsagePricingContext(usage);\n  const promptTokens =\n    usage.requestInputTokens ??\n    usage.inputTokens +\n      (usage.cacheReadTokens || 0) +\n      (usage.cacheCreationTokens || 0);\n  const long = promptTokens > GPT6_PRICING_TERMS.longContext.threshold;\n  const serviceTier = metadata.service_tier || \"standard\";\n  const regionalProcessing = metadata.regional_processing === true;\n  entry.pricingBuckets ||= [];\n  let bucket = entry.pricingBuckets.find(\n    (item) =>\n      item.serviceTier === serviceTier &&\n      item.regionalProcessing === regionalProcessing &&\n      item.requestInputTokens > GPT6_PRICING_TERMS.longContext.threshold ===\n        long,\n  );\n  if (!bucket) {\n    bucket = {\n      inputTokens: 0,\n      outputTokens: 0,\n      cacheReadTokens: 0,\n      cacheCreationTokens: 0,\n      totalTokens: 0,\n      calls: 0,\n      serviceTier,\n      regionalProcessing,\n      requestInputTokens: promptTokens,\n    };\n    entry.pricingBuckets.push(bucket);\n  }\n  for (const key of [\n    \"inputTokens\",\n    \"outputTokens\",\n    \"cacheReadTokens\",\n    \"cacheCreationTokens\",\n    \"totalTokens\",\n    \"calls\",\n  ]) {\n    const value = usage[key] ?? (key === \"calls\" ? 1 : 0);\n    if (\n      !Number.isSafeInteger(value) ||\n      value < 0 ||\n      !Number.isSafeInteger(bucket[key] + value)\n    ) {\n      throw new TypeError(`invalid pricing bucket ${key}`);\n    }\n    bucket[key] += value;\n  }\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685029677,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/usage-pricing-context.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 6,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/usage-pricing-context.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_1fb7dfjfbhqwrtl5icafgv0q",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/__tests__/unit/session-usage.test.js",
+              "fileVersion": "6248:1791108223000:1793685007867.929",
+              "readSpan": {
+                "start": 0,
+                "end": 6247,
+                "total": 6247
+              },
+              "hashed": false,
+              "content": "import { describe, it, expect, afterEach } from \"vitest\";\nimport {\n  extractUsage,\n  aggregateUsage,\n  sessionUsage,\n  allSessionsUsage,\n  _deps,\n} from \"../../src/lib/session-usage.js\";\n\nconst usageEvent = (model, input, output) => ({\n  type: \"token_usage\",\n  data: { model, usage: { input_tokens: input, output_tokens: output } },\n});\n\ndescribe(\"session-usage\", () => {\n  describe(\"extractUsage\", () => {\n    it(\"reads a token_usage event\", () => {\n      const u = extractUsage({\n        type: \"token_usage\",\n        timestamp: 1,\n        data: {\n          provider: \"anthropic\",\n          model: \"claude-opus-4-6\",\n          usage: { input_tokens: 100, output_tokens: 50 },\n        },\n      });\n      expect(u).toEqual({\n        provider: \"anthropic\",\n        model: \"claude-opus-4-6\",\n        inputTokens: 100,\n        outputTokens: 50,\n        totalTokens: 150,\n        cacheReadTokens: 0,\n        cacheCreationTokens: 0,\n        timestamp: 1,\n      });\n    });\n\n    it(\"reads usage embedded in assistant_message\", () => {\n      const u = extractUsage({\n        type: \"assistant_message\",\n        timestamp: 2,\n        data: {\n          content: \"...\",\n          usage: { prompt_tokens: 40, completion_tokens: 20, total_tokens: 60 },\n          model: \"gpt-4o\",\n        },\n      });\n      expect(u).toMatchObject({\n        model: \"gpt-4o\",\n        inputTokens: 40,\n        outputTokens: 20,\n        totalTokens: 60,\n      });\n    });\n\n    it(\"returns null for events without usage\", () => {\n      expect(extractUsage({ type: \"user_message\", data: {} })).toBeNull();\n      expect(\n        extractUsage({ type: \"assistant_message\", data: { content: \"hi\" } }),\n      ).toBeNull();\n    });\n\n    it(\"returns null for unknown event types\", () => {\n      expect(\n        extractUsage({\n          type: \"tool_call\",\n          data: { usage: { input_tokens: 10 } },\n        }),\n      ).toBeNull();\n    });\n\n    it(\"returns null when all counts are zero\", () => {\n      expect(\n        extractUsage({\n          type: \"token_usage\",\n          data: { usage: { input_tokens: 0, output_tokens: 0 } },\n        }),\n      ).toBeNull();\n    });\n  });\n\n  describe(\"aggregateUsage\", () => {\n    it(\"rolls up total + per-model\", () => {\n      const agg = aggregateUsage([\n        {\n          type: \"token_usage\",\n          data: {\n            provider: \"anthropic\",\n            model: \"opus\",\n            usage: { input_tokens: 100, output_tokens: 50 },\n          },\n        },\n        {\n          type: \"token_usage\",\n          data: {\n            provider: \"anthropic\",\n            model: \"opus\",\n            usage: { input_tokens: 30, output_tokens: 10 },\n          },\n        },\n        {\n          type: \"token_usage\",\n          data: {\n            provider: \"openai\",\n            model: \"gpt-4o\",\n            usage: { input_tokens: 20, output_tokens: 5 },\n          },\n        },\n      ]);\n      expect(agg.total).toEqual({\n        inputTokens: 150,\n        outputTokens: 65,\n        totalTokens: 215,\n        cacheReadTokens: 0,\n        cacheCreationTokens: 0,\n        calls: 3,\n      });\n      expect(agg.byModel).toHaveLength(2);\n      expect(agg.byModel[0]).toMatchObject({\n        provider: \"anthropic\",\n        model: \"opus\",\n        inputTokens: 130,\n        outputTokens: 60,\n        calls: 2,\n      });\n      expect(agg.byModel[1]).toMatchObject({\n        provider: \"openai\",\n        model: \"gpt-4o\",\n        inputTokens: 20,\n        outputTokens: 5,\n        calls: 1,\n      });\n    });\n\n    it(\"ignores events without usage\", () => {\n      const agg = aggregateUsage([\n        { type: \"user_message\", data: { content: \"hi\" } },\n        { type: \"tool_call\", data: { tool: \"read_file\", args: {} } },\n      ]);\n      expect(agg.total.calls).toBe(0);\n      expect(agg.byModel).toEqual([]);\n    });\n\n    it(\"handles empty + nullish input\", () => {\n      expect(aggregateUsage([]).total.calls).toBe(0);\n      expect(aggregateUsage(null).total.calls).toBe(0);\n    });\n\n    it(\"sorts byModel descending by totalTokens\", () => {\n      const agg = aggregateUsage([\n        {\n          type: \"token_usage\",\n          data: {\n            model: \"small\",\n            usage: { input_tokens: 1, output_tokens: 1 },\n          },\n        },\n        {\n          type: \"token_usage\",\n          data: {\n            model: \"big\",\n            usage: { input_tokens: 500, output_tokens: 500 },\n          },\n        },\n      ]);\n      expect(agg.byModel[0].model).toBe(\"big\");\n      expect(agg.byModel[1].model).toBe(\"small\");\n    });\n  });\n\n  describe(\"allSessionsUsage (resilient roll-up)\", () => {\n    const origReadEvents = _deps.readEvents;\n    const origListSessions = _deps.listJsonlSessions;\n    afterEach(() => {\n      _deps.readEvents = origReadEvents;\n      _deps.listJsonlSessions = origListSessions;\n    });\n\n    it(\"aggregates across sessions and skips one that fails to read\", () => {\n      _deps.listJsonlSessions = () => [\n        { id: \"good-1\" },\n        { id: \"bad\" },\n        { id: \"good-2\" },\n      ];\n      _deps.readEvents = (id) => {\n        if (id === \"bad\") {\n          throw Object.assign(new Error(\"EACCES\"), { code: \"EACCES\" });\n        }\n        return [usageEvent(\"opus\", 100, 50)];\n      };\n\n      const r = allSessionsUsage();\n      expect(r.skipped).toBe(1); // the unreadable session didn't abort the rest\n      expect(r.sessions).toHaveLength(2); // good-1 + good-2\n      expect(r.total.calls).toBe(2);\n      expect(r.total.totalTokens).toBe(300); // 2 × (100+50)\n      expect(r.byModel[0]).toMatchObject({ model: \"opus\", calls: 2 });\n    });\n\n    it(\"reports zero skipped when every session reads cleanly\", () => {\n      _deps.listJsonlSessions = () => [{ id: \"a\" }, { id: \"b\" }];\n      _deps.readEvents = () => [usageEvent(\"gpt-4o\", 10, 5)];\n      const r = allSessionsUsage();\n      expect(r.skipped).toBe(0);\n      expect(r.sessions).toHaveLength(2);\n    });\n\n    it(\"sessionUsage rolls up a single session via the injected reader\", () => {\n      _deps.readEvents = () => [\n        usageEvent(\"opus\", 100, 50),\n        usageEvent(\"opus\", 30, 10),\n      ];\n      const r = sessionUsage(\"s1\");\n      expect(r.sessionId).toBe(\"s1\");\n      expect(r.total.calls).toBe(2);\n      expect(r.total.inputTokens).toBe(130);\n    });\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685032436,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/session-usage.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 0,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/session-usage.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_xdyhzvmbka4l6o5tmqheykfs",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/__tests__/unit/model-release-contract.test.js",
+              "fileVersion": "10017:1791108223000:1793685007855.9287",
+              "readSpan": {
+                "start": 0,
+                "end": 10017,
+                "total": 10017
+              },
+              "hashed": false,
+              "content": "import { afterEach, describe, expect, it, vi } from \"vitest\";\nimport Database from \"better-sqlite3\";\nimport { resolveModelCapabilityProfile } from \"../../src/lib/model-capabilities.js\";\nimport {\n  estimateCost,\n  lookupRate,\n  mergePricing,\n  priceRollup,\n} from \"../../src/lib/llm-pricing.js\";\nimport {\n  calculateCost,\n  recordUsage,\n  getUsageStats,\n  getCostBreakdown,\n} from \"../../src/lib/token-tracker.js\";\nimport {\n  aggregateUsage,\n  allSessionsUsage,\n  _deps,\n} from \"../../src/lib/session-usage.js\";\nimport { CostBudget } from \"../../src/lib/cost-budget.js\";\nimport { normalizeOpenAIResponsesResponse } from \"../../src/lib/openai-responses.js\";\nimport { projectRuntimeTokenUsage } from \"../../src/lib/runtime-usage-ledger.js\";\nimport { projectVerifiedSession } from \"../../src/lib/causal-observability.js\";\nimport { SessionResourceBudget } from \"../../src/lib/session-resource-budget.js\";\n\nafterEach(() => vi.restoreAllMocks());\n\ndescribe(\"September model release contracts\", () => {\n  it(\"preserves request pricing through durable projection, budget and Eval\", () => {\n    const records = [200000, 200000, 300000].map((input, index) =>\n      projectRuntimeTokenUsage({\n        provider: \"openai\",\n        model: \"gpt-6-sol\",\n        callId: `call-${index}`,\n        usage: {\n          input_tokens: input,\n          output_tokens: 1000,\n          service_tier: index === 1 ? \"flex\" : \"fast\",\n          regional_processing: true,\n        },\n      }),\n    );\n    const events = [\n      {\n        type: \"session_start\",\n        timestamp: 1,\n        data: {\n          observabilityScope: { workspaceId: \"w\", teamId: \"t\", policyId: \"p\" },\n        },\n      },\n      ...records.map((data) => ({ type: \"token_usage\", data })),\n    ];\n    const budget = new CostBudget({ limitUsd: 100 });\n    for (const record of records) budget.add(record);\n    const observed = projectVerifiedSession(\"session-a\", events, {\n      headHash: \"a\".repeat(64),\n      eventCount: events.length,\n    });\n    expect(observed.usage.estimatedUsd).toBeCloseTo(budget.spentUsd, 10);\n    expect(priceRollup(aggregateUsage(events)).cost.totalCost).toBeCloseTo(\n      budget.spentUsd,\n      10,\n    );\n    expect(observed.usage.byModel[0].pricingBuckets).toHaveLength(3);\n    expect(records[0].usage.service_tier).toBe(\"fast\");\n    expect(\n      projectRuntimeTokenUsage({\n        ...records[0],\n        usage: {\n          ...records[0].usage,\n          service_tier: \"sensitive arbitrary text\",\n        },\n      }).usage.service_tier,\n    ).toBe(\"unknown\");\n  });\n\n  it(\"preserves pricing conditions in crash-recovery settlements\", () => {\n    const source = new SessionResourceBudget({ maxUsd: 100 });\n    const pending = source.beginUsageSettlement({ id: \"call-a\" });\n    source.markUsageUnknown({ callId: pending.id });\n    const snapshot = source.snapshot();\n    source.dispose();\n    const resumed = SessionResourceBudget.restore(snapshot);\n    const record = {\n      provider: \"openai\",\n      model: \"gpt-6-sol\",\n      usage: {\n        input_tokens: 300000,\n        output_tokens: 1000,\n        service_tier: \"fast\",\n        regional_processing: true,\n      },\n    };\n    try {\n      const recovery = resumed.adjudicateRecovery({\n        settled: [{ authorityId: pending.authorityId, ...record }],\n      });\n      const budget = new CostBudget({ limitUsd: 100 });\n      budget.add(record);\n      expect(recovery.adjudication.spentUsdDelta).toBeCloseTo(\n        budget.spentUsd,\n        10,\n      );\n      expect(resumed.cost.spentUsd).toBeCloseTo(budget.spentUsd, 10);\n    } finally {\n      resumed.dispose();\n    }\n  });\n  it.each([\"gpt-6-astra\", \"gpt-6-sol\", \"gpt-6-luna\"])(\n    \"resolves %s only at the official endpoint\",\n    (model) => {\n      const profile = resolveModelCapabilityProfile({\n        provider: \"openai\",\n        model,\n      });\n      expect(profile).toMatchObject({\n        contextWindowTokens: 1050000,\n        advertisedMaxOutputTokens: 128000,\n        runtimeProtocol: \"openai-responses\",\n        windowAssumed: false,\n        runtimeVerified: false,\n      });\n      expect(profile.reasoningEfforts).toContain(\"high\");\n      for (const baseUrl of [\n        \"https://gateway.example/v1\",\n        \"https://api.openai.com.evil/v1\",\n      ]) {\n        expect(\n          resolveModelCapabilityProfile({ provider: \"openai\", model, baseUrl }),\n        ).toMatchObject({\n          windowAssumed: true,\n          runtimeProtocol: \"chat-completions\",\n          advertisedMaxOutputTokens: null,\n        });\n      }\n      expect(\n        resolveModelCapabilityProfile({\n          provider: \"openai\",\n          model: `${model}-future`,\n        }).windowAssumed,\n      ).toBe(true);\n      expect(lookupRate(\"openai\", `${model}-future`)).toBeNull();\n    },\n  );\n\n  it(\"resolves Opus 5.5 without changing a custom gateway's assumptions\", () => {\n    expect(\n      resolveModelCapabilityProfile({\n        provider: \"anthropic\",\n        model: \"claude-opus-5-5\",\n        baseUrl: \"https://api.anthropic.com/v1\",\n      }),\n    ).toMatchObject({\n      contextWindowTokens: 1000000,\n      windowAssumed: false,\n      advertisedMaxOutputTokens: null,\n    });\n    expect(\n      resolveModelCapabilityProfile({\n        provider: \"anthropic\",\n        model: \"claude-opus-5-5\",\n        baseUrl: \"https://gateway.example/v1\",\n      }).windowAssumed,\n    ).toBe(true);\n    expect(lookupRate(\"anthropic\", \"claude-opus-5-5\")).toMatchObject({\n      in: 4,\n      out: 20,\n    });\n    expect(lookupRate(\"anthropic\", \"claude-opus-6\")).toBeNull();\n    expect(lookupRate(\"anthropic\", \"claude-opus-10\")).toBeNull();\n    expect(\n      lookupRate(\n        \"anthropic\",\n        \"claude-opus-10\",\n        mergePricing({ anthropic: [{ match: \"opus\", in: 5, out: 25 }] }),\n      ),\n    ).toMatchObject({ in: 5, out: 25 });\n    expect(lookupRate(\"anthropic\", \"claude-opus-5-5-custom\")).toBeNull();\n  });\n\n  it(\"prices cached tokens and long prompts at the request boundary\", () => {\n    const base = {\n      provider: \"openai\",\n      model: \"gpt-6-sol\",\n      inputTokens: 272000,\n      outputTokens: 1000,\n    };\n    expect(estimateCost(base).totalCost).toBeCloseTo(0.554, 9);\n    expect(\n      estimateCost({ ...base, inputTokens: 272001 }).totalCost,\n    ).toBeCloseTo(1.103004, 9);\n    const cached = estimateCost({\n      ...base,\n      inputTokens: 200000,\n      cacheReadTokens: 73000,\n    });\n    expect(cached.inputCost).toBeCloseTo(0.8, 9);\n    expect(cached.cacheReadCost).toBeCloseTo(0.0292, 9);\n    expect(cached.outputCost).toBeCloseTo(0.015, 9);\n    expect(\n      estimateCost({ ...base, serviceTier: \"fast\" }).totalCost,\n    ).toBeCloseTo(1.108, 9);\n    expect(\n      estimateCost({ ...base, serviceTier: \"flex\" }).totalCost,\n    ).toBeCloseTo(0.277, 9);\n    expect(estimateCost({ ...base, serviceTier: \"unknown\" }).matched).toBe(\n      false,\n    );\n    expect(estimateCost({ ...base, serviceTier: \"constructor\" }).matched).toBe(\n      false,\n    );\n    const table = mergePricing({\n      openai: [{ match: \"gpt-6-sol\", in: 4, out: 20 }],\n    });\n    expect(\n      estimateCost({ ...base, table, cacheReadTokens: 1 }).cacheReadCost,\n    ).toBeCloseTo(0.0000008, 12);\n  });\n\n  it(\"keeps separate request tiers when aggregating one or many sessions\", () => {\n    const event = (input) => ({\n      type: \"token_usage\",\n      data: {\n        provider: \"openai\",\n        model: \"gpt-6-sol\",\n        usage: { input_tokens: input, output_tokens: 1000 },\n      },\n    });\n    const events = [event(200000), event(200000), event(300000)];\n    const budget = new CostBudget({ limitUsd: 100 });\n    for (const event of events) budget.add(event.data);\n    const aggregate = aggregateUsage(events);\n    expect(aggregate.byModel[0].pricingBuckets).toHaveLength(2);\n    expect(priceRollup(aggregate).cost.totalCost).toBeCloseTo(2.035, 9);\n    expect(priceRollup(aggregate).cost.totalCost).toBeCloseTo(\n      budget.spentUsd,\n      9,\n    );\n    vi.spyOn(_deps, \"listJsonlSessions\").mockReturnValue([\n      { id: \"one\" },\n      { id: \"two\" },\n    ]);\n    vi.spyOn(_deps, \"readEvents\").mockImplementation((id) =>\n      id === \"one\" ? events.slice(0, 2) : events.slice(2),\n    );\n    expect(priceRollup(allSessionsUsage()).cost.totalCost).toBeCloseTo(\n      budget.spentUsd,\n      9,\n    );\n    const { pricingBuckets, ...legacy } = aggregate.byModel[0];\n    expect(priceRollup({ byModel: [legacy] }).cost.unpricedCount).toBe(1);\n  });\n\n  it(\"preserves response service tier for budget settlement\", () => {\n    expect(\n      normalizeOpenAIResponsesResponse({\n        status: \"completed\",\n        output: [],\n        service_tier: \"flex\",\n        usage: { input_tokens: 100, output_tokens: 20 },\n      }).usage.service_tier,\n    ).toBe(\"flex\");\n  });\n\n  it(\"uses the same prices in the legacy database, preserving unknown as NULL\", () => {\n    const db = new Database(\":memory:\");\n    try {\n      for (const model of [\"gpt-6-astra\", \"gpt-6-sol\", \"gpt-6-luna\"]) {\n        const args = {\n          provider: \"openai\",\n          model,\n          inputTokens: 300000,\n          outputTokens: 1000,\n        };\n        expect(\n          calculateCost(\n            args.provider,\n            model,\n            args.inputTokens,\n            args.outputTokens,\n          ),\n        ).toBe(estimateCost(args).totalCost);\n      }\n      const known = recordUsage(db, {\n        provider: \"anthropic\",\n        model: \"claude-opus-5-5\",\n        inputTokens: 1000,\n        outputTokens: 1000,\n      });\n      const unknown = recordUsage(db, {\n        provider: \"openai\",\n        model: \"future-model\",\n        inputTokens: 1000,\n      });\n      expect(known.costUsd).toBeCloseTo(0.024, 9);\n      expect(unknown).toMatchObject({ costUsd: null, priced: false });\n      expect(getUsageStats(db)).toMatchObject({\n        total_calls: 2,\n        unpriced_calls: 1,\n      });\n      expect(\n        getCostBreakdown(db).find((row) => row.model === \"future-model\"),\n      ).toMatchObject({ cost_usd: null, unpriced_calls: 1 });\n    } finally {\n      db.close();\n    }\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685035746,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-release-contract.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-release-contract.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_m837h80brcit1qh2yw0a5rbq",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 151,
+                  "column": 3,
+                  "offset": 4641,
+                  "text": "longContext",
+                  "context": "eporting and hard budget gates.\n// Never apply these tiers to a sum of multiple requests.\nexport const GPT6_PRICING_TERMS = Object.freeze({\n  cacheReadMultiplier: 0.1,\n  cacheWriteMultiplier: 1.25,\n  longContext: Object.freeze({\n    threshold: 272000,\n    inputMultiplier: 2,\n    outputMultiplier: 1.5,\n  }),\n  serviceMultipliers: Object.freeze({\n    standard: 1,\n    default: 1,\n    auto: 1,\n    batch: 0.5,\n  ",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 151,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 1,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/src/lib/model-context-catalog.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685045735,
+                "meta": {
+                  "args": {
+                    "pattern": "longContext",
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "contextChars": 200
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 31,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "pattern": "longContext",
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "contextChars": 200
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_8tac19qqgn6bwgnwzjza98pt",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 109,
+                  "column": 9,
+                  "offset": 3381,
+                  "text": "gpt-6-sol",
+                  "context": "nses\",\n    ]),\n  }),\n  ...Object.fromEntries(\n    [\n      [\"gpt-6-sol\", 2, 10],\n      [\"gpt-6-luna\", 0.1, 0.5],\n    ].map(([model",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 109,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 1,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/src/lib/model-context-catalog.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685070713,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "pattern": "gpt-6-sol",
+                    "contextChars": 60
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 28,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "pattern": "gpt-6-sol",
+                    "contextChars": 60
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_i79el0hcxx8d5p204nrfuulu",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/__tests__/verify-04.test.js",
+              "size": 5832,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685087373,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-04.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  mergeUsagePricingBucket,\n  projectUsagePricingContext,\n} from \"../src/lib/usage-pricing-context.js\";\n\n// GPT6_PRICING_TERMS.longContext.threshold === 272000\n// Requests are bucketed per-request by whether the prompt crosses the\n// long-context threshold, and cache-read tokens are preserved separately so\n// the per-request pricing contract (cacheReadMultiplier 0.1) stays intact.\nconst LONG_THRESHOLD = 272000;\n\ndescribe(\"request-level cache & long-context pricing buckets\", () => {\n  it(\"keeps same-total requests in separate buckets when long-context membership differs\", () => {\n    const entry = { provider: \"openai\", model: \"gpt-6-sol\" };\n    // Both requests total 281000 tokens; the difference is the per-request\n    // prompt distribution (one crosses the long-context threshold, one does not).\n    mergeUsagePricingBucket(entry, {\n      inputTokens: 280000,\n      outputTokens: 1000,\n    });\n    mergeUsagePricingBucket(entry, {\n      inputTokens: 250000,\n      outputTokens: 31000,\n    });\n\n    expect(entry.pricingBuckets).toHaveLength(2);\n    const longBucket = entry.pricingBuckets.find(\n      (b) => b.requestInputTokens > LONG_THRESHOLD,\n    );\n    const shortBucket = entry.pricingBuckets.find(\n      (b) => b.requestInputTokens <= LONG_THRESHOLD,\n    );\n    expect(longBucket).toMatchObject({ inputTokens: 280000, calls: 1 });\n    expect(shortBucket).toMatchObject({ inputTokens: 250000, calls: 1 });\n  });\n\n  it(\"does not split requests that stay below the threshold\", () => {\n    const entry = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(entry, { inputTokens: 100000, outputTokens: 1000 });\n    mergeUsagePricingBucket(entry, { inputTokens: 60000, outputTokens: 1000 });\n\n    // Negative control: both short requests merge into one bucket (summed).\n    expect(entry.pricingBuckets).toHaveLength(1);\n    expect(entry.pricingBuckets[0]).toMatchObject({\n      inputTokens: 160000,\n      calls: 2,\n      requestInputTokens: 100000,\n    });\n  });\n\n  it(\"records cache-read tokens separately so identical totals price differently\", () => {\n    const cached = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(cached, {\n      inputTokens: 150000,\n      cacheReadTokens: 50000,\n      outputTokens: 1000,\n    });\n    mergeUsagePricingBucket(cached, {\n      inputTokens: 200000,\n      cacheReadTokens: 0,\n      outputTokens: 1000,\n    });\n    // Same total promptTokens (200000 per request) but a different\n    // cache-read split; the merged bucket keeps cacheReadTokens distinct from\n    // fresh inputTokens so the 0.1x cacheReadMultiplier can be applied.\n    expect(cached.pricingBuckets[0]).toMatchObject({\n      inputTokens: 350000,\n      cacheReadTokens: 50000,\n      calls: 2,\n    });\n\n    const fresh = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(fresh, {\n      inputTokens: 200000,\n      cacheReadTokens: 0,\n      outputTokens: 1000,\n    });\n    mergeUsagePricingBucket(fresh, {\n      inputTokens: 200000,\n      cacheReadTokens: 0,\n      outputTokens: 1000,\n    });\n    expect(fresh.pricingBuckets[0]).toMatchObject({\n      inputTokens: 400000,\n      cacheReadTokens: 0,\n      calls: 2,\n    });\n    // Same 2 calls × 201000 tokens, but the cached distribution carries\n    // separate cacheReadTokens (priced at cacheReadMultiplier).\n    expect(cached.pricingBuckets[0].cacheReadTokens).toBeGreaterThan(0);\n    expect(fresh.pricingBuckets[0].cacheReadTokens).toBe(0);\n  });\n\n  it(\"treats requestInputTokens as authoritative for the long-context test\", () => {\n    const entry = { provider: \"openai\", model: \"gpt-6-sol\" };\n    // Composed input+cache would be short, but the explicit per-request\n    // requestInputTokens claims the long tier.\n    mergeUsagePricingBucket(entry, {\n      inputTokens: 50000,\n      cacheReadTokens: 50000,\n      requestInputTokens: 300000,\n      outputTokens: 1000,\n    });\n    expect(entry.pricingBuckets).toHaveLength(1);\n    expect(entry.pricingBuckets[0]).toMatchObject({\n      requestInputTokens: 300000,\n      inputTokens: 50000,\n      cacheReadTokens: 50000,\n    });\n    expect(entry.pricingBuckets[0].requestInputTokens).toBeGreaterThan(\n      LONG_THRESHOLD,\n    );\n  });\n\n  it(\"honors the accepted boundary and first rejected long-context value\", () => {\n    const at = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(at, {\n      inputTokens: LONG_THRESHOLD,\n      outputTokens: 1000,\n    });\n    expect(at.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD);\n\n    const over = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(over, {\n      inputTokens: LONG_THRESHOLD + 1,\n      outputTokens: 1000,\n    });\n    // The bucket identity differs once the threshold is crossed.\n    expect(at.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD);\n    expect(over.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD + 1);\n    expect(\n      over.pricingBuckets[0].requestInputTokens > LONG_THRESHOLD,\n    ).toBe(true);\n    expect(\n      at.pricingBuckets[0].requestInputTokens > LONG_THRESHOLD,\n    ).toBe(false);\n  });\n\n  it(\"does not open a pricing bucket for a non-OpenAI or undocumented model\", () => {\n    const anthropic = { provider: \"anthropic\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(anthropic, { inputTokens: 300000 });\n    expect(anthropic.pricingBuckets).toBeUndefined();\n\n    const future = { provider: \"openai\", model: \"gpt-6-sol-future\" };\n    mergeUsagePricingBucket(future, { inputTokens: 300000 });\n    expect(future.pricingBuckets).toBeUndefined();\n\n    // projectUsagePricingContext still projects a non-boolean regional flag.\n    expect(() =>\n      projectUsagePricingContext({ regional_processing: \"yes\" }),\n    ).toThrow(TypeError);\n  });\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 12,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-04.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  mergeUsagePricingBucket,\n  projectUsagePricingContext,\n} from \"../src/lib/usage-pricing-context.js\";\n\n// GPT6_PRICING_TERMS.longContext.threshold === 272000\n// Requests are bucketed per-request by whether the prompt crosses the\n// long-context threshold, and cache-read tokens are preserved separately so\n// the per-request pricing contract (cacheReadMultiplier 0.1) stays intact.\nconst LONG_THRESHOLD = 272000;\n\ndescribe(\"request-level cache & long-context pricing buckets\", () => {\n  it(\"keeps same-total requests in separate buckets when long-context membership differs\", () => {\n    const entry = { provider: \"openai\", model: \"gpt-6-sol\" };\n    // Both requests total 281000 tokens; the difference is the per-request\n    // prompt distribution (one crosses the long-context threshold, one does not).\n    mergeUsagePricingBucket(entry, {\n      inputTokens: 280000,\n      outputTokens: 1000,\n    });\n    mergeUsagePricingBucket(entry, {\n      inputTokens: 250000,\n      outputTokens: 31000,\n    });\n\n    expect(entry.pricingBuckets).toHaveLength(2);\n    const longBucket = entry.pricingBuckets.find(\n      (b) => b.requestInputTokens > LONG_THRESHOLD,\n    );\n    const shortBucket = entry.pricingBuckets.find(\n      (b) => b.requestInputTokens <= LONG_THRESHOLD,\n    );\n    expect(longBucket).toMatchObject({ inputTokens: 280000, calls: 1 });\n    expect(shortBucket).toMatchObject({ inputTokens: 250000, calls: 1 });\n  });\n\n  it(\"does not split requests that stay below the threshold\", () => {\n    const entry = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(entry, { inputTokens: 100000, outputTokens: 1000 });\n    mergeUsagePricingBucket(entry, { inputTokens: 60000, outputTokens: 1000 });\n\n    // Negative control: both short requests merge into one bucket (summed).\n    expect(entry.pricingBuckets).toHaveLength(1);\n    expect(entry.pricingBuckets[0]).toMatchObject({\n      inputTokens: 160000,\n      calls: 2,\n      requestInputTokens: 100000,\n    });\n  });\n\n  it(\"records cache-read tokens separately so identical totals price differently\", () => {\n    const cached = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(cached, {\n      inputTokens: 150000,\n      cacheReadTokens: 50000,\n      outputTokens: 1000,\n    });\n    mergeUsagePricingBucket(cached, {\n      inputTokens: 200000,\n      cacheReadTokens: 0,\n      outputTokens: 1000,\n    });\n    // Same total promptTokens (200000 per request) but a different\n    // cache-read split; the merged bucket keeps cacheReadTokens distinct from\n    // fresh inputTokens so the 0.1x cacheReadMultiplier can be applied.\n    expect(cached.pricingBuckets[0]).toMatchObject({\n      inputTokens: 350000,\n      cacheReadTokens: 50000,\n      calls: 2,\n    });\n\n    const fresh = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(fresh, {\n      inputTokens: 200000,\n      cacheReadTokens: 0,\n      outputTokens: 1000,\n    });\n    mergeUsagePricingBucket(fresh, {\n      inputTokens: 200000,\n      cacheReadTokens: 0,\n      outputTokens: 1000,\n    });\n    expect(fresh.pricingBuckets[0]).toMatchObject({\n      inputTokens: 400000,\n      cacheReadTokens: 0,\n      calls: 2,\n    });\n    // Same 2 calls × 201000 tokens, but the cached distribution carries\n    // separate cacheReadTokens (priced at cacheReadMultiplier).\n    expect(cached.pricingBuckets[0].cacheReadTokens).toBeGreaterThan(0);\n    expect(fresh.pricingBuckets[0].cacheReadTokens).toBe(0);\n  });\n\n  it(\"treats requestInputTokens as authoritative for the long-context test\", () => {\n    const entry = { provider: \"openai\", model: \"gpt-6-sol\" };\n    // Composed input+cache would be short, but the explicit per-request\n    // requestInputTokens claims the long tier.\n    mergeUsagePricingBucket(entry, {\n      inputTokens: 50000,\n      cacheReadTokens: 50000,\n      requestInputTokens: 300000,\n      outputTokens: 1000,\n    });\n    expect(entry.pricingBuckets).toHaveLength(1);\n    expect(entry.pricingBuckets[0]).toMatchObject({\n      requestInputTokens: 300000,\n      inputTokens: 50000,\n      cacheReadTokens: 50000,\n    });\n    expect(entry.pricingBuckets[0].requestInputTokens).toBeGreaterThan(\n      LONG_THRESHOLD,\n    );\n  });\n\n  it(\"honors the accepted boundary and first rejected long-context value\", () => {\n    const at = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(at, {\n      inputTokens: LONG_THRESHOLD,\n      outputTokens: 1000,\n    });\n    expect(at.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD);\n\n    const over = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(over, {\n      inputTokens: LONG_THRESHOLD + 1,\n      outputTokens: 1000,\n    });\n    // The bucket identity differs once the threshold is crossed.\n    expect(at.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD);\n    expect(over.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD + 1);\n    expect(\n      over.pricingBuckets[0].requestInputTokens > LONG_THRESHOLD,\n    ).toBe(true);\n    expect(\n      at.pricingBuckets[0].requestInputTokens > LONG_THRESHOLD,\n    ).toBe(false);\n  });\n\n  it(\"does not open a pricing bucket for a non-OpenAI or undocumented model\", () => {\n    const anthropic = { provider: \"anthropic\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(anthropic, { inputTokens: 300000 });\n    expect(anthropic.pricingBuckets).toBeUndefined();\n\n    const future = { provider: \"openai\", model: \"gpt-6-sol-future\" };\n    mergeUsagePricingBucket(future, { inputTokens: 300000 });\n    expect(future.pricingBuckets).toBeUndefined();\n\n    // projectUsagePricingContext still projects a non-boolean regional flag.\n    expect(() =>\n      projectUsagePricingContext({ regional_processing: \"yes\" }),\n    ).toThrow(TypeError);\n  });\n});\n"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_dua7h5j66aaahfhlzh30s4gs",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/__tests__/verify-04.test.js",
+              "fileVersion": "5832:1793685087361.9521:1793685087362.1917",
+              "readSpan": {
+                "start": 0,
+                "end": 5831,
+                "total": 5831
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  mergeUsagePricingBucket,\n  projectUsagePricingContext,\n} from \"../src/lib/usage-pricing-context.js\";\n\n// GPT6_PRICING_TERMS.longContext.threshold === 272000\n// Requests are bucketed per-request by whether the prompt crosses the\n// long-context threshold, and cache-read tokens are preserved separately so\n// the per-request pricing contract (cacheReadMultiplier 0.1) stays intact.\nconst LONG_THRESHOLD = 272000;\n\ndescribe(\"request-level cache & long-context pricing buckets\", () => {\n  it(\"keeps same-total requests in separate buckets when long-context membership differs\", () => {\n    const entry = { provider: \"openai\", model: \"gpt-6-sol\" };\n    // Both requests total 281000 tokens; the difference is the per-request\n    // prompt distribution (one crosses the long-context threshold, one does not).\n    mergeUsagePricingBucket(entry, {\n      inputTokens: 280000,\n      outputTokens: 1000,\n    });\n    mergeUsagePricingBucket(entry, {\n      inputTokens: 250000,\n      outputTokens: 31000,\n    });\n\n    expect(entry.pricingBuckets).toHaveLength(2);\n    const longBucket = entry.pricingBuckets.find(\n      (b) => b.requestInputTokens > LONG_THRESHOLD,\n    );\n    const shortBucket = entry.pricingBuckets.find(\n      (b) => b.requestInputTokens <= LONG_THRESHOLD,\n    );\n    expect(longBucket).toMatchObject({ inputTokens: 280000, calls: 1 });\n    expect(shortBucket).toMatchObject({ inputTokens: 250000, calls: 1 });\n  });\n\n  it(\"does not split requests that stay below the threshold\", () => {\n    const entry = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(entry, { inputTokens: 100000, outputTokens: 1000 });\n    mergeUsagePricingBucket(entry, { inputTokens: 60000, outputTokens: 1000 });\n\n    // Negative control: both short requests merge into one bucket (summed).\n    expect(entry.pricingBuckets).toHaveLength(1);\n    expect(entry.pricingBuckets[0]).toMatchObject({\n      inputTokens: 160000,\n      calls: 2,\n      requestInputTokens: 100000,\n    });\n  });\n\n  it(\"records cache-read tokens separately so identical totals price differently\", () => {\n    const cached = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(cached, {\n      inputTokens: 150000,\n      cacheReadTokens: 50000,\n      outputTokens: 1000,\n    });\n    mergeUsagePricingBucket(cached, {\n      inputTokens: 200000,\n      cacheReadTokens: 0,\n      outputTokens: 1000,\n    });\n    // Same total promptTokens (200000 per request) but a different\n    // cache-read split; the merged bucket keeps cacheReadTokens distinct from\n    // fresh inputTokens so the 0.1x cacheReadMultiplier can be applied.\n    expect(cached.pricingBuckets[0]).toMatchObject({\n      inputTokens: 350000,\n      cacheReadTokens: 50000,\n      calls: 2,\n    });\n\n    const fresh = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(fresh, {\n      inputTokens: 200000,\n      cacheReadTokens: 0,\n      outputTokens: 1000,\n    });\n    mergeUsagePricingBucket(fresh, {\n      inputTokens: 200000,\n      cacheReadTokens: 0,\n      outputTokens: 1000,\n    });\n    expect(fresh.pricingBuckets[0]).toMatchObject({\n      inputTokens: 400000,\n      cacheReadTokens: 0,\n      calls: 2,\n    });\n    // Same 2 calls × 201000 tokens, but the cached distribution carries\n    // separate cacheReadTokens (priced at cacheReadMultiplier).\n    expect(cached.pricingBuckets[0].cacheReadTokens).toBeGreaterThan(0);\n    expect(fresh.pricingBuckets[0].cacheReadTokens).toBe(0);\n  });\n\n  it(\"treats requestInputTokens as authoritative for the long-context test\", () => {\n    const entry = { provider: \"openai\", model: \"gpt-6-sol\" };\n    // Composed input+cache would be short, but the explicit per-request\n    // requestInputTokens claims the long tier.\n    mergeUsagePricingBucket(entry, {\n      inputTokens: 50000,\n      cacheReadTokens: 50000,\n      requestInputTokens: 300000,\n      outputTokens: 1000,\n    });\n    expect(entry.pricingBuckets).toHaveLength(1);\n    expect(entry.pricingBuckets[0]).toMatchObject({\n      requestInputTokens: 300000,\n      inputTokens: 50000,\n      cacheReadTokens: 50000,\n    });\n    expect(entry.pricingBuckets[0].requestInputTokens).toBeGreaterThan(\n      LONG_THRESHOLD,\n    );\n  });\n\n  it(\"honors the accepted boundary and first rejected long-context value\", () => {\n    const at = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(at, {\n      inputTokens: LONG_THRESHOLD,\n      outputTokens: 1000,\n    });\n    expect(at.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD);\n\n    const over = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(over, {\n      inputTokens: LONG_THRESHOLD + 1,\n      outputTokens: 1000,\n    });\n    // The bucket identity differs once the threshold is crossed.\n    expect(at.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD);\n    expect(over.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD + 1);\n    expect(\n      over.pricingBuckets[0].requestInputTokens > LONG_THRESHOLD,\n    ).toBe(true);\n    expect(\n      at.pricingBuckets[0].requestInputTokens > LONG_THRESHOLD,\n    ).toBe(false);\n  });\n\n  it(\"does not open a pricing bucket for a non-OpenAI or undocumented model\", () => {\n    const anthropic = { provider: \"anthropic\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(anthropic, { inputTokens: 300000 });\n    expect(anthropic.pricingBuckets).toBeUndefined();\n\n    const future = { provider: \"openai\", model: \"gpt-6-sol-future\" };\n    mergeUsagePricingBucket(future, { inputTokens: 300000 });\n    expect(future.pricingBuckets).toBeUndefined();\n\n    // projectUsagePricingContext still projects a non-boolean regional flag.\n    expect(() =>\n      projectUsagePricingContext({ regional_processing: \"yes\" }),\n    ).toThrow(TypeError);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685091312,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-04.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-04.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_9u5lyzjs0pbo9pcegxyb6x2o",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/src/lib/usage-pricing-context.js",
+              "fileVersion": "2847:1791108223000:1793685007953.9314",
+              "readSpan": {
+                "start": 0,
+                "end": 2847,
+                "total": 2847
+              },
+              "hashed": false,
+              "content": "import {\n  DOCUMENTED_OPENAI_MODELS,\n  GPT6_PRICING_TERMS,\n} from \"./model-context-catalog.js\";\n\n/** Only bounded, non-secret pricing labels may enter the durable usage ledger. */\nexport function projectUsagePricingContext(usage = {}) {\n  const projected = {};\n  for (const [key, alias] of [\n    [\"service_tier\", \"serviceTier\"],\n    [\"regional_processing\", \"regionalProcessing\"],\n  ]) {\n    if (!Object.hasOwn(usage, key) && !Object.hasOwn(usage, alias)) continue;\n    if (\n      Object.hasOwn(usage, key) &&\n      Object.hasOwn(usage, alias) &&\n      usage[key] !== usage[alias]\n    ) {\n      throw new TypeError(`usage pricing aliases conflict: ${key}`);\n    }\n    const value = Object.hasOwn(usage, key) ? usage[key] : usage[alias];\n    if (key === \"service_tier\") {\n      projected[key] =\n        typeof value === \"string\" &&\n        Object.hasOwn(GPT6_PRICING_TERMS.serviceMultipliers, value)\n          ? value\n          : \"unknown\";\n    } else {\n      if (typeof value !== \"boolean\")\n        throw new TypeError(\"usage regional processing must be boolean\");\n      projected[key] = value;\n    }\n  }\n  return projected;\n}\n\n/** Preserve per-request thresholds in a bounded set of aggregate price buckets. */\nexport function mergeUsagePricingBucket(entry, usage) {\n  if (\n    String(entry.provider).toLowerCase() !== \"openai\" ||\n    !DOCUMENTED_OPENAI_MODELS[String(entry.model).toLowerCase()]?.pricing\n  )\n    return;\n  const metadata = projectUsagePricingContext(usage);\n  const promptTokens =\n    usage.requestInputTokens ??\n    usage.inputTokens +\n      (usage.cacheReadTokens || 0) +\n      (usage.cacheCreationTokens || 0);\n  const long = promptTokens > GPT6_PRICING_TERMS.longContext.threshold;\n  const serviceTier = metadata.service_tier || \"standard\";\n  const regionalProcessing = metadata.regional_processing === true;\n  entry.pricingBuckets ||= [];\n  let bucket = entry.pricingBuckets.find(\n    (item) =>\n      item.serviceTier === serviceTier &&\n      item.regionalProcessing === regionalProcessing &&\n      item.requestInputTokens > GPT6_PRICING_TERMS.longContext.threshold ===\n        long,\n  );\n  if (!bucket) {\n    bucket = {\n      inputTokens: 0,\n      outputTokens: 0,\n      cacheReadTokens: 0,\n      cacheCreationTokens: 0,\n      totalTokens: 0,\n      calls: 0,\n      serviceTier,\n      regionalProcessing,\n      requestInputTokens: promptTokens,\n    };\n    entry.pricingBuckets.push(bucket);\n  }\n  for (const key of [\n    \"inputTokens\",\n    \"outputTokens\",\n    \"cacheReadTokens\",\n    \"cacheCreationTokens\",\n    \"totalTokens\",\n    \"calls\",\n  ]) {\n    const value = usage[key] ?? (key === \"calls\" ? 1 : 0);\n    if (\n      !Number.isSafeInteger(value) ||\n      value < 0 ||\n      !Number.isSafeInteger(bucket[key] + value)\n    ) {\n      throw new TypeError(`invalid pricing bucket ${key}`);\n    }\n    bucket[key] += value;\n  }\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685107472,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/usage-pricing-context.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/usage-pricing-context.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_mw0uecp5bol3u76sd9q55haw",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/__tests__/unit/session-usage.test.js",
+              "fileVersion": "6248:1791108223000:1793685007867.929",
+              "readSpan": {
+                "start": 0,
+                "end": 6247,
+                "total": 6247
+              },
+              "hashed": false,
+              "content": "import { describe, it, expect, afterEach } from \"vitest\";\nimport {\n  extractUsage,\n  aggregateUsage,\n  sessionUsage,\n  allSessionsUsage,\n  _deps,\n} from \"../../src/lib/session-usage.js\";\n\nconst usageEvent = (model, input, output) => ({\n  type: \"token_usage\",\n  data: { model, usage: { input_tokens: input, output_tokens: output } },\n});\n\ndescribe(\"session-usage\", () => {\n  describe(\"extractUsage\", () => {\n    it(\"reads a token_usage event\", () => {\n      const u = extractUsage({\n        type: \"token_usage\",\n        timestamp: 1,\n        data: {\n          provider: \"anthropic\",\n          model: \"claude-opus-4-6\",\n          usage: { input_tokens: 100, output_tokens: 50 },\n        },\n      });\n      expect(u).toEqual({\n        provider: \"anthropic\",\n        model: \"claude-opus-4-6\",\n        inputTokens: 100,\n        outputTokens: 50,\n        totalTokens: 150,\n        cacheReadTokens: 0,\n        cacheCreationTokens: 0,\n        timestamp: 1,\n      });\n    });\n\n    it(\"reads usage embedded in assistant_message\", () => {\n      const u = extractUsage({\n        type: \"assistant_message\",\n        timestamp: 2,\n        data: {\n          content: \"...\",\n          usage: { prompt_tokens: 40, completion_tokens: 20, total_tokens: 60 },\n          model: \"gpt-4o\",\n        },\n      });\n      expect(u).toMatchObject({\n        model: \"gpt-4o\",\n        inputTokens: 40,\n        outputTokens: 20,\n        totalTokens: 60,\n      });\n    });\n\n    it(\"returns null for events without usage\", () => {\n      expect(extractUsage({ type: \"user_message\", data: {} })).toBeNull();\n      expect(\n        extractUsage({ type: \"assistant_message\", data: { content: \"hi\" } }),\n      ).toBeNull();\n    });\n\n    it(\"returns null for unknown event types\", () => {\n      expect(\n        extractUsage({\n          type: \"tool_call\",\n          data: { usage: { input_tokens: 10 } },\n        }),\n      ).toBeNull();\n    });\n\n    it(\"returns null when all counts are zero\", () => {\n      expect(\n        extractUsage({\n          type: \"token_usage\",\n          data: { usage: { input_tokens: 0, output_tokens: 0 } },\n        }),\n      ).toBeNull();\n    });\n  });\n\n  describe(\"aggregateUsage\", () => {\n    it(\"rolls up total + per-model\", () => {\n      const agg = aggregateUsage([\n        {\n          type: \"token_usage\",\n          data: {\n            provider: \"anthropic\",\n            model: \"opus\",\n            usage: { input_tokens: 100, output_tokens: 50 },\n          },\n        },\n        {\n          type: \"token_usage\",\n          data: {\n            provider: \"anthropic\",\n            model: \"opus\",\n            usage: { input_tokens: 30, output_tokens: 10 },\n          },\n        },\n        {\n          type: \"token_usage\",\n          data: {\n            provider: \"openai\",\n            model: \"gpt-4o\",\n            usage: { input_tokens: 20, output_tokens: 5 },\n          },\n        },\n      ]);\n      expect(agg.total).toEqual({\n        inputTokens: 150,\n        outputTokens: 65,\n        totalTokens: 215,\n        cacheReadTokens: 0,\n        cacheCreationTokens: 0,\n        calls: 3,\n      });\n      expect(agg.byModel).toHaveLength(2);\n      expect(agg.byModel[0]).toMatchObject({\n        provider: \"anthropic\",\n        model: \"opus\",\n        inputTokens: 130,\n        outputTokens: 60,\n        calls: 2,\n      });\n      expect(agg.byModel[1]).toMatchObject({\n        provider: \"openai\",\n        model: \"gpt-4o\",\n        inputTokens: 20,\n        outputTokens: 5,\n        calls: 1,\n      });\n    });\n\n    it(\"ignores events without usage\", () => {\n      const agg = aggregateUsage([\n        { type: \"user_message\", data: { content: \"hi\" } },\n        { type: \"tool_call\", data: { tool: \"read_file\", args: {} } },\n      ]);\n      expect(agg.total.calls).toBe(0);\n      expect(agg.byModel).toEqual([]);\n    });\n\n    it(\"handles empty + nullish input\", () => {\n      expect(aggregateUsage([]).total.calls).toBe(0);\n      expect(aggregateUsage(null).total.calls).toBe(0);\n    });\n\n    it(\"sorts byModel descending by totalTokens\", () => {\n      const agg = aggregateUsage([\n        {\n          type: \"token_usage\",\n          data: {\n            model: \"small\",\n            usage: { input_tokens: 1, output_tokens: 1 },\n          },\n        },\n        {\n          type: \"token_usage\",\n          data: {\n            model: \"big\",\n            usage: { input_tokens: 500, output_tokens: 500 },\n          },\n        },\n      ]);\n      expect(agg.byModel[0].model).toBe(\"big\");\n      expect(agg.byModel[1].model).toBe(\"small\");\n    });\n  });\n\n  describe(\"allSessionsUsage (resilient roll-up)\", () => {\n    const origReadEvents = _deps.readEvents;\n    const origListSessions = _deps.listJsonlSessions;\n    afterEach(() => {\n      _deps.readEvents = origReadEvents;\n      _deps.listJsonlSessions = origListSessions;\n    });\n\n    it(\"aggregates across sessions and skips one that fails to read\", () => {\n      _deps.listJsonlSessions = () => [\n        { id: \"good-1\" },\n        { id: \"bad\" },\n        { id: \"good-2\" },\n      ];\n      _deps.readEvents = (id) => {\n        if (id === \"bad\") {\n          throw Object.assign(new Error(\"EACCES\"), { code: \"EACCES\" });\n        }\n        return [usageEvent(\"opus\", 100, 50)];\n      };\n\n      const r = allSessionsUsage();\n      expect(r.skipped).toBe(1); // the unreadable session didn't abort the rest\n      expect(r.sessions).toHaveLength(2); // good-1 + good-2\n      expect(r.total.calls).toBe(2);\n      expect(r.total.totalTokens).toBe(300); // 2 × (100+50)\n      expect(r.byModel[0]).toMatchObject({ model: \"opus\", calls: 2 });\n    });\n\n    it(\"reports zero skipped when every session reads cleanly\", () => {\n      _deps.listJsonlSessions = () => [{ id: \"a\" }, { id: \"b\" }];\n      _deps.readEvents = () => [usageEvent(\"gpt-4o\", 10, 5)];\n      const r = allSessionsUsage();\n      expect(r.skipped).toBe(0);\n      expect(r.sessions).toHaveLength(2);\n    });\n\n    it(\"sessionUsage rolls up a single session via the injected reader\", () => {\n      _deps.readEvents = () => [\n        usageEvent(\"opus\", 100, 50),\n        usageEvent(\"opus\", 30, 10),\n      ];\n      const r = sessionUsage(\"s1\");\n      expect(r.sessionId).toBe(\"s1\");\n      expect(r.total.calls).toBe(2);\n      expect(r.total.inputTokens).toBe(130);\n    });\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685110437,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/session-usage.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 0,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/session-usage.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_fbo8rpelvgc8o6nlilq8qvzt",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [],
+              "count": 0,
+              "hasMore": false,
+              "nextOffset": null,
+              "hint": "No literal matches. This pattern contains regex syntax, but this search used literal matching. If alternation or regex was intended, set regex: true; otherwise search one exact symbol. Do not infer that the symbols are absent from this result.",
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/src/lib/model-context-catalog.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685113911,
+                "meta": {
+                  "args": {
+                    "pattern": "GPT6_PRICING_TERMS|DOCUMENTED_OPENAI_MODELS|longContext",
+                    "path": "packages/cli/src/lib/model-context-catalog.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 29,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "pattern": "GPT6_PRICING_TERMS|DOCUMENTED_OPENAI_MODELS|longContext",
+                    "path": "packages/cli/src/lib/model-context-catalog.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_buy8kxpohicd4bihqp0nbw06",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 87,
+                  "column": 14,
+                  "offset": 2599,
+                  "text": "DOCUMENTED_OPENAI_MODELS",
+                  "context": "s reviewed on the catalog version date. These describe the\n// named models, not endpoint access, account entitlement, or a live CLI run.\nexport const DOCUMENTED_OPENAI_MODELS = Object.freeze({\n  \"gpt-4o\": Object.freeze({\n    contextWindowTokens: 128000,\n    advertisedMaxOutputTokens: 16384,\n    requiresResponsesForTools: f",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 87,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 148,
+                  "column": 14,
+                  "offset": 4544,
+                  "text": "GPT6_PRICING_TERMS",
+                  "context": "// Request-level pricing terms shared by cost reporting and hard budget gates.\n// Never apply these tiers to a sum of multiple requests.\nexport const GPT6_PRICING_TERMS = Object.freeze({\n  cacheReadMultiplier: 0.1,\n  cacheWriteMultiplier: 1.25,\n  longContext: Object.freeze({\n    threshold: 272000,\n    inputMultiplier",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 148,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 151,
+                  "column": 3,
+                  "offset": 4641,
+                  "text": "longContext",
+                  "context": "se tiers to a sum of multiple requests.\nexport const GPT6_PRICING_TERMS = Object.freeze({\n  cacheReadMultiplier: 0.1,\n  cacheWriteMultiplier: 1.25,\n  longContext: Object.freeze({\n    threshold: 272000,\n    inputMultiplier: 2,\n    outputMultiplier: 1.5,\n  }),\n  serviceMultipliers: Object.freeze({\n    standard: ",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 151,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 3,
+              "hasMore": false,
+              "nextOffset": null,
+              "regexWindowChars": 69632,
+              "hint": "Regular expressions are evaluated in overlapping text windows; matches spanning more than 4096 characters across a window boundary may be omitted. Use a literal keyword to locate the section, then read its context.",
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/src/lib/model-context-catalog.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685116786,
+                "meta": {
+                  "args": {
+                    "pattern": "longContext|DOCUMENTED_OPENAI_MODELS|GPT6_PRICING_TERMS",
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "regex": true
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 29,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "pattern": "longContext|DOCUMENTED_OPENAI_MODELS|GPT6_PRICING_TERMS",
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "regex": true
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_rnypzeqizxlw9rhc82easede",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/src/lib/model-context-catalog.js",
+              "fileVersion": "4888:1791108223000:1793685007930.931",
+              "range": {
+                "startLine": 85,
+                "endLine": 165,
+                "totalLines": 165
+              },
+              "readSpan": {
+                "start": 2433,
+                "end": 4888,
+                "total": 4888
+              },
+              "hashed": false,
+              "content": "// Official pages reviewed on the catalog version date. These describe the\n// named models, not endpoint access, account entitlement, or a live CLI run.\nexport const DOCUMENTED_OPENAI_MODELS = Object.freeze({\n  \"gpt-4o\": Object.freeze({\n    contextWindowTokens: 128000,\n    advertisedMaxOutputTokens: 16384,\n    requiresResponsesForTools: false,\n    sources: Object.freeze([\n      \"https://developers.openai.com/api/docs/models/gpt-4o\",\n    ]),\n  }),\n  \"gpt-6-astra\": Object.freeze({\n    contextWindowTokens: 1050000,\n    advertisedMaxOutputTokens: 128000,\n    requiresResponsesForTools: true,\n    reasoningEfforts: Object.freeze([\"low\", \"medium\", \"high\", \"xhigh\", \"max\"]),\n    pricing: Object.freeze({ in: 10, out: 50 }),\n    sources: Object.freeze([\n      \"https://developers.openai.com/api/docs/models/gpt-6-astra\",\n      \"https://developers.openai.com/api/docs/guides/migrate-to-responses\",\n    ]),\n  }),\n  ...Object.fromEntries(\n    [\n      [\"gpt-6-sol\", 2, 10],\n      [\"gpt-6-luna\", 0.1, 0.5],\n    ].map(([model, input, output]) => [\n      model,\n      Object.freeze({\n        contextWindowTokens: 1050000,\n        advertisedMaxOutputTokens: 128000,\n        requiresResponsesForTools: true,\n        reasoningEfforts: Object.freeze([\n          \"none\",\n          \"low\",\n          \"medium\",\n          \"high\",\n          \"xhigh\",\n          \"max\",\n        ]),\n        pricing: Object.freeze({ in: input, out: output }),\n        sources: Object.freeze([\n          `https://developers.openai.com/api/docs/models/${model}`,\n        ]),\n      }),\n    ]),\n  ),\n});\n\nexport const DOCUMENTED_ANTHROPIC_MODELS = Object.freeze({\n  \"claude-opus-5-5\": Object.freeze({\n    contextWindowTokens: 1000000,\n    // The release notes establish the window and pricing, not an output cap.\n    advertisedMaxOutputTokens: null,\n    pricing: Object.freeze({ in: 4, out: 20 }),\n    sources: Object.freeze([\n      \"https://code.claude.com/docs/en/changelog#2-1-280\",\n    ]),\n  }),\n});\n\n// Request-level pricing terms shared by cost reporting and hard budget gates.\n// Never apply these tiers to a sum of multiple requests.\nexport const GPT6_PRICING_TERMS = Object.freeze({\n  cacheReadMultiplier: 0.1,\n  cacheWriteMultiplier: 1.25,\n  longContext: Object.freeze({\n    threshold: 272000,\n    inputMultiplier: 2,\n    outputMultiplier: 1.5,\n  }),\n  serviceMultipliers: Object.freeze({\n    standard: 1,\n    default: 1,\n    auto: 1,\n    batch: 0.5,\n    flex: 0.5,\n    fast: 2,\n  }),\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685120117,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 85,
+                    "limit": 100
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 7,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/model-context-catalog.js",
+                    "offset": 85,
+                    "limit": 100
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_9em3uz6j2uoppt4pk1bhin0k",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 65,
+                  "column": 38,
+                  "offset": 2214,
+                  "text": "pricingBuckets",
+                  "context": " expect(priceRollup(aggregateUsage(events)).cost.totalCost).toBeCloseTo(\n      budget.spentUsd,\n      10,\n    );\n    expect(observed.usage.byModel[0].pricingBuckets).toHaveLength(3);\n    expect(records[0].usage.service_tier).toBe(\"fast\");\n    expect(\n      projectRuntimeTokenUsage({\n        ...records[0],\n       ",
+                  "nextRead": {
+                    "path": "packages/cli/__tests__/unit/model-release-contract.test.js",
+                    "offset": 65,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 234,
+                  "column": 33,
+                  "offset": 7698,
+                  "text": "pricingBuckets",
+                  "context": "mitUsd: 100 });\n    for (const event of events) budget.add(event.data);\n    const aggregate = aggregateUsage(events);\n    expect(aggregate.byModel[0].pricingBuckets).toHaveLength(2);\n    expect(priceRollup(aggregate).cost.totalCost).toBeCloseTo(2.035, 9);\n    expect(priceRollup(aggregate).cost.totalCost).toBeClos",
+                  "nextRead": {
+                    "path": "packages/cli/__tests__/unit/model-release-contract.test.js",
+                    "offset": 234,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 251,
+                  "column": 13,
+                  "offset": 8265,
+                  "text": "pricingBuckets",
+                  "context": " : events.slice(2),\n    );\n    expect(priceRollup(allSessionsUsage()).cost.totalCost).toBeCloseTo(\n      budget.spentUsd,\n      9,\n    );\n    const { pricingBuckets, ...legacy } = aggregate.byModel[0];\n    expect(priceRollup({ byModel: [legacy] }).cost.unpricedCount).toBe(1);\n  });\n\n  it(\"preserves response servi",
+                  "nextRead": {
+                    "path": "packages/cli/__tests__/unit/model-release-contract.test.js",
+                    "offset": 251,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 3,
+              "hasMore": false,
+              "nextOffset": null,
+              "regexWindowChars": 69632,
+              "hint": "Regular expressions are evaluated in overlapping text windows; matches spanning more than 4096 characters across a window boundary may be omitted. Use a literal keyword to locate the section, then read its context.",
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/__tests__/unit/model-release-contract.test.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685129206,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-release-contract.test.js",
+                    "pattern": "pricingBuckets|mergeUsagePricingBucket|projectUsagePricingContext|longContext|threshold",
+                    "regex": true
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 29,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/model-release-contract.test.js",
+                    "pattern": "pricingBuckets|mergeUsagePricingBucket|projectUsagePricingContext|longContext|threshold",
+                    "regex": true
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_fq84gp76yt13sa11ih6pqtgd",
+            "tool": "search_files",
+            "is_error": true,
+            "error": "search_files path must name a file; use directory for a folder search",
+            "result": {
+              "error": "search_files path must name a file; use directory for a folder search",
+              "code": "ERR_TEXT_SEARCH_DIRECTORY",
+              "hint": "For text inside this directory, retry search_files with directory, pattern and content_search:true, omitting path. Without content_search:true, directory searches match filenames only.",
+              "suggestedArguments": {
+                "directory": "packages/cli/src/lib",
+                "pattern": "pricingBuckets",
+                "content_search": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685133309,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib",
+                    "pattern": "pricingBuckets",
+                    "regex": true
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "error",
+                "durationMs": 0,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib",
+                    "pattern": "pricingBuckets",
+                    "regex": true
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_90zayzprg2fcydgwqlfw0tqy",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                "./usage-pricing-context.js",
+                "./session-usage.js",
+                "./llm-pricing.js"
+              ],
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685136036,
+                "meta": {
+                  "args": {
+                    "directory": "packages/cli/src/lib",
+                    "pattern": "pricingBuckets",
+                    "content_search": true
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 84,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "directory": "packages/cli/src/lib",
+                    "pattern": "pricingBuckets",
+                    "content_search": true
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_ekxqbyi6d2reokatqn19uykp",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 228,
+                  "column": 23,
+                  "offset": 9053,
+                  "text": "multiplier",
+                  "context": "er, outputCost:number, totalCost:number,\n *             currency:string, matched:boolean, free:boolean, rate:object|null }}\n */\n// Prompt-cache price multipliers relative to the input rate. A cache WRITE\n// (Anthropic 5-minute ephemeral breakpoint) bills at ~125%; only Anthropic\n// reports cache creation. Cac",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 228,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 235,
+                  "column": 25,
+                  "offset": 9602,
+                  "text": "MULTIPLIER",
+                  "context": "d exactly as before. Public list-price estimates\n// that drift; override the table via config.llm.pricing for the base rates.\nexport const CACHE_READ_MULTIPLIER = 0.1;\nexport const CACHE_WRITE_MULTIPLIER = 1.25;\nexport const CACHE_READ_MULTIPLIER_BY_PROVIDER = Object.freeze({\n  anthropic: 0.1,\n  openai: 0.5,\n",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 235,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 236,
+                  "column": 26,
+                  "offset": 9645,
+                  "text": "MULTIPLIER",
+                  "context": "mates\n// that drift; override the table via config.llm.pricing for the base rates.\nexport const CACHE_READ_MULTIPLIER = 0.1;\nexport const CACHE_WRITE_MULTIPLIER = 1.25;\nexport const CACHE_READ_MULTIPLIER_BY_PROVIDER = Object.freeze({\n  anthropic: 0.1,\n  openai: 0.5,\n  deepseek: 0.25,\n});\n\nfunction cacheReadMu",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 236,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 237,
+                  "column": 25,
+                  "offset": 9688,
+                  "text": "MULTIPLIER",
+                  "context": " config.llm.pricing for the base rates.\nexport const CACHE_READ_MULTIPLIER = 0.1;\nexport const CACHE_WRITE_MULTIPLIER = 1.25;\nexport const CACHE_READ_MULTIPLIER_BY_PROVIDER = Object.freeze({\n  anthropic: 0.1,\n  openai: 0.5,\n  deepseek: 0.25,\n});\n\nfunction cacheReadMultiplier(provider) {\n  const p = String(pro",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 237,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 243,
+                  "column": 10,
+                  "offset": 9794,
+                  "text": "cacheRead",
+                  "context": "_MULTIPLIER = 1.25;\nexport const CACHE_READ_MULTIPLIER_BY_PROVIDER = Object.freeze({\n  anthropic: 0.1,\n  openai: 0.5,\n  deepseek: 0.25,\n});\n\nfunction cacheReadMultiplier(provider) {\n  const p = String(provider || \"\").toLowerCase();\n  return CACHE_READ_MULTIPLIER_BY_PROVIDER[p] ?? CACHE_READ_MULTIPLIER;\n}\n\nex",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 243,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 243,
+                  "column": 19,
+                  "offset": 9803,
+                  "text": "Multiplier",
+                  "context": "ER = 1.25;\nexport const CACHE_READ_MULTIPLIER_BY_PROVIDER = Object.freeze({\n  anthropic: 0.1,\n  openai: 0.5,\n  deepseek: 0.25,\n});\n\nfunction cacheReadMultiplier(provider) {\n  const p = String(provider || \"\").toLowerCase();\n  return CACHE_READ_MULTIPLIER_BY_PROVIDER[p] ?? CACHE_READ_MULTIPLIER;\n}\n\nexport funct",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 243,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 245,
+                  "column": 21,
+                  "offset": 9896,
+                  "text": "MULTIPLIER",
+                  "context": "\n  openai: 0.5,\n  deepseek: 0.25,\n});\n\nfunction cacheReadMultiplier(provider) {\n  const p = String(provider || \"\").toLowerCase();\n  return CACHE_READ_MULTIPLIER_BY_PROVIDER[p] ?? CACHE_READ_MULTIPLIER;\n}\n\nexport function estimateCost({\n  provider,\n  model,\n  inputTokens = 0,\n  outputTokens = 0,\n  cacheReadTok",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 245,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 245,
+                  "column": 61,
+                  "offset": 9936,
+                  "text": "MULTIPLIER",
+                  "context": "unction cacheReadMultiplier(provider) {\n  const p = String(provider || \"\").toLowerCase();\n  return CACHE_READ_MULTIPLIER_BY_PROVIDER[p] ?? CACHE_READ_MULTIPLIER;\n}\n\nexport function estimateCost({\n  provider,\n  model,\n  inputTokens = 0,\n  outputTokens = 0,\n  cacheReadTokens = 0,\n  cacheCreationTokens = 0,\n  re",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 245,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 253,
+                  "column": 3,
+                  "offset": 10044,
+                  "text": "cacheRead",
+                  "context": "D_MULTIPLIER_BY_PROVIDER[p] ?? CACHE_READ_MULTIPLIER;\n}\n\nexport function estimateCost({\n  provider,\n  model,\n  inputTokens = 0,\n  outputTokens = 0,\n  cacheReadTokens = 0,\n  cacheCreationTokens = 0,\n  requestInputTokens,\n  serviceTier = \"standard\",\n  regionalProcessing = false,\n  table,\n} = {}) {\n  const rate",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 253,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 255,
+                  "column": 3,
+                  "offset": 10094,
+                  "text": "requestInputTokens",
+                  "context": "ER;\n}\n\nexport function estimateCost({\n  provider,\n  model,\n  inputTokens = 0,\n  outputTokens = 0,\n  cacheReadTokens = 0,\n  cacheCreationTokens = 0,\n  requestInputTokens,\n  serviceTier = \"standard\",\n  regionalProcessing = false,\n  table,\n} = {}) {\n  const rate = lookupRate(provider, model, table);\n  const tierMultipli",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 255,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 261,
+                  "column": 13,
+                  "offset": 10254,
+                  "text": "Multiplier",
+                  "context": "utTokens,\n  serviceTier = \"standard\",\n  regionalProcessing = false,\n  table,\n} = {}) {\n  const rate = lookupRate(provider, model, table);\n  const tierMultiplier = rate?.terms\n    ? Object.hasOwn(rate.terms.serviceMultipliers, serviceTier)\n      ? rate.terms.serviceMultipliers[serviceTier]\n      : null\n    : 1",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 261,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 262,
+                  "column": 39,
+                  "offset": 10317,
+                  "text": "Multiplier",
+                  "context": "lse,\n  table,\n} = {}) {\n  const rate = lookupRate(provider, model, table);\n  const tierMultiplier = rate?.terms\n    ? Object.hasOwn(rate.terms.serviceMultipliers, serviceTier)\n      ? rate.terms.serviceMultipliers[serviceTier]\n      : null\n    : 1;\n  if (!rate || tierMultiplier == null) {\n    return {\n      i",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 262,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 263,
+                  "column": 27,
+                  "offset": 10369,
+                  "text": "Multiplier",
+                  "context": "ovider, model, table);\n  const tierMultiplier = rate?.terms\n    ? Object.hasOwn(rate.terms.serviceMultipliers, serviceTier)\n      ? rate.terms.serviceMultipliers[serviceTier]\n      : null\n    : 1;\n  if (!rate || tierMultiplier == null) {\n    return {\n      inputCost: 0,\n      outputCost: 0,\n      cacheReadCos",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 263,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 266,
+                  "column": 20,
+                  "offset": 10435,
+                  "text": "Multiplier",
+                  "context": "Object.hasOwn(rate.terms.serviceMultipliers, serviceTier)\n      ? rate.terms.serviceMultipliers[serviceTier]\n      : null\n    : 1;\n  if (!rate || tierMultiplier == null) {\n    return {\n      inputCost: 0,\n      outputCost: 0,\n      cacheReadCost: 0,\n      cacheCreationCost: 0,\n      totalCost: 0,\n      curren",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 266,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 270,
+                  "column": 7,
+                  "offset": 10517,
+                  "text": "cacheRead",
+                  "context": "ceMultipliers[serviceTier]\n      : null\n    : 1;\n  if (!rate || tierMultiplier == null) {\n    return {\n      inputCost: 0,\n      outputCost: 0,\n      cacheReadCost: 0,\n      cacheCreationCost: 0,\n      totalCost: 0,\n      currency: \"USD\",\n      matched: false,\n      free: false,\n      rate: null,\n    };\n  }\n",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 270,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 280,
+                  "column": 5,
+                  "offset": 10703,
+                  "text": "requestInputTokens",
+                  "context": "nCost: 0,\n      totalCost: 0,\n      currency: \"USD\",\n      matched: false,\n      free: false,\n      rate: null,\n    };\n  }\n  const promptTokens =\n    requestInputTokens ??\n    Number(inputTokens) + Number(cacheReadTokens) + Number(cacheCreationTokens);\n  const longContext = rate.terms?.longContext;\n  const longPrompt",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 280,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 281,
+                  "column": 34,
+                  "offset": 10758,
+                  "text": "cacheRead",
+                  "context": "    matched: false,\n      free: false,\n      rate: null,\n    };\n  }\n  const promptTokens =\n    requestInputTokens ??\n    Number(inputTokens) + Number(cacheReadTokens) + Number(cacheCreationTokens);\n  const longContext = rate.terms?.longContext;\n  const longPrompt = longContext && promptTokens > longContext.t",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 281,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 282,
+                  "column": 9,
+                  "offset": 10814,
+                  "text": "longContext",
+                  "context": "\n    };\n  }\n  const promptTokens =\n    requestInputTokens ??\n    Number(inputTokens) + Number(cacheReadTokens) + Number(cacheCreationTokens);\n  const longContext = rate.terms?.longContext;\n  const longPrompt = longContext && promptTokens > longContext.threshold;\n  const inputMultiplier = longPrompt ? longConte",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 282,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 282,
+                  "column": 35,
+                  "offset": 10840,
+                  "text": "longContext",
+                  "context": "Tokens =\n    requestInputTokens ??\n    Number(inputTokens) + Number(cacheReadTokens) + Number(cacheCreationTokens);\n  const longContext = rate.terms?.longContext;\n  const longPrompt = longContext && promptTokens > longContext.threshold;\n  const inputMultiplier = longPrompt ? longContext.inputMultiplier : 1;\n  ",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 282,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 283,
+                  "column": 22,
+                  "offset": 10874,
+                  "text": "longContext",
+                  "context": "\n    Number(inputTokens) + Number(cacheReadTokens) + Number(cacheCreationTokens);\n  const longContext = rate.terms?.longContext;\n  const longPrompt = longContext && promptTokens > longContext.threshold;\n  const inputMultiplier = longPrompt ? longContext.inputMultiplier : 1;\n  const outputMultiplier = longPromp",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 283,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 20,
+              "hasMore": true,
+              "nextOffset": 10885,
+              "regexWindowChars": 69632,
+              "hint": "Regular expressions are evaluated in overlapping text windows; matches spanning more than 4096 characters across a window boundary may be omitted. Use a literal keyword to locate the section, then read its context.",
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/src/lib/llm-pricing.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685141375,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "pattern": "pricingBuckets|multiplier|cacheRead|longContext|requestInputTokens",
+                    "regex": true
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 29,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "pattern": "pricingBuckets|multiplier|cacheRead|longContext|requestInputTokens",
+                    "regex": true
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_333hrqtswo7lnhrpwbwrtrql",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/src/lib/llm-pricing.js",
+              "fileVersion": "15061:1791108223000:1793685007929.931",
+              "range": {
+                "startLine": 253,
+                "endLine": 322,
+                "totalLines": 415
+              },
+              "nextRead": {
+                "path": "packages/cli/src/lib/llm-pricing.js",
+                "offset": 323,
+                "limit": 70
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 10042,
+                "end": 12464,
+                "total": 15034
+              },
+              "hashed": false,
+              "content": "  cacheReadTokens = 0,\n  cacheCreationTokens = 0,\n  requestInputTokens,\n  serviceTier = \"standard\",\n  regionalProcessing = false,\n  table,\n} = {}) {\n  const rate = lookupRate(provider, model, table);\n  const tierMultiplier = rate?.terms\n    ? Object.hasOwn(rate.terms.serviceMultipliers, serviceTier)\n      ? rate.terms.serviceMultipliers[serviceTier]\n      : null\n    : 1;\n  if (!rate || tierMultiplier == null) {\n    return {\n      inputCost: 0,\n      outputCost: 0,\n      cacheReadCost: 0,\n      cacheCreationCost: 0,\n      totalCost: 0,\n      currency: \"USD\",\n      matched: false,\n      free: false,\n      rate: null,\n    };\n  }\n  const promptTokens =\n    requestInputTokens ??\n    Number(inputTokens) + Number(cacheReadTokens) + Number(cacheCreationTokens);\n  const longContext = rate.terms?.longContext;\n  const longPrompt = longContext && promptTokens > longContext.threshold;\n  const inputMultiplier = longPrompt ? longContext.inputMultiplier : 1;\n  const outputMultiplier = longPrompt ? longContext.outputMultiplier : 1;\n  const multiplier = tierMultiplier * (regionalProcessing ? 1.1 : 1);\n  // Keep full IEEE-754 precision throughout authority and budget arithmetic.\n  // Rounding each component to six decimals lets a real sub-microdollar call\n  // become zero and can make a hard `maxUsd` gate pass incorrectly. Display\n  // surfaces may format these values, but safety decisions consume the raw sum.\n  const inputCost =\n    (Number(inputTokens) / 1e6) * rate.in * inputMultiplier * multiplier;\n  const outputCost =\n    (Number(outputTokens) / 1e6) * rate.out * outputMultiplier * multiplier;\n  const cacheReadCost =\n    (Number(cacheReadTokens) / 1e6) *\n    rate.in *\n    (rate.terms?.cacheReadMultiplier ?? cacheReadMultiplier(provider)) *\n    inputMultiplier *\n    multiplier;\n  const cacheCreationCost =\n    (Number(cacheCreationTokens) / 1e6) *\n    rate.in *\n    (rate.terms?.cacheWriteMultiplier ?? CACHE_WRITE_MULTIPLIER) *\n    inputMultiplier *\n    multiplier;\n  return {\n    inputCost,\n    outputCost,\n    cacheReadCost,\n    cacheCreationCost,\n    totalCost: inputCost + outputCost + cacheReadCost + cacheCreationCost,\n    currency: \"USD\",\n    matched: true,\n    free: rate.pattern === \"free\",\n    rate: { in: rate.in, out: rate.out, pattern: rate.pattern },\n  };\n}\n\n/**\n * Augment a session-usage aggregate ({ total, byModel:[...] }) with cost.\n * Returns a new object — does not mutate the input.",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685149822,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 253,
+                    "limit": 70
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 253,
+                    "limit": 70
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_kfevdjyxrsyyige04h5ara1f",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/src/lib/llm-pricing.js",
+              "fileVersion": "15061:1791108223000:1793685007929.931",
+              "range": {
+                "startLine": 323,
+                "endLine": 414,
+                "totalLines": 415
+              },
+              "nextRead": {
+                "path": "packages/cli/src/lib/llm-pricing.js",
+                "offset": 415,
+                "limit": 92
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 12464,
+                "end": 15034,
+                "total": 15034
+              },
+              "hashed": false,
+              "content": " *\n * Each byModel row gains: cost, currency, matched. The returned `cost`\n * top-level sums priced rows; `unpriced` lists provider/model rows that had\n * usage but no matching rate (their tokens are excluded from `cost.totalCost`).\n */\nexport function priceRollup(aggregate, { table } = {}) {\n  const byModel = (aggregate?.byModel || []).map((row) => {\n    let est = estimateCost({\n      provider: row.provider,\n      model: row.model,\n      inputTokens: row.inputTokens,\n      outputTokens: row.outputTokens,\n      cacheReadTokens: row.cacheReadTokens,\n      cacheCreationTokens: row.cacheCreationTokens,\n      serviceTier: row.serviceTier ?? row.service_tier ?? \"standard\",\n      regionalProcessing:\n        row.regionalProcessing ?? row.regional_processing ?? false,\n      table,\n    });\n    if (Array.isArray(row.pricingBuckets)) {\n      const estimates = row.pricingBuckets.map((bucket) =>\n        estimateCost({\n          provider: row.provider,\n          model: row.model,\n          ...bucket,\n          table,\n        }),\n      );\n      est = { ...est, matched: estimates.every((entry) => entry.matched) };\n      for (const field of [\n        \"inputCost\",\n        \"outputCost\",\n        \"cacheReadCost\",\n        \"cacheCreationCost\",\n        \"totalCost\",\n      ]) {\n        est[field] = estimates.reduce((sum, entry) => sum + entry[field], 0);\n      }\n    } else if (\n      lookupRate(row.provider, row.model, table)?.terms &&\n      row.calls > 1\n    ) {\n      // A legacy aggregate cannot establish which individual requests crossed\n      // a pricing threshold. Exclude it rather than inventing a bill.\n      est = {\n        ...est,\n        matched: false,\n        inputCost: 0,\n        outputCost: 0,\n        cacheReadCost: 0,\n        cacheCreationCost: 0,\n        totalCost: 0,\n      };\n    }\n    return {\n      ...row,\n      cost: est.totalCost,\n      inputCost: est.inputCost,\n      outputCost: est.outputCost,\n      cacheReadCost: est.cacheReadCost,\n      cacheCreationCost: est.cacheCreationCost,\n      currency: est.currency,\n      matched: est.matched,\n      free: est.free,\n    };\n  });\n\n  let totalCost = 0;\n  const unpriced = [];\n  for (const row of byModel) {\n    if (row.matched) {\n      totalCost += row.cost;\n    } else if (row.totalTokens > 0) {\n      unpriced.push({\n        provider: row.provider,\n        model: row.model,\n        totalTokens: row.totalTokens,\n      });\n    }\n  }\n\n  return {\n    ...aggregate,\n    byModel,\n    cost: {\n      totalCost,\n      currency: \"USD\",\n      unpricedCount: unpriced.length,\n    },\n    unpriced,\n  };\n}",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685154596,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 323,
+                    "limit": 92
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 12,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 323,
+                    "limit": 92
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_alz3awz6ol7yfagd4nmjk34b",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/src/lib/llm-pricing.js",
+              "fileVersion": "15061:1791108223000:1793685007929.931",
+              "range": {
+                "startLine": 323,
+                "endLine": 382,
+                "totalLines": 415
+              },
+              "nextRead": {
+                "path": "packages/cli/src/lib/llm-pricing.js",
+                "offset": 383,
+                "limit": 60
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 12464,
+                "end": 14428,
+                "total": 15034
+              },
+              "hashed": false,
+              "content": " *\n * Each byModel row gains: cost, currency, matched. The returned `cost`\n * top-level sums priced rows; `unpriced` lists provider/model rows that had\n * usage but no matching rate (their tokens are excluded from `cost.totalCost`).\n */\nexport function priceRollup(aggregate, { table } = {}) {\n  const byModel = (aggregate?.byModel || []).map((row) => {\n    let est = estimateCost({\n      provider: row.provider,\n      model: row.model,\n      inputTokens: row.inputTokens,\n      outputTokens: row.outputTokens,\n      cacheReadTokens: row.cacheReadTokens,\n      cacheCreationTokens: row.cacheCreationTokens,\n      serviceTier: row.serviceTier ?? row.service_tier ?? \"standard\",\n      regionalProcessing:\n        row.regionalProcessing ?? row.regional_processing ?? false,\n      table,\n    });\n    if (Array.isArray(row.pricingBuckets)) {\n      const estimates = row.pricingBuckets.map((bucket) =>\n        estimateCost({\n          provider: row.provider,\n          model: row.model,\n          ...bucket,\n          table,\n        }),\n      );\n      est = { ...est, matched: estimates.every((entry) => entry.matched) };\n      for (const field of [\n        \"inputCost\",\n        \"outputCost\",\n        \"cacheReadCost\",\n        \"cacheCreationCost\",\n        \"totalCost\",\n      ]) {\n        est[field] = estimates.reduce((sum, entry) => sum + entry[field], 0);\n      }\n    } else if (\n      lookupRate(row.provider, row.model, table)?.terms &&\n      row.calls > 1\n    ) {\n      // A legacy aggregate cannot establish which individual requests crossed\n      // a pricing threshold. Exclude it rather than inventing a bill.\n      est = {\n        ...est,\n        matched: false,\n        inputCost: 0,\n        outputCost: 0,\n        cacheReadCost: 0,\n        cacheCreationCost: 0,\n        totalCost: 0,\n      };\n    }\n    return {\n      ...row,\n      cost: est.totalCost,\n      inputCost: est.inputCost,\n      outputCost: est.outputCost,\n      cacheReadCost: est.cacheReadCost,",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685158215,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 323,
+                    "limit": 60
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 8,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/llm-pricing.js",
+                    "offset": 323,
+                    "limit": 60
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_awof07a11jjqs73cg3h2i45l",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 18,
+                  "column": 3,
+                  "offset": 574,
+                  "text": "mergeUsagePricingBucket",
+                  "context": "ness/jsonl-session-store.js\";\nimport { extractPluginUsageAttribution } from \"./plugin-usage-attribution.js\";\nimport {\n  projectUsagePricingContext,\n  mergeUsagePricingBucket as mergePricingBucket,\n} from \"./usage-pricing-context.js\";\n\n// Injectable disk seams (tests override). readEvents skips malformed JSON lines\n// but ",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/session-usage.js",
+                    "offset": 18,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 181,
+                  "column": 17,
+                  "offset": 5916,
+                  "text": "aggregateUsage",
+                  "context": "\", which keeps every\n * pre-attribution transcript aggregating exactly as before), by skill name,\n * and by individual sub-agent.\n */\nexport function aggregateUsageAttribution(events) {\n  const byOrigin = new Map();\n  const bySkill = new Map();\n  const bySubagent = new Map();\n\n  for (const evt of events || []) {\n",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/session-usage.js",
+                    "offset": 181,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 520,
+                  "column": 8,
+                  "offset": 16570,
+                  "text": "aggregateUsage",
+                  "context": "he tool/MCP call aggregation. Pure.\n */\nexport function sessionAttribution(events) {\n  const retries = aggregateLlmRetries(events);\n  return {\n    ...aggregateUsageAttribution(events),\n    tools: aggregateToolCalls(events),\n    ...(retries ? { retries } : {}),\n  };\n}\n\n/**\n * Aggregate a list of events into { tota",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/session-usage.js",
+                    "offset": 520,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 529,
+                  "column": 17,
+                  "offset": 16770,
+                  "text": "aggregateUsage",
+                  "context": "egateToolCalls(events),\n    ...(retries ? { retries } : {}),\n  };\n}\n\n/**\n * Aggregate a list of events into { total, byModel[] }.\n */\nexport function aggregateUsage(events) {\n  const byKey = new Map();\n  const total = {\n    inputTokens: 0,\n    outputTokens: 0,\n    totalTokens: 0,\n    cacheReadTokens: 0,\n    cache",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/session-usage.js",
+                    "offset": 529,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 586,
+                  "column": 15,
+                  "offset": 18311,
+                  "text": "aggregateUsage",
+                  "context": ") are unchanged; `attribution` is additive.\n */\nexport function sessionUsage(sessionId) {\n  const events = _deps.readEvents(sessionId);\n  const agg = aggregateUsage(events);\n  return { sessionId, ...agg, attribution: sessionAttribution(events) };\n}\n\n/**\n * Roll up usage across every JSONL session on disk.\n */\nexp",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/session-usage.js",
+                    "offset": 586,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 643,
+                  "column": 32,
+                  "offset": 20166,
+                  "text": "pricingBuckets",
+                  "context": "cacheReadTokens || 0;\n      entry.cacheCreationTokens += row.cacheCreationTokens || 0;\n      entry.calls += row.calls;\n      for (const bucket of row.pricingBuckets || [])\n        mergePricingBucket(entry, bucket);\n      byKey.set(key, entry);\n    }\n  }\n\n  // Global attribution roll-up: merge each session's attri",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/session-usage.js",
+                    "offset": 643,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 6,
+              "hasMore": false,
+              "nextOffset": null,
+              "regexWindowChars": 69632,
+              "hint": "Regular expressions are evaluated in overlapping text windows; matches spanning more than 4096 characters across a window boundary may be omitted. Use a literal keyword to locate the section, then read its context.",
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/src/lib/session-usage.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685188985,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/session-usage.js",
+                    "pattern": "mergeUsagePricingBucket|pricingBuckets|aggregateUsage",
+                    "regex": true
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 29,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/session-usage.js",
+                    "pattern": "mergeUsagePricingBucket|pricingBuckets|aggregateUsage",
+                    "regex": true
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_i6wzy8ubjkgcy648txmgdbgy",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/__tests__/verify-04.test.js",
+              "fileVersion": "5832:1793685087361.9521:1793685087362.1917",
+              "readSpan": {
+                "start": 0,
+                "end": 5831,
+                "total": 5831
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  mergeUsagePricingBucket,\n  projectUsagePricingContext,\n} from \"../src/lib/usage-pricing-context.js\";\n\n// GPT6_PRICING_TERMS.longContext.threshold === 272000\n// Requests are bucketed per-request by whether the prompt crosses the\n// long-context threshold, and cache-read tokens are preserved separately so\n// the per-request pricing contract (cacheReadMultiplier 0.1) stays intact.\nconst LONG_THRESHOLD = 272000;\n\ndescribe(\"request-level cache & long-context pricing buckets\", () => {\n  it(\"keeps same-total requests in separate buckets when long-context membership differs\", () => {\n    const entry = { provider: \"openai\", model: \"gpt-6-sol\" };\n    // Both requests total 281000 tokens; the difference is the per-request\n    // prompt distribution (one crosses the long-context threshold, one does not).\n    mergeUsagePricingBucket(entry, {\n      inputTokens: 280000,\n      outputTokens: 1000,\n    });\n    mergeUsagePricingBucket(entry, {\n      inputTokens: 250000,\n      outputTokens: 31000,\n    });\n\n    expect(entry.pricingBuckets).toHaveLength(2);\n    const longBucket = entry.pricingBuckets.find(\n      (b) => b.requestInputTokens > LONG_THRESHOLD,\n    );\n    const shortBucket = entry.pricingBuckets.find(\n      (b) => b.requestInputTokens <= LONG_THRESHOLD,\n    );\n    expect(longBucket).toMatchObject({ inputTokens: 280000, calls: 1 });\n    expect(shortBucket).toMatchObject({ inputTokens: 250000, calls: 1 });\n  });\n\n  it(\"does not split requests that stay below the threshold\", () => {\n    const entry = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(entry, { inputTokens: 100000, outputTokens: 1000 });\n    mergeUsagePricingBucket(entry, { inputTokens: 60000, outputTokens: 1000 });\n\n    // Negative control: both short requests merge into one bucket (summed).\n    expect(entry.pricingBuckets).toHaveLength(1);\n    expect(entry.pricingBuckets[0]).toMatchObject({\n      inputTokens: 160000,\n      calls: 2,\n      requestInputTokens: 100000,\n    });\n  });\n\n  it(\"records cache-read tokens separately so identical totals price differently\", () => {\n    const cached = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(cached, {\n      inputTokens: 150000,\n      cacheReadTokens: 50000,\n      outputTokens: 1000,\n    });\n    mergeUsagePricingBucket(cached, {\n      inputTokens: 200000,\n      cacheReadTokens: 0,\n      outputTokens: 1000,\n    });\n    // Same total promptTokens (200000 per request) but a different\n    // cache-read split; the merged bucket keeps cacheReadTokens distinct from\n    // fresh inputTokens so the 0.1x cacheReadMultiplier can be applied.\n    expect(cached.pricingBuckets[0]).toMatchObject({\n      inputTokens: 350000,\n      cacheReadTokens: 50000,\n      calls: 2,\n    });\n\n    const fresh = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(fresh, {\n      inputTokens: 200000,\n      cacheReadTokens: 0,\n      outputTokens: 1000,\n    });\n    mergeUsagePricingBucket(fresh, {\n      inputTokens: 200000,\n      cacheReadTokens: 0,\n      outputTokens: 1000,\n    });\n    expect(fresh.pricingBuckets[0]).toMatchObject({\n      inputTokens: 400000,\n      cacheReadTokens: 0,\n      calls: 2,\n    });\n    // Same 2 calls × 201000 tokens, but the cached distribution carries\n    // separate cacheReadTokens (priced at cacheReadMultiplier).\n    expect(cached.pricingBuckets[0].cacheReadTokens).toBeGreaterThan(0);\n    expect(fresh.pricingBuckets[0].cacheReadTokens).toBe(0);\n  });\n\n  it(\"treats requestInputTokens as authoritative for the long-context test\", () => {\n    const entry = { provider: \"openai\", model: \"gpt-6-sol\" };\n    // Composed input+cache would be short, but the explicit per-request\n    // requestInputTokens claims the long tier.\n    mergeUsagePricingBucket(entry, {\n      inputTokens: 50000,\n      cacheReadTokens: 50000,\n      requestInputTokens: 300000,\n      outputTokens: 1000,\n    });\n    expect(entry.pricingBuckets).toHaveLength(1);\n    expect(entry.pricingBuckets[0]).toMatchObject({\n      requestInputTokens: 300000,\n      inputTokens: 50000,\n      cacheReadTokens: 50000,\n    });\n    expect(entry.pricingBuckets[0].requestInputTokens).toBeGreaterThan(\n      LONG_THRESHOLD,\n    );\n  });\n\n  it(\"honors the accepted boundary and first rejected long-context value\", () => {\n    const at = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(at, {\n      inputTokens: LONG_THRESHOLD,\n      outputTokens: 1000,\n    });\n    expect(at.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD);\n\n    const over = { provider: \"openai\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(over, {\n      inputTokens: LONG_THRESHOLD + 1,\n      outputTokens: 1000,\n    });\n    // The bucket identity differs once the threshold is crossed.\n    expect(at.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD);\n    expect(over.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD + 1);\n    expect(\n      over.pricingBuckets[0].requestInputTokens > LONG_THRESHOLD,\n    ).toBe(true);\n    expect(\n      at.pricingBuckets[0].requestInputTokens > LONG_THRESHOLD,\n    ).toBe(false);\n  });\n\n  it(\"does not open a pricing bucket for a non-OpenAI or undocumented model\", () => {\n    const anthropic = { provider: \"anthropic\", model: \"gpt-6-sol\" };\n    mergeUsagePricingBucket(anthropic, { inputTokens: 300000 });\n    expect(anthropic.pricingBuckets).toBeUndefined();\n\n    const future = { provider: \"openai\", model: \"gpt-6-sol-future\" };\n    mergeUsagePricingBucket(future, { inputTokens: 300000 });\n    expect(future.pricingBuckets).toBeUndefined();\n\n    // projectUsagePricingContext still projects a non-boolean regional flag.\n    expect(() =>\n      projectUsagePricingContext({ regional_processing: \"yes\" }),\n    ).toThrow(TypeError);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685204207,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-04.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 0,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-04.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_brx4buul085qg1z6vleulf7j",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-dteBlT/9f11723a-7c84-4349-a1bc-d3deb7726854/workspace/packages/cli/src/lib/usage-pricing-context.js",
+              "fileVersion": "2847:1791108223000:1793685007953.9314",
+              "range": {
+                "startLine": 1,
+                "endLine": 93,
+                "totalLines": 94
+              },
+              "readSpan": {
+                "start": 0,
+                "end": 2847,
+                "total": 2847
+              },
+              "hashed": false,
+              "content": "import {\n  DOCUMENTED_OPENAI_MODELS,\n  GPT6_PRICING_TERMS,\n} from \"./model-context-catalog.js\";\n\n/** Only bounded, non-secret pricing labels may enter the durable usage ledger. */\nexport function projectUsagePricingContext(usage = {}) {\n  const projected = {};\n  for (const [key, alias] of [\n    [\"service_tier\", \"serviceTier\"],\n    [\"regional_processing\", \"regionalProcessing\"],\n  ]) {\n    if (!Object.hasOwn(usage, key) && !Object.hasOwn(usage, alias)) continue;\n    if (\n      Object.hasOwn(usage, key) &&\n      Object.hasOwn(usage, alias) &&\n      usage[key] !== usage[alias]\n    ) {\n      throw new TypeError(`usage pricing aliases conflict: ${key}`);\n    }\n    const value = Object.hasOwn(usage, key) ? usage[key] : usage[alias];\n    if (key === \"service_tier\") {\n      projected[key] =\n        typeof value === \"string\" &&\n        Object.hasOwn(GPT6_PRICING_TERMS.serviceMultipliers, value)\n          ? value\n          : \"unknown\";\n    } else {\n      if (typeof value !== \"boolean\")\n        throw new TypeError(\"usage regional processing must be boolean\");\n      projected[key] = value;\n    }\n  }\n  return projected;\n}\n\n/** Preserve per-request thresholds in a bounded set of aggregate price buckets. */\nexport function mergeUsagePricingBucket(entry, usage) {\n  if (\n    String(entry.provider).toLowerCase() !== \"openai\" ||\n    !DOCUMENTED_OPENAI_MODELS[String(entry.model).toLowerCase()]?.pricing\n  )\n    return;\n  const metadata = projectUsagePricingContext(usage);\n  const promptTokens =\n    usage.requestInputTokens ??\n    usage.inputTokens +\n      (usage.cacheReadTokens || 0) +\n      (usage.cacheCreationTokens || 0);\n  const long = promptTokens > GPT6_PRICING_TERMS.longContext.threshold;\n  const serviceTier = metadata.service_tier || \"standard\";\n  const regionalProcessing = metadata.regional_processing === true;\n  entry.pricingBuckets ||= [];\n  let bucket = entry.pricingBuckets.find(\n    (item) =>\n      item.serviceTier === serviceTier &&\n      item.regionalProcessing === regionalProcessing &&\n      item.requestInputTokens > GPT6_PRICING_TERMS.longContext.threshold ===\n        long,\n  );\n  if (!bucket) {\n    bucket = {\n      inputTokens: 0,\n      outputTokens: 0,\n      cacheReadTokens: 0,\n      cacheCreationTokens: 0,\n      totalTokens: 0,\n      calls: 0,\n      serviceTier,\n      regionalProcessing,\n      requestInputTokens: promptTokens,\n    };\n    entry.pricingBuckets.push(bucket);\n  }\n  for (const key of [\n    \"inputTokens\",\n    \"outputTokens\",\n    \"cacheReadTokens\",\n    \"cacheCreationTokens\",\n    \"totalTokens\",\n    \"calls\",\n  ]) {\n    const value = usage[key] ?? (key === \"calls\" ? 1 : 0);\n    if (\n      !Number.isSafeInteger(value) ||\n      value < 0 ||\n      !Number.isSafeInteger(bucket[key] + value)\n    ) {\n      throw new TypeError(`invalid pricing bucket ${key}`);\n    }\n    bucket[key] += value;\n  }\n}\n",
+              "sourceRecovery": {
+                "action": "complete-source-container",
+                "fileVersion": "2847:1791108223000:1793685007953.9314",
+                "requestedRange": {
+                  "startLine": 1,
+                  "endLine": 80,
+                  "totalLines": 94
+                },
+                "requestedSpan": {
+                  "start": 0,
+                  "end": 2547,
+                  "total": 2847
+                },
+                "note": "The requested excerpt cut a source container. These complete surrounding statements come from the same file version; the range and readSpan describe the content actually returned."
+              },
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "2847:1791108223000:1793685007953.9314"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793685221925,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/usage-pricing-context.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 10,
+                "sessionId": "headless-1793685026901-2535",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/usage-pricing-context.js"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 1173,
+              "output_tokens": 50,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2783,
+              "output_tokens": 74,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3848,
+              "output_tokens": 79,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5915,
+              "output_tokens": 784,
+              "cache_read_input_tokens": 6144,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3357,
+              "output_tokens": 2451,
+              "cache_read_input_tokens": 10240,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6193,
+              "output_tokens": 1864,
+              "cache_read_input_tokens": 10240,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 8033,
+              "output_tokens": 64,
+              "cache_read_input_tokens": 14336,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 7097,
+              "output_tokens": 1165,
+              "cache_read_input_tokens": 18432,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 1438,
+              "output_tokens": 50,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3048,
+              "output_tokens": 71,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4109,
+              "output_tokens": 121,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2572,
+              "output_tokens": 117,
+              "cache_read_input_tokens": 6144,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3543,
+              "output_tokens": 132,
+              "cache_read_input_tokens": 6144,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2974,
+              "output_tokens": 697,
+              "cache_read_input_tokens": 8192,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4182,
+              "output_tokens": 157,
+              "cache_read_input_tokens": 8192,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 1789,
+              "output_tokens": 105,
+              "cache_read_input_tokens": 11008,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2867,
+              "output_tokens": 132,
+              "cache_read_input_tokens": 10240,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6468,
+              "output_tokens": 527,
+              "cache_read_input_tokens": 10240,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4116,
+              "output_tokens": 132,
+              "cache_read_input_tokens": 15360,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3905,
+              "output_tokens": 117,
+              "cache_read_input_tokens": 16384,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4233,
+              "output_tokens": 2152,
+              "cache_read_input_tokens": 16896,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 8098,
+              "output_tokens": 1175,
+              "cache_read_input_tokens": 16384,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 23043,
+              "output_tokens": 1495,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 23429,
+              "output_tokens": 2790,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 138213,
+          "output_tokens": 16501,
+          "cache_read_input_tokens": 205056
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 24,
+        "estimatedCostUSD": 0.026840884000000006,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "I now have the complete source. Let me verify the existing deliverable assertions against the actual source code.\n\n**Source contract (`mergeUsagePricingBucket`):**\n- Only applies when `provider === \"openai\"` AND `DOCUMENTED_OPENAI_MODELS[model]?.pricing` exists.\n- `projectUsagePricingContext(usage)` throws TypeError if `regional_processing` present and not boolean.\n- `promptTokens = usage.requestInputTokens ?? inputTokens + cacheRead + cacheCreation`.\n- `long = promptTokens > 272000`.\n- Bucket lookup matches `serviceTier`, `regionalProcessing`, and the boolean `item.requestInputTokens > threshold === long`.\n- New bucket stores `requestInputTokens: promptTokens`.\n- Accumulates inputTokens/outputTokens/cacheReadTokens/cacheCreationTokens/totalTokens/calls.\n\nLet me verify each existing test against the source:\n\n**Test 1:** Two same-total requests (281000 each), one long (280000 input), one short (250000+31000). → 2 buckets. Correct per source. `longBucket.requestInputTokens=280000`, `shortBucket=250000`. Correct.\n\n**Test 2:** Both short → 1 bucket, `requestInputTokens=100000` (first request), `inputTokens=160000`, `calls=2`. Correct.\n\n**Test 3:** cached has inputTokens=150000+200000=350000, cacheReadTokens=50000, calls=2, one bucket (both short, 200000 prompt each). Correct. fresh has inputTokens=400000, cacheReadTokens=0. Correct.\n\n**Test 4:** requestInputTokens=300000 authoritative → long, 1 bucket, requestInputTokens=300000, inputTokens=50000, cacheReadTokens=50000. Correct.\n\n**Test 5:** boundary. at: inputTokens=272000 → prompt=272000, not long, bucket requestInputTokens=272000. over: 272001 → long, requestInputTokens=272001. Assertions correct.\n\n**Test 6:** anthropic/gpt-6-sol → provider !== openai → return, pricingBuckets undefined. openai/gpt-6-sol-future → not in DOCUMENTED_OPENAI_MODELS → undefined. `projectUsagePricingContext({regional_processing:\"yes\"})` → throws TypeError. Correct.\n\nNow, a critical concern: **Test 3 asserts `cached.pricingBuckets[0].cacheReadTokens` is 50000.** But in test 3, the two cached requests are both `long=false`. But wait — the fresh entry: I need to recheck. Both fresh requests have inputTokens=200000, short. And cached reqs: 150000+50000=200000, short; 200000 short. So one bucket each. Good.\n\nNow, a key subtle issue: **In test 1, does `gpt-6-sol` have pricing?** From the map in model-context-catalog: `[[\"gpt-6-sol\", 2, 10], [\"gpt-6-luna\", 0.1, 0.5]]`. Yes, gpt-6-sol has pricing. Good.\n\nNow — is there an actual **defect** in the frozen implementation that my test should expose? The requirement is about per-request pricing. Let me think about whether the bucketing preserves per-request contract correctly.\n\nThe key potential defect: **Within a single bucket, the stored `requestInputTokens` is only the first request's prompt tokens.** But since all requests in a bucket share the same `long` boolean (that's the bucket key), and the long multiplier is boolean-gated, pricing is correct. However, there's a subtle issue with the bucket's `requestInputTokens` when pricing via `estimateCost`:\n\n`priceRollup` calls `estimateCost({provider, model, ...bucket})`. The bucket has `requestInputTokens = promptTokens_of_first_request`. `estimateCost` computes `longPrompt = longContext && promptTokens > threshold`, where `promptTokens = requestInputTokens`. Since all requests in the bucket share the same long status, this yields the correct multiplier. No pricing defect.\n\nSo the frozen implementation appears **correct** for the tested behaviors. My tests are regression/contract tests that should pass. Good — no fabricated defect.\n\nNow let me verify the imports resolve correctly. The deliverable imports `../src/lib/usage-pricing-context.js`. From `packages/cli/__tests__/verify-04.test.js`, `../src/lib/...` resolves to `packages/cli/src/lib/...`. Correct.\n\nNow let me audit coverage of the requirement:\n\n**Requirement:** \"同一总 token 数但不同缓存/长上下文请求分布的费用按逐请求合同计算\" — Same total tokens, different cache/long-context request distributions, fees computed per-request.\n\nCoverage:\n- **Long-context split (same total, different distribution):** Test 1 covers this directly — two requests each total 281000, one crosses threshold, one doesn't, land in separate buckets. ✓\n- **Cache separation (same total prompt, different cache split):** Test 3 covers this — cached vs fresh, same total prompt tokens, cacheReadTokens preserved separately. ✓\n- **Boundary accept/reject:** Test 5. ✓\n- **requestInputTokens authoritative:** Test 4. ✓\n- **Negative: merging below threshold (no over-splitting):** Test 2. ✓\n- **Non-applicable guard (no bucket for non-OpenAI/undocumented):** Test 6. ✓\n\nAll 6 independent conditions covered. The requirement's core (same total, different cache/long distribution → per-request) is covered by Tests 1 and 3.\n\nThe existing deliverable is already complete and correct against the source. It has exactly 6 cases, imports only the intended module (not an existing suite), doesn't assert on source text, and covers each independent condition with positive/negative controls.\n\nLet me verify one more time that the test doesn't reference a non-existent export. It imports `mergeUsagePricingBucket` and `projectUsagePricingContext` from `../src/lib/usage-pricing-context.js` — both are exported. ✓\n\nNow, one concern about test 6's final assertion: `projectUsagePricingContext({ regional_processing: \"yes\" })` throws TypeError. From source: `regional_processing` key, value \"yes\" not boolean → throws `new TypeError(\"usage regional processing must be boolean\")`. ✓\n\nHowever — wait, there's a subtlety in `projectUsagePricingContext`. When called with `{ regional_processing: \"yes\" }`, neither `service_tier` nor `serviceTier` present → skip. For `regional_processing`: `Object.hasOwn(usage, \"regional_processing\")` true, alias \"regionalProcessing\" not present. value = usage[\"regional_processing\"] = \"yes\". typeof \"yes\" !== \"boolean\" → throw. ✓\n\nThe deliverable is complete and correct. But I was instructed to read back the completed deliverable. Let me re-read it to confirm it's in its final state (I already have its full content from the read at the start of this turn — it's the complete file, 5831 chars, reachedEnd).\n\nActually the deliverable already exists in final form and is correct against the source. The task requires me to \"Replace the non-answer placeholder with complete independent Vitest regression tests.\" The current file already has 6 complete tests, no placeholder. \n\nSince the deliverable is already correct, I should confirm it and report. But let me double-check there's no placeholder or incomplete assertion. Looking at the read content, all 6 tests are complete with real assertions. No placeholder.\n\nLet me verify the import path resolves to the correct source. From `packages/cli/__tests__/verify-04.test.js`, `../src/lib/usage-pricing-context.js` → `packages/cli/src/lib/usage-pricing-context.js`. ✓\n\nI should verify the module is importable — the existing unit test `model-release-contract.test.js` uses the same relative-import style. The task says \"Import paths are relative to the deliverable, not to an existing unit test directory: verify the resolved source path explicitly.\" The resolved path is `packages/cli/src/lib/usage-pricing-context.js` which is the correct frozen source file. ✓\n\nThe deliverable is complete and correct. Since the file already fully satisfies the requirements, no change is strictly necessary. However, I should ensure it's the final intended state and confirm it reads back cleanly.\n\nThe file is already correct. Let me report completion with the requirement-to-assertion audit.\n\nLet me do a final read-back to confirm the file is unchanged and complete, which is cheap and confirms persistence.\n\nActually, I already have the full file content from this turn's earlier read (5831 chars, complete file). Re-reading is redundant. I'll finalize.\n\nLet me write my terminal account.</think>I have the complete source of `usage-pricing-context.js` and the full deliverable. The existing `verify-04.test.js` is already a complete, correct regression suite. Let me audit it against the actual source contract before finalizing.\n\n**Requirement-to-assertion audit:**\n\nThe requirement: *same total token count but different cache/long-context request distributions must be priced per-request contract* (`promptTokens > 272000` splits long-context buckets; `cacheReadTokens`/`cacheCreationTokens` accumulated separately so the 0.1×/1.25× multipliers survive aggregation).\n\nVerified each independent condition against `mergeUsagePricingBucket` source:\n\n1. **Long-context membership splits same-total requests into separate buckets** (Test 1): two requests each totaling 281000 tokens — `inputTokens=280000` (prompt 280000 > 272000 → long) and `inputTokens=250000, outputTokens=31000` (prompt 250000 ≤ threshold → short). Source computes `long` per request and matches buckets on the boolean, so they land in 2 distinct buckets. Asserted 2 buckets, `requestInputTokens` 280000 vs 250000. ✓\n\n2. **Below-threshold requests merge (no over-splitting)** (Test 2): negative control; both short → 1 bucket with summed `inputTokens=160000`, `calls=2`, `requestInputTokens=100000` (first request's prompt). Matches source bucket reuse. ✓\n\n3. **Cache-read tokens preserved separately with identical prompt totals** (Test 3): `cached` = 150000 input + 50000 cache-read, then 200000 input (both prompt 200000, short → 1 bucket with `inputTokens=350000, cacheReadTokens=50000`); `fresh` = two 200000-input requests (`inputTokens=400000, cacheReadTokens=0`). Same total prompt (400000), different cache split — source keeps categories distinct so pricing differs. ✓ This is the core cache-distribution condition.\n\n4. **`requestInputTokens` authoritative for long-context test** (Test 4): with composed input+cache short but explicit `requestInputTokens=300000`, source uses `usage.requestInputTokens ?? ...` → long bucket, `requestInputTokens=300000`. ✓\n\n5. **Boundary accept/reject** (Test 5): `promptTokens=272000` → not long (`> 272000` is false); `272001` → long. Bucket identities and `requestInputTokens` values asserted. ✓\n\n6. **Non-OpenAI / undocumented model guard + non-boolean regional flag** (Test 6): source returns early for non-openai or models without `.pricing` (no `pricingBuckets` created); `projectUsagePricingContext` throws TypeError for non-boolean `regional_processing`. ✓\n\nAll 6 cases use only the authorized module (`../src/lib/usage-pricing-context.js`, which resolves to the frozen source), do not import an existing suite, and don't assert on source text. No placeholder remains, and no fabricated defect was asserted — each positive/negative control maps to actual observable behavior.\n\n**Implementation defect assessment:** None found. The frozen `mergeUsagePricingBucket` correctly splits long-context buckets by the boolean `promptTokens > 272000` and accumulates cache-read/cache-creation tokens separately, so `priceRollup` prices each bucket via `estimateCost` with the per-request `cacheReadMultiplier` (0.1) / `cacheWriteMultiplier` (1.25) and boolean long-context multiplier intact. No minimal fix is required.\n\n**Limitations:** Only file tools were available; the tests were **not executed** (no shell/test runner). Static verification confirms the assertions match the source contract, but I cannot claim Vitest passes.\n\nThe deliverable is complete as-is and needs no edits.",
+          "session_id": "headless-1793685026901-2535",
+          "num_turns": 24,
+          "duration_ms": 226491,
+          "usage": {
+            "input_tokens": 138213,
+            "output_tokens": 16501,
+            "cache_read_input_tokens": 205056,
+            "cache_creation_input_tokens": 0
+          },
+          "total_cost_usd": 0.026840884000000006
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 24,
+        "usageCompleteRequests": 24,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateAcceptancePassed": false,
+      "passed": false,
+      "generationAssessment": {
+        "passed": true,
+        "originalGenerationPassed": true,
+        "originalTerminalVerified": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 138213,
+            "outputTokens": 16501,
+            "cacheReadInputTokens": 205056,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": 0.026840884000000006
+        },
+        "dialect": "one-shot"
+      },
+      "sourceScopePassed": true,
+      "unexpectedChanges": [],
+      "frozenSourceAssessment": {
+        "exact": true,
+        "contentVerified": true,
+        "filenameEncoding": "utf8"
+      },
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-04-setup-2cf46d4c-04a1-4e00-b1e2-398a84efcf5a.json",
+        "receiptDigest": "sha256:6e25f3ae22c2c3063139f8198beab604aa201502bcbe7da863bb6d18fa1a880a",
+        "scriptDigest": "sha256:eed6c6b11b7e9345d7b158d4e33ba925eccbf9b2533d569e5383dc381dbcb269",
+        "receiptPath": "pack/acceptance-evidence/verify-04-setup-2cf46d4c-04a1-4e00-b1e2-398a84efcf5a.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 22,
+            "passed": 22,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate tests did not reject the behavioral mutant",
+        "receipt": "verify-04-check-2d5c8fe7-6a4a-4d5b-9998-e984c7f4e3e6.json",
+        "receiptDigest": "sha256:3cfe1dae87e6436632db5d63043abae997e29e5398778db85e34b8d48743a6c7",
+        "scriptDigest": "sha256:2c6f2cdbc568babf93c4b99ac47aa055ce9230c4a16aa0da741e861ba1491765",
+        "receiptPath": "pack/acceptance-evidence/verify-04-check-2d5c8fe7-6a4a-4d5b-9998-e984c7f4e3e6.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 22,
+            "passed": 22,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          }
+        ],
+        "mutations": [
+          {
+            "name": "merge-short-and-long-request-price-buckets",
+            "sourceSha256": "7b8898a171561e61a4803ef8aa05ffc947aea3cd85e194c2b8ca6898a535b86c",
+            "total": 6,
+            "passed": 5,
+            "failed": 1
+          }
+        ]
+      },
+      "finishedAt": "2026-11-03T06:25:10.917Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-04"
+  ],
+  "passed": false,
+  "finishedAt": "2026-11-03T06:25:10.920Z"
+}

@@ -1,0 +1,78 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-15",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 12,
+      "passed": 12,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 129,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 657,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":3,\"numPassedTestSuites\":3,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":12,\"numPassedTests\":12,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793687095449,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore persists an active workspace-bound rule with provenance and TTL\",\"status\":\"passed\",\"title\":\"persists an active workspace-bound rule with provenance and TTL\",\"duration\":5.551055999999988,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore expires a rule without mutating durable history\",\"status\":\"passed\",\"title\":\"expires a rule without mutating durable history\",\"duration\":1.3046779999999956,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore revokes with record-level CAS and rejects a stale revision\",\"status\":\"passed\",\"title\":\"revokes with record-level CAS and rejects a stale revision\",\"duration\":2.18814500000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore rejects a stale store generation on create\",\"status\":\"passed\",\"title\":\"rejects a stale store generation on create\",\"duration\":1.222237000000007,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore refuses an unsafe persisted generation instead of accepting a non-advancing version\",\"status\":\"passed\",\"title\":\"refuses an unsafe persisted generation instead of accepting a non-advancing version\",\"duration\":0.9556830000000218,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore refuses an unsafe persisted revision instead of accepting a non-advancing version\",\"status\":\"passed\",\"title\":\"refuses an unsafe persisted revision instead of accepting a non-advancing version\",\"duration\":0.9125590000000159,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore advances the last safe generation on add and keeps stale generation CAS\",\"status\":\"passed\",\"title\":\"advances the last safe generation on add and keeps stale generation CAS\",\"duration\":1.8635340000000156,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore advances the last safe revision on revoke and keeps stale revision CAS\",\"status\":\"passed\",\"title\":\"advances the last safe revision on revoke and keeps stale revision CAS\",\"duration\":1.7079549999999983,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore fails closed on corrupt state or a different workspace binding\",\"status\":\"passed\",\"title\":\"fails closed on corrupt state or a different workspace binding\",\"duration\":1.769535999999988,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore isolates permission authority at the nearest nested repository\",\"status\":\"passed\",\"title\":\"isolates permission authority at the nearest nested repository\",\"duration\":8.78935199999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"loadPermissionAuthority\"],\"fullName\":\"loadPermissionAuthority includes only active scoped rules and preserves deny precedence\",\"status\":\"passed\",\"title\":\"includes only active scoped rules and preserves deny precedence\",\"duration\":4.303320999999983,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"loadPermissionAuthority\"],\"fullName\":\"loadPermissionAuthority suppresses workspace rules under managed-only policy\",\"status\":\"passed\",\"title\":\"suppresses workspace rules under managed-only policy\",\"duration\":1.6685870000000023,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793687095716,\"endTime\":1793687095748.6687,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/scoped-permission-store.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 634,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":2,\"numFailedTests\":2,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793687096117,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"permission revision overflow rejection\"],\"fullName\":\"permission revision overflow rejection accepts the last safe generation on add\",\"status\":\"passed\",\"title\":\"accepts the last safe generation on add\",\"duration\":5.814134999999993,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"permission revision overflow rejection\"],\"fullName\":\"permission revision overflow rejection rejects add at the exhausted generation without relaxing old rules\",\"status\":\"failed\",\"title\":\"rejects add at the exhausted generation without relaxing old rules\",\"duration\":7.838536000000005,\"failureMessages\":[\"AssertionError: expected error to match asymmetric matcher\\n    at /workspace/packages/cli/__tests__/verify-15.test.js:83:7\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"permission revision overflow rejection\"],\"fullName\":\"permission revision overflow rejection accepts the last safe revision on revoke\",\"status\":\"passed\",\"title\":\"accepts the last safe revision on revoke\",\"duration\":3.49900199999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"permission revision overflow rejection\"],\"fullName\":\"permission revision overflow rejection rejects revoke at the exhausted revision and keeps the rule active\",\"status\":\"failed\",\"title\":\"rejects revoke at the exhausted revision and keeps the rule active\",\"duration\":2.0435700000000168,\"failureMessages\":[\"AssertionError: expected error to match asymmetric matcher\\n    at /workspace/packages/cli/__tests__/verify-15.test.js:130:7\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]}],\"startTime\":1793687096356,\"endTime\":1793687096376.0435,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-15.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate or baseline regression failed"
+}

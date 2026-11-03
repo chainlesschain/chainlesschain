@@ -1,0 +1,131 @@
+import { describe, it, expect } from "vitest";
+import {
+  createBranchHistoryImport,
+  BRANCH_HISTORY_SCHEMA,
+  BRANCH_HISTORY_MESSAGE,
+} from "../src/lib/session-branch-history.js";
+
+// Independent regression coverage for fork-history ownership:
+// two branches must each recover their own valid ancestors/body and must not
+// absorb content that belongs to a different branch (no post-branch bleed).
+
+const HEX = (s) => s.repeat(64).slice(0, 64);
+
+function makeRow({ role, text, part = 0, last = true, sourceEventId, sourceItemIndex = 0 }) {
+  return {
+    type: BRANCH_HISTORY_MESSAGE,
+    data: {
+      role,
+      text,
+      part,
+      last,
+      sourceEventId,
+      sourceItemIndex,
+    },
+  };
+}
+
+function descriptor({ generation, totalMessages = 1, contextMessageCount = 0, reason = "timeline-replacement" }) {
+  return {
+    schema: BRANCH_HISTORY_SCHEMA,
+    sourceGeneration: generation,
+    totalMessages,
+    contextMessageCount,
+    coverage: {
+      kind: "snapshot-boundary",
+      boundaryEvent: HEX("ab"),
+      reason,
+    },
+  };
+}
+
+function startEvent(generation, opts = {}) {
+  return { type: "session_start", data: { sessionId: generation } };
+}
+
+describe("fork history ownership", () => {
+  it("two independent branches each recover their own valid body", () => {
+    const genA = HEX("aa");
+    const genB = HEX("bb");
+
+    const a = createBranchHistoryImport();
+    expect(a.accept(startEvent(genA))).toBeUndefined();
+    const startA = a.accept({ type: "session_branch", data: { history: descriptor({ generation: genA }) } });
+    expect(startA).toEqual({ kind: "start", coverage: descriptor({ generation: genA }).coverage });
+    expect(a.accept(makeRow({ role: "user", text: "ancestor-A", sourceEventId: genA }))).toEqual({
+      kind: "archive",
+      message: { role: "user", content: "ancestor-A" },
+    });
+
+    const b = createBranchHistoryImport();
+    expect(b.accept(startEvent(genB))).toBeUndefined();
+    const startB = b.accept({ type: "session_branch", data: { history: descriptor({ generation: genB }) } });
+    expect(startB).toEqual({ kind: "start", coverage: descriptor({ generation: genB }).coverage });
+    expect(b.accept(makeRow({ role: "assistant", text: "body-B", sourceEventId: genB }))).toEqual({
+      kind: "archive",
+      message: { role: "assistant", content: "body-B" },
+    });
+  });
+
+  it("multi-part rows concatenate into a single archived message", () => {
+    const gen = HEX("cc");
+    const imp = createBranchHistoryImport();
+    imp.accept(startEvent(gen));
+    imp.accept({ type: "session_branch", data: { history: descriptor({ generation: gen }) } });
+
+    const part0 = makeRow({ role: "user", text: "hello ", part: 0, last: false, sourceEventId: gen });
+    const part1 = makeRow({ role: "user", text: "world", part: 1, last: false, sourceEventId: gen });
+    const part2 = makeRow({ role: "user", text: "!", part: 2, last: true, sourceEventId: gen });
+
+    expect(imp.accept(part0)).toEqual({ kind: "archive-part" });
+    expect(imp.accept(part1)).toEqual({ kind: "archive-part" });
+    expect(imp.accept(part2)).toEqual({
+      kind: "archive",
+      message: { role: "user", content: "hello world!" },
+    });
+  });
+
+  it("rejects content from another branch instead of absorbing it into this branch", () => {
+    const genA = HEX("aa");
+    const genB = HEX("bb");
+    const imp = createBranchHistoryImport();
+    imp.accept(startEvent(genA));
+    imp.accept({ type: "session_branch", data: { history: descriptor({ generation: genA }) } });
+    // Body rows are exhausted (totalMessages=1), so a row that belongs to a
+    // different branch cannot be absorbed; it must be rejected, not archived.
+    expect(() =>
+      imp.accept(makeRow({ role: "user", text: "foreign-body", sourceEventId: genB })),
+    ).toThrow(/SESSION_BRANCH_HISTORY_INVALID|incomplete or inconsistent/);
+  });
+
+  it("rejects a branch start without a preceding session_start", () => {
+    const gen = HEX("dd");
+    const imp = createBranchHistoryImport();
+    // First accept() lands on index 1; start is never captured because the
+    // event is not a session_start. The subsequent branch cannot satisfy
+    // `start &&` and `index === 2`, so it must be rejected.
+    expect(() =>
+      imp.accept({ type: "session_branch", data: { history: descriptor({ generation: gen }) } }),
+    ).toThrow(/SESSION_BRANCH_HISTORY_INVALID|incomplete or inconsistent/);
+  });
+
+  it("rejects a body row with a role outside the supported set", () => {
+    const gen = HEX("ee");
+    const imp = createBranchHistoryImport();
+    imp.accept(startEvent(gen));
+    imp.accept({ type: "session_branch", data: { history: descriptor({ generation: gen }) } });
+    expect(() =>
+      imp.accept(makeRow({ role: "system", text: "x", sourceEventId: gen })),
+    ).toThrow(/SESSION_BRANCH_HISTORY_INVALID|incomplete or inconsistent/);
+  });
+
+  it("rejects a branch descriptor with an invalid snapshot reason", () => {
+    const gen = HEX("ff");
+    const imp = createBranchHistoryImport();
+    imp.accept(startEvent(gen));
+    const bad = descriptor({ generation: gen, reason: "not-a-real-reason" });
+    expect(() => imp.accept({ type: "session_branch", data: { history: bad } })).toThrow(
+      /SESSION_BRANCH_HISTORY_INVALID|incomplete or inconsistent/,
+    );
+  });
+});

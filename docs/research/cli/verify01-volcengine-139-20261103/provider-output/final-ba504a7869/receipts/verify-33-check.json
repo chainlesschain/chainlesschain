@@ -1,0 +1,78 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-33",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 18,
+      "passed": 18,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 132,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1333,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":7,\"numPassedTestSuites\":7,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":18,\"numPassedTests\":18,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793687071890,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"ChatViewProvider._writeImageTemps\"],\"fullName\":\"ChatViewProvider._writeImageTemps writes a whitelisted data URL to a temp file with the exact bytes\",\"status\":\"passed\",\"title\":\"writes a whitelisted data URL to a temp file with the exact bytes\",\"duration\":29.975324,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatViewProvider._writeImageTemps\"],\"fullName\":\"ChatViewProvider._writeImageTemps rejects MIME spoofing without sending a partial attachment set\",\"status\":\"passed\",\"title\":\"rejects MIME spoofing without sending a partial attachment set\",\"duration\":24.776292000000012,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatViewProvider._writeImageTemps\"],\"fullName\":\"ChatViewProvider._writeImageTemps reports junk: non-image mime, malformed base64, missing data\",\"status\":\"passed\",\"title\":\"reports junk: non-image mime, malformed base64, missing data\",\"duration\":47.52560599999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatViewProvider._writeImageTemps\"],\"fullName\":\"ChatViewProvider._writeImageTemps rejects more than 4 attachments per message visibly\",\"status\":\"passed\",\"title\":\"rejects more than 4 attachments per message visibly\",\"duration\":0.39822000000003754,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"chat HTML ships the paste/attach UI (parse gate)\"],\"fullName\":\"chat HTML ships the paste/attach UI (parse gate) has the attach strip and paste handler, and all scripts parse\",\"status\":\"passed\",\"title\":\"has the attach strip and paste handler, and all scripts parse\",\"duration\":3.354719999999986,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"image temp-file cleanup (no tmpdir pile-up)\"],\"fullName\":\"image temp-file cleanup (no tmpdir pile-up) deletes a conversation's temp images once its turn results\",\"status\":\"passed\",\"title\":\"deletes a conversation's temp images once its turn results\",\"duration\":30.875752000000034,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"image temp-file cleanup (no tmpdir pile-up)\"],\"fullName\":\"image temp-file cleanup (no tmpdir pile-up) Stop cancels image preparation before spawning and removes the prepared files\",\"status\":\"passed\",\"title\":\"Stop cancels image preparation before spawning and removes the prepared files\",\"duration\":26.988347999999974,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"image temp-file cleanup (no tmpdir pile-up)\"],\"fullName\":\"image temp-file cleanup (no tmpdir pile-up) dispose() sweeps every conversation's leftovers\",\"status\":\"passed\",\"title\":\"dispose() sweeps every conversation's leftovers\",\"duration\":25.114822000000004,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"image temp-file cleanup (no tmpdir pile-up)\"],\"fullName\":\"image temp-file cleanup (no tmpdir pile-up) keeps a queued screenshot until its own turn finishes\",\"status\":\"passed\",\"title\":\"keeps a queued screenshot until its own turn finishes\",\"duration\":30.03913,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"image temp-file cleanup (no tmpdir pile-up)\"],\"fullName\":\"image temp-file cleanup (no tmpdir pile-up) a failed send does not delete earlier queued attachments\",\"status\":\"passed\",\"title\":\"a failed send does not delete earlier queued attachments\",\"duration\":52.284523999999976,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"API key stays in the CLI secure store\"],\"fullName\":\"API key stays in the CLI secure store never copies a configured key into child env or argv\",\"status\":\"passed\",\"title\":\"never copies a configured key into child env or argv\",\"duration\":0.8924759999999878,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"API key stays in the CLI secure store\"],\"fullName\":\"API key stays in the CLI secure store does not synthesize CC_API_KEY when no key is configured\",\"status\":\"passed\",\"title\":\"does not synthesize CC_API_KEY when no key is configured\",\"duration\":0.3889970000000176,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793687072140,\"endTime\":1793687072413.389,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/vscode-ext-chat-images.test.js\"},{\"assertionResults\":[{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake rejects byte and aggregate limits before allocating buffers\",\"status\":\"passed\",\"title\":\"rejects byte and aggregate limits before allocating buffers\",\"duration\":22.836555000000033,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake rejects a pixel bomb without writing files\",\"status\":\"passed\",\"title\":\"rejects a pixel bomb without writing files\",\"duration\":1.7290680000000407,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake recognizes JPEG, GIF and WebP headers without decoding pixels\",\"status\":\"passed\",\"title\":\"recognizes JPEG, GIF and WebP headers without decoding pixels\",\"duration\":1.0313259999999786,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake cleans already-owned files on write failure and reports the failing image\",\"status\":\"passed\",\"title\":\"cleans already-owned files on write failure and reports the failing image\",\"duration\":1.6336640000000102,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake keeps async image sends bound to their source tab and discards reset results\",\"status\":\"passed\",\"title\":\"keeps async image sends bound to their source tab and discards reset results\",\"duration\":15.62202400000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake reserves read slots before rapid drops and keeps drafts in their own tab\",\"status\":\"passed\",\"title\":\"reserves read slots before rapid drops and keeps drafts in their own tab\",\"duration\":24.844453999999985,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793687072752,\"endTime\":1793687072819.8445,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/vscode-ext-image-budget.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 512,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":1,\"numPassedTestSuites\":0,\"numFailedTestSuites\":1,\"numPendingTestSuites\":0,\"numTotalTests\":0,\"numPassedTests\":0,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793687073153,\"success\":false,\"testResults\":[{\"assertionResults\":[],\"startTime\":1793687073153,\"endTime\":1793687073153,\"status\":\"failed\",\"message\":\"No test suite found in file /workspace/packages/vscode-extension/__tests__/verify-33.test.js\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-33.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "acceptance requires executed test cases"
+}

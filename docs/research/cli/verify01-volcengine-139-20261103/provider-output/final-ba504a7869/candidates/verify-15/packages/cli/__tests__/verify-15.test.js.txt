@@ -1,0 +1,148 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  SCOPED_PERMISSION_ERROR_CODES,
+  ScopedPermissionStore,
+} from "../src/lib/scoped-permission-store.js";
+
+const MAX = Number.MAX_SAFE_INTEGER;
+const FIXED_ID = "spr_0123456789abcdef0123456789abcdef";
+const ALT_ID = "spr_fedcba9876543210fedcba9876543210";
+
+let root;
+let workspace;
+let stateFile;
+let now;
+
+function store(options = {}) {
+  return new ScopedPermissionStore({
+    cwd: workspace,
+    filePath: stateFile,
+    now: () => now,
+    randomId: () => FIXED_ID,
+    ...options,
+  });
+}
+
+// Seed a valid workspace-bound state by using the store itself, then hand the
+// caller the raw persisted JSON so a case can move a version field to the
+// upper bound independently. The workspace binding/id come from the store so
+// the seeded state passes validateState.
+function seed(decision, rule) {
+  store().add({ decision, rule, expiresAt: now + 60_000 });
+  return JSON.parse(fs.readFileSync(stateFile, "utf8"));
+}
+
+beforeEach(() => {
+  root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-verify-15-"));
+  workspace = path.join(root, "workspace");
+  fs.mkdirSync(workspace, { recursive: true });
+  stateFile = path.join(root, "security", "rules.json");
+  now = Date.UTC(2026, 7, 15, 0, 0, 0);
+});
+
+afterEach(() => {
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+describe("permission revision overflow rejection", () => {
+  // Condition: generation overflow on add. The accepted boundary is
+  // MAX_SAFE_INTEGER - 1 -> MAX_SAFE_INTEGER (positive control); the first
+  // rejected value is generation already at MAX_SAFE_INTEGER (negative
+  // control), which must fail without dropping or relaxing the existing rule.
+  it("accepts the last safe generation on add", () => {
+    const state = seed("deny", "Bash(rm:*)");
+    state.generation = MAX - 1;
+    fs.writeFileSync(stateFile, JSON.stringify(state));
+
+    const target = store({ randomId: () => ALT_ID });
+    const created = target.add({
+      decision: "allow",
+      rule: "Read",
+      expiresAt: now + 60_000,
+    });
+    expect(created.status).toBe("active");
+    expect(target.list().generation).toBe(MAX);
+    expect(target.list().rules).toHaveLength(2);
+  });
+
+  it("rejects add at the exhausted generation without relaxing old rules", () => {
+    const state = seed("deny", "Bash(rm:*)");
+    state.generation = MAX;
+    fs.writeFileSync(stateFile, JSON.stringify(state));
+
+    const target = store({ randomId: () => ALT_ID });
+    expect(() =>
+      target.add({
+        decision: "allow",
+        rule: "Read",
+        expiresAt: now + 60_000,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: SCOPED_PERMISSION_ERROR_CODES.INVALID,
+        message: /generation is exhausted/,
+      }),
+    );
+
+    const after = target.list();
+    expect(after.generation).toBe(MAX);
+    expect(after.rules).toHaveLength(1);
+    // The pre-existing deny rule remains active: old permissions are not
+    // relaxed and no allow rule was admitted.
+    expect(after.rules[0]).toMatchObject({
+      id: FIXED_ID,
+      decision: "deny",
+      status: "active",
+    });
+  });
+
+  // Condition: revision overflow on revoke. Accepted boundary is revision
+  // MAX_SAFE_INTEGER - 1 -> MAX_SAFE_INTEGER (positive control); the first
+  // rejected value is a rule already at revision MAX_SAFE_INTEGER (negative
+  // control), which must fail and leave the rule active (not revoked).
+  it("accepts the last safe revision on revoke", () => {
+    const state = seed("allow", "Bash(git status:*)");
+    state.generation = 1;
+    state.rules[0].revision = MAX - 1;
+    fs.writeFileSync(stateFile, JSON.stringify(state));
+
+    const revoked = store().revoke({
+      id: FIXED_ID,
+      expectedRevision: MAX - 1,
+    });
+    expect(revoked).toMatchObject({ status: "revoked", revision: MAX });
+    expect(store().list().generation).toBe(2);
+    expect(store().list().rules[0].status).toBe("revoked");
+  });
+
+  it("rejects revoke at the exhausted revision and keeps the rule active", () => {
+    const state = seed("allow", "Bash(git status:*)");
+    state.generation = 1;
+    state.rules[0].revision = MAX;
+    fs.writeFileSync(stateFile, JSON.stringify(state));
+
+    const target = store();
+    expect(() =>
+      target.revoke({ id: FIXED_ID, expectedRevision: MAX }),
+    ).toThrow(
+      expect.objectContaining({
+        code: SCOPED_PERMISSION_ERROR_CODES.INVALID,
+        message: /revision is exhausted/,
+      }),
+    );
+
+    const after = target.list();
+    expect(after.generation).toBe(1); // no write occurred
+    // The allow rule stays active and unrevoked: the permission is not
+    // relaxed by the overflow attempt.
+    expect(after.rules[0]).toMatchObject({
+      id: FIXED_ID,
+      decision: "allow",
+      status: "active",
+      revision: MAX,
+    });
+  });
+});

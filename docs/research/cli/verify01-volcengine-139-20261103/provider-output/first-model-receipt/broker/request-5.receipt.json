@@ -1,0 +1,52 @@
+{
+  "id": 5,
+  "taskId": "first-run-darwin-cli",
+  "startedAt": "2026-11-03T05:46:14.592Z",
+  "usage": {
+    "completion_tokens": 99,
+    "prompt_tokens": 8461,
+    "total_tokens": 8560,
+    "prompt_tokens_details": {
+      "cached_tokens": 2048
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  },
+  "tokenOnlyEstimateCny": 0.0203348,
+  "actualBilledCostCny": null,
+  "errorCode": null,
+  "responseMode": "json",
+  "finish": "tool_calls",
+  "finishedAt": "2026-11-03T05:46:17.330Z",
+  "transport": {
+    "socketAssignedMs": 1,
+    "dnsLookupMs": 2,
+    "tcpConnectedMs": 177,
+    "tlsConnectedMs": 355,
+    "dispatchStartedMs": 355,
+    "requestFinishedMs": 356,
+    "responseStartedMs": 2736,
+    "dispatchStarted": true,
+    "failureCategory": null,
+    "connectionAttempts": [
+      {
+        "event": "start",
+        "family": 4,
+        "elapsedMs": 2,
+        "errorCode": null
+      }
+    ],
+    "nestedErrorCodes": [],
+    "errorCode": null,
+    "errorSyscall": null
+  },
+  "response": {
+    "storedSha256": "5a5dd8b2680af4c3bdd409d0c7e7ee3bd8b85dcb5ed4a0c0a48c3b41f4a68d06",
+    "storedBytes": 774,
+    "status": 200,
+    "originalSha256": "5a5dd8b2680af4c3bdd409d0c7e7ee3bd8b85dcb5ed4a0c0a48c3b41f4a68d06",
+    "originalBytes": 774,
+    "sensitiveValueRedacted": false
+  }
+}

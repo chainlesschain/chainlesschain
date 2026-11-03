@@ -1,0 +1,62 @@
+{
+  "id": 1,
+  "taskId": "verify-14",
+  "startedAt": "2026-11-03T05:48:46.633Z",
+  "usage": null,
+  "tokenOnlyEstimateCny": null,
+  "actualBilledCostCny": null,
+  "errorCode": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED",
+  "responseMode": "sse",
+  "finishedAt": "2026-11-03T05:48:48.703Z",
+  "transport": {
+    "socketAssignedMs": 1,
+    "dnsLookupMs": 66,
+    "tcpConnectedMs": null,
+    "tlsConnectedMs": null,
+    "dispatchStartedMs": null,
+    "requestFinishedMs": null,
+    "responseStartedMs": null,
+    "dispatchStarted": false,
+    "failureCategory": "DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN",
+    "connectionAttempts": [
+      {
+        "event": "start",
+        "family": 4,
+        "elapsedMs": 66,
+        "errorCode": null
+      },
+      {
+        "event": "timeout",
+        "family": 4,
+        "elapsedMs": 2068,
+        "errorCode": null
+      },
+      {
+        "event": "start",
+        "family": 6,
+        "elapsedMs": 2069,
+        "errorCode": null
+      },
+      {
+        "event": "failed",
+        "family": 6,
+        "elapsedMs": 2069,
+        "errorCode": "ENETUNREACH"
+      }
+    ],
+    "nestedErrorCodes": [
+      "ETIMEDOUT",
+      "ENETUNREACH"
+    ],
+    "errorCode": "ETIMEDOUT",
+    "errorSyscall": null
+  },
+  "response": {
+    "storedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "storedBytes": 0,
+    "status": null,
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "originalBytes": 0,
+    "sensitiveValueRedacted": false
+  }
+}

@@ -1,0 +1,106 @@
+import { describe, it, expect, vi } from "vitest";
+import { createImagePreviewGate } from "../../vscode-extension/src/chat/image-preview-gate.js";
+
+// Regression coverage for "preview cancellation is ineffective": after a page
+// switch or cancel, a late preview must not be delivered as (written to) the
+// current page's result, while the current page must still display normally.
+describe("verify-32: late previews never reach a new page; the current page resolves", () => {
+  it("replacing the page discards the old page's late bitmap and delivers only the current result", async () => {
+    const workers = [];
+    const gate = createImagePreviewGate({
+      workerFactory: () => {
+        const worker = { postMessage() {}, terminate() {} };
+        workers.push(worker);
+        return worker;
+      },
+    });
+    const first = gate.validate([{ data: "page A" }]);
+    const rejected = expect(first).rejects.toThrow("cancelled");
+    const second = gate.validate([{ data: "page B" }]);
+    // A late preview from the old page (worker 0) arrives after the new page
+    // started. It must be discarded, not written to the new page.
+    const lateBitmap = { close: vi.fn() };
+    workers[0].onmessage({
+      data: { results: [{ thumbnails: [{ bitmap: lateBitmap }] }] },
+    });
+    // The current page (worker 1) resolves normally.
+    const currentBitmap = { close: vi.fn() };
+    workers[1].onmessage({
+      data: {
+        results: [{ thumbnails: [{ bitmap: currentBitmap }] }],
+      },
+    });
+    await rejected;
+    expect(await second).toEqual([
+      { thumbnails: [{ bitmap: currentBitmap }] },
+    ]);
+    // The old page's late preview did not reach the current page; it was closed.
+    expect(lateBitmap.close).toHaveBeenCalledOnce();
+    expect(currentBitmap.close).not.toHaveBeenCalled();
+  });
+
+  it("cancelling without replacement rejects the pending preview and closes a late preview", async () => {
+    const worker = { postMessage() {}, terminate() {} };
+    const gate = createImagePreviewGate({ workerFactory: () => worker });
+    const pending = gate.validate([{ data: "preview" }]);
+    const rejected = expect(pending).rejects.toThrow("cancelled");
+    gate.cancel();
+    const lateBitmap = { close: vi.fn() };
+    worker.onmessage({
+      data: { results: [{ thumbnails: [{ bitmap: lateBitmap }] }] },
+    });
+    await rejected;
+    expect(lateBitmap.close).toHaveBeenCalledOnce();
+  });
+
+  it("an old page worker error after replacement does not disturb the current page", async () => {
+    const workers = [];
+    const gate = createImagePreviewGate({
+      workerFactory: () => {
+        const worker = { postMessage() {}, terminate() {} };
+        workers.push(worker);
+        return worker;
+      },
+    });
+    const first = gate.validate([{ data: "page A" }]);
+    const rejected = expect(first).rejects.toThrow("cancelled");
+    const second = gate.validate([{ data: "page B" }]);
+    // The old page reports a decode error late; it must not reject the new page.
+    workers[0].onerror();
+    workers[1].onmessage({ data: { results: ["current"] } });
+    await rejected;
+    expect(await second).toEqual(["current"]);
+  });
+
+  it("after multiple page switches only the final page's preview is accepted", async () => {
+    const workers = [];
+    const gate = createImagePreviewGate({
+      workerFactory: () => {
+        const worker = { postMessage() {}, terminate() {} };
+        workers.push(worker);
+        return worker;
+      },
+    });
+    const pageA = gate.validate([{ data: "A" }]);
+    const rejectedA = expect(pageA).rejects.toThrow("cancelled");
+    const pageB = gate.validate([{ data: "B" }]);
+    const rejectedB = expect(pageB).rejects.toThrow("cancelled");
+    const pageC = gate.validate([{ data: "C" }]);
+    // Intermediate page workers resolve late after the final page started.
+    const aLate = { close: vi.fn() };
+    workers[0].onmessage({
+      data: { results: [{ thumbnails: [{ bitmap: aLate }] }] },
+    });
+    const bLate = { close: vi.fn() };
+    workers[1].onmessage({
+      data: { results: [{ thumbnails: [{ bitmap: bLate }] }] },
+    });
+    workers[2].onmessage({ data: { results: ["final"] } });
+    await rejectedA;
+    await rejectedB;
+    expect(await pageC).toEqual(["final"]);
+    // Neither intermediate late preview was written to the final page.
+    expect(aLate.close).toHaveBeenCalledOnce();
+    expect(bLate.close).toHaveBeenCalledOnce();
+  });
+});

@@ -1,0 +1,21 @@
+{
+  "runId": 41585306414,
+  "source": "ba504a7869c14c11787e1547dc8611eef9aace71",
+  "sampleId": "verify-14",
+  "dispatchStarted": false,
+  "notAModelCapabilityVerdict": true,
+  "files": [
+    {
+      "path": "policy.json",
+      "digest": "sha256:7123120dcf42d955a2c8d91e03aeb4905aac7ac77dd694881b1c64d3ebb9b91c"
+    },
+    {
+      "path": "request-1.receipt.json",
+      "digest": "sha256:dc56d662f29c5f69352b5ebbb9388f89dcb2502983c37713076286f52aa451eb"
+    },
+    {
+      "path": "summary.json",
+      "digest": "sha256:95e4b693d56177967bb6704891bc85895e7ed025d16d7e8f8ece1c91449d61ec"
+    }
+  ]
+}

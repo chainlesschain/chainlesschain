@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "status": "dispatched",
+  "status": "completed",
   "purpose": "Remove artificial 8192 output cap and retry latest output-truncated samples",
   "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139-provider-output.json",
   "packageSetDigest": "sha256:2f00fcaea2f423b761563ebd9543228a488298ba735a8e87b7c3e95e11bef031",
@@ -47,5 +47,20 @@
   "solPublic139Full45Rerun": false,
   "source": "ba504a7869c14c11787e1547dc8611eef9aace71",
   "runId": 41585306414,
-  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41585306414"
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41585306414",
+  "completeEvidence": true,
+  "accepted": 2,
+  "total": 12,
+  "generationPassed": 9,
+  "newlyAcceptedSampleIds": [
+    "verify-01",
+    "verify-32"
+  ],
+  "outputTruncatedSamples": [],
+  "preDispatchNetworkFailures": [
+    "verify-14",
+    "verify-33"
+  ],
+  "crossBudgetCoverage": "17/45 (tasks14/36, firstRuns3/9); original uniform score15/45 unchanged",
+  "finalResultsPath": "docs/research/cli/verify01-volcengine-139-20261103/provider-output/final-ba504a7869/results.json"
 }

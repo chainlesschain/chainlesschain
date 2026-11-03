@@ -1,8 +1,12 @@
-﻿import assert from 'node:assert/strict';
+import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {chatWithTools} from '../packages/cli/src/runtime/agent-core.js';
-const proof=JSON.parse(fs.readFileSync('.work/cli139-public-wire-source-proof.json','utf8'));
-assert.ok(proof.files.every(f=>f.matchesWorkspace));
+import {createHash} from 'node:crypto';
+import {chatWithTools} from '../../../../../packages/cli/src/runtime/agent-core.js';
+const proof=JSON.parse(fs.readFileSync(new URL('./cli139-output-wire-proof.json',import.meta.url),'utf8'));
+for (const file of proof.files) {
+ const bytes=fs.readFileSync(new URL('../../../../../packages/cli/'+file.path,import.meta.url));
+ assert.equal('sha256:'+createHash('sha256').update(bytes).digest('hex'),file.digest);
+}
 const original=globalThis.fetch;
 const cases=[];
 let active;
@@ -25,5 +29,5 @@ try {
  }
 } finally {globalThis.fetch=original;}
 const report={...proof,scope:'Published .139 source byte matched; offline real chatWithTools request capture; zero network or paid inference',cases,passed:true};
-fs.writeFileSync('.work/cli139-public-output-wire-proof.json',JSON.stringify(report,null,2)+'\n');
+// Replay emits its outcome without overwriting the original package evidence.
 console.log(JSON.stringify({passed:true,cases}));

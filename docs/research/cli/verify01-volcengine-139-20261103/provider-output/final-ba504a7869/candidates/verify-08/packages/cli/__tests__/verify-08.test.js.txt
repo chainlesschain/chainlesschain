@@ -1,0 +1,130 @@
+// verify-08: fork history attribution for session-branch-history import.
+// Frozen source: packages/cli/src/lib/session-branch-history.js (read-only).
+// Acceptance: two branches each restore a valid ancestor and an independent
+// body; content after a branch must not bleed into the other branch.
+// Behavioral positive/negative controls over the public accept() stream.
+import { describe, it, expect } from 'vitest';
+import { createBranchHistoryImport } from '../../src/lib/session-branch-history';
+
+const HASH = 'a'.repeat(64); // 64-hex source generation / source event id
+const SCHEMA = 'chainlesschain.session-branch-history/v1';
+
+// Build a valid event stream for a single branch import with `body` text and
+// descriptor counts. Returns the accept() results so a caller can assert the
+// exact body that was actually attributed to this branch.
+function importBody(acceptor, opts) {
+  const { totalMessages = 1, contextMessageCount = 0, body } = opts;
+  const results = [];
+  results.push(
+    acceptor.accept({ type: 'session_branch', data: { history: {
+      schema: SCHEMA,
+      sourceGeneration: HASH,
+      totalMessages,
+      contextMessageCount,
+      coverage: { kind: 'from-origin', boundaryEvent: null, reason: null },
+    } } }),
+  );
+  for (let i = 0; i < totalMessages; i += 1) {
+    results.push(
+      acceptor.accept({ type: 'session_history_message', data: {
+        role: 'user',
+        text: body,
+        part: i,
+        last: true,
+        sourceEventId: HASH,
+        sourceItemIndex: i,
+      } }),
+    );
+  }
+  return results;
+}
+
+describe('fork history attribution (verify-08)', () => {
+  it('restores a valid branch body with a recoverable ancestor', () => {
+    const acceptor = createBranchHistoryImport();
+    acceptor.accept({ type: 'session_start', data: { sessionId: 's0' } });
+    const results = importBody(acceptor, { body: 'A-body' });
+    const archives = results.filter((r) => r && r.kind === 'archive');
+    expect(archives.length).toBe(1);
+    expect(JSON.stringify(archives[0])).toContain('A-body');
+  });
+
+  it('keeps the two branch bodies independent: no bleed across branches', () => {
+    const acceptor = createBranchHistoryImport();
+    acceptor.accept({ type: 'session_start', data: { sessionId: 's0' } });
+    const a = importBody(acceptor, { body: 'A-body' });
+    const b = importBody(acceptor, { body: 'B-body' });
+    const aArchives = a.filter((r) => r && r.kind === 'archive');
+    const bArchives = b.filter((r) => r && r.kind === 'archive');
+    // A's body is attributed to A only.
+    expect(JSON.stringify(aArchives)).toContain('A-body');
+    expect(JSON.stringify(aArchives)).not.toContain('B-body');
+    // B's body is attributed to B only and is independent of A's content.
+    expect(JSON.stringify(bArchives)).toContain('B-body');
+    expect(JSON.stringify(bArchives)).not.toContain('A-body');
+  });
+
+  it('rejects a descriptor whose schema is outside the allowed set', () => {
+    const acceptor = createBranchHistoryImport();
+    acceptor.accept({ type: 'session_start', data: { sessionId: 's0' } });
+    expect(() =>
+      acceptor.accept({ type: 'session_branch', data: { history: {
+        schema: 'not-a-schema',
+        sourceGeneration: HASH,
+        totalMessages: 1,
+        contextMessageCount: 0,
+        coverage: { kind: 'from-origin', boundaryEvent: null, reason: null },
+      } } }),
+    ).toThrow(/SESSION_BRANCH_HISTORY_INVALID/);
+  });
+
+  it('rejects an archive row whose role is outside user/assistant/tool', () => {
+    const acceptor = createBranchHistoryImport();
+    acceptor.accept({ type: 'session_start', data: { sessionId: 's0' } });
+    const branch = acceptor.accept({ type: 'session_branch', data: { history: {
+      schema: SCHEMA,
+      sourceGeneration: HASH,
+      totalMessages: 1,
+      contextMessageCount: 0,
+      coverage: { kind: 'from-origin', boundaryEvent: null, reason: null },
+    } } });
+    expect(branch && branch.kind).toBe('start');
+    expect(() =>
+      acceptor.accept({ type: 'session_history_message', data: {
+        role: 'system',
+        text: 'bad',
+        part: 0,
+        last: true,
+        sourceEventId: HASH,
+        sourceItemIndex: 0,
+      } }),
+    ).toThrow(/SESSION_BRANCH_HISTORY_INVALID/);
+  });
+
+  it('rejects a non-integer totalMessages in the descriptor', () => {
+    const acceptor = createBranchHistoryImport();
+    acceptor.accept({ type: 'session_start', data: { sessionId: 's0' } });
+    expect(() =>
+      acceptor.accept({ type: 'session_branch', data: { history: {
+        schema: SCHEMA,
+        sourceGeneration: HASH,
+        totalMessages: 1.5,
+        contextMessageCount: 0,
+        coverage: { kind: 'from-origin', boundaryEvent: null, reason: null },
+      } } }),
+    ).toThrow(/SESSION_BRANCH_HISTORY_INVALID/);
+  });
+
+  it('rejects a complete event before the branch body is fully archived', () => {
+    const acceptor = createBranchHistoryImport();
+    acceptor.accept({ type: 'session_start', data: { sessionId: 's0' } });
+    // Declares 2 messages but only archives 1; complete cannot close cleanly.
+    importBody(acceptor, { totalMessages: 2, body: 'only-one' });
+    expect(() =>
+      acceptor.accept({ type: 'session_branch_complete', data: {
+        schemaVersion: 2,
+        messageCount: 0,
+      } }),
+    ).toThrow(/SESSION_BRANCH_HISTORY_INVALID/);
+  });
+});

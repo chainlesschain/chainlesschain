@@ -1,0 +1,10 @@
+{
+  "id": 35,
+  "taskId": "verify-07",
+  "startedAt": "2026-11-03T05:50:01.573Z",
+  "usage": null,
+  "tokenOnlyEstimateCny": null,
+  "actualBilledCostCny": null,
+  "errorCode": null,
+  "responseMode": "json"
+}

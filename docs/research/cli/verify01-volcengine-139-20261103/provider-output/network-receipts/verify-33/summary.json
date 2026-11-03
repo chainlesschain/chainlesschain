@@ -1,0 +1,17 @@
+{
+  "formalSample": false,
+  "physicalRequestsStarted": 6,
+  "usageCompleteRequests": 5,
+  "tasks": [
+    {
+      "taskId": "verify-33",
+      "requests": 6,
+      "errorCode": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED"
+    }
+  ],
+  "poisoned": null,
+  "actualBilledCostCny": null,
+  "tokenOnlyEstimateCny": null,
+  "knownTokenOnlyEstimateCny": 0.0738444,
+  "fxRate": null
+}

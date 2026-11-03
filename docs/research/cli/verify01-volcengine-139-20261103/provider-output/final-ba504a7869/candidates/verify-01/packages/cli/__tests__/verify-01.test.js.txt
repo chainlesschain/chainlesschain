@@ -1,0 +1,95 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+describe("official endpoint vs same-name custom gateway isolation", () => {
+  it("applies official docs to a same-name model at the official OpenAI endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+    });
+    expect(profile).toMatchObject({
+      provider: "openai",
+      model: "gpt-6-astra",
+      contextWindowTokens: 1050000,
+      windowSource: "official-model-docs",
+      windowAssumed: false,
+      runtimeProtocol: "openai-responses",
+      advertisedMaxOutputTokens: 128000,
+    });
+    expect(profile.sources.length).toBeGreaterThan(0);
+    expect(profile.limitations.join(" ")).not.toMatch(/custom endpoint/);
+  });
+
+  it("does not share official docs with the same model name on a custom gateway", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(profile.windowSource).not.toBe("official-model-docs");
+    expect(profile).toMatchObject({
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+      runtimeProtocol: "chat-completions",
+    });
+    expect(profile.sources).toEqual([]);
+    expect(profile.limitations.join(" ")).toMatch(/not applied to a custom endpoint/);
+  });
+
+  it("applies official docs to a same-name Anthropic model at the official endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "anthropic",
+      model: "claude-opus-5-5",
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 1000000,
+      windowSource: "official-model-docs",
+      windowAssumed: false,
+      advertisedMaxOutputTokens: null,
+    });
+    expect(profile.sources.length).toBeGreaterThan(0);
+  });
+
+  it("does not share official docs with the same Anthropic name on a custom gateway", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "anthropic",
+      model: "claude-opus-5-5",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(profile.windowSource).not.toBe("official-model-docs");
+    expect(profile).toMatchObject({
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+    });
+    expect(profile.sources).toEqual([]);
+    expect(profile.limitations.join(" ")).toMatch(/not applied to a custom endpoint/);
+  });
+
+  it("keeps an unknown model's window unknown at the official endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gateway-only-model-x",
+    });
+    expect(profile).toMatchObject({
+      windowSource: "provider-default",
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+      sources: [],
+    });
+    expect(profile.limitations.join(" ")).not.toMatch(/official-model-docs/);
+  });
+
+  it("keeps an unknown model's window unknown at a custom endpoint as well", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gateway-only-model-x",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(profile).toMatchObject({
+      windowSource: "provider-default",
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+      sources: [],
+    });
+  });
+});

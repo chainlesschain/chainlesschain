@@ -1,0 +1,158 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-07",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 39,
+      "passed": 39,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 3,
+      "passed": 3,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "repeat-before-cursor-boundary",
+      "sourceSha256": "c18d8ec76cb2a921bc3e4e59b6bb6f89b9eaef805cc63b4db104efa93f097118",
+      "total": 3,
+      "passed": 0,
+      "failed": 3
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 146,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 6070,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":39,\"numPassedTests\":39,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793687099147,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history keeps original row identities and old cursors after summary-from, then rewinds the correct path\",\"status\":\"passed\",\"title\":\"keeps original row identities and old cursors after summary-from, then rewinds the correct path\",\"duration\":160.59944500000006,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history keeps original row identities and old cursors after summary-to, then rewinds the correct path\",\"status\":\"passed\",\"title\":\"keeps original row identities and old cursors after summary-to, then rewinds the correct path\",\"duration\":117.08948899999996,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history retains repeated summary dependencies through an independent branch, compaction and rewind\",\"status\":\"passed\",\"title\":\"retains repeated summary dependencies through an independent branch, compaction and rewind\",\"duration\":193.77968399999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history preserves pre-compaction display history when a later active suffix is summarized\",\"status\":\"passed\",\"title\":\"preserves pre-compaction display history when a later active suffix is summarized\",\"duration\":101.62582799999996,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history preserves ancestry when summary-to moves durable systems ahead of its new summary\",\"status\":\"passed\",\"title\":\"preserves ancestry when summary-to moves durable systems ahead of its new summary\",\"duration\":84.28731500000004,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history retains snapshot coverage after a verified summary and later rewind\",\"status\":\"passed\",\"title\":\"retains snapshot coverage after a verified summary and later rewind\",\"duration\":57.20212800000013,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history retains an explicit boundary for a legacy timeline summary\",\"status\":\"passed\",\"title\":\"retains an explicit boundary for a legacy timeline summary\",\"duration\":45.88535200000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history retains an explicit boundary for a wrong-head timeline summary\",\"status\":\"passed\",\"title\":\"retains an explicit boundary for a wrong-head timeline summary\",\"duration\":46.01900999999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history retains an explicit boundary for a changed-output timeline summary\",\"status\":\"passed\",\"title\":\"retains an explicit boundary for a changed-output timeline summary\",\"duration\":48.82572499999992,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history keeps interrupted archive copies unpublished, recovers the exact prefix and refuses rollback\",\"status\":\"passed\",\"title\":\"keeps interrupted archive copies unpublished, recovers the exact prefix and refuses rollback\",\"duration\":76.54762000000005,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history does not publish a branch when its source changes during the copy\",\"status\":\"passed\",\"title\":\"does not publish a branch when its source changes during the copy\",\"duration\":29.66758600000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history preserves legacy branch idempotency and inherited snapshot coverage\",\"status\":\"passed\",\"title\":\"preserves legacy branch idempotency and inherited snapshot coverage\",\"duration\":70.6937069999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history carries truncation through inheritance and keeps escaped text within a page\",\"status\":\"passed\",\"title\":\"carries truncation through inheritance and keeps escaped text within a page\",\"duration\":888.141674,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history validates imported completion digests and context origins before returning a page\",\"status\":\"passed\",\"title\":\"validates imported completion digests and context origins before returning a page\",\"duration\":39.698889000000236,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history preserves emoji at archive chunk boundaries\",\"status\":\"passed\",\"title\":\"preserves emoji at archive chunk boundaries\",\"duration\":125.90173099999993,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history makes a compacted branch independent of its parent, without inheriting execution authority\",\"status\":\"passed\",\"title\":\"makes a compacted branch independent of its parent, without inheriting execution authority\",\"duration\":170.811917,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history retains summary ancestry across nested branches and a later rewind\",\"status\":\"passed\",\"title\":\"retains summary ancestry across nested branches and a later rewind\",\"duration\":114.6219329999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history expires source capabilities and prevents source writes inside a read projection\",\"status\":\"passed\",\"title\":\"expires source capabilities and prevents source writes inside a read projection\",\"duration\":33.20816100000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history accepts the shared real CLI history fixture used by the JetBrains reader\",\"status\":\"passed\",\"title\":\"accepts the shared real CLI history fixture used by the JetBrains reader\",\"duration\":0.39032700000007026,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history shows original messages once when the Kernel replaces them with a derived summary\",\"status\":\"passed\",\"title\":\"shows original messages once when the Kernel replaces them with a derived summary\",\"duration\":37.04707999999982,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history keeps real Kernel compaction history, identities and old cursors through later appends\",\"status\":\"passed\",\"title\":\"keeps real Kernel compaction history, identities and old cursors through later appends\",\"duration\":133.42663700000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history invalidates cursors on rewind and never revives discarded text after another compaction\",\"status\":\"passed\",\"title\":\"invalidates cursors on rewind and never revives discarded text after another compaction\",\"duration\":106.20863300000019,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history reconstructs a prefix older than the page buffer and keeps exact original identities\",\"status\":\"passed\",\"title\":\"reconstructs a prefix older than the page buffer and keeps exact original identities\",\"duration\":713.3339610000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history retains pre-summary ancestry, then cuts a second path without resurrecting the first\",\"status\":\"passed\",\"title\":\"retains pre-summary ancestry, then cuts a second path without resurrecting the first\",\"duration\":102.98718299999973,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history uses indexed provenance to distinguish identical messages across compaction\",\"status\":\"passed\",\"title\":\"uses indexed provenance to distinguish identical messages across compaction\",\"duration\":84.95607000000018,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history uses only the replacement snapshot for an invalid prefix {\\\"sourceHead\\\":\\\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\\\"}\",\"status\":\"passed\",\"title\":\"uses only the replacement snapshot for an invalid prefix {\\\"sourceHead\\\":\\\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\\\"}\",\"duration\":98.83377700000074,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history uses only the replacement snapshot for an invalid prefix {\\\"sourceMessageCount\\\":999}\",\"status\":\"passed\",\"title\":\"uses only the replacement snapshot for an invalid prefix {\\\"sourceMessageCount\\\":999}\",\"duration\":96.49617299999954,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history uses only the replacement snapshot for an invalid prefix {\\\"retainedMessageCount\\\":-1}\",\"status\":\"passed\",\"title\":\"uses only the replacement snapshot for an invalid prefix {\\\"retainedMessageCount\\\":-1}\",\"duration\":97.15703399999984,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history uses only the replacement snapshot for an invalid prefix {\\\"retainedMessageCount\\\":999}\",\"status\":\"passed\",\"title\":\"uses only the replacement snapshot for an invalid prefix {\\\"retainedMessageCount\\\":999}\",\"duration\":100.05094400000053,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history uses only the replacement snapshot for an invalid prefix {\\\"schema\\\":\\\"unknown\\\"}\",\"status\":\"passed\",\"title\":\"uses only the replacement snapshot for an invalid prefix {\\\"schema\\\":\\\"unknown\\\"}\",\"duration\":96.40765900000042,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history keeps snapshot coverage across a later verified rewind\",\"status\":\"passed\",\"title\":\"keeps snapshot coverage across a later verified rewind\",\"duration\":88.91277999999966,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history revokes the rescan lease and rejects file changes during replay\",\"status\":\"passed\",\"title\":\"revokes the rescan lease and rejects file changes during replay\",\"duration\":19.08352300000024,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history isolates full-copy forks and reports snapshot branches without borrowing parent content\",\"status\":\"passed\",\"title\":\"isolates full-copy forks and reports snapshot branches without borrowing parent content\",\"duration\":108.43687299999965,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history treats physical-store-import snapshots as replacement boundaries\",\"status\":\"passed\",\"title\":\"treats physical-store-import snapshots as replacement boundaries\",\"duration\":17.907392000000073,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history treats session-end snapshots as replacement boundaries\",\"status\":\"passed\",\"title\":\"treats session-end snapshots as replacement boundaries\",\"duration\":17.78507499999978,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history treats unknown snapshots as replacement boundaries\",\"status\":\"passed\",\"title\":\"treats unknown snapshots as replacement boundaries\",\"duration\":17.611151000000064,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history falls back to the explicit snapshot when a canonical payload is inconsistent\",\"status\":\"passed\",\"title\":\"falls back to the explicit snapshot when a canonical payload is inconsistent\",\"duration\":95.27582100000018,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history reads through the command without modifying authority and rejects a forged tail\",\"status\":\"passed\",\"title\":\"reads through the command without modifying authority and rejects a forged tail\",\"duration\":32.536950000000616,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"canonical display history\"],\"fullName\":\"canonical display history bounds retained bytes and traverses oversized rows without dropping page identities\",\"status\":\"passed\",\"title\":\"bounds retained bytes and traverses oversized rows without dropping page identities\",\"duration\":393.78278899999987,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793687099886,\"endTime\":1793687104749.7827,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/session-transcript-history.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1110,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":3,\"numPassedTests\":3,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793687105225,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"persistent body pagination boundary\"],\"fullName\":\"persistent body pagination boundary reconstructs every message exactly once across pages, keeping the final body on the latest page\",\"status\":\"passed\",\"title\":\"reconstructs every message exactly once across pages, keeping the final body on the latest page\",\"duration\":6.132272000000057,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"persistent body pagination boundary\"],\"fullName\":\"persistent body pagination boundary anchors every cross-page cursor at the page's oldest row with no overlap or gap at the boundary\",\"status\":\"passed\",\"title\":\"anchors every cross-page cursor at the page's oldest row with no overlap or gap at the boundary\",\"duration\":1.786006000000043,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"persistent body pagination boundary\"],\"fullName\":\"persistent body pagination boundary rejects a stale boundary cursor instead of silently walking a changed history\",\"status\":\"passed\",\"title\":\"rejects a stale boundary cursor instead of silently walking a changed history\",\"duration\":2.0514309999999796,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793687105846,\"endTime\":1793687105856.0515,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-07.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/session-transcript-history.js"
+      ],
+      "setup": false,
+      "ms": 166,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1083,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":3,\"numPassedTests\":0,\"numFailedTests\":3,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793687106494,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"persistent body pagination boundary\"],\"fullName\":\"persistent body pagination boundary reconstructs every message exactly once across pages, keeping the final body on the latest page\",\"status\":\"failed\",\"title\":\"reconstructs every message exactly once across pages, keeping the final body on the latest page\",\"duration\":12.850985000000037,\"failureMessages\":[\"AssertionError: expected 5 to be 4 // Object.is equality\\n    at /workspace/packages/cli/__tests__/verify-07.test.js:45:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"persistent body pagination boundary\"],\"fullName\":\"persistent body pagination boundary anchors every cross-page cursor at the page's oldest row with no overlap or gap at the boundary\",\"status\":\"failed\",\"title\":\"anchors every cross-page cursor at the page's oldest row with no overlap or gap at the boundary\",\"duration\":2.528648999999973,\"failureMessages\":[\"AssertionError: expected 9 to be 8 // Object.is equality\\n    at /workspace/packages/cli/__tests__/verify-07.test.js:76:45\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"persistent body pagination boundary\"],\"fullName\":\"persistent body pagination boundary rejects a stale boundary cursor instead of silently walking a changed history\",\"status\":\"failed\",\"title\":\"rejects a stale boundary cursor instead of silently walking a changed history\",\"duration\":2.9840470000000323,\"failureMessages\":[\"AssertionError: expected [ 'body-3', 'body-4', 'body-5' ] to deeply equal [ 'body-2', 'body-3', 'body-4' ]\\n    at /workspace/packages/cli/__tests__/verify-07.test.js:91:51\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]}],\"startTime\":1793687107098,\"endTime\":1793687107115.9841,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-07.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/session-transcript-history.js"
+      ],
+      "setup": false,
+      "ms": 160,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1131,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":3,\"numPassedTests\":3,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793687107766,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"persistent body pagination boundary\"],\"fullName\":\"persistent body pagination boundary reconstructs every message exactly once across pages, keeping the final body on the latest page\",\"status\":\"passed\",\"title\":\"reconstructs every message exactly once across pages, keeping the final body on the latest page\",\"duration\":6.317814999999996,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"persistent body pagination boundary\"],\"fullName\":\"persistent body pagination boundary anchors every cross-page cursor at the page's oldest row with no overlap or gap at the boundary\",\"status\":\"passed\",\"title\":\"anchors every cross-page cursor at the page's oldest row with no overlap or gap at the boundary\",\"duration\":1.789482000000021,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"persistent body pagination boundary\"],\"fullName\":\"persistent body pagination boundary rejects a stale boundary cursor instead of silently walking a changed history\",\"status\":\"passed\",\"title\":\"rejects a stale boundary cursor instead of silently walking a changed history\",\"duration\":1.8478309999999283,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793687108394,\"endTime\":1793687108403.848,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-07.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate tests did not reject the behavioral mutant"
+}
