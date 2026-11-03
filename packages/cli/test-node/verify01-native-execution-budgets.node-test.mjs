@@ -18,6 +18,7 @@ import {
   BROKER,
   diagnosticJsonUsage,
   createVolcengineDiagnosticBroker,
+  volcengineBudgetRetryPolicy,
 } from "../scripts/verify01-volcengine-diagnostic-broker.mjs";
 import {
   nativeTaskPrompt,
@@ -409,6 +410,85 @@ test("real broker sends the model maximum and accepts complete output above both
   } finally {
     await broker.close();
   }
+});
+
+test("provider-default tool batching is forwarded intact and gives the declared connection grace without changing legacy policy", async (t) => {
+  const { root } = fixture(t);
+  const budgets = {
+    modelTurns: 40,
+    physicalRequests: 48,
+    outputTokens: 393216,
+    connectionAttemptTimeoutMs: 10000,
+    parallelToolCalls: null,
+  };
+  const policy = volcengineBudgetRetryPolicy(budgets);
+  assert.equal(policy.connectionAttemptTimeoutMs, 10000);
+  assert.equal(BROKER.connectionAttemptTimeoutMs, 2000);
+  const toolCalls = ["a", "b"].map((id) => ({
+    id,
+    type: "function",
+    function: {
+      name: "read_file",
+      arguments: JSON.stringify({ path: id + ".txt" }),
+    },
+  }));
+  const raw = JSON.stringify({
+    id: "offline-batch",
+    model: BROKER.model,
+    service_tier: "default",
+    choices: [
+      {
+        index: 0,
+        message: { role: "assistant", content: null, tool_calls: toolCalls },
+        finish_reason: "tool_calls",
+      },
+    ],
+    usage: {
+      prompt_tokens: 100,
+      completion_tokens: 50,
+      total_tokens: 150,
+      prompt_tokens_details: { cached_tokens: 0 },
+      completion_tokens_details: { reasoning_tokens: 0 },
+    },
+  });
+  const broker = await createVolcengineDiagnosticBroker({
+    outputDir: path.join(root, "batch-default-broker"),
+    key: "offline-not-real",
+    executionBudgets: budgets,
+    maximumRequestsPerTask: 48,
+    allowedTaskIds: ["verify-07"],
+    allowTextOnlyRequests: true,
+    requestImpl: async (body) => {
+      assert.equal(Object.hasOwn(body, "parallel_tool_calls"), false);
+      assert.equal(body.max_tokens, 393216);
+      return { status: 200, raw: Buffer.from(raw) };
+    },
+  });
+  try {
+    broker.beginTask("verify-07");
+    const response = await fetch(broker.baseUrl + "/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + broker.childKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: BROKER.model,
+        messages: [{ role: "user", content: "offline" }],
+      }),
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual(
+      (await response.json()).choices[0].message.tool_calls,
+      toolCalls,
+    );
+    assert.equal(broker.taskStatus("verify-07").usageCompleteRequests, 1);
+  } finally {
+    await broker.close();
+  }
+  assert.throws(() =>
+    volcengineBudgetRetryPolicy({ ...budgets, connectionAttemptTimeoutMs: 0 }),
+  );
 });
 
 test("independent acceptance binds the expanded broker policy and rejects a substituted turn allowance", (t) => {

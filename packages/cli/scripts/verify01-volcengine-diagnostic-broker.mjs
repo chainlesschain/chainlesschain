@@ -118,11 +118,16 @@ export function diagnosticBody(
   {
     allowTextOnlyRequests = false,
     maximumAnswerTokens = BROKER.maximumAnswerTokens,
+    parallelToolCalls = false,
   } = {},
 ) {
   check(
     [8192, 16384, 393216].includes(maximumAnswerTokens),
     "DIAGNOSTIC_OUTPUT_POLICY_INVALID",
+  );
+  check(
+    parallelToolCalls === false || parallelToolCalls === null,
+    "DIAGNOSTIC_PARALLEL_POLICY_INVALID",
   );
   check(input?.model === BROKER.model, "DIAGNOSTIC_MODEL_MISMATCH");
   check(
@@ -165,7 +170,7 @@ export function diagnosticBody(
     max_tokens: maximumAnswerTokens,
     thinking: { type: "disabled" },
     service_tier: "default",
-    parallel_tool_calls: false,
+    ...(parallelToolCalls === null ? {} : { parallel_tool_calls: false }),
   };
   check(
     Buffer.byteLength(JSON.stringify(body)) <= BROKER.maximumRequestBytes,
@@ -503,7 +508,9 @@ export function volcengineBudgetRetryPolicy(budgets) {
   check(
     budgets.modelTurns === 40 &&
       budgets.physicalRequests === 48 &&
-      [8192, 16384, 393216].includes(budgets.outputTokens),
+      [8192, 16384, 393216].includes(budgets.outputTokens) &&
+      [undefined, 10000].includes(budgets.connectionAttemptTimeoutMs) &&
+      [undefined, null].includes(budgets.parallelToolCalls),
     "DIAGNOSTIC_EXPANDED_BUDGET_INVALID",
   );
   return Object.freeze({
@@ -512,12 +519,19 @@ export function volcengineBudgetRetryPolicy(budgets) {
     maximumAnswerTokens: budgets.outputTokens,
     timeoutMs: 180000,
     maximumResponseBytes: 16 * 1024 * 1024,
+    ...(budgets.connectionAttemptTimeoutMs === 10000
+      ? { connectionAttemptTimeoutMs: 10000 }
+      : {}),
+    ...(budgets.parallelToolCalls === null ? { parallelToolCalls: null } : {}),
   });
 }
 
 export async function createVolcengineDiagnosticBroker(options) {
   const policy = volcengineBudgetRetryPolicy(options.executionBudgets);
-  const usageOptions = { maximumAnswerTokens: policy.maximumAnswerTokens };
+  const usageOptions = {
+    maximumAnswerTokens: policy.maximumAnswerTokens,
+    parallelToolCalls: policy.parallelToolCalls === null ? null : false,
+  };
   return createBoundedDiagnosticBroker(options, {
     policy,
     maximumRequestAllowance: policy === BROKER ? 32 : 48,

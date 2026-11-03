@@ -138,6 +138,7 @@ jobs:
           packages/cli/test-node/verify01-native-round-matrix.node-test.mjs
           packages/cli/test-node/verify01-volcengine-fresh-round.node-test.mjs
           packages/cli/test-node/verify01-native-execution-budgets.node-test.mjs
+          packages/cli/test-node/verify01-volcengine-historical-retry.node-test.mjs
           packages/jetbrains-plugin/scripts/verify01-native-task-adapter.test.mjs
       - name: Select requested native hosts
         id: select
@@ -206,10 +207,10 @@ jobs:
                 const authentication = await verifyFreshVolcengineCredential(process.env.VOLCENGINE_API_KEY);
                 console.log(JSON.stringify({credentialMetadataPreflight: authentication}));
                 const manifest = JSON.parse(packageBinding.bytes.toString("utf8"));
-                for (const [name, url] of [
+                for (const [name, url] of (candidate ? [] : [
                   ["cli", "https://registry.npmjs.org/chainlesschain/latest"],
                   ["vscode", "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/latest"],
-                ]) {
+                ])) {
                   const response = await fetch(url, {signal: AbortSignal.timeout(30000), headers: {"cache-control": "no-cache"}});
                   if (!response.ok || (await response.json()).version !== manifest.versions[name]) throw new Error("Fresh round requires the latest public " + name);
                 }

@@ -18,6 +18,7 @@ import {
   changedFiles,
 } from "./verify01-volcengine-task-diagnostic.mjs";
 import { nativeProviderProfile } from "./verify01-native-provider-profile.mjs";
+import { runtimeRepairBinding } from "./verify01-volcengine-historical-retry.mjs";
 import {
   nativeExecutionBudgets,
   loadVolcengineBudgetRetry,
@@ -688,6 +689,7 @@ export async function runNativeCampaign(options) {
     "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
     "packages/cli/scripts/verify01-native-provider-profile.mjs",
     "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+    "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
     "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
     "packages/cli/scripts/verify01-openai-transport-preload.mjs",
     "packages/cli/scripts/verify01-review-specs.mjs",
@@ -801,7 +803,12 @@ export async function runNativeCampaign(options) {
       "Budget retries require one explicitly selected budget-limited sample",
     );
   }
-  if (candidatePackages) {
+  const runtimeRepair = runtimeRepairBinding(packageManifest, {
+    provider,
+    projectCommit,
+    revisionBinding,
+  });
+  if (candidatePackages && !runtimeRepair) {
     assert.ok(
       revisionBinding,
       "candidate generation requires an explicit repaired project",
@@ -842,6 +849,7 @@ export async function runNativeCampaign(options) {
     projectCommit,
     planDigest,
     ...revisionMetadata,
+    ...(runtimeRepair ? { runtimeRepair } : {}),
     ...(packageManifest?.volcengineBudgetRetry
       ? { executionBudgets: budgets }
       : {}),
@@ -879,11 +887,13 @@ export async function runNativeCampaign(options) {
     ],
   };
   Object.assign(summary, {
-    cohortKind: revisionBinding
-      ? "repaired-source-followup"
-      : providerProfile.provider === "openai"
-        ? "new-openai-provider-diagnostic"
-        : "volcengine-native-diagnostic",
+    cohortKind: runtimeRepair
+      ? "volcengine-runtime-repair-frozen-project"
+      : revisionBinding
+        ? "repaired-source-followup"
+        : providerProfile.provider === "openai"
+          ? "new-openai-provider-diagnostic"
+          : "volcengine-native-diagnostic",
     executionIdentityDigest: hash(
       JSON.stringify({
         sourceSha,

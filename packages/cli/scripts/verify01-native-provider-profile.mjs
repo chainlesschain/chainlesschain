@@ -11,6 +11,7 @@ import {
   createOpenAiDiagnosticBroker,
 } from "./verify01-openai-diagnostic-broker.mjs";
 import { nativeExecutionBudgets } from "./verify01-native-execution-budgets.mjs";
+import { runtimeRepairBinding } from "./verify01-volcengine-historical-retry.mjs";
 
 /** Operator selection only; existing Volcengine cohorts retain their policy. */
 export function nativeProviderProfile(
@@ -68,6 +69,12 @@ export function assertNativeProviderIdentity(
   assert.match(sourceSha, /^[a-f0-9]{40}$/u);
   assert.equal(summary.executionSourceCommit, sourceSha);
   const revision = projectIdentity?.revisionBinding ?? null;
+  const runtimeRepair = runtimeRepairBinding(manifest, {
+    provider,
+    projectCommit: projectIdentity?.projectCommit,
+    revisionBinding: revision,
+  });
+  assert.deepEqual(summary.runtimeRepair ?? null, runtimeRepair);
   assert.deepEqual(summary.projectRevision ?? null, revision);
   if (projectIdentity) {
     assert.equal(summary.projectCommit, projectIdentity.projectCommit);
@@ -76,11 +83,13 @@ export function assertNativeProviderIdentity(
   if (revision) assert.equal(provider, "openai");
   assert.equal(
     summary.cohortKind,
-    revision
-      ? "repaired-source-followup"
-      : provider === "openai"
-        ? "new-openai-provider-diagnostic"
-        : "volcengine-native-diagnostic",
+    runtimeRepair
+      ? "volcengine-runtime-repair-frozen-project"
+      : revision
+        ? "repaired-source-followup"
+        : provider === "openai"
+          ? "new-openai-provider-diagnostic"
+          : "volcengine-native-diagnostic",
   );
   assert.deepEqual(summary.modelTransport, {
     provider: profile.provider,
@@ -99,7 +108,7 @@ export function assertNativeProviderIdentity(
         )
       : null;
     assert.deepEqual(summary.prepublication ?? null, candidate);
-    if (candidate)
+    if (candidate && !runtimeRepair)
       assert.equal(candidate.sourceCommit, projectIdentity?.projectCommit);
   }
   assert.equal(

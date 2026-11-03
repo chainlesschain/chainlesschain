@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import net from "node:net";
 import { loadPublicGeneratorProof } from "./verify01-public-generator-binding.mjs";
 import { loadVolcengineBudgetRetry } from "./verify01-native-execution-budgets.mjs";
+import {
+  isHistoricalRetry,
+  runtimeRepairBinding,
+  ORIGINAL_PROJECT,
+} from "./verify01-volcengine-historical-retry.mjs";
 
 /** Read-only authentication. Retry only catalog network failures, never generation. */
 export async function verifyFreshVolcengineCredential(
@@ -123,7 +128,9 @@ export function assertFreshVolcengineBudgetRetry(options, plan) {
     repositoryRoot,
   } = options;
   assert.equal(provider, "volcengine");
-  assert.equal(packageSet, "latest");
+  const manifest = JSON.parse(packageBinding.bytes.toString("utf8"));
+  const historical = isHistoricalRetry(manifest);
+  assert.equal(packageSet, historical ? "prerelease" : "latest");
   assert.equal(hosts, "all");
   assert.equal(entries, "all");
   assert.equal(
@@ -134,7 +141,6 @@ export function assertFreshVolcengineBudgetRetry(options, plan) {
   assert.equal(revisionBinding, null);
   assert.equal(runAttempt, 1);
   assert.equal(credentialPresent, true);
-  const manifest = JSON.parse(packageBinding.bytes.toString("utf8"));
   assert.equal(manifest.volcengineBudgetRetry?.reviewChanges, true);
   assert.equal(
     manifest.freshVolcengineRound,
@@ -148,6 +154,12 @@ export function assertFreshVolcengineBudgetRetry(options, plan) {
     vscodeHost: "1.132.0",
     jetbrainsHost: "2025.2",
   });
-  loadPublicGeneratorProof(manifest, { repositoryRoot });
+  if (historical)
+    runtimeRepairBinding(manifest, {
+      provider,
+      projectCommit: ORIGINAL_PROJECT,
+      revisionBinding,
+    });
+  else loadPublicGeneratorProof(manifest, { repositoryRoot });
   return loadVolcengineBudgetRetry(manifest, { repositoryRoot, plan });
 }

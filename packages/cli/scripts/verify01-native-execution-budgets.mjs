@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import {
+  isHistoricalRetry,
+  loadHistoricalRetry,
+} from "./verify01-volcengine-historical-retry.mjs";
 
 export const DEFAULT_NATIVE_BUDGETS = Object.freeze({
   modelTurns: 20,
@@ -61,6 +65,24 @@ export function nativeExecutionBudgets(manifest, provider = "volcengine") {
   const retry = manifest?.volcengineBudgetRetry;
   if (retry === undefined) return DEFAULT_NATIVE_BUDGETS;
   assert.equal(provider, "volcengine", "Expanded budget is Volcengine-only");
+  if (isHistoricalRetry(manifest)) {
+    assert.equal(retry.modelTurns, 40);
+    assert.equal(retry.physicalRequests, 48);
+    assert.equal(retry.outputTokens, 393216);
+    assert.equal(retry.outputPolicy, "model-maximum");
+    assert.equal(retry.connectionAttemptTimeoutMs, 10000);
+    assert.equal(retry.parallelToolCalls, null);
+    assert.equal(retry.reviewChanges, true);
+    return Object.freeze({
+      modelTurns: 40,
+      physicalRequests: 48,
+      outputTokens: 393216,
+      ordinaryDeadlineMs: 2400000,
+      firstRunDeadlineMs: 3600000,
+      connectionAttemptTimeoutMs: 10000,
+      parallelToolCalls: null,
+    });
+  }
   const providerMaximum =
     retry.id === "volcengine-public139-model-output-20261103";
   if (providerMaximum) {
@@ -106,6 +128,8 @@ export function loadVolcengineBudgetRetry(manifest, { repositoryRoot, plan }) {
   const retry = manifest?.volcengineBudgetRetry;
   if (retry === undefined) return null;
   const budgets = nativeExecutionBudgets(manifest);
+  if (isHistoricalRetry(manifest))
+    return loadHistoricalRetry(manifest, { repositoryRoot, plan, budgets });
   assert.equal(retry.baselineRunId, 41563424430);
   assert.equal(
     retry.baselineSource,
