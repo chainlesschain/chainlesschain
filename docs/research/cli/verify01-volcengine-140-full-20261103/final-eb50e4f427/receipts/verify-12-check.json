@@ -1,0 +1,78 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-12",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 11,
+      "passed": 11,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 333,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 597,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":11,\"numPassedTests\":11,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793719532219,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv rejects ephemeral background authority but preserves literal prompt data\",\"status\":\"passed\",\"title\":\"rejects ephemeral background authority but preserves literal prompt data\",\"duration\":2.053802999999988,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv keeps option-shaped prompt data inside one print token: --help\",\"status\":\"passed\",\"title\":\"keeps option-shaped prompt data inside one print token: --help\",\"duration\":0.2934319999999957,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv keeps option-shaped prompt data inside one print token: --no-worktree\",\"status\":\"passed\",\"title\":\"keeps option-shaped prompt data inside one print token: --no-worktree\",\"duration\":0.12318600000000401,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv keeps option-shaped prompt data inside one print token: --dangerously-skip-permissions\",\"status\":\"passed\",\"title\":\"keeps option-shaped prompt data inside one print token: --dangerously-skip-permissions\",\"duration\":0.20548900000000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv captures Commander option aliases and arity\",\"status\":\"passed\",\"title\":\"captures Commander option aliases and arity\",\"duration\":0.5086760000000083,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv captures root options and command aliases as one argv grammar\",\"status\":\"passed\",\"title\":\"captures root options and command aliases as one argv grammar\",\"duration\":0.35175999999998453,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv canonicalizes resume/fork options to one resolved session\",\"status\":\"passed\",\"title\":\"canonicalizes resume/fork options to one resolved session\",\"duration\":0.6310809999999947,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv preserves other option values and the literal tail\",\"status\":\"passed\",\"title\":\"preserves other option values and the literal tail\",\"duration\":0.429427000000004,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv removes true operands without deleting equal option values\",\"status\":\"passed\",\"title\":\"removes true operands without deleting equal option values\",\"duration\":0.48104399999999714,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv preserves global options before the real command token\",\"status\":\"passed\",\"title\":\"preserves global options before the real command token\",\"duration\":0.2585899999999981,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv drops print payloads and every post-terminator first-turn token\",\"status\":\"passed\",\"title\":\"drops print payloads and every post-terminator first-turn token\",\"duration\":0.28974600000000805,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793719532402,\"endTime\":1793719532408.2898,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/background-command-argv.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 737,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":1,\"numPassedTestSuites\":0,\"numFailedTestSuites\":1,\"numPendingTestSuites\":0,\"numTotalTests\":0,\"numPassedTests\":0,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793719532830,\"success\":false,\"testResults\":[{\"assertionResults\":[],\"startTime\":1793719532830,\"endTime\":1793719532830,\"status\":\"failed\",\"message\":\"Cannot find module '../../src/lib/background-command-argv.js' imported from /workspace/packages/cli/__tests__/verify-12.test.js\",\"name\":\"/workspace/packages/cli/__tests__/verify-12.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "acceptance requires executed test cases"
+}

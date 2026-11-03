@@ -1,0 +1,884 @@
+{
+  "schema": "chainlesschain.verify01-native-task-acceptance/v1",
+  "executionSourceCommit": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+  "deliverySourceCommit": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "packageSetDigest": "sha256:9df4efc5365ed381684a1990009c4b162ec96ae9ce229df13d4b583860a3559c",
+  "group": "win32-vscode",
+  "actualGenerationHost": {
+    "platform": "win32",
+    "entry": "vscode",
+    "arch": "x64"
+  },
+  "acceptanceHost": "linux-docker",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+  "sourceSummaryDigest": "sha256:90324fe1f10efdc8bdd5d118198d249d637252401a46b41e0a5b9dc9b74a9a5b",
+  "formalSample": false,
+  "startedAt": "2026-11-03T15:18:42.454Z",
+  "samples": [
+    {
+      "sampleId": "verify-20",
+      "taskId": "verify-20",
+      "kind": "task",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:9df4efc5365ed381684a1990009c4b162ec96ae9ce229df13d4b583860a3559c",
+      "originalGenerationPassed": true,
+      "generationPassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 38719,
+            "outputTokens": 8525,
+            "cacheReadInputTokens": 87552,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-b0c872fa-a87e-441d-9115-ef79a0e5858f",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "71fe3337-99a4-4193-8533-af431faff7d2",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_r1sz30pd7drv6kz9q0zgab21",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/permission-decision.js"
+            },
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_39cc7hbvfmc79qzyykj8d3vg",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/permission-decision.test.js"
+            },
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 8
+          },
+          {
+            "type": "tool_use",
+            "id": "call_861d9os4v0gvkojmldn9pv0p",
+            "tool": "search_files",
+            "args": {
+              "pattern": "verify-20.test.js",
+              "directory": "packages/cli/__tests__"
+            },
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 12
+          },
+          {
+            "type": "tool_use",
+            "id": "call_2d73nqxb0ybsrk0k6ztnwehb",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-20.test.js",
+              "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  buildPermissionDecision,\n  PERMISSION_DECISION_VERSION,\n} from \"../src/lib/permission-decision.js\";\n\n// Regression: an explicit \"deny\" (or any explicit decision) must never be\n// downgraded to \"allow\" by a lower-priority fallback, and an unrecognized\n// policy decision must not be coerced to a recognized value.\ndescribe(\"deny decisions are not downgraded to allow\", () => {\n  it(\"keeps an explicit deny from policy even when the chain fallback says allow\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-deny\",\n      tool: \"run_shell\",\n      result: {\n        policy: { decision: \"deny\", via: \"strict\", reason: \"blocked\" },\n        permissionChain: [{ layer: \"generic-allow\", outcome: \"allow\" }],\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"deny\", via: \"strict\" });\n    expect(decision.decision).not.toBe(\"allow\");\n    expect(decision.id).toBe(\"tu-deny:perm:strict\");\n  });\n\n  it(\"mirrors an explicit allow instead of reversing it toward deny\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-allow\",\n      tool: \"run_shell\",\n      result: {\n        policy: { decision: \"allow\", via: \"explicit\", reason: \"ok\" },\n        permissionChain: [{ layer: \"generic-deny\", outcome: \"deny\" }],\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"allow\", via: \"explicit\" });\n    expect(decision.decision).not.toBe(\"deny\");\n  });\n\n  it(\"preserves an unknown policy decision instead of defaulting it to allow\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-unknown\",\n      tool: \"run_shell\",\n      result: { policy: { decision: \"review\", via: \"custom\", reason: \"wip\" } },\n    });\n    expect(decision).not.toBeNull();\n    expect(decision.decision).toBe(\"review\");\n    expect(decision.decision).not.toBe(\"allow\");\n  });\n\n  it(\"returns null rather than inventing an allow decision when nothing is present\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-empty\",\n      tool: \"read_file\",\n      result: { content: \"ordinary tool output\" },\n    });\n    expect(decision).toBeNull();\n  });\n\n  it(\"keeps an explicit deny from the approval source\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-approval-deny\",\n      tool: \"run_shell\",\n      result: {\n        approval: { decision: \"deny\", via: \"gate\", reason: \"needs approval\" },\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"deny\", via: \"gate\" });\n    expect(decision.decision).not.toBe(\"allow\");\n  });\n\n  it(\"keeps an explicit allow from the approval source (mirror of the deny case)\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-approval-allow\",\n      tool: \"run_shell\",\n      result: {\n        approval: { decision: \"allow\", via: \"gate\", reason: \"approved\" },\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"allow\", via: \"gate\" });\n    expect(decision.decision).not.toBe(\"deny\");\n  });\n});\n"
+            },
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 16
+          },
+          {
+            "type": "tool_use",
+            "id": "call_uf2ekcpn4taboxtomjt3p04l",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-20.test.js"
+            },
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 20
+          },
+          {
+            "type": "tool_use",
+            "id": "call_93nku8h4wfpk9oong76br0x5",
+            "tool": "edit_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-20.test.js",
+              "old_string": "    expect(decision).toMatchObject({ decision: \"deny\", via: \"strict\" });\n    expect(decision.decision).not.toBe(\"allow\");\n    expect(decision.id).toBe(\"tu-deny:perm:strict\");",
+              "new_string": "    expect(decision).toMatchObject({\n      version: PERMISSION_DECISION_VERSION,\n      decision: \"deny\",\n      via: \"strict\",\n    });\n    expect(decision.decision).not.toBe(\"allow\");\n    expect(decision.id).toBe(\"tu-deny:perm:strict\");"
+            },
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 27
+          },
+          {
+            "type": "tool_use",
+            "id": "call_7o98odetd23cyixvqv9pj4ya",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-20.test.js"
+            },
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 31
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_r1sz30pd7drv6kz9q0zgab21",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Dxzc27\\ae12d7ec-04c6-447d-9568-386c6b4ee92f\\workspace\\packages\\cli\\src\\lib\\permission-decision.js",
+              "fileVersion": "2827:1793706766092.7283:1793706766092.7283",
+              "readSpan": {
+                "start": 0,
+                "end": 2825,
+                "total": 2825
+              },
+              "hashed": false,
+              "content": "/**\n * Build the additive, protocol-safe PermissionDecision attached to a gated\n * tool result. The runtime remains the authority; IDEs and SDKs only render\n * this explanation and must never re-evaluate it.\n *\n * The source result can contain user-controlled rules/reasons. Keep the wire\n * object bounded and run every text field through the export-grade secret\n * redactor before it reaches transcripts, ledgers, or IDE logs.\n */\n\nimport { redactSecrets } from \"./secret-scan.js\";\n\nexport const PERMISSION_DECISION_VERSION = 1;\n\nconst MAX_TEXT = 512;\nconst MAX_CHAIN = 8;\n\nfunction boundedText(value, max = MAX_TEXT) {\n  if (value == null) return null;\n  let text;\n  if (typeof value === \"string\") {\n    text = value;\n  } else {\n    try {\n      text = JSON.stringify(value);\n    } catch {\n      text = String(value);\n    }\n  }\n  if (typeof text !== \"string\") text = String(value);\n  text = redactSecrets(text);\n  return text.length > max ? `${text.slice(0, max)}…` : text;\n}\n\nfunction normalizeChain(value) {\n  if (!Array.isArray(value)) return [];\n  return value.slice(0, MAX_CHAIN).map((entry) => {\n    const row = entry && typeof entry === \"object\" ? entry : {};\n    return {\n      layer: boundedText(row.layer, 80),\n      outcome: boundedText(row.outcome, 80),\n      via: boundedText(row.via || row.source, 120),\n      rule: boundedText(row.rule, 256),\n      reason: boundedText(row.reason),\n    };\n  });\n}\n\n/**\n * @param {{\n *   toolUseId?: string,\n *   tool?: string,\n *   result?: object,\n * }} input\n * @returns {object|null}\n */\nexport function buildPermissionDecision(input = {}) {\n  const result =\n    input.result && typeof input.result === \"object\" ? input.result : {};\n  const policy =\n    result.policy && typeof result.policy === \"object\" ? result.policy : {};\n  const approval =\n    result.approval && typeof result.approval === \"object\"\n      ? result.approval\n      : {};\n  const chain = normalizeChain(result.permissionChain);\n  const terminal = chain.length > 0 ? chain[chain.length - 1] : {};\n\n  const decision = boundedText(\n    policy.decision || approval.decision || terminal.outcome,\n    32,\n  );\n  if (!decision && chain.length === 0) return null;\n\n  const via = boundedText(\n    policy.via || approval.via || terminal.via || terminal.layer,\n    120,\n  );\n  const rule = boundedText(policy.rule || approval.rule || terminal.rule, 256);\n  const reason = boundedText(\n    policy.reason ||\n      approval.reason ||\n      terminal.reason ||\n      result.shellCommandPolicy?.reason,\n  );\n  const toolUseId = boundedText(input.toolUseId, 160);\n  const gate = via || decision || \"policy\";\n\n  return {\n    version: PERMISSION_DECISION_VERSION,\n    id: toolUseId ? `${toolUseId}:perm:${gate}` : null,\n    tool: boundedText(input.tool, 120),\n    decision,\n    via,\n    rule,\n    reason,\n    chain,\n  };\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707021251,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/permission-decision.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 11,
+                "sessionId": "panel-b0c872fa-a87e-441d-9115-ef79a0e5858f",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/permission-decision.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_r1sz30pd7drv6kz9q0zgab21",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 7
+          },
+          {
+            "type": "tool_result",
+            "id": "call_39cc7hbvfmc79qzyykj8d3vg",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Dxzc27\\ae12d7ec-04c6-447d-9568-386c6b4ee92f\\workspace\\packages\\cli\\__tests__\\unit\\permission-decision.test.js",
+              "fileVersion": "3602:1793706763860.138:1793706763860.138",
+              "readSpan": {
+                "start": 0,
+                "end": 3602,
+                "total": 3602
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  buildPermissionDecision,\n  PERMISSION_DECISION_VERSION,\n} from \"../../src/lib/permission-decision.js\";\nimport { agentLoop } from \"../helpers/test-model-egress.js\";\n\ndescribe(\"PermissionDecision\", () => {\n  it(\"normalizes an approval chain into a stable protocol record\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-7\",\n      tool: \"run_shell\",\n      result: {\n        approval: {\n          decision: \"deny\",\n          via: \"auto-mode-config\",\n          reason: \"high risk requires approval\",\n        },\n        permissionChain: [\n          { layer: \"settings-rules\", outcome: \"no-match\" },\n          {\n            layer: \"approval-gate\",\n            outcome: \"deny\",\n            via: \"auto-mode-config\",\n            rule: { riskLevel: \"high\", decision: \"deny\" },\n            reason: \"high risk requires approval\",\n          },\n        ],\n      },\n    });\n\n    expect(decision).toMatchObject({\n      version: PERMISSION_DECISION_VERSION,\n      id: \"tu-7:perm:auto-mode-config\",\n      tool: \"run_shell\",\n      decision: \"deny\",\n      via: \"auto-mode-config\",\n      reason: \"high risk requires approval\",\n    });\n    expect(decision.chain).toHaveLength(2);\n    expect(decision.chain[1].rule).toContain('\"riskLevel\":\"high\"');\n  });\n\n  it(\"redacts and bounds user-controlled explanations\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-secret\",\n      tool: \"run_shell\",\n      result: {\n        policy: {\n          decision: \"deny\",\n          via: \"managed\",\n          reason: `Bearer abcdefghijklmnop ${\"x\".repeat(700)}`,\n        },\n      },\n    });\n\n    expect(decision.reason).toContain(\"Bearer [REDACTED]\");\n    expect(decision.reason).not.toContain(\"abcdefghijklmnop\");\n    expect(decision.reason.length).toBeLessThanOrEqual(513);\n  });\n\n  it(\"returns null for an ordinary non-policy tool result\", () => {\n    expect(\n      buildPermissionDecision({\n        toolUseId: \"tu-1\",\n        tool: \"read_file\",\n        result: { content: \"ok\" },\n      }),\n    ).toBeNull();\n  });\n\n  it(\"is emitted by the real agent loop for a gated tool call\", async () => {\n    let calls = 0;\n    const chatFn = async () => {\n      calls += 1;\n      if (calls === 1) {\n        return {\n          message: {\n            role: \"assistant\",\n            content: \"\",\n            tool_calls: [\n              {\n                id: \"tu-gated\",\n                type: \"function\",\n                function: {\n                  name: \"run_shell\",\n                  arguments: JSON.stringify({ command: \"echo gated\" }),\n                },\n              },\n            ],\n          },\n          usage: {},\n        };\n      }\n      return { message: { role: \"assistant\", content: \"done\" }, usage: {} };\n    };\n    const events = [];\n    for await (const event of agentLoop([{ role: \"user\", content: \"run it\" }], {\n      chatFn,\n      autoCompact: false,\n      approvalGate: {\n        decide: async () => ({\n          decision: \"deny\",\n          via: \"managed\",\n          policy: \"strict\",\n          riskLevel: \"medium\",\n          reason: \"managed policy requires approval\",\n        }),\n      },\n    })) {\n      events.push(event);\n    }\n\n    const result = events.find((event) => event.type === \"tool-result\");\n    expect(result.permission_decision_id).toBe(\"tu-gated:perm:managed\");\n    expect(result.permission_decision).toMatchObject({\n      id: result.permission_decision_id,\n      tool: \"run_shell\",\n      decision: \"deny\",\n      via: \"managed\",\n      reason: \"managed policy requires approval\",\n    });\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707021536,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/permission-decision.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-b0c872fa-a87e-441d-9115-ef79a0e5858f",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/permission-decision.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_39cc7hbvfmc79qzyykj8d3vg",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 9
+          },
+          {
+            "type": "tool_result",
+            "id": "call_861d9os4v0gvkojmldn9pv0p",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "files": [
+                "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Dxzc27\\ae12d7ec-04c6-447d-9568-386c6b4ee92f\\workspace\\packages\\cli\\__tests__\\verify-20.test.js"
+              ],
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707064370,
+                "meta": {
+                  "args": {
+                    "pattern": "verify-20.test.js",
+                    "directory": "packages/cli/__tests__"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 139,
+                "sessionId": "panel-b0c872fa-a87e-441d-9115-ef79a0e5858f",
+                "metadata": {
+                  "args": {
+                    "pattern": "verify-20.test.js",
+                    "directory": "packages/cli/__tests__"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_861d9os4v0gvkojmldn9pv0p",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 13
+          },
+          {
+            "type": "tool_result",
+            "id": "call_2d73nqxb0ybsrk0k6ztnwehb",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Dxzc27\\ae12d7ec-04c6-447d-9568-386c6b4ee92f\\workspace\\packages\\cli\\__tests__\\verify-20.test.js",
+              "size": 3029,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707075653,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-20.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  buildPermissionDecision,\n  PERMISSION_DECISION_VERSION,\n} from \"../src/lib/permission-decision.js\";\n\n// Regression: an explicit \"deny\" (or any explicit decision) must never be\n// downgraded to \"allow\" by a lower-priority fallback, and an unrecognized\n// policy decision must not be coerced to a recognized value.\ndescribe(\"deny decisions are not downgraded to allow\", () => {\n  it(\"keeps an explicit deny from policy even when the chain fallback says allow\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-deny\",\n      tool: \"run_shell\",\n      result: {\n        policy: { decision: \"deny\", via: \"strict\", reason: \"blocked\" },\n        permissionChain: [{ layer: \"generic-allow\", outcome: \"allow\" }],\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"deny\", via: \"strict\" });\n    expect(decision.decision).not.toBe(\"allow\");\n    expect(decision.id).toBe(\"tu-deny:perm:strict\");\n  });\n\n  it(\"mirrors an explicit allow instead of reversing it toward deny\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-allow\",\n      tool: \"run_shell\",\n      result: {\n        policy: { decision: \"allow\", via: \"explicit\", reason: \"ok\" },\n        permissionChain: [{ layer: \"generic-deny\", outcome: \"deny\" }],\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"allow\", via: \"explicit\" });\n    expect(decision.decision).not.toBe(\"deny\");\n  });\n\n  it(\"preserves an unknown policy decision instead of defaulting it to allow\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-unknown\",\n      tool: \"run_shell\",\n      result: { policy: { decision: \"review\", via: \"custom\", reason: \"wip\" } },\n    });\n    expect(decision).not.toBeNull();\n    expect(decision.decision).toBe(\"review\");\n    expect(decision.decision).not.toBe(\"allow\");\n  });\n\n  it(\"returns null rather than inventing an allow decision when nothing is present\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-empty\",\n      tool: \"read_file\",\n      result: { content: \"ordinary tool output\" },\n    });\n    expect(decision).toBeNull();\n  });\n\n  it(\"keeps an explicit deny from the approval source\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-approval-deny\",\n      tool: \"run_shell\",\n      result: {\n        approval: { decision: \"deny\", via: \"gate\", reason: \"needs approval\" },\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"deny\", via: \"gate\" });\n    expect(decision.decision).not.toBe(\"allow\");\n  });\n\n  it(\"keeps an explicit allow from the approval source (mirror of the deny case)\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-approval-allow\",\n      tool: \"run_shell\",\n      result: {\n        approval: { decision: \"allow\", via: \"gate\", reason: \"approved\" },\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"allow\", via: \"gate\" });\n    expect(decision.decision).not.toBe(\"deny\");\n  });\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 21,
+                "sessionId": "panel-b0c872fa-a87e-441d-9115-ef79a0e5858f",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-20.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  buildPermissionDecision,\n  PERMISSION_DECISION_VERSION,\n} from \"../src/lib/permission-decision.js\";\n\n// Regression: an explicit \"deny\" (or any explicit decision) must never be\n// downgraded to \"allow\" by a lower-priority fallback, and an unrecognized\n// policy decision must not be coerced to a recognized value.\ndescribe(\"deny decisions are not downgraded to allow\", () => {\n  it(\"keeps an explicit deny from policy even when the chain fallback says allow\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-deny\",\n      tool: \"run_shell\",\n      result: {\n        policy: { decision: \"deny\", via: \"strict\", reason: \"blocked\" },\n        permissionChain: [{ layer: \"generic-allow\", outcome: \"allow\" }],\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"deny\", via: \"strict\" });\n    expect(decision.decision).not.toBe(\"allow\");\n    expect(decision.id).toBe(\"tu-deny:perm:strict\");\n  });\n\n  it(\"mirrors an explicit allow instead of reversing it toward deny\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-allow\",\n      tool: \"run_shell\",\n      result: {\n        policy: { decision: \"allow\", via: \"explicit\", reason: \"ok\" },\n        permissionChain: [{ layer: \"generic-deny\", outcome: \"deny\" }],\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"allow\", via: \"explicit\" });\n    expect(decision.decision).not.toBe(\"deny\");\n  });\n\n  it(\"preserves an unknown policy decision instead of defaulting it to allow\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-unknown\",\n      tool: \"run_shell\",\n      result: { policy: { decision: \"review\", via: \"custom\", reason: \"wip\" } },\n    });\n    expect(decision).not.toBeNull();\n    expect(decision.decision).toBe(\"review\");\n    expect(decision.decision).not.toBe(\"allow\");\n  });\n\n  it(\"returns null rather than inventing an allow decision when nothing is present\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-empty\",\n      tool: \"read_file\",\n      result: { content: \"ordinary tool output\" },\n    });\n    expect(decision).toBeNull();\n  });\n\n  it(\"keeps an explicit deny from the approval source\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-approval-deny\",\n      tool: \"run_shell\",\n      result: {\n        approval: { decision: \"deny\", via: \"gate\", reason: \"needs approval\" },\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"deny\", via: \"gate\" });\n    expect(decision.decision).not.toBe(\"allow\");\n  });\n\n  it(\"keeps an explicit allow from the approval source (mirror of the deny case)\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-approval-allow\",\n      tool: \"run_shell\",\n      result: {\n        approval: { decision: \"allow\", via: \"gate\", reason: \"approved\" },\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"allow\", via: \"gate\" });\n    expect(decision.decision).not.toBe(\"deny\");\n  });\n});\n"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "write_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_2d73nqxb0ybsrk0k6ztnwehb",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 17
+          },
+          {
+            "type": "tool_result",
+            "id": "call_uf2ekcpn4taboxtomjt3p04l",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Dxzc27\\ae12d7ec-04c6-447d-9568-386c6b4ee92f\\workspace\\packages\\cli\\__tests__\\verify-20.test.js",
+              "fileVersion": "3029:1793707075633.1:1793707075633.1",
+              "readSpan": {
+                "start": 0,
+                "end": 3029,
+                "total": 3029
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  buildPermissionDecision,\n  PERMISSION_DECISION_VERSION,\n} from \"../src/lib/permission-decision.js\";\n\n// Regression: an explicit \"deny\" (or any explicit decision) must never be\n// downgraded to \"allow\" by a lower-priority fallback, and an unrecognized\n// policy decision must not be coerced to a recognized value.\ndescribe(\"deny decisions are not downgraded to allow\", () => {\n  it(\"keeps an explicit deny from policy even when the chain fallback says allow\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-deny\",\n      tool: \"run_shell\",\n      result: {\n        policy: { decision: \"deny\", via: \"strict\", reason: \"blocked\" },\n        permissionChain: [{ layer: \"generic-allow\", outcome: \"allow\" }],\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"deny\", via: \"strict\" });\n    expect(decision.decision).not.toBe(\"allow\");\n    expect(decision.id).toBe(\"tu-deny:perm:strict\");\n  });\n\n  it(\"mirrors an explicit allow instead of reversing it toward deny\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-allow\",\n      tool: \"run_shell\",\n      result: {\n        policy: { decision: \"allow\", via: \"explicit\", reason: \"ok\" },\n        permissionChain: [{ layer: \"generic-deny\", outcome: \"deny\" }],\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"allow\", via: \"explicit\" });\n    expect(decision.decision).not.toBe(\"deny\");\n  });\n\n  it(\"preserves an unknown policy decision instead of defaulting it to allow\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-unknown\",\n      tool: \"run_shell\",\n      result: { policy: { decision: \"review\", via: \"custom\", reason: \"wip\" } },\n    });\n    expect(decision).not.toBeNull();\n    expect(decision.decision).toBe(\"review\");\n    expect(decision.decision).not.toBe(\"allow\");\n  });\n\n  it(\"returns null rather than inventing an allow decision when nothing is present\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-empty\",\n      tool: \"read_file\",\n      result: { content: \"ordinary tool output\" },\n    });\n    expect(decision).toBeNull();\n  });\n\n  it(\"keeps an explicit deny from the approval source\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-approval-deny\",\n      tool: \"run_shell\",\n      result: {\n        approval: { decision: \"deny\", via: \"gate\", reason: \"needs approval\" },\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"deny\", via: \"gate\" });\n    expect(decision.decision).not.toBe(\"allow\");\n  });\n\n  it(\"keeps an explicit allow from the approval source (mirror of the deny case)\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-approval-allow\",\n      tool: \"run_shell\",\n      result: {\n        approval: { decision: \"allow\", via: \"gate\", reason: \"approved\" },\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"allow\", via: \"gate\" });\n    expect(decision.decision).not.toBe(\"deny\");\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707080636,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-20.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-b0c872fa-a87e-441d-9115-ef79a0e5858f",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-20.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_uf2ekcpn4taboxtomjt3p04l",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 21
+          },
+          {
+            "type": "tool_result",
+            "id": "call_93nku8h4wfpk9oong76br0x5",
+            "tool": "edit_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Dxzc27\\ae12d7ec-04c6-447d-9568-386c6b4ee92f\\workspace\\packages\\cli\\__tests__\\verify-20.test.js",
+              "size": 3090,
+              "replaced": 1,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707132915,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-20.test.js",
+                    "old_string": "    expect(decision).toMatchObject({ decision: \"deny\", via: \"strict\" });\n    expect(decision.decision).not.toBe(\"allow\");\n    expect(decision.id).toBe(\"tu-deny:perm:strict\");",
+                    "new_string": "    expect(decision).toMatchObject({\n      version: PERMISSION_DECISION_VERSION,\n      decision: \"deny\",\n      via: \"strict\",\n    });\n    expect(decision.decision).not.toBe(\"allow\");\n    expect(decision.id).toBe(\"tu-deny:perm:strict\");"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 9,
+                "sessionId": "panel-b0c872fa-a87e-441d-9115-ef79a0e5858f",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-20.test.js",
+                    "old_string": "    expect(decision).toMatchObject({ decision: \"deny\", via: \"strict\" });\n    expect(decision.decision).not.toBe(\"allow\");\n    expect(decision.id).toBe(\"tu-deny:perm:strict\");",
+                    "new_string": "    expect(decision).toMatchObject({\n      version: PERMISSION_DECISION_VERSION,\n      decision: \"deny\",\n      via: \"strict\",\n    });\n    expect(decision.decision).not.toBe(\"allow\");\n    expect(decision.id).toBe(\"tu-deny:perm:strict\");"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "edit_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_93nku8h4wfpk9oong76br0x5",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 28
+          },
+          {
+            "type": "tool_result",
+            "id": "call_7o98odetd23cyixvqv9pj4ya",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-Dxzc27\\ae12d7ec-04c6-447d-9568-386c6b4ee92f\\workspace\\packages\\cli\\__tests__\\verify-20.test.js",
+              "fileVersion": "3090:1793707132906.7034:1793707132906.7034",
+              "readSpan": {
+                "start": 0,
+                "end": 3090,
+                "total": 3090
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  buildPermissionDecision,\n  PERMISSION_DECISION_VERSION,\n} from \"../src/lib/permission-decision.js\";\n\n// Regression: an explicit \"deny\" (or any explicit decision) must never be\n// downgraded to \"allow\" by a lower-priority fallback, and an unrecognized\n// policy decision must not be coerced to a recognized value.\ndescribe(\"deny decisions are not downgraded to allow\", () => {\n  it(\"keeps an explicit deny from policy even when the chain fallback says allow\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-deny\",\n      tool: \"run_shell\",\n      result: {\n        policy: { decision: \"deny\", via: \"strict\", reason: \"blocked\" },\n        permissionChain: [{ layer: \"generic-allow\", outcome: \"allow\" }],\n      },\n    });\n    expect(decision).toMatchObject({\n      version: PERMISSION_DECISION_VERSION,\n      decision: \"deny\",\n      via: \"strict\",\n    });\n    expect(decision.decision).not.toBe(\"allow\");\n    expect(decision.id).toBe(\"tu-deny:perm:strict\");\n  });\n\n  it(\"mirrors an explicit allow instead of reversing it toward deny\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-allow\",\n      tool: \"run_shell\",\n      result: {\n        policy: { decision: \"allow\", via: \"explicit\", reason: \"ok\" },\n        permissionChain: [{ layer: \"generic-deny\", outcome: \"deny\" }],\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"allow\", via: \"explicit\" });\n    expect(decision.decision).not.toBe(\"deny\");\n  });\n\n  it(\"preserves an unknown policy decision instead of defaulting it to allow\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-unknown\",\n      tool: \"run_shell\",\n      result: { policy: { decision: \"review\", via: \"custom\", reason: \"wip\" } },\n    });\n    expect(decision).not.toBeNull();\n    expect(decision.decision).toBe(\"review\");\n    expect(decision.decision).not.toBe(\"allow\");\n  });\n\n  it(\"returns null rather than inventing an allow decision when nothing is present\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-empty\",\n      tool: \"read_file\",\n      result: { content: \"ordinary tool output\" },\n    });\n    expect(decision).toBeNull();\n  });\n\n  it(\"keeps an explicit deny from the approval source\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-approval-deny\",\n      tool: \"run_shell\",\n      result: {\n        approval: { decision: \"deny\", via: \"gate\", reason: \"needs approval\" },\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"deny\", via: \"gate\" });\n    expect(decision.decision).not.toBe(\"allow\");\n  });\n\n  it(\"keeps an explicit allow from the approval source (mirror of the deny case)\", () => {\n    const decision = buildPermissionDecision({\n      toolUseId: \"tu-approval-allow\",\n      tool: \"run_shell\",\n      result: {\n        approval: { decision: \"allow\", via: \"gate\", reason: \"approved\" },\n      },\n    });\n    expect(decision).toMatchObject({ decision: \"allow\", via: \"gate\" });\n    expect(decision.decision).not.toBe(\"deny\");\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707139359,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-20.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-b0c872fa-a87e-441d-9115-ef79a0e5858f",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-20.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_7o98odetd23cyixvqv9pj4ya",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 32
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2720,
+              "output_tokens": 109,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5435,
+              "output_tokens": 3951,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 11
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 7663,
+              "output_tokens": 877,
+              "cache_read_input_tokens": 6144,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 15
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5577,
+              "output_tokens": 72,
+              "cache_read_input_tokens": 11520,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 19
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3385,
+              "output_tokens": 793,
+              "cache_read_input_tokens": 14336,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 23
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2149,
+              "output_tokens": 1968,
+              "cache_read_input_tokens": 16640,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 26
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 7195,
+              "output_tokens": 97,
+              "cache_read_input_tokens": 14336,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 30
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4595,
+              "output_tokens": 658,
+              "cache_read_input_tokens": 18432,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+            "seq": 34
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 38719,
+          "output_tokens": 8525,
+          "cache_read_input_tokens": 87552
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 8,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "The file is persisted and complete. The `PERMISSION_DECISION_VERSION` import is now used in the Test 1 assertion, verifying the `version` return field.\n\nFinal audit against the independently-derived requirement list:\n\n**Requirement 1 — explicit deny not downgraded to allow by a fallback.**\n- Test 1 (positive): fixture `policy.decision=\"deny\"` with chain terminal `outcome=\"allow\"` → asserts `decision:\"deny\"` and `not.toBe(\"allow\")`. Reaches the `policy.decision || approval.decision || terminal.outcome` boundary. A buggy fallback that picked terminal `allow` would fail this test.\n- Test 2 (negative control, only the explicit policy decision flips to `allow`): asserts `\"allow\"`, `not.toBe(\"deny\")`. Confirms output tracks the high-priority source in both directions, so deny isn't coerced and allow isn't reversed to deny.\n\n**Requirement 2 — unknown policy decision not coerced to allow.**\n- Test 3 (positive): `decision:\"review\"` (empty chain) → `\"review\"`, `not.toBe(\"allow\")`, `not.toBeNull()`.\n- Test 4 (negative control, only the presence of a decision changes): empty result + empty chain → `null`, proving no \"allow\" is invented as a fallback.\n\n**Requirement 3 — verify actual API, arg names, return fields, fixture construction.**\n- Import `buildPermissionDecision`, `PERMISSION_DECISION_VERSION` from `../src/lib/permission-decision.js` (correct path from `packages/cli/__tests__/`). Calls `buildPermissionDecision({ toolUseId, tool, result })` per the exported signature. Asserts `version`, `decision`, `via`, `id` return fields.\n\n**Requirement 4 — approval-source deny preserved.**\n- Test 5/6 (positive/mirror negative): `approval.decision=\"deny\"` → `\"deny\"`; `approval.decision=\"allow\"` → `\"allow\"`. Only the value differs. Strengthens deny coverage across both decision sources (policy, approval), which both feed the `||` chain.\n\n**Requirement 5 — ≤6 cases, only deliverable changed.**\n- Exactly 6 cases; only `verify-20.test.js` modified. No import of an existing suite; no assertion on source text.\n\nNo implementation defect exists in the frozen source for this requirement — the `||` precedence and lack of any allow coercion mean all assertions pass by design, so no minimal fix was needed (source left read-only).\n\n**Limitations:** Tests were not executed here (no execution tool in this environment). The independent checker must run them in its Linux Docker baseline/candidate pass. The source file and existing unit test were read to EOF and are fully in context. All three task requirements map to a fixture + exported-call-path + observable assertion with valid prerequisites and single-condition-differing controls.\n\nThe deliverable is complete and read back. No remaining gaps identified.",
+          "session_id": "panel-b0c872fa-a87e-441d-9115-ef79a0e5858f",
+          "turn": 1,
+          "usage": {
+            "input_tokens": 38719,
+            "output_tokens": 8525,
+            "cache_read_input_tokens": 87552,
+            "cache_creation_input_tokens": 0
+          },
+          "transcript_refs": {
+            "schema": "chainlesschain.session-transcript-references/v1",
+            "sessionId": "panel-b0c872fa-a87e-441d-9115-ef79a0e5858f",
+            "assistantEventId": "bd388464d48a980243d7910240985732e4e77fede980fc0e4b79a62e6796cace",
+            "userEventId": "e3076107e69935694b32f5e317051ad07246b6dc44f6407ab2814e35e21b9c66",
+            "clientMessageId": "63fcfa68-7ce1-48e5-bf94-efdd9165a7ca"
+          },
+          "trace_id": "tr-4264f5a9-751a-47ba-93d1-c8bfe8ff3fc4",
+          "seq": 36
+        },
+        "scopePathComparison": "windows-case-insensitive; raw stream retained"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 8,
+        "usageCompleteRequests": 8,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateAcceptancePassed": false,
+      "passed": false,
+      "generationAssessment": {
+        "passed": true,
+        "originalGenerationPassed": true,
+        "originalTerminalVerified": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 38719,
+            "outputTokens": 8525,
+            "cacheReadInputTokens": 87552,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "dialect": "persistent-IDE-with-validated-session-end"
+      },
+      "sourceScopePassed": true,
+      "unexpectedChanges": [],
+      "frozenSourceAssessment": {
+        "exact": true,
+        "contentVerified": true,
+        "filenameEncoding": "utf8"
+      },
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-20-setup-2534f87b-b0bf-402b-917f-9decaa0ba6e7.json",
+        "receiptDigest": "sha256:35e94f0063dad2309713452ec7b29cf17b53adc47cf10282bac3f12e9268d82d",
+        "scriptDigest": "sha256:a274a5e7f8f26d11c0e5ef2d91518727bcd8e70f3c0a52327b46075402e903d7",
+        "receiptPath": "pack/acceptance-evidence/verify-20-setup-2534f87b-b0bf-402b-917f-9decaa0ba6e7.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 4,
+            "passed": 4,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate tests did not reject the behavioral mutant",
+        "receipt": "verify-20-check-697b0579-1443-4f05-be6b-fde08f829a0c.json",
+        "receiptDigest": "sha256:b970bb93d77fc66ea9ffdfbc28024bed8de4cc26914d6328e48fd9881512567a",
+        "scriptDigest": "sha256:f42320379949965a9de7d4c8ffc038bc19526fed1b6791c960f5ff39827fd420",
+        "receiptPath": "pack/acceptance-evidence/verify-20-check-697b0579-1443-4f05-be6b-fde08f829a0c.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 4,
+            "passed": 4,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "finishedAt": "2026-11-03T15:19:40.829Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-20"
+  ],
+  "passed": false,
+  "finishedAt": "2026-11-03T15:19:40.830Z"
+}

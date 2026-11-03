@@ -1,0 +1,186 @@
+import { afterEach, describe, expect, it } from "vitest";
+import { Window } from "happy-dom";
+import { createQuestionForms } from "../src/chat/question-form-drafts.js";
+
+const cleanups = [];
+afterEach(() => {
+  for (const fn of cleanups.splice(0).reverse()) fn();
+});
+
+// Standalone environment: happy-dom document plus a vscode mock exposing the
+// exact surface createQuestionForms uses (getState/setState/postMessage).
+function env() {
+  const window = new Window();
+  cleanups.push(() => window.happyDOM.abort());
+  const sent = [];
+  let state = { questionDrafts: [] };
+  const vscode = {
+    getState: () => state,
+    setState: (v) => {
+      state = v;
+    },
+    postMessage: (m) => sent.push(m),
+  };
+  const forms = createQuestionForms({ document: window.document, vscode });
+  return { window, forms, sent };
+}
+
+// Card with a select (index 0) and a checkbox (index 1); draftFields declares
+// them in that order so restore() can pair each control with its field.
+function buildCard(window) {
+  const card = window.document.createElement("form");
+  card.className = "approval";
+  card.innerHTML = `
+    <select data-key="color">
+      <option value="red">Red</option>
+      <option value="blue">Blue</option>
+    </select>
+    <input type="checkbox" data-key="consent" />
+    <button>Send</button>
+  `;
+  return card;
+}
+
+const draftFields = [
+  { key: "color", kind: "select" },
+  { key: "consent", kind: "checkbox" },
+];
+
+function question() {
+  return {
+    kind: "question",
+    id: "q-1",
+    questionInstance: "inst-1",
+    questionKey: "key-1",
+    draftKey: "draft-1",
+    convId: "conv-1",
+    questionState: "draft",
+    draftStorage: true,
+    draftFields,
+  };
+}
+
+function snapshot({ fields, state = "draft" }) {
+  return {
+    kind: "questionDraftSnapshot",
+    questionInstance: "inst-1",
+    questionKey: "key-1",
+    draftKey: "draft-1",
+    convId: "conv-1",
+    state,
+    fields,
+  };
+}
+
+describe("late question-draft load does not overwrite edits", () => {
+  it("keeps new user input when a delayed snapshot arrives after the edit", () => {
+    const { window, forms } = env();
+    const card = buildCard(window);
+    forms.attach(card, question());
+    const select = card.querySelector("select");
+    const checkbox = card.querySelector("input[type='checkbox']");
+    select.value = "blue";
+    select.dispatchEvent(new window.Event("change")); // dirty = true
+
+    forms.receive(
+      snapshot({
+        state: "draft",
+        fields: [
+          { key: "color", value: "red" },
+          { key: "consent", value: true },
+        ],
+      }),
+    );
+
+    expect(select.value).toBe("blue");
+    expect(checkbox.checked).toBe(false);
+  });
+
+  it("applies a snapshot when no edit has dirtied the form", () => {
+    const { window, forms } = env();
+    const card = buildCard(window);
+    forms.attach(card, question());
+    const select = card.querySelector("select");
+    const checkbox = card.querySelector("input[type='checkbox']");
+
+    forms.receive(
+      snapshot({
+        state: "draft",
+        fields: [
+          { key: "color", value: "blue" },
+          { key: "consent", value: true },
+        ],
+      }),
+    );
+
+    expect(select.value).toBe("blue");
+    expect(checkbox.checked).toBe(true);
+  });
+
+  it("preserves a late pending reservation without clobbering the newer edit", () => {
+    const { window, forms } = env();
+    const card = buildCard(window);
+    forms.attach(card, question());
+    const select = card.querySelector("select");
+    select.value = "blue";
+    select.dispatchEvent(new window.Event("change")); // dirty = true
+
+    forms.receive(
+      snapshot({
+        state: "pending",
+        fields: [
+          { key: "color", value: "red" },
+          { key: "consent", value: true },
+        ],
+      }),
+    );
+
+    expect(select.value).toBe("blue");
+    expect(select.disabled).toBe(true); // reservation reserved, not clobbered
+  });
+});
+
+describe("select and checkbox declaration order survives restore", () => {
+  it("restores a select value and a checkbox state at their declared positions", () => {
+    const { window, forms } = env();
+    const card = buildCard(window);
+    forms.attach(card, question());
+    const select = card.querySelector("select");
+    const checkbox = card.querySelector("input[type='checkbox']");
+
+    forms.receive(
+      snapshot({
+        state: "draft",
+        fields: [
+          { key: "color", value: "blue" },
+          { key: "consent", value: true },
+        ],
+      }),
+    );
+
+    expect(select.value).toBe("blue");
+    expect(checkbox.checked).toBe(true);
+  });
+
+  it("restores each control independently when the fields array is reordered", () => {
+    const { window, forms } = env();
+    const card = buildCard(window);
+    forms.attach(card, question());
+    const select = card.querySelector("select");
+    const checkbox = card.querySelector("input[type='checkbox']");
+
+    // Declared order is [color, consent]; the snapshot lists fields in reverse.
+    forms.receive(
+      snapshot({
+        state: "draft",
+        fields: [
+          { key: "consent", value: false },
+          { key: "color", value: "red" },
+        ],
+      }),
+    );
+
+    expect(select.value).toBe("red");
+    expect(checkbox.checked).toBe(false);
+  });
+});

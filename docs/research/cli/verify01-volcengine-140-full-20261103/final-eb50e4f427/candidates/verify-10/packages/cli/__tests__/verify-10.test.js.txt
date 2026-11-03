@@ -1,0 +1,165 @@
+import {
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { loadBackgroundAgentListIndex } from "../src/lib/background-agent-list-index.js";
+
+let directory;
+
+const STATE_NAME = /^bg-([A-Za-z0-9-]+)\.json$/u;
+const PAGE_SIZE = 2;
+
+function writeState(id, state) {
+  writeFileSync(
+    join(directory, `${id}.json`),
+    JSON.stringify({ id, startedAt: 1, status: "completed", ...state }),
+    "utf8",
+  );
+}
+
+function removeState(id) {
+  rmSync(join(directory, `${id}.json`), { force: true });
+}
+
+function readState(id) {
+  return JSON.parse(readFileSync(join(directory, `${id}.json`), "utf8"));
+}
+
+/**
+ * Independently build the authoritative, name-sorted full projection of the
+ * same directory snapshot, exactly as the index inventory orders its entries.
+ */
+function authoritativeFullList(dir) {
+  return readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => {
+      const match = STATE_NAME.exec(entry.name);
+      return match && !entry.name.includes(".job.");
+    })
+    .map((entry) => entry.name)
+    .sort((a, b) => a.localeCompare(b, "en"))
+    .map((name) => {
+      const id = name.slice(0, -".json".length);
+      const state = JSON.parse(readFileSync(join(dir, name), "utf8"));
+      return { id, startedAt: Number(state.startedAt), status: state.status };
+    });
+}
+
+/** Split entries into fixed-size pages, retaining the final partial page. */
+function paginate(entries, pageSize) {
+  const pages = [];
+  for (let i = 0; i < entries.length; i += pageSize) {
+    pages.push(entries.slice(i, i + pageSize));
+  }
+  return pages;
+}
+
+/** Assert every page of the index, including the last, equals the full list. */
+function expectPaginationMatchesFullList(loaded) {
+  expect(paginate(loaded.entries, PAGE_SIZE)).toEqual(
+    paginate(authoritativeFullList(directory), PAGE_SIZE),
+  );
+}
+
+beforeEach(() => {
+  directory = mkdtempSync(join(tmpdir(), "cc-verify-10-"));
+});
+
+afterEach(() => {
+  rmSync(directory, { recursive: true, force: true });
+});
+
+describe("background agent list index pagination invalidation", () => {
+  it("repaginates a rebuilt index after a write, keeping the partial last page", () => {
+    // Two entries form a full page; the write below adds an odd entry so the
+    // rebuilt index must surface a trailing partial page.
+    writeState("bg-a", { startedAt: 3 });
+    writeState("bg-b", { startedAt: 2 });
+    const first = loadBackgroundAgentListIndex({ directory, readState });
+    expect(first.source).toBe("rebuilt");
+    expectPaginationMatchesFullList(first);
+
+    writeState("bg-c", { startedAt: 1 });
+    const second = loadBackgroundAgentListIndex({ directory, readState });
+    expect(second.source).toBe("rebuilt");
+    expectPaginationMatchesFullList(second);
+    // The final page is partial and present, not dropped.
+    expect(paginate(second.entries, PAGE_SIZE).at(-1)).toHaveLength(1);
+  });
+
+  it("keeps a cached index in sync when nothing changes (negative: no write)", () => {
+    writeState("bg-a", { startedAt: 3 });
+    writeState("bg-b", { startedAt: 2 });
+    const first = loadBackgroundAgentListIndex({ directory, readState });
+    expectPaginationMatchesFullList(first);
+
+    // No write: the unchanged snapshot must reuse the cache, not rebuild.
+    const second = loadBackgroundAgentListIndex({ directory, readState });
+    expect(second.source).toBe("index");
+    expectPaginationMatchesFullList(second);
+    expect(second.entries).toEqual(first.entries);
+  });
+
+  it("repaginates a rebuilt index after deleting a state file", () => {
+    writeState("bg-a", { startedAt: 3 });
+    writeState("bg-b", { startedAt: 2 });
+    writeState("bg-c", { startedAt: 1 });
+    const first = loadBackgroundAgentListIndex({ directory, readState });
+    expectPaginationMatchesFullList(first);
+
+    removeState("bg-b");
+    const second = loadBackgroundAgentListIndex({ directory, readState });
+    expect(second.source).toBe("rebuilt");
+    expectPaginationMatchesFullList(second);
+  });
+
+  it("keeps a cached index in sync when deleting a missing file (negative: no delete)", () => {
+    writeState("bg-a", { startedAt: 3 });
+    writeState("bg-b", { startedAt: 2 });
+    writeState("bg-c", { startedAt: 1 });
+    const first = loadBackgroundAgentListIndex({ directory, readState });
+    expectPaginationMatchesFullList(first);
+
+    // Deleting a file that is not part of the inventory leaves the snapshot
+    // unchanged, so the cache is reused rather than rebuilt.
+    removeState("bg-nope");
+    const second = loadBackgroundAgentListIndex({ directory, readState });
+    expect(second.source).toBe("index");
+    expectPaginationMatchesFullList(second);
+  });
+
+  it("repaginates a rebuilt index after a simultaneous add and delete", () => {
+    writeState("bg-a", { startedAt: 3 });
+    writeState("bg-b", { startedAt: 2 });
+    writeState("bg-c", { startedAt: 1 });
+    const first = loadBackgroundAgentListIndex({ directory, readState });
+    expectPaginationMatchesFullList(first);
+
+    removeState("bg-a");
+    writeState("bg-d", { startedAt: 1, status: "running" });
+    const second = loadBackgroundAgentListIndex({ directory, readState });
+    expect(second.source).toBe("rebuilt");
+    expectPaginationMatchesFullList(second);
+  });
+
+  it("keeps a cached index in sync after a rebuild on an unchanged snapshot", () => {
+    writeState("bg-a", { startedAt: 3 });
+    writeState("bg-b", { startedAt: 2 });
+    writeState("bg-c", { startedAt: 1 });
+    const rebuilt = loadBackgroundAgentListIndex({ directory, readState });
+    expect(rebuilt.source).toBe("rebuilt");
+    expectPaginationMatchesFullList(rebuilt);
+
+    // Second load of the same snapshot must serve the freshly written index
+    // and still paginate identically (no pagination regression on reuse).
+    const cached = loadBackgroundAgentListIndex({ directory, readState });
+    expect(cached.source).toBe("index");
+    expectPaginationMatchesFullList(cached);
+    expect(cached.entries).toEqual(rebuilt.entries);
+  });
+});

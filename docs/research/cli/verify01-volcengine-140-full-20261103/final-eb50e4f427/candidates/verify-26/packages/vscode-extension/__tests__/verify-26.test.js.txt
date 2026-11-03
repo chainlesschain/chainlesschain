@@ -1,0 +1,96 @@
+import { describe, it, expect } from "vitest";
+import {
+  questionFields,
+  normalizeQuestionFields,
+} from "../src/chat/question-draft-contract.js";
+
+// Regression: password/writeOnly fields and the unknown-schema JSON fallback
+// must never enter the persisted projection produced by normalizeQuestionFields.
+// questionFields derives descriptors from a schema; a field is classified with
+// kind "password" when the property is writeOnly, uses format "password", or
+// the compiled input type is "password". Unknown/unsupported schemas fall back
+// to a single kind:"password" descriptor keyed "answer-json". normalizeQuestionFields
+// builds its allowed map from descriptors whose kind is not "password", so every
+// password-classified field (and its value) is dropped from persistence.
+
+describe("sensitive question fields are excluded from the persisted projection", () => {
+  function persist(requestedSchema, values) {
+    const descriptors = questionFields({ requestedSchema });
+    const projection = normalizeQuestionFields(descriptors, values);
+    return { descriptors, projection };
+  }
+
+  it("persists an ordinary text field (positive control)", () => {
+    const { descriptors, projection } = persist(
+      { type: "object", properties: { note: { type: "string" } } },
+      [{ key: JSON.stringify(["note"]), value: "visible note" }],
+    );
+    expect(descriptors).toHaveLength(1);
+    expect(descriptors[0].kind).toBe("text");
+    const serialized = JSON.stringify(projection);
+    expect(serialized).toContain("visible note");
+    expect(serialized).toContain(JSON.stringify(["note"]));
+  });
+
+  it("excludes a writeOnly field while keeping a coexisting text field", () => {
+    const { descriptors, projection } = persist(
+      {
+        type: "object",
+        properties: {
+          note: { type: "string" },
+          secret: { type: "string", writeOnly: true },
+        },
+      },
+      [
+        { key: JSON.stringify(["note"]), value: "visible note" },
+        { key: JSON.stringify(["secret"]), value: "top secret" },
+      ],
+    );
+    const secretDesc = descriptors.find(
+      (d) => d.key === JSON.stringify(["secret"]),
+    );
+    expect(secretDesc).toBeDefined();
+    expect(secretDesc.kind).toBe("password");
+    const serialized = JSON.stringify(projection);
+    expect(serialized).toContain("visible note");
+    expect(serialized).not.toContain("top secret");
+    expect(serialized).not.toContain(JSON.stringify(["secret"]));
+  });
+
+  it("excludes a format=password property (unclassifiable schema falls back)", () => {
+    // format \"password\" is not a supported MCP string format (only email, uri,
+    // date, date-time), so compileElicitationSchema marks the whole schema
+    // unsupported and questionFields falls back to the single answer-json
+    // descriptor (kind \"password\"). normalizeQuestionFields drops it, so the
+    // password-shaped field's value never reaches the persisted projection.
+    const { descriptors, projection } = persist(
+      { type: "object", properties: { pw: { type: "string", format: "password" } } },
+      [{ key: "answer-json", value: "hunter2" }],
+    );
+    expect(descriptors).toEqual([
+      { key: "answer-json", label: "Answer", kind: "password" },
+    ]);
+    const serialized = JSON.stringify(projection);
+    expect(serialized).not.toContain("hunter2");
+    expect(projection).toEqual([]);
+  });
+
+  it("drops the unknown-schema JSON fallback (kind password) from persistence", () => {
+    // A nested object property is not a supported elicitation field type, so
+    // the schema is unclassifiable and questionFields falls back to an
+    // editable-but-never-persisted answer-json password descriptor.
+    const descriptors = questionFields({
+      requestedSchema: {
+        type: "object",
+        properties: { blob: { type: "object" } },
+      },
+    });
+    expect(descriptors).toEqual([
+      { key: "answer-json", label: "Answer", kind: "password" },
+    ]);
+    const projection = normalizeQuestionFields(descriptors, [
+      { key: "answer-json", value: "raw-json-secret" },
+    ]);
+    expect(projection).toEqual([]);
+  });
+});

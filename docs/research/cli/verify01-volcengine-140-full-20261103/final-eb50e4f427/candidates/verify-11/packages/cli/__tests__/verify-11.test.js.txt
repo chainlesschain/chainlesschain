@@ -1,0 +1,304 @@
+// Independent regression coverage for "problem persistence ownership"
+// (问题持久记录归属) against the frozen background-interaction-journal
+// implementation.
+//
+// Two acceptance properties are exercised through the real exported API:
+//   1. 同名问题不同 session 不串值 — records keyed by requestId stay scoped to
+//      their session; the same request name across sessions never leaks
+//      settlement or payload state into each other, even across persistence.
+//   2. 完成记录不重建执行权 — a terminal (completed/rejected) record is
+//      idempotent: replaying the settlement (or re-recording the identical
+//      request) yields applied:false and never mints new execution authority.
+//
+// Persistence is driven deterministically through the journal's own exported
+// load/update/persist functions, backed by an in-memory event store installed
+// on _deps exactly as the existing unit suite does. No filesystem is touched.
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import {
+  BackgroundInteractionJournal,
+  _deps,
+  loadBackgroundInteractionJournal,
+  updateBackgroundInteractionJournal,
+} from "../../src/lib/background-interaction-journal.js";
+
+const AGENT_ID = "bg-verify-11";
+
+// Complete, valid interaction binding helper (mirrors normalizeInteractionBinding).
+function binding(sessionId, overrides = {}) {
+  return {
+    backgroundAgentId: AGENT_ID,
+    sessionId,
+    turnId: "turn-1",
+    toolUseId: "tool-1",
+    sequence: 1,
+    ...overrides,
+  };
+}
+
+describe("verify-11 problem persistence ownership", () => {
+  let originalAppend;
+  let originalPresence;
+  let originalReadVerified;
+  let events;
+
+  beforeEach(() => {
+    originalAppend = _deps.appendEventWithVerifiedProjection;
+    originalPresence = _deps.getSessionPresence;
+    originalReadVerified = _deps.readVerifiedEvents;
+    events = [{ type: "session_start", data: {} }];
+    _deps.appendEventWithVerifiedProjection = vi.fn(
+      (sessionId, type, data, { createProjection, validateProjection }) => {
+        const projection = createProjection();
+        validateProjection(projection, {
+          events: [...events, { sessionId, type, data }],
+          hash: "mock-hash",
+        });
+        events.push({ sessionId, type, data: structuredClone(data) });
+        return { hash: "mock-hash" };
+      },
+    );
+    _deps.readVerifiedEvents = vi.fn((sessionId) => {
+      const scoped = events.filter(
+        (event) => event.sessionId == null || event.sessionId === sessionId,
+      );
+      return scoped.map(({ type, data }) => ({
+        type,
+        data: structuredClone(data),
+      }));
+    });
+    _deps.getSessionPresence = vi.fn(() => "present");
+  });
+
+  afterEach(() => {
+    _deps.appendEventWithVerifiedProjection = originalAppend;
+    _deps.getSessionPresence = originalPresence;
+    _deps.readVerifiedEvents = originalReadVerified;
+  });
+
+  it("keyed by requestId across different sessions: payloads never cross over", () => {
+    const sessionA = "session-a";
+    const sessionB = "session-b";
+    const question = "quota-reached";
+
+    const journalA = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT_ID,
+      sessionId: sessionA,
+      now: () => 100,
+    });
+    const journalB = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT_ID,
+      sessionId: sessionB,
+      now: () => 100,
+    });
+
+    const recordA = journalA.recordPending({
+      requestId: question,
+      binding: binding(sessionA),
+      payload: { prompt: "quota A", scope: "a" },
+    }).record;
+    const recordB = journalB.recordPending({
+      requestId: question,
+      binding: binding(sessionB),
+      payload: { prompt: "quota B", scope: "b" },
+    }).record;
+
+    // Same request name, but each journal resolves only its own record.
+    expect(journalA.get(question)).toEqual(recordA);
+    expect(journalB.get(question)).toEqual(recordB);
+    expect(journalA.get(question).payload).toEqual({
+      prompt: "quota A",
+      scope: "a",
+    });
+    expect(journalB.get(question).payload).toEqual({
+      prompt: "quota B",
+      scope: "b",
+    });
+
+    // Settling session B must not touch session A's record or payload.
+    journalB.settle(question, binding(sessionB), {
+      status: "completed",
+      value: { prompt: "answer B" },
+    });
+    const untouched = journalA.get(question);
+    expect(untouched).toEqual(recordA);
+    expect(untouched.status).toBe("pending");
+    expect(untouched.payload.prompt).toBe("quota A");
+  });
+
+  it("session scoping survives persistence: same requestId is reloaded independently", () => {
+    const sessionA = "session-a";
+    const sessionB = "session-b";
+    const question = "quota-reached";
+
+    for (const sessionId of [sessionA, sessionB]) {
+      const journal = loadBackgroundInteractionJournal(
+        sessionId,
+        AGENT_ID,
+        { now: () => 100 },
+      );
+      const res = updateBackgroundInteractionJournal(
+        sessionId,
+        journal,
+        (draft) =>
+          draft.recordPending({
+            requestId: question,
+            binding: binding(sessionId),
+            payload: { prompt: sessionId },
+          }),
+        { now: () => 100 },
+      );
+      expect(res.result.applied).toBe(true);
+    }
+
+    // Terminal settlement for session B only, persisted.
+    const journalB = loadBackgroundInteractionJournal(
+      sessionB,
+      AGENT_ID,
+      { now: () => 200 },
+    );
+    const settleB = updateBackgroundInteractionJournal(
+      sessionB,
+      journalB,
+      (draft) =>
+        draft.settle(question, binding(sessionB), {
+          status: "completed",
+          value: { prompt: "answer B" },
+        }),
+      { now: () => 200 },
+    );
+    expect(settleB.result.applied).toBe(true);
+
+    // Reload session A fresh: its pending record and payload are intact,
+    // unaffected by session B's settlement.
+    const reloadedA = loadBackgroundInteractionJournal(
+      sessionA,
+      AGENT_ID,
+      { now: () => 300 },
+    );
+    const pendingA = reloadedA.pending();
+    expect(pendingA).toHaveLength(1);
+    expect(pendingA[0].requestId).toBe(question);
+    expect(pendingA[0].status).toBe("pending");
+    expect(pendingA[0].payload.prompt).toBe(sessionA);
+  });
+
+  it("terminal record does not rebuild execution: replaying settlement yields applied:false", () => {
+    const sessionId = "session-single";
+    const question = "confirm-drop";
+    const journal = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT_ID,
+      sessionId,
+      now: () => 100,
+    });
+
+    journal.recordPending({
+      requestId: question,
+      binding: binding(sessionId),
+      payload: { prompt: "drop?" },
+    });
+    const first = journal.settle(question, binding(sessionId), {
+      status: "completed",
+      value: { prompt: "yes" },
+    });
+    expect(first.applied).toBe(true);
+    expect(journal.get(question).status).toBe("completed");
+
+    // Replay the identical settlement (same binding, same outcome): idempotent,
+    // no new execution authority minted.
+    const replay = journal.settle(question, binding(sessionId), {
+      status: "completed",
+      value: { prompt: "yes" },
+    });
+    expect(replay.applied).toBe(false);
+    expect(replay.record).toEqual(journal.get(question));
+    expect(replay.record.status).toBe("completed");
+  });
+
+  it("negative control — re-recording the identical terminal request is not applied", () => {
+    const sessionId = "session-neg-record";
+    const question = "confirm-drop";
+    const journal = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT_ID,
+      sessionId,
+      now: () => 100,
+    });
+
+    journal.recordPending({
+      requestId: question,
+      binding: binding(sessionId),
+      payload: { prompt: "drop?" },
+    });
+    journal.settle(question, binding(sessionId), {
+      status: "completed",
+      value: { prompt: "yes" },
+    });
+
+    // The same request re-entered after completion must not create a second
+    // live record / execution slot.
+    const reentry = journal.recordPending({
+      requestId: question,
+      binding: binding(sessionId),
+      payload: { prompt: "drop?" },
+    });
+    expect(reentry.applied).toBe(false);
+    expect(reentry.record.status).toBe("completed");
+    expect(journal.pending()).toHaveLength(0);
+  });
+
+  it("negative control — same-session conflicting payload is rejected, not silently merged", () => {
+    const sessionId = "session-neg-conflict";
+    const question = "quota-reached";
+    const journal = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT_ID,
+      sessionId,
+      now: () => 100,
+    });
+
+    journal.recordPending({
+      requestId: question,
+      binding: binding(sessionId),
+      payload: { prompt: "original" },
+    });
+
+    // Same requestId + same session but a different payload: the persistence
+    // guard must reject the write so records cannot be silently overwritten.
+    expect(() =>
+      journal.recordPending({
+        requestId: question,
+        binding: binding(sessionId),
+        payload: { prompt: "different" },
+      }),
+    ).toThrow(/replayed with different binding or payload/);
+    expect(journal.get(question).payload.prompt).toBe("original");
+  });
+
+  it("negative control — settled record with a different outcome throws, not re-settled", () => {
+    const sessionId = "session-neg-settled";
+    const question = "confirm-drop";
+    const journal = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT_ID,
+      sessionId,
+      now: () => 100,
+    });
+
+    journal.recordPending({
+      requestId: question,
+      binding: binding(sessionId),
+      payload: { prompt: "drop?" },
+    });
+    journal.settle(question, binding(sessionId), {
+      status: "completed",
+      value: { prompt: "yes" },
+    });
+
+    // A terminal record with a *different* settlement is already settled; it
+    // must not grant new authority under a new answer.
+    expect(() =>
+      journal.settle(question, binding(sessionId), {
+        status: "completed",
+        value: { prompt: "no" },
+      }),
+    ).toThrow(/already settled/);
+    expect(journal.get(question).settlement.value).toEqual({ prompt: "yes" });
+  });
+});

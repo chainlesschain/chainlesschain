@@ -1,0 +1,210 @@
+import { describe, expect, it } from "vitest";
+import {
+  createEvalComparison,
+  createEvalHistoryRecord,
+  EVAL_CONTEXT_SCHEMA,
+  EVAL_EXECUTION_PROTOCOL,
+} from "../src/lib/eval/evidence.js";
+import {
+  buildOutcomeReport,
+  outcomeDigest,
+  OUTCOME_PLAN_SCHEMA,
+} from "../src/lib/eval/outcomes.js";
+
+const NOW = Date.parse("2026-09-15T12:00:00.000Z");
+const SHA = "a".repeat(40);
+const D = (letter) => `sha256:${letter.repeat(64)}`;
+const STAGES = ["install", "configure", "authenticate", "tool", "artifact"];
+
+function buildFixture() {
+  const comparison = createEvalComparison({
+    suite: "builtin",
+    corpusDigest: D("a"),
+    provider: "test",
+    model: "test-model",
+    context: {
+      schema: EVAL_CONTEXT_SCHEMA,
+      provider: "test",
+      model: "test-model",
+      modelRevision: "test-r1",
+      environmentDigest: D("b"),
+      permissionDigest: D("c"),
+      inferenceDigest: D("d"),
+    },
+  });
+  const window = {
+    start: "2026-09-15T10:00:00.000Z",
+    end: "2026-09-15T11:00:00.000Z",
+  };
+  // Two planned samples (task + first-run) so the plan denominator is meaningful.
+  const samples = ["task", "first-run"].map((kind, index) => ({
+    id: `sample-${index}`,
+    kind,
+    taskId: "fix-build",
+    stratum: "verify-23",
+    comparisonDigest: outcomeDigest(comparison),
+    timeBudgetMs: 1000,
+    costBudget: 1,
+  }));
+  const runs = samples.map((sample, index) =>
+    createEvalHistoryRecord(
+      {
+        total: 1,
+        passed: 1,
+        failed: 0,
+        passRate: 1,
+        unrelatedChangeRate: 0,
+        results: [
+          {
+            id: sample.taskId,
+            pass: true,
+            artifactCheckPassed: true,
+            executionSucceeded: true,
+            agentOk: true,
+            error: null,
+            ms: 100,
+            executionEvidence: {
+              protocol: EVAL_EXECUTION_PROTOCOL,
+              exitCode: 0,
+              signal: null,
+              terminalVerified: true,
+              observedFallback: false,
+            },
+          },
+        ],
+      },
+      {
+        runId: `run-${index}`,
+        ranAt: "2026-09-15T10:30:00.000Z",
+        label: SHA,
+        comparison,
+      },
+    ),
+  );
+  const observations = samples.map((sample, index) => ({
+    sampleId: sample.id,
+    observedAt: "2026-09-15T10:30:00.000Z",
+    runId: `run-${index}`,
+    cost: 0.1,
+    elapsedMs: 500,
+    retries: 0,
+    manualRepairs: 0,
+    ...(sample.kind === "first-run"
+      ? {
+          firstRun: {
+            cleanEnvironment: true,
+            stages: Object.fromEntries(
+              STAGES.map((stage) => [
+                stage,
+                { passed: true, receipt: `receipt:${stage}` },
+              ]),
+            ),
+          },
+        }
+      : {}),
+  }));
+  return {
+    plan: {
+      schema: OUTCOME_PLAN_SCHEMA,
+      commitSha: SHA,
+      currency: "USD",
+      window,
+      samples,
+    },
+    history: { runs, issues: [] },
+    observations,
+    maintenance: {
+      window,
+      complete: true,
+      entries: [
+        {
+          id: "support-1",
+          category: "support",
+          hours: 2,
+          evidenceRef: "ticket:1",
+        },
+      ],
+    },
+  };
+}
+const report = (input) => buildOutcomeReport(input, { now: NOW });
+
+describe("verify-23: missing samples keep the full planned denominator", () => {
+  it("keeps the full plan denominator and known totals when all samples are observed", () => {
+    const result = report(buildFixture());
+    expect(result.status).toBe("BASELINE_RECORDED");
+    // Positive control: with a complete observation set the planned
+    // denominator equals the observed count and the cost is known, so
+    // totalCost is a number rather than null.
+    expect(result.task).toMatchObject({
+      planned: 2,
+      observed: 2,
+      missing: 0,
+      successRate: 1,
+      totalCost: 0.2,
+      costPerSuccess: 0.2,
+    });
+  });
+
+  it("retains every planned sample and fixes the denominator when observations are partial", () => {
+    const input = buildFixture();
+    // Drop one observation only; the plan still lists both samples.
+    input.observations = input.observations.filter(
+      (obs) => obs.sampleId === "sample-0",
+    );
+    const result = report(input);
+    // planned stays 2 even though only one observation arrived; the
+    // success-rate denominator must not shrink to the observed count.
+    expect(result.task).toMatchObject({
+      planned: 2,
+      observed: 1,
+      missing: 1,
+      successRate: 0.5,
+    });
+    expect(result.rows).toHaveLength(2);
+    expect(result.rows.map((row) => row.sampleId).sort()).toEqual([
+      "sample-0",
+      "sample-1",
+    ]);
+  });
+
+  it("marks the unobserved sample as missing rather than fabricating a zero-cost success", () => {
+    const input = buildFixture();
+    input.observations = input.observations.filter(
+      (obs) => obs.sampleId === "sample-0",
+    );
+    const result = report(input);
+    const missingRow = result.rows.find((row) => row.sampleId === "sample-1");
+    expect(missingRow).toMatchObject({
+      observed: false,
+      succeeded: false,
+      cost: null,
+    });
+    expect(missingRow.reasons).toContain("missing_observation");
+  });
+
+  it("does not masquerade an unknown cost as zero for a partially observed plan", () => {
+    const input = buildFixture();
+    input.observations = input.observations.filter(
+      (obs) => obs.sampleId === "sample-0",
+    );
+    const result = report(input);
+    // The missing sample has no cost, so the aggregate cost is unknown and
+    // must stay null — it must not be reported as the known (0.1) or zero.
+    expect(result.task.totalCost).toBeNull();
+    expect(result.task.costPerSuccess).toBeNull();
+    expect(result.status).toBe("INSUFFICIENT_EVIDENCE");
+  });
+
+  it("also leaves cost null when an observed sample has no known cost", () => {
+    const input = buildFixture();
+    // Both samples observed, but one is un-priced: its cost is unknown.
+    input.observations[1].cost = null;
+    const result = report(input);
+    expect(result.task).toMatchObject({ planned: 2, observed: 2 });
+    expect(result.task.totalCost).toBeNull();
+    expect(result.task.costPerSuccess).toBeNull();
+    expect(result.rows[1]).toMatchObject({ cost: null });
+    expect(result.rows[1].reasons).toContain("missing_or_invalid_cost");
+  });
+});

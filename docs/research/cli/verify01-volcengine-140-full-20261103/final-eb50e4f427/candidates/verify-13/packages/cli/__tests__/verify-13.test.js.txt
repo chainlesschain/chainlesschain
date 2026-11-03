@@ -1,0 +1,123 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { resolveImages } from "../src/lib/image-input.js";
+import { MAX_INPUT_IMAGE_BYTES } from "../src/lib/image-file-boundary.js";
+import { PNG_BYTES } from "./helpers/image-file-fixtures.js";
+
+// Independent regression suite for the "attachment same-handle read boundary":
+// readBoundedImage pins ONE regular-file descriptor and reads header + body
+// through it, rejecting inputs that are replaced (grow/change mid-read) or that
+// exceed the byte limit BEFORE returning any content, and always closing the
+// descriptor — success or failure.
+
+const root = fs.mkdtempSync(join(tmpdir(), "cc-verify-13-"));
+afterAll(() => fs.rmSync(root, { recursive: true, force: true }));
+
+function file(name, data = PNG_BYTES, size) {
+  const target = join(root, name);
+  fs.writeFileSync(target, data);
+  if (size) fs.truncateSync(target, size);
+  return target;
+}
+
+describe("attachment same-handle read boundary", () => {
+  it("reads a normal small image and closes its descriptor once", () => {
+    const target = file("ok.png");
+    const closeSync = vi.fn(fs.closeSync);
+    const [img] = resolveImages([target], {
+      fs: { ...fs, closeSync },
+    });
+    expect(img).toEqual({ mediaType: "image/png", data: PNG_BYTES.toString("base64") });
+    expect(closeSync).toHaveBeenCalledOnce();
+  });
+
+  it("rejects over-limit input before any read and still closes the handle", () => {
+    const target = file("oversize.png", PNG_BYTES, MAX_INPUT_IMAGE_BYTES + 1);
+    const readSync = vi.fn(fs.readSync);
+    const closeSync = vi.fn(fs.closeSync);
+    expect(() =>
+      resolveImages([target], { fs: { ...fs, readSync, closeSync } }),
+    ).toThrow(/20 MiB/);
+    expect(readSync).not.toHaveBeenCalled();
+    expect(closeSync).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a file that grows (replaced) while reading, via the pinned size", () => {
+    const target = file("grows.png");
+    let grew = false;
+    const readSync = vi.fn((...args) => {
+      const read = fs.readSync(...args);
+      if (!grew) {
+        grew = true;
+        fs.appendFileSync(target, Buffer.alloc(2048));
+      }
+      return read;
+    });
+    const closeSync = vi.fn(fs.closeSync);
+    expect(() =>
+      resolveImages([target], { fs: { ...fs, readSync, closeSync } }),
+    ).toThrow(/changed while being read/);
+    // Reads stay bounded to the pre-growth allocation (never the grown size).
+    expect(readSync.mock.calls.every((args) => args[3] <= PNG_BYTES.length + 1)).toBe(true);
+    expect(closeSync).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a file whose mtime/ctime changes (replaced) while reading", () => {
+    const target = file("touched.png");
+    let calls = 0;
+    const real = fs.fstatSync;
+    const fstatSync = vi.fn((fd) => {
+      const stat = real(fd);
+      calls += 1;
+      if (calls === 2) return { ...stat, mtimeMs: stat.mtimeMs + 1000 };
+      return stat;
+    });
+    const closeSync = vi.fn(fs.closeSync);
+    expect(() =>
+      resolveImages([target], { fs: { ...fs, fstatSync, closeSync } }),
+    ).toThrow(/changed while being read/);
+    expect(closeSync).toHaveBeenCalledOnce();
+  });
+
+  it("reads header and body through the same single pinned descriptor", () => {
+    const target = file("same-handle.png");
+    const opened = new Set();
+    const readFds = new Set();
+    const closed = new Set();
+    const openSync = vi.fn((...a) => {
+      const fd = fs.openSync(...a);
+      opened.add(fd);
+      return fd;
+    });
+    const readSync = vi.fn((fd, ...rest) => {
+      readFds.add(fd);
+      return fs.readSync(fd, ...rest);
+    });
+    const closeSync = vi.fn((fd) => {
+      closed.add(fd);
+      return fs.closeSync(fd);
+    });
+    const [img] = resolveImages([target], {
+      fs: { ...fs, openSync, readSync, closeSync },
+    });
+    expect(img.data).toBe(PNG_BYTES.toString("base64"));
+    expect(openSync).toHaveBeenCalledTimes(1);
+    expect(readSync.mock.calls.length).toBeGreaterThanOrEqual(1);
+    const theFd = [...opened][0];
+    expect([...readFds]).toEqual([theFd]); // all reads reuse the single fd
+    expect(closed).toEqual(new Set([theFd])); // the same fd is closed
+  });
+
+  it("rejects an empty (below-limit) file before reading and closes it", () => {
+    const target = file("empty.png", Buffer.alloc(0));
+    const readSync = vi.fn(fs.readSync);
+    const closeSync = vi.fn(fs.closeSync);
+    expect(() =>
+      resolveImages([target], { fs: { ...fs, readSync, closeSync } }),
+    ).toThrow(/1 byte to 20 MiB/);
+    expect(readSync).not.toHaveBeenCalled();
+    expect(closeSync).toHaveBeenCalledOnce();
+  });
+});

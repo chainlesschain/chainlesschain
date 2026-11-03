@@ -1,0 +1,78 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-29",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 19,
+      "passed": 19,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 146,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 880,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":8,\"numPassedTestSuites\":8,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":19,\"numPassedTests\":19,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793719320920,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"buildSessionArgs — permission mode\"],\"fullName\":\"buildSessionArgs — permission mode emits --permission-mode for the hands-off modes\",\"status\":\"passed\",\"title\":\"emits --permission-mode for the hands-off modes\",\"duration\":2.4314149999999586,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"buildSessionArgs — permission mode\"],\"fullName\":\"buildSessionArgs — permission mode omits the flag for default / unset / unknown modes\",\"status\":\"passed\",\"title\":\"omits the flag for default / unset / unknown modes\",\"duration\":0.4916369999999688,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"buildSessionArgs — permission mode\"],\"fullName\":\"buildSessionArgs — permission mode composes mode after model/provider/resume\",\"status\":\"passed\",\"title\":\"composes mode after model/provider/resume\",\"duration\":0.3414259999999558,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"buildSessionArgs — permission mode\"],\"fullName\":\"buildSessionArgs — permission mode PERMISSION_MODES is the allow-list (no 'default')\",\"status\":\"passed\",\"title\":\"PERMISSION_MODES is the allow-list (no 'default')\",\"duration\":0.5171750000000088,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ConversationManager — mode field\"],\"fullName\":\"ConversationManager — mode field defaults to 'default' and round-trips through setMode + list()\",\"status\":\"passed\",\"title\":\"defaults to 'default' and round-trips through setMode + list()\",\"duration\":0.5701930000000175,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatViewProvider — approval mode\"],\"fullName\":\"ChatViewProvider — approval mode waits for a correlated runtime ACK, including a policy override\",\"status\":\"passed\",\"title\":\"waits for a correlated runtime ACK, including a policy override\",\"duration\":5.707465000000013,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatViewProvider — approval mode\"],\"fullName\":\"ChatViewProvider — approval mode does not respawn while the old process is stopping or after stop failure\",\"status\":\"passed\",\"title\":\"does not respawn while the old process is stopping or after stop failure\",\"duration\":2.4410330000000044,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatViewProvider — approval mode\"],\"fullName\":\"ChatViewProvider — approval mode ignores old child ACKs, reports older CLI and synchronous spawn failure\",\"status\":\"passed\",\"title\":\"ignores old child ACKs, reports older CLI and synchronous spawn failure\",\"duration\":1.079683999999986,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatViewProvider — approval mode\"],\"fullName\":\"ChatViewProvider — approval mode sets the active conversation's mode and acknowledges (no live child)\",\"status\":\"passed\",\"title\":\"sets the active conversation's mode and acknowledges (no live child)\",\"duration\":0.8747109999999907,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatViewProvider — approval mode\"],\"fullName\":\"ChatViewProvider — approval mode stops the live child so the next turn respawns with the new mode\",\"status\":\"passed\",\"title\":\"stops the live child so the next turn respawns with the new mode\",\"duration\":1.498185000000035,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatViewProvider — approval mode\"],\"fullName\":\"ChatViewProvider — approval mode rejects an unknown mode without touching the conversation\",\"status\":\"passed\",\"title\":\"rejects an unknown mode without touching the conversation\",\"duration\":0.322070999999994,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatViewProvider — Configure LLM reloads running children\"],\"fullName\":\"ChatViewProvider — Configure LLM reloads running children runs the wizard then restarts the live child so it picks up new config\",\"status\":\"passed\",\"title\":\"runs the wizard then restarts the live child so it picks up new config\",\"duration\":1.1796600000000126,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatViewProvider — Configure LLM reloads running children\"],\"fullName\":\"ChatViewProvider — Configure LLM reloads running children acknowledges with no 'next message' qualifier when no child is running\",\"status\":\"passed\",\"title\":\"acknowledges with no 'next message' qualifier when no child is running\",\"duration\":0.4621319999999969,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"createModeStatusBar — render\"],\"fullName\":\"createModeStatusBar — render highlights bypass with the warning background\",\"status\":\"passed\",\"title\":\"highlights bypass with the warning background\",\"duration\":0.6083140000000071,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"createModeStatusBar — render\"],\"fullName\":\"createModeStatusBar — render shows auto-accept and normal without a warning background\",\"status\":\"passed\",\"title\":\"shows auto-accept and normal without a warning background\",\"duration\":0.36606499999999187,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"createModeStatusBar — render\"],\"fullName\":\"createModeStatusBar — render never labels a pending/failed tightening as normal approvals\",\"status\":\"passed\",\"title\":\"never labels a pending/failed tightening as normal approvals\",\"duration\":0.30468799999999874,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatViewProvider — status-bar mode indicator wiring\"],\"fullName\":\"ChatViewProvider — status-bar mode indicator wiring re-renders the indicator on mode change and tab refresh\",\"status\":\"passed\",\"title\":\"re-renders the indicator on mode change and tab refresh\",\"duration\":0.943300000000022,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatViewProvider — status-bar mode indicator wiring\"],\"fullName\":\"ChatViewProvider — status-bar mode indicator wiring _updateModeStatus is inert when no status item exists (test mock)\",\"status\":\"passed\",\"title\":\"_updateModeStatus is inert when no status item exists (test mock)\",\"duration\":0.7805759999999964,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"slash-commands menu — mode entries\"],\"fullName\":\"slash-commands menu — mode entries lists /auto, /bypass, /normal and filters them by prefix\",\"status\":\"passed\",\"title\":\"lists /auto, /bypass, /normal and filters them by prefix\",\"duration\":0.5679590000000303,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793719321312,\"endTime\":1793719321334.5679,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/vscode-ext-chat-mode.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 738,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":5,\"numFailedTests\":1,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793719321817,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"acceptModeAcknowledgement — mode ACK correlation\"],\"fullName\":\"acceptModeAcknowledgement — mode ACK correlation accepts a correlated, well-formed ACK and marks the mode effective\",\"status\":\"passed\",\"title\":\"accepts a correlated, well-formed ACK and marks the mode effective\",\"duration\":2.8696620000000053,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"acceptModeAcknowledgement — mode ACK correlation\"],\"fullName\":\"acceptModeAcknowledgement — mode ACK correlation rejects a stale generation/correlation ACK and does not mark effective\",\"status\":\"passed\",\"title\":\"rejects a stale generation/correlation ACK and does not mark effective\",\"duration\":0.542933000000005,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"acceptModeAcknowledgement — mode ACK correlation\"],\"fullName\":\"acceptModeAcknowledgement — mode ACK correlation rejects an ACK bound to a different session and does not mark effective\",\"status\":\"failed\",\"title\":\"rejects an ACK bound to a different session and does not mark effective\",\"duration\":7.129786999999993,\"failureMessages\":[\"AssertionError: expected true to be false // Object.is equality\\n    at /workspace/packages/vscode-extension/__tests__/verify-29.test.js:84:54\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"acceptModeAcknowledgement — mode ACK correlation\"],\"fullName\":\"acceptModeAcknowledgement — mode ACK correlation rejects when the ACK requested mode does not match the requested mode\",\"status\":\"passed\",\"title\":\"rejects when the ACK requested mode does not match the requested mode\",\"duration\":0.6537090000000205,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"acceptModeAcknowledgement — mode ACK correlation\"],\"fullName\":\"acceptModeAcknowledgement — mode ACK correlation rejects an effective mode that is not in the allowed set\",\"status\":\"passed\",\"title\":\"rejects an effective mode that is not in the allowed set\",\"duration\":0.3292539999999917,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"acceptModeAcknowledgement — mode ACK correlation\"],\"fullName\":\"acceptModeAcknowledgement — mode ACK correlation rejects a malformed or badly formatted policy_revision\",\"status\":\"passed\",\"title\":\"rejects a malformed or badly formatted policy_revision\",\"duration\":0.41147699999999077,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793719322054,\"endTime\":1793719322066.4114,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-29.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate or baseline regression failed"
+}

@@ -1,0 +1,117 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-17",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 11,
+      "passed": 11,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 148,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 3473,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":11,\"numPassedTests\":11,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793720924298,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal admits local parallel launches but fences a fresh runtime until every real settlement\",\"status\":\"passed\",\"title\":\"admits local parallel launches but fences a fresh runtime until every real settlement\",\"duration\":11.502384000000006,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal retains a lost lease across fresh instances regardless of PID reuse or age\",\"status\":\"passed\",\"title\":\"retains a lost lease across fresh instances regardless of PID reuse or age\",\"duration\":3.067471999999981,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal rejects json state without overwriting it\",\"status\":\"passed\",\"title\":\"rejects json state without overwriting it\",\"duration\":3.0544069999999977,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal rejects schema state without overwriting it\",\"status\":\"passed\",\"title\":\"rejects schema state without overwriting it\",\"duration\":2.8791300000000035,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal rejects extra-field state without overwriting it\",\"status\":\"passed\",\"title\":\"rejects extra-field state without overwriting it\",\"duration\":2.592368999999991,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal rejects oversize state without overwriting it\",\"status\":\"passed\",\"title\":\"rejects oversize state without overwriting it\",\"duration\":2662.36427,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal rejects symlink state without overwriting it\",\"status\":\"passed\",\"title\":\"rejects symlink state without overwriting it\",\"duration\":2.6066940000000614,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal rejects hardlink state without overwriting it\",\"status\":\"passed\",\"title\":\"rejects hardlink state without overwriting it\",\"duration\":2.242388000000119,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal rejects permissions state without overwriting it\",\"status\":\"passed\",\"title\":\"rejects permissions state without overwriting it\",\"duration\":2.5611290000001645,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal refuses state deletion and failed durable settlement without forgetting the launch\",\"status\":\"passed\",\"title\":\"refuses state deletion and failed durable settlement without forgetting the launch\",\"duration\":3.795100000000275,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal rejects linked or replaced authority directories\",\"status\":\"passed\",\"title\":\"rejects linked or replaced authority directories\",\"duration\":1.3846949999997378,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793720924584,\"endTime\":1793720927282.3848,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/process-ownership-journal.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1099,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":4,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793720927787,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-17 persistent process ownership journal\"],\"fullName\":\"verify-17 persistent process ownership journal treats a malformed per-entry journal as unavailable, not free, and preserves it\",\"status\":\"passed\",\"title\":\"treats a malformed per-entry journal as unavailable, not free, and preserves it\",\"duration\":10.488601999999986,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-17 persistent process ownership journal\"],\"fullName\":\"verify-17 persistent process ownership journal treats duplicate execution ids as unavailable, not free\",\"status\":\"passed\",\"title\":\"treats duplicate execution ids as unavailable, not free\",\"duration\":4.987242000000009,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-17 persistent process ownership journal\"],\"fullName\":\"verify-17 persistent process ownership journal retains a legitimate pending record across fresh instances but treats an empty journal as free\",\"status\":\"passed\",\"title\":\"retains a legitimate pending record across fresh instances but treats an empty journal as free\",\"duration\":3.914574000000016,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-17 persistent process ownership journal\"],\"fullName\":\"verify-17 persistent process ownership journal accepts the MAX_PENDING boundary but rejects the first overflow as unavailable\",\"status\":\"passed\",\"title\":\"accepts the MAX_PENDING boundary but rejects the first overflow as unavailable\",\"duration\":320.06627999999995,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793720928074,\"endTime\":1793720928413.0662,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-17.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js"
+      ],
+      "setup": false,
+      "ms": 169,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1103,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":4,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793720929056,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-17 persistent process ownership journal\"],\"fullName\":\"verify-17 persistent process ownership journal treats a malformed per-entry journal as unavailable, not free, and preserves it\",\"status\":\"passed\",\"title\":\"treats a malformed per-entry journal as unavailable, not free, and preserves it\",\"duration\":10.649283999999994,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-17 persistent process ownership journal\"],\"fullName\":\"verify-17 persistent process ownership journal treats duplicate execution ids as unavailable, not free\",\"status\":\"passed\",\"title\":\"treats duplicate execution ids as unavailable, not free\",\"duration\":5.01505499999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-17 persistent process ownership journal\"],\"fullName\":\"verify-17 persistent process ownership journal retains a legitimate pending record across fresh instances but treats an empty journal as free\",\"status\":\"passed\",\"title\":\"retains a legitimate pending record across fresh instances but treats an empty journal as free\",\"duration\":5.080348000000015,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-17 persistent process ownership journal\"],\"fullName\":\"verify-17 persistent process ownership journal accepts the MAX_PENDING boundary but rejects the first overflow as unavailable\",\"status\":\"passed\",\"title\":\"accepts the MAX_PENDING boundary but rejects the first overflow as unavailable\",\"duration\":315.12657699999994,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793720929346,\"endTime\":1793720929682.1265,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-17.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate tests did not reject the behavioral mutant"
+}

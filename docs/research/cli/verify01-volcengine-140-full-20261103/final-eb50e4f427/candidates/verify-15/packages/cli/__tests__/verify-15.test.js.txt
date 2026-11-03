@@ -1,0 +1,169 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
+import {
+  ScopedPermissionStore,
+  SCOPED_PERMISSION_ERROR_CODES,
+} from "../src/lib/scoped-permission-store.js";
+
+const MAX = Number.MAX_SAFE_INTEGER;
+
+let root;
+let workspace;
+let stateFile;
+let now;
+
+function store(options = {}) {
+  return new ScopedPermissionStore({
+    cwd: workspace,
+    filePath: stateFile,
+    now: () => now,
+    randomId: () => "spr_0123456789abcdef0123456789abcdef",
+    ...options,
+  });
+}
+
+beforeEach(() => {
+  root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-scoped-permission-verify15-"));
+  workspace = path.join(root, "workspace");
+  fs.mkdirSync(workspace, { recursive: true });
+  stateFile = path.join(root, "security", "rules.json");
+  now = Date.UTC(2026, 7, 15, 0, 0, 0);
+});
+
+afterEach(() => {
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+function prime(recordMutation) {
+  const created = store().add({
+    decision: "allow",
+    rule: "Read(./src/**)",
+    expiresAt: now + 60_000,
+    reason: "read the worktree",
+  });
+  const state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+  recordMutation(state);
+  fs.writeFileSync(stateFile, JSON.stringify(state));
+  return { created, state };
+}
+
+describe("ScopedPermissionStore generation/revision upper-bound overflow", () => {
+  it("accepts add at the last safe generation (boundary-1 -> MAX_SAFE_INTEGER)", () => {
+    const { state } = prime((s) => {
+      s.generation = MAX - 1;
+    });
+    const target = store({
+      randomId: () => "spr_fedcba9876543210fedcba9876543210",
+    });
+
+    const created = target.add({
+      decision: "deny",
+      rule: "Write",
+      expiresAt: now + 60_000,
+    });
+
+    expect(created.decision).toBe("deny");
+    expect(target.list().generation).toBe(MAX);
+    expect(target.list().rules).toHaveLength(2);
+    expect(state.generation).toBe(MAX - 1); // prior value is the accepted bound
+  });
+
+  it("rejects add at the upper generation and retains the old permission", () => {
+    const { state } = prime((s) => {
+      s.generation = MAX;
+    });
+    const target = store({
+      randomId: () => "spr_fedcba9876543210fedcba9876543210",
+    });
+
+    expect(() =>
+      target.add({
+        decision: "deny",
+        rule: "Write",
+        expiresAt: now + 60_000,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: SCOPED_PERMISSION_ERROR_CODES.INVALID,
+        message: /generation is exhausted/i,
+      }),
+    );
+
+    const listed = target.list();
+    expect(listed.generation).toBe(MAX);
+    expect(listed.rules).toHaveLength(1);
+    expect(listed.rules[0]).toMatchObject({
+      decision: "allow",
+      rule: "Read(./src/**)",
+      status: "active",
+      revokedAt: null,
+    });
+    expect(state.generation).toBe(MAX);
+  });
+
+  it("rejects revoke at the upper generation and keeps the rule active", () => {
+    const { created } = prime((s) => {
+      s.generation = MAX;
+    });
+    const target = store();
+
+    expect(() => target.revoke({ id: created.id })).toThrow(
+      expect.objectContaining({
+        code: SCOPED_PERMISSION_ERROR_CODES.INVALID,
+        message: /generation is exhausted/i,
+      }),
+    );
+
+    const listed = target.list();
+    expect(listed.generation).toBe(MAX);
+    expect(listed.rules[0]).toMatchObject({
+      id: created.id,
+      decision: "allow",
+      status: "active",
+      revision: 1,
+      revokedAt: null,
+    });
+  });
+
+  it("accepts revoke at the last safe revision (MAX-1 -> MAX)", () => {
+    const { created } = prime((s) => {
+      s.generation = MAX - 1;
+      s.rules[0].revision = MAX - 1;
+    });
+    const target = store();
+
+    const revoked = target.revoke({ id: created.id, expectedRevision: MAX - 1 });
+
+    expect(revoked).toMatchObject({ status: "revoked", revision: MAX });
+    expect(target.list().generation).toBe(MAX);
+    expect(target.list().rules[0]).toMatchObject({
+      status: "revoked",
+      revision: MAX,
+    });
+  });
+
+  it("rejects revoke at the upper revision and keeps the permission", () => {
+    const { created } = prime((s) => {
+      s.rules[0].revision = MAX;
+    });
+    const target = store();
+
+    expect(() => target.revoke({ id: created.id })).toThrow(
+      expect.objectContaining({
+        code: SCOPED_PERMISSION_ERROR_CODES.INVALID,
+        message: /revision is exhausted/i,
+      }),
+    );
+
+    const listed = target.list();
+    expect(listed.rules[0]).toMatchObject({
+      id: created.id,
+      decision: "allow",
+      status: "active",
+      revision: MAX,
+      revokedAt: null,
+    });
+  });
+});

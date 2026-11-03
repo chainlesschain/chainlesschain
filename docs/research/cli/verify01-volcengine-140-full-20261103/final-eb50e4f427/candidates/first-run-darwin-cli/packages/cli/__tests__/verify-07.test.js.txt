@@ -1,0 +1,192 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+// The deliverable lives at packages/cli/__tests__/verify-07.test.js, so source
+// imports resolve one directory up (../src/...). No existing suite is imported;
+// this file only inspects behavior through the public projection API.
+const root = mkdtempSync(join(tmpdir(), "cc-history-verify07-"));
+vi.mock("../src/lib/paths.js", () => ({
+  getHomeDir: () => join(root, "home"),
+  getClaudeProjectStorageDir: () => null,
+  getStatePath: () => join(root, "home", "state"),
+  getMachineSecurityAnchorDir: () => join(root, "security"),
+}));
+
+const store = await import("../src/harness/jsonl-session-store.js");
+const { readSessionTranscriptHistory } = await import(
+  "../src/lib/session-transcript-history.js"
+);
+
+afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+function start(id, count = 8) {
+  store.startSession(id, { provider: "test", model: "test" });
+  for (let i = 0; i < count; i++) {
+    store.appendUserMessage(id, `question-${i}: ${"x".repeat(90)}`);
+    store.appendAssistantMessage(id, `answer-${i}: ${"y".repeat(90)}`);
+  }
+}
+
+// Build a fresh incremental (v1 history-sync) cursor at the given ordinal offset.
+// The source validates v===1, view==="history-sync", offset>=0 and the shared
+// sessionId/generation/revision/eventCount from an un-anchored base read.
+function afterCursor(base, offset) {
+  return Buffer.from(
+    JSON.stringify({
+      v: 1,
+      view: "history-sync",
+      sessionId: base.sessionId,
+      generation: base.generation,
+      revision: base.revision,
+      eventCount: base.eventCount,
+      offset,
+    }),
+  ).toString("base64url");
+}
+
+// Walk the durable body forward through the incremental `after` cursor. Each page
+// is limited so the walk actually crosses page seams, and stops once hasMore is
+// false (offset reached totalMessages).
+function walkAfter(id, base, limit) {
+  const pages = [];
+  let page = readSessionTranscriptHistory(id, {
+    after: afterCursor(base, 0),
+    limit,
+  });
+  pages.push(page);
+  while (page.hasMore) {
+    page = readSessionTranscriptHistory(id, { after: page.nextCursor, limit });
+    pages.push(page);
+  }
+  return pages;
+}
+
+describe("durable body pagination boundary", () => {
+  it("walks the after cursor across page seams and keeps the final body exactly once", () => {
+    const id = `verify07-final-body-${Math.random().toString(36).slice(2)}`;
+    start(id, 8);
+    const base = readSessionTranscriptHistory(id, { limit: 1 });
+    const pages = walkAfter(id, base, 3);
+    expect(pages.length).toBeGreaterThan(1);
+    const texts = pages.flatMap((p) => p.messages.map((m) => m.text));
+    // All 8 turns (16 rows) are delivered with no gap at the seam.
+    expect(texts).toHaveLength(16);
+    // The final assistant body is not omitted.
+    expect(texts).toContain("answer-7: " + "y".repeat(90));
+    // The final body is delivered on exactly one page (no duplication).
+    expect(
+      pages.filter((p) =>
+        p.messages.some((m) => m.text === "answer-7: " + "y".repeat(90)),
+      ).length,
+    ).toBe(1);
+    expect(pages.at(-1).hasMore).toBe(false);
+  });
+
+  it("advancing past the last row yields an empty page without repeating the final body", () => {
+    const id = `verify07-empty-tail-${Math.random().toString(36).slice(2)}`;
+    start(id, 3);
+    const base = readSessionTranscriptHistory(id, { limit: 1 });
+    const first = readSessionTranscriptHistory(id, {
+      after: afterCursor(base, 0),
+      limit: 3,
+    });
+    expect(first.hasMore).toBe(true);
+    const second = readSessionTranscriptHistory(id, {
+      after: first.nextCursor,
+      limit: 3,
+    });
+    expect(second.hasMore).toBe(false);
+    // Advancing one more page past the consumed tail returns no rows and no more.
+    const tail = readSessionTranscriptHistory(id, {
+      after: second.nextCursor,
+      limit: 3,
+    });
+    expect(tail.messages).toHaveLength(0);
+    expect(tail.hasMore).toBe(false);
+  });
+
+  it("reports one snapshot-boundary event, never an array, on every page of the walk", () => {
+    const id = `verify07-boundary-${Math.random().toString(36).slice(2)}`;
+    store.startSession(id, { provider: "test", model: "test" });
+    store.appendCompactEvent(id, {
+      messages: [
+        { role: "user", content: "snap q1" },
+        { role: "assistant", content: "snap a1" },
+        { role: "user", content: "snap q2" },
+        { role: "assistant", content: "snap a2" },
+      ],
+    });
+    const base = readSessionTranscriptHistory(id, { limit: 1 });
+    expect(base.coverage.kind).toBe("snapshot-boundary");
+    const pages = walkAfter(id, base, 2);
+    expect(pages.length).toBeGreaterThan(1);
+    const boundaryHashes = [];
+    for (const p of pages) {
+      expect(p.coverage).toBeTruthy();
+      expect(Array.isArray(p.coverage)).toBe(false);
+      expect(p.coverage.kind).toBe("snapshot-boundary");
+      boundaryHashes.push(p.coverage.boundaryEvent);
+    }
+    // The walk never fabricates a second, distinct boundary event.
+    expect(new Set(boundaryHashes).size).toBe(1);
+    expect(pages.flatMap((p) => p.messages.map((m) => m.text))).toEqual([
+      "snap q1",
+      "snap a1",
+      "snap q2",
+      "snap a2",
+    ]);
+  });
+
+  it("keeps row ordinals contiguous across the page seam", () => {
+    const id = `verify07-seam-${Math.random().toString(36).slice(2)}`;
+    start(id, 5);
+    const base = readSessionTranscriptHistory(id, { limit: 1 });
+    const first = readSessionTranscriptHistory(id, {
+      after: afterCursor(base, 0),
+      limit: 2,
+    });
+    const second = readSessionTranscriptHistory(id, {
+      after: first.nextCursor,
+      limit: 2,
+    });
+    const ordinals = [...first.messages, ...second.messages].map(
+      (m) => m.ordinal,
+    );
+    expect(new Set(ordinals).size).toBe(ordinals.length);
+    // The first page's last ordinal is immediately followed on the next page.
+    expect(second.messages[0].ordinal).toBe(
+      first.messages[first.messages.length - 1].ordinal + 1,
+    );
+  });
+
+  it("accepts limit 1 and rejects the first out-of-range value 0", () => {
+    const id = `verify07-limit-${Math.random().toString(36).slice(2)}`;
+    start(id, 3);
+    expect(readSessionTranscriptHistory(id, { limit: 1 }).messages).toHaveLength(
+      1,
+    );
+    expect(() => readSessionTranscriptHistory(id, { limit: 0 })).toThrow();
+  });
+
+  it("rejects supplying both an after and a before cursor together", () => {
+    const id = `verify07-exclusive-${Math.random().toString(36).slice(2)}`;
+    start(id, 3);
+    const base = readSessionTranscriptHistory(id, { limit: 1 });
+    const after = afterCursor(base, 2);
+    const before = Buffer.from(
+      JSON.stringify({
+        v: 2,
+        sessionId: base.sessionId,
+        generation: base.generation,
+        revision: base.revision,
+        eventCount: base.eventCount,
+        before: 2,
+      }),
+    ).toString("base64url");
+    expect(() =>
+      readSessionTranscriptHistory(id, { after, cursor: before }),
+    ).toThrow(/mutually exclusive/);
+  });
+});

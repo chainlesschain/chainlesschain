@@ -1,0 +1,94 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  buildArgvFromBackgroundLaunchProfile,
+  captureBackgroundLaunchProfile,
+  normalizeBackgroundLaunchProfile,
+} from "../src/lib/background-launch-profile.js";
+
+let dir;
+let previousHome;
+
+beforeEach(() => {
+  dir = realpathSync.native(mkdtempSync(join(tmpdir(), "cc-bg-profile-")));
+  previousHome = process.env.CHAINLESSCHAIN_HOME;
+  process.env.CHAINLESSCHAIN_HOME = join(dir, "home");
+  mkdirSync(process.env.CHAINLESSCHAIN_HOME, { recursive: true });
+});
+
+afterEach(() => {
+  if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+  else process.env.CHAINLESSCHAIN_HOME = previousHome;
+  rmSync(dir, { recursive: true, force: true });
+});
+
+function capture(argv) {
+  return captureBackgroundLaunchProfile({
+    argv,
+    cwd: dir,
+    governance: {
+      permissionMode: "manual",
+      resourceBudget: { maxTurns: 12, maxCostUsd: 4.5 },
+    },
+  });
+}
+
+describe("verify-36: background launch config identity fidelity", () => {
+  it("preserves permission policy identity across save/restore round-trip", () => {
+    const saved = capture(["agent", "task", "--permission-mode", "plan"]);
+    const argv = buildArgvFromBackgroundLaunchProfile(saved);
+    expect(argv).toEqual(expect.arrayContaining(["--permission-mode", "plan"]));
+    const restored = capture(argv);
+    expect(restored.permission.mode).toBe("plan");
+  });
+
+  it("preserves sandbox policy identity across save/restore round-trip", () => {
+    const saved = capture(["agent", "task", "--sandbox-mode", "strict"]);
+    const argv = buildArgvFromBackgroundLaunchProfile(saved);
+    expect(argv).toEqual(expect.arrayContaining(["--sandbox-mode", "strict"]));
+    const restored = capture(argv);
+    expect(restored.sandbox.mode).toBe("strict");
+  });
+
+  it("rejects an illegal permission mode on restore instead of loosening to default", () => {
+    expect(
+      normalizeBackgroundLaunchProfile({
+        version: 1,
+        permission: { mode: "plan" },
+      }).permission.mode,
+    ).toBe("plan");
+    expect(() =>
+      normalizeBackgroundLaunchProfile({
+        version: 1,
+        permission: { mode: "root" },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects an illegal sandbox mode on restore instead of dropping it", () => {
+    expect(
+      normalizeBackgroundLaunchProfile({
+        version: 1,
+        sandbox: { mode: "strict" },
+      }).sandbox.mode,
+    ).toBe("strict");
+    expect(() =>
+      normalizeBackgroundLaunchProfile({
+        version: 1,
+        sandbox: { mode: "network" },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects an illegal tri-state mcp switch on restore instead of defaulting to auto", () => {
+    expect(
+      normalizeBackgroundLaunchProfile({ version: 1, mcp: { ide: "enabled" } })
+        .mcp.ide,
+    ).toBe("enabled");
+    expect(() =>
+      normalizeBackgroundLaunchProfile({ version: 1, mcp: { ide: "sometimes" } }),
+    ).toThrow();
+  });
+});

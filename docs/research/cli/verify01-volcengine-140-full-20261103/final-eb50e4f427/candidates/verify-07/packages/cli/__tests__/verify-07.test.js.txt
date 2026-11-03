@@ -1,0 +1,258 @@
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { readSessionTranscriptHistory } from "../src/lib/session-transcript-history.js";
+import { startSession, appendUserMessage, appendAssistantMessage } from "../src/harness/jsonl-session-store.js";
+
+/**
+ * Independent regression coverage for incremental "after" (v1 history-sync)
+ * pagination boundaries in readSessionTranscriptHistory:
+ *
+ * - crossing page boundaries via nextCursor must not omit or duplicate any row
+ * - the boundary event (nextCursor.offset = last.ordinal + 1) is emitted at
+ *   most once and only while hasMore is true
+ * - the final body is not omitted even when it is the last emitted row
+ * - an "after" cursor at offset === eventCount yields an empty page with
+ *   hasMore=false, from===eventCount, and an unchanged nextCursor offset
+ *
+ * Only the deliverable test file is modified; source and existing tests are
+ * read-only.
+ */
+
+const HASH_RE = /^[A-Za-z0-9_-]{20,}$/;
+
+function buildAfterCursor({ sessionId, generation, revision, eventCount, offset }) {
+  const payload = {
+    v: 1,
+    view: "history-sync",
+    sessionId,
+    generation,
+    revision,
+    eventCount,
+    offset,
+  };
+  return Buffer.from(JSON.stringify(payload)).toString("base64url");
+}
+
+describe("session-transcript-history incremental 'after' pagination boundaries", () => {
+  let root;
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), "verify-07-"));
+  });
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  async function buildTurn(sessionId, turn) {
+    await appendUserMessage(sessionId, `user-${turn}`);
+    const ack = await appendAssistantMessage(sessionId, `answer-${turn}`);
+    return ack;
+  }
+
+  it("iterating from offset 0 yields every row exactly once and includes the final body", async () => {
+    const sessionId = await startSession({ projectDir: root });
+    for (let t = 0; t < 4; t += 1) await buildTurn(sessionId, t);
+
+    // First page is a normal (non-incremental) read; use its snapshot fields
+    // to mint an incremental v1 cursor at offset 0.
+    const first = await readSessionTranscriptHistory(sessionId, { projectDir: root });
+    expect(first.generation).toBeTruthy();
+    expect(first.revision).toMatch(HASH_RE);
+    expect(first.eventCount).toBe(first.totalMessages);
+
+    let cursor = buildAfterCursor({
+      sessionId,
+      generation: first.generation,
+      revision: first.revision,
+      eventCount: first.eventCount,
+      offset: 0,
+    });
+
+    const seen = [];
+    let page = 0;
+    while (true) {
+      const res = await readSessionTranscriptHistory(sessionId, {
+        projectDir: root,
+        after: cursor,
+        incremental: true,
+      });
+      page += 1;
+      for (const m of res.messages) {
+        seen.push({ ordinal: m.ordinal, body: m.body });
+      }
+      if (!res.hasMore) {
+        expect(res.from).toBe(0);
+        break;
+      }
+      expect(res.nextCursor).toBeTruthy();
+      expect(typeof res.nextCursor).toBe("string");
+      cursor = res.nextCursor;
+    }
+
+    expect(page).toBeGreaterThan(1);
+    // every row exactly once, strictly increasing ordinals starting at 0
+    expect(seen.length).toBe(first.eventCount);
+    seen.forEach((entry, idx) => {
+      expect(entry.ordinal).toBe(idx);
+    });
+    // final body present (not omitted across the boundary)
+    const last = seen.at(-1);
+    expect(last.ordinal).toBe(first.eventCount - 1);
+    expect(last.body).toBe("answer-3");
+  });
+
+  it("a hasMore=true page's nextCursor continues exactly at last.ordinal+1 (no overlap/gap)", async () => {
+    const sessionId = await startSession({ projectDir: root });
+    for (let t = 0; t < 5; t += 1) await buildTurn(sessionId, t);
+
+    const first = await readSessionTranscriptHistory(sessionId, { projectDir: root });
+    let cursor = buildAfterCursor({
+      sessionId,
+      generation: first.generation,
+      revision: first.revision,
+      eventCount: first.eventCount,
+      offset: 0,
+    });
+
+    const res = await readSessionTranscriptHistory(sessionId, {
+      projectDir: root,
+      after: cursor,
+      incremental: true,
+    });
+
+    expect(res.hasMore).toBe(true);
+    const last = res.messages.at(-1);
+    expect(last.ordinal).toBeGreaterThanOrEqual(0);
+    // decode nextCursor offset and assert exact continuation point
+    const decoded = JSON.parse(Buffer.from(res.nextCursor, "base64url").toString("utf8"));
+    expect(decoded.v).toBe(1);
+    expect(decoded.view).toBe("history-sync");
+    expect(decoded.offset).toBe(last.ordinal + 1);
+    expect(decoded.eventCount).toBe(first.eventCount);
+
+    // following page starts exactly at that offset (no duplicate boundary row)
+    const res2 = await readSessionTranscriptHistory(sessionId, {
+      projectDir: root,
+      after: res.nextCursor,
+      incremental: true,
+    });
+    expect(res2.from).toBe(last.ordinal + 1);
+    const firstRow2 = res2.messages[0];
+    expect(firstRow2.ordinal).toBe(last.ordinal + 1);
+  });
+
+  it("an 'after' cursor at offset===eventCount returns an empty tail page with hasMore=false", async () => {
+    const sessionId = await startSession({ projectDir: root });
+    for (let t = 0; t < 3; t += 1) await buildTurn(sessionId, t);
+
+    const first = await readSessionTranscriptHistory(sessionId, { projectDir: root });
+    const count = first.eventCount;
+
+    const tailCursor = buildAfterCursor({
+      sessionId,
+      generation: first.generation,
+      revision: first.revision,
+      eventCount: count,
+      offset: count, // one past the last ordinal
+    });
+
+    const res = await readSessionTranscriptHistory(sessionId, {
+      projectDir: root,
+      after: tailCursor,
+      incremental: true,
+    });
+
+    expect(res.messages).toHaveLength(0);
+    expect(res.hasMore).toBe(false);
+    expect(res.from).toBe(count);
+    const decoded = JSON.parse(Buffer.from(res.nextCursor, "base64url").toString("utf8"));
+    expect(decoded.offset).toBe(count); // nextCursor unchanged at the tail
+  });
+
+  it("hasMore is true only while nextOffset is still below eventCount", async () => {
+    const sessionId = await startSession({ projectDir: root });
+    for (let t = 0; t < 4; t += 1) await buildTurn(sessionId, t);
+
+    const first = await readSessionTranscriptHistory(sessionId, { projectDir: root });
+    const count = first.eventCount;
+
+    // cursor just below the count: still hasMore=true and emits the final row
+    const nearTail = buildAfterCursor({
+      sessionId,
+      generation: first.generation,
+      revision: first.revision,
+      eventCount: count,
+      offset: count - 1,
+    });
+    const res = await readSessionTranscriptHistory(sessionId, {
+      projectDir: root,
+      after: nearTail,
+      incremental: true,
+    });
+    expect(res.hasMore).toBe(true);
+    expect(res.messages.map((m) => m.ordinal)).toEqual([count - 1]);
+    expect(res.messages.at(-1).body).toBe("answer-3");
+
+    // cursor exactly at count: final row no longer emitted (no duplicate)
+    const tail = buildAfterCursor({
+      sessionId,
+      generation: first.generation,
+      revision: first.revision,
+      eventCount: count,
+      offset: count,
+    });
+    const res2 = await readSessionTranscriptHistory(sessionId, {
+      projectDir: root,
+      after: tail,
+      incremental: true,
+    });
+    expect(res2.hasMore).toBe(false);
+    expect(res2.messages).toHaveLength(0);
+  });
+
+  it("the final message body is not omitted across the boundary even in a large session", async () => {
+    const sessionId = await startSession({ projectDir: root });
+    const turns = 9;
+    for (let t = 0; t < turns; t += 1) await buildTurn(sessionId, t);
+
+    const first = await readSessionTranscriptHistory(sessionId, { projectDir: root });
+    let cursor = buildAfterCursor({
+      sessionId,
+      generation: first.generation,
+      revision: first.revision,
+      eventCount: first.eventCount,
+      offset: 0,
+    });
+
+    let lastOrdinal = -1;
+    while (true) {
+      const res = await readSessionTranscriptHistory(sessionId, {
+        projectDir: root,
+        after: cursor,
+        incremental: true,
+      });
+      if (res.messages.length) lastOrdinal = res.messages.at(-1).ordinal;
+      if (!res.hasMore) break;
+      cursor = res.nextCursor;
+    }
+
+    // final message reached only once, with its body intact
+    expect(lastOrdinal).toBe(first.eventCount - 1);
+    const finalPage = await readSessionTranscriptHistory(sessionId, {
+      projectDir: root,
+      after: buildAfterCursor({
+        sessionId,
+        generation: first.generation,
+        revision: first.revision,
+        eventCount: first.eventCount,
+        offset: first.eventCount - 1,
+      }),
+      incremental: true,
+    });
+    expect(finalPage.messages).toHaveLength(1);
+    expect(finalPage.messages[0].ordinal).toBe(first.eventCount - 1);
+    expect(finalPage.messages[0].body).toBe(`answer-${turns - 1}`);
+  });
+});

@@ -1,0 +1,106 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+const OFFICIAL = "https://api.openai.com/v1";
+
+/**
+ * Independent regression coverage for precise identification of the
+ * Astra / Sol / Luna family and for refusing to certify unknown suffixes
+ * as documented tool models. Each condition pairs an admissible positive
+ * control (exact documented id at the official endpoint) with a negative
+ * control that changes only the identity, so a different guard (e.g.
+ * endpoint validation) cannot cause the rejection.
+ */
+describe("Astra/Sol/Luna precise identification vs unknown suffixes", () => {
+  it("certifies exactly the documented ids gpt-6-astra/sol/luna", () => {
+    for (const model of ["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"]) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+        baseUrl: OFFICIAL,
+      });
+      expect(profile).toMatchObject({
+        model,
+        windowSource: "official-model-docs",
+        windowAssumed: false,
+        runtimeProtocol: "openai-responses",
+        advertisedMaxOutputTokens: 128000,
+        runtimeVerified: false,
+      });
+      expect(profile.sources).not.toEqual([]);
+      expect(profile.contextWindowTokens).toBe(1050000);
+    }
+  });
+
+  it("does not certify a suffixed variant of any documented id", () => {
+    for (const suffix of [
+      "gpt-6-astra-custom",
+      "gpt-6-sol-batch",
+      "gpt-6-luna-7b",
+    ]) {
+      // Only the identity changes; the endpoint stays official.
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model: suffix,
+        baseUrl: OFFICIAL,
+      });
+      expect(profile).toMatchObject({
+        model: suffix,
+        windowAssumed: true,
+        runtimeProtocol: "chat-completions",
+        advertisedMaxOutputTokens: null,
+        sources: [],
+      });
+      expect(profile.windowSource).not.toBe("official-model-docs");
+    }
+  });
+
+  it("refuses alias forms (whitespace, case, -future) of documented ids", () => {
+    for (const model of ["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"]) {
+      for (const alias of [
+        ` ${model}`,
+        `${model} `,
+        model.toUpperCase(),
+        `${model}-future`,
+      ]) {
+        const profile = resolveModelCapabilityProfile({
+          provider: "openai",
+          model: alias,
+          baseUrl: OFFICIAL,
+        });
+        expect(profile).toMatchObject({
+          windowAssumed: true,
+          runtimeProtocol: "chat-completions",
+          advertisedMaxOutputTokens: null,
+          sources: [],
+        });
+      }
+    }
+  });
+
+  it("keeps a suffixed id uncertified at a custom endpoint too", () => {
+    for (const model of ["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"]) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model: `${model}-2026`,
+        baseUrl: "https://gateway.example/v1",
+      });
+      expect(profile).toMatchObject({
+        windowAssumed: true,
+        runtimeProtocol: "chat-completions",
+        advertisedMaxOutputTokens: null,
+        sources: [],
+      });
+    }
+  });
+
+  it("preserves the exact request id and flags the assumed window for a suffix", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra-eval",
+      baseUrl: OFFICIAL,
+    });
+    expect(profile.model).toBe("gpt-6-astra-eval");
+    expect(profile.limitations.join(" ")).toMatch(/legacy or fallback/);
+  });
+});
