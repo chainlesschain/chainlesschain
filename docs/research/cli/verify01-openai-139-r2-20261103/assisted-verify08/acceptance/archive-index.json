@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "runId": 41555674510,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41555674510",
+  "executionSource": "a2e1ad458c57bbf41e2cf28b314ac35b26a605c8",
+  "artifactId": 13193753306,
+  "artifactDigest": "sha256:77b50a146c38772f13b47c842dd0239e1346f0af399fdb35ea1ce0251ea164fa",
+  "zipDigestVerified": true,
+  "originalEvaluatorsUnchanged": true,
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "candidateDigest": "sha256:d5e53f585cea972bb07ed452c773ccbdbe3839329bc6eaac985a285eeec42a7e",
+  "files": [
+    {
+      "originalEntry": "result.json",
+      "path": "result.json",
+      "digest": "sha256:69d97df9b351fdd3db63cb2cc6a85abb2a05382809ebebe918573b2948c087e1",
+      "bytes": 2324
+    },
+    {
+      "originalEntry": "acceptance-evidence/verify-08-setup-83edc9a1-87f0-432e-b84c-393bcd546088.json",
+      "path": "receipts/setup.json",
+      "digest": "sha256:00e5bd12aba7fbfd967b1293aa3661e5541d9208782ac0cdce20871693849b4b",
+      "bytes": 32025
+    },
+    {
+      "originalEntry": "acceptance-evidence/verify-08-check-5a52be73-919c-41c7-96ce-77c111331ce2.json",
+      "path": "receipts/check.json",
+      "digest": "sha256:46ed2c2e1218790ea380a6e11865e61bb11a1b04f0cd0c9c7646b4740ac267db",
+      "bytes": 29706
+    }
+  ],
+  "mutationFailureNames": [
+    "live history capability ownership controls accepts its real parent and rejects only a changed parent with the same messages"
+  ],
+  "modelRequests": 0
+}

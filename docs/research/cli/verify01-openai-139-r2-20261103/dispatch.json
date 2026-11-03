@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "credentialConfigured": true,
+  "status": "all-authorized-samples-submitted",
+  "scope": "fresh-round-two-previously-unaccepted-native-samples",
+  "source": "fbe0b5949b61240d05913693a8333fbea699fe68",
+  "ref": "verify01-native139-r2-fbe0b5949b",
+  "managerRunId": null,
+  "createdAt": "2026-11-02T23:41:37.373Z",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-03-openai-139-r2.json",
+  "packageSetDigest": "sha256:2fe5d5536c4e8e273388dfc71e7fced77bc06f5a8db3da79028340e2f8eec61e",
+  "projectSource": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "projectRevisionFile": "docs/research/cli/verify01-openai-137/public139-r2-project-revision.json",
+  "selectedSampleIds": [
+    "verify-08",
+    "verify-36"
+  ],
+  "skippedSamples": [
+    {
+      "sampleId": "verify-19",
+      "reason": "User requested no repeat of previously accepted tasks",
+      "acceptedEvidence": "docs/research/cli/verify01-openai-136/retest-five-23e26368c8/results.json",
+      "acceptedEvidenceDigest": "sha256:62a0fdf5ed2a1377151ebdd8e77368c9d301b5ae0d600257d5c96253b2df950b",
+      "acceptedCliVersion": "0.166.136",
+      "latestReviewEnabledFailureRetained": true,
+      "countedAsCli139Acceptance": false
+    },
+    {
+      "sampleId": "verify-13",
+      "reason": "Already accepted at CLI138; rerun only the two remaining unsuccessful tasks",
+      "acceptedEvidence": "docs/research/cli/verify01-openai-138/public-c472d664eb/results.json",
+      "acceptedEvidenceDigest": "sha256:87c87c01e400b276358728865415bde556a765f391684ee27031ade21055846f",
+      "acceptedCliVersion": "0.166.138",
+      "countedAsCli139Acceptance": false
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "reason": "Already accepted at CLI138; rerun only the two remaining unsuccessful tasks",
+      "acceptedEvidence": "docs/research/cli/verify01-openai-138/public-c472d664eb/results.json",
+      "acceptedEvidenceDigest": "sha256:87c87c01e400b276358728865415bde556a765f391684ee27031ade21055846f",
+      "acceptedCliVersion": "0.166.138",
+      "countedAsCli139Acceptance": false
+    }
+  ],
+  "reviewChanges": true,
+  "dispatches": [
+    {
+      "group": "darwin-vscode",
+      "hosts": "macos",
+      "entries": "vscode",
+      "sampleIds": [
+        "verify-08"
+      ],
+      "submissionStartedAt": "2026-11-02T23:41:38.991Z",
+      "submitted": true,
+      "runId": 41547368707,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41547368707"
+    },
+    {
+      "group": "darwin-jetbrains",
+      "hosts": "macos",
+      "entries": "jetbrains",
+      "sampleIds": [
+        "verify-36"
+      ],
+      "submissionStartedAt": "2026-11-02T23:41:48.011Z",
+      "submitted": true,
+      "runId": 41547386705,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41547386705"
+    }
+  ],
+  "allSubmitted": true,
+  "finishedAt": "2026-11-02T23:41:57.056Z"
+}

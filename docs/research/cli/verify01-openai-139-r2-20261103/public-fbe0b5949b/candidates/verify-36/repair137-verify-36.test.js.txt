@@ -1,0 +1,82 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+// From __tests__/ (not __tests__/unit/), ../src resolves to packages/cli/src.
+import {
+  buildArgvFromBackgroundLaunchProfile,
+  canonicalBackgroundLaunchProfileJson,
+  captureBackgroundLaunchProfile,
+  fingerprintBackgroundLaunchProfile,
+  normalizeBackgroundLaunchProfile,
+} from "../src/lib/background-launch-profile.js";
+
+let dir;
+let previousHome;
+beforeEach(() => {
+  dir = realpathSync.native(mkdtempSync(join(tmpdir(), "cc-launch-identity-")));
+  previousHome = process.env.CHAINLESSCHAIN_HOME;
+  process.env.CHAINLESSCHAIN_HOME = join(dir, "home");
+  mkdirSync(process.env.CHAINLESSCHAIN_HOME, { recursive: true });
+});
+afterEach(() => {
+  if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+  else process.env.CHAINLESSCHAIN_HOME = previousHome;
+  rmSync(dir, { recursive: true, force: true });
+});
+
+const capture = (argv) => captureBackgroundLaunchProfile({ argv, cwd: dir });
+function persist(profile) {
+  const file = join(dir, "launch.json");
+  writeFileSync(file, JSON.stringify(profile));
+  return JSON.parse(readFileSync(file, "utf8"));
+}
+function restore(profile) {
+  return capture(buildArgvFromBackgroundLaunchProfile(profile));
+}
+
+describe("persisted background launch policy identity (independent regression)", () => {
+  it.each([
+    ["unrestricted", [], null],
+    ["deny all", ["--allowed-tools", ""], []],
+    ["explicit subset", ["--allowed-tools", "read_file,run_shell"], ["read_file", "run_shell"]],
+  ])("preserves %s tool policy through disk and resumed argv", (_label, flags, allowed) => {
+    const original = capture([
+      "agent", "--permission-mode", "plan", "--max-turns", "5",
+      "--disallowed-tools", "delete_file,write_file", ...flags,
+    ]);
+    expect(original.tools.allowed).toEqual(allowed);
+    expect(original.tools.disallowed).toEqual(["delete_file", "write_file"]);
+    expect(original.permission.mode).toBe("plan");
+    expect(original.budget.maxTurns).toBe(5);
+    const saved = persist(original);
+    const resumed = restore(saved);
+    expect(normalizeBackgroundLaunchProfile(saved)).toEqual(original);
+    expect(resumed).toEqual(original);
+    expect(canonicalBackgroundLaunchProfileJson(resumed)).toBe(canonicalBackgroundLaunchProfileJson(original));
+    expect(fingerprintBackgroundLaunchProfile(resumed)).toBe(fingerprintBackgroundLaunchProfile(original));
+
+    // Only the allowlist changes: none, empty and a subset must not alias.
+    const changed = structuredClone(saved);
+    changed.tools.allowed = allowed === null ? [] : null;
+    expect(() => restore(changed)).not.toThrow();
+    expect(fingerprintBackgroundLaunchProfile(restore(changed))).not.toBe(fingerprintBackgroundLaunchProfile(original));
+  });
+
+  it.each([
+    ["permission", "mode", "plan", "corrupted-mode"],
+    ["sandbox", "mode", "strict", "corrupted-sandbox"],
+    ["budget", "maxTurns", 1, -1],
+    ["budget", "maxCostUsd", 1, -1],
+  ])("rejects only the corrupted %s.%s at normalization and resume", (section, key, valid, invalid) => {
+    const good = capture(["agent"]);
+    good[section][key] = valid;
+    const saved = persist(good);
+    expect(normalizeBackgroundLaunchProfile(saved)[section][key]).toBe(valid);
+    expect(restore(saved)[section][key]).toBe(valid);
+    const bad = structuredClone(saved);
+    bad[section][key] = invalid;
+    expect(() => normalizeBackgroundLaunchProfile(bad)).toThrow();
+    expect(() => buildArgvFromBackgroundLaunchProfile(bad)).toThrow();
+  });
+});

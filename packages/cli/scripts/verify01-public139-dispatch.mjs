@@ -20,13 +20,40 @@ const budgets = {
   contextWindowTokens: 32768,
   largerThanPriorRound: false,
 };
+export function public139RoundDirectory(
+  value = "docs/research/cli/verify01-openai-139",
+) {
+  assert.ok(
+    [
+      "docs/research/cli/verify01-openai-139",
+      "docs/research/cli/verify01-openai-139-r2-20261103",
+      "docs/research/cli/verify01-openai-139-r3-20261103",
+    ].includes(value),
+    "Unknown public139 round directory",
+  );
+  return value;
+}
+export function public139RoundSampleIds(directory) {
+  return public139RoundDirectory(directory).endsWith("-r3-20261103")
+    ? ["verify-08"]
+    : [...ids];
+}
+function refPrefix(directory) {
+  if (public139RoundDirectory(directory).endsWith("-r3-20261103")) {
+    return "verify01-native139-r3-";
+  }
+  return public139RoundDirectory(directory).endsWith("-r2-20261103")
+    ? "verify01-native139-r2-"
+    : "verify01-public139-run-";
+}
 export function assertAuthorizedPublic139Dispatch(
   plan,
-  { source, ref, credentialPresent, runAttempt },
+  { source, ref, credentialPresent, runAttempt, roundDirectory },
 ) {
+  const selectedIds = public139RoundSampleIds(roundDirectory);
   assert.match(source, /^[a-f0-9]{40}$/u);
   assert.ok(
-    ref.startsWith("verify01-public139-run-") &&
+    ref.startsWith(refPrefix(roundDirectory)) &&
       ref.includes(source.slice(0, 10)),
   );
   assert.equal(
@@ -39,7 +66,7 @@ export function assertAuthorizedPublic139Dispatch(
     true,
     "Repository OpenAI credential is missing; no model dispatch allowed",
   );
-  assert.deepEqual(plan.selectedSampleIds, ids);
+  assert.deepEqual(plan.selectedSampleIds, selectedIds);
   assert.match(
     plan.projectRevisionFile,
     /^docs\/research\/cli\/verify01-openai-137\/[A-Za-z0-9._-]+\.json$/u,
@@ -49,21 +76,27 @@ export function assertAuthorizedPublic139Dispatch(
   assert.equal(plan.model, "gpt-6.1-sol");
   assert.equal(plan.reviewChanges, true);
   assert.deepEqual(plan.requestBudgets, budgets);
-  assert.equal(plan.maximumPhysicalRequestsAcrossSelectedSamples, 48);
-  assert.deepEqual(plan.dispatches, [
-    {
-      group: "darwin-vscode",
-      hosts: "macos",
-      entries: "vscode",
-      sampleIds: ["verify-08"],
-    },
-    {
-      group: "darwin-jetbrains",
-      hosts: "macos",
-      entries: "jetbrains",
-      sampleIds: ["verify-36"],
-    },
-  ]);
+  assert.equal(
+    plan.maximumPhysicalRequestsAcrossSelectedSamples,
+    selectedIds.length * budgets.physicalRequests,
+  );
+  assert.deepEqual(
+    plan.dispatches,
+    [
+      {
+        group: "darwin-vscode",
+        hosts: "macos",
+        entries: "vscode",
+        sampleIds: ["verify-08"],
+      },
+      {
+        group: "darwin-jetbrains",
+        hosts: "macos",
+        entries: "jetbrains",
+        sampleIds: ["verify-36"],
+      },
+    ].filter((row) => row.sampleIds.every((id) => selectedIds.includes(id))),
+  );
   assert.deepEqual(plan.versions, {
     cli: "0.166.139",
     vscode: "0.37.175",
@@ -75,8 +108,11 @@ export function assertAuthorizedPublic139Dispatch(
 }
 
 async function main() {
+  const roundOption = process.argv.indexOf("--round-directory");
   const root = process.cwd(),
-    directory = "docs/research/cli/verify01-openai-139",
+    directory = public139RoundDirectory(
+      roundOption === -1 ? undefined : process.argv[roundOption + 1],
+    ),
     file = path.join(directory, "dispatch.json");
   const read = (f) => JSON.parse(fs.readFileSync(f, "utf8"));
   const hash = (f) =>
@@ -87,8 +123,7 @@ async function main() {
     execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
   const dry = process.argv.includes("--check-only");
   const ref =
-    process.env.GITHUB_REF_NAME ||
-    "verify01-public139-run-" + source.slice(0, 10);
+    process.env.GITHUB_REF_NAME || refPrefix(directory) + source.slice(0, 10);
   const state = {
     schema: 1,
     credentialConfigured: process.env.OPENAI_CREDENTIAL_PRESENT === "true",
@@ -126,6 +161,7 @@ async function main() {
   assertAuthorizedPublic139Dispatch(plan, {
     source,
     ref,
+    roundDirectory: directory,
     credentialPresent: dry || process.env.OPENAI_CREDENTIAL_PRESENT === "true",
     runAttempt: Number(process.env.GITHUB_RUN_ATTEMPT || "1"),
   });
@@ -165,9 +201,10 @@ async function main() {
       JSON.stringify({
         authorizedScopeValidated: true,
         publicationProofSource,
-        samples: ids,
-        workflowDispatches: 2,
-        maximumPhysicalRequests: 48,
+        samples: plan.selectedSampleIds,
+        workflowDispatches: plan.dispatches.length,
+        maximumPhysicalRequests:
+          plan.maximumPhysicalRequestsAcrossSelectedSamples,
         modelRequests: 0,
       }),
     );

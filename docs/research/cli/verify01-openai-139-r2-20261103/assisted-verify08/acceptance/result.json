@@ -1,0 +1,64 @@
+{
+  "schema": "chainlesschain.verify01-assisted-candidate-result/v1",
+  "sampleId": "verify-08",
+  "assisted": true,
+  "countedAsNativeGeneration": false,
+  "originalNativePassed": false,
+  "modelRequests": 0,
+  "originalRunId": 41547368707,
+  "executionSource": "a2e1ad458c57bbf41e2cf28b314ac35b26a605c8",
+  "projectSource": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "manifestDigest": "sha256:9fb52b78be5521efc26765519deccc2144a5ab34ece921a59ab1a57ba8d5d166",
+  "candidateDigest": "sha256:d5e53f585cea972bb07ed452c773ccbdbe3839329bc6eaac985a285eeec42a7e",
+  "archiveDigest": "sha256:483f679f90301a00a336781b4f6044f590cb70da17b37783d07339e5d2b1a89c",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "stages": {
+    "setup": {
+      "pass": true,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "receipt": "verify-08-setup-83edc9a1-87f0-432e-b84c-393bcd546088.json",
+      "receiptDigest": "sha256:00e5bd12aba7fbfd967b1293aa3661e5541d9208782ac0cdce20871693849b4b",
+      "operatorDigest": "sha256:41b07b56d85c745fdccef5d0454941a8abca834bedd6781ecde54cb6b65086b3",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 59,
+          "passed": 59,
+          "failed": 0
+        }
+      ],
+      "mutations": []
+    },
+    "check": {
+      "pass": true,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "receipt": "verify-08-check-5a52be73-919c-41c7-96ce-77c111331ce2.json",
+      "receiptDigest": "sha256:46ed2c2e1218790ea380a6e11865e61bb11a1b04f0cd0c9c7646b4740ac267db",
+      "operatorDigest": "sha256:f6ca61f585d17bcad2dddc37b939d094868988e60bee05e68de78cb843afea06",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 59,
+          "passed": 59,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 4,
+          "passed": 4,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "accept-history-capability-from-wrong-parent",
+          "sourceSha256": "b027cb66824de4c42d9b71b8b2c7f2de1b45eda1533601bea1e8a16ea6c38b68",
+          "total": 4,
+          "passed": 3,
+          "failed": 1
+        }
+      ]
+    }
+  },
+  "passed": true
+}

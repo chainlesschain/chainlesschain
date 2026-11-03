@@ -1,0 +1,13 @@
+{
+  "schema": "chainlesschain.verify01-project-revision/v1",
+  "cohortId": "repaired-source-followup-public-cli139-r2-2026-11-03",
+  "parentProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "parentPlanDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "projectCommit": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "selectedSampleIds": ["verify-08", "verify-36"],
+  "taskDeliverables": {
+    "verify-08": ["packages/cli/__tests__/repair137-verify-08.test.js"],
+    "verify-36": ["packages/cli/__tests__/repair137-verify-36.test.js"]
+  },
+  "reason": "User authorizes a fresh GitHub Actions run of only verify-08 and verify-36 with the latest published CLI139 and IDE175/192. Original tasks, macOS native hosts, OpenAI gpt-6.1-sol Responses, review_changes=true, 20 turns/24 requests and 32768-token context remain unchanged. No prior candidate or assisted repair is supplied; prior results remain immutable."
+}

@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "credentialConfigured": true,
+  "status": "all-authorized-samples-submitted",
+  "scope": "fresh-round-three-only-verify08",
+  "source": "aeb3a9d9cb97e23313bb1c316db00722a296e970",
+  "ref": "verify01-native139-r3-aeb3a9d9cb",
+  "managerRunId": null,
+  "createdAt": "2026-11-03T01:12:16.869Z",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-03-openai-139-r2.json",
+  "packageSetDigest": "sha256:2fe5d5536c4e8e273388dfc71e7fced77bc06f5a8db3da79028340e2f8eec61e",
+  "projectSource": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "projectRevisionFile": "docs/research/cli/verify01-openai-137/public139-r3-project-revision.json",
+  "selectedSampleIds": [
+    "verify-08"
+  ],
+  "skippedSamples": [
+    {
+      "sampleId": "verify-19",
+      "reason": "User requested no repeat of previously accepted tasks",
+      "acceptedEvidence": "docs/research/cli/verify01-openai-136/retest-five-23e26368c8/results.json",
+      "acceptedEvidenceDigest": "sha256:62a0fdf5ed2a1377151ebdd8e77368c9d301b5ae0d600257d5c96253b2df950b",
+      "acceptedCliVersion": "0.166.136",
+      "latestReviewEnabledFailureRetained": true,
+      "countedAsCli139Acceptance": false
+    },
+    {
+      "sampleId": "verify-13",
+      "reason": "Already accepted at CLI138; rerun only the two remaining unsuccessful tasks",
+      "acceptedEvidence": "docs/research/cli/verify01-openai-138/public-c472d664eb/results.json",
+      "acceptedEvidenceDigest": "sha256:87c87c01e400b276358728865415bde556a765f391684ee27031ade21055846f",
+      "acceptedCliVersion": "0.166.138",
+      "countedAsCli139Acceptance": false
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "reason": "Already accepted at CLI138; rerun only the two remaining unsuccessful tasks",
+      "acceptedEvidence": "docs/research/cli/verify01-openai-138/public-c472d664eb/results.json",
+      "acceptedEvidenceDigest": "sha256:87c87c01e400b276358728865415bde556a765f391684ee27031ade21055846f",
+      "acceptedCliVersion": "0.166.138",
+      "countedAsCli139Acceptance": false
+    },
+    {
+      "sampleId": "verify-36",
+      "reason": "Already accepted in the preceding native CLI139 round; must not repeat",
+      "acceptedEvidence": "docs/research/cli/verify01-openai-139-r2-20261103/public-fbe0b5949b/results.json",
+      "acceptedEvidenceDigest": "sha256:9abd922dd1dbeab1de22618f063e38c68d8b7e43faff5f513cc79851692afeae",
+      "acceptedCliVersion": "0.166.139",
+      "countedAsThisRoundAcceptance": false
+    }
+  ],
+  "reviewChanges": true,
+  "dispatches": [
+    {
+      "group": "darwin-vscode",
+      "hosts": "macos",
+      "entries": "vscode",
+      "sampleIds": [
+        "verify-08"
+      ],
+      "submissionStartedAt": "2026-11-03T01:12:20.818Z",
+      "submitted": true,
+      "runId": 41558182255,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41558182255"
+    }
+  ],
+  "allSubmitted": true,
+  "finishedAt": "2026-11-03T01:12:36.187Z"
+}

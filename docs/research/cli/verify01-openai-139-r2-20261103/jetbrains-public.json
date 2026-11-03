@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-02T23:39:20.413Z",
+  "version": "0.4.192",
+  "updateId": 1209958,
+  "approve": true,
+  "listed": true,
+  "source": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "officialRunId": 41434982670,
+  "publicZipUrl": "https://plugins.jetbrains.com/plugin/download?updateId=1209958",
+  "publicSha256": "sha256:e9d984f07cdb73c44484ba63e2a21c6e3f8a6ba467ff4e63edb66abf7e1b41f9",
+  "officialSha256": "sha256:6877397281524ef1e296cd0f95ac8c6e43c71bb958a7edc3b3091c7306b75628",
+  "payloadIdentical": true
+}

@@ -1,0 +1,379 @@
+{
+  "schema": 1,
+  "source": "fbe0b5949b61240d05913693a8333fbea699fe68",
+  "projectSource": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "packageDigest": "sha256:2fe5d5536c4e8e273388dfc71e7fced77bc06f5a8db3da79028340e2f8eec61e",
+  "collectorSource": "1da95a8d2284c19e9d60ab8ffeb597ac7090b835",
+  "collectorTriggerSource": "1da95a8d2284c19e9d60ab8ffeb597ac7090b835",
+  "complete": true,
+  "expected": 2,
+  "accepted": 1,
+  "failed": 1,
+  "skippedHistoricalPass": "verify-19 at CLI136; verify-13 and first-run-darwin-vscode at CLI138; none counted as CLI139 acceptance",
+  "historical45Unchanged": true,
+  "previous137r3Unchanged": "0/5",
+  "previous138Unchanged": "2/4",
+  "infrastructureRetry": null,
+  "physicalRequestsStarted": 42,
+  "usageCompleteRequests": 42,
+  "knownTokenOnlyEstimateUsd": 1.1929985,
+  "actualBilledCostUsd": null,
+  "runs": [
+    {
+      "id": 41547368707,
+      "originalRunId": 41547368707,
+      "source": "fbe0b5949b61240d05913693a8333fbea699fe68",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41547368707",
+      "updatedAt": "2026-11-02T23:49:58Z",
+      "jobs": [
+        {
+          "id": 125626129431,
+          "name": "validate",
+          "status": "completed",
+          "conclusion": "success",
+          "failedStep": null
+        },
+        {
+          "id": 125626433322,
+          "name": "Native darwin-vscode (selected samples)",
+          "status": "completed",
+          "conclusion": "success",
+          "failedStep": null
+        },
+        {
+          "id": 125628605248,
+          "name": "Linux acceptance of darwin-vscode deliveries",
+          "status": "completed",
+          "conclusion": "failure",
+          "failedStep": "Check source and candidate binding then execute baseline and behavioral controls"
+        }
+      ]
+    },
+    {
+      "id": 41547386705,
+      "originalRunId": 41547386705,
+      "source": "fbe0b5949b61240d05913693a8333fbea699fe68",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41547386705",
+      "updatedAt": "2026-11-02T23:57:25Z",
+      "jobs": [
+        {
+          "id": 125626187016,
+          "name": "validate",
+          "status": "completed",
+          "conclusion": "success",
+          "failedStep": null
+        },
+        {
+          "id": 125626534330,
+          "name": "Native darwin-jetbrains-verify-36 (selected samples)",
+          "status": "completed",
+          "conclusion": "success",
+          "failedStep": null
+        },
+        {
+          "id": 125631567748,
+          "name": "Linux acceptance of darwin-jetbrains-verify-36 deliveries",
+          "status": "completed",
+          "conclusion": "success",
+          "failedStep": null
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13189323164,
+      "name": "verify01-native-subset-delivery-darwin-vscode-fbe0b5949b61240d05913693a8333fbea699fe68",
+      "runId": 41547368707,
+      "digest": "sha256:8962594b162191ee6ddc4d8ef0ee538db5969d062cfd07478267360421006166",
+      "zipDigestVerified": true,
+      "summaryDigest": "sha256:61a70d772bcf34937a5812364f0453335b8c83f3c917df2246f5664e9ba96447",
+      "sizeInBytes": 5149705
+    },
+    {
+      "id": 13189846650,
+      "name": "verify01-native-subset-acceptance-darwin-vscode-fbe0b5949b61240d05913693a8333fbea699fe68",
+      "runId": 41547368707,
+      "digest": "sha256:fd180520b65844b5734ada2c5a3c56c8c61816757365e1a8a7d6e270b3295077",
+      "zipDigestVerified": true,
+      "summaryDigest": "sha256:8ce1c88e5f66e3dc1c1841cbf0ebd199b032f3cdb875c67892e031d9b55bb7e7",
+      "sizeInBytes": 691492
+    },
+    {
+      "id": 13190396473,
+      "name": "verify01-native-subset-delivery-darwin-jetbrains-verify-36-fbe0b5949b61240d05913693a8333fbea699fe68",
+      "runId": 41547386705,
+      "digest": "sha256:80292f0c610cb2128b7dffaae7c456421c63f5982573ac10f596ebe3771706f3",
+      "zipDigestVerified": true,
+      "summaryDigest": "sha256:86088e52fd1320dd8a6af2ec12e1db12917ee3853006efd808c0cd15fe7094ba",
+      "sizeInBytes": 5043494
+    },
+    {
+      "id": 13189319511,
+      "name": "verify01-native-subset-acceptance-darwin-jetbrains-verify-36-fbe0b5949b61240d05913693a8333fbea699fe68",
+      "runId": 41547386705,
+      "digest": "sha256:95703ff4d799304fd044ba3fddb9ba18c117fe724bc9133c80b99fe89539207e",
+      "zipDigestVerified": true,
+      "summaryDigest": "sha256:7348c2d117a21d5eecf88d8d403b766e6b14fa1a5f3841f6c292e85ac7596669",
+      "sizeInBytes": 670352
+    }
+  ],
+  "rows": [
+    {
+      "sampleId": "verify-08",
+      "runId": 41547368707,
+      "group": "darwin-vscode",
+      "originalGenerationPassed": true,
+      "generationPassed": true,
+      "accepted": false,
+      "candidateAcceptancePassed": false,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "terminal": {
+        "type": "result",
+        "subtype": "success",
+        "is_error": false,
+        "result": "已替换唯一允许修改的文件：\n`packages/cli/__tests__/repair137-verify-08.test.js`\n\n新增两项独立回归测试，使用真实持久化与同步、已验证的历史投影：\n- 不同祖先截点：断言有效前缀恢复，并排除截点之后及分支后追加的父会话内容。\n- 同一历史来源的两个 fork：断言双方恢复祖先，各自保留独立正文，兄弟分支与来源后续消息均不串入；另检查历史行身份归属。\n\n验证记录：已回读完整交付文件；文件工具确认两个源码相对导入可解析。**未运行 Vitest，不能声称测试通过。** 未修改源码、既有测试或评测计划，也没有已复现的实现缺陷。\n\n限制：本轮未完成夹具路径 mock、历史行身份字段与实际返回契约的全部核对；描述符格式及大小限制的边界负例也未覆盖。因此补丁已落盘，但验证工作仍不完整，需要独立执行与进一步核验。",
+        "session_id": "panel-62b3778a-d8b9-4e49-b763-87820fcb0e86",
+        "turn": 1,
+        "usage": {
+          "input_tokens": 11092,
+          "output_tokens": 5212,
+          "cache_read_input_tokens": 68859,
+          "cache_creation_input_tokens": 269094
+        },
+        "transcript_refs": {
+          "schema": "chainlesschain.session-transcript-references/v1",
+          "sessionId": "panel-62b3778a-d8b9-4e49-b763-87820fcb0e86",
+          "assistantEventId": "9a196296036146e00a7a3af021524b1fc705d244393296dbac4232df1b76813d",
+          "userEventId": "de84dd1426ebe58a864a798f355dd8134bf063134f57fb3eefae174b970625af",
+          "clientMessageId": "1226ffff-ac45-454d-a908-c55ac7b3ddaa"
+        },
+        "trace_id": "tr-fee71998-b0b9-47d6-b887-314b6d413598",
+        "seq": 138
+      },
+      "modelFailure": null,
+      "modelPass": true,
+      "sourceScopePassed": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 21,
+        "usageCompleteRequests": 21,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 21,
+        "usageCompleteRequests": 21,
+        "tasks": [
+          {
+            "taskId": "verify-08",
+            "requests": 21,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostUsd": null,
+        "tokenOnlyEstimateUsd": 0.6193779,
+        "knownTokenOnlyEstimateUsd": 0.6193779,
+        "fxRate": null
+      },
+      "observedUsage": {
+        "input_tokens": 11092,
+        "output_tokens": 5212,
+        "cache_read_input_tokens": 68859,
+        "cache_creation_input_tokens": 269094,
+        "reasoning_tokens": 184
+      },
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 59,
+            "passed": 59,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:2fd4967165d3d73032944aac45d8c0054912931e40db10e03fee7ed000926754"
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate tests did not reject the behavioral mutant",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 59,
+            "passed": 59,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 2,
+            "passed": 2,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:f094b75c072b7a68679efb8da5d1feeb8b26bedcfb381b2312a17150c2545b09"
+      },
+      "generationAssessment": {
+        "passed": true,
+        "originalGenerationPassed": true,
+        "originalTerminalVerified": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 11092,
+            "outputTokens": 5212,
+            "cacheReadInputTokens": 68859,
+            "cacheCreationInputTokens": 269094
+          },
+          "totalCostUsd": null
+        },
+        "dialect": "persistent-IDE-with-validated-session-end"
+      }
+    },
+    {
+      "sampleId": "verify-36",
+      "runId": 41547386705,
+      "group": "darwin-jetbrains-verify-36",
+      "originalGenerationPassed": true,
+      "generationPassed": true,
+      "accepted": true,
+      "candidateAcceptancePassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "terminal": {
+        "type": "result",
+        "subtype": "success",
+        "is_error": false,
+        "result": "指定测试文件 `packages/cli/__tests__/repair137-verify-36.test.js` 已由占位内容替换为独立 Vitest 测试；冻结源码和原有测试未修改。\n\n**本次交付尚未完成验收：**\n- 最终回读被工具省略，无法完成逐项“条件—正反例—生产调用—可观察断言”审计，因此不能确认所有要求均已覆盖。\n- 当前无执行工具，未运行 Vitest，也没有实际通过记录。\n- 未取得足以证明实现缺陷的反例，不声称冻结实现存在缺陷或已被修复。\n\n该补丁仍需完整回读审计及独立运行验证，不能视为已验收。",
+        "session_id": "panel-1793663492254-df09af",
+        "turn": 1,
+        "usage": {
+          "input_tokens": 6859,
+          "output_tokens": 3942,
+          "cache_read_input_tokens": 71586,
+          "cache_creation_input_tokens": 256662
+        },
+        "transcript_refs": {
+          "schema": "chainlesschain.session-transcript-references/v1",
+          "sessionId": "panel-1793663492254-df09af",
+          "assistantEventId": "268a9785f4e218e7d472650c64bb6389c71d180cfa7ad7ed4a0302b6cbde30b7",
+          "userEventId": "c2b47772c64098cf92573853d8746b55345697dff708dacb9ea25417604ddeb5",
+          "clientMessageId": "a27c6414-e50c-4f74-b3ca-eec50025ae49"
+        },
+        "trace_id": "tr-aa31abb8-b7d4-4d31-8a5f-5b38d08c5f7e",
+        "seq": 127
+      },
+      "modelFailure": null,
+      "modelPass": true,
+      "sourceScopePassed": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 21,
+        "usageCompleteRequests": 21,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 21,
+        "usageCompleteRequests": 21,
+        "tasks": [
+          {
+            "taskId": "verify-36",
+            "requests": 21,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostUsd": null,
+        "tokenOnlyEstimateUsd": 0.5736206,
+        "knownTokenOnlyEstimateUsd": 0.5736206,
+        "fxRate": null
+      },
+      "observedUsage": {
+        "input_tokens": 6859,
+        "output_tokens": 3942,
+        "cache_read_input_tokens": 71586,
+        "cache_creation_input_tokens": 256662,
+        "reasoning_tokens": 89
+      },
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 12,
+            "passed": 12,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:0b1618296c25d3bacc7132d2e991ae2910db3b681c7d09b9daaff3e1c9e9491f"
+      },
+      "check": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 12,
+            "passed": 12,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 7,
+            "passed": 7,
+            "failed": 0
+          }
+        ],
+        "mutations": [
+          {
+            "name": "restore-more-permissive-mode",
+            "sourceSha256": "5fde36e42eba32cacb70b29b9bc80ceb250c656af337c83bab29bc734539044d",
+            "total": 7,
+            "passed": 3,
+            "failed": 4
+          }
+        ],
+        "receiptDigest": "sha256:9ae02c65105a53b1ac16081bc9a524c7574817bf566b40b95901dd3192f922c0"
+      },
+      "generationAssessment": {
+        "passed": true,
+        "originalGenerationPassed": true,
+        "originalTerminalVerified": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 6859,
+            "outputTokens": 3942,
+            "cacheReadInputTokens": 71586,
+            "cacheCreationInputTokens": 256662
+          },
+          "totalCostUsd": null
+        },
+        "dialect": "persistent-IDE-with-validated-session-end"
+      }
+    }
+  ]
+}

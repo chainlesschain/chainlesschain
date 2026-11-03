@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "sampleId": "verify-08",
+  "runId": 41547368707,
+  "source": "fbe0b5949b61240d05913693a8333fbea699fe68",
+  "receiptPath": "docs/research/cli/verify01-openai-139-r2-20261103/public-fbe0b5949b/receipts/verify-08-check.json",
+  "receiptDigest": "sha256:f094b75c072b7a68679efb8da5d1feeb8b26bedcfb381b2312a17150c2545b09",
+  "generationPassed": true,
+  "candidateAccepted": false,
+  "baselineTests": 59,
+  "candidateTests": 2,
+  "candidateAllPassed": true,
+  "failedReason": "candidate tests did not reject the behavioral mutant",
+  "executions": [
+    {
+      "index": 0,
+      "command": [
+        "node",
+        "--version"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "tests": null
+    },
+    {
+      "index": 1,
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "tests": {
+        "total": 59,
+        "passed": 59,
+        "failed": 0,
+        "pending": 0
+      }
+    },
+    {
+      "index": 2,
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "tests": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "pending": 0
+      }
+    },
+    {
+      "index": 3,
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/session-branch-history.js"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "tests": null
+    },
+    {
+      "index": 4,
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "tests": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "pending": 0
+      }
+    }
+  ],
+  "analysis": "The candidate exercises valid ancestor prefixes and independent fork bodies, but supplies no wrong-parent history capability negative control. The original behavioral mutant still passes both candidate tests. This demonstrates missing generated test coverage, not a reproduced product defect.",
+  "candidateChanged": false,
+  "checkerChanged": false,
+  "newModelRequests": 0
+}

@@ -1,0 +1,32 @@
+{
+  "schema": "chainlesschain.verify01-assisted-candidate-repair/v1",
+  "sampleId": "verify-08",
+  "assisted": true,
+  "originalNativePassed": false,
+  "countedAsNativeGeneration": false,
+  "modelRequests": 0,
+  "projectSource": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "originalRunId": 41547368707,
+  "originalAcceptanceArtifactId": 13189846650,
+  "originalAcceptanceArtifactDigest": "sha256:fd180520b65844b5734ada2c5a3c56c8c61816757365e1a8a7d6e270b3295077",
+  "originalCandidateDigest": "sha256:d330edacf414d3031e691088b8196b8af3e9f43849ac80efdcbfc1c18f762732",
+  "candidateFile": "repair137-verify-08.test.js.txt",
+  "candidateDigest": "sha256:d5e53f585cea972bb07ed452c773ccbdbe3839329bc6eaac985a285eeec42a7e",
+  "targetFile": "packages/cli/__tests__/repair137-verify-08.test.js",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operators": {
+    "setup": {
+      "file": "original-setup.mjs.gz",
+      "digest": "sha256:41b07b56d85c745fdccef5d0454941a8abca834bedd6781ecde54cb6b65086b3",
+      "compressedDigest": "sha256:ad17c45c055d7a074bfb64673120e9b010c8aa353cb009343ef0cfdb423ce7a4"
+    },
+    "check": {
+      "file": "original-check.mjs.gz",
+      "digest": "sha256:f6ca61f585d17bcad2dddc37b939d094868988e60bee05e68de78cb843afea06",
+      "compressedDigest": "sha256:0eac5b8f093121d02e5e4577d86d58c3ac13727107b75679756fc85e3a2f8bd9"
+    }
+  },
+  "cause": "Original candidate exercises valid ancestry and sibling isolation but does not reject a genuine capability passed with the wrong parent; both candidate cases pass the original behavioral mutant.",
+  "repair": "Preserve original two cases; add live capability valid/wrong-parent controls at the resolver, plus context, forged, null and expired controls. No production change or evaluator weakening.",
+  "independentReview": "Astra completed read-only diagnosis and concrete candidate review: original two cases preserved, genuine synchronous authority capability, wrong-parent is a single-factor change with valid controls, and no blocking issue. Original Docker evaluator remains authoritative."
+}

@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-11-03T01:01:45.639Z",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192"
+  },
+  "native": {
+    "accepted": 1,
+    "expected": 2,
+    "acceptedSampleIds": [
+      "verify-36"
+    ],
+    "unacceptedSampleIds": [
+      "verify-08"
+    ],
+    "results": "public-fbe0b5949b/results.json"
+  },
+  "assistedRepair": {
+    "sampleId": "verify-08",
+    "passed": true,
+    "accepted": 1,
+    "expected": 1,
+    "baseline": 59,
+    "candidate": 4,
+    "originalMutantsDetected": 1,
+    "results": "assisted-verify08/acceptance/result.json",
+    "nativeScoreUnchanged": true
+  },
+  "requestUsage": {
+    "started": 42,
+    "complete": 42,
+    "knownTokenOnlyEstimateUsd": 1.1929985,
+    "actualBilledCostUsd": null
+  },
+  "secretRemoved": true,
+  "productRuntimeChanged": false,
+  "reviewer": "Astra",
+  "candidateModifiedOnlyByAddedControls": true,
+  "nativeArchiveFilesVerified": 13,
+  "assistedArchiveFilesVerified": 3
+}
