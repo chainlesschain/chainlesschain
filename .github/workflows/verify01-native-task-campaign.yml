@@ -389,6 +389,40 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  collect_fresh_volcengine:
+    needs: [validate, generate, accept]
+    if: always() && inputs.fresh_volcengine_round && needs.validate.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Prepare operator workspace dependency
+        run: >-
+          npm ci --workspace @chainlesschain/context-memory-kernel
+          --include-workspace-root=false --omit=dev --ignore-scripts
+          --legacy-peer-deps --no-audit --no-fund
+      - name: Collect every sample with source and artifact digest verification without model credentials
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node packages/cli/scripts/verify01-volcengine-fresh-collect.mjs
+          --run-id "${{ github.run_id }}" --source "${{ github.sha }}"
+          --output-dir "${{ runner.temp }}/verify01-volc139-results" --in-workflow
+      - name: Preserve full round results and independent acceptance receipts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: verify01-volc139-results-${{ github.sha }}
+          path: ${{ runner.temp }}/verify01-volc139-results/
+          if-no-files-found: error
+          retention-days: 14
+
   accept:
     needs: [validate, generate]
     if: always() && needs.validate.result == 'success'
