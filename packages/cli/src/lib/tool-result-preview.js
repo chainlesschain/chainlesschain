@@ -36,6 +36,7 @@ const PREVIEW_HINT =
 export function canProjectHostToolExcerpt(text, tool) {
   const scan = createEvidenceJsonTextBoundary((message) => new Error(message), {
     ...EVIDENCE_JSON_POLICY,
+    sourceExpressionPolicy: "bounded-source-tokens-v1",
     sourceLiteralPolicy: "explicit-source-containers-v1",
     maxSourceTokens: 32768,
   });

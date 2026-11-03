@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "reviewerKind": "AI",
+  "reviewerModel": "gpt-6-astra",
+  "userExplicitlyAuthorized": true,
+  "reviewMode": "Independent read-only source and archived outbound-request audit",
+  "sourceChangeReviewed": "Host excerpt admission adds the existing bounded-source-tokens-v1 sourceExpressionPolicy; no authority, budget or strict JSON/PII policy changes.",
+  "confirmedFindings": [
+    "Both original candidates contain generated test mistakes.",
+    "Frozen CLI host preview wrongly omits legitimate complete source containing spread expressions.",
+    "The original provider request bodies confirm these omissions; host read receipts alone do not establish model visibility.",
+    "Frozen read guard can prescribe an impossible reread; current source contains an existing correction.",
+    "Independent review context exists, but observed review entry and protocol completion do not prove successful inspection or task acceptance."
+  ],
+  "outboundSpotChecks": {
+    "sampleIds": ["first-run-darwin-vscode", "verify-08"],
+    "requestNumbers": [20, 21],
+    "jsonBudgetSuffixHandled": true,
+    "completeCandidateAndTailOmissionsConfirmed": true
+  },
+  "safetyReview": {
+    "duplicateDecodedKeysRemainRejected": true,
+    "unsafeAndNonfiniteNumbersRemainRejected": true,
+    "strictArgumentsAndProseRemainSeparate": true,
+    "providerSensitiveExpressionChecksRemainRequired": true,
+    "hostProjectabilityDoesNotEstablishCompleteSyntax": true
+  },
+  "fixtureReview": {
+    "matchesArchivedCandidateBytes": true,
+    "candidateErrorsUnmodified": true,
+    "replayProvesDeliveryOnly": true
+  },
+  "distributionSourceReview": {
+    "path": "packages/cli/scripts/verify01-public140-preflight.mjs",
+    "digest": "sha256:5408f9e5ae1b3df862e52c48cef807f781631d31af7945ce83af95877d121a43",
+    "classification": "DISTRIBUTION",
+    "modelInferenceOrPublication": false,
+    "limitation": "Downloads use metadata URLs and redirects; gh inherits host, proxy and process environment. Byte-bound source-purpose classification does not attest those runtime boundaries or grant paid/release admission."
+  },
+  "recommendation": "Release the verified shared CLI harness repair only after exact-source CI gates. No independent IDE implementation defect established; apply CLI/IDE pairing requirements separately.",
+  "causalLimit": "The effect of the harness repair on a fresh model task outcome has not been measured. Do not attribute all failure exclusively to the model or exclusively to the harness.",
+  "externalProviderRequestsDuringAudit": 0,
+  "originalPaidSampleReruns": 0
+}
