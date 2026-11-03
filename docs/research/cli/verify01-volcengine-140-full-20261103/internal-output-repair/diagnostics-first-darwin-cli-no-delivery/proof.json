@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "runId": 41638188839,
+  "sampleId": "first-run-darwin-cli",
+  "executionSource": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "rawDeliverySummaryDigest": "sha256:c63f9847908e6be23ca06b0833c65fd12ac840b074e25c3301630cfc89526168",
+  "expectedDeliverable": "packages/cli/__tests__/verify-07.test.js",
+  "expectedPlaceholderBytes": 27,
+  "generationPassed": false,
+  "modelTerminalSuccess": true,
+  "physicalDispatchSlots": 16,
+  "usageCompleteRequests": 16,
+  "finalRequestId": 16,
+  "finalProviderFinishReason": "stop",
+  "finalOfferedTools": [
+    "write_file",
+    "edit_file",
+    "edit_file_hashed",
+    "search_files",
+    "list_dir"
+  ],
+  "availableModelRequestBudget": 40,
+  "rawFinalRequestOutputLimit": 393216,
+  "files": {
+    "request-16.effective.json": "sha256:9c802f252a199622d05ad90e820d73056f4ea0ff8de5929523ea974072afb62f",
+    "request-16.receipt.json": "sha256:34382c5e8ed65fd0ed69bd862b31f16816de36fed4c9f7624163a94f224d30d1",
+    "response-16.json": "sha256:c3d492622f10ba4798a820886b1d1adf5a1ae4fdd66f148a3c0269942140383d"
+  },
+  "directFinding": "Provider ended the task with finish_reason:stop while all three write/edit tools remained available and the expected file was unchanged. The final statement promised to consolidate findings and write the deliverable but supplied no write call. This is actual non-delivery; increasing the allowed40 turns alone cannot extend a model that already stops.",
+  "limitations": [
+    "The one-turn read-loop guard omitted read_file only; it did not remove write/edit tools. Its causal effect on model behavior was not isolated.",
+    "This observation does not prove a strict model-only ranking across different thinking settings, protocols and project revisions."
+  ]
+}
