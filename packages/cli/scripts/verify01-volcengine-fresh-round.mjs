@@ -105,6 +105,11 @@ export function assertFreshVolcengineRound({
 }
 
 export function assertFreshVolcengineBudgetRetry(options, plan) {
+  assert.equal(
+    options.reviewChanges,
+    true,
+    "Budget retries retain independent change review",
+  );
   const {
     provider,
     packageSet,
@@ -130,6 +135,7 @@ export function assertFreshVolcengineBudgetRetry(options, plan) {
   assert.equal(runAttempt, 1);
   assert.equal(credentialPresent, true);
   const manifest = JSON.parse(packageBinding.bytes.toString("utf8"));
+  assert.equal(manifest.volcengineBudgetRetry?.reviewChanges, true);
   assert.equal(
     manifest.freshVolcengineRound,
     undefined,

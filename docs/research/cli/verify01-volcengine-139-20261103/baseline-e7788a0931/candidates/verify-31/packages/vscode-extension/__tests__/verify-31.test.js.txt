@@ -1,0 +1,126 @@
+import { describe, expect, it, vi } from "vitest";
+import { readImageSnapshot } from "../src/chat/image-file-snapshot.js";
+
+// readImageSnapshot never deletes files: on success the referenced source is
+// preserved (no unlink), and on every failure path the open handle is closed
+// in the finally block and the source is likewise never removed.
+
+function stat(size) {
+  return {
+    isFile: () => true,
+    size,
+    dev: 1,
+    ino: 2,
+    mtimeMs: 3,
+    ctimeMs: 4,
+  };
+}
+
+// Faithful handle for a 4-byte file: fills the buffer with DATA until the
+// source is exhausted, then reports EOF (bytesRead 0) exactly like fs so the
+// read loop terminates at the true file size.
+function baseIo() {
+  const close = vi.fn(async () => {});
+  const unlink = vi.fn(async () => {});
+  let written = 0;
+  const handle = {
+    stat: vi.fn(async () => stat(4)),
+    read: vi.fn(async (buf, offset, len) => {
+      if (written >= 4) return { bytesRead: 0 };
+      const room = Math.min(4 - written, len);
+      buf.write("DATA", offset, room);
+      written += room;
+      return { bytesRead: room };
+    }),
+    close,
+  };
+  return {
+    io: {
+      lstat: vi.fn(async () => stat(4)),
+      open: vi.fn(async () => handle),
+      unlink,
+    },
+    handle,
+    unlink,
+  };
+}
+
+describe("readImageSnapshot failure cleanup", () => {
+  it("returns exact bytes on success, closes the handle once and never deletes the file", async () => {
+    const { io, handle, unlink } = baseIo();
+    const result = await readImageSnapshot("/attachments/a.png", 4, { io });
+    expect(result.equals(Buffer.from("DATA"))).toBe(true);
+    expect(handle.close).toHaveBeenCalledTimes(1);
+    expect(unlink).not.toHaveBeenCalled();
+    expect(io.open).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes the handle and keeps the file when a read throws", async () => {
+    const { io, handle, unlink } = baseIo();
+    handle.read.mockRejectedValueOnce(new Error("disk read failed"));
+    await expect(
+      readImageSnapshot("/attachments/a.png", 4, { io }),
+    ).rejects.toThrow("disk read failed");
+    expect(handle.close).toHaveBeenCalledTimes(1);
+    expect(unlink).not.toHaveBeenCalled();
+  });
+
+  it("closes the handle and keeps the file when the read is aborted", async () => {
+    const { io, handle, unlink } = baseIo();
+    const controller = new AbortController();
+    // Abort after the handle is open but before the next boundary check.
+    handle.stat.mockImplementationOnce(async () => {
+      controller.abort();
+      return stat(4);
+    });
+    await expect(
+      readImageSnapshot("/attachments/a.png", 4, {
+        io,
+        signal: controller.signal,
+      }),
+    ).rejects.toThrow("Image reading cancelled");
+    expect(handle.close).toHaveBeenCalledTimes(1);
+    expect(unlink).not.toHaveBeenCalled();
+  });
+
+  it("closes the handle and keeps the file when the time budget is exceeded", async () => {
+    const { io, handle, unlink } = baseIo();
+    let t = 0;
+    const now = () => (t += 100);
+    await expect(
+      readImageSnapshot("/attachments/a.png", 4, {
+        io,
+        timeoutMs: 500,
+        now,
+      }),
+    ).rejects.toThrow("Image reading exceeded the time budget");
+    expect(handle.close).toHaveBeenCalledTimes(1);
+    expect(unlink).not.toHaveBeenCalled();
+  });
+
+  it("closes the handle and keeps the file when the attachment changes while reading", async () => {
+    const { io, handle, unlink } = baseIo();
+    // The post-read path check reports a different size than the opened handle.
+    let lstatCalls = 0;
+    io.lstat.mockImplementation(async () => {
+      lstatCalls += 1;
+      return lstatCalls === 1 ? stat(4) : stat(5);
+    });
+    await expect(
+      readImageSnapshot("/attachments/a.png", 4, { io }),
+    ).rejects.toThrow("Saved attachment changed while reading");
+    expect(handle.close).toHaveBeenCalledTimes(1);
+    expect(unlink).not.toHaveBeenCalled();
+  });
+
+  it("never opens a handle or deletes the file when the attachment is missing or changed", async () => {
+    const { io, handle, unlink } = baseIo();
+    io.lstat.mockResolvedValue({ isFile: () => false });
+    await expect(
+      readImageSnapshot("/attachments/a.png", 4, { io }),
+    ).rejects.toThrow("Saved attachment is missing or changed");
+    expect(handle.close).not.toHaveBeenCalled();
+    expect(io.open).not.toHaveBeenCalled();
+    expect(unlink).not.toHaveBeenCalled();
+  });
+});

@@ -1,0 +1,115 @@
+import { describe, it, expect } from "vitest";
+import { normalizePermissionRequest } from "../src/lib/permission-request.js";
+
+/**
+ * verify-19 — 「取消审批迟到回调」 (cancel-approval late callback).
+ *
+ * Requirement scope audit:
+ *   - "取消后迟到接受不能授权新请求" (a late accept after cancel must not
+ *     authorize a new request) and "正常接受仅绑定原请求" (a normal accept only
+ *     binds the original request) are lifecycle/binding semantics owned by the
+ *     approval round-trip machinery (headless-stream + approval-grant-ledger),
+ *     NOT by permission-request.js. The frozen source here exports a single pure
+ *     function, normalizePermissionRequest, which canonicalizes the request that
+ *     is classified and shown for approval. There is no cancellation state, no
+ *     late-callback handling, and no binding acceptance in this file.
+ *
+ *   The independent controls below exercise the ACTUAL exported API. They are
+ *   positive/negative pairs that differ only in the intended condition. They do
+ *   not reach the cancel/late-accept authorization boundary because that
+ *   boundary is absent from this frozen module — this is reported as an
+ *   uncovered requirement rather than invented passing behavior.
+ */
+
+describe("normalizePermissionRequest (verify-19)", () => {
+  it("adopts a literal command string verbatim (positive) vs argv fallback", () => {
+    // Positive: an explicit string command is authoritative.
+    expect(
+      normalizePermissionRequest({
+        tool: "run_shell",
+        args: { command: "npm test", argv: ["npm", "run", "other"] },
+      }).command,
+    ).toBe("npm test");
+    // Negative: only that condition changes — command removed, argv used.
+    expect(
+      normalizePermissionRequest({
+        tool: "run_shell",
+        args: { argv: ["npm", "run", "other"] },
+      }).command,
+    ).toBe("npm run other");
+  });
+
+  it("quotes argv tokens containing shell metacharacters; plain tokens stay bare", () => {
+    // Positive: a token with a space must be quoted to stay a single argument.
+    expect(
+      normalizePermissionRequest({
+        tool: "run_shell",
+        args: { argv: ["echo", "a b"] },
+      }).command,
+    ).toBe('echo "a b"');
+    // Negative: only that condition changes — clean token left bare.
+    expect(
+      normalizePermissionRequest({
+        tool: "run_shell",
+        args: { argv: ["echo", "ab"] },
+      }).command,
+    ).toBe("echo ab");
+  });
+
+  it("builds a path->destination detail when both are present (positive vs one-sided)", () => {
+    // Positive: both source and destination yield "source -> destination".
+    expect(
+      normalizePermissionRequest({
+        tool: "write_file",
+        args: { path: "a.txt", destination: "b.txt" },
+      }).detail,
+    ).toBe("a.txt -> b.txt");
+    // Negative: only destination removed — detail collapses to source alone.
+    expect(
+      normalizePermissionRequest({
+        tool: "write_file",
+        args: { path: "a.txt" },
+      }).detail,
+    ).toBe("a.txt");
+  });
+
+  it("prefers command detail over path detail for run-style requests", () => {
+    // Positive: command present wins over a derived path detail.
+    expect(
+      normalizePermissionRequest({
+        tool: "run_shell",
+        args: { command: "pwd", path: "a.txt" },
+      }).detail,
+    ).toBe("pwd");
+    // Negative: only command removed — path-derived detail surfaces.
+    expect(
+      normalizePermissionRequest({
+        tool: "run_shell",
+        args: { path: "a.txt" },
+      }).detail,
+    ).toBe("a.txt");
+  });
+
+  it("normalizes an unknown tool to the sentinel and keeps non-object args", () => {
+    // Positive: an empty tool collapses to the "unknown" sentinel.
+    expect(normalizePermissionRequest({ tool: "  " }).tool).toBe("unknown");
+    // Negative: only that condition changes — a named tool is preserved.
+    expect(normalizePermissionRequest({ tool: "read_file" }).tool).toBe(
+      "read_file",
+    );
+    // args that are not an object fall back to an empty plain object.
+    expect(normalizePermissionRequest({ tool: "x", args: 7 }).args).toEqual({});
+  });
+
+  it("freezes the returned object (caller cannot mutate the canonical form)", () => {
+    const frozen = normalizePermissionRequest({ tool: "run_shell", args: {} });
+    expect(Object.isFrozen(frozen)).toBe(true);
+    // Negative control: the function must expose source/destination fields.
+    expect(
+      normalizePermissionRequest({
+        tool: "write_file",
+        args: { path: "in", destination: "out" },
+      }),
+    ).toMatchObject({ source: "in", destination: "out" });
+  });
+});

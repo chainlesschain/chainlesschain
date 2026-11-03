@@ -1,0 +1,31 @@
+{
+  "schema": "chainlesschain.volcengine-expanded-budget-retry/v1",
+  "status": "prepared-after-local-contracts",
+  "authorization": "???????",
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139-budget40.json",
+  "packageSetDigest": "sha256:6f04fb44079a8aa80db4330b749200bb89da8656aac88d71788a2748e7051cb8",
+  "baselineRunId": 41563424430,
+  "baselineSource": "e7788a09316abb6f637932ae09254a441168742e",
+  "selectedSampleIds": [
+    "verify-06",
+    "verify-07"
+  ],
+  "budgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 8192,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000
+  },
+  "maximumPhysicalRequests": 96,
+  "reviewChanges": true,
+  "independentDockerAcceptance": true,
+  "unseeded": true,
+  "historicalScoresUnchanged": true,
+  "formalSample": false,
+  "outputCapChanged": false,
+  "initialAcceptanceContinues": true,
+  "baselineResultsDigest": "sha256:8fa412018c35bfc07bbf33205689fa9fd55a9c43a19cab95231c240c76c2820a"
+}

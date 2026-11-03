@@ -1,0 +1,115 @@
+import { EventEmitter } from "node:events";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// Module-level `unresolvedOwners` Map is shared per JS runtime, so reset the
+// module registry between cases to isolate each scenario's ownership state.
+beforeEach(() => vi.resetModules());
+
+// Mirrors the real child facade fields the quarantine consults. A settled
+// `ownedProcessTreeClosed` promise would let the facade's cleanup bookkeeping
+// consider the tree complete; keep it pending (unknown) to reflect a
+// supervisor that never reported tree cleanup.
+function child(pid = 456) {
+  return Object.assign(new EventEmitter(), {
+    pid,
+    ownedProcessTreeClosed: new Promise(() => {}),
+  });
+}
+
+const SOURCE = "../src/lib/process-execution-broker/process-ownership-quarantine.js";
+
+async function ledger() {
+  return import(SOURCE);
+}
+
+describe("ownership unknown keeps execution blocked", () => {
+  it("supervisor disappearing (close) does not clear an unconfirmed-ownership block", async () => {
+    const q = await ledger();
+    const proc = child();
+    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };
+    q.observeProcessOwnership(proc, "owned");
+    // Supervisor loses contact with the tree: root reports no confirmed
+    // cleanup, then the facade emits close for the vanished root.
+    proc.emit("cleanup:unconfirmed", proc.ownedProcessTreeEvidence);
+    proc.emit("close", 0);
+    expect(q.getProcessOwnershipStatus()).toMatchObject({
+      blocked: true,
+      unresolvedExecutionIds: ["owned"],
+      recoveryRequired: true,
+    });
+    expect(() => q.assertProcessOwnershipAvailable()).toThrow(
+      expect.objectContaining({
+        code: q.PROCESS_OWNERSHIP_UNCONFIRMED,
+        recoveryRequired: true,
+        executionStarted: false,
+      }),
+    );
+  });
+
+  it("block persists even if the root emits close before the unconfirmed evidence is delivered", async () => {
+    const q = await ledger();
+    const proc = child();
+    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };
+    q.observeProcessOwnership(proc, "owned");
+    proc.emit("close", 0);
+    // The unconfirmed evidence arrives only after the root is already gone.
+    proc.emit("cleanup:unconfirmed", proc.ownedProcessTreeEvidence);
+    expect(q.getProcessOwnershipStatus().blocked).toBe(true);
+    expect(() => q.assertProcessOwnershipAvailable()).toThrow(
+      expect.objectContaining({ code: q.PROCESS_OWNERSHIP_UNCONFIRMED }),
+    );
+  });
+
+  it("a root that disappears with confirmed cleanup is not blocked", async () => {
+    const q = await ledger();
+    const proc = child();
+    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: true } };
+    q.observeProcessOwnership(proc, "owned");
+    proc.emit("cleanup:unconfirmed", proc.ownedProcessTreeEvidence);
+    proc.emit("close", 0);
+    expect(q.getProcessOwnershipStatus()).toMatchObject({
+      blocked: false,
+      unresolvedExecutionIds: [],
+    });
+    expect(() => q.assertProcessOwnershipAvailable()).not.toThrow();
+  });
+
+  it("a root that disappears without any cleanup evidence is not blocked", async () => {
+    const q = await ledger();
+    const proc = child();
+    q.observeProcessOwnership(proc, "owned");
+    proc.emit("close", 0);
+    expect(q.getProcessOwnershipStatus().blocked).toBe(false);
+    expect(() => q.assertProcessOwnershipAvailable()).not.toThrow();
+  });
+
+  it("unknown ownership blocks before the root disappears", async () => {
+    const q = await ledger();
+    const proc = child();
+    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };
+    q.observeProcessOwnership(proc, "owned");
+    proc.emit("cleanup:unconfirmed", proc.ownedProcessTreeEvidence);
+    // No close yet: ownership is still unknown, so execution is already blocked.
+    expect(q.getProcessOwnershipStatus().blocked).toBe(true);
+    expect(() => q.assertProcessOwnershipAvailable()).toThrow(
+      expect.objectContaining({ code: q.PROCESS_OWNERSHIP_UNCONFIRMED }),
+    );
+  });
+
+  it("two independent executions retain distinct unresolved ids while blocked", async () => {
+    const q = await ledger();
+    const first = child();
+    const second = child(789);
+    first.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };
+    second.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };
+    q.observeProcessOwnership(first, "alpha");
+    q.observeProcessOwnership(second, "beta");
+    first.emit("cleanup:unconfirmed", first.ownedProcessTreeEvidence);
+    second.emit("cleanup:unconfirmed", second.ownedProcessTreeEvidence);
+    first.emit("close", 0);
+    second.emit("close", 0);
+    const status = q.getProcessOwnershipStatus();
+    expect(status.blocked).toBe(true);
+    expect([...status.unresolvedExecutionIds].sort()).toEqual(["alpha", "beta"]);
+  });
+});

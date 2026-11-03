@@ -1,0 +1,134 @@
+import { describe, expect, it } from "vitest";
+import {
+  createSessionHistoryOrigins,
+  HISTORY_PREFIX_SCHEMA,
+} from "../src/lib/session-history-origins.js";
+import {
+  HISTORY_SUMMARY_SCHEMA,
+  projectCheckpointSummary,
+} from "../src/lib/checkpoint-summary-projection.js";
+import { encodePersistedMessage } from "../src/lib/session-message-provenance.js";
+
+const head = "a".repeat(64);
+
+const messages = [
+  { role: "user", content: "first" },
+  { role: "assistant", content: "answer" },
+  { role: "user", content: "second" },
+  { role: "assistant", content: "answer" },
+];
+
+function rewindEvent(retainedMessageCount) {
+  return {
+    prevHash: head,
+    data: {
+      action: "restore-conversation",
+      messages: messages.slice(0, retainedMessageCount),
+      historyPrefix: {
+        schema: HISTORY_PREFIX_SCHEMA,
+        sourceHead: head,
+        sourceMessageCount: messages.length,
+        retainedMessageCount,
+      },
+    },
+  };
+}
+
+function summaryEvent() {
+  return {
+    prevHash: head,
+    data: {
+      action: "summary-from",
+      turnId: "selected",
+      historySummary: {
+        schema: HISTORY_SUMMARY_SCHEMA,
+        sourceHead: head,
+        sourceMessageCount: messages.length,
+        start: 0,
+        end: messages.length,
+      },
+      messages: projectCheckpointSummary({
+        messages,
+        action: "summary-from",
+        start: 0,
+        end: messages.length,
+        turnId: "selected",
+      }).map(({ message }) => encodePersistedMessage(message)),
+    },
+  };
+}
+
+describe("rejects tampered history source identities", () => {
+  it("rejects a mismatched session head while reading the correct origin for a matching head", () => {
+    const positive = createSessionHistoryOrigins();
+    positive.snapshot(messages);
+    expect(positive.rewind(rewindEvent(2), 4)).toBe(2);
+
+    const negative = createSessionHistoryOrigins();
+    negative.snapshot(messages);
+    const tampered = rewindEvent(2);
+    tampered.data.historyPrefix.sourceHead = "b".repeat(64);
+    expect(negative.rewind(tampered, 4)).toBeNull();
+  });
+
+  it("rejects retained content re-sourced from another session while accepting the unchanged source", () => {
+    const positive = createSessionHistoryOrigins();
+    positive.snapshot(messages);
+    expect(positive.rewind(rewindEvent(2), 4)).toBe(2);
+
+    const negative = createSessionHistoryOrigins();
+    negative.snapshot(messages);
+    const tampered = rewindEvent(2);
+    tampered.data.messages[0] = {
+      role: "user",
+      content: "from-a-foreign-session",
+    };
+    expect(negative.rewind(tampered, 4)).toBeNull();
+  });
+
+  it("rejects a tampered source message count while accepting the true count", () => {
+    const positive = createSessionHistoryOrigins();
+    positive.snapshot(messages);
+    expect(positive.rewind(rewindEvent(2), 4)).toBe(2);
+
+    const negative = createSessionHistoryOrigins();
+    negative.snapshot(messages);
+    const tampered = rewindEvent(2);
+    tampered.data.historyPrefix.sourceMessageCount -= 1;
+    expect(negative.rewind(tampered, 4)).toBeNull();
+  });
+
+  it("rejects a tampered restore action while accepting restore-conversation", () => {
+    const positive = createSessionHistoryOrigins();
+    positive.snapshot(messages);
+    expect(positive.rewind(rewindEvent(2), 4)).toBe(2);
+
+    const negative = createSessionHistoryOrigins();
+    negative.snapshot(messages);
+    const tampered = rewindEvent(2);
+    tampered.data.action = "summary-to";
+    expect(negative.rewind(tampered, 4)).toBeNull();
+  });
+
+  it("rejects a retained count at or beyond the source length while accepting a valid prefix", () => {
+    const positive = createSessionHistoryOrigins();
+    positive.snapshot(messages);
+    expect(positive.rewind(rewindEvent(2), 4)).toBe(2);
+
+    const negative = createSessionHistoryOrigins();
+    negative.snapshot(messages);
+    expect(negative.rewind(rewindEvent(4), 4)).toBeNull();
+  });
+
+  it("rejects a summary certificate with a foreign source head while accepting the true head", () => {
+    const positive = createSessionHistoryOrigins();
+    positive.snapshot(messages);
+    expect(positive.summarize(summaryEvent())).toBe(true);
+
+    const negative = createSessionHistoryOrigins();
+    negative.snapshot(messages);
+    const tampered = summaryEvent();
+    tampered.data.historySummary.sourceHead = "b".repeat(64);
+    expect(negative.summarize(tampered)).toBe(false);
+  });
+});

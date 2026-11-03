@@ -787,6 +787,11 @@ export async function runNativeCampaign(options) {
     });
   validateNativeProjectSelection(revisionBinding, sampleIds);
   if (packageManifest?.volcengineBudgetRetry) {
+    assert.equal(
+      reviewChanges,
+      true,
+      "Expanded-budget retry must retain change review",
+    );
     const retry = loadVolcengineBudgetRetry(packageManifest, {
       repositoryRoot: repository,
       plan: basePlan,

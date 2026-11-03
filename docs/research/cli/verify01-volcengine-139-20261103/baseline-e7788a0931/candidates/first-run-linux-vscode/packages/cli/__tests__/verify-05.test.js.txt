@@ -1,0 +1,132 @@
+/**
+ * Regression coverage: installation is separated from attestation admission.
+ *
+ * Acceptance:
+ *  - An installed-but-unattested CLI backend is STILL refused at run time
+ *    (the `installed` flag must not admit an unattested external CLI).
+ *  - Usable API backends remain dispatchable.
+ *
+ * All fixtures are constructed directly against the real exported source
+ * (`../src/lib/agent-router.js`); no existing suite is imported and no source
+ * text is asserted. The install/attest separation lives entirely in
+ * AgentRouter: `_runSingleTask` rejects every `isCLI` backend regardless of
+ * `installed`, `summary()` labels CLI backends as blocked/unadmitted while
+ * API backends stay dispatchable, and `assertDispatchAvailable()` passes only
+ * when at least one API backend exists.
+ */
+import { describe, it, expect, vi } from "vitest";
+import {
+  AgentRouter,
+  BACKEND_TYPE,
+  AGENT_ROUTER_ERROR,
+} from "../src/lib/agent-router.js";
+
+/** Build a router whose resolved backends are overridden with fixtures. */
+function makeRouter(backends) {
+  const router = new AgentRouter({ backends: [], strategy: "round-robin" });
+  router._backends = backends;
+  return router;
+}
+
+/** A CLI backend. `installed` mirrors autoDetect's flag for CLI tools. */
+function makeCliBackend(installed = true) {
+  return {
+    type: BACKEND_TYPE.CLAUDE,
+    isCLI: true,
+    installed,
+    weight: 1,
+    timeout: 300_000,
+  };
+}
+
+/** An API backend fixture (non-empty apiKey; tight timeout keeps it fast). */
+function makeApiBackend(timeout = 500) {
+  return {
+    type: BACKEND_TYPE.GEMINI,
+    isCLI: false,
+    weight: 1,
+    provider: BACKEND_TYPE.GEMINI,
+    model: "gemini-test",
+    apiKey: "test-key",
+    baseUrl: null,
+    timeout,
+  };
+}
+
+describe("installation vs attestation separation", () => {
+  it("refuses an installed-but-unattested CLI backend at run time", async () => {
+    const router = makeRouter([makeCliBackend(true)]);
+    const task = { id: "t1", instructions: "summarize", effects: "read-only" };
+    await expect(
+      router._runSingleTask(task, router._backends[0], {}),
+    ).rejects.toMatchObject({
+      code: AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,
+    });
+  });
+
+  it("still refuses a CLI backend when the installed flag is false", async () => {
+    // Only the `installed` condition differs from the positive control; every
+    // other prerequisite is identical, so the rejection cannot be blamed on
+    // something else. Proves `installed` does not gate admission.
+    const router = makeRouter([makeCliBackend(false)]);
+    const task = { id: "t2", instructions: "summarize", effects: "read-only" };
+    await expect(
+      router._runSingleTask(task, router._backends[0], {}),
+    ).rejects.toMatchObject({
+      code: AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,
+    });
+  });
+
+  it("does not refuse an API backend at run time when co-located with an installed CLI", async () => {
+    // Only the backend type differs from the CLI positive controls; the CLI
+    // backend is still present and still unattested, yet dispatching the API
+    // backend must NOT throw the unattested guard. `backendType` is assigned
+    // by _runSingleTask after the API branch is entered, so its presence
+    // proves the API branch was reached and retained (executeViaAPI runs with
+    // a tight timeout and always resolves without throwing to the caller).
+    const router = makeRouter([makeCliBackend(true), makeApiBackend(500)]);
+    const api = router._backends.find((b) => !b.isCLI);
+    const task = { id: "t3", instructions: "summarize", effects: "read-only" };
+    const result = await router._runSingleTask(task, api, {});
+    expect(result).toBeDefined();
+    expect(result.backendType).toBe(BACKEND_TYPE.GEMINI);
+  });
+
+  it("summaries installed CLI as blocked/unadmitted and API as dispatchable", () => {
+    const router = makeRouter([makeCliBackend(true), makeApiBackend()]);
+    const summary = router.summary();
+    const cli = summary.find((s) => s.kind === "cli");
+    const api = summary.find((s) => s.kind === "api");
+
+    // CLI: installed yet still not admitted to per-request evolution ingress.
+    expect(cli.installed).toBe(true);
+    expect(cli.governanceAdmitted).toBe(false);
+    expect(cli.dispatchable).toBe(false);
+    expect(cli.runnable).toBe(false);
+    expect(cli.executionMode).toBe("blocked");
+    expect(cli.blockedReason).toBe(
+      AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,
+    );
+
+    // API: remains usable.
+    expect(api.dispatchable).toBe(true);
+    expect(api.executionMode).toBe("text-only");
+    expect(api.blockedReason).not.toBe(
+      AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,
+    );
+  });
+
+  it("preflight assertDispatchAvailable refuses a CLI-only config", () => {
+    const router = makeRouter([makeCliBackend(true)]);
+    expect(() => router.assertDispatchAvailable()).toThrowError(
+      AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,
+    );
+  });
+
+  it("preflight assertDispatchAvailable passes once an API backend is present", () => {
+    // Positive control for the separation: adding a usable API backend keeps
+    // the configuration dispatch-available even though the CLI stays blocked.
+    const router = makeRouter([makeCliBackend(true), makeApiBackend()]);
+    expect(() => router.assertDispatchAvailable()).not.toThrow();
+  });
+});

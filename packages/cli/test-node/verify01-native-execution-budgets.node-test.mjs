@@ -26,6 +26,7 @@ import {
   nativeProviderProfile,
   assertNativeProviderIdentity,
 } from "../scripts/verify01-native-provider-profile.mjs";
+import { assertFreshVolcengineBudgetRetry } from "../scripts/verify01-volcengine-fresh-round.mjs";
 
 const plan = JSON.parse(
   fs.readFileSync(
@@ -93,6 +94,7 @@ function fixture(t, outputTokens = 8192) {
       modelTurns: 40,
       physicalRequests: 48,
       outputTokens,
+      reviewChanges: true,
       selectedSampleIds:
         outputTokens === 8192
           ? ["verify-06", "verify-07"]
@@ -152,6 +154,59 @@ test("expanded budget selection binds the original results and excludes accepted
   assert.throws(() => nativeExecutionBudgets(manifest, "openai"));
   manifest.volcengineBudgetRetry.modelTurns = 41;
   assert.throws(() => nativeExecutionBudgets(manifest));
+});
+
+test("retry dispatch retains review, public package proof, and a source-bound failed-sample selection", (t) => {
+  const { root, manifest } = fixture(t);
+  const original = JSON.parse(
+    fs.readFileSync(
+      new URL(
+        "../../../docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  const declared = { ...original, ...manifest };
+  delete declared.freshVolcengineRound;
+  const proofBytes = fs.readFileSync(
+    new URL("../../../" + original.publicGeneratorProof.path, import.meta.url),
+  );
+  const proofFile = path.join(root, original.publicGeneratorProof.path);
+  fs.mkdirSync(path.dirname(proofFile), { recursive: true });
+  fs.writeFileSync(proofFile, proofBytes);
+  declared.publicGeneratorProof.digest =
+    "sha256:" + createHash("sha256").update(proofBytes).digest("hex");
+  const options = {
+    provider: "volcengine",
+    packageSet: "latest",
+    packageBinding: {
+      bytes: Buffer.from(JSON.stringify(declared)),
+      versions: declared.versions,
+    },
+    hosts: "all",
+    entries: "all",
+    sampleIds: undefined,
+    revisionBinding: null,
+    runAttempt: 1,
+    credentialPresent: true,
+    repositoryRoot: root,
+    reviewChanges: true,
+  };
+  assert.equal(
+    assertFreshVolcengineBudgetRetry(options, plan).selectedSampleIds.length,
+    2,
+  );
+  for (const changed of [
+    { reviewChanges: false },
+    { runAttempt: 2 },
+    { credentialPresent: false },
+    { sampleIds: ["verify-01"] },
+  ]) {
+    assert.throws(() =>
+      assertFreshVolcengineBudgetRetry({ ...options, ...changed }, plan),
+    );
+  }
 });
 
 test("independent acceptance binds the expanded broker policy and rejects a substituted turn allowance", (t) => {

@@ -1,0 +1,1645 @@
+{
+  "schema": "chainlesschain.fresh-volcengine-native-results/v1",
+  "collectedAt": "2026-11-03T03:35:15.551Z",
+  "runId": 41563424430,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41563424430",
+  "executionSource": "e7788a09316abb6f637932ae09254a441168742e",
+  "collectionSource": "699e9276f6d79102517a0b2464d753ca9a26dd81",
+  "collectionWorkflowRunId": null,
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "packageSetDigest": "sha256:7ac96aab19914fb001c91868a6a94c776639ef217fe3fd0e841e7bdff5d98e5f",
+  "formalSample": false,
+  "roundKind": "fresh-full-36-plus-9",
+  "executionBudgets": {
+    "modelTurns": 20,
+    "physicalRequests": 24,
+    "outputTokens": 8192,
+    "ordinaryDeadlineMs": 1200000,
+    "firstRunDeadlineMs": 1800000
+  },
+  "historicalScoresUnchanged": true,
+  "completeGenerationEvidence": true,
+  "completeEvidence": false,
+  "missingArtifacts": [
+    "verify01-native-acceptance-win32-cli-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-win32-vscode-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-win32-jetbrains-first-run-win32-jetbrains-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-win32-jetbrains-verify-21-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-win32-jetbrains-verify-30-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-linux-cli-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-linux-vscode-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-linux-jetbrains-first-run-linux-jetbrains-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-linux-jetbrains-verify-06-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-linux-jetbrains-verify-15-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-linux-jetbrains-verify-24-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-linux-jetbrains-verify-33-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-darwin-cli-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-darwin-vscode-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-darwin-jetbrains-first-run-darwin-jetbrains-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-darwin-jetbrains-verify-09-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-darwin-jetbrains-verify-18-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-darwin-jetbrains-verify-27-e7788a09316abb6f637932ae09254a441168742e",
+    "verify01-native-acceptance-darwin-jetbrains-verify-36-e7788a09316abb6f637932ae09254a441168742e"
+  ],
+  "missingSamples": [
+    "first-run-win32-cli",
+    "verify-01",
+    "verify-10",
+    "verify-19",
+    "verify-28",
+    "first-run-win32-vscode",
+    "verify-02",
+    "verify-11",
+    "verify-20",
+    "verify-29",
+    "first-run-win32-jetbrains",
+    "verify-21",
+    "verify-30",
+    "first-run-linux-cli",
+    "verify-04",
+    "verify-13",
+    "verify-22",
+    "verify-31",
+    "first-run-linux-vscode",
+    "verify-05",
+    "verify-14",
+    "verify-23",
+    "verify-32",
+    "first-run-linux-jetbrains",
+    "verify-06",
+    "verify-15",
+    "verify-24",
+    "verify-33",
+    "first-run-darwin-cli",
+    "verify-07",
+    "verify-16",
+    "verify-25",
+    "verify-34",
+    "first-run-darwin-vscode",
+    "verify-08",
+    "verify-17",
+    "verify-26",
+    "verify-35",
+    "first-run-darwin-jetbrains",
+    "verify-09",
+    "verify-18",
+    "verify-27",
+    "verify-36"
+  ],
+  "accepted": 2,
+  "total": 45,
+  "tasks": {
+    "accepted": 2,
+    "total": 36
+  },
+  "firstRuns": {
+    "accepted": 0,
+    "total": 9
+  },
+  "groups": {
+    "win32-cli": {
+      "accepted": 0,
+      "total": 5
+    },
+    "win32-vscode": {
+      "accepted": 0,
+      "total": 5
+    },
+    "win32-jetbrains": {
+      "accepted": 2,
+      "total": 5
+    },
+    "linux-cli": {
+      "accepted": 0,
+      "total": 5
+    },
+    "linux-vscode": {
+      "accepted": 0,
+      "total": 5
+    },
+    "linux-jetbrains": {
+      "accepted": 0,
+      "total": 5
+    },
+    "darwin-cli": {
+      "accepted": 0,
+      "total": 5
+    },
+    "darwin-vscode": {
+      "accepted": 0,
+      "total": 5
+    },
+    "darwin-jetbrains": {
+      "accepted": 0,
+      "total": 5
+    }
+  },
+  "artifacts": [
+    {
+      "id": 13199920757,
+      "name": "verify01-native-delivery-win32-cli-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:6224c585ff05e414e1303e54a23377b23348003c411db010e8da19ba539ba54e",
+      "summaryDigest": "sha256:4039331297223628071167a83dd8cd32b3f0661e491156a0264bf6b91fd070e0"
+    },
+    {
+      "id": 13199816077,
+      "name": "verify01-native-delivery-win32-vscode-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:bef9915258b4a2a0f05a20a43b9f3c1c362de9aace10767dae61a62c4372004e",
+      "summaryDigest": "sha256:7a2d25b548194ff12f0d2b634122feba42c930fe8683c9e120cbe60e1f51ea40"
+    },
+    {
+      "id": 13199365886,
+      "name": "verify01-native-delivery-win32-jetbrains-first-run-win32-jetbrains-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:94344333a721d865f54c0ae7db90eb39beed29d435306af5a3cd1da05cb30dd4",
+      "summaryDigest": "sha256:3df61b8a7bedfee631d380d1ec4979426e21b3cffac69d06f23c9f268284dced"
+    },
+    {
+      "id": 13198941204,
+      "name": "verify01-native-delivery-win32-jetbrains-verify-03-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:cdea9a7946a909e06aec684ff2c1f9bc529cf2394f615e25ca91a917998c7945",
+      "summaryDigest": "sha256:981e5c00df64cbfb84a62d24c07b846e0fcb55995285d4d4e3d2d79c9c2b8865"
+    },
+    {
+      "id": 13201328047,
+      "name": "verify01-native-acceptance-win32-jetbrains-verify-03-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:7324e3df69410d87975727fee812bed404a748ab1d8a2b06cfce1dda01bfcc32",
+      "summaryDigest": "sha256:01b6cf19611a9806814593f7c86cad93b3841a3091ea64a4649915e69f3b8837"
+    },
+    {
+      "id": 13199026015,
+      "name": "verify01-native-delivery-win32-jetbrains-verify-12-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:4b80d35b9aff388d3262bc37975fc5a506c9615545238f427e8e3aec6ccec015",
+      "summaryDigest": "sha256:76577aa2b7bd40da7c21119fdfdc1b271b31cd7a9788ae66b8519afa9e938726"
+    },
+    {
+      "id": 13201114623,
+      "name": "verify01-native-acceptance-win32-jetbrains-verify-12-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:977945b6d9e3b6359ff259bfe30551e65a8de9523c0465cb48df7074dcfae3f9",
+      "summaryDigest": "sha256:e4f2e64ba7b91c8d7faaa10ffbe441c57a121cc4c38714e8bfe5778afc451a46"
+    },
+    {
+      "id": 13198619749,
+      "name": "verify01-native-delivery-win32-jetbrains-verify-21-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:012e8bfad3127f9d3f2189696dd77fd8cd063848666d5f68fbcf62c3f2dc6f5a",
+      "summaryDigest": "sha256:d307a795dfbf4418f2592c72ed873dc899d903a6404d0100810aaa8991a1e80a"
+    },
+    {
+      "id": 13198519256,
+      "name": "verify01-native-delivery-win32-jetbrains-verify-30-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:d479212ac29ec256219062bb01730da005921387a49c4d6b52b9321f8d467cfe",
+      "summaryDigest": "sha256:4802422dfd775d9c5c4669c8d42b577566f753da371bf7c488ee1f65c4668e1f"
+    },
+    {
+      "id": 13198194621,
+      "name": "verify01-native-delivery-linux-cli-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:08987e2726956c9e1524668d1f18155f45a5fa3ecf5134cc79860eef0bd9c5fa",
+      "summaryDigest": "sha256:d906a88be1dfbb2675dc4579846acf0db1c3c09f3f423722159e401e526f69f1"
+    },
+    {
+      "id": 13197709813,
+      "name": "verify01-native-delivery-linux-vscode-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:06316000354184e2cc79ba5d82d60db5d6ad050997f0f8f72b13aadeab0fd973",
+      "summaryDigest": "sha256:951cf09fd04e5b8612eb3f2e064c7c2fead61e8fe5deeb5ff41c9265f7301e3f"
+    },
+    {
+      "id": 13199930781,
+      "name": "verify01-native-delivery-linux-jetbrains-first-run-linux-jetbrains-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:b4f45403f6bb850216b47f63f20aea443536297409bfc090fbfc48ab7c041a2d",
+      "summaryDigest": "sha256:d3fbbe52900506a52e4fe241e51da34c105b70662f4d95b81ad4a7697196d4b4"
+    },
+    {
+      "id": 13198976955,
+      "name": "verify01-native-delivery-linux-jetbrains-verify-06-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:33bb6696584014263fdd6ad1b96d30a4b7723b6a8ddab9bb9e7222290abe7ec9",
+      "summaryDigest": "sha256:369b284da840fca847161d8f5e1d1f0db87dead5849e18549ba21391c612a580"
+    },
+    {
+      "id": 13198717107,
+      "name": "verify01-native-delivery-linux-jetbrains-verify-15-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:f3c0d2481a12368841f8e6a8d3f0408b049a073b379ec76e00d058241337ebc4",
+      "summaryDigest": "sha256:5ee1137fd6a0ef42dfcf8082b907204dc86428b7671b1cc919d52f1e3bbb08ed"
+    },
+    {
+      "id": 13199866184,
+      "name": "verify01-native-delivery-linux-jetbrains-verify-24-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:49a328ce6da22053ac0e256d255c945e23a6530069e5e2f3ad77efe8b94bd2fe",
+      "summaryDigest": "sha256:c2d93d31bfa1f7e584ea5616819915f04bba9d15aae4d4c72af0de85e7fcb6e6"
+    },
+    {
+      "id": 13198872528,
+      "name": "verify01-native-delivery-linux-jetbrains-verify-33-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:8091a7f7687276fc7ea77d5c8521d52f36c3a9c9736a3f683c246230655026e6",
+      "summaryDigest": "sha256:7f8e443fcf50373b1de740652bee1547b73d3532c8d37197e7ef7e8bafc6c973"
+    },
+    {
+      "id": 13198888452,
+      "name": "verify01-native-delivery-darwin-cli-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:16cf3df99c556f9dbd834c442a9e796274bc7a249eee5af63e8f87c3f363bdf7",
+      "summaryDigest": "sha256:5387f88c8998d47cd4a24360d30315913a3d894aaf9f00239869358a6e210c7a"
+    },
+    {
+      "id": 13198864168,
+      "name": "verify01-native-delivery-darwin-vscode-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:49391a80d25bfabc4cf8804a9267c8ce919236db23f43f722ffb988e3c687aa9",
+      "summaryDigest": "sha256:f75b09e4bc9b5ac39cba71b47e49dc2ccfd834f64bd447c49c39195ad778ffbc"
+    },
+    {
+      "id": 13200486270,
+      "name": "verify01-native-delivery-darwin-jetbrains-first-run-darwin-jetbrains-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:06892a0bdd9c87cdc12ed20df6e0428e182c3a2af672871034a7c8dbb60a46c7",
+      "summaryDigest": "sha256:d723a89568f4aeeb6806ed1d0d72df65c993a6a4a371e7023c8509da437a8682"
+    },
+    {
+      "id": 13200257168,
+      "name": "verify01-native-delivery-darwin-jetbrains-verify-09-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:183677f86be93e8375069ae6cce63561a700c355ac30eebafa7f31356cea92ef",
+      "summaryDigest": "sha256:6598d2be90da3ebcd972194f3b77e3407e417541ca6f3786eb057412f8266ee2"
+    },
+    {
+      "id": 13200691044,
+      "name": "verify01-native-delivery-darwin-jetbrains-verify-18-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:25b4e85b7f69df8538127cebf78891175e9adacd9720f64e39f6d3da69412e8a",
+      "summaryDigest": "sha256:9384d839578346a06426bb658ad06675e787446c360fcc6d60b5fc4f583ba4f8"
+    },
+    {
+      "id": 13200817599,
+      "name": "verify01-native-delivery-darwin-jetbrains-verify-27-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:2907abad4a6d3b5a5faa569fc748d0e3bba64603cb88339dc7301d8a2d8ff75f",
+      "summaryDigest": "sha256:12f94589bad6c06d78db42f3d3d760d60a411e0060574fe29bd8c48551073470"
+    },
+    {
+      "id": 13201451712,
+      "name": "verify01-native-delivery-darwin-jetbrains-verify-36-e7788a09316abb6f637932ae09254a441168742e",
+      "digest": "sha256:9266dd977557077a6a9d44e3dbac0aca3eed9592b7ed659ac47f4924b7c325f2",
+      "summaryDigest": "sha256:4f76f46f1da4bb17b2de79d7aa02c6ee17345805da8119cda90ae8c95bbf276b"
+    }
+  ],
+  "samples": [
+    {
+      "sampleId": "first-run-win32-cli",
+      "group": "win32-cli",
+      "cellId": "win32-cli",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 12,
+        "usageCompleteRequests": 12,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 76587,
+        "output_tokens": 10900,
+        "cache_read_input_tokens": 66816
+      }
+    },
+    {
+      "sampleId": "verify-01",
+      "group": "win32-cli",
+      "cellId": "win32-cli",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": false,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": "agent-error",
+      "modelError": "volcengine API error: HTTP 403 — DIAGNOSTIC_OUTPUT_TRUNCATED.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 5,
+        "usageCompleteRequests": 5,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      },
+      "observedUsage": {
+        "input_tokens": 16938,
+        "output_tokens": 533,
+        "cache_read_input_tokens": 18432
+      }
+    },
+    {
+      "sampleId": "verify-10",
+      "group": "win32-cli",
+      "cellId": "win32-cli",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 14,
+        "usageCompleteRequests": 14,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 127725,
+        "output_tokens": 14108,
+        "cache_read_input_tokens": 69632
+      }
+    },
+    {
+      "sampleId": "verify-19",
+      "group": "win32-cli",
+      "cellId": "win32-cli",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 21,
+        "usageCompleteRequests": 21,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 159626,
+        "output_tokens": 11177,
+        "cache_read_input_tokens": 175616,
+        "cache_creation_input_tokens": 0
+      }
+    },
+    {
+      "sampleId": "verify-28",
+      "group": "win32-cli",
+      "cellId": "win32-cli",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 14,
+        "usageCompleteRequests": 14,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 109677,
+        "output_tokens": 13712,
+        "cache_read_input_tokens": 97024
+      }
+    },
+    {
+      "sampleId": "first-run-win32-vscode",
+      "group": "win32-vscode",
+      "cellId": "win32-vscode",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 12,
+        "usageCompleteRequests": 12,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 68150,
+        "output_tokens": 4009,
+        "cache_read_input_tokens": 142336
+      }
+    },
+    {
+      "sampleId": "verify-02",
+      "group": "win32-vscode",
+      "cellId": "win32-vscode",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 96745,
+        "output_tokens": 7194,
+        "cache_read_input_tokens": 103168
+      }
+    },
+    {
+      "sampleId": "verify-11",
+      "group": "win32-vscode",
+      "cellId": "win32-vscode",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": false,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": "agent-error",
+      "modelError": "volcengine API error: HTTP 403 — DIAGNOSTIC_OUTPUT_TRUNCATED.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 4,
+        "usageCompleteRequests": 4,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      },
+      "observedUsage": {
+        "input_tokens": 15378,
+        "output_tokens": 189,
+        "cache_read_input_tokens": 16384
+      }
+    },
+    {
+      "sampleId": "verify-20",
+      "group": "win32-vscode",
+      "cellId": "win32-vscode",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 10,
+        "usageCompleteRequests": 10,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 71333,
+        "output_tokens": 10228,
+        "cache_read_input_tokens": 84736
+      }
+    },
+    {
+      "sampleId": "verify-29",
+      "group": "win32-vscode",
+      "cellId": "win32-vscode",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 10,
+        "usageCompleteRequests": 10,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 80227,
+        "output_tokens": 7906,
+        "cache_read_input_tokens": 99584
+      }
+    },
+    {
+      "sampleId": "first-run-win32-jetbrains",
+      "group": "win32-jetbrains",
+      "cellId": "win32-jetbrains-first-run-win32-jetbrains",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 18,
+        "usageCompleteRequests": 18,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 112682,
+        "output_tokens": 10458,
+        "cache_read_input_tokens": 215040
+      }
+    },
+    {
+      "sampleId": "verify-03",
+      "group": "win32-jetbrains",
+      "cellId": "win32-jetbrains-verify-03",
+      "accepted": true,
+      "candidateAcceptancePassed": true,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": true,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-03-setup-ccf09249-7738-423d-abfc-a566d7d02b0d.json",
+        "receiptDigest": "sha256:b4924c5b84f142168751eb26f15b5f6b3a963af864dece87d9d9a2fd73c3f737",
+        "scriptDigest": "sha256:d8ef9a34a4cdac320e9bb0ad9d5067f09a889663d10f2f789399bf771c1cbf4c",
+        "receiptPath": "pack/acceptance-evidence/verify-03-setup-ccf09249-7738-423d-abfc-a566d7d02b0d.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 31,
+            "passed": 31,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-03-check-5e7b1ed7-3872-45e6-82ef-c437a939f2fa.json",
+        "receiptDigest": "sha256:3df612c5eed9e0d76a2b1a4d3d3a6eaf02d9968052fe0b5750125cc9b2d77098",
+        "scriptDigest": "sha256:aff384fba3e49accaab8f322f27dcc318f18498c2c393b028d45a4bd486c4df2",
+        "receiptPath": "pack/acceptance-evidence/verify-03-check-5e7b1ed7-3872-45e6-82ef-c437a939f2fa.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 31,
+            "passed": 31,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 5,
+            "passed": 5,
+            "failed": 0
+          }
+        ],
+        "mutations": [
+          {
+            "name": "unknown-opus-inherits-legacy-price",
+            "sourceSha256": "ba23b5f8b81c1697f549d2b0dd9285f9e7294bfe35f1058d358700816937b538",
+            "total": 5,
+            "passed": 2,
+            "failed": 3
+          }
+        ]
+      },
+      "broker": {
+        "physicalRequestsStarted": 8,
+        "usageCompleteRequests": 8,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 55967,
+        "output_tokens": 8089,
+        "cache_read_input_tokens": 79872
+      }
+    },
+    {
+      "sampleId": "verify-12",
+      "group": "win32-jetbrains",
+      "cellId": "win32-jetbrains-verify-12",
+      "accepted": true,
+      "candidateAcceptancePassed": true,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": true,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-12-setup-45235b87-a0ec-488c-8772-cc80d22fd42c.json",
+        "receiptDigest": "sha256:192131818f377b991b80aaa6a52df5d4d5ddf7633a71ce24bf82c993e7b64eba",
+        "scriptDigest": "sha256:7563cf317fe59a7c22e4a65d0cc119bdaa623a9933d8c35f5b8cbbed525c8bd0",
+        "receiptPath": "pack/acceptance-evidence/verify-12-setup-45235b87-a0ec-488c-8772-cc80d22fd42c.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 11,
+            "passed": 11,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-12-check-aef156fc-a185-4651-80e8-e45d928585b5.json",
+        "receiptDigest": "sha256:a75ff052fdb510d7f9aa43b77b90ee0f1440d83bb94b2a16678a239bf00c32a8",
+        "scriptDigest": "sha256:9c07b06a7d016854dec4c61920979c121c31d6b65c27a19260d46c332f4051cc",
+        "receiptPath": "pack/acceptance-evidence/verify-12-check-aef156fc-a185-4651-80e8-e45d928585b5.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 11,
+            "passed": 11,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 5,
+            "passed": 5,
+            "failed": 0
+          }
+        ],
+        "mutations": [
+          {
+            "name": "flatten-spaces-and-empty-argv",
+            "sourceSha256": "3e443a6ee958f5c6ba68dacef32fc5383e0f88be386ffc5d03c6655d5f542f52",
+            "total": 5,
+            "passed": 4,
+            "failed": 1
+          }
+        ]
+      },
+      "broker": {
+        "physicalRequestsStarted": 6,
+        "usageCompleteRequests": 6,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 28505,
+        "output_tokens": 7804,
+        "cache_read_input_tokens": 63488
+      }
+    },
+    {
+      "sampleId": "verify-21",
+      "group": "win32-jetbrains",
+      "cellId": "win32-jetbrains-verify-21",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 18,
+        "usageCompleteRequests": 18,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 179033,
+        "output_tokens": 11310,
+        "cache_read_input_tokens": 227328
+      }
+    },
+    {
+      "sampleId": "verify-30",
+      "group": "win32-jetbrains",
+      "cellId": "win32-jetbrains-verify-30",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 12,
+        "usageCompleteRequests": 12,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 74728,
+        "output_tokens": 10238,
+        "cache_read_input_tokens": 124416
+      }
+    },
+    {
+      "sampleId": "first-run-linux-cli",
+      "group": "linux-cli",
+      "cellId": "linux-cli",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 15,
+        "usageCompleteRequests": 15,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 56287,
+        "output_tokens": 9117,
+        "cache_read_input_tokens": 108288
+      }
+    },
+    {
+      "sampleId": "verify-04",
+      "group": "linux-cli",
+      "cellId": "linux-cli",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": false,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": "agent-error",
+      "modelError": "volcengine API error: HTTP 403 — DIAGNOSTIC_OUTPUT_TRUNCATED.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 4,
+        "usageCompleteRequests": 4,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      },
+      "observedUsage": {
+        "input_tokens": 7785,
+        "output_tokens": 172,
+        "cache_read_input_tokens": 8192
+      }
+    },
+    {
+      "sampleId": "verify-13",
+      "group": "linux-cli",
+      "cellId": "linux-cli",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 13,
+        "usageCompleteRequests": 13,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 66040,
+        "output_tokens": 8651,
+        "cache_read_input_tokens": 92416
+      }
+    },
+    {
+      "sampleId": "verify-22",
+      "group": "linux-cli",
+      "cellId": "linux-cli",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 18,
+        "usageCompleteRequests": 18,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 165086,
+        "output_tokens": 12904,
+        "cache_read_input_tokens": 185856
+      }
+    },
+    {
+      "sampleId": "verify-31",
+      "group": "linux-cli",
+      "cellId": "linux-cli",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 16,
+        "usageCompleteRequests": 16,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 137969,
+        "output_tokens": 13426,
+        "cache_read_input_tokens": 124160
+      }
+    },
+    {
+      "sampleId": "first-run-linux-vscode",
+      "group": "linux-vscode",
+      "cellId": "linux-vscode",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 20,
+        "usageCompleteRequests": 20,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 208934,
+        "output_tokens": 9187,
+        "cache_read_input_tokens": 174848
+      }
+    },
+    {
+      "sampleId": "verify-05",
+      "group": "linux-vscode",
+      "cellId": "linux-vscode",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 19,
+        "usageCompleteRequests": 19,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 145792,
+        "output_tokens": 8457,
+        "cache_read_input_tokens": 174848,
+        "cache_creation_input_tokens": 0
+      }
+    },
+    {
+      "sampleId": "verify-14",
+      "group": "linux-vscode",
+      "cellId": "linux-vscode",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": false,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": "agent-error",
+      "modelError": "volcengine API error: HTTP 403 — DIAGNOSTIC_OUTPUT_TRUNCATED.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 5,
+        "usageCompleteRequests": 5,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      },
+      "observedUsage": {
+        "input_tokens": 19190,
+        "output_tokens": 245,
+        "cache_read_input_tokens": 26624
+      }
+    },
+    {
+      "sampleId": "verify-23",
+      "group": "linux-vscode",
+      "cellId": "linux-vscode",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 19,
+        "usageCompleteRequests": 19,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 150504,
+        "output_tokens": 21797,
+        "cache_read_input_tokens": 218624,
+        "cache_creation_input_tokens": 0
+      }
+    },
+    {
+      "sampleId": "verify-32",
+      "group": "linux-vscode",
+      "cellId": "linux-vscode",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": false,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": "agent-error",
+      "modelError": "volcengine API error: HTTP 403 — DIAGNOSTIC_OUTPUT_TRUNCATED.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 3,
+        "usageCompleteRequests": 3,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      },
+      "observedUsage": {
+        "input_tokens": 7661,
+        "output_tokens": 1009,
+        "cache_read_input_tokens": 6144
+      }
+    },
+    {
+      "sampleId": "first-run-linux-jetbrains",
+      "group": "linux-jetbrains",
+      "cellId": "linux-jetbrains-first-run-linux-jetbrains",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 18,
+        "usageCompleteRequests": 18,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 149653,
+        "output_tokens": 6989,
+        "cache_read_input_tokens": 158464
+      }
+    },
+    {
+      "sampleId": "verify-06",
+      "group": "linux-jetbrains",
+      "cellId": "linux-jetbrains-verify-06",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": false,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": "iteration-budget-exhausted",
+      "modelError": null,
+      "modelResultSubtype": "error_max_turns",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 21,
+        "usageCompleteRequests": 21,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 214574,
+        "output_tokens": 10300,
+        "cache_read_input_tokens": 152064,
+        "cache_creation_input_tokens": 0
+      }
+    },
+    {
+      "sampleId": "verify-15",
+      "group": "linux-jetbrains",
+      "cellId": "linux-jetbrains-verify-15",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": false,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": "agent-error",
+      "modelError": "volcengine API error: HTTP 403 — DIAGNOSTIC_OUTPUT_TRUNCATED.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 3,
+        "usageCompleteRequests": 3,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      },
+      "observedUsage": {
+        "input_tokens": 9868,
+        "output_tokens": 124,
+        "cache_read_input_tokens": 6144
+      }
+    },
+    {
+      "sampleId": "verify-24",
+      "group": "linux-jetbrains",
+      "cellId": "linux-jetbrains-verify-24",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 7,
+        "usageCompleteRequests": 7,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 47601,
+        "output_tokens": 8790,
+        "cache_read_input_tokens": 75776
+      }
+    },
+    {
+      "sampleId": "verify-33",
+      "group": "linux-jetbrains",
+      "cellId": "linux-jetbrains-verify-33",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": false,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": "agent-error",
+      "modelError": "volcengine API error: HTTP 403 — DIAGNOSTIC_OUTPUT_TRUNCATED.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 5,
+        "usageCompleteRequests": 5,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      },
+      "observedUsage": {
+        "input_tokens": 20047,
+        "output_tokens": 336,
+        "cache_read_input_tokens": 22528
+      }
+    },
+    {
+      "sampleId": "first-run-darwin-cli",
+      "group": "darwin-cli",
+      "cellId": "darwin-cli",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": false,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": "agent-error",
+      "modelError": "volcengine API error: HTTP 403 — DIAGNOSTIC_OUTPUT_TRUNCATED.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 3,
+        "usageCompleteRequests": 3,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      },
+      "observedUsage": {
+        "input_tokens": 10676,
+        "output_tokens": 123,
+        "cache_read_input_tokens": 2048
+      }
+    },
+    {
+      "sampleId": "verify-07",
+      "group": "darwin-cli",
+      "cellId": "darwin-cli",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": false,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": "agent-error",
+      "modelError": "Independent change review requires at least two remaining model requests for fresh inspection and a terminal response; only 1 remain. The task has not completed independent review.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 20,
+        "usageCompleteRequests": 20,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 195100,
+        "output_tokens": 13361,
+        "cache_read_input_tokens": 176384,
+        "cache_creation_input_tokens": 0
+      }
+    },
+    {
+      "sampleId": "verify-16",
+      "group": "darwin-cli",
+      "cellId": "darwin-cli",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 12,
+        "usageCompleteRequests": 12,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 94930,
+        "output_tokens": 11806,
+        "cache_read_input_tokens": 70656
+      }
+    },
+    {
+      "sampleId": "verify-25",
+      "group": "darwin-cli",
+      "cellId": "darwin-cli",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 9,
+        "usageCompleteRequests": 9,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 78303,
+        "output_tokens": 10646,
+        "cache_read_input_tokens": 68352
+      }
+    },
+    {
+      "sampleId": "verify-34",
+      "group": "darwin-cli",
+      "cellId": "darwin-cli",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 14,
+        "usageCompleteRequests": 14,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 118360,
+        "output_tokens": 7931,
+        "cache_read_input_tokens": 90880
+      }
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "group": "darwin-vscode",
+      "cellId": "darwin-vscode",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": false,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": "agent-error",
+      "modelError": "volcengine API error: HTTP 403 — DIAGNOSTIC_OUTPUT_TRUNCATED.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 9,
+        "usageCompleteRequests": 9,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      },
+      "observedUsage": {
+        "input_tokens": 46427,
+        "output_tokens": 1197,
+        "cache_read_input_tokens": 43008
+      }
+    },
+    {
+      "sampleId": "verify-08",
+      "group": "darwin-vscode",
+      "cellId": "darwin-vscode",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": false,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": "agent-error",
+      "modelError": "volcengine API error: HTTP 403 — DIAGNOSTIC_OUTPUT_TRUNCATED.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 9,
+        "usageCompleteRequests": 9,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      },
+      "observedUsage": {
+        "input_tokens": 44763,
+        "output_tokens": 952,
+        "cache_read_input_tokens": 38912
+      }
+    },
+    {
+      "sampleId": "verify-17",
+      "group": "darwin-vscode",
+      "cellId": "darwin-vscode",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 104240,
+        "output_tokens": 8617,
+        "cache_read_input_tokens": 96000
+      }
+    },
+    {
+      "sampleId": "verify-26",
+      "group": "darwin-vscode",
+      "cellId": "darwin-vscode",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 20,
+        "usageCompleteRequests": 20,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 125300,
+        "output_tokens": 11489,
+        "cache_read_input_tokens": 191488,
+        "cache_creation_input_tokens": 0
+      }
+    },
+    {
+      "sampleId": "verify-35",
+      "group": "darwin-vscode",
+      "cellId": "darwin-vscode",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 90389,
+        "output_tokens": 8886,
+        "cache_read_input_tokens": 118016
+      }
+    },
+    {
+      "sampleId": "first-run-darwin-jetbrains",
+      "group": "darwin-jetbrains",
+      "cellId": "darwin-jetbrains-first-run-darwin-jetbrains",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 14,
+        "usageCompleteRequests": 14,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 124730,
+        "output_tokens": 11489,
+        "cache_read_input_tokens": 156160
+      }
+    },
+    {
+      "sampleId": "verify-09",
+      "group": "darwin-jetbrains",
+      "cellId": "darwin-jetbrains-verify-09",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 14,
+        "usageCompleteRequests": 14,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 120666,
+        "output_tokens": 12655,
+        "cache_read_input_tokens": 164096
+      }
+    },
+    {
+      "sampleId": "verify-18",
+      "group": "darwin-jetbrains",
+      "cellId": "darwin-jetbrains-verify-18",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 7,
+        "usageCompleteRequests": 7,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 53429,
+        "output_tokens": 8226,
+        "cache_read_input_tokens": 50944
+      }
+    },
+    {
+      "sampleId": "verify-27",
+      "group": "darwin-jetbrains",
+      "cellId": "darwin-jetbrains-verify-27",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 12,
+        "usageCompleteRequests": 12,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 73821,
+        "output_tokens": 10033,
+        "cache_read_input_tokens": 94720
+      }
+    },
+    {
+      "sampleId": "verify-36",
+      "group": "darwin-jetbrains",
+      "cellId": "darwin-jetbrains-verify-36",
+      "accepted": false,
+      "candidateAcceptancePassed": null,
+      "generationPassed": false,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": false,
+      "modelFailure": "agent-error",
+      "modelError": "volcengine API error: HTTP 403 — DIAGNOSTIC_OUTPUT_TRUNCATED.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "setup": null,
+      "check": null,
+      "broker": {
+        "physicalRequestsStarted": 3,
+        "usageCompleteRequests": 3,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      },
+      "observedUsage": {
+        "input_tokens": 15181,
+        "output_tokens": 123,
+        "cache_read_input_tokens": 6144
+      }
+    }
+  ]
+}

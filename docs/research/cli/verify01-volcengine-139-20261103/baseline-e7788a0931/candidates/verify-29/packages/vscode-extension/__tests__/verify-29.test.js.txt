@@ -1,0 +1,132 @@
+/**
+ * Mode ACK correlation regression (verify-29).
+ *
+ * Acceptance: an ACK that carries a stale generation/correlation token (an old
+ * `correlation_id` or a mismatched session) must be rejected, and a rejected
+ * ACK must NOT mark the requested mode as effective. These tests exercise the
+ * pure helpers directly (`modeState`, `acceptModeAcknowledgement`) so each
+ * independent condition is isolated with a valid positive control and a
+ * single-condition negative control.
+ */
+import { describe, it, expect } from "vitest";
+import {
+  modeState,
+  acceptModeAcknowledgement,
+} from "../src/chat/permission-mode-state.js";
+
+const POL = "a".repeat(16);
+
+/** A fully valid conversation pre-ACK, plus a matching event. */
+function validConv(overrides = {}) {
+  return {
+    mode: "acceptEdits",
+    modeRequestId: "req-9",
+    sessionId: "sess-1",
+    modeStatus: "pending",
+    modeError: "",
+    effectiveMode: null,
+    policyRevision: null,
+    ...overrides,
+  };
+}
+
+function validEvent(overrides = {}) {
+  return {
+    session_id: "sess-1",
+    permission_mode_state: {
+      correlation_id: "req-9",
+      requested: "acceptEdits",
+      effective: "acceptEdits",
+      policy_revision: POL,
+      ...overrides,
+    },
+  };
+}
+
+describe("modeState — display projection", () => {
+  it("reports requested, effective, status and reason separately", () => {
+    expect(
+      modeState({
+        mode: "acceptEdits",
+        effectiveMode: "bypassPermissions",
+        modeStatus: "pending",
+        policyRevision: POL,
+        modeError: "waiting",
+      }),
+    ).toEqual({
+      requested: "acceptEdits",
+      effective: "bypassPermissions",
+      status: "pending",
+      policyRevision: POL,
+      reason: "waiting",
+    });
+  });
+});
+
+describe("acceptModeAcknowledgement — correlation + display gating", () => {
+  it("positive: a matching correlation/session ACK applies the effective mode", () => {
+    const conv = validConv();
+    const ok = acceptModeAcknowledgement(conv, validEvent());
+    expect(ok).toBe(true);
+    expect(conv).toMatchObject({
+      effectiveMode: "acceptEdits",
+      policyRevision: POL,
+      modeStatus: "effective",
+      modeError: "",
+    });
+  });
+
+  it("negative: an old-generation correlation_id is rejected and not applied", () => {
+    const conv = validConv();
+    const ok = acceptModeAcknowledgement(
+      conv,
+      validEvent({ correlation_id: "req-0" }),
+    );
+    expect(ok).toBe(false);
+    // Stale ACK is invalid: nothing is marked effective.
+    expect(conv).toMatchObject({
+      effectiveMode: null,
+      policyRevision: null,
+      modeStatus: "pending",
+    });
+  });
+
+  it("negative: a session_id mismatch is rejected and not applied", () => {
+    const conv = validConv();
+    // change ONLY the session identity — every other field is a valid control
+    conv.sessionId = "sess-other";
+    const result = acceptModeAcknowledgement(conv, validEvent());
+    expect(result).toBe(false);
+    expect(conv).toMatchObject({
+      effectiveMode: null,
+      policyRevision: null,
+      modeStatus: "pending",
+    });
+  });
+
+  it("negative: a mismatched requested mode never shows effective", () => {
+    const conv = validConv();
+    const ok = acceptModeAcknowledgement(
+      conv,
+      validEvent({ requested: "plan" }),
+    );
+    expect(ok).toBe(false);
+    expect(conv).toMatchObject({
+      effectiveMode: null,
+      policyRevision: null,
+      modeStatus: "unconfirmed",
+    });
+    expect(conv.modeError).toContain("not confirmed");
+  });
+
+  it("negative: a missing ACK leaves the mode unconfirmed (not effective)", () => {
+    const conv = validConv();
+    const ok = acceptModeAcknowledgement(conv, { session_id: "sess-1" });
+    expect(ok).toBe(false);
+    expect(conv).toMatchObject({
+      effectiveMode: null,
+      policyRevision: null,
+      modeStatus: "unconfirmed",
+    });
+  });
+});

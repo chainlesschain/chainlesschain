@@ -1,0 +1,153 @@
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  BACKGROUND_AGENT_LIST_INDEX_FILE,
+  loadBackgroundAgentListIndex,
+} from "../src/lib/background-agent-list-index.js";
+
+/**
+ * Regression: after writing new state files and deleting existing ones, the
+ * paginated projection produced by loadBackgroundAgentListIndex must be
+ * identical to the full list derived from the same authority snapshot,
+ * including the trailing (last) page. The cached index must be invalidated by
+ * the changed inventory digest and rebuilt, not reused stale.
+ */
+
+let directory;
+
+function writeState(id, startedAt) {
+  writeFileSync(
+    join(directory, `${id}.json`),
+    JSON.stringify({ id, startedAt, status: "running" }),
+    "utf8",
+  );
+}
+
+function removeState(id) {
+  rmSync(join(directory, `${id}.json`), { force: true });
+}
+
+function readState(id) {
+  return JSON.parse(readFileSync(join(directory, `${id}.json`), "utf8"));
+}
+
+/** Split an entry list into limit-sized pages, mirroring the supervisor's
+ * bounded-page slicing over the sorted projection. */
+function paginate(entries, limit) {
+  const pages = [];
+  for (let offset = 0; offset < entries.length; offset += limit) {
+    pages.push(entries.slice(offset, offset + limit));
+  }
+  return { pages, lastPage: pages.at(-1), full: entries.map((e) => e.id) };
+}
+
+/** The authoritative, unpaginated full list for the current snapshot. */
+function fullInventoryList() {
+  return loadBackgroundAgentListIndex({ directory, readState }).entries.map(
+    (entry) => entry.id,
+  );
+}
+
+function primeCache(ids) {
+  ids.forEach((id) => writeState(id, 1));
+  loadBackgroundAgentListIndex({ directory, readState });
+}
+
+/** Pagination over the projection must reproduce the full list exactly,
+ * including the trailing page, and agree with the authoritative full list
+ * derived from the same snapshot. */
+function assertPaginationMatches(entries) {
+  const { pages, lastPage, full } = paginate(entries, 2);
+  expect(lastPage.length).toBeGreaterThan(0);
+  expect(lastPage.length).toBeLessThanOrEqual(2);
+  // Ordered concatenation of every page reproduces the projection verbatim.
+  expect(pages.flat().map((entry) => entry.id)).toEqual(full);
+  // The projection (and hence its pagination) equals the authoritative full
+  // list for the same authority snapshot.
+  expect(full).toEqual(fullInventoryList());
+}
+
+beforeEach(() => {
+  directory = mkdtempSync(join(tmpdir(), "cc-verify-10-"));
+});
+
+afterEach(() => {
+  rmSync(directory, { recursive: true, force: true });
+});
+
+describe("pagination index invalidation after write/delete", () => {
+  it("rebuilds after a write and a delete so pagination matches the full snapshot list", () => {
+    primeCache(["bg-b", "bg-c", "bg-d"]);
+    expect(existsSync(join(directory, BACKGROUND_AGENT_LIST_INDEX_FILE))).toBe(
+      true,
+    );
+
+    writeState("bg-a", 2); // sorts first -> shifts the page boundary
+    removeState("bg-d");
+
+    const result = loadBackgroundAgentListIndex({ directory, readState });
+    expect(result.source).toBe("rebuilt");
+    assertPaginationMatches(result.entries);
+    expect(result.entries.map((entry) => entry.id)).toEqual([
+      "bg-a",
+      "bg-b",
+      "bg-c",
+    ]);
+    expect(paginate(result.entries, 2).lastPage.map((e) => e.id)).toEqual([
+      "bg-c",
+    ]);
+  });
+
+  it("negative control: an unchanged snapshot is served from the index and still paginates to the full list", () => {
+    primeCache(["bg-b", "bg-c", "bg-d"]);
+    const first = loadBackgroundAgentListIndex({ directory, readState });
+    const second = loadBackgroundAgentListIndex({ directory, readState });
+    expect(first.source).toBe("index");
+    expect(second.source).toBe("index");
+    assertPaginationMatches(second.entries);
+    expect(second.entries.map((entry) => entry.id)).toEqual([
+      "bg-b",
+      "bg-c",
+      "bg-d",
+    ]);
+    expect(paginate(second.entries, 2).lastPage.map((e) => e.id)).toEqual([
+      "bg-d",
+    ]);
+  });
+
+  it("a pure deletion (no writes) also invalidates and pagination includes the last page", () => {
+    primeCache(["bg-a", "bg-b", "bg-c", "bg-d"]);
+    removeState("bg-a");
+    removeState("bg-b");
+
+    const result = loadBackgroundAgentListIndex({ directory, readState });
+    expect(result.source).toBe("rebuilt");
+    assertPaginationMatches(result.entries);
+    expect(result.entries.map((entry) => entry.id)).toEqual(["bg-c", "bg-d"]);
+    // Two entries fit one page of limit 2; the trailing page is that page.
+    const { pages, lastPage } = paginate(result.entries, 2);
+    expect(pages).toHaveLength(1);
+    expect(lastPage.map((e) => e.id)).toEqual(["bg-c", "bg-d"]);
+  });
+
+  it("a pure write (no deletions) appends and the trailing page reflects the new file", () => {
+    primeCache(["bg-a", "bg-b"]);
+    writeState("bg-c", 3);
+
+    const result = loadBackgroundAgentListIndex({ directory, readState });
+    expect(result.source).toBe("rebuilt");
+    assertPaginationMatches(result.entries);
+    const { pages, lastPage } = paginate(result.entries, 2);
+    expect(pages).toHaveLength(2);
+    expect(lastPage).toHaveLength(1);
+    expect(lastPage[0].id).toBe("bg-c");
+  });
+});

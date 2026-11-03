@@ -153,6 +153,7 @@ jobs:
           NATIVE_PROJECT_REVISION_FILE: ${{ inputs.project_revision_file || '' }}
           FRESH_VOLCENGINE_ROUND: ${{ inputs.fresh_volcengine_round && 'true' || 'false' }}
           VOLCENGINE_CREDENTIAL_PRESENT: ${{ secrets.VOLCENGINE_VERIFY01_API_KEY != '' }}
+          REVIEW_CHANGES: ${{ inputs.review_changes && 'true' || 'false' }}
           VOLCENGINE_API_KEY: ${{ inputs.fresh_volcengine_round && secrets.VOLCENGINE_VERIFY01_API_KEY || '' }}
           OPENAI_API_KEY: ${{ inputs.provider == 'openai' && secrets.OPENAI_API_KEY || '' }}
         run: |
@@ -198,6 +199,7 @@ jobs:
                 runAttempt: run ? 1 : Number(process.env.GITHUB_RUN_ATTEMPT || "1"),
                 credentialPresent: Boolean(run) || process.env.VOLCENGINE_CREDENTIAL_PRESENT === "true",
                 repositoryRoot: process.cwd(),
+                reviewChanges: process.env.REVIEW_CHANGES === "true",
               }, JSON.parse(fs.readFileSync(`${basePlanDir}/plan.json`, "utf8")));
               if (declaration.volcengineBudgetRetry) budgetRetry = checked;
               if (!run) {
