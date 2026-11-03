@@ -1,0 +1,140 @@
+import { describe, expect, it } from "vitest";
+import {
+  createSessionHistoryOrigins,
+  HISTORY_PREFIX_SCHEMA,
+} from "../src/lib/session-history-origins.js";
+import {
+  messagesToContextItems,
+  contextItemsToMessages,
+  createSummaryContextItem,
+} from "../src/lib/context-memory-kernel/message-adapter.js";
+import { encodePersistedMessage } from "../src/lib/session-message-provenance.js";
+
+// verify-09: "history source tampering rejection". A compacted output that
+// claims to derive from the live indexed source must prove it: the digest,
+// content, store identity and source position of every cli-jsonl-session item
+// are cross-checked against the original context. Any tamper that breaks the
+// match drops the origin tracking, which makes a later rewind untrusted and
+// therefore rejected. Only the original, digest-correct source is readable.
+
+const head = "a".repeat(64);
+
+function event(messages, retainedMessageCount) {
+  return {
+    prevHash: head,
+    data: {
+      action: "restore-conversation",
+      messages: messages.slice(0, retainedMessageCount),
+      historyPrefix: {
+        schema: HISTORY_PREFIX_SCHEMA,
+        sourceHead: head,
+        sourceMessageCount: messages.length,
+        retainedMessageCount,
+      },
+    },
+  };
+}
+
+// Snapshot three messages, compact with outputItems (optionally tampered),
+// then attempt a rewind that keeps the first message and cuts at the user
+// message "cut". Returns the rewind result.
+function compactAndRewind(tamper) {
+  const messages = [
+    { role: "user", content: "first" },
+    { role: "user", content: "cut" },
+    { role: "assistant", content: "after" },
+  ];
+  const origins = createSessionHistoryOrigins();
+  origins.snapshot(messages.map(encodePersistedMessage));
+  const items = messagesToContextItems(messages, { sessionId: "session" });
+  if (tamper) tamper(items);
+  const outputItems = items;
+  const output = contextItemsToMessages(outputItems);
+  origins.compact({
+    messages: output,
+    canonical: { sessionId: "session", outputItems },
+  });
+  return origins.rewind(event(output, 1), 2);
+}
+
+describe("history source tampering rejection", () => {
+  it("carries origins forward from a matching cli-jsonl-session source", () => {
+    // Positive control: every indexed source matches by digest and content,
+    // so origins survive compaction and the rewind is readable.
+    expect(compactAndRewind(undefined)).toBe(1);
+  });
+
+  it("rejects a source whose digest no longer matches the indexed original", () => {
+    // Negative: only the digest is altered; content, store and sequence are
+    // otherwise valid, so the digest guard is the sole cause of rejection.
+    expect(
+      compactAndRewind((items) => {
+        items[1].sourceRef.digest = "f".repeat(64);
+      }),
+    ).toBeNull();
+  });
+
+  it("rejects a source whose content differs from the indexed original", () => {
+    // Negative: only the item content is changed; its digest still matches the
+    // original item, so the content equality guard is the sole cause.
+    expect(
+      compactAndRewind((items) => {
+        items[1].content = "tampered";
+      }),
+    ).toBeNull();
+  });
+
+  it("rejects a source that loses the cli-jsonl-session store identity", () => {
+    // Negative: only the store is relabeled; an unknown store drops the origin.
+    expect(
+      compactAndRewind((items) => {
+        items[1].sourceRef.store = "cli-context-summary";
+      }),
+    ).toBeNull();
+  });
+
+  it("rejects a source whose event sequence does not resolve to an original", () => {
+    // Negative: only the source position is changed; the index lookup fails.
+    expect(
+      compactAndRewind((items) => {
+        items[1].sourceRef.eventSequence = 999;
+      }),
+    ).toBeNull();
+  });
+
+  it("rejects a summary whose parent ancestry no longer resolves by digest", () => {
+    // Summary path: the compacted summary must resolve every parent digest
+    // against the live index. A tampered parent digest that no longer resolves
+    // drops the spanning origin, so the subsequent rewind is rejected.
+    const source = [
+      { role: "user", content: "first" },
+      { role: "user", content: "cut" },
+    ];
+    const build = (tamperParent) => {
+      const origins = createSessionHistoryOrigins();
+      origins.snapshot(source.map(encodePersistedMessage));
+      const items = messagesToContextItems(source, { sessionId: "session" });
+      const parents = items.slice(0, 1); // summary spans only message[0]
+      if (tamperParent) parents[0].digest = "f".repeat(64);
+      const summary = createSummaryContextItem({
+        messages: [{ role: "assistant", content: "summarizes first" }],
+        parents,
+        operationId: "parent-tamper",
+        now: "2026-09-27T00:00:00.000Z",
+      });
+      const outputItems = [summary, items[1]];
+      const output = contextItemsToMessages(outputItems);
+      origins.compact({
+        messages: output,
+        canonical: { sessionId: "session", outputItems },
+      });
+      return origins.rewind(event(output, 1), 2);
+    };
+    // Positive: the summary parent resolves, origin {0,0} is carried, and the
+    // rewind cutting at the "cut" message is readable.
+    expect(build(false)).toBe(1);
+    // Negative: only the parent digest is tampered; the summary ancestry does
+    // not resolve, the origin is dropped, and the rewind is rejected.
+    expect(build(true)).toBeNull();
+  });
+});

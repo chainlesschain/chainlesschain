@@ -1,0 +1,144 @@
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { Orchestrator } from "../src/lib/orchestrator.js";
+
+/**
+ * verify-06: 付费分解前预检 (paid decomposition preflight).
+ *
+ * Frozen source (../src/lib/orchestrator.js, Orchestrator.addTask):
+ *   async addTask(description, opts = {}) {
+ *     assertCLILegacyMutationAllowed("Orchestrator.addTask");
+ *     // Reject opaque external CLIs before notifications, Run creation or paid
+ *     // decomposition. This preflight never replaces the dispatch ingress gate.
+ *     this._router.assertDispatchAvailable?.();
+ *     ...
+ *     if (this.notifier.isConfigured && task.notify) {
+ *       this.notifier.notifyStart({...}).catch(() => {});
+ *     }
+ *     ...
+ *     await this._orchestrate(task, ...);   // -> this._decompose(...)
+ *   }
+ *
+ * Independent condition under test: the preflight `assertDispatchAvailable`
+ * must run before decomposition and before start notification. A rejected
+ * backend (router whose preflight throws) must terminate addTask with the
+ * decompose and notify spies untouched at zero.
+ *
+ * The orchestrator's AgentRouter.assertDispatchAvailable throws
+ * AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED when every configured
+ * backend is an opaque external CLI and returns (no throw) when at least one
+ * backend is a non-CLI ("cc agent") tool-execution backend.
+ *
+ * To isolate this guard, the router under test is replaced with an object
+ * exposing only the preflight. Every other prerequisite (notifier, task
+ * plumbing) stays valid, so the rejection can only come from the preflight.
+ * The decompose function is reached only via _orchestrate after the preflight
+ * and the notifier is a live mock channel.
+ */
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+function makeRouter(assertImpl) {
+  return {
+    assertDispatchAvailable: assertImpl,
+  };
+}
+
+/** Build an Orchestrator whose router preflight is controllable. */
+function buildOrch(assertImpl) {
+  const orch = new Orchestrator({
+    cwd: "/tmp/verify-06",
+    agents: { backends: [] },
+  });
+  orch._router = makeRouter(assertImpl);
+  return orch;
+}
+
+/** Attach a mock notification channel so notifyStart is observable. */
+function attachNotifier(orch, notifyStart = vi.fn(() => Promise.resolve({ ok: true }))) {
+  const notifier = {
+    isConfigured: true,
+    notifyStart,
+    notifySuccess: vi.fn(() => Promise.resolve({ ok: true })),
+    notifyFailure: vi.fn(() => Promise.resolve({ ok: true })),
+  };
+  orch.notifier.add("mock", notifier);
+  return notifier;
+}
+
+describe("verify-06: 付费分解前预检 (rejected backend terminates before decompose/notify)", () => {
+  it("rejects when the backend preflight is denied, before decomposition and start notification", async () => {
+    const orch = buildOrch(() => {
+      const err = new Error(
+        "External Claude/Codex CLIs are blocked: per-request model governance is unattested. Use cc agent for tool execution.",
+      );
+      err.code = "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED";
+      throw err;
+    });
+    const decompose = vi.spyOn(orch, "_decompose");
+    const notifyStart = vi.fn();
+    attachNotifier(orch, notifyStart);
+
+    await expect(orch.addTask("fix this")).rejects.toMatchObject({
+      code: "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED",
+    });
+    expect(decompose).not.toHaveBeenCalled();
+    expect(notifyStart).not.toHaveBeenCalled();
+  });
+
+  it("does not register a task record when the backend preflight is denied", async () => {
+    const orch = buildOrch(() => {
+      throw Object.assign(
+        new Error("blocked"),
+        { code: "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED" },
+      );
+    });
+    vi.spyOn(orch, "_decompose");
+    attachNotifier(orch);
+
+    await expect(orch.addTask("fix this")).rejects.toBeInstanceOf(Error);
+    expect(orch._tasks.size).toBe(0);
+  });
+
+  it("admits a non-CLI (attested) backend and proceeds past the preflight", async () => {
+    // Admissible preflight: at least one backend is not an opaque external CLI.
+    const orch = buildOrch(vi.fn(() => undefined));
+    const decompose = vi.spyOn(orch, "_decompose").mockResolvedValue([]);
+    const notifyStart = vi.fn(() => Promise.resolve({ ok: true }));
+    attachNotifier(orch, notifyStart);
+
+    await orch.addTask("fix this", { notify: true });
+
+    expect(decompose).toHaveBeenCalled();
+    expect(notifyStart).toHaveBeenCalled();
+  });
+
+  it("a backend whose preflight passes leaves both spies active (positive control)", async () => {
+    const orch = buildOrch(() => undefined);
+    const decompose = vi
+      .spyOn(orch, "_decompose")
+      .mockResolvedValue([{ id: "sub-1", description: "ok" }]);
+    const notifyStart = vi.fn(() => Promise.resolve({ ok: true }));
+    attachNotifier(orch, notifyStart);
+
+    const task = await orch.addTask("go", { notify: true });
+
+    expect(task.status).toBeDefined();
+    expect(decompose).toHaveBeenCalledTimes(1);
+    expect(notifyStart).toHaveBeenCalledTimes(1);
+  });
+
+  it("positive control fails if the preflight is the only guard that was removed", async () => {
+    // Control: same spies but no denying preflight => the flow must proceed,
+    // so removing the guard is the only change between this and case 1.
+    const orch = buildOrch(() => undefined);
+    const decompose = vi.spyOn(orch, "_decompose").mockResolvedValue([]);
+    const notifyStart = vi.fn(() => Promise.resolve({ ok: true }));
+    attachNotifier(orch, notifyStart);
+
+    await orch.addTask("fix this");
+    expect(decompose).toHaveBeenCalled();
+    expect(notifyStart).toHaveBeenCalled();
+  });
+});

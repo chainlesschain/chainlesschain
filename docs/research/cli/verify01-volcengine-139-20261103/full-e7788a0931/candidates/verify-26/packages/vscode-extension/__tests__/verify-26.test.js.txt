@@ -1,0 +1,130 @@
+import { describe, expect, it } from "vitest";
+import {
+  questionFields,
+  normalizeQuestionFields,
+} from "../src/chat/question-draft-contract.js";
+
+/**
+ * verify-26 — 敏感问题字段排除 (sensitive question-field exclusion).
+ *
+ * Acceptance: password/writeOnly fields and the unknown-schema fallback must
+ * not enter the persistent projection.
+ *
+ * Mechanism in the frozen source:
+ *   - questionFields marks any field whose raw schema is writeOnly:true, whose
+ *     raw format is "password", or whose compiled inputType is "password" with
+ *     kind "password".
+ *   - An unsupported ("unknown") schema collapses to a single
+ *     { key: "answer-json", kind: "password" } descriptor.
+ *   - normalizeQuestionFields drops every descriptor with kind "password"
+ *     before producing the persisted projection, so neither the secrets nor
+ *     the fallback value are persisted as ordinary text.
+ */
+
+describe("sensitive question fields are excluded from the persisted projection", () => {
+  it("writeOnly:true field is dropped while a sibling plain field persists", () => {
+    const schema = {
+      type: "object",
+      properties: {
+        user: { type: "string" },
+        token: { type: "string", writeOnly: true },
+      },
+    };
+    const request = { requestedSchema: schema };
+    const descriptors = questionFields(request);
+
+    // The secret is surfaced as a password descriptor so the host can avoid
+    // persisting it, while the sibling stays an ordinary text field.
+    expect(descriptors).toEqual([
+      { key: '["user"]', label: "user", kind: "text" },
+      { key: '["token"]', label: "token", kind: "password" },
+    ]);
+
+    const projection = normalizeQuestionFields(descriptors, [
+      { key: '["user"]', value: "alice" },
+      { key: '["token"]', value: "s3cret" },
+    ]);
+    // Negative sibling control: an ordinary (non-secret) field DOES persist.
+    expect(projection).toEqual([{ key: '["user"]', value: "alice" }]);
+  });
+
+  it("removing writeOnly lets the same field enter the projection (negative control)", () => {
+    const schema = {
+      type: "object",
+      properties: {
+        user: { type: "string" },
+        token: { type: "string" },
+      },
+    };
+    const descriptors = questionFields({ requestedSchema: schema });
+    expect(descriptors.map((d) => d.kind)).toEqual(["text", "text"]);
+
+    const projection = normalizeQuestionFields(descriptors, [
+      { key: '["token"]', value: "opentext" },
+    ]);
+    expect(projection).toEqual([{ key: '["token"]', value: "opentext" }]);
+  });
+
+  it("format:'password' never persists even though it routes through the fallback", () => {
+    // "password" is not a supported MCP string format, so this schema is
+    // unsupported and collapses to the unknown-schema fallback descriptor.
+    const schema = {
+      type: "object",
+      properties: { secret: { type: "string", format: "password" } },
+    };
+    const descriptors = questionFields({ requestedSchema: schema });
+    expect(descriptors).toEqual([
+      { key: "answer-json", label: "Answer", kind: "password" },
+    ]);
+
+    const projection = normalizeQuestionFields(descriptors, [
+      { key: "answer-json", value: '{"secret":"hunter2"}' },
+    ]);
+    expect(projection).toEqual([]);
+  });
+
+  it("unknown schema fallback is not persisted; a supported schema persists its fields", () => {
+    // Unsupported root type -> unknown schema, collapse to the fallback.
+    const unknown = questionFields({
+      requestedSchema: { type: "array", items: { type: "string" } },
+    });
+    expect(unknown).toEqual([
+      { key: "answer-json", label: "Answer", kind: "password" },
+    ]);
+    expect(
+      normalizeQuestionFields(unknown, [
+        { key: "answer-json", value: '["a","b"]' },
+      ]),
+    ).toEqual([]);
+
+    // Positive control: a fully supported schema yields real field descriptors
+    // that DO enter the persisted projection (single-select + text).
+    const supported = questionFields({
+      requestedSchema: {
+        type: "object",
+        properties: {
+          region: { type: "string", enum: ["na", "eu"] },
+          note: { type: "string" },
+        },
+      },
+    });
+    expect(supported).toEqual([
+      {
+        key: '["region"]',
+        label: "region",
+        kind: "select",
+        choices: ["na", "eu"],
+      },
+      { key: '["note"]', label: "note", kind: "text" },
+    ]);
+    expect(
+      normalizeQuestionFields(supported, [
+        { key: '["region"]', value: "eu" },
+        { key: '["note"]', value: "keep" },
+      ]),
+    ).toEqual([
+      { key: '["region"]', value: "eu" },
+      { key: '["note"]', value: "keep" },
+    ]);
+  });
+});

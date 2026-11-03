@@ -1,0 +1,78 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-13",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 13,
+      "passed": 13,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 114,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 479,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":13,\"numPassedTests\":13,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793677033337,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary recognizes bounded png headers\",\"status\":\"passed\",\"title\":\"recognizes bounded png headers\",\"duration\":1.8724069999999955,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary recognizes bounded jpeg headers\",\"status\":\"passed\",\"title\":\"recognizes bounded jpeg headers\",\"duration\":0.3788119999999964,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary recognizes bounded gif headers\",\"status\":\"passed\",\"title\":\"recognizes bounded gif headers\",\"duration\":0.3130730000000028,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary recognizes bounded webp headers\",\"status\":\"passed\",\"title\":\"recognizes bounded webp headers\",\"duration\":0.2686560000000071,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects a forged extension and malformed header before returning content\",\"status\":\"passed\",\"title\":\"rejects a forged extension and malformed header before returning content\",\"duration\":1.0622039999999942,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects zero and oversized pixel declarations\",\"status\":\"passed\",\"title\":\"rejects zero and oversized pixel declarations\",\"duration\":0.4603649999999959,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary bounds file size before any read or full-buffer allocation\",\"status\":\"passed\",\"title\":\"bounds file size before any read or full-buffer allocation\",\"duration\":0.9020919999999961,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary bounds the combined attachment bytes and identifies the failing entry\",\"status\":\"passed\",\"title\":\"bounds the combined attachment bytes and identifies the failing entry\",\"duration\":11.312088000000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects excess image count before opening files\",\"status\":\"passed\",\"title\":\"rejects excess image count before opening files\",\"duration\":0.4892589999999757,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary rejects non-regular handles and closes them\",\"status\":\"passed\",\"title\":\"rejects non-regular handles and closes them\",\"duration\":0.5543270000000007,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary uses bounded descriptor reads when the file grows after its size check\",\"status\":\"passed\",\"title\":\"uses bounded descriptor reads when the file grows after its size check\",\"duration\":0.5841920000000016,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary supports short reads and rejects a truncated file\",\"status\":\"passed\",\"title\":\"supports short reads and rejects a truncated file\",\"duration\":0.47879300000002445,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"CLI final image input boundary\"],\"fullName\":\"CLI final image input boundary caps JPEG header scanning at 1 MiB\",\"status\":\"passed\",\"title\":\"caps JPEG header scanning at 1 MiB\",\"duration\":1.6022490000000005,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793677033485,\"endTime\":1793677033505.6023,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/image-file-boundary.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 465,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":5,\"numFailedTests\":1,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793677033816,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"attachment same-handle read boundary (readBoundedImage)\"],\"fullName\":\"attachment same-handle read boundary (readBoundedImage) reads a normal small image via one handle and closes it\",\"status\":\"passed\",\"title\":\"reads a normal small image via one handle and closes it\",\"duration\":1.7931870000000032,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary (readBoundedImage)\"],\"fullName\":\"attachment same-handle read boundary (readBoundedImage) rejects a same-handle replacement that swaps content in the read region\",\"status\":\"passed\",\"title\":\"rejects a same-handle replacement that swaps content in the read region\",\"duration\":0.8673599999999908,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary (readBoundedImage)\"],\"fullName\":\"attachment same-handle read boundary (readBoundedImage) rejects a truncated full read on the same handle\",\"status\":\"failed\",\"title\":\"rejects a truncated full read on the same handle\",\"duration\":4.174471999999994,\"failureMessages\":[\"AssertionError: expected [Function] to throw an error\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1552:16)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/cli/__tests__/verify-13.test.js:76:7\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary (readBoundedImage)\"],\"fullName\":\"attachment same-handle read boundary (readBoundedImage) rejects input that exceeds the per-message remaining byte budget\",\"status\":\"passed\",\"title\":\"rejects input that exceeds the per-message remaining byte budget\",\"duration\":0.5107810000000086,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary (readBoundedImage)\"],\"fullName\":\"attachment same-handle read boundary (readBoundedImage) accepts input at the exact remaining-byte budget boundary\",\"status\":\"passed\",\"title\":\"accepts input at the exact remaining-byte budget boundary\",\"duration\":0.42024399999999673,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"attachment same-handle read boundary (readBoundedImage)\"],\"fullName\":\"attachment same-handle read boundary (readBoundedImage) rejects input one byte over the remaining-byte budget boundary\",\"status\":\"passed\",\"title\":\"rejects input one byte over the remaining-byte budget boundary\",\"duration\":0.3787720000000121,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793677033950,\"endTime\":1793677033958.4202,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-13.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate or baseline regression failed"
+}

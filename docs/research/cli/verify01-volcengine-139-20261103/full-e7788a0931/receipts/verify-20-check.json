@@ -1,0 +1,117 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-20",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 132,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 3828,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":4,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793677606293,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"PermissionDecision\"],\"fullName\":\"PermissionDecision normalizes an approval chain into a stable protocol record\",\"status\":\"passed\",\"title\":\"normalizes an approval chain into a stable protocol record\",\"duration\":3.949286999999913,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision\"],\"fullName\":\"PermissionDecision redacts and bounds user-controlled explanations\",\"status\":\"passed\",\"title\":\"redacts and bounds user-controlled explanations\",\"duration\":0.5023929999997563,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision\"],\"fullName\":\"PermissionDecision returns null for an ordinary non-policy tool result\",\"status\":\"passed\",\"title\":\"returns null for an ordinary non-policy tool result\",\"duration\":0.21608299999979863,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision\"],\"fullName\":\"PermissionDecision is emitted by the real agent loop for a gated tool call\",\"status\":\"passed\",\"title\":\"is emitted by the real agent loop for a gated tool call\",\"duration\":144.68432600000006,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793677609524,\"endTime\":1793677609673.6843,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/permission-decision.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 680,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793677610141,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"PermissionDecision: deny/unknown decisions are not downgraded\"],\"fullName\":\"PermissionDecision: deny/unknown decisions are not downgraded preserves an explicit deny from the policy decision\",\"status\":\"passed\",\"title\":\"preserves an explicit deny from the policy decision\",\"duration\":2.160991999999993,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision: deny/unknown decisions are not downgraded\"],\"fullName\":\"PermissionDecision: deny/unknown decisions are not downgraded keeps a policy deny over a lower-priority 'allow' chain outcome\",\"status\":\"passed\",\"title\":\"keeps a policy deny over a lower-priority 'allow' chain outcome\",\"duration\":0.8140170000000069,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision: deny/unknown decisions are not downgraded\"],\"fullName\":\"PermissionDecision: deny/unknown decisions are not downgraded preserves an unknown strategy value instead of coercing it to allow\",\"status\":\"passed\",\"title\":\"preserves an unknown strategy value instead of coercing it to allow\",\"duration\":0.3565849999999955,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision: deny/unknown decisions are not downgraded\"],\"fullName\":\"PermissionDecision: deny/unknown decisions are not downgraded keeps an unknown strategy over a lower-priority 'allow' chain outcome\",\"status\":\"passed\",\"title\":\"keeps an unknown strategy over a lower-priority 'allow' chain outcome\",\"duration\":0.3390500000000145,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision: deny/unknown decisions are not downgraded\"],\"fullName\":\"PermissionDecision: deny/unknown decisions are not downgraded preserves a deny sourced from the approval decision\",\"status\":\"passed\",\"title\":\"preserves a deny sourced from the approval decision\",\"duration\":0.307502999999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision: deny/unknown decisions are not downgraded\"],\"fullName\":\"PermissionDecision: deny/unknown decisions are not downgraded preserves a deny sourced from the terminal chain outcome\",\"status\":\"passed\",\"title\":\"preserves a deny sourced from the terminal chain outcome\",\"duration\":0.27378799999999615,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793677610365,\"endTime\":1793677610370.2737,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-20.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/permission-decision.js"
+      ],
+      "setup": false,
+      "ms": 145,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 680,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793677610960,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"PermissionDecision: deny/unknown decisions are not downgraded\"],\"fullName\":\"PermissionDecision: deny/unknown decisions are not downgraded preserves an explicit deny from the policy decision\",\"status\":\"passed\",\"title\":\"preserves an explicit deny from the policy decision\",\"duration\":2.248154999999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision: deny/unknown decisions are not downgraded\"],\"fullName\":\"PermissionDecision: deny/unknown decisions are not downgraded keeps a policy deny over a lower-priority 'allow' chain outcome\",\"status\":\"passed\",\"title\":\"keeps a policy deny over a lower-priority 'allow' chain outcome\",\"duration\":0.7977799999999888,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision: deny/unknown decisions are not downgraded\"],\"fullName\":\"PermissionDecision: deny/unknown decisions are not downgraded preserves an unknown strategy value instead of coercing it to allow\",\"status\":\"passed\",\"title\":\"preserves an unknown strategy value instead of coercing it to allow\",\"duration\":0.3702679999999816,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision: deny/unknown decisions are not downgraded\"],\"fullName\":\"PermissionDecision: deny/unknown decisions are not downgraded keeps an unknown strategy over a lower-priority 'allow' chain outcome\",\"status\":\"passed\",\"title\":\"keeps an unknown strategy over a lower-priority 'allow' chain outcome\",\"duration\":0.3452679999999759,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision: deny/unknown decisions are not downgraded\"],\"fullName\":\"PermissionDecision: deny/unknown decisions are not downgraded preserves a deny sourced from the approval decision\",\"status\":\"passed\",\"title\":\"preserves a deny sourced from the approval decision\",\"duration\":0.3414980000000014,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision: deny/unknown decisions are not downgraded\"],\"fullName\":\"PermissionDecision: deny/unknown decisions are not downgraded preserves a deny sourced from the terminal chain outcome\",\"status\":\"passed\",\"title\":\"preserves a deny sourced from the terminal chain outcome\",\"duration\":0.2579719999999952,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793677611193,\"endTime\":1793677611197.258,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-20.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate tests did not reject the behavioral mutant"
+}

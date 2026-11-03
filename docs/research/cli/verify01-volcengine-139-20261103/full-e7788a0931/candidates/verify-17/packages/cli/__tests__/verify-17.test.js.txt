@@ -1,0 +1,155 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  ProcessOwnershipJournal,
+  PROCESS_OWNERSHIP_PENDING,
+  PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,
+} from "../src/lib/process-execution-broker/process-ownership-journal.js";
+
+const SCHEMA = "chainlesschain.process-ownership-journal/v1";
+const SCHEMA_DONE = JSON.stringify({
+  schema: SCHEMA,
+  pending: [],
+});
+
+// Durable process ownership journal: a damaged journal must never be treated
+// as idle (empty/pending-free), and a valid pending record must persist across
+// fresh instances and only be cleared by settlement.
+describe.skipIf(process.platform !== "linux")(
+  "process ownership journal integrity and persistence",
+  () => {
+    let root;
+    let directory;
+    beforeEach(() => {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-verify-17-"));
+      directory = path.join(root, "authority");
+    });
+    afterEach(() => {
+      fs.rmSync(root, { recursive: true, force: true });
+    });
+
+    // Build a journal file with the given state, first seeding an authority
+    // directory through a real prepare/settle so all path guards are valid.
+    function seed(state) {
+      new ProcessOwnershipJournal(directory).prepare(randomUUID()).settle();
+      const file = path.join(directory, "journal.json");
+      fs.writeFileSync(file, JSON.stringify(state));
+      fs.chmodSync(file, 0o600);
+      return file;
+    }
+
+    function entry(overrides = {}) {
+      return {
+        executionId: randomUUID(),
+        ownerPid: process.pid,
+        token: randomUUID(),
+        ...overrides,
+      };
+    }
+
+    it("treats a journal with an invalid execution id as unavailable, not idle", () => {
+      // Positive: a well-formed pending record fences a fresh runtime.
+      seed({ schema: SCHEMA, pending: [entry()] });
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }));
+
+      // Negative: same journal, only the execution id becomes malformed.
+      seed({ schema: SCHEMA, pending: [entry({ executionId: "not-a-uuid" })] });
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(
+        expect.objectContaining({
+          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,
+        }),
+      );
+    });
+
+    it("treats a journal with an out-of-range ownerPid as unavailable, not idle", () => {
+      // Positive: ownerPid 1 (smallest safe positive) is accepted and fences.
+      seed({ schema: SCHEMA, pending: [entry({ ownerPid: 1 })] });
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }));
+
+      // Negative: ownerPid 0 is rejected, so the journal is unavailable.
+      seed({ schema: SCHEMA, pending: [entry({ ownerPid: 0 })] });
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(
+        expect.objectContaining({
+          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,
+        }),
+      );
+    });
+
+    it("treats a journal with duplicate execution ids as unavailable, not idle", () => {
+      // Positive: two distinct ids are admitted and fence the runtime.
+      const a = entry();
+      const b = entry();
+      seed({ schema: SCHEMA, pending: [a, b] });
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }));
+
+      // Negative: duplicate id breaks entry uniqueness validation.
+      seed({ schema: SCHEMA, pending: [a, { ...b, executionId: a.executionId }] });
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(
+        expect.objectContaining({
+          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,
+        }),
+      );
+    });
+
+    it("fences at the pending-capacity boundary and rejects the first overflow", () => {
+      const atLimit = {
+        schema: SCHEMA,
+        pending: Array.from({ length: 1024 }, () => entry()),
+      };
+      seed(atLimit);
+      // Positive: exactly MAX_PENDING entries is accepted and fences.
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }));
+
+      // Negative: one more entry overflows and makes the journal unavailable.
+      const over = {
+        schema: SCHEMA,
+        pending: [...atLimit.pending, entry()],
+      };
+      seed(over);
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(
+        expect.objectContaining({
+          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,
+        }),
+      );
+    });
+
+    it("persists a valid pending record across fresh instances until settlement", () => {
+      const owner = new ProcessOwnershipJournal(directory);
+      const id = randomUUID();
+      const lease = owner.prepare(id);
+
+      // Positive: a fresh instance still sees the pending record, so it fences.
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }));
+
+      // Negative: only settlement clears the record, making the journal idle.
+      lease.settle();
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).not.toThrow();
+      expect(
+        JSON.parse(fs.readFileSync(path.join(directory, "journal.json"))),
+      ).toEqual(JSON.parse(SCHEMA_DONE));
+    });
+  },
+);

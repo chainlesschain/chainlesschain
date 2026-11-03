@@ -1,0 +1,117 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-10",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 2,
+      "passed": 2,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 139,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 633,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":2,\"numPassedTests\":2,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793676989261,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"background agent read-only list index\"],\"fullName\":\"background agent read-only list index reuses an exact authority-file projection without storing session content\",\"status\":\"passed\",\"title\":\"reuses an exact authority-file projection without storing session content\",\"duration\":12.376287999999988,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent read-only list index\"],\"fullName\":\"background agent read-only list index invalidates on authority replacement and rebuilds a corrupt cache\",\"status\":\"passed\",\"title\":\"invalidates on authority replacement and rebuilds a corrupt cache\",\"duration\":1.8216400000000021,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793676989463,\"endTime\":1793676989477.8215,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/background-agent-list-index.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 651,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":4,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793676989908,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"pagination index invalidation after write/delete\"],\"fullName\":\"pagination index invalidation after write/delete rebuilds after a write and a delete so pagination matches the full snapshot list\",\"status\":\"passed\",\"title\":\"rebuilds after a write and a delete so pagination matches the full snapshot list\",\"duration\":12.514734999999973,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"pagination index invalidation after write/delete\"],\"fullName\":\"pagination index invalidation after write/delete negative control: an unchanged snapshot is served from the index and still paginates to the full list\",\"status\":\"passed\",\"title\":\"negative control: an unchanged snapshot is served from the index and still paginates to the full list\",\"duration\":1.8826699999999903,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"pagination index invalidation after write/delete\"],\"fullName\":\"pagination index invalidation after write/delete a pure deletion (no writes) also invalidates and pagination includes the last page\",\"status\":\"passed\",\"title\":\"a pure deletion (no writes) also invalidates and pagination includes the last page\",\"duration\":2.149889999999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"pagination index invalidation after write/delete\"],\"fullName\":\"pagination index invalidation after write/delete a pure write (no deletions) appends and the trailing page reflects the new file\",\"status\":\"passed\",\"title\":\"a pure write (no deletions) appends and the trailing page reflects the new file\",\"duration\":1.443805000000026,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793676990108,\"endTime\":1793676990126.4438,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-10.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/background-agent-list-index.js"
+      ],
+      "setup": false,
+      "ms": 147,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 639,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":4,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793676990694,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"pagination index invalidation after write/delete\"],\"fullName\":\"pagination index invalidation after write/delete rebuilds after a write and a delete so pagination matches the full snapshot list\",\"status\":\"passed\",\"title\":\"rebuilds after a write and a delete so pagination matches the full snapshot list\",\"duration\":12.624293999999992,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"pagination index invalidation after write/delete\"],\"fullName\":\"pagination index invalidation after write/delete negative control: an unchanged snapshot is served from the index and still paginates to the full list\",\"status\":\"passed\",\"title\":\"negative control: an unchanged snapshot is served from the index and still paginates to the full list\",\"duration\":1.9150070000000028,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"pagination index invalidation after write/delete\"],\"fullName\":\"pagination index invalidation after write/delete a pure deletion (no writes) also invalidates and pagination includes the last page\",\"status\":\"passed\",\"title\":\"a pure deletion (no writes) also invalidates and pagination includes the last page\",\"duration\":2.177550999999994,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"pagination index invalidation after write/delete\"],\"fullName\":\"pagination index invalidation after write/delete a pure write (no deletions) appends and the trailing page reflects the new file\",\"status\":\"passed\",\"title\":\"a pure write (no deletions) appends and the trailing page reflects the new file\",\"duration\":1.4942829999999958,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793676990894,\"endTime\":1793676990911.4944,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-10.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate tests did not reject the behavioral mutant"
+}

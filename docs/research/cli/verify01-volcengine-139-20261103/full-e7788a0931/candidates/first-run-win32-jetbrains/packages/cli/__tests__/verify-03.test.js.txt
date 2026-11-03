@@ -1,0 +1,102 @@
+// verify-03 — new-family unknown pricing regression coverage.
+//
+// Contract under test (llm-pricing.js):
+//   * An unknown model in a known provider resolves to unpriced (lookupRate
+//     returns null; estimateCost returns matched:false, rate:null, zero cost).
+//   * A new, undocumented family (gpt-6-*, claude-opus-<v>=5) must NOT inherit
+//     an older family catch-all price (gpt-5, bare "opus").
+//   * Known models still price normally (positive controls).
+//
+// Import path is relative to this file (packages/cli/__tests__/) → ../src/lib.
+import { describe, it, expect } from "vitest";
+import { lookupRate, estimateCost } from "../src/lib/llm-pricing.js";
+
+describe("verify-03 — new-family unknown pricing", () => {
+  it("prices a known OpenAI model but leaves a new unknown family unpriced", () => {
+    // Positive control: a documented model in "openai" resolves to a rate.
+    expect(lookupRate("openai", "gpt-5")).toMatchObject({ in: 1.25, out: 10 });
+    expect(lookupRate("openai", "gpt-4o")).toMatchObject({ in: 2.5, out: 10 });
+
+    // Negative control: same provider, same matching machinery, but the model
+    // "gpt-6-sol" belongs to a new family with no documented pattern. It must
+    // NOT be caught by the legacy "gpt-5" / "gpt-4o" substring catch-alls.
+    expect(lookupRate("openai", "gpt-6-sol")).toBeNull();
+  });
+
+  it("leaves unknown Opus 5+ snapshots unpriced instead of the bare-opus rate", () => {
+    // Positive control: bare "opus" still prices the current $5/$25 tier.
+    expect(lookupRate("anthropic", "claude-opus")).toMatchObject({
+      in: 5,
+      out: 25,
+    });
+
+    // Negative controls: any new claude-opus-<v>=5 id that has no documented
+    // pattern must not silently inherit the "opus" catch-all. The opus version
+    // guard (>=5, no explicit override) skips the generic opus pattern.
+    expect(lookupRate("anthropic", "claude-opus-6")).toBeNull();
+    expect(lookupRate("anthropic", "claude-opus-10")).toBeNull();
+    expect(lookupRate("anthropic", "claude-opus-5-5-custom")).toBeNull();
+  });
+
+  it("prices a known Sonnet model but not an unknown model in the same provider", () => {
+    // Positive control: a documented Anthropic model still resolves.
+    expect(lookupRate("anthropic", "claude-sonnet-4-6")).toMatchObject({
+      in: 3,
+      out: 15,
+    });
+
+    // Negative control: same provider, but an undocumented model that matches
+    // no Anthropic pattern (not opus/sonnet/haiku/fable/mythos, and no exact
+    // documented entry) must remain unpriced instead of inheriting one.
+    expect(lookupRate("anthropic", "claude-nova-3")).toBeNull();
+  });
+
+  it("estimateCost surfaces an unknown model as unmatched with zero cost", () => {
+    // Positive control: a known model is matched and priced normally.
+    const known = estimateCost({
+      provider: "openai",
+      model: "gpt-5",
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    });
+    expect(known.matched).toBe(true);
+    expect(known.totalCost).toBeCloseTo(11.25, 6);
+    expect(known.rate).toEqual({ in: 1.25, out: 10, pattern: "gpt-5" });
+
+    // Negative control: only the model changes; the provider and token counts
+    // stay valid. An unknown new-family model must be unpriced, not guessed.
+    const unknown = estimateCost({
+      provider: "openai",
+      model: "gpt-6-sol",
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    });
+    expect(unknown.matched).toBe(false);
+    expect(unknown.free).toBe(false);
+    expect(unknown.totalCost).toBe(0);
+    expect(unknown.rate).toBeNull();
+  });
+
+  it("known Anthropic pricing still resolves end-to-end while unknown stays null", () => {
+    // Positive control through estimateCost for a documented Anthropic model.
+    const known = estimateCost({
+      provider: "anthropic",
+      model: "claude-sonnet-4-6",
+      inputTokens: 1_000_000,
+      outputTokens: 0,
+    });
+    expect(known.matched).toBe(true);
+    expect(known.totalCost).toBeCloseTo(3, 6);
+
+    // Negative control: an unknown Opus 5+ family id remains unpriced through
+    // the same estimateCost boundary.
+    expect(
+      estimateCost({
+        provider: "anthropic",
+        model: "claude-opus-9",
+        inputTokens: 1_000_000,
+        outputTokens: 0,
+      }).matched,
+    ).toBe(false);
+  });
+});

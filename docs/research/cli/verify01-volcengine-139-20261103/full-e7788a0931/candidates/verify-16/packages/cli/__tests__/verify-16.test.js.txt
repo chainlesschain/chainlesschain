@@ -1,0 +1,136 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { createHash } from "node:crypto";
+import observation from "../src/lib/settings-source-observation.cjs";
+
+const { observeSettingsSource } = observation;
+
+let root;
+beforeEach(() => {
+  root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-verify16-"));
+});
+afterEach(() => {
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+function write(name, value) {
+  const file = path.join(root, name);
+  fs.writeFileSync(
+    file,
+    typeof value === "object" && !Buffer.isBuffer(value)
+      ? JSON.stringify(value)
+      : value,
+  );
+  return file;
+}
+
+// Mutate the source the first time a nonempty read is issued from the opened
+// descriptor, so the mutation lands between the before-fstat and the final
+// identity checks without racing the single-threaded inspection.
+function onFirstRead(callback) {
+  let fired = false;
+  return {
+    ...fs,
+    readSync(...args) {
+      const count = fs.readSync(...args);
+      if (count && !fired) {
+        fired = true;
+        callback();
+      }
+      return count;
+    },
+  };
+}
+
+describe("invalid settings source changes fail conservatively", () => {
+  it("accepts an unchanged valid source and pins its exact bytes", () => {
+    const bytes = JSON.stringify({ permissions: { allow: ["Read"] } });
+    const file = write("settings.json", bytes);
+    const result = observeSettingsSource(file);
+    expect(result.exists).toBe(true);
+    expect(result.byteLength).toBe(Buffer.byteLength(bytes));
+    expect(result.digest).toBe(
+      createHash("sha256").update(bytes).digest("hex"),
+    );
+    expect(result.settings).toEqual({ permissions: { allow: ["Read"] } });
+    expect(Object.isFrozen(result)).toBe(true);
+    expect(Object.isFrozen(result.settings.permissions.allow)).toBe(true);
+    expect(() => result.settings.permissions.allow.push("Write")).toThrow();
+  });
+
+  it("rejects deletion of the source during inspection instead of reusing an old allowed result", () => {
+    const file = write("settings.json", { permissions: { allow: ["Read"] } });
+    const runtimeFs = onFirstRead(() => fs.unlinkSync(file));
+    expect(() => observeSettingsSource(file, { fs: runtimeFs })).toThrow(
+      expect.objectContaining({ code: "CC_SETTINGS_SOURCE_CHANGED" }),
+    );
+    expect(fs.existsSync(file)).toBe(false);
+  });
+
+  it("rejects a delete-then-recreate ABA on the source rather than reusing an old allowed result", () => {
+    const file = write("settings.json", { permissions: { allow: ["Read"] } });
+    const runtimeFs = onFirstRead(() => {
+      fs.unlinkSync(file);
+      fs.writeFileSync(
+        file,
+        JSON.stringify({ permissions: { deny: ["Read"] } }),
+      );
+    });
+    expect(() => observeSettingsSource(file, { fs: runtimeFs })).toThrow(
+      expect.objectContaining({ code: "CC_SETTINGS_SOURCE_CHANGED" }),
+    );
+    expect(JSON.parse(fs.readFileSync(file, "utf8")).permissions.deny).toEqual([
+      "Read",
+    ]);
+  });
+
+  it("rejects an in-place corruption during inspection rather than reusing an old allowed result", () => {
+    const file = write("settings.json", { permissions: { allow: ["Read"] } });
+    const runtimeFs = onFirstRead(() =>
+      fs.writeFileSync(
+        file,
+        JSON.stringify({ permissions: { deny: ["Read", "Write"] } }),
+      ),
+    );
+    expect(() => observeSettingsSource(file, { fs: runtimeFs })).toThrow(
+      expect.objectContaining({ code: "CC_SETTINGS_SOURCE_CHANGED" }),
+    );
+  });
+
+  it("rejects a same-length corruption during inspection (no size change) rather than reusing an old allowed result", () => {
+    const bytes = '{"permissions":{"allow":["Read"]}}';
+    const file = write("settings.json", bytes);
+    const corrupt = '{"permissions":{"deny":["Read"]}}';
+    expect(Buffer.byteLength(corrupt)).toBe(Buffer.byteLength(bytes));
+    const runtimeFs = onFirstRead(() => fs.writeFileSync(file, corrupt));
+    expect(() => observeSettingsSource(file, { fs: runtimeFs })).toThrow(
+      expect.objectContaining({ code: "CC_SETTINGS_SOURCE_CHANGED" }),
+    );
+  });
+
+  it("rejects an ABA source rebind to a substitute inode during inspection rather than reusing an old allowed result", () => {
+    const file = write("settings.json", { permissions: { allow: ["Read"] } });
+    const substitute = write("substitute.json", {
+      permissions: { deny: ["Read"] },
+    });
+    const runtimeFs = onFirstRead(() => {
+      // Rename the original inode away (A -> absent) and move a substitute
+      // inode into the path (B). The descriptor still reads the original
+      // inode's bytes, so the path no longer points at what was read: an ABA
+      // rebind that must not yield the old allowed result.
+      fs.renameSync(file, path.join(root, "original.tmp"));
+      fs.renameSync(substitute, file);
+    });
+    expect(() => observeSettingsSource(file, { fs: runtimeFs })).toThrow(
+      expect.objectContaining({ code: "CC_SETTINGS_SOURCE_CHANGED" }),
+    );
+    // The substitute is what the path holds now; the read descriptor's
+    // original bytes must never be reported as this source's allowed result.
+    expect(JSON.parse(fs.readFileSync(file, "utf8")).permissions.deny).toEqual([
+      "Read",
+    ]);
+    expect(fs.existsSync(path.join(root, "original.tmp"))).toBe(true);
+  });
+});

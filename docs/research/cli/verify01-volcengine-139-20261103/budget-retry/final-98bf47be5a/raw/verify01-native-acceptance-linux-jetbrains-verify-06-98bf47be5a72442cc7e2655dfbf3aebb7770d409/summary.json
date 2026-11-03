@@ -1,0 +1,104 @@
+{
+  "schema": "chainlesschain.verify01-native-task-acceptance/v1",
+  "executionSourceCommit": "98bf47be5a72442cc7e2655dfbf3aebb7770d409",
+  "deliverySourceCommit": "98bf47be5a72442cc7e2655dfbf3aebb7770d409",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "packageSetDigest": "sha256:6f04fb44079a8aa80db4330b749200bb89da8656aac88d71788a2748e7051cb8",
+  "group": "linux-jetbrains",
+  "actualGenerationHost": {
+    "platform": "linux",
+    "entry": "jetbrains",
+    "arch": "x64"
+  },
+  "acceptanceHost": "linux-docker",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+  "sourceSummaryDigest": "sha256:3815a9dcc60936942615c282079238823c505f55b6082e0733b985eaee1fcd11",
+  "formalSample": false,
+  "startedAt": "2026-11-03T04:01:26.105Z",
+  "samples": [
+    {
+      "sampleId": "verify-06",
+      "taskId": "verify-06",
+      "kind": "task",
+      "versions": {
+        "cli": "0.166.139",
+        "vscode": "0.37.175",
+        "jetbrains": "0.4.192",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:6f04fb44079a8aa80db4330b749200bb89da8656aac88d71788a2748e7051cb8",
+      "originalGenerationPassed": false,
+      "generationPassed": false,
+      "host": {
+        "passed": false,
+        "failure": "initial native UI task exited 1/null",
+        "restartRequired": true
+      },
+      "candidateAcceptancePassed": false,
+      "passed": false,
+      "generationAssessment": {
+        "passed": false,
+        "originalGenerationPassed": false,
+        "reason": "complete model stream was not captured"
+      },
+      "sourceScopePassed": true,
+      "unexpectedChanges": [],
+      "frozenSourceAssessment": {
+        "exact": true,
+        "contentVerified": true,
+        "filenameEncoding": "utf8"
+      },
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-06-setup-70f493b2-a426-4928-aa42-8b07670c447a.json",
+        "receiptDigest": "sha256:3ef3a0fd8c2ad0b3980b79a16e789626217ae7a0ed55a5e3f344f0c3f8100f2e",
+        "scriptDigest": "sha256:5d3d33759618c11af6ece7784f9226aa0a5cd0a9aa0a4b115d01fd7aa152d766",
+        "receiptPath": "pack/acceptance-evidence/verify-06-setup-70f493b2-a426-4928-aa42-8b07670c447a.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 31,
+            "passed": 31,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": false,
+        "detail": "acceptance requires executed test cases",
+        "receipt": "verify-06-check-74b0fba7-535f-4053-ba51-a94e23fa33ab.json",
+        "receiptDigest": "sha256:2368089eaf316d19e8a76dc2fd906e78dd96ef552d58de76f4024400b3e56087",
+        "scriptDigest": "sha256:f007ca86c37beec35ac6116e9951013bf552f2f4d27179026cb643b3c50396e0",
+        "receiptPath": "pack/acceptance-evidence/verify-06-check-74b0fba7-535f-4053-ba51-a94e23fa33ab.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 31,
+            "passed": 31,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "finishedAt": "2026-11-03T04:02:11.776Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-06"
+  ],
+  "passed": false,
+  "finishedAt": "2026-11-03T04:02:11.776Z"
+}

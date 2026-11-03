@@ -340,6 +340,7 @@ export async function runJetBrainsNativeTask({
     `-Dui.verify01.sampleId=${sample.id}`,
     `-Dui.verify01.promptFile=${promptFile}`,
     `-Dui.verify01.deadlineMs=${uiDeadline}`,
+    `-Dui.verify01.modelTurns=${maxTurns}`,
     "-Dui.verify01.permissionMode=acceptEdits",
     `-Dui.verify01.pluginVersion=${versions.jetbrains}`,
   ];
@@ -373,6 +374,20 @@ export async function runJetBrainsNativeTask({
       ),
       deadline,
       "native UI preparation",
+    );
+    await requireSuccess(
+      launch(
+        [
+          "uiSmokeTest",
+          "--tests",
+          "com.chainlesschain.ide.uitest.Verify01HostJourneyTest",
+          ...base,
+        ],
+        "driver-contracts",
+        buildEnv,
+      ),
+      deadline,
+      "offline native driver contracts",
     );
     for (const phase of ["initial", "restart"]) {
       active = launch(["runIdeForUiTests", ...params], `ide-${phase}`);

@@ -1,0 +1,88 @@
+{
+  "schema": "chainlesschain.native-package-set/v1",
+  "resolvedAt": "2026-11-03T01:29:43.657Z",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "releaseSourceCommit": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "releaseSourceCommits": {
+    "cli": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+    "openVsx": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+    "jetbrains": "eec8b97b6040d19004670bfead0bec1b8a27b71b"
+  },
+  "publicGeneratorProof": {
+    "path": "docs/research/cli/evidence/release139-public/publication.json",
+    "digest": "sha256:e82a2c756a94ee036b8c69bd25996160e2bc8645bb636302a84310d05d815c35"
+  },
+  "diagnosticExecution": {
+    "contextWindowTokens": 32768
+  },
+  "origin": {
+    "cli": {
+      "url": "https://registry.npmjs.org/chainlesschain/0.166.139",
+      "integrity": "5f47eb046858bdd34bc67cf8a18b6aa34eef26f147a62f7dcb26759f5abbc48f36c7abfa044c7f8cfcb8db461f64889d2a5246f87485e527901b7f22770496d7",
+      "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.139.tgz"
+    },
+    "vscode": {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.175",
+      "download": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.175/file/chainlesschain.chainlesschain-ide-0.37.175.vsix"
+    },
+    "jetbrains": {
+      "distribution": "github-actions-artifact",
+      "repository": "chainlesschain/chainlesschain",
+      "sourceCommit": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+      "runId": 41434982670,
+      "artifactId": 13136934549,
+      "artifactName": "chainlesschain-ide-jetbrains-1",
+      "artifactDigest": "sha256:b55a4681a2c4417fc62f18f8645c7b033cb252fc2b976da38581b9548551dce3",
+      "tag": "ide-jetbrains-v0.4.192",
+      "file": "chainlesschain-ide-bridge-0.4.192.zip",
+      "workflow": ".github/workflows/ide-extensions.yml",
+      "marketplaceStatus": "uploaded-awaiting-approval"
+    }
+  },
+  "publicArtifacts": {
+    "cli": {
+      "digest": "sha256:dd1fea339b5b8e4d869c5f9dacf037e92474fb8b2ec268b80856767124782116",
+      "bytes": 9537877
+    },
+    "vscode": {
+      "digest": "sha256:bb963c617a4cfcffa89ed5ac46bc327be137b5f7bef24ba1283964d893ff69ea",
+      "bytes": 749066
+    },
+    "jetbrains": {
+      "digest": "sha256:6877397281524ef1e296cd0f95ac8c6e43c71bb958a7edc3b3091c7306b75628",
+      "bytes": 1555867
+    }
+  },
+  "authorization": "User explicitly permits increasing insufficient model turns on 2026-11-03. Retry only iteration-limited and review-budget-limited samples with 40 turns and 48 requests; preserve the 8192-token output cap, original task inputs, independent review, all old outcomes and separate Docker acceptance.",
+  "volcengineBudgetRetry": {
+    "id": "volcengine-public139-budget40-20261103",
+    "baselineRunId": 41563424430,
+    "baselineSource": "e7788a09316abb6f637932ae09254a441168742e",
+    "baselineResultsPath": "docs/research/cli/verify01-volcengine-139-20261103/baseline-e7788a0931/results.json",
+    "baselineResultsDigest": "sha256:8fa412018c35bfc07bbf33205689fa9fd55a9c43a19cab95231c240c76c2820a",
+    "baselinePhase": "all-generation-complete-independent-acceptance-continuing",
+    "selectedSampleIds": [
+      "verify-06"
+    ],
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 8192,
+    "reviewChanges": true,
+    "formalSample": false,
+    "historicalScoresUnchanged": true,
+    "zeroRequestRecovery": {
+      "runId": 41574308573,
+      "source": "98bf47be5a72442cc7e2655dfbf3aebb7770d409",
+      "summaryPath": "docs/research/cli/verify01-volcengine-139-20261103/budget-retry/attempt-98bf47be5a/linux-jetbrains-verify-06/summary.json",
+      "summaryDigest": "sha256:3815a9dcc60936942615c282079238823c505f55b6082e0733b985eaee1fcd11",
+      "brokerSummaryPath": "docs/research/cli/verify01-volcengine-139-20261103/budget-retry/attempt-98bf47be5a/linux-jetbrains-verify-06/verify-06/broker/summary.json",
+      "brokerSummaryDigest": "sha256:a4ef5105d2e53b58231ace560d1f5257928e20689d1c022de417b0dc0830457c"
+    }
+  }
+}

@@ -1,0 +1,172 @@
+# verify-34 outcome runbook
+
+Operations guide for the offline, read-only outcome baseline CLI
+`packages/cli/scripts/task-outcome-report.mjs`. It records a frozen-plan
+**baseline** of observed task/first-run outcomes. It never makes model calls,
+never performs production attestation, and never issues an improvement PASS.
+
+Scope: the operator must first freeze the evaluation **plan** and capture its
+**fingerprint**, then collect **history**, **observations** and (optional)
+**maintenance** evidence, and finally run the baseline report.
+
+## 1. Command shape
+
+```
+node scripts/task-outcome-report.mjs --plan plan.json --fingerprint
+node scripts/task-outcome-report.mjs --plan plan.json --plan-digest sha256:… \
+  [--history history.jsonl] [--observations observations.json] \
+  [--maintenance maintenance.json]
+node scripts/task-outcome-report.mjs --help
+```
+
+Run from the `packages/cli` directory so the `scripts/…` relative path resolves.
+
+Options (verified in `task-outcome-report.mjs` via `node:util.parseArgs`):
+
+| Option | Type | Meaning |
+| --- | --- | --- |
+| `--plan` | string | Required. Outcome plan JSON. |
+| `--history` | string | Eval history JSONL. Absent ⇒ treated as `{runs:[], issues:[]}`. |
+| `--observations` | string | Observations JSON array. Absent ⇒ `[]`. |
+| `--maintenance` | string | Optional maintenance JSON. Absent ⇒ `null`. |
+| `--plan-digest` | string | Required in report mode. Must match `^sha256:[a-f0-9]{64}$`. |
+| `--fingerprint` | boolean | Print the plan digest and exit instead of building a report. |
+| `--help` | boolean | Print usage and exit without touching inputs. |
+
+## 2. Exit codes
+
+| Exit | When | Source |
+| --- | --- | --- |
+| `0` | Fingerprint mode succeeds, or report status is `BASELINE_RECORDED`. | `process.exitCode = 2` set only on `INSUFFICIENT_EVIDENCE`. |
+| `1` | Any thrown error: invalid plan, bad input, missing/digest-mismatched `--plan-digest`, malformed JSON, size-limit breach, maintenance/evidence contract violations. Message printed to stderr as `Outcome report failed: …`. | `catch` block. |
+| `2` | Report built with status `INSUFFICIENT_EVIDENCE` (e.g. any missing observation/issue). | `if (report.status === "INSUFFICIENT_EVIDENCE") process.exitCode = 2;` |
+
+Note the asymmetry: fingerprint mode only ever exits `0` or `1` — it never
+emits `2`, because it stops before building the report.
+
+## 3. Freezing the plan and capturing the fingerprint
+
+Freeze the plan **before** collecting evidence. The digest is the canonical
+sha256 of the plan JSON (sorted object keys — see `outcomeDigest` →
+`evalDigest`/`canonical` in `outcomes.js`/`evidence.js`), formatted
+`sha256:<64 hex>`.
+
+```
+node scripts/task-outcome-report.mjs --plan plan.json --fingerprint
+```
+
+- `validateOutcomePlan` runs first, so an invalid plan (wrong schema, missing
+  40-hex `commitSha`, non-3-letter `currency`, non-decreasing `window`, no or
+  duplicate samples, invalid sample kind/`taskId`/`stratum`/`comparisonDigest`,
+  non-finite `costBudget`, non-positive `timeBudgetMs`) still fails with exit `1`.
+- The printed digest is what you store and later pass to `--plan-digest`.
+
+Practical freeze workflow:
+
+1. Produce the plan JSON and save it under a fixed path/commit.
+2. Capture and record the fingerprint:
+   ```
+   node scripts/task-outcome-report.mjs --plan plan.json --fingerprint > plan.digest.txt
+   ```
+3. Store `plan.json` and `plan.digest.txt` (or paste the `sha256:…` value) with
+   the evaluation. Do not edit the plan after freezing; see §6 for the
+   mismatch guard.
+
+## 4. Collecting evidence inputs
+
+### 4.1 `--history` (Eval history JSONL)
+
+One JSON record per line (see `readEvalHistory`/`parseEvalHistory` in
+`evidence.js`). Missing file ⇒ empty history; a file over the 16 MiB cap yields
+an `history_too_large` issue (→ exit 2), and any line that fails JSON parsing
+yields `invalid_history_record` (→ exit 2). Record integrity rules from
+`evalHistoryRecordIssues` still apply in the report (dry-run, comparison
+identity, verdict consistency, terminal verification, fallback, task totals,
+age bounds).
+
+### 4.2 `--observations` (JSON array)
+
+Array of observation objects keyed by `sampleId`. Each may carry `cost`,
+`elapsedMs`, `retries`, `manualRepairs`, `observedAt`, `runId`,
+`failureCause`, and for first-run samples a `firstRun` block
+(`cleanEnvironment` boolean plus per-stage `{passed, receipt}` evidence).
+Observations referencing a sample outside the frozen plan, or a `runId`
+already consumed by another sample, throw (exit 1).
+
+### 4.3 `--maintenance` (optional JSON)
+
+`{ window, complete, entries: [{ id, category, hours, evidenceRef }] }`.
+`complete` must be `true` and `window` must digest-equal the plan window for
+the maintenance summary to be reported; categories are constrained to
+`repair|support|compatibility|release|test-infrastructure|construction`.
+Construction hours are excluded from `totalHours`/`per100Attempts` but reported
+separately.
+
+## 5. Building the baseline report
+
+```
+node scripts/task-outcome-report.mjs \
+  --plan plan.json --plan-digest "$(cat plan.digest.txt)" \
+  --history history.jsonl --observations observations.json \
+  --maintenance maintenance.json
+```
+
+The report JSON (schema `chainlesschain.outcome-report/v1`) is written to
+stdout with two-space indentation. Key fields:
+
+- `status` — `BASELINE_RECORDED` or `INSUFFICIENT_EVIDENCE`.
+- `improvementVerdict` — always `NOT_EVALUATED`; see §7.
+- `productionAttested` — always `false`.
+- `task` / `firstRun` — `summarize` blocks: `planned`, `observed`, `missing`,
+  `succeeded`, `successRate`, `knownCost`, `totalCost`, `costPerSuccess`,
+  `retries`, `manualRepairs`.
+- `maintenance` — `complete`, `knownHours`, `totalHours`, `per100Attempts`,
+  `constructionHours`, `categories`.
+- `groups`, `firstRunFunnel`, `failureCauses`, `issues`, `rows`.
+
+## 6. Guardrails you rely on
+
+- **Frozen-plan guard.** `buildOutcomeReport` recomputes
+  `outcomeDigest(plan)` and asserts `expectedPlanDigest === planDigest`.
+  Passing a digest that does not match the actual `--plan` file throws
+  `frozen plan digest mismatch` → exit 1. Always freeze, then pass the frozen
+  digest (never recompute ad hoc while editing the plan).
+- **Missing samples ⇒ exit 2.** A planned sample with no observation gets a
+  `missing_observation` reason and issue; the report status becomes
+  `INSUFFICIENT_EVIDENCE` and the process exits `2`. The missing sample is
+  retained in the summary (`missing` = planned − observed; `successRate` is
+  measured against `planned`, not only observed rows).
+- **Unknown cost stays unknown.** `totalCost` is `null` unless every *observed*
+  row has a finite, non-negative `cost`; `costPerSuccess` is `null` unless costs
+  are complete *and* `succeeded > 0`. A missing or invalid cost is never coerced
+  to zero. Similarly, `maintenance.per100Attempts` is `null` unless maintenance
+  is complete, all samples are observed, and `attempts > 0`.
+- **No improvement PASS.** The report is an outcome *baseline* only. The CLI
+  has no gate path that emits PASS: `improvementVerdict` is hard-coded
+  `NOT_EVALUATED` and the help text states "No improvement PASS is issued."
+  Do not treat a `BASELINE_RECORDED` exit as approval of an improvement claim.
+
+## 7. Intended usage, not a verdict
+
+Run this script to establish a frozen, auditable outcome baseline for a task
+cohort (including the verify-34 snapshot). A `BASELINE_RECORDED` outcome means
+the frozen plan's samples were all observed and internally consistent; it is
+not an attestation of production behavior and it is not an improvement PASS.
+For a changed or extended plan, re-freeze and re-fingerprint explicitly rather
+than reusing an old digest.
+
+## 8. Interpretation limits
+
+- Evidence here is operator-declared/local files. The CLI does not prove model
+  checkpoints, configuration declarations, edited JSONL, hidden holdouts, or
+  production release authority (its own help text and `productionAttested:false`).
+- With only the six source/test files inspected and no shell or test execution
+  available in this environment, the commands above are verified against the
+  `task-outcome-report.mjs` implementation and its `outcomes.js`/`evidence.js`
+  dependencies, not by executing them.
+- Coverage note: the existing unit test
+  (`packages/cli/__tests__/unit/task-outcome-report.test.js`) already covers
+  the fingerprint CLI exit, complete vs. incomplete (missing-sample → exit 2)
+  vs. invalid (digest mismatch → exit 1) CLI exits, unknown-cost → `null`
+  summaries, and `improvementVerdict: "NOT_EVALUATED"`. This runbook documents
+  the same verified behaviors; it does not add new test code.

@@ -31,10 +31,18 @@ final class Verify01HostJourney {
         assertTrue(sample.matches("(?:verify-\\d{2}|first-run-[a-z0-9-]+)"), "invalid sample ID");
         this.sample = sample;
         this.deadline = Long.parseLong(System.getProperty("ui.verify01.deadlineMs", "0"));
-        long remaining = deadline - System.currentTimeMillis();
-        assertTrue(remaining > 0 && remaining <= 1200000,
-                "explicit task-wide epoch deadline is required, at most 20 minutes ahead");
+        validateDeadline(deadline, System.currentTimeMillis(),
+                System.getProperty("ui.verify01.modelTurns", "20"));
         this.ui = new ConversationRecoveryJourney(robot, frame, this.root, deadline);
+    }
+
+    static void validateDeadline(long deadline, long now, String modelTurns) {
+        assertTrue(modelTurns.equals("20") || modelTurns.equals("40"),
+                "only default 20 or explicitly expanded 40 model turns are supported");
+        long maximum = modelTurns.equals("40") ? 2400000L : 1200000L;
+        long remaining = deadline - now;
+        assertTrue(remaining > 0 && remaining <= maximum,
+                "explicit task-wide epoch deadline must fit the declared model-turn budget");
     }
 
     void run(String phase) throws Exception {

@@ -1,0 +1,158 @@
+import { describe, expect, it } from "vitest";
+import {
+  createEvalComparison,
+  createEvalHistoryRecord,
+  EVAL_CONTEXT_SCHEMA,
+  EVAL_EXECUTION_PROTOCOL,
+  evaluateStrictEvalGate,
+} from "../src/lib/eval/evidence.js";
+
+// verify-24: "比较身份严格隔离" — the same task run under a different model,
+// permission or runtime identity must not be counted as a comparable improvement.
+// Each control keeps the identical task population (t1,t2), valid records, and a
+// single changed identity dimension, so only the comparison_identity_changed
+// guard may legitimately reject a differing-identity candidate.
+
+const NOW = Date.parse("2026-09-12T12:00:00.000Z");
+const D = (character) => `sha256:${character.repeat(64)}`;
+
+function context(model, permissionDigest) {
+  return {
+    schema: EVAL_CONTEXT_SCHEMA,
+    provider: "openai",
+    model,
+    modelRevision: `${model}@rev-1`,
+    environmentDigest: D("e"),
+    permissionDigest,
+    inferenceDigest: D("i"),
+  };
+}
+
+function comparison(
+  model = "gpt-base",
+  { permissionDigest = D("p"), node = "v22.22.2" } = {},
+) {
+  return createEvalComparison({
+    suite: "builtin",
+    corpusDigest: D("c"),
+    provider: "openai",
+    model,
+    context: context(model, permissionDigest),
+    platform: "linux",
+    arch: "x64",
+    node,
+  });
+}
+
+function record(
+  index,
+  comparisonValue,
+  pairs = [
+    ["t1", true],
+    ["t2", true],
+  ],
+) {
+  const passed = pairs.filter(([, pass]) => pass).length;
+  return createEvalHistoryRecord(
+    {
+      total: pairs.length,
+      passed,
+      failed: pairs.length - passed,
+      passRate: passed / pairs.length,
+      unrelatedChangeRate: 0,
+      results: pairs.map(([id, pass]) => ({
+        id,
+        pass,
+        artifactCheckPassed: pass,
+        executionSucceeded: true,
+        agentOk: true,
+        executionEvidence: {
+          protocol: EVAL_EXECUTION_PROTOCOL,
+          exitCode: 0,
+          signal: null,
+          terminalVerified: true,
+          observedFallback: false,
+        },
+        error: null,
+        detail: "checked",
+        changedFiles: [],
+        unrelatedChanges: [],
+      })),
+    },
+    {
+      comparison: comparisonValue,
+      runId: `run-${index}`,
+      ranAt: new Date(NOW - (3 - index) * 1000).toISOString(),
+    },
+  );
+}
+
+const gate = (runs) =>
+  evaluateStrictEvalGate({ runs, issues: [] }, { now: NOW });
+const BASE = comparison("gpt-base");
+
+describe("comparison identity strictly isolates same-task runs (verify-24)", () => {
+  it("accepts the same task under an identical model/permission/runtime identity", () => {
+    const outcome = gate([record(1, BASE), record(2, BASE)]);
+    expect(outcome).toMatchObject({ passed: true, status: "PASS" });
+    expect(outcome.reasons).toEqual([]);
+  });
+
+  it("refuses to count the same task as an improvement when the candidate model differs", () => {
+    const outcome = gate([
+      record(1, BASE),
+      record(2, comparison("gpt-upgraded")),
+    ]);
+    expect(outcome).toMatchObject({
+      passed: false,
+      status: "INSUFFICIENT_EVIDENCE",
+    });
+    expect(outcome.reasons).toEqual(["comparison_identity_changed"]);
+  });
+
+  it("refuses to count the same task when only the permission identity differs", () => {
+    const outcome = gate([
+      record(1, BASE),
+      record(2, comparison("gpt-base", { permissionDigest: D("q") })),
+    ]);
+    expect(outcome).toMatchObject({
+      passed: false,
+      status: "INSUFFICIENT_EVIDENCE",
+    });
+    expect(outcome.reasons).toEqual(["comparison_identity_changed"]);
+  });
+
+  it("refuses to count the same task when only the runtime identity differs", () => {
+    const outcome = gate([
+      record(1, BASE),
+      record(2, comparison("gpt-base", { node: "v24.0.0" })),
+    ]);
+    expect(outcome).toMatchObject({
+      passed: false,
+      status: "INSUFFICIENT_EVIDENCE",
+    });
+    expect(outcome.reasons).toEqual(["comparison_identity_changed"]);
+  });
+
+  it("does not report a pass-rate improvement across a different model identity", () => {
+    const base = record(
+      1,
+      BASE,
+      [
+        ["t1", true],
+        ["t2", false],
+      ],
+    );
+    const candidate = record(2, comparison("gpt-upgraded"));
+    const outcome = gate([base, candidate]);
+    expect(outcome).toMatchObject({
+      passed: false,
+      status: "INSUFFICIENT_EVIDENCE",
+      baselineRunId: "run-1",
+      candidateRunId: "run-2",
+    });
+    // The apparent 50% -> 100% gain is deliberately never evaluated as a trend.
+    expect(outcome.reasons).toEqual(["comparison_identity_changed"]);
+    expect(outcome.trend).toBeUndefined();
+  });
+});

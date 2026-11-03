@@ -8,6 +8,7 @@ import { spawnSync } from "node:child_process";
 import {
   DEFAULT_NATIVE_BUDGETS,
   VOLCENGINE_BUDGET_BASELINE,
+  VOLCENGINE_ZERO_REQUEST_ROOT,
   nativeExecutionBudgets,
   loadVolcengineBudgetRetry,
 } from "../scripts/verify01-native-execution-budgets.mjs";
@@ -207,6 +208,64 @@ test("retry dispatch retains review, public package proof, and a source-bound fa
       assertFreshVolcengineBudgetRetry({ ...options, ...changed }, plan),
     );
   }
+});
+
+test("host recovery selects only the source-bound zero-request failure and rejects paid or altered evidence", (t) => {
+  const { root, manifest } = fixture(t);
+  const broker = {
+    physicalRequestsStarted: 0,
+    usageCompleteRequests: 0,
+    tasks: [{ taskId: "verify-06", requests: 0 }],
+  };
+  const prior = {
+    executionSourceCommit: "98bf47be5a72442cc7e2655dfbf3aebb7770d409",
+    executionBudgets: nativeExecutionBudgets(manifest),
+    modelTransport: { provider: "volcengine", model: BROKER.model },
+    samples: [
+      {
+        sampleId: "verify-06",
+        generationPassed: false,
+        failure: "UI deadline rejected",
+        broker,
+      },
+    ],
+  };
+  const recovery = (manifest.volcengineBudgetRetry.zeroRequestRecovery = {
+    runId: 41574308573,
+    source: prior.executionSourceCommit,
+    summaryPath: VOLCENGINE_ZERO_REQUEST_ROOT + "/summary.json",
+    brokerSummaryPath: VOLCENGINE_ZERO_REQUEST_ROOT + "/broker-summary.json",
+  });
+  const save = () => {
+    for (const [name, value] of [
+      ["summary", prior],
+      ["brokerSummary", broker],
+    ]) {
+      const bytes = Buffer.from(JSON.stringify(value));
+      const file = path.join(root, recovery[name + "Path"]);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, bytes);
+      recovery[name + "Digest"] =
+        "sha256:" + createHash("sha256").update(bytes).digest("hex");
+    }
+  };
+  save();
+  manifest.volcengineBudgetRetry.selectedSampleIds = ["verify-06"];
+  const load = () =>
+    loadVolcengineBudgetRetry(manifest, { repositoryRoot: root, plan });
+  assert.deepEqual(load().selectedSampleIds, ["verify-06"]);
+  broker.physicalRequestsStarted = 1;
+  save();
+  assert.throws(load, /Never repeat paid inference/u);
+  broker.physicalRequestsStarted = 0;
+  save();
+  prior.executionSourceCommit = "a".repeat(40);
+  save();
+  assert.throws(load);
+  prior.executionSourceCommit = recovery.source;
+  save();
+  fs.appendFileSync(path.join(root, recovery.summaryPath), " ");
+  assert.throws(load);
 });
 
 test("independent acceptance binds the expanded broker policy and rejects a substituted turn allowance", (t) => {

@@ -1,0 +1,165 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-26",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 14,
+      "passed": 14,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "persist-write-only-property",
+      "sourceSha256": "31c508872908f1b049756a8f3638e199f86a5a7470d62c1391c4bfb95533b758",
+      "total": 4,
+      "passed": 3,
+      "failed": 1
+    },
+    {
+      "name": "persist-unknown-schema-fallback",
+      "sourceSha256": "fb50ce78659ac9ba5f5463d08e5e7659e2b44a4472a707c5745e339eb4094470",
+      "total": 4,
+      "passed": 2,
+      "failed": 2
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 164,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1473,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":4,\"numPassedTestSuites\":4,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":14,\"numPassedTests\":14,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793678405758,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence recovers an unfinished bound question in a fresh host without sending an answer\",\"status\":\"passed\",\"title\":\"recovers an unfinished bound question in a fresh host without sending an answer\",\"duration\":13.796699999999987,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence archives cancellations, schema changes and late edits without reviving the request\",\"status\":\"passed\",\"title\":\"archives cancellations, schema changes and late edits without reviving the request\",\"duration\":6.7256869999999935,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence does not restore unbound or already submitted answers as a new live form\",\"status\":\"passed\",\"title\":\"does not restore unbound or already submitted answers as a new live form\",\"duration\":6.019468999999958,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence reserves one response, persists before writing, and leaves failed delivery unknown\",\"status\":\"passed\",\"title\":\"reserves one response, persists before writing, and leaves failed delivery unknown\",\"duration\":2.786093000000051,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence does not dispatch on storage failure or a reset during the save\",\"status\":\"passed\",\"title\":\"does not dispatch on storage failure or a reset during the save\",\"duration\":54.547957,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence keeps deferred questions across turn end and bounds stored questions\",\"status\":\"passed\",\"title\":\"keeps deferred questions across turn end and bounds stored questions\",\"duration\":26.982358999999974,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms retains multiselect edits when switching between conversation tabs\",\"status\":\"passed\",\"title\":\"retains multiselect edits when switching between conversation tabs\",\"duration\":40.06649900000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms preserves partial form values through Webview reconstruction, omitting write-only secrets\",\"status\":\"passed\",\"title\":\"preserves partial form values through Webview reconstruction, omitting write-only secrets\",\"duration\":37.91570300000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms restores the last keystroke backup and never overwrites a newer edit\",\"status\":\"passed\",\"title\":\"restores the last keystroke backup and never overwrites a newer edit\",\"duration\":17.481200000000058,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms disables duplicate clicks and marks completion only on the host resolution\",\"status\":\"passed\",\"title\":\"disables duplicate clicks and marks completion only on the host resolution\",\"duration\":9.787014,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms excludes unsupported JSON fallback values and rejects oversized draft structures\",\"status\":\"passed\",\"title\":\"excludes unsupported JSON fallback values and rejects oversized draft structures\",\"duration\":1.131151999999929,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatView question owner routing\"],\"fullName\":\"ChatView question owner routing keeps a rejected response unresolved and exposes archived text without sending it\",\"status\":\"passed\",\"title\":\"keeps a rejected response unresolved and exposes archived text without sending it\",\"duration\":9.435817999999927,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatView question owner routing\"],\"fullName\":\"ChatView question owner routing routes an asynchronous URL answer to its original session after tab switching\",\"status\":\"passed\",\"title\":\"routes an asynchronous URL answer to its original session after tab switching\",\"duration\":55.00092200000006,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatView question owner routing\"],\"fullName\":\"ChatView question owner routing ignores callbacks after the owning session is stopped and replacement requests appear\",\"status\":\"passed\",\"title\":\"ignores callbacks after the owning session is stopped and replacement requests appear\",\"duration\":54.23478299999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793678406448,\"endTime\":1793678406785.2349,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/vscode-ext-question-drafts.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 707,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":4,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793678407248,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"sensitive question fields are excluded from the persisted projection\"],\"fullName\":\"sensitive question fields are excluded from the persisted projection writeOnly:true field is dropped while a sibling plain field persists\",\"status\":\"passed\",\"title\":\"writeOnly:true field is dropped while a sibling plain field persists\",\"duration\":3.047390000000007,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields are excluded from the persisted projection\"],\"fullName\":\"sensitive question fields are excluded from the persisted projection removing writeOnly lets the same field enter the projection (negative control)\",\"status\":\"passed\",\"title\":\"removing writeOnly lets the same field enter the projection (negative control)\",\"duration\":0.5136789999999962,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields are excluded from the persisted projection\"],\"fullName\":\"sensitive question fields are excluded from the persisted projection format:'password' never persists even though it routes through the fallback\",\"status\":\"passed\",\"title\":\"format:'password' never persists even though it routes through the fallback\",\"duration\":0.4419850000000167,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields are excluded from the persisted projection\"],\"fullName\":\"sensitive question fields are excluded from the persisted projection unknown schema fallback is not persisted; a supported schema persists its fields\",\"status\":\"passed\",\"title\":\"unknown schema fallback is not persisted; a supported schema persists its fields\",\"duration\":0.81905900000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793678407473,\"endTime\":1793678407477.819,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-26.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/vscode-extension/src/chat/question-draft-contract.js"
+      ],
+      "setup": false,
+      "ms": 159,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 689,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":3,\"numFailedTests\":1,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793678408099,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"sensitive question fields are excluded from the persisted projection\"],\"fullName\":\"sensitive question fields are excluded from the persisted projection writeOnly:true field is dropped while a sibling plain field persists\",\"status\":\"failed\",\"title\":\"writeOnly:true field is dropped while a sibling plain field persists\",\"duration\":11.437354999999997,\"failureMessages\":[\"AssertionError: expected [ { key: '[\\\"user\\\"]', …(2) }, …(1) ] to deeply equal [ { key: '[\\\"user\\\"]', …(2) }, …(1) ]\\n    at /workspace/packages/vscode-extension/__tests__/verify-26.test.js:38:25\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields are excluded from the persisted projection\"],\"fullName\":\"sensitive question fields are excluded from the persisted projection removing writeOnly lets the same field enter the projection (negative control)\",\"status\":\"passed\",\"title\":\"removing writeOnly lets the same field enter the projection (negative control)\",\"duration\":0.8179470000000038,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields are excluded from the persisted projection\"],\"fullName\":\"sensitive question fields are excluded from the persisted projection format:'password' never persists even though it routes through the fallback\",\"status\":\"passed\",\"title\":\"format:'password' never persists even though it routes through the fallback\",\"duration\":0.482781000000017,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields are excluded from the persisted projection\"],\"fullName\":\"sensitive question fields are excluded from the persisted projection unknown schema fallback is not persisted; a supported schema persists its fields\",\"status\":\"passed\",\"title\":\"unknown schema fallback is not persisted; a supported schema persists its fields\",\"duration\":0.9292250000000024,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793678408326,\"endTime\":1793678408339.9292,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-26.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/vscode-extension/src/chat/question-draft-contract.js"
+      ],
+      "setup": false,
+      "ms": 160,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 694,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":2,\"numFailedTests\":2,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793678408955,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"sensitive question fields are excluded from the persisted projection\"],\"fullName\":\"sensitive question fields are excluded from the persisted projection writeOnly:true field is dropped while a sibling plain field persists\",\"status\":\"passed\",\"title\":\"writeOnly:true field is dropped while a sibling plain field persists\",\"duration\":3.0531110000000012,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields are excluded from the persisted projection\"],\"fullName\":\"sensitive question fields are excluded from the persisted projection removing writeOnly lets the same field enter the projection (negative control)\",\"status\":\"passed\",\"title\":\"removing writeOnly lets the same field enter the projection (negative control)\",\"duration\":0.469506999999993,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields are excluded from the persisted projection\"],\"fullName\":\"sensitive question fields are excluded from the persisted projection format:'password' never persists even though it routes through the fallback\",\"status\":\"failed\",\"title\":\"format:'password' never persists even though it routes through the fallback\",\"duration\":9.406673999999981,\"failureMessages\":[\"AssertionError: expected [ { key: 'answer-json', …(2) } ] to deeply equal [ { key: 'answer-json', …(2) } ]\\n    at /workspace/packages/vscode-extension/__tests__/verify-26.test.js:76:25\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question fields are excluded from the persisted projection\"],\"fullName\":\"sensitive question fields are excluded from the persisted projection unknown schema fallback is not persisted; a supported schema persists its fields\",\"status\":\"failed\",\"title\":\"unknown schema fallback is not persisted; a supported schema persists its fields\",\"duration\":1.6686260000000175,\"failureMessages\":[\"AssertionError: expected [ { key: 'answer-json', …(2) } ] to deeply equal [ { key: 'answer-json', …(2) } ]\\n    at /workspace/packages/vscode-extension/__tests__/verify-26.test.js:91:21\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]}],\"startTime\":1793678409178,\"endTime\":1793678409192.6687,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-26.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

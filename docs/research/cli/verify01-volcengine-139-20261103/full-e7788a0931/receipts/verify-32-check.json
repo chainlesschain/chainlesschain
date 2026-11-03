@@ -1,0 +1,78 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-32",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 13,
+      "passed": 13,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 146,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 813,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":4,\"numPassedTestSuites\":4,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":13,\"numPassedTests\":13,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793676795075,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"complete-container admission, distinct from codec decoding\"],\"fullName\":\"complete-container admission, distinct from codec decoding counts all GIF compositing canvases, including small delta frames\",\"status\":\"passed\",\"title\":\"counts all GIF compositing canvases, including small delta frames\",\"duration\":4.836870000000005,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"complete-container admission, distinct from codec decoding\"],\"fullName\":\"complete-container admission, distinct from codec decoding rejects damaged/truncated containers that retain valid dimension headers\",\"status\":\"passed\",\"title\":\"rejects damaged/truncated containers that retain valid dimension headers\",\"duration\":0.9641259999999932,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"complete-container admission, distinct from codec decoding\"],\"fullName\":\"complete-container admission, distinct from codec decoding retains PNG and GIF acceptance with explicit frame metadata\",\"status\":\"passed\",\"title\":\"retains PNG and GIF acceptance with explicit frame metadata\",\"duration\":0.5450510000000008,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cancellable codec worker lifecycle\"],\"fullName\":\"cancellable codec worker lifecycle closes transferred bitmaps that arrive after cancellation\",\"status\":\"passed\",\"title\":\"closes transferred bitmaps that arrive after cancellation\",\"duration\":1.8860919999999908,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cancellable codec worker lifecycle\"],\"fullName\":\"cancellable codec worker lifecycle preserves per-frame duration with a minimum and stops playback timers\",\"status\":\"passed\",\"title\":\"preserves per-frame duration with a minimum and stops playback timers\",\"duration\":3.4305549999999982,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cancellable codec worker lifecycle\"],\"fullName\":\"cancellable codec worker lifecycle rejects codec frame-count or canvas disagreements and closes native resources\",\"status\":\"passed\",\"title\":\"rejects codec frame-count or canvas disagreements and closes native resources\",\"duration\":2.202935999999994,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cancellable codec worker lifecycle\"],\"fullName\":\"cancellable codec worker lifecycle terminates a stuck worker on deadline and rejects stale completion\",\"status\":\"passed\",\"title\":\"terminates a stuck worker on deadline and rejects stale completion\",\"duration\":2.6887959999999964,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cancellable codec worker lifecycle\"],\"fullName\":\"cancellable codec worker lifecycle replacing the visible batch kills its decoder and accepts only the new result\",\"status\":\"passed\",\"title\":\"replacing the visible batch kills its decoder and accepts only the new result\",\"duration\":1.2337610000000154,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"single-descriptor image reads\"],\"fullName\":\"single-descriptor image reads handles short reads and rejects growth or same-size observed modification\",\"status\":\"passed\",\"title\":\"handles short reads and rejects growth or same-size observed modification\",\"duration\":3.001331999999991,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"single-descriptor image reads\"],\"fullName\":\"single-descriptor image reads checks cancellation and elapsed budget between chunks and closes the descriptor\",\"status\":\"passed\",\"title\":\"checks cancellation and elapsed budget between chunks and closes the descriptor\",\"duration\":1.486063999999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"single-descriptor image reads\"],\"fullName\":\"single-descriptor image reads reads real files and rejects an unexpected saved size\",\"status\":\"passed\",\"title\":\"reads real files and rejects an unexpected saved size\",\"duration\":5.5952800000000025,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[],\"fullName\":\"persists GIF attachments and cleans staging under a path longer than Windows MAX_PATH\",\"status\":\"passed\",\"title\":\"persists GIF attachments and cleans staging under a path longer than Windows MAX_PATH\",\"duration\":40.35995700000004,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[],\"fullName\":\"cleans private worker staging after timeout/cancel and promotes accepted bytes exclusively\",\"status\":\"passed\",\"title\":\"cleans private worker staging after timeout/cancel and promotes accepted bytes exclusively\",\"duration\":42.54006000000004,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793676795332,\"endTime\":1793676795443.54,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/vscode-ext-image-decode-budget.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 698,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":1,\"numPassedTestSuites\":0,\"numFailedTestSuites\":1,\"numPendingTestSuites\":0,\"numTotalTests\":0,\"numPassedTests\":0,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793676795899,\"success\":false,\"testResults\":[{\"assertionResults\":[],\"startTime\":1793676795899,\"endTime\":1793676795899,\"status\":\"failed\",\"message\":\"No test suite found in file /workspace/packages/vscode-extension/__tests__/verify-32.test.js\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-32.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "acceptance requires executed test cases"
+}

@@ -1,0 +1,112 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  readBoundedImage,
+  MAX_INPUT_IMAGE_BYTES,
+} from "../src/lib/image-file-boundary.js";
+import { PNG_BYTES } from "./helpers/image-file-fixtures.js";
+
+const root = fs.mkdtempSync(join(tmpdir(), "cc-verify-13-"));
+afterAll(() => fs.rmSync(root, { recursive: true, force: true }));
+
+function writePng(name, data = PNG_BYTES, size) {
+  const target = join(root, name);
+  fs.writeFileSync(target, data);
+  if (size) fs.truncateSync(target, size);
+  return target;
+}
+
+// Wrap the real fs so we can observe closeSync and intercept readSync without
+// changing file contents or metadata (keeps other guards from firing).
+function tracingFs({ readSync = fs.readSync } = {}) {
+  const closeSync = vi.fn(fs.closeSync);
+  return { ...fs, readSync, closeSync };
+}
+
+describe("attachment same-handle read boundary (readBoundedImage)", () => {
+  it("reads a normal small image via one handle and closes it", () => {
+    const target = writePng("ok.png");
+    const io = tracingFs();
+    const data = readBoundedImage(target, "image/png", MAX_INPUT_IMAGE_BYTES, io);
+    expect(Buffer.from(data).equals(PNG_BYTES)).toBe(true);
+    expect(io.closeSync).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a same-handle replacement that swaps content in the read region", () => {
+    const target = writePng("swap.png");
+    // Serve the correct header on the first header read, then corrupt the
+    // already-validated header region on the full read. fstat stays constant,
+    // so the header-equality guard (not size/mtime) is the only thing that can
+    // reject. count still matches before.size; length is unchanged.
+    let headerServed = false;
+    const readSync = (fd, data, offset, length, position) => {
+      const n = fs.readSync(fd, data, offset, length, position);
+      if (!headerServed && position === 0 && length > 0) {
+        headerServed = true;
+      } else if (position === 0 && length > 0) {
+        // Second pass over the header region: corrupt its identity bytes.
+        data[0] = 0;
+      }
+      return n;
+    };
+    const io = tracingFs({ readSync });
+    expect(() =>
+      readBoundedImage(target, "image/png", MAX_INPUT_IMAGE_BYTES, io),
+    ).toThrow(/changed while being read/);
+    expect(io.closeSync).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a truncated full read on the same handle", () => {
+    const target = writePng("trunc.png");
+    // The header buffer is exactly PNG_BYTES.length, the full-read buffer is
+    // length+1, so data.length tells the two passes apart. Deliver the header
+    // untouched, but stop one byte short on the full read so count !== size
+    // while the fstat metadata stays identical.
+    const total = PNG_BYTES.length;
+    const readSync = (fd, data, offset, length, position) => {
+      const n = fs.readSync(fd, data, offset, length, position);
+      if (data.length === total + 1 && position === 0 && n > 0) return n - 1;
+      return n;
+    };
+    const io = tracingFs({ readSync });
+    expect(() =>
+      readBoundedImage(target, "image/png", MAX_INPUT_IMAGE_BYTES, io),
+    ).toThrow(/changed while being read/);
+    expect(io.closeSync).toHaveBeenCalledOnce();
+  });
+
+  it("rejects input that exceeds the per-message remaining byte budget", () => {
+    const target = writePng("over-remaining.png", PNG_BYTES, PNG_BYTES.length + 1);
+    const io = tracingFs();
+    expect(() =>
+      readBoundedImage(target, "image/png", PNG_BYTES.length, io),
+    ).toThrow(/exceed 20 MiB per message/);
+    // Rejection happens before the full read allocation: only the header read
+    // may touch the descriptor, and the handle must still be closed.
+    expect(io.closeSync).toHaveBeenCalledOnce();
+  });
+
+  it("accepts input at the exact remaining-byte budget boundary", () => {
+    const target = writePng("at-budget.png");
+    const io = tracingFs();
+    const data = readBoundedImage(
+      target,
+      "image/png",
+      PNG_BYTES.length,
+      io,
+    );
+    expect(Buffer.from(data).equals(PNG_BYTES)).toBe(true);
+    expect(io.closeSync).toHaveBeenCalledOnce();
+  });
+
+  it("rejects input one byte over the remaining-byte budget boundary", () => {
+    const target = writePng("over-budget.png", PNG_BYTES, PNG_BYTES.length + 1);
+    const io = tracingFs();
+    expect(() =>
+      readBoundedImage(target, "image/png", PNG_BYTES.length, io),
+    ).toThrow(/exceed 20 MiB per message/);
+    expect(io.closeSync).toHaveBeenCalledOnce();
+  });
+});

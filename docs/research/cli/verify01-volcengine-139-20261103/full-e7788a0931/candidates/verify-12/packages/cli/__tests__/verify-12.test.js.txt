@@ -1,0 +1,83 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  agentPrintArgument,
+  canonicalizeBackgroundSessionArgv,
+  transformBackgroundLaunchArgv,
+} from "../src/lib/background-command-argv.js";
+
+const OPTION_SPECS = [
+  { long: "--model", required: true },
+  { long: "--session", required: true },
+];
+
+describe("verify-12: argv boundary integrity for space, quote and empty parameters", () => {
+  it("keeps a space-containing directory inside one argv token", () => {
+    // Positive: a directory with spaces is appended as a single element, not
+    // word-split into multiple argv tokens.
+    expect(
+      transformBackgroundLaunchArgv(["agent"], {
+        directories: ["/root/my work dir"],
+      }),
+    ).toEqual(["agent", "--add-dir", "/root/my work dir"]);
+    // Negative control: only the space is removed; the boundary stays intact.
+    expect(
+      transformBackgroundLaunchArgv(["agent"], {
+        directories: ["/root/myworkdir"],
+      }),
+    ).toEqual(["agent", "--add-dir", "/root/myworkdir"]);
+  });
+
+  it("preserves literal quotes inside a directory token without shell processing", () => {
+    // Positive: quotes are not stripped or re-parsed; the token stays whole.
+    expect(
+      transformBackgroundLaunchArgv(["agent"], {
+        directories: ['/root/"quoted dir"'],
+      }),
+    ).toEqual(["agent", "--add-dir", '/root/"quoted dir"']);
+    // Negative control: only the quotes are removed.
+    expect(
+      transformBackgroundLaunchArgv(["agent"], {
+        directories: ["/root/quoteddir"],
+      }),
+    ).toEqual(["agent", "--add-dir", "/root/quoteddir"]);
+  });
+
+  it("keeps an empty-string value as a distinct argv token", () => {
+    // Positive: an empty option value is preserved as one boundary-delimited
+    // token, never merged into or dropped from the argv array.
+    expect(
+      canonicalizeBackgroundSessionArgv(
+        ["agent", "--model", "", "task"],
+        { sessionId: "resolved", optionSpecs: OPTION_SPECS },
+      ),
+    ).toEqual(["agent", "--model", "", "task", "--session", "resolved"]);
+    // Negative control: only the value changes (non-empty); boundary intact.
+    expect(
+      canonicalizeBackgroundSessionArgv(
+        ["agent", "--model", "m", "task"],
+        { sessionId: "resolved", optionSpecs: OPTION_SPECS },
+      ),
+    ).toEqual(["agent", "--model", "m", "task", "--session", "resolved"]);
+  });
+
+  it("appends an option-shaped directory as the --add-dir value, not a new option", () => {
+    // Positive: a value that looks like an option stays in the value slot of
+    // --add-dir, proving it is not re-parsed or shell-expanded.
+    expect(
+      transformBackgroundLaunchArgv(["agent"], { directories: ["-x"] }),
+    ).toEqual(["agent", "--add-dir", "-x"]);
+    // Negative control: only the value loses its leading dash.
+    expect(
+      transformBackgroundLaunchArgv(["agent"], { directories: ["x"] }),
+    ).toEqual(["agent", "--add-dir", "x"]);
+  });
+
+  it("wraps a prompt containing spaces into one --print token", () => {
+    // Positive: a prompt with internal spaces stays a single argv token so no
+    // shell word-splitting can occur downstream.
+    expect(agentPrintArgument("hello world")).toBe("--print=hello world");
+    // Negative control: only the space is removed.
+    expect(agentPrintArgument("helloworld")).toBe("--print=helloworld");
+  });
+});

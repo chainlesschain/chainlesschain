@@ -1,0 +1,76 @@
+// Regression coverage: cumulative animation frame budget admitted by
+// inspectImageBudget BEFORE any expensive codec decoding.
+//
+// The budget has two independent cumulative guards, both evaluated at
+// container admission (this pure function never touches a decoder):
+//   a) frames > 200
+//   b) width * height * frames > 40_000_000
+// Positive controls keep every prerequisite valid; each negative control
+// changes only the single condition under test so no other guard can cause
+// the rejection.
+import { describe, it, expect } from "vitest";
+import { inspectImageBudget } from "../src/chat/image-decode-budget.js";
+
+// 1x1 transparent GIF: header(LSD) 19 bytes, then frame body, then trailer.
+const gif = Buffer.from(
+  "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+  "base64",
+);
+
+// Rebuild an animated GIF with `count` identical 1x1 delta frames over a
+// logical canvas sized `canvas` x `canvas`.
+const animated = (count, canvas = 1) => {
+  const header = Buffer.from(gif.subarray(0, 19));
+  header.writeUInt16LE(canvas, 6);
+  header.writeUInt16LE(canvas, 8);
+  return Buffer.concat([
+    header,
+    ...Array.from({ length: count }, () => gif.subarray(19, -1)),
+    Buffer.from([0x3b]),
+  ]);
+};
+
+describe("cumulative animation frame budget, admitted before decoding", () => {
+  it("retains the legal boundary of exactly 200 frames", () => {
+    expect(inspectImageBudget(animated(200))).toMatchObject({
+      format: "gif",
+      frames: 200,
+      decodedPixels: 200,
+    });
+  });
+
+  it("rejects the first over-limit frame count (201) at admission", () => {
+    expect(() => inspectImageBudget(animated(201))).toThrow("200 frames");
+  });
+
+  it("retains a legal near-boundary cumulative canvas-pixel budget", () => {
+    // 447*447*200 = 39,961,800 <= 40,000,000 while frames == 200.
+    expect(inspectImageBudget(animated(200, 447))).toMatchObject({
+      frames: 200,
+      decodedPixels: 39_961_800,
+    });
+  });
+
+  it("rejects the first over-limit cumulative pixel count at admission", () => {
+    // 448*448*200 = 40,140,800 > 40,000,000; frames still 200 so only the
+    // pixel guard can reject.
+    expect(() => inspectImageBudget(animated(200, 448))).toThrow(
+      "decoded canvas pixels",
+    );
+  });
+
+  it("accumulates small delta frames into the budget and retains in-limit totals", () => {
+    expect(inspectImageBudget(animated(3, 100))).toMatchObject({
+      frames: 3,
+      decodedPixels: 30_000,
+    });
+  });
+
+  it("attributes over-limit rejection to the pixel guard even below the frame cap", () => {
+    // 449*449*199 = 40,118,599 > 40,000,000 but 199 < 200, so the frame-count
+    // guard cannot be the rejecting one.
+    expect(() => inspectImageBudget(animated(199, 449))).toThrow(
+      "decoded canvas pixels",
+    );
+  });
+});

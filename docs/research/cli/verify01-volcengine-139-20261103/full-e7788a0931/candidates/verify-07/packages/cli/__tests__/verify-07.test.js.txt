@@ -1,0 +1,177 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import {
+  existsSync,
+  mkdtempSync,
+  rmSync,
+} from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+const root = mkdtempSync(join(tmpdir(), "cc-history-verify-07-"));
+vi.mock("../src/lib/paths.js", () => ({
+  getHomeDir: () => join(root, "home"),
+  getClaudeProjectStorageDir: () => null,
+  getStatePath: () => join(root, "home", "state"),
+  getMachineSecurityAnchorDir: () => join(root, "security"),
+}));
+const store = await import("../src/harness/jsonl-session-store.js");
+const { readSessionTranscriptHistory } =
+  await import("../src/lib/session-transcript-history.js");
+const { HISTORY_PREFIX_SCHEMA } =
+  await import("../src/lib/session-history-origins.js");
+
+function start(id, messageCount) {
+  const sessionId = `verify-07-${id}`;
+  store.createSession(sessionId, { command: "test", cwd: root });
+  store.withSessionAuthorityTransaction(sessionId, null, (transaction) => {
+    const messages = [];
+    for (let i = 0; i < messageCount; i++) {
+      const message = {
+        role: i % 2 === 0 ? "user" : "assistant",
+        content: [{ type: "text", text: `body-${i}` }],
+      };
+      messages.push(message);
+      transaction.appendAuthorityEvent("message", {
+        action: i % 2 === 0 ? "user" : "assistant",
+        message,
+        binding: { turns: [] },
+      });
+    }
+  });
+  return sessionId;
+}
+
+function rewind(sessionId, retainedMessageCount) {
+  const messages = store.readVerifiedMessages(sessionId);
+  const head = store.findLatestEvent(sessionId, null).hash;
+  return store.withSessionAuthorityTransaction(sessionId, head, (transaction) =>
+    transaction.appendAuthorityEvent("checkpoint_timeline_commit", {
+      action: "restore-conversation",
+      messages: messages.slice(0, retainedMessageCount),
+      historyPrefix: {
+        schema: HISTORY_PREFIX_SCHEMA,
+        sourceHead: transaction.currentHeadHash(),
+        sourceMessageCount: messages.length,
+        retainedMessageCount,
+      },
+      binding: { turns: [] },
+    }),
+  );
+}
+
+// Walk every incremental page from the first sync baseline through the final
+// body. Returns the concatenated row ordinals and the observed page descriptors.
+function walkAfterPages(sessionId, limit) {
+  const baseline = readSessionTranscriptHistory(sessionId);
+  const pages = [];
+  let cursor = baseline.syncCursor;
+  let hasMore = true;
+  while (hasMore) {
+    const page = readSessionTranscriptHistory(sessionId, {
+      after: cursor,
+      limit,
+    });
+    pages.push(page);
+    cursor = page.nextCursor;
+    hasMore = page.hasMore;
+  }
+  return { baseline, pages, ordinals: pages.flatMap((p) => p.messages.map((m) => m.ordinal)) };
+}
+
+afterAll(() => {
+  if (existsSync(root)) rmSync(root, { recursive: true, force: true });
+});
+
+describe("persistent-text incremental pagination boundary", () => {
+  it("covers the full body contiguously with no omission and no repeated row", () => {
+    const sessionId = start("contiguous", 7);
+    const { pages, ordinals } = walkAfterPages(sessionId, 3);
+
+    // Each page has an explicit continuation cursor and reports hasMore only
+    // while the final row has not been delivered.
+    expect(pages.length).toBeGreaterThan(1);
+    expect(pages[0].from).toBe(0);
+    for (const page of pages) {
+      expect(typeof page.nextCursor).toBe("string");
+      expect(page.nextCursor.length).toBeGreaterThan(0);
+      expect(page.hasMore).toBe(true);
+    }
+    expect(pages.at(-1).hasMore).toBe(false);
+
+    // First/last cursor continuity: page N starts exactly after page N-1 ends.
+    for (let i = 1; i < pages.length; i++) {
+      expect(pages[i].from).toBe(pages[i - 1].messages.at(-1).ordinal + 1);
+    }
+
+    // No omitted message and no duplicated row: ordinals form the exact
+    // prefix 0..(count-1) with no gap and no repeat.
+    expect(ordinals).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    // The final body row is present on the last page (not cut off).
+    expect(pages.at(-1).messages.map((m) => m.ordinal)).toContain(6);
+  });
+
+  it("keeps the first contiguous prefix and lands an oversized next row on the following page", () => {
+    const sessionId = start("oversize", 6);
+    const page = readSessionTranscriptHistory(sessionId, {
+      after: readSessionTranscriptHistory(sessionId).syncCursor,
+      limit: 1,
+    });
+
+    // A single-row page admits the next ordinal without dropping the tail.
+    expect(page.messages.map((m) => m.ordinal)).toEqual([0]);
+    expect(page.from).toBe(0);
+    expect(page.hasMore).toBe(true);
+
+    const second = readSessionTranscriptHistory(sessionId, {
+      after: page.nextCursor,
+      limit: 1,
+    });
+    expect(second.from).toBe(1);
+    expect(second.messages.map((m) => m.ordinal)).toEqual([1]);
+    expect(second.hasMore).toBe(true);
+  });
+
+  it("does not repeat the boundary event across pages after a rewind", () => {
+    const sessionId = start("boundary", 6);
+    rewind(sessionId, 3);
+
+    const { pages, ordinals } = walkAfterPages(sessionId, 2);
+    // Rewound archive keeps ordinals contiguous; the rewind is a single
+    // boundary that must not be emitted more than once.
+    const boundaryCount = pages.reduce(
+      (n, p) =>
+        n + p.messages.filter((m) => m.boundary || m.boundaryKind).length,
+      0,
+    );
+    expect(ordinals).toEqual([0, 1, 2]);
+    expect(boundaryCount).toBeLessThanOrEqual(pages.length);
+  });
+
+  it("rejects an after cursor that reaches the tail with an empty non-continuing page", () => {
+    const sessionId = start("tail", 4);
+    const baseline = readSessionTranscriptHistory(sessionId);
+    // Cursor positioned past the last body row: no further rows exist.
+    const tail = readSessionTranscriptHistory(sessionId, {
+      after: baseline.syncCursor,
+      limit: 2,
+    });
+    expect(tail.messages).toEqual([]);
+    expect(tail.hasMore).toBe(false);
+    // A second read from the tail cursor stays terminated (no event loop).
+    const again = readSessionTranscriptHistory(sessionId, {
+      after: tail.nextCursor,
+      limit: 2,
+    });
+    expect(again.messages).toEqual([]);
+    expect(again.hasMore).toBe(false);
+  });
+
+  it("drives the same contiguous walk for an even smaller page size", () => {
+    const sessionId = start("small-page", 5);
+    const { pages, ordinals } = walkAfterPages(sessionId, 2);
+    expect(ordinals).toEqual([0, 1, 2, 3, 4]);
+    // The last page begins exactly at the row after the previous page's tail.
+    expect(pages.at(-1).from).toBe(pages.at(-2).messages.at(-1).ordinal + 1);
+    expect(pages.at(-1).hasMore).toBe(false);
+  });
+});

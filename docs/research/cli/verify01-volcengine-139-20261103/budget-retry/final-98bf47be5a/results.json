@@ -1,0 +1,223 @@
+{
+  "schema": "chainlesschain.fresh-volcengine-native-results/v1",
+  "collectedAt": "2026-11-03T04:07:06.049Z",
+  "runId": 41574308573,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41574308573",
+  "executionSource": "98bf47be5a72442cc7e2655dfbf3aebb7770d409",
+  "collectionSource": "98bf47be5a72442cc7e2655dfbf3aebb7770d409",
+  "collectionWorkflowRunId": "41574308573",
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "packageSetDigest": "sha256:6f04fb44079a8aa80db4330b749200bb89da8656aac88d71788a2748e7051cb8",
+  "formalSample": false,
+  "roundKind": "expanded-budget-retry",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 8192,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000
+  },
+  "baselineRunId": 41563424430,
+  "historicalScoresUnchanged": true,
+  "completeGenerationEvidence": true,
+  "completeEvidence": true,
+  "missingArtifacts": [],
+  "missingSamples": [],
+  "accepted": 0,
+  "total": 2,
+  "tasks": {
+    "accepted": 0,
+    "total": 2
+  },
+  "firstRuns": {
+    "accepted": 0,
+    "total": 0
+  },
+  "groups": {
+    "win32-cli": {
+      "accepted": 0,
+      "total": 0
+    },
+    "win32-vscode": {
+      "accepted": 0,
+      "total": 0
+    },
+    "win32-jetbrains": {
+      "accepted": 0,
+      "total": 0
+    },
+    "linux-cli": {
+      "accepted": 0,
+      "total": 0
+    },
+    "linux-vscode": {
+      "accepted": 0,
+      "total": 0
+    },
+    "linux-jetbrains": {
+      "accepted": 0,
+      "total": 1
+    },
+    "darwin-cli": {
+      "accepted": 0,
+      "total": 1
+    },
+    "darwin-vscode": {
+      "accepted": 0,
+      "total": 0
+    },
+    "darwin-jetbrains": {
+      "accepted": 0,
+      "total": 0
+    }
+  },
+  "artifacts": [
+    {
+      "id": 13202952593,
+      "name": "verify01-native-delivery-linux-jetbrains-verify-06-98bf47be5a72442cc7e2655dfbf3aebb7770d409",
+      "digest": "sha256:994edac2060f300071094e3b2e3ab1465afc2042bf40788615aaa58736741974",
+      "summaryDigest": "sha256:3815a9dcc60936942615c282079238823c505f55b6082e0733b985eaee1fcd11"
+    },
+    {
+      "id": 13203227932,
+      "name": "verify01-native-acceptance-linux-jetbrains-verify-06-98bf47be5a72442cc7e2655dfbf3aebb7770d409",
+      "digest": "sha256:5f3da9ca3205457fc0e166f872b74b925ab4f1a59471d5e6ee024caad58004c7",
+      "summaryDigest": "sha256:e2c8e5f72c45c6c6d57311dc7f3feb23e2c6bdb4c62bed8e62c7178df91e372e"
+    },
+    {
+      "id": 13202663211,
+      "name": "verify01-native-delivery-darwin-cli-verify-07-98bf47be5a72442cc7e2655dfbf3aebb7770d409",
+      "digest": "sha256:8966e8f6f5834474b2b72a176dcec069a5aa0983100f5772c7098eeb357cf110",
+      "summaryDigest": "sha256:9d9d21802edf70c934e16c154b3e725f1c2ece86df7183880b672001d84e546e"
+    },
+    {
+      "id": 13203058823,
+      "name": "verify01-native-acceptance-darwin-cli-verify-07-98bf47be5a72442cc7e2655dfbf3aebb7770d409",
+      "digest": "sha256:c9a883ed1327bae410d3ec5b6c395d491e8e1e3bc80886ca6d9eea68d496cda1",
+      "summaryDigest": "sha256:cc88a339e741e893c8709f4e335585cf94eb686085fe9eff819fe3321a14acbd"
+    }
+  ],
+  "samples": [
+    {
+      "sampleId": "verify-06",
+      "group": "linux-jetbrains",
+      "cellId": "linux-jetbrains-verify-06",
+      "accepted": false,
+      "candidateAcceptancePassed": false,
+      "generationPassed": false,
+      "sourceScopePassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": true,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": null,
+      "error": "initial native UI task exited 1/null\nAssertionError [ERR_ASSERTION]: exactly one raw protocol generation required\n\n0 !== 1\n\n    at protocolStream (file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/verify01-native-task-campaign.mjs:571:10)\n    at runNativeCampaign (file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/verify01-native-task-campaign.mjs:1373:39)\n    at async file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/verify01-native-task-campaign.mjs:1516:19",
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-06-setup-70f493b2-a426-4928-aa42-8b07670c447a.json",
+        "receiptDigest": "sha256:3ef3a0fd8c2ad0b3980b79a16e789626217ae7a0ed55a5e3f344f0c3f8100f2e",
+        "scriptDigest": "sha256:5d3d33759618c11af6ece7784f9226aa0a5cd0a9aa0a4b115d01fd7aa152d766",
+        "receiptPath": "pack/acceptance-evidence/verify-06-setup-70f493b2-a426-4928-aa42-8b07670c447a.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 31,
+            "passed": 31,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": false,
+        "detail": "acceptance requires executed test cases",
+        "receipt": "verify-06-check-74b0fba7-535f-4053-ba51-a94e23fa33ab.json",
+        "receiptDigest": "sha256:2368089eaf316d19e8a76dc2fd906e78dd96ef552d58de76f4024400b3e56087",
+        "scriptDigest": "sha256:f007ca86c37beec35ac6116e9951013bf552f2f4d27179026cb643b3c50396e0",
+        "receiptPath": "pack/acceptance-evidence/verify-06-check-74b0fba7-535f-4053-ba51-a94e23fa33ab.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 31,
+            "passed": 31,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "broker": null,
+      "observedUsage": null
+    },
+    {
+      "sampleId": "verify-07",
+      "group": "darwin-cli",
+      "cellId": "darwin-cli-verify-07",
+      "accepted": false,
+      "candidateAcceptancePassed": false,
+      "generationPassed": false,
+      "sourceScopePassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": true,
+      "modelFailure": "agent-error",
+      "modelError": "volcengine API error: HTTP 403 — DIAGNOSTIC_OUTPUT_TRUNCATED.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-07-setup-f069001a-750b-46d8-bd4d-839475574e16.json",
+        "receiptDigest": "sha256:7cd63fc2fcf519ed16aca79ec66af92d12a00d7204bf350477fdf9f45fae40cc",
+        "scriptDigest": "sha256:950880ded0874cae94eb828c8b0c291f81447f2c628e0a7177020ebbdda48999",
+        "receiptPath": "pack/acceptance-evidence/verify-07-setup-f069001a-750b-46d8-bd4d-839475574e16.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 39,
+            "passed": 39,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": false,
+        "detail": "acceptance requires executed test cases",
+        "receipt": "verify-07-check-23d02fc0-1e0b-41ba-8064-7abd32fa3172.json",
+        "receiptDigest": "sha256:808213550c473f8c4077cbfdef662102a8efb97ab5e64049676320e5e62e9b2d",
+        "scriptDigest": "sha256:6b2f6509219d4c0fbcf82fb6cb54de815af27aa2c997e2fc9b1badd709a77b0c",
+        "receiptPath": "pack/acceptance-evidence/verify-07-check-23d02fc0-1e0b-41ba-8064-7abd32fa3172.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 39,
+            "passed": 39,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "broker": {
+        "physicalRequestsStarted": 17,
+        "usageCompleteRequests": 17,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      },
+      "observedUsage": {
+        "input_tokens": 104236,
+        "output_tokens": 6148,
+        "cache_read_input_tokens": 137472,
+        "cache_creation_input_tokens": 0
+      }
+    }
+  ]
+}

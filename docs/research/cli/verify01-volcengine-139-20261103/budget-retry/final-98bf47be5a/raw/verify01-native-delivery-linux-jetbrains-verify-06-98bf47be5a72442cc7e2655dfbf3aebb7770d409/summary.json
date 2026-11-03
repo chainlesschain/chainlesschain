@@ -1,0 +1,368 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "98bf47be5a72442cc7e2655dfbf3aebb7770d409",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 8192,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000
+  },
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:2a8802826ffbe9c10bd7891f0d65978180ae5ff220c5074eb2e34ccf0c1f38d2",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:6f04fb44079a8aa80db4330b749200bb89da8656aac88d71788a2748e7051cb8",
+  "actualPlatform": "linux",
+  "actualArch": "x64",
+  "actualEntry": "jetbrains",
+  "changeReview": {
+    "requested": true,
+    "observed": null
+  },
+  "startedAt": "2026-11-03T03:50:41.922Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-06",
+      "taskId": "verify-06",
+      "kind": "task",
+      "runId": "43bfcf93-a369-4143-beaa-3607d45db692",
+      "stratum": "linux-jetbrains-volcengine",
+      "declaredActualEntry": {
+        "platform": "linux",
+        "entry": "jetbrains"
+      },
+      "actualPlatform": "linux",
+      "actualEntry": "jetbrains",
+      "changeReview": {
+        "requested": true,
+        "observed": null,
+        "completed": null
+      },
+      "executionSourceCommit": "98bf47be5a72442cc7e2655dfbf3aebb7770d409",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.139",
+        "vscode": "0.37.175",
+        "jetbrains": "0.4.192",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:6f04fb44079a8aa80db4330b749200bb89da8656aac88d71788a2748e7051cb8",
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-06.test.js"
+      ],
+      "startedAt": "2026-11-03T03:50:41.923Z",
+      "deadline": "2026-11-03T04:30:41.923Z",
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-06.test.js",
+          "path": "verify-06/candidate/packages/cli/__tests__/verify-06.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [],
+      "unexpectedChanges": [],
+      "generationPassed": false,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T03:50:43.722Z",
+        "finishedAt": "2026-11-03T03:51:03.156Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "verify-06",
+        "locked": {
+          "version": "0.166.139",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.139.tgz",
+          "integrity": "sha512-X0frBGhYvdNLxnz4oYtqo07vJvFHpi99yyZ1n1q7xI82x6v6BEx/jPy420YfZIidKlJG+HSF5SeQG38idwSW1w==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": false,
+        "failure": "initial native UI task exited 1/null",
+        "restartRequired": true
+      },
+      "capturePath": "verify-06/capture",
+      "failure": "initial native UI task exited 1/null\nAssertionError [ERR_ASSERTION]: exactly one raw protocol generation required\n\n0 !== 1\n\n    at protocolStream (file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/verify01-native-task-campaign.mjs:571:10)\n    at runNativeCampaign (file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/verify01-native-task-campaign.mjs:1373:39)\n    at async file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/verify01-native-task-campaign.mjs:1516:19",
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 0,
+        "usageCompleteRequests": 0,
+        "tasks": [
+          {
+            "taskId": "verify-06",
+            "requests": 0,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": null,
+        "knownTokenOnlyEstimateCny": 0,
+        "fxRate": null
+      },
+      "changedPaths": [],
+      "finishedAt": "2026-11-03T03:55:51.554Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-06"
+  ],
+  "generationPassed": false,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 40 model turns, 48 requests, 180 second request timeout, 8192 output tokens, 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:7c94c9cda22ffa60f1ff31369e0c42814a5027784a9c8de030137f38ae66a1ed",
+  "group": "linux-jetbrains",
+  "entry": "jetbrains",
+  "platform": "linux",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:2f38897a06b7d95cb3d4504fcb3b2696de83a61dc44f29faf711585cdec02704"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:78e5bce65d03d764428e4cb4b9ff57b47616e952d6e5a751bfd88d5fb11dbb14"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:ed574c65e4b7c4248937356fce5c9cbd18ae4bf1d3237b20586a322cff2f0132"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+      "digest": "sha256:c721f3a02626964678291cb1e228238456c2651d0f2761e44472372e5c4d2dad"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:324b67e2405916eecabd4abd459aa7fb7c4ed036029ee22d13e742d32f51dfa8"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-plugin-artifact.mjs",
+      "digest": "sha256:ce04147c3e2f97c7d44d37052f5e8329595efe9bbcb852b51952535ba96357bc"
+    },
+    {
+      "file": "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.mjs",
+      "digest": "sha256:2e14d677742913be1079bb9fd7e5e3b123edd551009560b69546f41403418fe6"
+    },
+    {
+      "file": "packages/jetbrains-plugin/build.gradle.kts",
+      "digest": "sha256:74b7a9578e2343c0b3644a46d769e789545877342b8a806ebb269175ab08a6cb"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "digest": "sha256:29655e9a949948528018ad85baf368e5240445216caa747719c95d6c83903e0b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/UiFailureDiagnostics.java",
+      "digest": "sha256:5802b749fd82048d196e90ce5f0f2f4e4c7cfc527590f07b62ccafb73d4c6a20"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "digest": "sha256:44cb87d4c64437b64204a4bca9d7faaec68a6cbbff8b7303c491e17e7597337b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "digest": "sha256:ad6e59cfb2fa56f7376aaf776a226006232156f8ea0f2096a863a42022215cd8"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T03:50:43.722Z",
+    "finishedAt": "2026-11-03T03:51:03.156Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "verify-06",
+    "locked": {
+      "version": "0.166.139",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.139.tgz",
+      "integrity": "sha512-X0frBGhYvdNLxnz4oYtqo07vJvFHpi99yyZ1n1q7xI82x6v6BEx/jPy420YfZIidKlJG+HSF5SeQG38idwSW1w==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T03:55:51.556Z"
+}
