@@ -1,0 +1,43 @@
+{
+  "schema": "chainlesschain.ide-roadmap-live-provider-trajectory-failure.v1",
+  "schemaVersion": 1,
+  "caseId": "s0-live-provider-trajectory",
+  "mode": "loopback",
+  "releaseCommit": "eb0fe7a8a14a38d762901ceb9c75bc9c9583043a",
+  "generatedAt": "2026-11-03T04:57:02.923Z",
+  "result": "failed",
+  "failureCode": "provider_trajectory_failed",
+  "diagnostic": {
+    "eventCount": 5,
+    "eventOrder": [
+      "run-started",
+      "semantic-compaction:model-usage-started",
+      "compaction",
+      "semantic-compaction:token-usage",
+      "model:model-usage-started",
+      "model-usage-unknown"
+    ],
+    "eventOrderTruncated": false,
+    "failureKind": "model-usage-unknown",
+    "compactionUsageStatus": "reported",
+    "compactionCode": null,
+    "compactionReason": null,
+    "usageUnknownReason": null,
+    "providerError": [
+      {
+        "name": "Error",
+        "code": null,
+        "status": null,
+        "site": "packages/cli/src/lib/evolution/agent-evolution-ingress.js:159"
+      },
+      {
+        "name": "other",
+        "code": null,
+        "status": null,
+        "site": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:578"
+      }
+    ]
+  },
+  "rawProviderMaterialPersisted": false,
+  "evidenceDigest": "sha256:6765f59dc50b83fd3e2f6681568c4fb40fd55ec77e082b7203a346907668968b"
+}

@@ -1,0 +1,4 @@
+{"observabilityOnly":true,"runtimeSourceParent":"eb0fe7a8a14a38d762901ceb9c75bc9c9583043a","platform":"win32","event":"observer-ready"}
+{"observabilityOnly":true,"runtimeSourceParent":"eb0fe7a8a14a38d762901ceb9c75bc9c9583043a","platform":"win32","event":"observer-ready"}
+{"observabilityOnly":true,"runtimeSourceParent":"eb0fe7a8a14a38d762901ceb9c75bc9c9583043a","platform":"win32","event":"storage-failure","codes":["CC_EVOLUTION_ARTIFACT_INTEGRITY_FAILED"],"reason":null,"stage":{"artifactType":"other","phase":"post-index"}}
+{"observabilityOnly":true,"runtimeSourceParent":"eb0fe7a8a14a38d762901ceb9c75bc9c9583043a","platform":"win32","event":"storage-failure","codes":["CC_EVOLUTION_ARTIFACT_INTEGRITY_FAILED"],"reason":null,"stage":{"artifactType":"other","phase":"post-index"},"artifactGuardLine":3134}

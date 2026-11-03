@@ -188,6 +188,23 @@ function isOpaqueBlock(value) {
   );
 }
 
+// A structural check for already-projected Agent protocol data, not proof of
+// provenance. Callers must still authenticate its bundle and bind restoration
+// to the original block's exact digest and byte length.
+export function isAgentOpaqueTransportBlockAtPath(value, path) {
+  if (!isOpaqueBlock(value)) return false;
+  if (/^messages\.\d+\.content\.\d+$/u.test(path)) {
+    return value.kind === "image";
+  }
+  if (/^messages\.\d+\._thinkingBlocks\.\d+$/u.test(path)) {
+    return value.kind === "thinking" || value.kind === "redacted_thinking";
+  }
+  return (
+    /^messages\.\d+\._openaiReasoningItems\.\d+$/u.test(path) &&
+    value.kind === "openai_reasoning"
+  );
+}
+
 function openAIReasoningItem(value) {
   if (
     !value ||

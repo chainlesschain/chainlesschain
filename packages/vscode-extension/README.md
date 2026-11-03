@@ -6,21 +6,37 @@ MCP bridge.
 
 ## Next release candidate
 
-<!-- release139-candidate:start -->
+<!-- release140-candidate:start -->
 
-Source candidate **0.37.175** recommends CLI **0.166.139**. The extension has not been published; publish only after verified upstream CLI publication and complete exact-source IDE gates.
+Source candidate **0.37.176** recommends CLI **0.166.140**. The extension has not been published; release it only after upstream publication and exact-source IDE gates are verified.
 
-The next package set is CLI **0.166.139**, Open VSX **0.37.175** and JetBrains **0.4.192**, with unchanged upstream SDK **0.2.17** and Kernel **0.1.11**. These versions are release candidates until their exact-source GitHub Actions gates and public readbacks succeed. After publication, install `npm i -g chainlesschain@0.166.139 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, and check `cc --version` and `cc doctor`.
+The release pairing is CLI **0.166.140**, Open VSX **0.37.176** and JetBrains **0.4.193**. Install `npm i -g chainlesschain@0.166.140 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, then check `cc --version` and `cc doctor`.
 
-The repair reserves author, fresh independent review and final reporting work within the original total request budget. Partial JavaScript reads recover complete surrounding statements from the same file snapshot within the existing output limit; focused reads do not silently switch to unrelated ranges. The previously merged standalone WebSocket host-model-policy repair is included in this candidate.
+Malformed provider tool arguments are rejected before tool execution. A uniquely paired pre-execution rejection produces a model-only placeholder so the next turn can continue through strict self-evolution projection. Legacy run_code snapshot rejections can resume without replaying the rejected call; original durable history stays unchanged. Valid object arguments, duplicate-key rejection, nested JSON checks, redaction and decoding budgets retain their existing boundaries.
 
-CLI .138 acceptance remains **2/4**: verify-13 and first-run-darwin-vscode passed; verify-08 and verify-36 failed on author-stage iteration exhaustion despite passing candidate checks. Only those two failures will be regenerated with this new package set. CLI .136 verify-19 remains a separate historical pass; historical **41/45** and .137 **0/5** are unchanged. Review stays enabled, with 20 model turns, 24 physical requests per case and the 32768-token planning context. Engineering checks do not establish model-task success. JetBrains may be tested using the official pending-review ZIP without waiting for Marketplace approval. Microsoft Marketplace and PC/mobile are outside this release.
+The focused Windows checks passed 129 tests. Two bounded real Volcengine recovery scenarios passed through the installed runtime with five physical requests and 6,401 tokens; the first scenario explicitly injected the exact logged malformed argument into one inbound model response. These results cover this recovery defect and do not rescore historical model-task acceptance. SDK 0.2.17, Protocol 0.1.12, Kernel 0.1.11 and the other child packages retain their published versions. Microsoft Marketplace and the independent PC/mobile product release are outside this patch.
 
-<!-- release139-candidate:end -->
+The paired CLI also corrects phone-shaped internal image/reasoning digests under Agent projection v10. Exact transport binding, real PII checks, forged-marker rejection and v1-v9 historical verification remain in place.
+
+<!-- release140-candidate:end -->
+
+## Current release
+
+<!-- release175-status -->
+
+Open VSX version **0.37.175** pairs with public CLI `0.166.139`.
+
+| Component                 | Current public status                                          |
+| ------------------------- | -------------------------------------------------------------- |
+| VS Code extension         | **0.37.175**; verified public release                          |
+| Recommended CLI           | **`chainlesschain@0.166.139`**; verified public npm package    |
+| Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI |
+
+Immutable tag `ide-vscode-v0.37.175` identifies the release. Install `npm i -g chainlesschain@0.166.139`. Using `@0.166.139` selects this pairing. CLI `0.166.139` is the recommended public CLI. The public artifact is `chainlesschain-ide-0.37.175.vsix`: [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.175/file/chainlesschain.chainlesschain-ide-0.37.175.vsix). [Public verification](../../docs/research/cli/evidence/release139-public/open-vsx.json).
 
 <!-- release138-current:start -->
 
-## Current release
+## Previous public release: 0.37.174
 
 <!-- release174-status -->
 
