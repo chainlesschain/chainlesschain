@@ -1,0 +1,148 @@
+{
+  "schema": "chainlesschain.tool-argument-recovery-live/v1",
+  "startedAt": "2026-11-03T02:34:16.890Z",
+  "provider": "volcengine",
+  "model": "deepseek-v4-1-flash-economy-261017",
+  "runtime": "installed-cli-0.166.139-with-local-fix",
+  "authority": "isolated signed test deployment with real production composition; not production release acceptance",
+  "limits": {
+    "maxPhysicalRequests": 8,
+    "maxRequestsPerScenario": 4,
+    "maxOutputTokensPerRequest": 1536,
+    "requestTimeoutMs": 90000
+  },
+  "scenarios": [
+    {
+      "name": "new-malformed-response",
+      "inject": true,
+      "injected": true,
+      "requests": 3,
+      "receipts": [
+        {
+          "responseId": "021793673263868c280e9bf492d190027beb8b799de3808b7ed66",
+          "requestId": "021793673263868c280e9bf492d190027beb8b799de3808b7ed66",
+          "usage": {
+            "completion_tokens": 40,
+            "prompt_tokens": 871,
+            "total_tokens": 911,
+            "prompt_tokens_details": {
+              "cached_tokens": 768
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          "finishReason": "tool_calls"
+        },
+        {
+          "responseId": "021793673267798c280e9bf492d190027beb8b799de380882a083",
+          "requestId": "021793673267798c280e9bf492d190027beb8b799de380882a083",
+          "usage": {
+            "completion_tokens": 40,
+            "prompt_tokens": 994,
+            "total_tokens": 1034,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          "finishReason": "tool_calls"
+        },
+        {
+          "responseId": "021793673275544c280e9bf492d190027beb8b799de3808d44eaf",
+          "requestId": "021793673275544c280e9bf492d190027beb8b799de3808d44eaf",
+          "usage": {
+            "completion_tokens": 76,
+            "prompt_tokens": 1619,
+            "total_tokens": 1695,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 64
+            }
+          },
+          "finishReason": "stop"
+        }
+      ],
+      "invalidCallId": "call_00_8siph15ua6qb9qduokoue1oz",
+      "assertions": {
+        "strictEvolutionCompleted": true,
+        "realModelReturnedUnknownFileContent": true,
+        "invalidArgumentsAbsentFromOutboundRequests": true,
+        "originalHistoryUnchanged": true,
+        "rejectedCallNeverExecutedOrReplayed": true
+      },
+      "status": "passed"
+    },
+    {
+      "name": "legacy-session-resume",
+      "inject": false,
+      "injected": false,
+      "requests": 2,
+      "receipts": [
+        {
+          "responseId": "021793673287148c280e9bf492d190027beb8b799de38088b4a7d",
+          "requestId": "021793673287148c280e9bf492d190027beb8b799de38088b4a7d",
+          "usage": {
+            "completion_tokens": 68,
+            "prompt_tokens": 997,
+            "total_tokens": 1065,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 28
+            }
+          },
+          "finishReason": "tool_calls"
+        },
+        {
+          "responseId": "021793673293899c280e9bf492d190027beb8b799de3808fcb8f5",
+          "requestId": "021793673293899c280e9bf492d190027beb8b799de3808fcb8f5",
+          "usage": {
+            "completion_tokens": 63,
+            "prompt_tokens": 1633,
+            "total_tokens": 1696,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 49
+            }
+          },
+          "finishReason": "stop"
+        }
+      ],
+      "assertions": {
+        "strictEvolutionCompleted": true,
+        "realModelReturnedUnknownFileContent": true,
+        "invalidArgumentsAbsentFromOutboundRequests": true,
+        "originalHistoryUnchanged": true,
+        "rejectedCallNeverExecutedOrReplayed": true
+      },
+      "status": "passed"
+    }
+  ],
+  "files": {
+    "src/runtime/agent-core.js": "sha256:e88d93975701247e486ca99f2b5bcafb826b8052f82c0aa1e5c8e0f05ddb6d6c",
+    "src/runtime/tool-argument-recovery.js": "sha256:749ca33229ff71c3438f8621b2ef0dc603355a6c0ab93c055bc37986731ebc7c"
+  },
+  "status": "passed",
+  "physicalRequests": 5,
+  "finishedAt": "2026-11-03T02:35:03.709Z",
+  "baseCommit": "5182c740d8329a4976c817ef8addb8fdcec0dff1",
+  "validation": {
+    "unitAndRecoveryTests": {
+      "passed": 129,
+      "failed": 0,
+      "suites": 7
+    },
+    "formatting": "passed",
+    "diffWhitespace": "passed",
+    "scope": "Tool argument rejection and continuation through strict evolution ingress with a real model; this is not npm release or full-repository acceptance.",
+    "liveFaultInjection": "Only the first inbound read_file arguments were replaced with the exact logged malformed text; every model response and all five inference requests otherwise used the real Volcengine API."
+  }
+}
