@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.fresh-volcengine-native-round/v1",
   "createdAt": "2026-11-03T01:26:26.468532+00:00",
-  "status": "ready-after-catalog-network-preflight-correction",
+  "status": "dispatched-after-complete-key-and-catalog-network-corrections",
   "provider": "volcengine",
   "model": "deepseek-v4-flash-ga-260731",
   "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
@@ -98,7 +98,11 @@
   },
   "localContracts": {
     "passed": 53,
-    "failed": 0
+    "failed": 0,
+    "affectedContractsAfterCatalogNetworkCorrection": {
+      "passed": 12,
+      "failed": 0
+    }
   },
   "initialAuthenticationAttempt": {
     "runId": 41560581328,
@@ -140,5 +144,15 @@
     "maximumReadOnlyCatalogAttempts": 3,
     "authenticationRejectionsRetried": false,
     "modelGenerationPolicyChanged": false
+  },
+  "executionSource": "e7788a09316abb6f637932ae09254a441168742e",
+  "runId": 41563424430,
+  "actionsCredentialPreflight": {
+    "runId": 41563424430,
+    "validationJobId": 125679126255,
+    "passed": true,
+    "authenticated": true,
+    "requiredModelListed": true,
+    "beforeAnyGenerationJobs": true
   }
 }

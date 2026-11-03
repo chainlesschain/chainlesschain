@@ -113,7 +113,16 @@ async function main() {
       assert.equal(zip.length, artifact.size_in_bytes);
       assert.equal(hash(zip), artifact.digest);
       const entries = listZipEntries(zip);
-      assert.ok(entries.has("summary.json"));
+      if (!entries.has("summary.json")) {
+        missing.push(`${name}/summary.json`);
+        artifacts.push({
+          id: artifact.id,
+          name,
+          digest: artifact.digest,
+          summaryMissing: true,
+        });
+        continue;
+      }
       const bytes = readZipEntry(zip, entries.get("summary.json"));
       const summary = JSON.parse(bytes.toString("utf8"));
       assert.equal(summary.executionSourceCommit, values.source);
@@ -211,6 +220,10 @@ async function main() {
     runId: run.id,
     url: run.html_url,
     executionSource: values.source,
+    collectionSource: execFileSync("git", ["rev-parse", "HEAD"], {
+      encoding: "utf8",
+    }).trim(),
+    collectionWorkflowRunId: process.env.GITHUB_RUN_ID || null,
     provider: "volcengine",
     model: DIAGNOSTIC.model,
     versions: packages.versions,

@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "source": "e7788a09316abb6f637932ae09254a441168742e",
+  "ref": "verify01-volc139-full-e7788a0931",
+  "provider": "volcengine",
+  "scope": "fresh-full-36-plus-9-after-complete-key-and-network-preflight-corrections",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139.json",
+  "priorInvalidRun": 41560581328,
+  "priorCatalogNetworkRun": 41562280904,
+  "submitted": true,
+  "submissionStartedAt": "2026-11-03T01:59:31.942525+00:00",
+  "inputs": {
+    "confirm_live": "true",
+    "provider": "volcengine",
+    "fresh_volcengine_round": "true",
+    "hosts": "all",
+    "entries": "all",
+    "package_set": "latest",
+    "package_set_file": "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139.json",
+    "review_changes": "true"
+  },
+  "runId": 41563424430,
+  "rejectedSubmissionError": "gh: Requires authentication (HTTP 401)\n",
+  "credentialEnvironmentRetryStartedAt": "2026-11-03T02:00:55.807579+00:00",
+  "submittedAt": "2026-11-03T02:01:01.753513+00:00",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41563424430"
+}
