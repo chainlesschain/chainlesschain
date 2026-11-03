@@ -111,3 +111,12 @@ docs/research/cli/verify01-volcengine-140-full-20261103/**/*.txt
 docs/research/cli/verify01-volcengine-140-full-20261103/**/*.sse
 docs/research/cli/verify01-volcengine-140-full-20261103/**/*.ndjson
 docs/research/cli/verify01-package-sets/2026-11-03-volcengine-public140-*.json
+
+# Preserve the immutable public140 Sol four-case evidence and identity bindings.
+
+docs/research/cli/verify01-openai-140-frozen-four-20261103/**
+!docs/research/cli/verify01-openai-140-frozen-four-20261103/**/*.md
+
+docs/research/cli/verify01-package-sets/2026-11-03-openai140-frozen-four.json
+
+docs/research/cli/verify01-openai-137/public140-frozen-four-project-revision.json
