@@ -873,7 +873,7 @@ export async function runNativeCampaign(options) {
     formalSample: false,
     limitations: [
       "Native generation; independent Linux acceptance pending",
-      `${providerProfile.defaultThinkingPreserved ? "Default model thinking preserved" : "Broker thinking disabled"}, six file tools only, ${budgets.modelTurns} model turns, ${budgets.physicalRequests} requests, 180 second request timeout, ${budgets.outputTokens} output tokens, 16 MiB response transport limit`,
+      `${providerProfile.defaultThinkingPreserved ? "Default model thinking preserved" : "Broker thinking disabled"}, six file tools only, ${budgets.modelTurns} model turns, ${budgets.physicalRequests} requests, 180 second request timeout, ${budgets.outputTokens === 393216 ? "model maximum 393216 output tokens (8192 test cap removed)" : `${budgets.outputTokens} output tokens`}, 16 MiB response transport limit`,
       "IDE context bridges and optional task worklog disabled; real UI and restart retained",
       "No prior candidates or repair seeds supplied",
     ],

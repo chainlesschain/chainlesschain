@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "status": "prepared",
+  "purpose": "Remove artificial 8192 output cap and retry latest output-truncated samples",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139-provider-output.json",
+  "packageSetDigest": "sha256:2f00fcaea2f423b761563ebd9543228a488298ba735a8e87b7c3e95e11bef031",
+  "selectedSampleIds": [
+    "first-run-darwin-cli",
+    "first-run-darwin-vscode",
+    "verify-01",
+    "verify-04",
+    "verify-07",
+    "verify-08",
+    "verify-11",
+    "verify-14",
+    "verify-15",
+    "verify-32",
+    "verify-33",
+    "verify-36"
+  ],
+  "sampleCount": 12,
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "outputPolicy": "authenticated-model-maximum"
+  },
+  "maximumPhysicalRequests": 576,
+  "modelMetadata": {
+    "path": "docs/research/cli/verify01-volcengine-139-20261103/provider-output/model-catalog.json",
+    "digest": "sha256:d41d2bc44dc88271b5053ee8fc43a68612d9c96c0bf78791e9385ac4286e7743"
+  },
+  "reviewChanges": true,
+  "unseeded": true,
+  "independentAcceptance": true,
+  "historicalScoresUnchanged": true,
+  "formalSample": false,
+  "localContractsPassed": 38,
+  "cliPublicArtifactChecksPassed": 4,
+  "solStatusSource": "bac9e9757a",
+  "solLatestNativeRun": 41558182255,
+  "solLatestNativeAccepted": 1,
+  "solLatestNativeTotal": 1,
+  "solLatestFailedQueueEmpty": true,
+  "solHistoricalFrozenAccepted": 41,
+  "solHistoricalFrozenTotal": 45,
+  "solPublic139Full45Rerun": false
+}

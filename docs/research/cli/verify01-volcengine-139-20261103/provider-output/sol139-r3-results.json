@@ -1,0 +1,207 @@
+{
+  "schema": 1,
+  "source": "aeb3a9d9cb97e23313bb1c316db00722a296e970",
+  "projectSource": "eec8b97b6040d19004670bfead0bec1b8a27b71b",
+  "packageDigest": "sha256:2fe5d5536c4e8e273388dfc71e7fced77bc06f5a8db3da79028340e2f8eec61e",
+  "collectorSource": "e76270165e52d079d3d3e307a010c58dd1502ad8",
+  "collectorTriggerSource": "e76270165e52d079d3d3e307a010c58dd1502ad8",
+  "complete": true,
+  "expected": 1,
+  "accepted": 1,
+  "failed": 0,
+  "skippedHistoricalPass": "verify-19 at 0.166.136; verify-13 at 0.166.138; first-run-darwin-vscode at 0.166.138; verify-36 at 0.166.139",
+  "historical45Unchanged": true,
+  "previous137r3Unchanged": "0/5",
+  "previous138Unchanged": "2/4",
+  "infrastructureRetry": null,
+  "physicalRequestsStarted": 21,
+  "usageCompleteRequests": 21,
+  "knownTokenOnlyEstimateUsd": 0.5873909,
+  "actualBilledCostUsd": null,
+  "runs": [
+    {
+      "id": 41558182255,
+      "originalRunId": 41558182255,
+      "source": "aeb3a9d9cb97e23313bb1c316db00722a296e970",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41558182255",
+      "updatedAt": "2026-11-03T01:30:50Z",
+      "jobs": [
+        {
+          "id": 125662100858,
+          "name": "validate",
+          "status": "completed",
+          "conclusion": "success",
+          "failedStep": null
+        },
+        {
+          "id": 125663105875,
+          "name": "Native darwin-vscode (selected samples)",
+          "status": "completed",
+          "conclusion": "success",
+          "failedStep": null
+        },
+        {
+          "id": 125665148015,
+          "name": "Linux acceptance of darwin-vscode deliveries",
+          "status": "completed",
+          "conclusion": "success",
+          "failedStep": null
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13195906673,
+      "name": "verify01-native-subset-delivery-darwin-vscode-aeb3a9d9cb97e23313bb1c316db00722a296e970",
+      "runId": 41558182255,
+      "digest": "sha256:5061240504fb956fe5282265b4f2fb66c011db52e92d6d49d5f12afaf0baeb85",
+      "zipDigestVerified": true,
+      "summaryDigest": "sha256:4051965e5f37bcedc2514cfc8b9366351271bb19761b8baf3903c0c7c7fdd03e",
+      "sizeInBytes": 5267116
+    },
+    {
+      "id": 13196812098,
+      "name": "verify01-native-subset-acceptance-darwin-vscode-aeb3a9d9cb97e23313bb1c316db00722a296e970",
+      "runId": 41558182255,
+      "digest": "sha256:805a5d8e1c424376d5b5b5e242b5d97587cf5855485799c7d3763af31f04a8b7",
+      "zipDigestVerified": true,
+      "summaryDigest": "sha256:618a1b71cad360aa5b240ee8f748780ca9766acb7011c502e283eaa061e44608",
+      "sizeInBytes": 729882
+    }
+  ],
+  "rows": [
+    {
+      "sampleId": "verify-08",
+      "runId": 41558182255,
+      "group": "darwin-vscode",
+      "originalGenerationPassed": true,
+      "generationPassed": true,
+      "accepted": true,
+      "candidateAcceptancePassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "terminal": {
+        "type": "result",
+        "subtype": "success",
+        "is_error": false,
+        "result": "已提交到工作区的补丁仅修改：\n`packages/cli/__tests__/repair137-verify-08.test.js`。\n\n新增两个独立 Vitest 用例：\n- **历史归属**：真实创建两个不同截点的分支，经持久化恢复与展示读取，精确断言各自祖先及独立正文；逐次追加左分支、右分支和父会话内容，验证其他会话不受影响。另比对源事件哈希和分支父会话信息，并重复读取检查无重复导入。\n- **能力绑定**：使用真实锁内投影生成能力，先证明有效，再分别仅改变父会话、正文、令牌身份或生命周期，断言拒绝；不借助其他无效前提触发错误。\n\n已读回最终修改，核对相对导入解析至 `packages/cli/src/`。未修改冻结源码或现有测试，也没有证据证明存在实现缺陷。\n\n**验证限制**：当前仅允许文件工具，未运行 Vitest，不宣称测试或独立验收通过。本次未覆盖导入协议的全部格式、分块及容量边界；这些不作为上述归属断言的覆盖证据。",
+        "session_id": "panel-42565415-24d0-4011-b5d6-e6d39d3a12c0",
+        "turn": 1,
+        "usage": {
+          "input_tokens": 6637,
+          "output_tokens": 6383,
+          "cache_read_input_tokens": 71369,
+          "cache_creation_input_tokens": 251575
+        },
+        "transcript_refs": {
+          "schema": "chainlesschain.session-transcript-references/v1",
+          "sessionId": "panel-42565415-24d0-4011-b5d6-e6d39d3a12c0",
+          "assistantEventId": "ecccd3497b012cd277fc896aae7e25cdf5868179275fb683ec442062fbe58862",
+          "userEventId": "2a4419494cd593a684c8038421f75748131727bf79ed39b157f4d7db80cfbdcb",
+          "clientMessageId": "6dbb1217-d8c1-4908-88ec-64a1fed5a271"
+        },
+        "trace_id": "tr-ed054483-a88b-4498-bb9d-659df3e2c2dd",
+        "seq": 158
+      },
+      "modelFailure": null,
+      "modelPass": true,
+      "sourceScopePassed": true,
+      "brokerStatus": {
+        "physicalRequestsStarted": 21,
+        "usageCompleteRequests": 21,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 21,
+        "usageCompleteRequests": 21,
+        "tasks": [
+          {
+            "taskId": "verify-08",
+            "requests": 21,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostUsd": null,
+        "tokenOnlyEstimateUsd": 0.5873909,
+        "knownTokenOnlyEstimateUsd": 0.5873909,
+        "fxRate": null
+      },
+      "observedUsage": {
+        "input_tokens": 6637,
+        "output_tokens": 6383,
+        "cache_read_input_tokens": 71369,
+        "cache_creation_input_tokens": 251575,
+        "reasoning_tokens": 420
+      },
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 59,
+            "passed": 59,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:8b91071ee05b0527f4be6480020010c62f4f01b58d7ccdd255482f3c6f6deeff"
+      },
+      "check": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 59,
+            "passed": 59,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 2,
+            "passed": 2,
+            "failed": 0
+          }
+        ],
+        "mutations": [
+          {
+            "name": "accept-history-capability-from-wrong-parent",
+            "sourceSha256": "b027cb66824de4c42d9b71b8b2c7f2de1b45eda1533601bea1e8a16ea6c38b68",
+            "total": 2,
+            "passed": 1,
+            "failed": 1
+          }
+        ],
+        "receiptDigest": "sha256:a9a1d1f1720f8e983a9b3b1b4aea033fdbb97516e5b300034162a4c7d1fd68da"
+      },
+      "generationAssessment": {
+        "passed": true,
+        "originalGenerationPassed": true,
+        "originalTerminalVerified": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 6637,
+            "outputTokens": 6383,
+            "cacheReadInputTokens": 71369,
+            "cacheCreationInputTokens": 251575
+          },
+          "totalCostUsd": null
+        },
+        "dialect": "persistent-IDE-with-validated-session-end"
+      }
+    }
+  ]
+}

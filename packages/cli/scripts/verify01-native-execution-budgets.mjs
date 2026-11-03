@@ -14,9 +14,34 @@ export const VOLCENGINE_BUDGET_BASELINE =
   "docs/research/cli/verify01-volcengine-139-20261103/baseline-e7788a0931/results.json";
 export const VOLCENGINE_ZERO_REQUEST_ROOT =
   "docs/research/cli/verify01-volcengine-139-20261103/budget-retry/attempt-98bf47be5a";
+export const VOLCENGINE_OUTPUT_HISTORY = Object.freeze([
+  {
+    runId: 41563424430,
+    source: "e7788a09316abb6f637932ae09254a441168742e",
+    path: "docs/research/cli/verify01-volcengine-139-20261103/full-e7788a0931/results.json",
+    samples: 45,
+  },
+  {
+    runId: 41574308573,
+    source: "98bf47be5a72442cc7e2655dfbf3aebb7770d409",
+    path: "docs/research/cli/verify01-volcengine-139-20261103/budget-retry/final-98bf47be5a/results.json",
+    samples: 2,
+  },
+  {
+    runId: 41576842146,
+    source: "cc4cd3180f226a7365f97b26f37a8da3306c1b07",
+    path: "docs/research/cli/verify01-volcengine-139-20261103/budget-retry/host-recovery/final-cc4cd3180f/results.json",
+    samples: 1,
+  },
+]);
 
-function readBoundEvidence(root, file, expectedDigest) {
-  assert.ok(file.startsWith(VOLCENGINE_ZERO_REQUEST_ROOT + "/"));
+function readBoundEvidence(
+  root,
+  file,
+  expectedDigest,
+  prefix = VOLCENGINE_ZERO_REQUEST_ROOT,
+) {
+  assert.ok(file.startsWith(prefix + "/"));
   assert.match(expectedDigest ?? "", /^sha256:[a-f0-9]{64}$/u);
   const resolved = path.join(root, file);
   assert.ok(!fs.lstatSync(resolved).isSymbolicLink());
@@ -36,10 +61,26 @@ export function nativeExecutionBudgets(manifest, provider = "volcengine") {
   const retry = manifest?.volcengineBudgetRetry;
   if (retry === undefined) return DEFAULT_NATIVE_BUDGETS;
   assert.equal(provider, "volcengine", "Expanded budget is Volcengine-only");
-  assert.equal(retry.id, "volcengine-public139-budget40-20261103");
+  const providerMaximum =
+    retry.id === "volcengine-public139-model-output-20261103";
+  if (providerMaximum) {
+    assert.equal(
+      retry.outputTokens,
+      393216,
+      "Use the authenticated model maximum, not an artificial test cap",
+    );
+    assert.equal(retry.outputPolicy, "model-maximum");
+    assert.ok(Array.isArray(retry.outputHistory));
+    assert.equal(retry.zeroRequestRecovery, undefined);
+  } else {
+    assert.equal(retry.id, "volcengine-public139-budget40-20261103");
+    assert.ok([8192, 16384].includes(retry.outputTokens));
+    assert.equal(retry.outputPolicy, undefined);
+    assert.equal(retry.outputHistory, undefined);
+    assert.equal(retry.modelMetadata, undefined);
+  }
   assert.equal(retry.modelTurns, 40);
   assert.equal(retry.physicalRequests, 48);
-  assert.ok([8192, 16384].includes(retry.outputTokens));
   return Object.freeze({
     modelTurns: 40,
     physicalRequests: 48,
@@ -109,6 +150,62 @@ export function loadVolcengineBudgetRetry(manifest, { repositoryRoot, plan }) {
     .map((row) => row.sampleId)
     .sort();
   assert.ok(selected.length > 0, "No remaining budget-limited samples");
+  if (retry.outputPolicy === "model-maximum") {
+    assert.equal(
+      retry.modelMetadata?.path,
+      "docs/research/cli/verify01-volcengine-139-20261103/provider-output/model-catalog.json",
+    );
+    const metadata = readBoundEvidence(
+      root,
+      retry.modelMetadata.path,
+      retry.modelMetadata.digest,
+      "docs/research/cli/verify01-volcengine-139-20261103/provider-output",
+    );
+    assert.equal(metadata.id, "deepseek-v4-flash-ga-260731");
+    assert.equal(
+      metadata.token_limits?.max_output_token_length,
+      budgets.outputTokens,
+    );
+    assert.equal(retry.outputHistory.length, VOLCENGINE_OUTPUT_HISTORY.length);
+    const latest = new Map();
+    for (const [index, expected] of VOLCENGINE_OUTPUT_HISTORY.entries()) {
+      const recorded = retry.outputHistory[index];
+      assert.equal(recorded.runId, expected.runId);
+      assert.equal(recorded.source, expected.source);
+      assert.equal(recorded.path, expected.path);
+      const report = readBoundEvidence(
+        root,
+        recorded.path,
+        recorded.digest,
+        "docs/research/cli/verify01-volcengine-139-20261103",
+      );
+      assert.equal(report.runId, expected.runId);
+      assert.equal(report.executionSource, expected.source);
+      assert.equal(report.provider, "volcengine");
+      assert.equal(report.model, "deepseek-v4-flash-ga-260731");
+      assert.equal(report.completeEvidence, true);
+      assert.equal(report.samples.length, expected.samples);
+      assert.equal(
+        new Set(report.samples.map((row) => row.sampleId)).size,
+        expected.samples,
+      );
+      for (const row of report.samples) {
+        assert.ok(plan.samples.some((sample) => sample.id === row.sampleId));
+        latest.set(row.sampleId, row);
+      }
+    }
+    assert.equal(latest.size, 45);
+    selected = [...latest.values()]
+      .filter(
+        (row) =>
+          row.accepted !== true &&
+          row.generationPassed === false &&
+          row.broker?.errorCode === "DIAGNOSTIC_OUTPUT_TRUNCATED",
+      )
+      .map((row) => row.sampleId)
+      .sort();
+    assert.ok(selected.length > 0, "No unresolved output-truncated samples");
+  }
   if (retry.zeroRequestRecovery) {
     const recovery = retry.zeroRequestRecovery;
     assert.equal(recovery.runId, 41574308573);

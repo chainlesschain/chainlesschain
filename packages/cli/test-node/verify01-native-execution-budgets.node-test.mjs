@@ -9,6 +9,7 @@ import {
   DEFAULT_NATIVE_BUDGETS,
   VOLCENGINE_BUDGET_BASELINE,
   VOLCENGINE_ZERO_REQUEST_ROOT,
+  VOLCENGINE_OUTPUT_HISTORY,
   nativeExecutionBudgets,
   loadVolcengineBudgetRetry,
 } from "../scripts/verify01-native-execution-budgets.mjs";
@@ -266,6 +267,148 @@ test("host recovery selects only the source-bound zero-request failure and rejec
   save();
   fs.appendFileSync(path.join(root, recovery.summaryPath), " ");
   assert.throws(load);
+});
+
+test("model maximum output retry binds catalog and latest outcomes, excluding the wrong-path failure", (t) => {
+  const { root, manifest, baseline } = fixture(t);
+  const retry = manifest.volcengineBudgetRetry;
+  Object.assign(retry, {
+    id: "volcengine-public139-model-output-20261103",
+    outputPolicy: "model-maximum",
+    outputTokens: 393216,
+    selectedSampleIds: ["verify-04", "verify-07"],
+  });
+  function save(file, value) {
+    const bytes = Buffer.from(JSON.stringify(value));
+    const target = path.join(root, file);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, bytes);
+    return "sha256:" + createHash("sha256").update(bytes).digest("hex");
+  }
+  const metadataPath =
+    "docs/research/cli/verify01-volcengine-139-20261103/provider-output/model-catalog.json";
+  retry.modelMetadata = {
+    path: metadataPath,
+    digest: save(metadataPath, {
+      id: BROKER.model,
+      token_limits: { max_output_token_length: 393216 },
+    }),
+  };
+  const priorRows = [
+    baseline.samples,
+    [
+      {
+        sampleId: "verify-06",
+        generationPassed: false,
+        accepted: false,
+        broker: null,
+      },
+      {
+        sampleId: "verify-07",
+        generationPassed: false,
+        accepted: false,
+        broker: { errorCode: "DIAGNOSTIC_OUTPUT_TRUNCATED" },
+      },
+    ],
+    [
+      {
+        sampleId: "verify-06",
+        generationPassed: false,
+        accepted: false,
+        modelFailure: "tool-scope-unverified",
+        broker: { errorCode: null },
+      },
+    ],
+  ];
+  retry.outputHistory = VOLCENGINE_OUTPUT_HISTORY.map((expected, index) => ({
+    runId: expected.runId,
+    source: expected.source,
+    path: expected.path,
+    digest: save(expected.path, {
+      runId: expected.runId,
+      executionSource: expected.source,
+      provider: "volcengine",
+      model: BROKER.model,
+      completeEvidence: true,
+      samples: priorRows[index],
+    }),
+  }));
+  const load = () =>
+    loadVolcengineBudgetRetry(manifest, { repositoryRoot: root, plan });
+  assert.deepEqual(load().selectedSampleIds, ["verify-04", "verify-07"]);
+  assert.equal(load().budgets.outputTokens, 393216);
+  retry.selectedSampleIds.push("verify-06");
+  assert.throws(load, /observed budget-limited failures/u);
+  retry.selectedSampleIds.pop();
+  fs.appendFileSync(path.join(root, metadataPath), " ");
+  assert.throws(load);
+});
+
+test("real broker sends the model maximum and accepts complete output above both old test caps", async (t) => {
+  const { root } = fixture(t);
+  const budgets = {
+    modelTurns: 40,
+    physicalRequests: 48,
+    outputTokens: 393216,
+  };
+  const raw = JSON.stringify({
+    id: "offline-model-maximum",
+    model: BROKER.model,
+    service_tier: "default",
+    choices: [
+      {
+        index: 0,
+        message: { role: "assistant", content: "offline" },
+        finish_reason: "stop",
+      },
+    ],
+    usage: {
+      prompt_tokens: 100,
+      completion_tokens: 20000,
+      total_tokens: 20100,
+      prompt_tokens_details: { cached_tokens: 0 },
+      completion_tokens_details: { reasoning_tokens: 0 },
+    },
+  });
+  assert.throws(() => diagnosticJsonUsage(raw), /OUTPUT_LIMIT/u);
+  const broker = await createVolcengineDiagnosticBroker({
+    outputDir: path.join(root, "model-maximum-broker"),
+    key: "offline-not-a-real-key",
+    executionBudgets: budgets,
+    maximumRequestsPerTask: 48,
+    allowedTaskIds: ["verify-04"],
+    allowTextOnlyRequests: true,
+    requestImpl: async (body) => {
+      assert.equal(body.max_tokens, 393216);
+      return { status: 200, raw: Buffer.from(raw) };
+    },
+  });
+  try {
+    broker.beginTask("verify-04");
+    const response = await fetch(broker.baseUrl + "/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + broker.childKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: BROKER.model,
+        messages: [{ role: "user", content: "offline" }],
+        max_tokens: 8192,
+      }),
+    });
+    assert.equal(response.status, 200);
+    await response.text();
+    assert.equal(broker.taskStatus("verify-04").usageCompleteRequests, 1);
+    assert.equal(broker.taskStatus("verify-04").errorCode, null);
+    assert.equal(
+      BROKER.maximumAnswerTokens,
+      8192,
+      "Historical default is immutable",
+    );
+  } finally {
+    await broker.close();
+  }
 });
 
 test("independent acceptance binds the expanded broker policy and rejects a substituted turn allowance", (t) => {

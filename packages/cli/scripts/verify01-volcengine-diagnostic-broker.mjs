@@ -121,7 +121,7 @@ export function diagnosticBody(
   } = {},
 ) {
   check(
-    [8192, 16384].includes(maximumAnswerTokens),
+    [8192, 16384, 393216].includes(maximumAnswerTokens),
     "DIAGNOSTIC_OUTPUT_POLICY_INVALID",
   );
   check(input?.model === BROKER.model, "DIAGNOSTIC_MODEL_MISMATCH");
@@ -236,7 +236,7 @@ export function diagnosticUsage(
   { maximumAnswerTokens = BROKER.maximumAnswerTokens } = {},
 ) {
   check(
-    [8192, 16384].includes(maximumAnswerTokens),
+    [8192, 16384, 393216].includes(maximumAnswerTokens),
     "DIAGNOSTIC_OUTPUT_POLICY_INVALID",
   );
   let done = false,
@@ -503,7 +503,7 @@ export function volcengineBudgetRetryPolicy(budgets) {
   check(
     budgets.modelTurns === 40 &&
       budgets.physicalRequests === 48 &&
-      [8192, 16384].includes(budgets.outputTokens),
+      [8192, 16384, 393216].includes(budgets.outputTokens),
     "DIAGNOSTIC_EXPANDED_BUDGET_INVALID",
   );
   return Object.freeze({
