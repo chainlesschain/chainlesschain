@@ -1,0 +1,19 @@
+{
+  "historical106RunId": "39137546829",
+  "historical106Summary": {
+    "path": "next-package-106-20261018-r2/39137546829/objects/140f38f97dab7aad9aaae12e89829dc6c5b8c5694d24af93e9e6a42916ed715e.gz",
+    "originalDigest": "sha256:140f38f97dab7aad9aaae12e89829dc6c5b8c5694d24af93e9e6a42916ed715e",
+    "storedDigest": "sha256:286f18c658d3628f36ea51af3f7f6c27f22acceb1e96272f85720ca60fd6a452",
+    "originalBytes": 22309
+  },
+  "historical106Limits": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 20 model turns, 24 requests, 180 second request timeout, 8192 output tokens, 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "thinkingAlreadyDisabledIn106": true,
+  "reviewAddedExplicitlyIn128": true,
+  "review128PlanPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028-plan.json",
+  "causality": "Different cumulative denominators, runtime versions, review scheduling and native protocols prevent attributing the whole difference to model quality; concrete candidate output mistakes are separately established from receipts."
+}

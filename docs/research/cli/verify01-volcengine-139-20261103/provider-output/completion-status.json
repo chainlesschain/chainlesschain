@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "scope": "Cross-budget diagnostic coverage only; not a uniform 45-sample rerun or formal frozen rescore",
+  "scope": "Recent .139 diagnostic cohorts only; excludes pre-.139 historical successes",
   "provider": "volcengine",
   "model": "deepseek-v4-flash-ga-260731",
   "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
@@ -73,5 +73,7 @@
     }
   ],
   "formalSample": false,
-  "historicalFrozenScoresUnchanged": true
+  "historicalFrozenScoresUnchanged": true,
+  "representsAllVolcengineHistory": false,
+  "allHistoryStatusPath": "docs/research/cli/verify01-volcengine-139-20261103/history-reconciliation/cumulative-status.json"
 }

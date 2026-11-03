@@ -61,6 +61,8 @@
     "verify-14",
     "verify-33"
   ],
-  "crossBudgetCoverage": "17/45 (tasks14/36, firstRuns3/9); original uniform score15/45 unchanged",
-  "finalResultsPath": "docs/research/cli/verify01-volcengine-139-20261103/provider-output/final-ba504a7869/results.json"
+  "crossBudgetCoverage": "Recent .139 diagnostics only:17/45; excludes historical pre-.139 successes",
+  "finalResultsPath": "docs/research/cli/verify01-volcengine-139-20261103/provider-output/final-ba504a7869/results.json",
+  "allHistoryCoverage": "34/45 under the task list historical automatic-deliverable ledger; tasks27/36,firstRuns7/9",
+  "allHistoryStatusPath": "docs/research/cli/verify01-volcengine-139-20261103/history-reconciliation/cumulative-status.json"
 }

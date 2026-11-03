@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "scope": "Cross-budget diagnostic coverage only; not a uniform 45-sample rerun or formal frozen rescore",
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "accepted": 17,
+  "total": 45,
+  "tasks": {
+    "accepted": 14,
+    "total": 36
+  },
+  "firstRuns": {
+    "accepted": 3,
+    "total": 9
+  },
+  "acceptedSampleIds": [
+    "first-run-linux-cli",
+    "first-run-linux-jetbrains",
+    "first-run-win32-cli",
+    "verify-01",
+    "verify-02",
+    "verify-03",
+    "verify-12",
+    "verify-18",
+    "verify-22",
+    "verify-23",
+    "verify-26",
+    "verify-27",
+    "verify-29",
+    "verify-31",
+    "verify-32",
+    "verify-34",
+    "verify-35"
+  ],
+  "originalFullRoundScore": "15/45 unchanged",
+  "newCohortAccepted": 2,
+  "newCohortTotal": 12,
+  "newlyAcceptedSampleIds": [
+    "verify-01",
+    "verify-32"
+  ],
+  "newGenerationPassed": 9,
+  "newOutputTruncatedSamples": [],
+  "newPreDispatchNetworkFailureSamples": [
+    "verify-14",
+    "verify-33"
+  ],
+  "evidence": [
+    {
+      "runId": 41563424430,
+      "source": "e7788a09316abb6f637932ae09254a441168742e",
+      "path": "docs/research/cli/verify01-volcengine-139-20261103/full-e7788a0931/results.json",
+      "digest": "sha256:ee1ee3d6937f8de28649323b4bf359d8db119cb7f0feb0468277aaeee1a90928"
+    },
+    {
+      "runId": 41574308573,
+      "source": "98bf47be5a72442cc7e2655dfbf3aebb7770d409",
+      "path": "docs/research/cli/verify01-volcengine-139-20261103/budget-retry/final-98bf47be5a/results.json",
+      "digest": "sha256:97e9d66dc007cfb810d11ea821d907e27f0c1e38437404d97661f922924b8dd8"
+    },
+    {
+      "runId": 41576842146,
+      "source": "cc4cd3180f226a7365f97b26f37a8da3306c1b07",
+      "path": "docs/research/cli/verify01-volcengine-139-20261103/budget-retry/host-recovery/final-cc4cd3180f/results.json",
+      "digest": "sha256:f34ec4a0d43828e40ad015c61d1ca1f3058d3e46faad9707b5e1abe2efe47ed9"
+    },
+    {
+      "runId": 41585306414,
+      "source": "ba504a7869c14c11787e1547dc8611eef9aace71",
+      "path": "docs/research/cli/verify01-volcengine-139-20261103/provider-output/final-ba504a7869/results.json",
+      "digest": "sha256:0b50130b3949e1af1fe94bde631b1f3bf530f91c0d3ffe1be1c238094b38d756"
+    }
+  ],
+  "formalSample": false,
+  "historicalFrozenScoresUnchanged": true
+}
