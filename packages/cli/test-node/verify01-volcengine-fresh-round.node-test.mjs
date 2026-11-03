@@ -148,7 +148,7 @@ test("real workflow selector admits only the authorized fresh round without netw
       [
         "--input-type=module",
         "-e",
-        `globalThis.fetch = async url => ({ok: true, json: async () => ({version: String(url).includes('registry.npmjs.org') ? '0.166.139' : '0.37.175'})});\n${script}`,
+        `globalThis.fetch = async url => ({ok: true, json: async () => String(url).endsWith('/models') ? {data: [{id: 'deepseek-v4-flash-ga-260731'}]} : {version: String(url).includes('registry.npmjs.org') ? '0.166.139' : '0.37.175'}});\n${script}`,
       ],
       {
         cwd: repositoryRoot,
@@ -162,6 +162,7 @@ test("real workflow selector admits only the authorized fresh round without netw
           PACKAGE_SET_SELECTION: "latest",
           FRESH_VOLCENGINE_ROUND: "true",
           VOLCENGINE_CREDENTIAL_PRESENT: "true",
+          VOLCENGINE_API_KEY: "offline-placeholder-never-sent",
           HOST_SELECTION: "all",
           ENTRY_SELECTION: "all",
           SAMPLE_SELECTION: "",
@@ -195,6 +196,7 @@ test("real workflow selector admits only the authorized fresh round without netw
   assert.equal(JSON.parse(fields.acceptance_matrix).include.length, 21);
   for (const changed of [
     { VOLCENGINE_CREDENTIAL_PRESENT: "false" },
+    { VOLCENGINE_API_KEY: "" },
     { GITHUB_RUN_ATTEMPT: "2" },
     { HOST_SELECTION: "macos" },
     { FRESH_VOLCENGINE_ROUND: "false" },

@@ -152,6 +152,7 @@ jobs:
           NATIVE_PROJECT_REVISION_FILE: ${{ inputs.project_revision_file || '' }}
           FRESH_VOLCENGINE_ROUND: ${{ inputs.fresh_volcengine_round && 'true' || 'false' }}
           VOLCENGINE_CREDENTIAL_PRESENT: ${{ secrets.VOLCENGINE_VERIFY01_API_KEY != '' }}
+          VOLCENGINE_API_KEY: ${{ inputs.fresh_volcengine_round && secrets.VOLCENGINE_VERIFY01_API_KEY || '' }}
           OPENAI_API_KEY: ${{ inputs.provider == 'openai' && secrets.OPENAI_API_KEY || '' }}
         run: |
           node --input-type=module <<'NODE'
@@ -195,6 +196,14 @@ jobs:
                 repositoryRoot: process.cwd(),
               });
               if (!run) {
+                if (!process.env.VOLCENGINE_API_KEY?.trim()) throw new Error("Dedicated complete Volcengine key is required");
+                const modelResponse = await fetch("https://ark.cn-beijing.volces.com/api/v3/models", {
+                  signal: AbortSignal.timeout(30000),
+                  headers: {Authorization: "Bearer " + process.env.VOLCENGINE_API_KEY.trim()},
+                });
+                if (!modelResponse.ok) throw new Error("Volcengine credential metadata preflight failed: HTTP " + modelResponse.status);
+                const modelList = await modelResponse.json();
+                if (!modelList.data?.some(row => row.id === "deepseek-v4-flash-ga-260731")) throw new Error("Required DeepSeek model missing from authenticated model catalog");
                 const manifest = JSON.parse(packageBinding.bytes.toString("utf8"));
                 for (const [name, url] of [
                   ["cli", "https://registry.npmjs.org/chainlesschain/latest"],

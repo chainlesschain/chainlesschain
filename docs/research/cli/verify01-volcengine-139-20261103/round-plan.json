@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.fresh-volcengine-native-round/v1",
   "createdAt": "2026-11-03T01:26:26.468532+00:00",
-  "status": "dispatched",
+  "status": "ready-after-complete-credential-correction",
   "provider": "volcengine",
   "model": "deepseek-v4-flash-ga-260731",
   "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
@@ -100,6 +100,25 @@
     "passed": 53,
     "failed": 0
   },
-  "executionSource": "92f480b24de7d6419ce00c5ff58ec3fd20e137c3",
-  "runId": 41560581328
+  "initialAuthenticationAttempt": {
+    "runId": 41560581328,
+    "source": "92f480b24de7d6419ce00c5ff58ec3fd20e137c3",
+    "cancellationRequested": true,
+    "failure": "Agent incorrectly extracted only the UUID portion of the prefixed and suffixed full credential",
+    "httpStatus": 401,
+    "providerCode": "AuthenticationError",
+    "countsAsModelCapabilityFailure": false,
+    "usageAndBilledCostUnknown": true,
+    "historicalScoresUnchanged": true,
+    "cancellationConfirmed": true,
+    "conclusion": "cancelled"
+  },
+  "credentialCorrection": {
+    "method": "Use the complete UTF-8 file content with only surrounding whitespace removed",
+    "dedicatedSecretUpdated": true,
+    "authenticatedModelCatalogHttpStatus": 200,
+    "expectedModelListed": true,
+    "modelGenerationRequestsInMetadataPreflight": 0,
+    "checkedAt": "2026-11-03T01:47:12.177561+00:00"
+  }
 }

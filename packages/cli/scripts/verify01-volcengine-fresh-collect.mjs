@@ -53,7 +53,7 @@ async function main() {
   assert.equal(run.run_attempt, 1);
   assert.ok(
     run.status === "completed" ||
-      (values["in-workflow"] && run.status === "in_progress"),
+      (values["in-workflow"] && ["in_progress", "queued"].includes(run.status)),
   );
   const packages = loadNativePackageSet(packageFile);
   assert.equal(

@@ -1,0 +1,41 @@
+{
+  "id": 1,
+  "taskId": "first-run-linux-cli",
+  "startedAt": "2026-11-03T01:39:59.970Z",
+  "usage": null,
+  "tokenOnlyEstimateCny": null,
+  "actualBilledCostCny": null,
+  "errorCode": "DIAGNOSTIC_NON_200_NO_RETRY",
+  "responseMode": "json",
+  "finishedAt": "2026-11-03T01:40:00.997Z",
+  "transport": {
+    "socketAssignedMs": 27,
+    "dnsLookupMs": 129,
+    "tcpConnectedMs": 352,
+    "tlsConnectedMs": 577,
+    "dispatchStartedMs": 577,
+    "requestFinishedMs": 579,
+    "responseStartedMs": 1025,
+    "dispatchStarted": true,
+    "failureCategory": null,
+    "connectionAttempts": [
+      {
+        "event": "start",
+        "family": 4,
+        "elapsedMs": 130,
+        "errorCode": null
+      }
+    ],
+    "nestedErrorCodes": [],
+    "errorCode": null,
+    "errorSyscall": null
+  },
+  "response": {
+    "storedSha256": "85470fd693338ef845d3d1fb2417463461bd33dfb48ce818cd938b0313de3cb0",
+    "storedBytes": 178,
+    "status": 401,
+    "originalSha256": "85470fd693338ef845d3d1fb2417463461bd33dfb48ce818cd938b0313de3cb0",
+    "originalBytes": 178,
+    "sensitiveValueRedacted": false
+  }
+}
