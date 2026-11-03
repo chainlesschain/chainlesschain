@@ -1,0 +1,102 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+// Precise model capability lookup: the exact certified identifiers
+// `gpt-6-astra`, `gpt-6-sol` and `gpt-6-luna` are documented official tool
+// models, and an unknown suffixed id must never be reported as one of them.
+
+const CERTIFIED = ["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"];
+// A single-character/segment suffix keeps provider and endpoint identical so
+// the only changed condition is the model id itself.
+const SUFFIXED = [
+  "gpt-6-astra-custom",
+  "gpt-6-sol-future",
+  "gpt-6-luna-pro",
+];
+
+describe("precise certified tool model identifiers", () => {
+  it("certifies each exact Astra/Sol/Luna id as an official tool model", () => {
+    for (const model of CERTIFIED) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+      });
+      expect(profile).toMatchObject({
+        provider: "openai",
+        model,
+        contextWindowTokens: 1050000,
+        windowSource: "official-model-docs",
+        windowAssumed: false,
+        runtimeProtocol: "openai-responses",
+        runtimeVerified: false,
+        advertisedMaxOutputTokens: 128000,
+      });
+      expect(profile.sources.length).toBeGreaterThan(0);
+      expect(profile.reasoningEfforts).toContain("high");
+    }
+  });
+
+  it("does not certify an unknown suffixed id as an official tool model", () => {
+    for (const model of SUFFIXED) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+      });
+      expect(profile).toMatchObject({
+        provider: "openai",
+        model,
+        windowSource: "provider-default",
+        windowAssumed: true,
+        // Not the certified tool transport.
+        runtimeProtocol: "chat-completions",
+        advertisedMaxOutputTokens: null,
+      });
+      expect(profile.sources).toEqual([]);
+      expect(profile).not.toHaveProperty("reasoningEfforts");
+    }
+  });
+
+  it("flips certification when only the exact id gains a single suffix char", () => {
+    for (const [exact, suffixed] of [
+      ["gpt-6-astra", "gpt-6-astra-"],
+      ["gpt-6-sol", "gpt-6-sol-"],
+      ["gpt-6-luna", "gpt-6-luna-"],
+    ]) {
+      const base = { provider: "openai" };
+      const certified = resolveModelCapabilityProfile({ ...base, model: exact });
+      const unknown = resolveModelCapabilityProfile({
+        ...base,
+        model: suffixed,
+      });
+      expect(certified.windowSource).toBe("official-model-docs");
+      expect(certified.runtimeProtocol).toBe("openai-responses");
+      expect(certified.windowAssumed).toBe(false);
+      expect(unknown.windowSource).toBe("provider-default");
+      expect(unknown.runtimeProtocol).toBe("chat-completions");
+      expect(unknown.windowAssumed).toBe(true);
+      expect(unknown.advertisedMaxOutputTokens).toBeNull();
+    }
+  });
+
+  it("does not let an unknown suffix inherit the certified model's tool metadata", () => {
+    const base = { provider: "openai" };
+    const certified = resolveModelCapabilityProfile({
+      ...base,
+      model: "gpt-6-sol",
+    });
+    const unknown = resolveModelCapabilityProfile({
+      ...base,
+      model: "gpt-6-sol-custom",
+    });
+    // Identical input shape, differing only in the model id.
+    expect(unknown.model).toBe("gpt-6-sol-custom");
+    expect(unknown.contextWindowTokens).not.toBe(
+      certified.contextWindowTokens,
+    );
+    expect(unknown.contextWindowTokens).toBe(128000); // provider default
+    expect(certified.runtimeProtocol).toBe("openai-responses");
+    expect(unknown.runtimeProtocol).toBe("chat-completions");
+    expect(certified.runtimeVerified).toBe(false);
+    expect(unknown.runtimeVerified).toBe(false);
+  });
+});

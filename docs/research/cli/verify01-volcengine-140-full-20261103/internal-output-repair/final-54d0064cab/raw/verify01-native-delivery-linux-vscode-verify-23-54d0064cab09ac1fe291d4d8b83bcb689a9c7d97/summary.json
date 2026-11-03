@@ -1,0 +1,1791 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000,
+    "connectionAttemptTimeoutMs": 10000,
+    "parallelToolCalls": null,
+    "preserveExplicitOutputLimits": true
+  },
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:cea1a2ff4e14a002be1700446ebe97bc7640a79ad6d778839f71bb938a2d25af",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+  "actualPlatform": "linux",
+  "actualArch": "x64",
+  "actualEntry": "vscode",
+  "changeReview": {
+    "requested": true,
+    "observed": true
+  },
+  "startedAt": "2026-11-03T13:30:06.053Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-23",
+      "taskId": "verify-23",
+      "kind": "task",
+      "runId": "3b04be42-7e9e-4611-a7e7-49ab003430e4",
+      "stratum": "linux-vscode-volcengine",
+      "declaredActualEntry": {
+        "platform": "linux",
+        "entry": "vscode"
+      },
+      "actualPlatform": "linux",
+      "actualEntry": "vscode",
+      "changeReview": {
+        "requested": true,
+        "observed": true,
+        "reminderCount": 1,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-23.test.js"
+      ],
+      "startedAt": "2026-11-03T13:30:06.054Z",
+      "deadline": "2026-11-03T14:10:06.054Z",
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-23.test.js",
+          "path": "verify-23/candidate/packages/cli/__tests__/verify-23.test.js",
+          "digest": "sha256:561b3be24825fa4eb9989fa0d684ecedac1148659d3696ca5848ebe66a462864",
+          "bytes": 5954
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [],
+      "unexpectedChanges": [],
+      "generationPassed": true,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T13:30:07.662Z",
+        "finishedAt": "2026-11-03T13:30:31.391Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "verify-23",
+        "locked": {
+          "version": "0.166.140",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+          "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "capturePath": "verify-23/capture",
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 75506,
+            "outputTokens": 13109,
+            "cacheReadInputTokens": 140288,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-640f13bb-0498-457b-8f7a-245756a8c6ba",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "bc2e5f45-b392-42a7-8ae4-f69598030e00",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_fefdq1ycmo32qo5e8cvux3zh",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/eval/outcomes.js"
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_h6o317642xuxp9n9t0xuapdr",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/task-outcome-report.test.js"
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 8
+          },
+          {
+            "type": "tool_use",
+            "id": "call_dbs43zqdz0audqupr5d5kfoh",
+            "tool": "list_dir",
+            "args": {
+              "path": "packages/cli/__tests__"
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 12
+          },
+          {
+            "type": "tool_use",
+            "id": "call_yfvoj68r27te12xo4qn1bqci",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-23.test.js"
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 16
+          },
+          {
+            "type": "tool_use",
+            "id": "call_por1z8sbheh5ln0fv3ewj1yz",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-23.test.js",
+              "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createEvalComparison,\n  createEvalHistoryRecord,\n  EVAL_CONTEXT_SCHEMA,\n  EVAL_EXECUTION_PROTOCOL,\n} from \"../src/lib/eval/evidence.js\";\nimport {\n  buildOutcomeReport,\n  outcomeDigest,\n  OUTCOME_PLAN_SCHEMA,\n} from \"../src/lib/eval/outcomes.js\";\n\nconst NOW = Date.parse(\"2026-09-15T12:00:00.000Z\");\nconst SHA = \"a\".repeat(40);\nconst D = (letter) => `sha256:${letter.repeat(64)}`;\nconst FIRST_RUN_STAGES = [\n  \"install\",\n  \"configure\",\n  \"authenticate\",\n  \"tool\",\n  \"artifact\",\n];\n\nfunction makeRun(comparison, runId, taskId, ranAt) {\n  return createEvalHistoryRecord(\n    {\n      total: 1,\n      passed: 1,\n      failed: 0,\n      passRate: 1,\n      unrelatedChangeRate: 0,\n      results: [\n        {\n          id: taskId,\n          pass: true,\n          artifactCheckPassed: true,\n          executionSucceeded: true,\n          agentOk: true,\n          error: null,\n          ms: 100,\n          executionEvidence: {\n            protocol: EVAL_EXECUTION_PROTOCOL,\n            exitCode: 0,\n            signal: null,\n            terminalVerified: true,\n            observedFallback: false,\n          },\n        },\n      ],\n    },\n    { runId, ranAt, label: SHA, comparison },\n  );\n}\n\n// Two task samples and one first-run sample sharing one frozen plan.\nfunction fixture() {\n  const comparison = createEvalComparison({\n    suite: \"builtin\",\n    corpusDigest: D(\"a\"),\n    provider: \"test\",\n    model: \"test-model\",\n    context: {\n      schema: EVAL_CONTEXT_SCHEMA,\n      provider: \"test\",\n      model: \"test-model\",\n      modelRevision: \"test-r1\",\n      environmentDigest: D(\"b\"),\n      permissionDigest: D(\"c\"),\n      inferenceDigest: D(\"d\"),\n    },\n  });\n  const window = {\n    start: \"2026-09-15T10:00:00.000Z\",\n    end: \"2026-09-15T11:00:00.000Z\",\n  };\n  const samples = [\n    { id: \"task-a\", kind: \"task\", taskId: \"fix-build\" },\n    { id: \"task-b\", kind: \"task\", taskId: \"fix-build\" },\n    { id: \"first-run\", kind: \"first-run\", taskId: \"setup\" },\n  ].map((sample) => ({\n    ...sample,\n    stratum: \"cli-verify\",\n    comparisonDigest: outcomeDigest(comparison),\n    timeBudgetMs: 1000,\n    costBudget: 1,\n  }));\n  const observations = samples.map((sample, index) => ({\n    sampleId: sample.id,\n    observedAt: \"2026-09-15T10:30:00.000Z\",\n    runId: `run-${index}`,\n    cost: 0.1,\n    elapsedMs: 500,\n    retries: 0,\n    manualRepairs: 0,\n    ...(sample.kind === \"first-run\"\n      ? {\n          firstRun: {\n            cleanEnvironment: true,\n            stages: Object.fromEntries(\n              FIRST_RUN_STAGES.map((stage) => [\n                stage,\n                { passed: true, receipt: `receipt:${stage}` },\n              ]),\n            ),\n          },\n        }\n      : {}),\n  }));\n  return {\n    plan: {\n      schema: OUTCOME_PLAN_SCHEMA,\n      commitSha: SHA,\n      currency: \"USD\",\n      window,\n      samples,\n    },\n    history: {\n      runs: observations.map((observation, index) =>\n        makeRun(\n          comparison,\n          observation.runId,\n          samples[index].taskId,\n          \"2026-09-15T10:30:00.000Z\",\n        ),\n      ),\n      issues: [],\n    },\n    observations,\n    maintenance: {\n      window,\n      complete: true,\n      entries: [\n        { id: \"support-1\", category: \"support\", hours: 1, evidenceRef: \"ticket:1\" },\n      ],\n    },\n  };\n}\nconst report = (input) => buildOutcomeReport(input, { now: NOW });\n\ndescribe(\"verify-23 missing-sample fixed denominator and unknown cost\", () => {\n  it(\"keeps the full planned denominator when every sample is observed\", () => {\n    const result = report(fixture());\n    // Task summary covers two planned task samples, so successRate uses 2.\n    expect(result.task).toMatchObject({\n      planned: 2,\n      observed: 2,\n      missing: 0,\n      succeeded: 2,\n      successRate: 1,\n      totalCost: 0.2,\n      costPerSuccess: 0.1,\n    });\n    expect(result.status).toBe(\"BASELINE_RECORDED\");\n  });\n\n  it(\"does not shrink the denominator when one planned sample is missing\", () => {\n    const input = fixture();\n    // Single change: remove the task-b observation. Nothing else is altered.\n    input.observations.splice(1, 1);\n    const result = report(input);\n    expect(result.task).toMatchObject({\n      planned: 2, // denominator stays fixed at the full planned population\n      observed: 1,\n      missing: 1,\n      succeeded: 1,\n      successRate: 0.5, // computed against planned (2), not observed (1)\n    });\n    // The unobserved sample keeps an unknown cost; it is not counted as zero.\n    expect(result.task.totalCost).toBeNull();\n    expect(result.task.costPerSuccess).toBeNull();\n    expect(result.rows[1]).toMatchObject({ observed: false, cost: null });\n    expect(result.status).toBe(\"INSUFFICIENT_EVIDENCE\");\n  });\n\n  it(\"keeps an unknown cost null instead of counting it as zero\", () => {\n    const input = fixture();\n    // Single change: task-b is still observed but its cost is invalid (unknown).\n    input.observations[1].cost = NaN;\n    const result = report(input);\n    // The sample is present and observed; only its cost is unknown.\n    expect(result.task).toMatchObject({ observed: 2, missing: 0 });\n    expect(result.rows[1]).toMatchObject({ observed: true, cost: null });\n    // An unknown cost makes the totals incomplete rather than becoming zero.\n    expect(result.task.totalCost).toBeNull();\n    expect(result.task.costPerSuccess).toBeNull();\n    expect(result.rows[1].reasons).toContain(\"missing_or_invalid_cost\");\n  });\n\n  it(\"counts a genuinely zero cost but not an unknown one\", () => {\n    const input = fixture();\n    // Single change: task-b's cost is a legitimate zero (nonnegative is valid).\n    input.observations[1].cost = 0;\n    const result = report(input);\n    expect(result.task).toMatchObject({\n      observed: 2,\n      totalCost: 0.1, // task-a's 0.1 plus task-b's real 0\n      costPerSuccess: 0.05,\n    });\n    expect(result.status).toBe(\"BASELINE_RECORDED\");\n  });\n});\n"
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 20
+          },
+          {
+            "type": "tool_use",
+            "id": "call_u9tqo36evxmu27a6vll0uh4u",
+            "tool": "search_files",
+            "args": {
+              "pattern": "function summarize|costsComplete|knownCost|totalCost|costPerSuccess|successRate|missing_or_invalid_cost|function nonnegative|INSUFFICIENT_EVIDENCE|BASELINE_RECORDED",
+              "path": "packages/cli/src/lib/eval/outcomes.js",
+              "maxMatches": 40
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 30
+          },
+          {
+            "type": "tool_use",
+            "id": "call_rnbd11gwxtqhsm147w7z3o0x",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/cli/src/lib/eval/outcomes.js",
+              "pattern": "costsComplete|totalCost|costPerSuccess|successRate|missing_or_invalid_cost|nonnegative|planned",
+              "regex": true,
+              "maxMatches": 40
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 36
+          },
+          {
+            "type": "tool_use",
+            "id": "call_mlf0c0ezo02xwkwkyucwn7nj",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/eval/outcomes.js",
+              "offset": 170,
+              "limit": 40
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 42
+          },
+          {
+            "type": "tool_use",
+            "id": "call_nt77d55b8736cymz1jg7kmex",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/eval/outcomes.js",
+              "offset": 113,
+              "limit": 15
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 44
+          },
+          {
+            "type": "tool_use",
+            "id": "call_nuifdyfr47cov2wllt5v4qiz",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/cli/src/lib/eval/outcomes.js",
+              "pattern": "BASELINE_RECORDED|INSUFFICIENT_EVIDENCE|task:|rows:|status:",
+              "regex": true,
+              "maxMatches": 40
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 50
+          },
+          {
+            "type": "tool_use",
+            "id": "call_o3c00112fo9cpk7fjcnw70ao",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/eval/outcomes.js",
+              "limit": 15,
+              "offset": 158
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 56
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_fefdq1ycmo32qo5e8cvux3zh",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-rdWB4I/3b04be42-7e9e-4611-a7e7-49ab003430e4/workspace/packages/cli/src/lib/eval/outcomes.js",
+              "fileVersion": "12957:1791108223000:1793712606753.4524",
+              "readSpan": {
+                "start": 0,
+                "end": 12955,
+                "total": 12955
+              },
+              "hashed": false,
+              "content": "import {\n  evalDigest,\n  evalHistoryRecordIssues,\n  evalExecutionSucceeded,\n} from \"./evidence.js\";\n\nexport const OUTCOME_PLAN_SCHEMA = \"chainlesschain.outcome-plan/v1\";\nexport const OUTCOME_REPORT_SCHEMA = \"chainlesschain.outcome-report/v1\";\nconst DIGEST = /^sha256:[a-f0-9]{64}$/u;\nconst CATEGORIES = new Set([\n  \"repair\",\n  \"support\",\n  \"compatibility\",\n  \"release\",\n  \"test-infrastructure\",\n  \"construction\",\n]);\nconst STAGES = [\"install\", \"configure\", \"authenticate\", \"tool\", \"artifact\"];\nconst FAILURE_CAUSES = new Set([\n  \"install\",\n  \"configuration-identity\",\n  \"model-protocol\",\n  \"tools-permissions\",\n  \"retrieval-context\",\n  \"recovery\",\n  \"artifact\",\n  \"environment\",\n  \"budget\",\n  \"manual-repair\",\n]);\nconst nonempty = (value) =>\n  typeof value === \"string\" && value.trim().length > 0;\nconst nonnegative = (value) => Number.isFinite(value) && value >= 0;\nconst count = (value) => Number.isSafeInteger(value) && value >= 0;\nconst rate = (numerator, denominator) =>\n  denominator ? numerator / denominator : null;\nfunction assert(value, message) {\n  if (!value) throw new Error(message);\n}\nfunction canonical(value) {\n  if (Array.isArray(value)) return value.map(canonical);\n  if (!value || typeof value !== \"object\") return value;\n  return Object.fromEntries(\n    Object.keys(value)\n      .sort()\n      .map((key) => [key, canonical(value[key])]),\n  );\n}\nexport function outcomeDigest(value) {\n  return evalDigest(JSON.stringify(canonical(value)));\n}\nfunction epoch(value) {\n  const time = Date.parse(value);\n  return typeof value === \"string\" &&\n    Number.isFinite(time) &&\n    new Date(time).toISOString() === value\n    ? time\n    : NaN;\n}\nfunction uniqueIndex(rows, key, label) {\n  assert(Array.isArray(rows), `${label} must be an array`);\n  const index = new Map();\n  for (const row of rows) {\n    assert(\n      row && nonempty(row[key]) && !index.has(row[key]),\n      `${label} contains a missing or duplicate ${key}`,\n    );\n    index.set(row[key], row);\n  }\n  return index;\n}\n\nexport function validateOutcomePlan(plan) {\n  assert(plan?.schema === OUTCOME_PLAN_SCHEMA, \"invalid outcome plan schema\");\n  assert(\n    /^[a-f0-9]{40}$/u.test(plan.commitSha || \"\"),\n    \"plan requires an exact commit SHA\",\n  );\n  assert(/^[A-Z]{3}$/u.test(plan.currency || \"\"), \"plan requires one currency\");\n  assert(\n    epoch(plan.window?.start) < epoch(plan.window?.end),\n    \"invalid observation window\",\n  );\n  const samples = uniqueIndex(plan.samples, \"id\", \"plan samples\");\n  assert(\n    samples.size > 0 && samples.size <= 10000,\n    \"plan requires 1–10000 samples\",\n  );\n  for (const sample of samples.values()) {\n    assert([\"task\", \"first-run\"].includes(sample.kind), \"invalid sample kind\");\n    assert(\n      nonempty(sample.taskId) && nonempty(sample.stratum),\n      \"sample requires taskId and stratum\",\n    );\n    assert(\n      DIGEST.test(sample.comparisonDigest || \"\"),\n      \"sample requires an Eval comparison digest\",\n    );\n    assert(\n      nonnegative(sample.costBudget) &&\n        Number.isFinite(sample.timeBudgetMs) &&\n        sample.timeBudgetMs > 0,\n      \"sample requires finite cost and time budgets\",\n    );\n  }\n  return samples;\n}\n\nfunction summarize(rows) {\n  const succeeded = rows.filter((row) => row.succeeded).length;\n  const observed = rows.filter((row) => row.observed).length;\n  const knownCost = rows.reduce((sum, row) => sum + (row.cost ?? 0), 0);\n  const costsComplete = rows.every((row) => row.observed && row.cost !== null);\n  return {\n    planned: rows.length,\n    observed,\n    missing: rows.length - observed,\n    succeeded,\n    successRate: rate(succeeded, rows.length),\n    knownCost,\n    totalCost: costsComplete ? knownCost : null,\n    costPerSuccess: costsComplete && succeeded ? knownCost / succeeded : null,\n    retries: rows.every((row) => row.retries !== null)\n      ? rows.reduce((sum, row) => sum + row.retries, 0)\n      : null,\n    manualRepairs: rows.every((row) => row.manualRepairs !== null)\n      ? rows.reduce((sum, row) => sum + row.manualRepairs, 0)\n      : null,\n  };\n}\n\n/** Read-only measurement. Declarations and local Eval files are not attestations. */\nexport function buildOutcomeReport(\n  { plan, history, observations = [], maintenance = null },\n  { now = Date.now(), expectedPlanDigest } = {},\n) {\n  const samples = validateOutcomePlan(plan);\n  assert(Number.isFinite(now), \"invalid report time\");\n  const planDigest = outcomeDigest(plan);\n  assert(\n    !expectedPlanDigest || expectedPlanDigest === planDigest,\n    \"frozen plan digest mismatch\",\n  );\n  const observed = uniqueIndex(observations, \"sampleId\", \"observations\");\n  for (const id of observed.keys())\n    assert(samples.has(id), \"observation is outside the frozen plan\");\n  const runs = uniqueIndex(history?.runs ?? [], \"runId\", \"Eval history\");\n  const issues = (history?.issues ?? []).map((issue) => issue.code);\n  if (epoch(plan.window.end) > now)\n    issues.push(\"observation_window_not_closed\");\n  const usedEvidence = new Set();\n  const rows = [];\n  for (const sample of samples.values()) {\n    const observation = observed.get(sample.id);\n    const reasons = [];\n    const row = {\n      sampleId: sample.id,\n      kind: sample.kind,\n      taskId: sample.taskId,\n      stratum: sample.stratum,\n      observed: Boolean(observation),\n      succeeded: false,\n      reasons,\n      cost: null,\n      elapsedMs: null,\n      retries: null,\n      manualRepairs: null,\n      failureCause: null,\n      firstRunCompletedStages: [],\n    };\n    rows.push(row);\n    if (!observation) {\n      reasons.push(\"missing_observation\");\n      issues.push(`${sample.id}:missing_observation`);\n      continue;\n    }\n    for (const key of [\"cost\", \"elapsedMs\", \"retries\", \"manualRepairs\"]) {\n      const valid = [\"retries\", \"manualRepairs\"].includes(key)\n        ? count(observation[key])\n        : nonnegative(observation[key]);\n      if (valid) row[key] = observation[key];\n      else reasons.push(`missing_or_invalid_${key}`);\n    }\n    const observedAt = epoch(observation.observedAt);\n    if (!(\n      observedAt <= Math.min(now, epoch(plan.window.end)) &&\n      observedAt - (row.elapsedMs ?? 0) >= epoch(plan.window.start)\n    ))\n      reasons.push(\"observation_outside_window\");\n    const run = runs.get(observation.runId);\n    const stoppedBeforeTask =\n      sample.kind === \"first-run\" &&\n      observation.runId === null &&\n      observation.firstRun?.stages?.tool?.passed === false;\n    const evidenceKey = JSON.stringify([observation.runId, sample.taskId]);\n    if (observation.runId !== null) {\n      assert(\n        !usedEvidence.has(evidenceKey),\n        \"a task execution cannot count as multiple samples\",\n      );\n      usedEvidence.add(evidenceKey);\n    }\n    if (!run && !stoppedBeforeTask) reasons.push(\"missing_eval_run\");\n    if (run) {\n      // Failed executions are valid observations, not successful outcomes.\n      // All other existing Eval integrity rules remain authoritative.\n      const integrity = evalHistoryRecordIssues(\n        run,\n        now,\n        Math.max(1, now - epoch(plan.window.start)),\n      ).filter((reason) => reason !== \"execution_not_successful\");\n      reasons.push(...integrity);\n      if (run.label !== plan.commitSha) reasons.push(\"commit_mismatch\");\n      if (outcomeDigest(run.comparison) !== sample.comparisonDigest)\n        reasons.push(\"comparison_mismatch\");\n      if (!(\n        epoch(run.ranAt) >= epoch(plan.window.start) &&\n        epoch(run.ranAt) <= epoch(plan.window.end)\n      ))\n        reasons.push(\"run_outside_window\");\n    }\n    const result = run?.results?.find((item) => item?.id === sample.taskId);\n    if (!result && !stoppedBeforeTask) reasons.push(\"missing_task_result\");\n    if (result && (!nonnegative(result.ms) || row.elapsedMs < result.ms))\n      reasons.push(\"invalid_elapsed_time\");\n    if (sample.kind === \"first-run\") {\n      if (typeof observation.firstRun?.cleanEnvironment !== \"boolean\")\n        reasons.push(\"missing_clean_environment_evidence\");\n      for (const stage of STAGES) {\n        const evidence = observation.firstRun?.stages?.[stage];\n        if (\n          !evidence ||\n          typeof evidence.passed !== \"boolean\" ||\n          !nonempty(evidence.receipt)\n        )\n          reasons.push(`missing_stage_evidence:${stage}`);\n        else if (evidence.passed) row.firstRunCompletedStages.push(stage);\n      }\n      // A later completed stage without its prerequisites is not a valid funnel.\n      if (\n        row.firstRunCompletedStages.some(\n          (stage, index) => stage !== STAGES[index],\n        )\n      )\n        reasons.push(\"inconsistent_first_run_stages\");\n    }\n    for (const reason of reasons) issues.push(`${sample.id}:${reason}`);\n    const successfulExecution =\n      result?.pass === true &&\n      result.artifactCheckPassed === true &&\n      evalExecutionSucceeded(result) &&\n      result.executionEvidence.observedFallback === false;\n    if (!successfulExecution) reasons.push(\"task_not_successful\");\n    if (row.elapsedMs > sample.timeBudgetMs || row.cost > sample.costBudget)\n      reasons.push(\"budget_exceeded\");\n    if (row.manualRepairs > 0) reasons.push(\"manual_repair\");\n    if (\n      sample.kind === \"first-run\" &&\n      (observation.firstRun?.cleanEnvironment !== true ||\n        row.firstRunCompletedStages.length !== STAGES.length)\n    )\n      reasons.push(\"first_run_not_completed\");\n    row.succeeded = reasons.length === 0;\n    if (!row.succeeded) {\n      if (FAILURE_CAUSES.has(observation.failureCause))\n        row.failureCause = observation.failureCause;\n      else issues.push(`${sample.id}:missing_failure_cause`);\n    }\n  }\n  const categories = Object.fromEntries(\n    [...CATEGORIES].map((category) => [category, 0]),\n  );\n  let maintenanceComplete = false;\n  if (maintenance) {\n    const entries = uniqueIndex(\n      maintenance.entries,\n      \"id\",\n      \"maintenance entries\",\n    );\n    maintenanceComplete =\n      maintenance.complete === true &&\n      outcomeDigest(maintenance.window) === outcomeDigest(plan.window);\n    for (const entry of entries.values()) {\n      assert(\n        CATEGORIES.has(entry.category) &&\n          nonnegative(entry.hours) &&\n          nonempty(entry.evidenceRef),\n        \"invalid maintenance entry\",\n      );\n      categories[entry.category] += entry.hours;\n    }\n  }\n  if (!maintenanceComplete) issues.push(\"incomplete_maintenance_records\");\n  const maintenanceHours = [...CATEGORIES]\n    .filter((category) => category !== \"construction\")\n    .reduce((sum, category) => sum + categories[category], 0);\n  const attempts = rows.filter((row) => row.observed).length;\n  const allObserved = rows.every((row) => row.observed);\n  const firstRuns = rows.filter((row) => row.kind === \"first-run\");\n  const tasks = rows.filter((row) => row.kind === \"task\");\n  if (!firstRuns.length || !tasks.length)\n    issues.push(\"missing_metric_population\");\n  return {\n    schema: OUTCOME_REPORT_SCHEMA,\n    generatedAt: new Date(now).toISOString(),\n    scope: \"local-outcome-baseline\",\n    productionAttested: false,\n    status: issues.length ? \"INSUFFICIENT_EVIDENCE\" : \"BASELINE_RECORDED\",\n    // Neither a baseline nor operator declarations constitute an improvement gate.\n    improvementVerdict: \"NOT_EVALUATED\",\n    planDigest,\n    commitSha: plan.commitSha,\n    currency: plan.currency,\n    window: plan.window,\n    task: summarize(tasks),\n    firstRun: summarize(firstRuns),\n    maintenance: {\n      complete: maintenanceComplete,\n      knownHours: maintenanceHours,\n      totalHours: maintenanceComplete ? maintenanceHours : null,\n      per100Attempts:\n        maintenanceComplete && allObserved && attempts\n          ? (maintenanceHours / attempts) * 100\n          : null,\n      observedAttempts: attempts,\n      constructionHours: maintenanceComplete ? categories.construction : null,\n      categories,\n    },\n    groups: [\n      ...new Set(\n        rows.map((row) => JSON.stringify([row.kind, row.stratum, row.taskId])),\n      ),\n    ].map((key) => {\n      const [kind, stratum, taskId] = JSON.parse(key);\n      return {\n        kind,\n        stratum,\n        taskId,\n        ...summarize(\n          rows.filter(\n            (row) =>\n              row.kind === kind &&\n              row.stratum === stratum &&\n              row.taskId === taskId,\n          ),\n        ),\n      };\n    }),\n    firstRunFunnel: STAGES.map((stage, index) => ({\n      stage,\n      planned: firstRuns.length,\n      passed: firstRuns.filter((row) =>\n        STAGES.slice(0, index + 1).every((required) =>\n          row.firstRunCompletedStages.includes(required),\n        ),\n      ).length,\n    })),\n    failureCauses: [\n      ...new Set(\n        rows\n          .filter((row) => !row.succeeded)\n          .map((row) => row.failureCause || \"unknown\"),\n      ),\n    ].map((cause) => ({\n      cause,\n      count: rows.filter(\n        (row) => !row.succeeded && (row.failureCause || \"unknown\") === cause,\n      ).length,\n    })),\n    issues: [...new Set(issues)],\n    rows,\n  };\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712646290,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 11,
+                "sessionId": "panel-640f13bb-0498-457b-8f7a-245756a8c6ba",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_fefdq1ycmo32qo5e8cvux3zh",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 7
+          },
+          {
+            "type": "tool_result",
+            "id": "call_h6o317642xuxp9n9t0xuapdr",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-rdWB4I/3b04be42-7e9e-4611-a7e7-49ab003430e4/workspace/packages/cli/__tests__/unit/task-outcome-report.test.js",
+              "fileVersion": "13255:1791108223000:1793712606711.452",
+              "readSpan": {
+                "start": 0,
+                "end": 13255,
+                "total": 13255
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport fs from \"node:fs\";\nimport os from \"node:os\";\nimport path from \"node:path\";\nimport { execFileSync, spawnSync } from \"node:child_process\";\nimport { fileURLToPath } from \"node:url\";\nimport {\n  createEvalComparison,\n  createEvalHistoryRecord,\n  EVAL_CONTEXT_SCHEMA,\n  EVAL_EXECUTION_PROTOCOL,\n} from \"../../src/lib/eval/evidence.js\";\nimport {\n  buildOutcomeReport,\n  outcomeDigest,\n  OUTCOME_PLAN_SCHEMA,\n} from \"../../src/lib/eval/outcomes.js\";\n\nconst NOW = Date.parse(\"2026-09-15T12:00:00.000Z\");\nconst SHA = \"a\".repeat(40);\nconst D = (letter) => `sha256:${letter.repeat(64)}`;\nconst SCRIPT = fileURLToPath(\n  new URL(\"../../scripts/task-outcome-report.mjs\", import.meta.url),\n);\nfunction fixture() {\n  const comparison = createEvalComparison({\n    suite: \"builtin\",\n    corpusDigest: D(\"a\"),\n    provider: \"test\",\n    model: \"test-model\",\n    context: {\n      schema: EVAL_CONTEXT_SCHEMA,\n      provider: \"test\",\n      model: \"test-model\",\n      modelRevision: \"test-r1\",\n      environmentDigest: D(\"b\"),\n      permissionDigest: D(\"c\"),\n      inferenceDigest: D(\"d\"),\n    },\n  });\n  const window = {\n    start: \"2026-09-15T10:00:00.000Z\",\n    end: \"2026-09-15T11:00:00.000Z\",\n  };\n  const samples = [\"task\", \"first-run\"].map((kind, index) => ({\n    id: `sample-${index}`,\n    kind,\n    taskId: \"fix-build\",\n    stratum: \"windows-cli-test\",\n    comparisonDigest: outcomeDigest(comparison),\n    timeBudgetMs: 1000,\n    costBudget: 1,\n  }));\n  const runs = samples.map((sample, index) =>\n    createEvalHistoryRecord(\n      {\n        total: 1,\n        passed: 1,\n        failed: 0,\n        passRate: 1,\n        unrelatedChangeRate: 0,\n        results: [\n          {\n            id: sample.taskId,\n            pass: true,\n            artifactCheckPassed: true,\n            executionSucceeded: true,\n            agentOk: true,\n            error: null,\n            ms: 100,\n            executionEvidence: {\n              protocol: EVAL_EXECUTION_PROTOCOL,\n              exitCode: 0,\n              signal: null,\n              terminalVerified: true,\n              observedFallback: false,\n            },\n          },\n        ],\n      },\n      {\n        runId: `run-${index}`,\n        ranAt: \"2026-09-15T10:30:00.000Z\",\n        label: SHA,\n        comparison,\n      },\n    ),\n  );\n  return {\n    plan: {\n      schema: OUTCOME_PLAN_SCHEMA,\n      commitSha: SHA,\n      currency: \"USD\",\n      window,\n      samples,\n    },\n    history: { runs, issues: [] },\n    observations: samples.map((sample, index) => ({\n      sampleId: sample.id,\n      observedAt: \"2026-09-15T10:30:00.000Z\",\n      runId: `run-${index}`,\n      cost: 0.1,\n      elapsedMs: 500,\n      retries: 0,\n      manualRepairs: 0,\n      ...(sample.kind === \"first-run\"\n        ? {\n            firstRun: {\n              cleanEnvironment: true,\n              stages: Object.fromEntries(\n                [\n                  \"install\",\n                  \"configure\",\n                  \"authenticate\",\n                  \"tool\",\n                  \"artifact\",\n                ].map((stage) => [\n                  stage,\n                  { passed: true, receipt: `receipt:${stage}` },\n                ]),\n              ),\n            },\n          }\n        : {}),\n    })),\n    maintenance: {\n      window,\n      complete: true,\n      entries: [\n        {\n          id: \"support-1\",\n          category: \"support\",\n          hours: 2,\n          evidenceRef: \"ticket:1\",\n        },\n        {\n          id: \"build-1\",\n          category: \"construction\",\n          hours: 8,\n          evidenceRef: \"ticket:2\",\n        },\n      ],\n    },\n  };\n}\nconst report = (input) => buildOutcomeReport(input, { now: NOW });\n\ndescribe(\"task outcome baseline\", () => {\n  it(\"reuses Eval evidence and records a baseline without issuing an improvement PASS\", () => {\n    const result = report(fixture());\n    expect(result).toMatchObject({\n      status: \"BASELINE_RECORDED\",\n      improvementVerdict: \"NOT_EVALUATED\",\n      productionAttested: false,\n    });\n    expect(result.task).toMatchObject({\n      succeeded: 1,\n      planned: 1,\n      successRate: 1,\n      costPerSuccess: 0.1,\n    });\n    expect(result.maintenance).toMatchObject({\n      totalHours: 2,\n      per100Attempts: 100,\n      constructionHours: 8,\n    });\n  });\n  it(\"retains missing planned samples and does not turn unknown costs into zero\", () => {\n    const input = fixture();\n    input.plan.samples.push({ ...input.plan.samples[0], id: \"never-ran\" });\n    const result = report(input);\n    expect(result.task).toMatchObject({\n      planned: 2,\n      observed: 1,\n      succeeded: 1,\n      successRate: 0.5,\n      totalCost: null,\n      costPerSuccess: null,\n    });\n    expect(result.status).toBe(\"INSUFFICIENT_EVIDENCE\");\n    expect(result.maintenance.per100Attempts).toBeNull();\n  });\n  it(\"counts an execution failure despite a correct artifact and preserves its expense\", () => {\n    const input = fixture();\n    Object.assign(input.history.runs[0], { passed: 0, failed: 1, passRate: 0 });\n    Object.assign(input.history.runs[0].results[0], {\n      pass: false,\n      agentOk: false,\n      executionSucceeded: false,\n      error: \"timeout\",\n    });\n    input.history.runs[0].results[0].executionEvidence.exitCode = 1;\n    input.observations[0].failureCause = \"model-protocol\";\n    const result = report(input);\n    expect(result.task).toMatchObject({\n      succeeded: 0,\n      totalCost: 0.1,\n      costPerSuccess: null,\n    });\n    expect(result.status).toBe(\"BASELINE_RECORDED\");\n  });\n  it.each([\n    \"dryRun\",\n    \"label\",\n    \"comparison\",\n    \"terminal\",\n    \"fallback\",\n    \"deleted-task\",\n    \"tampered-pass\",\n  ])(\"cannot count %s evidence as success\", (change) => {\n    const input = fixture();\n    const run = input.history.runs[0];\n    if (change === \"dryRun\") run.dryRun = true;\n    if (change === \"label\") run.label = \"other-commit\";\n    if (change === \"comparison\") run.comparison.model = \"different\";\n    if (change === \"terminal\")\n      run.results[0].executionEvidence.terminalVerified = false;\n    if (change === \"fallback\")\n      run.results[0].executionEvidence.observedFallback = true;\n    if (change === \"deleted-task\") run.results = [];\n    if (change === \"tampered-pass\") run.results[0].artifactCheckPassed = false;\n    expect(report(input).task.succeeded).toBe(0);\n  });\n  it(\"keeps retry expenses within one sample and rejects manual repair as initial success\", () => {\n    const input = fixture();\n    Object.assign(input.observations[0], {\n      retries: 3,\n      cost: 0.8,\n      manualRepairs: 1,\n    });\n    expect(report(input).task).toMatchObject({\n      planned: 1,\n      succeeded: 0,\n      totalCost: 0.8,\n      retries: 3,\n      manualRepairs: 1,\n    });\n  });\n  it.each([{ cost: 2 }, { elapsedMs: 1001 }])(\n    \"enforces the frozen budget %j\",\n    (override) => {\n      const input = fixture();\n      Object.assign(input.observations[0], override);\n      expect(report(input).rows[0].reasons).toContain(\"budget_exceeded\");\n    },\n  );\n  it(\"does not count READY without the full first-run journey\", () => {\n    const input = fixture();\n    input.observations[1].firstRun.stages.artifact.passed = false;\n    expect(report(input).firstRun.succeeded).toBe(0);\n    expect(report(input).firstRunFunnel.at(-1).passed).toBe(0);\n  });\n  it(\"accepts documented installation failure as a failed observation even before any Eval run\", () => {\n    const input = fixture();\n    input.observations[1].runId = null;\n    input.observations[1].failureCause = \"install\";\n    for (const stage of Object.values(input.observations[1].firstRun.stages))\n      stage.passed = false;\n    const result = report(input);\n    expect(result.status).toBe(\"BASELINE_RECORDED\");\n    expect(result.firstRun).toMatchObject({\n      observed: 1,\n      succeeded: 0,\n      totalCost: 0.1,\n    });\n  });\n  it(\"rejects out-of-order first-run stage evidence\", () => {\n    const input = fixture();\n    input.observations[1].firstRun.stages.install.passed = false;\n    expect(report(input).issues).toContain(\n      \"sample-1:inconsistent_first_run_stages\",\n    );\n    expect(\n      report(input).firstRunFunnel.every((stage) => stage.passed === 0),\n    ).toBe(true);\n  });\n  it(\"rejects evidence reuse and extra observations instead of increasing the denominator\", () => {\n    const input = fixture();\n    input.observations[1].runId = \"run-0\";\n    expect(() => report(input)).toThrow(\"multiple samples\");\n    input.observations[1].sampleId = \"unplanned\";\n    expect(() => report(input)).toThrow(\"outside the frozen plan\");\n  });\n  it(\"rejects duplicate plan samples\", () => {\n    const input = fixture();\n    input.plan.samples.push(input.plan.samples[0]);\n    expect(() => report(input)).toThrow(\"duplicate\");\n  });\n  it(\"detects a changed frozen plan\", () => {\n    const input = fixture();\n    const digest = outcomeDigest(input.plan);\n    input.plan.samples.pop();\n    expect(() =>\n      buildOutcomeReport(input, { now: NOW, expectedPlanDigest: digest }),\n    ).toThrow(\"digest mismatch\");\n  });\n  it.each([\n    null,\n    { complete: false, entries: [] },\n    { complete: true, window: { start: \"other\" }, entries: [] },\n  ])(\"does not report missing maintenance as free: %j\", (maintenance) => {\n    const input = fixture();\n    input.maintenance = maintenance;\n    expect(report(input).maintenance.totalHours).toBeNull();\n  });\n  it(\"retains history parse failures\", () => {\n    const input = fixture();\n    input.history.issues.push({ code: \"invalid_history_record\", line: 2 });\n    expect(report(input).status).toBe(\"INSUFFICIENT_EVIDENCE\");\n  });\n  it(\"rejects observations outside the window even when no model task started\", () => {\n    const input = fixture();\n    input.observations[1].runId = null;\n    input.observations[1].observedAt = \"2026-09-14T10:30:00.000Z\";\n    for (const stage of Object.values(input.observations[1].firstRun.stages))\n      stage.passed = false;\n    expect(report(input).issues).toContain(\n      \"sample-1:observation_outside_window\",\n    );\n  });\n  it.each([NaN, -1, Infinity, \"0\"])(\n    \"rejects invalid observed costs %s\",\n    (cost) => {\n      const input = fixture();\n      input.observations[0].cost = cost;\n      expect(report(input).task.totalCost).toBeNull();\n      expect(report(input).task.succeeded).toBe(0);\n    },\n  );\n  it(\"keeps per-task repeated samples and strata visible\", () => {\n    const input = fixture();\n    input.plan.samples.push({ ...input.plan.samples[0], id: \"repeat\" });\n    const result = report(input);\n    expect(result.groups[0]).toMatchObject({\n      taskId: \"fix-build\",\n      planned: 2,\n      succeeded: 1,\n    });\n  });\n  it(\"runs the offline CLI with distinct complete, incomplete, and invalid exits\", () => {\n    const dir = fs.mkdtempSync(path.join(os.tmpdir(), \"cc-outcome-test-\"));\n    try {\n      const input = fixture();\n      const runtimeNow = Date.now();\n      input.plan.window.start = new Date(runtimeNow - 7200000).toISOString();\n      input.plan.window.end = new Date(runtimeNow - 3600000).toISOString();\n      for (const run of input.history.runs)\n        run.ranAt = new Date(runtimeNow - 5400000).toISOString();\n      for (const observation of input.observations)\n        observation.observedAt = new Date(runtimeNow - 5400000).toISOString();\n      const file = path.join(dir, \"plan.json\");\n      fs.writeFileSync(file, JSON.stringify(input.plan));\n      const digest = execFileSync(\n        process.execPath,\n        [SCRIPT, \"--plan\", file, \"--fingerprint\"],\n        { encoding: \"utf8\" },\n      ).trim();\n      expect(digest).toBe(outcomeDigest(input.plan));\n      const result = spawnSync(\n        process.execPath,\n        [SCRIPT, \"--plan\", file, \"--plan-digest\", digest],\n        { encoding: \"utf8\" },\n      );\n      expect(result.status).toBe(2);\n      expect(JSON.parse(result.stdout).task).toMatchObject({\n        planned: 1,\n        observed: 0,\n        succeeded: 0,\n      });\n      const changed = spawnSync(\n        process.execPath,\n        [SCRIPT, \"--plan\", file, \"--plan-digest\", D(\"f\")],\n        { encoding: \"utf8\" },\n      );\n      expect(changed.status).toBe(1);\n      const history = path.join(dir, \"history.jsonl\");\n      const observations = path.join(dir, \"observations.json\");\n      const maintenance = path.join(dir, \"maintenance.json\");\n      fs.writeFileSync(\n        history,\n        input.history.runs.map((run) => JSON.stringify(run)).join(\"\\n\"),\n      );\n      fs.writeFileSync(observations, JSON.stringify(input.observations));\n      fs.writeFileSync(maintenance, JSON.stringify(input.maintenance));\n      const complete = spawnSync(\n        process.execPath,\n        [\n          SCRIPT,\n          \"--plan\",\n          file,\n          \"--plan-digest\",\n          digest,\n          \"--history\",\n          history,\n          \"--observations\",\n          observations,\n          \"--maintenance\",\n          maintenance,\n        ],\n        { encoding: \"utf8\" },\n      );\n      expect(complete.status, complete.stderr || complete.stdout).toBe(0);\n      expect(JSON.parse(complete.stdout)).toMatchObject({\n        status: \"BASELINE_RECORDED\",\n        improvementVerdict: \"NOT_EVALUATED\",\n      });\n    } finally {\n      fs.rmSync(dir, { recursive: true, force: true });\n    }\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712646339,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/task-outcome-report.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-640f13bb-0498-457b-8f7a-245756a8c6ba",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/task-outcome-report.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_h6o317642xuxp9n9t0xuapdr",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 9
+          },
+          {
+            "type": "tool_result",
+            "id": "call_dbs43zqdz0audqupr5d5kfoh",
+            "tool": "list_dir",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "entries": [
+                {
+                  "name": "README-background-stability.md",
+                  "type": "file"
+                },
+                {
+                  "name": "e2e",
+                  "type": "dir"
+                },
+                {
+                  "name": "fixtures",
+                  "type": "dir"
+                },
+                {
+                  "name": "helpers",
+                  "type": "dir"
+                },
+                {
+                  "name": "integration",
+                  "type": "dir"
+                },
+                {
+                  "name": "unit",
+                  "type": "dir"
+                },
+                {
+                  "name": "verify-23.test.js",
+                  "type": "file"
+                }
+              ],
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712699308,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-640f13bb-0498-457b-8f7a-245756a8c6ba",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "list_dir",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_dbs43zqdz0audqupr5d5kfoh",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 13
+          },
+          {
+            "type": "tool_result",
+            "id": "call_yfvoj68r27te12xo4qn1bqci",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-rdWB4I/3b04be42-7e9e-4611-a7e7-49ab003430e4/workspace/packages/cli/__tests__/verify-23.test.js",
+              "fileVersion": "27:1793712606873.454:1793712606873.454",
+              "readSpan": {
+                "start": 0,
+                "end": 27,
+                "total": 27
+              },
+              "hashed": false,
+              "content": "// Non-answer placeholder.\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712704224,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-23.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-640f13bb-0498-457b-8f7a-245756a8c6ba",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-23.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_yfvoj68r27te12xo4qn1bqci",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 17
+          },
+          {
+            "type": "tool_result",
+            "id": "call_por1z8sbheh5ln0fv3ewj1yz",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "/tmp/cc-native-rdWB4I/3b04be42-7e9e-4611-a7e7-49ab003430e4/workspace/packages/cli/__tests__/verify-23.test.js",
+              "size": 5954,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 2,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712725565,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-23.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createEvalComparison,\n  createEvalHistoryRecord,\n  EVAL_CONTEXT_SCHEMA,\n  EVAL_EXECUTION_PROTOCOL,\n} from \"../src/lib/eval/evidence.js\";\nimport {\n  buildOutcomeReport,\n  outcomeDigest,\n  OUTCOME_PLAN_SCHEMA,\n} from \"../src/lib/eval/outcomes.js\";\n\nconst NOW = Date.parse(\"2026-09-15T12:00:00.000Z\");\nconst SHA = \"a\".repeat(40);\nconst D = (letter) => `sha256:${letter.repeat(64)}`;\nconst FIRST_RUN_STAGES = [\n  \"install\",\n  \"configure\",\n  \"authenticate\",\n  \"tool\",\n  \"artifact\",\n];\n\nfunction makeRun(comparison, runId, taskId, ranAt) {\n  return createEvalHistoryRecord(\n    {\n      total: 1,\n      passed: 1,\n      failed: 0,\n      passRate: 1,\n      unrelatedChangeRate: 0,\n      results: [\n        {\n          id: taskId,\n          pass: true,\n          artifactCheckPassed: true,\n          executionSucceeded: true,\n          agentOk: true,\n          error: null,\n          ms: 100,\n          executionEvidence: {\n            protocol: EVAL_EXECUTION_PROTOCOL,\n            exitCode: 0,\n            signal: null,\n            terminalVerified: true,\n            observedFallback: false,\n          },\n        },\n      ],\n    },\n    { runId, ranAt, label: SHA, comparison },\n  );\n}\n\n// Two task samples and one first-run sample sharing one frozen plan.\nfunction fixture() {\n  const comparison = createEvalComparison({\n    suite: \"builtin\",\n    corpusDigest: D(\"a\"),\n    provider: \"test\",\n    model: \"test-model\",\n    context: {\n      schema: EVAL_CONTEXT_SCHEMA,\n      provider: \"test\",\n      model: \"test-model\",\n      modelRevision: \"test-r1\",\n      environmentDigest: D(\"b\"),\n      permissionDigest: D(\"c\"),\n      inferenceDigest: D(\"d\"),\n    },\n  });\n  const window = {\n    start: \"2026-09-15T10:00:00.000Z\",\n    end: \"2026-09-15T11:00:00.000Z\",\n  };\n  const samples = [\n    { id: \"task-a\", kind: \"task\", taskId: \"fix-build\" },\n    { id: \"task-b\", kind: \"task\", taskId: \"fix-build\" },\n    { id: \"first-run\", kind: \"first-run\", taskId: \"setup\" },\n  ].map((sample) => ({\n    ...sample,\n    stratum: \"cli-verify\",\n    comparisonDigest: outcomeDigest(comparison),\n    timeBudgetMs: 1000,\n    costBudget: 1,\n  }));\n  const observations = samples.map((sample, index) => ({\n    sampleId: sample.id,\n    observedAt: \"2026-09-15T10:30:00.000Z\",\n    runId: `run-${index}`,\n    cost: 0.1,\n    elapsedMs: 500,\n    retries: 0,\n    manualRepairs: 0,\n    ...(sample.kind === \"first-run\"\n      ? {\n          firstRun: {\n            cleanEnvironment: true,\n            stages: Object.fromEntries(\n              FIRST_RUN_STAGES.map((stage) => [\n                stage,\n                { passed: true, receipt: `receipt:${stage}` },\n              ]),\n            ),\n          },\n        }\n      : {}),\n  }));\n  return {\n    plan: {\n      schema: OUTCOME_PLAN_SCHEMA,\n      commitSha: SHA,\n      currency: \"USD\",\n      window,\n      samples,\n    },\n    history: {\n      runs: observations.map((observation, index) =>\n        makeRun(\n          comparison,\n          observation.runId,\n          samples[index].taskId,\n          \"2026-09-15T10:30:00.000Z\",\n        ),\n      ),\n      issues: [],\n    },\n    observations,\n    maintenance: {\n      window,\n      complete: true,\n      entries: [\n        { id: \"support-1\", category: \"support\", hours: 1, evidenceRef: \"ticket:1\" },\n      ],\n    },\n  };\n}\nconst report = (input) => buildOutcomeReport(input, { now: NOW });\n\ndescribe(\"verify-23 missing-sample fixed denominator and unknown cost\", () => {\n  it(\"keeps the full planned denominator when every sample is observed\", () => {\n    const result = report(fixture());\n    // Task summary covers two planned task samples, so successRate uses 2.\n    expect(result.task).toMatchObject({\n      planned: 2,\n      observed: 2,\n      missing: 0,\n      succeeded: 2,\n      successRate: 1,\n      totalCost: 0.2,\n      costPerSuccess: 0.1,\n    });\n    expect(result.status).toBe(\"BASELINE_RECORDED\");\n  });\n\n  it(\"does not shrink the denominator when one planned sample is missing\", () => {\n    const input = fixture();\n    // Single change: remove the task-b observation. Nothing else is altered.\n    input.observations.splice(1, 1);\n    const result = report(input);\n    expect(result.task).toMatchObject({\n      planned: 2, // denominator stays fixed at the full planned population\n      observed: 1,\n      missing: 1,\n      succeeded: 1,\n      successRate: 0.5, // computed against planned (2), not observed (1)\n    });\n    // The unobserved sample keeps an unknown cost; it is not counted as zero.\n    expect(result.task.totalCost).toBeNull();\n    expect(result.task.costPerSuccess).toBeNull();\n    expect(result.rows[1]).toMatchObject({ observed: false, cost: null });\n    expect(result.status).toBe(\"INSUFFICIENT_EVIDENCE\");\n  });\n\n  it(\"keeps an unknown cost null instead of counting it as zero\", () => {\n    const input = fixture();\n    // Single change: task-b is still observed but its cost is invalid (unknown).\n    input.observations[1].cost = NaN;\n    const result = report(input);\n    // The sample is present and observed; only its cost is unknown.\n    expect(result.task).toMatchObject({ observed: 2, missing: 0 });\n    expect(result.rows[1]).toMatchObject({ observed: true, cost: null });\n    // An unknown cost makes the totals incomplete rather than becoming zero.\n    expect(result.task.totalCost).toBeNull();\n    expect(result.task.costPerSuccess).toBeNull();\n    expect(result.rows[1].reasons).toContain(\"missing_or_invalid_cost\");\n  });\n\n  it(\"counts a genuinely zero cost but not an unknown one\", () => {\n    const input = fixture();\n    // Single change: task-b's cost is a legitimate zero (nonnegative is valid).\n    input.observations[1].cost = 0;\n    const result = report(input);\n    expect(result.task).toMatchObject({\n      observed: 2,\n      totalCost: 0.1, // task-a's 0.1 plus task-b's real 0\n      costPerSuccess: 0.05,\n    });\n    expect(result.status).toBe(\"BASELINE_RECORDED\");\n  });\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 18,
+                "sessionId": "panel-640f13bb-0498-457b-8f7a-245756a8c6ba",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-23.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createEvalComparison,\n  createEvalHistoryRecord,\n  EVAL_CONTEXT_SCHEMA,\n  EVAL_EXECUTION_PROTOCOL,\n} from \"../src/lib/eval/evidence.js\";\nimport {\n  buildOutcomeReport,\n  outcomeDigest,\n  OUTCOME_PLAN_SCHEMA,\n} from \"../src/lib/eval/outcomes.js\";\n\nconst NOW = Date.parse(\"2026-09-15T12:00:00.000Z\");\nconst SHA = \"a\".repeat(40);\nconst D = (letter) => `sha256:${letter.repeat(64)}`;\nconst FIRST_RUN_STAGES = [\n  \"install\",\n  \"configure\",\n  \"authenticate\",\n  \"tool\",\n  \"artifact\",\n];\n\nfunction makeRun(comparison, runId, taskId, ranAt) {\n  return createEvalHistoryRecord(\n    {\n      total: 1,\n      passed: 1,\n      failed: 0,\n      passRate: 1,\n      unrelatedChangeRate: 0,\n      results: [\n        {\n          id: taskId,\n          pass: true,\n          artifactCheckPassed: true,\n          executionSucceeded: true,\n          agentOk: true,\n          error: null,\n          ms: 100,\n          executionEvidence: {\n            protocol: EVAL_EXECUTION_PROTOCOL,\n            exitCode: 0,\n            signal: null,\n            terminalVerified: true,\n            observedFallback: false,\n          },\n        },\n      ],\n    },\n    { runId, ranAt, label: SHA, comparison },\n  );\n}\n\n// Two task samples and one first-run sample sharing one frozen plan.\nfunction fixture() {\n  const comparison = createEvalComparison({\n    suite: \"builtin\",\n    corpusDigest: D(\"a\"),\n    provider: \"test\",\n    model: \"test-model\",\n    context: {\n      schema: EVAL_CONTEXT_SCHEMA,\n      provider: \"test\",\n      model: \"test-model\",\n      modelRevision: \"test-r1\",\n      environmentDigest: D(\"b\"),\n      permissionDigest: D(\"c\"),\n      inferenceDigest: D(\"d\"),\n    },\n  });\n  const window = {\n    start: \"2026-09-15T10:00:00.000Z\",\n    end: \"2026-09-15T11:00:00.000Z\",\n  };\n  const samples = [\n    { id: \"task-a\", kind: \"task\", taskId: \"fix-build\" },\n    { id: \"task-b\", kind: \"task\", taskId: \"fix-build\" },\n    { id: \"first-run\", kind: \"first-run\", taskId: \"setup\" },\n  ].map((sample) => ({\n    ...sample,\n    stratum: \"cli-verify\",\n    comparisonDigest: outcomeDigest(comparison),\n    timeBudgetMs: 1000,\n    costBudget: 1,\n  }));\n  const observations = samples.map((sample, index) => ({\n    sampleId: sample.id,\n    observedAt: \"2026-09-15T10:30:00.000Z\",\n    runId: `run-${index}`,\n    cost: 0.1,\n    elapsedMs: 500,\n    retries: 0,\n    manualRepairs: 0,\n    ...(sample.kind === \"first-run\"\n      ? {\n          firstRun: {\n            cleanEnvironment: true,\n            stages: Object.fromEntries(\n              FIRST_RUN_STAGES.map((stage) => [\n                stage,\n                { passed: true, receipt: `receipt:${stage}` },\n              ]),\n            ),\n          },\n        }\n      : {}),\n  }));\n  return {\n    plan: {\n      schema: OUTCOME_PLAN_SCHEMA,\n      commitSha: SHA,\n      currency: \"USD\",\n      window,\n      samples,\n    },\n    history: {\n      runs: observations.map((observation, index) =>\n        makeRun(\n          comparison,\n          observation.runId,\n          samples[index].taskId,\n          \"2026-09-15T10:30:00.000Z\",\n        ),\n      ),\n      issues: [],\n    },\n    observations,\n    maintenance: {\n      window,\n      complete: true,\n      entries: [\n        { id: \"support-1\", category: \"support\", hours: 1, evidenceRef: \"ticket:1\" },\n      ],\n    },\n  };\n}\nconst report = (input) => buildOutcomeReport(input, { now: NOW });\n\ndescribe(\"verify-23 missing-sample fixed denominator and unknown cost\", () => {\n  it(\"keeps the full planned denominator when every sample is observed\", () => {\n    const result = report(fixture());\n    // Task summary covers two planned task samples, so successRate uses 2.\n    expect(result.task).toMatchObject({\n      planned: 2,\n      observed: 2,\n      missing: 0,\n      succeeded: 2,\n      successRate: 1,\n      totalCost: 0.2,\n      costPerSuccess: 0.1,\n    });\n    expect(result.status).toBe(\"BASELINE_RECORDED\");\n  });\n\n  it(\"does not shrink the denominator when one planned sample is missing\", () => {\n    const input = fixture();\n    // Single change: remove the task-b observation. Nothing else is altered.\n    input.observations.splice(1, 1);\n    const result = report(input);\n    expect(result.task).toMatchObject({\n      planned: 2, // denominator stays fixed at the full planned population\n      observed: 1,\n      missing: 1,\n      succeeded: 1,\n      successRate: 0.5, // computed against planned (2), not observed (1)\n    });\n    // The unobserved sample keeps an unknown cost; it is not counted as zero.\n    expect(result.task.totalCost).toBeNull();\n    expect(result.task.costPerSuccess).toBeNull();\n    expect(result.rows[1]).toMatchObject({ observed: false, cost: null });\n    expect(result.status).toBe(\"INSUFFICIENT_EVIDENCE\");\n  });\n\n  it(\"keeps an unknown cost null instead of counting it as zero\", () => {\n    const input = fixture();\n    // Single change: task-b is still observed but its cost is invalid (unknown).\n    input.observations[1].cost = NaN;\n    const result = report(input);\n    // The sample is present and observed; only its cost is unknown.\n    expect(result.task).toMatchObject({ observed: 2, missing: 0 });\n    expect(result.rows[1]).toMatchObject({ observed: true, cost: null });\n    // An unknown cost makes the totals incomplete rather than becoming zero.\n    expect(result.task.totalCost).toBeNull();\n    expect(result.task.costPerSuccess).toBeNull();\n    expect(result.rows[1].reasons).toContain(\"missing_or_invalid_cost\");\n  });\n\n  it(\"counts a genuinely zero cost but not an unknown one\", () => {\n    const input = fixture();\n    // Single change: task-b's cost is a legitimate zero (nonnegative is valid).\n    input.observations[1].cost = 0;\n    const result = report(input);\n    expect(result.task).toMatchObject({\n      observed: 2,\n      totalCost: 0.1, // task-a's 0.1 plus task-b's real 0\n      costPerSuccess: 0.05,\n    });\n    expect(result.status).toBe(\"BASELINE_RECORDED\");\n  });\n});\n"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "write_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_por1z8sbheh5ln0fv3ewj1yz",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 21
+          },
+          {
+            "type": "tool_result",
+            "id": "call_u9tqo36evxmu27a6vll0uh4u",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [],
+              "count": 0,
+              "hasMore": false,
+              "nextOffset": null,
+              "hint": "No literal matches. This pattern contains regex syntax, but this search used literal matching. If alternation or regex was intended, set regex: true; otherwise search one exact symbol. Do not infer that the symbols are absent from this result.",
+              "path": "/tmp/cc-native-rdWB4I/3b04be42-7e9e-4611-a7e7-49ab003430e4/workspace/packages/cli/src/lib/eval/outcomes.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712762129,
+                "meta": {
+                  "args": {
+                    "pattern": "function summarize|costsComplete|knownCost|totalCost|costPerSuccess|successRate|missing_or_invalid_cost|function nonnegative|INSUFFICIENT_EVIDENCE|BASELINE_RECORDED",
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "maxMatches": 40
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 40,
+                "sessionId": "panel-640f13bb-0498-457b-8f7a-245756a8c6ba",
+                "metadata": {
+                  "args": {
+                    "pattern": "function summarize|costsComplete|knownCost|totalCost|costPerSuccess|successRate|missing_or_invalid_cost|function nonnegative|INSUFFICIENT_EVIDENCE|BASELINE_RECORDED",
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "maxMatches": 40
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_u9tqo36evxmu27a6vll0uh4u",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 31
+          },
+          {
+            "type": "tool_result",
+            "id": "call_rnbd11gwxtqhsm147w7z3o0x",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 33,
+                  "column": 7,
+                  "offset": 804,
+                  "text": "nonnegative",
+                  "context": "ifact\",\n  \"environment\",\n  \"budget\",\n  \"manual-repair\",\n]);\nconst nonempty = (value) =>\n  typeof value === \"string\" && value.trim().length > 0;\nconst nonnegative = (value) => Number.isFinite(value) && value >= 0;\nconst count = (value) => Number.isSafeInteger(value) && value >= 0;\nconst rate = (numerator, denom",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 33,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 100,
+                  "column": 7,
+                  "offset": 2961,
+                  "text": "nonnegative",
+                  "context": "um\",\n    );\n    assert(\n      DIGEST.test(sample.comparisonDigest || \"\"),\n      \"sample requires an Eval comparison digest\",\n    );\n    assert(\n      nonnegative(sample.costBudget) &&\n        Number.isFinite(sample.timeBudgetMs) &&\n        sample.timeBudgetMs > 0,\n      \"sample requires finite cost and time bu",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 100,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 113,
+                  "column": 9,
+                  "offset": 3396,
+                  "text": "costsComplete",
+                  "context": "ength;\n  const observed = rows.filter((row) => row.observed).length;\n  const knownCost = rows.reduce((sum, row) => sum + (row.cost ?? 0), 0);\n  const costsComplete = rows.every((row) => row.observed && row.cost !== null);\n  return {\n    planned: rows.length,\n    observed,\n    missing: rows.length - observed,\n   ",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 113,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 115,
+                  "column": 5,
+                  "offset": 3483,
+                  "text": "planned",
+                  "context": "= rows.reduce((sum, row) => sum + (row.cost ?? 0), 0);\n  const costsComplete = rows.every((row) => row.observed && row.cost !== null);\n  return {\n    planned: rows.length,\n    observed,\n    missing: rows.length - observed,\n    succeeded,\n    successRate: rate(succeeded, rows.length),\n    knownCost,\n    tot",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 115,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 119,
+                  "column": 5,
+                  "offset": 3575,
+                  "text": "successRate",
+                  "context": "ow) => row.observed && row.cost !== null);\n  return {\n    planned: rows.length,\n    observed,\n    missing: rows.length - observed,\n    succeeded,\n    successRate: rate(succeeded, rows.length),\n    knownCost,\n    totalCost: costsComplete ? knownCost : null,\n    costPerSuccess: costsComplete && succeeded ? known",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 119,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 121,
+                  "column": 5,
+                  "offset": 3637,
+                  "text": "totalCost",
+                  "context": "ned: rows.length,\n    observed,\n    missing: rows.length - observed,\n    succeeded,\n    successRate: rate(succeeded, rows.length),\n    knownCost,\n    totalCost: costsComplete ? knownCost : null,\n    costPerSuccess: costsComplete && succeeded ? knownCost / succeeded : null,\n    retries: rows.every((row) => ro",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 121,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 121,
+                  "column": 16,
+                  "offset": 3648,
+                  "text": "costsComplete",
+                  "context": "ength,\n    observed,\n    missing: rows.length - observed,\n    succeeded,\n    successRate: rate(succeeded, rows.length),\n    knownCost,\n    totalCost: costsComplete ? knownCost : null,\n    costPerSuccess: costsComplete && succeeded ? knownCost / succeeded : null,\n    retries: rows.every((row) => row.retries !== n",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 121,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 122,
+                  "column": 5,
+                  "offset": 3686,
+                  "text": "costPerSuccess",
+                  "context": ".length - observed,\n    succeeded,\n    successRate: rate(succeeded, rows.length),\n    knownCost,\n    totalCost: costsComplete ? knownCost : null,\n    costPerSuccess: costsComplete && succeeded ? knownCost / succeeded : null,\n    retries: rows.every((row) => row.retries !== null)\n      ? rows.reduce((sum, row) => ",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 122,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 122,
+                  "column": 21,
+                  "offset": 3702,
+                  "text": "costsComplete",
+                  "context": "ed,\n    succeeded,\n    successRate: rate(succeeded, rows.length),\n    knownCost,\n    totalCost: costsComplete ? knownCost : null,\n    costPerSuccess: costsComplete && succeeded ? knownCost / succeeded : null,\n    retries: rows.every((row) => row.retries !== null)\n      ? rows.reduce((sum, row) => sum + row.retri",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 122,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 180,
+                  "column": 11,
+                  "offset": 5815,
+                  "text": "nonnegative",
+                  "context": "elapsedMs\", \"retries\", \"manualRepairs\"]) {\n      const valid = [\"retries\", \"manualRepairs\"].includes(key)\n        ? count(observation[key])\n        : nonnegative(observation[key]);\n      if (valid) row[key] = observation[key];\n      else reasons.push(`missing_or_invalid_${key}`);\n    }\n    const observedAt = e",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 180,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 224,
+                  "column": 21,
+                  "offset": 7692,
+                  "text": "nonnegative",
+                  "context": ".results?.find((item) => item?.id === sample.taskId);\n    if (!result && !stoppedBeforeTask) reasons.push(\"missing_task_result\");\n    if (result && (!nonnegative(result.ms) || row.elapsedMs < result.ms))\n      reasons.push(\"invalid_elapsed_time\");\n    if (sample.kind === \"first-run\") {\n      if (typeof observa",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 224,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 286,
+                  "column": 11,
+                  "offset": 10107,
+                  "text": "nonnegative",
+                  "context": "window) === outcomeDigest(plan.window);\n    for (const entry of entries.values()) {\n      assert(\n        CATEGORIES.has(entry.category) &&\n          nonnegative(entry.hours) &&\n          nonempty(entry.evidenceRef),\n        \"invalid maintenance entry\",\n      );\n      categories[entry.category] += entry.hours;",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 286,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 351,
+                  "column": 7,
+                  "offset": 12362,
+                  "text": "planned",
+                  "context": "\n              row.taskId === taskId,\n          ),\n        ),\n      };\n    }),\n    firstRunFunnel: STAGES.map((stage, index) => ({\n      stage,\n      planned: firstRuns.length,\n      passed: firstRuns.filter((row) =>\n        STAGES.slice(0, index + 1).every((required) =>\n          row.firstRunCompletedStag",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 351,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 13,
+              "hasMore": false,
+              "nextOffset": null,
+              "regexWindowChars": 69632,
+              "hint": "Regular expressions are evaluated in overlapping text windows; matches spanning more than 4096 characters across a window boundary may be omitted. Use a literal keyword to locate the section, then read its context.",
+              "path": "/tmp/cc-native-rdWB4I/3b04be42-7e9e-4611-a7e7-49ab003430e4/workspace/packages/cli/src/lib/eval/outcomes.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712769247,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "pattern": "costsComplete|totalCost|costPerSuccess|successRate|missing_or_invalid_cost|nonnegative|planned",
+                    "regex": true,
+                    "maxMatches": 40
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 37,
+                "sessionId": "panel-640f13bb-0498-457b-8f7a-245756a8c6ba",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "pattern": "costsComplete|totalCost|costPerSuccess|successRate|missing_or_invalid_cost|nonnegative|planned",
+                    "regex": true,
+                    "maxMatches": 40
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_rnbd11gwxtqhsm147w7z3o0x",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 37
+          },
+          {
+            "type": "tool_result",
+            "id": "call_mlf0c0ezo02xwkwkyucwn7nj",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-rdWB4I/3b04be42-7e9e-4611-a7e7-49ab003430e4/workspace/packages/cli/src/lib/eval/outcomes.js",
+              "fileVersion": "12957:1791108223000:1793712606753.4524",
+              "range": {
+                "startLine": 170,
+                "endLine": 209,
+                "totalLines": 374
+              },
+              "nextRead": {
+                "path": "packages/cli/src/lib/eval/outcomes.js",
+                "offset": 210,
+                "limit": 40
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 5462,
+                "end": 6999,
+                "total": 12955
+              },
+              "hashed": false,
+              "content": "    };\n    rows.push(row);\n    if (!observation) {\n      reasons.push(\"missing_observation\");\n      issues.push(`${sample.id}:missing_observation`);\n      continue;\n    }\n    for (const key of [\"cost\", \"elapsedMs\", \"retries\", \"manualRepairs\"]) {\n      const valid = [\"retries\", \"manualRepairs\"].includes(key)\n        ? count(observation[key])\n        : nonnegative(observation[key]);\n      if (valid) row[key] = observation[key];\n      else reasons.push(`missing_or_invalid_${key}`);\n    }\n    const observedAt = epoch(observation.observedAt);\n    if (!(\n      observedAt <= Math.min(now, epoch(plan.window.end)) &&\n      observedAt - (row.elapsedMs ?? 0) >= epoch(plan.window.start)\n    ))\n      reasons.push(\"observation_outside_window\");\n    const run = runs.get(observation.runId);\n    const stoppedBeforeTask =\n      sample.kind === \"first-run\" &&\n      observation.runId === null &&\n      observation.firstRun?.stages?.tool?.passed === false;\n    const evidenceKey = JSON.stringify([observation.runId, sample.taskId]);\n    if (observation.runId !== null) {\n      assert(\n        !usedEvidence.has(evidenceKey),\n        \"a task execution cannot count as multiple samples\",\n      );\n      usedEvidence.add(evidenceKey);\n    }\n    if (!run && !stoppedBeforeTask) reasons.push(\"missing_eval_run\");\n    if (run) {\n      // Failed executions are valid observations, not successful outcomes.\n      // All other existing Eval integrity rules remain authoritative.\n      const integrity = evalHistoryRecordIssues(\n        run,\n        now,",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "12957:1791108223000:1793712606753.4524"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712781040,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 170,
+                    "limit": 40
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-640f13bb-0498-457b-8f7a-245756a8c6ba",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 170,
+                    "limit": 40
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_mlf0c0ezo02xwkwkyucwn7nj",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 43
+          },
+          {
+            "type": "tool_result",
+            "id": "call_nt77d55b8736cymz1jg7kmex",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-rdWB4I/3b04be42-7e9e-4611-a7e7-49ab003430e4/workspace/packages/cli/src/lib/eval/outcomes.js",
+              "fileVersion": "12957:1791108223000:1793712606753.4524",
+              "range": {
+                "startLine": 113,
+                "endLine": 127,
+                "totalLines": 374
+              },
+              "nextRead": {
+                "path": "packages/cli/src/lib/eval/outcomes.js",
+                "offset": 128,
+                "limit": 15
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 3388,
+                "end": 4015,
+                "total": 12955
+              },
+              "hashed": false,
+              "content": "  const costsComplete = rows.every((row) => row.observed && row.cost !== null);\n  return {\n    planned: rows.length,\n    observed,\n    missing: rows.length - observed,\n    succeeded,\n    successRate: rate(succeeded, rows.length),\n    knownCost,\n    totalCost: costsComplete ? knownCost : null,\n    costPerSuccess: costsComplete && succeeded ? knownCost / succeeded : null,\n    retries: rows.every((row) => row.retries !== null)\n      ? rows.reduce((sum, row) => sum + row.retries, 0)\n      : null,\n    manualRepairs: rows.every((row) => row.manualRepairs !== null)\n      ? rows.reduce((sum, row) => sum + row.manualRepairs, 0)",
+              "readRecovery": {
+                "action": "targeted-review"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712781082,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 113,
+                    "limit": 15
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-640f13bb-0498-457b-8f7a-245756a8c6ba",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 113,
+                    "limit": 15
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_nt77d55b8736cymz1jg7kmex",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 45
+          },
+          {
+            "type": "tool_result",
+            "id": "call_nuifdyfr47cov2wllt5v4qiz",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 308,
+                  "column": 5,
+                  "offset": 11013,
+                  "text": "status:",
+                  "context": " schema: OUTCOME_REPORT_SCHEMA,\n    generatedAt: new Date(now).toISOString(),\n    scope: \"local-outcome-baseline\",\n    productionAttested: false,\n    status: issues.length ? \"INSUFFICIENT_EVIDENCE\" : \"BASELINE_RECORDED\",\n    // Neither a baseline nor operator declarations constitute an improvement gate.\n  ",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 308,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 308,
+                  "column": 30,
+                  "offset": 11038,
+                  "text": "INSUFFICIENT_EVIDENCE",
+                  "context": "CHEMA,\n    generatedAt: new Date(now).toISOString(),\n    scope: \"local-outcome-baseline\",\n    productionAttested: false,\n    status: issues.length ? \"INSUFFICIENT_EVIDENCE\" : \"BASELINE_RECORDED\",\n    // Neither a baseline nor operator declarations constitute an improvement gate.\n    improvementVerdict: \"NOT_EVALUATED\",\n",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 308,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 308,
+                  "column": 56,
+                  "offset": 11064,
+                  "text": "BASELINE_RECORDED",
+                  "context": "w Date(now).toISOString(),\n    scope: \"local-outcome-baseline\",\n    productionAttested: false,\n    status: issues.length ? \"INSUFFICIENT_EVIDENCE\" : \"BASELINE_RECORDED\",\n    // Neither a baseline nor operator declarations constitute an improvement gate.\n    improvementVerdict: \"NOT_EVALUATED\",\n    planDigest,\n    co",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 308,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 315,
+                  "column": 5,
+                  "offset": 11314,
+                  "text": "task:",
+                  "context": "te.\n    improvementVerdict: \"NOT_EVALUATED\",\n    planDigest,\n    commitSha: plan.commitSha,\n    currency: plan.currency,\n    window: plan.window,\n    task: summarize(tasks),\n    firstRun: summarize(firstRuns),\n    maintenance: {\n      complete: maintenanceComplete,\n      knownHours: maintenanceHours,\n   ",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 315,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 4,
+              "hasMore": false,
+              "nextOffset": null,
+              "regexWindowChars": 69632,
+              "hint": "Regular expressions are evaluated in overlapping text windows; matches spanning more than 4096 characters across a window boundary may be omitted. Use a literal keyword to locate the section, then read its context.",
+              "path": "/tmp/cc-native-rdWB4I/3b04be42-7e9e-4611-a7e7-49ab003430e4/workspace/packages/cli/src/lib/eval/outcomes.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712789436,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "pattern": "BASELINE_RECORDED|INSUFFICIENT_EVIDENCE|task:|rows:|status:",
+                    "regex": true,
+                    "maxMatches": 40
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 36,
+                "sessionId": "panel-640f13bb-0498-457b-8f7a-245756a8c6ba",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "pattern": "BASELINE_RECORDED|INSUFFICIENT_EVIDENCE|task:|rows:|status:",
+                    "regex": true,
+                    "maxMatches": 40
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_nuifdyfr47cov2wllt5v4qiz",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 51
+          },
+          {
+            "type": "tool_result",
+            "id": "call_o3c00112fo9cpk7fjcnw70ao",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-rdWB4I/3b04be42-7e9e-4611-a7e7-49ab003430e4/workspace/packages/cli/src/lib/eval/outcomes.js",
+              "fileVersion": "12957:1791108223000:1793712606753.4524",
+              "range": {
+                "startLine": 158,
+                "endLine": 172,
+                "totalLines": 374
+              },
+              "nextRead": {
+                "path": "packages/cli/src/lib/eval/outcomes.js",
+                "offset": 173,
+                "limit": 15
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 5150,
+                "end": 5513,
+                "total": 12955
+              },
+              "hashed": false,
+              "content": "      kind: sample.kind,\n      taskId: sample.taskId,\n      stratum: sample.stratum,\n      observed: Boolean(observation),\n      succeeded: false,\n      reasons,\n      cost: null,\n      elapsedMs: null,\n      retries: null,\n      manualRepairs: null,\n      failureCause: null,\n      firstRunCompletedStages: [],\n    };\n    rows.push(row);\n    if (!observation) {",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "12957:1791108223000:1793712606753.4524"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712802909,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "limit": 15,
+                    "offset": 158
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-640f13bb-0498-457b-8f7a-245756a8c6ba",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "limit": 15,
+                    "offset": 158
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_o3c00112fo9cpk7fjcnw70ao",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 57
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2712,
+              "output_tokens": 100,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 10712,
+              "output_tokens": 5503,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 11
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 8342,
+              "output_tokens": 87,
+              "cache_read_input_tokens": 12288,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 15
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2100,
+              "output_tokens": 2024,
+              "cache_read_input_tokens": 19200,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 19
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 14640,
+              "output_tokens": 1978,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 25
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2551,
+              "output_tokens": 376,
+              "cache_read_input_tokens": 18432,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 29
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5015,
+              "output_tokens": 194,
+              "cache_read_input_tokens": 16896,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 35
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4199,
+              "output_tokens": 513,
+              "cache_read_input_tokens": 20224,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 41
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 17381,
+              "output_tokens": 479,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 49
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4532,
+              "output_tokens": 517,
+              "cache_read_input_tokens": 18432,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 55
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3322,
+              "output_tokens": 1338,
+              "cache_read_input_tokens": 20480,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+            "seq": 61
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 75506,
+          "output_tokens": 13109,
+          "cache_read_input_tokens": 140288
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 11,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "I've now confirmed every assertion directly against the source:\n\n- Row init sets `cost: null` by default (line 164). Missing observation → `missing_observation` issue + `continue` → row.cost stays null, `observed: false`. ✓\n- Rows are built in plan.samples iteration order (`rows.push(row)` in the sample loop), so `result.rows[1]` = task-b. ✓\n- Cost loop (line 180): for `cost`, `valid = nonnegative(value)` where `nonnegative = Number.isFinite(v) && v >= 0`. So `0` valid (kept as 0), `NaN` invalid → reason `missing_or_invalid_cost`, row.cost stays null. ✓\n- `totalCost: costsComplete ? knownCost : null`, `costsComplete = every(row => row.observed && row.cost !== null)`, `costPerSuccess: costsComplete && succeeded ? knownCost / succeeded : null`. ✓\n- `planned: rows.length`, `successRate: rate(succeeded, rows.length)`, `status: issues.length ? \"INSUFFICIENT_EVIDENCE\" : \"BASELINE_RECORDED\"`, `task: summarize(tasks)`. ✓\n\nMy deliverable is complete and correct. Let me now do a final requirement-to-assertion audit:\n\n**Requirement R1 — 缺失样本固定分母 (partial observations retain all planned samples).**\n- Positive (case 1): all observed → `task.planned=2, observed=2, successRate=1`.\n- Negative (case 2): remove task-b observation only → `planned=2` (unchanged, fixed), `observed=1`, `successRate=0.5 = rate(1,2)`. The discriminator: if denominator were observed-based, successRate would be `rate(1,1)=1`. All other prerequisites (runs, first-run, maintenance) valid so no other guard causes the rejection. ✓\n\n**Requirement R2 — 未知费用保持 null，不能冒充零.**\n- Negative (case 3): task-b observed but cost NaN → `row.cost=null`, reason `missing_or_invalid_cost`, `totalCost=null` (not 0), `costPerSuccess=null`. `observed=2` proves the rejection is from the cost guard, not the missing-sample guard. ✓\n- Positive zero (case 4): cost=0 valid → counted, `totalCost=0.1, costPerSuccess=0.05`, BASELINE_RECORDED. This is the \"zero is only counted when genuinely known\" discriminator. ✓\n- Case 2 also asserts unobserved row cost stays null and totalCost null — reinforcing R2 across the missing path. ✓\n\nAll conditions covered. Test count = 4 ≤ 6. No import of existing suite; no source-text assertions; no eval-plan modification; no assertion lowering or skipped tests.\n\nNo gaps identified. The requirements are fully covered. No implementation defect exposed. The deliverable's relative imports (`../src/lib/eval/evidence.js`, `../src/lib/eval/outcomes.js`) resolved. No repair was needed.\n\nFinal account.\n\n## Final review account\n\n**Requirement-to-assertion audit** (requirements derived from the original task, not the tests):\n\n- **R1 (fixed denominator with partial observations)** — Covered by cases 1 (positive: `planned=2, successRate=1`) and 2 (negative: remove only task-b's observation → `planned` stays `2`, `successRate=0.5 = rate(1,2)` over planned, not `rate(1,1)=1`). The missing-observation issue yields `INSUFFICIENT_EVIDENCE`. Unrelated guards (runs, first-run stages, maintenance, window) kept valid, so only the missing-sample condition differs.\n- **R2 (unknown cost stays null, never zero)** — Covered by case 3 (negative: observed sample with `cost=NaN` → row `cost:null`, reason `missing_or_invalid_cost`, `totalCost:null`; `observed=2` proves the cost guard, not the missing-sample guard, drives the rejection) and case 4 (positive zero: valid `cost=0` is counted → `totalCost=0.1`, `costPerSuccess=0.05`, so zero is only summed when genuinely known). Case 2 reinforces R2 across the missing path (`row.cost:null`, `totalCost:null`).\n\n**Source verification** — Every asserted field is a real returned field, confirmed by direct reads of `outcomes.js`:\n- `planned: rows.length`, `successRate: rate(succeeded, rows.length)` (line 115–118) — fixed planned denominator.\n- `totalCost: costsComplete ? knownCost : null`, `costPerSuccess: costsComplete && succeeded ? knownCost / succeeded : null`, `costsComplete = rows.every(row => row.observed && row.cost !== null)` (lines 113–122).\n- Row init `cost: null`, `observed: false` (line 164); missing observation → `missing_observation` issue + `continue` (line 174).\n- Cost loop `nonnegative(observation[key])` with `nonnegative = Number.isFinite(v) && v >= 0` (lines 180, 33): `0` valid, `NaN` → `missing_or_invalid_cost`.\n- `status: issues.length ? \"INSUFFICIENT_EVIDENCE\" : \"BASELINE_RECORDED\"`, `task: summarize(tasks)` (lines 308, 315). Rows preserve plan.samples order so `rows[1]` = task-b.\n\n**Gaps** — None. Four independent cases (≤ six cap); both R1 and R2 have focused positive + negative controls differing only in the intended condition. No source-text assertions, no import of an existing suite, no eval-plan modification, no assertion lowering, no skipped failures.\n\n**Limitations** — No shell/code-execution tools were available, so tests were not run; the independent checker executes them in Docker. Persistence and import resolution were confirmed, but that is not test acceptance. No implementation defect was exposed by these assertions.",
+          "session_id": "panel-640f13bb-0498-457b-8f7a-245756a8c6ba",
+          "turn": 1,
+          "usage": {
+            "input_tokens": 75506,
+            "output_tokens": 13109,
+            "cache_read_input_tokens": 140288,
+            "cache_creation_input_tokens": 0
+          },
+          "transcript_refs": {
+            "schema": "chainlesschain.session-transcript-references/v1",
+            "sessionId": "panel-640f13bb-0498-457b-8f7a-245756a8c6ba",
+            "assistantEventId": "76da6d5a21103069cd895c433a47438d9da2f6ee0ea0f818e14409e6f9786f92",
+            "userEventId": "df35960c28aa582b8a476bcd182b6a80651f8d51b45066d819412fb900f87818",
+            "clientMessageId": "6e43fe0b-fef5-474a-bd71-5883817428cd"
+          },
+          "trace_id": "tr-b5df010f-8929-4829-a7bf-a9565852c8b7",
+          "seq": 62
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "tasks": [
+          {
+            "taskId": "verify-23",
+            "requests": 11,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": 0.35852780000000006,
+        "knownTokenOnlyEstimateCny": 0.35852780000000006,
+        "fxRate": null
+      },
+      "changedPaths": [
+        "packages/cli/__tests__/verify-23.test.js"
+      ],
+      "finishedAt": "2026-11-03T13:33:47.737Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-23"
+  ],
+  "generationPassed": true,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 40 model turns, 48 requests, 180 second request timeout, model maximum 393216 output tokens (8192 test cap removed), 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:3185a92e57bc89a9f9c1283aeff4823c409e1bebd48b8d20da509814fded8b29",
+  "group": "linux-vscode",
+  "entry": "vscode",
+  "platform": "linux",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:3ca5c1bfa5bffdee860665eeb757c24004dfaf0f3075f2a63e1a2600b3f6d600"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:487ed1e27103348c920988130954ec6449a81e66f7973e81ed02e1befd126da3"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:be2edf8e1ced537796d5819e458e4b56f2c1638eab8880b09c2c7fea4a4245fd"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+      "digest": "sha256:82becb2b0b551916e312131bcca48736d9e3f462aed4ea2a89ec00f907457eed"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
+      "digest": "sha256:d2cbc2dee63e7f53c622d61ad314143d6bd4d59a679d9aea29579cb034a829fb"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-public140-full.mjs",
+      "digest": "sha256:4c8b323e6c28b2dafb2f2e71ec2e7825d6b321d2998e3ef5f6ace3c2a10acdb9"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:3e515efc1cff606e2cbbfa977b5674abe6a73c142caa1b0539c0a2698978f8e4"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/verify01-run.cjs",
+      "digest": "sha256:7843460e829832d36768c90036414a1ceba5b3a03cca674f981b7e2fa3fdae44"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/verify01.cjs",
+      "digest": "sha256:a4a8a1d3d0e83227f22943e36920883d234fcdc847fb0f9faa08a969abf0c177"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/verify01-composer.cjs",
+      "digest": "sha256:3309c665f3bcb2941a27941ab4a096047869dd85deab78052c4932bf8f425554"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/noop.cjs",
+      "digest": "sha256:06a84182b7e81818c35b47c64170139b572a665645dbf9561de7fd521517bbb6"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/failure-receipt.cjs",
+      "digest": "sha256:802abcf31cb2dcbfb4e3873e29a440e9b1e8a5399ba6e8bb05883d1a36494c84"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/cdp-journey.cjs",
+      "digest": "sha256:31d467277d6eee1f7ecbe5551ae20e318d9ead0363b692a1ab106e64e388cfd0"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/run.cjs",
+      "digest": "sha256:761393469af5d77dea596dffe0fff8e984e93445949796474a281f3f68b635f1"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T13:30:07.662Z",
+    "finishedAt": "2026-11-03T13:30:31.391Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "verify-23",
+    "locked": {
+      "version": "0.166.140",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+      "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T13:33:47.741Z"
+}

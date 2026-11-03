@@ -1,0 +1,204 @@
+import { describe, it, expect } from 'vitest';
+import { createHash } from 'node:crypto';
+import {
+  createBranchHistoryImport,
+  branchMessageDigest,
+  BRANCH_HISTORY_SCHEMA,
+  BRANCH_HISTORY_MESSAGE,
+  BRANCH_HISTORY_ORIGIN,
+} from '../src/lib/session-branch-history.js';
+
+// Fork-history ownership regression coverage (verify-08).
+//
+// Requirement: each branch recovers valid ancestors (an origin bound to the
+// branch's own recovered context by message digest, within its own rows) and
+// an independent body, and content supplied after the branch completes does not
+// leak into the completed archive.
+//
+// Condition C1 (ancestor ownership): an origin's messageDigest must equal
+// branchMessageDigest of the branch's own pending context message.
+// Condition C2 (body ownership): a branch body row is only accepted while
+// state.rows < descriptor.totalMessages; rows beyond the bound are rejected.
+// Condition C3 (no post-branch leak): BRANCH_HISTORY_* fed after
+// session_branch_complete is rejected (the importer throws), never absorbed.
+
+// Deterministic 64-lowercase-hex value (matches the source's hash predicate).
+const hex64 = (seed) => createHash('sha256').update('seed:' + seed).digest('hex');
+
+const start = { type: 'session_start', data: { sessionId: 's1' } };
+
+// Replicate the source's exact SHA-256 accumulation for the complete inputDigest:
+// `[start,branch` then `,event` per intermediate event then `]`.
+function computeInputDigest(branchEvent, midEvents) {
+  const d = createHash('sha256').update(
+    `[${JSON.stringify(start)},${JSON.stringify({ type: branchEvent.type, data: branchEvent.data })}`,
+  );
+  for (const ev of midEvents) d.update(`,${JSON.stringify({ type: ev.type, data: ev.data })}`);
+  d.update(']');
+  return `sha256:${d.digest('hex')}`;
+}
+
+const makeRow = (text, i) => ({
+  type: BRANCH_HISTORY_MESSAGE,
+  data: {
+    role: 'assistant',
+    text,
+    part: 0,
+    last: true,
+    sourceEventId: hex64('ev' + i + text),
+    sourceItemIndex: i,
+  },
+});
+
+const makeCtx = (i, text) => ({ type: 'user_message', data: { role: 'user', text: text ?? 'q' + i } });
+
+// Origin whose messageDigest is bound to the given context data object.
+const makeOrigin = (ctxData, first, last) => ({
+  type: BRANCH_HISTORY_ORIGIN,
+  data: { messageDigest: branchMessageDigest(ctxData), origin: { first, last } },
+});
+
+function buildImport(events) {
+  const m = createBranchHistoryImport();
+  const archives = [];
+  let completed = false;
+  for (const ev of events) {
+    const res = m.accept(ev);
+    if (res && res.kind === 'archive') archives.push(res.message.content);
+    if (res && res.kind === 'complete') {
+      completed = true;
+      break;
+    }
+  }
+  return { m, archives, completed };
+}
+
+describe('fork history ownership (verify-08)', () => {
+  const branchFor = (totalMessages, contextMessageCount, sourceGeneration) => ({
+    type: 'session_branch',
+    data: {
+      history: {
+        schema: BRANCH_HISTORY_SCHEMA,
+        sourceGeneration,
+        totalMessages,
+        contextMessageCount,
+        coverage: { kind: 'from-origin', boundaryEvent: null, reason: null },
+      },
+    },
+  });
+
+  // --- Positive: one branch recovers its two body rows and two bound ancestors ---
+  it('recovers a branch body and digest-bound ancestors and completes', () => {
+    const branch = branchFor(2, 2, hex64('gen1'));
+    const ctxA = makeCtx(0, 'q1');
+    const ctxB = makeCtx(1, 'q2');
+    const mid = [
+      makeRow('body-one', 0),
+      makeRow('body-two', 1),
+      ctxA,
+      ctxB,
+      makeOrigin(ctxA.data, 0, 0),
+      makeOrigin(ctxB.data, 1, 1),
+    ];
+    const events = [
+      start,
+      branch,
+      ...mid,
+      {
+        type: 'session_branch_complete',
+        data: { schemaVersion: 2, messageCount: 2, inputDigest: computeInputDigest(branch, mid) },
+      },
+    ];
+    const { archives, completed } = buildImport(events);
+    expect(completed).toBe(true);
+    expect(archives).toEqual(['body-one', 'body-two']);
+  });
+
+  // --- Positive: two independent forks each recover own body + own ancestor ---
+  it('keeps two forks independent in body and ancestor binding', () => {
+    const runBranch = (tag, q) => {
+      const branch = branchFor(1, 1, hex64('gen' + tag));
+      const ctx = makeCtx(0, q);
+      const mid = [makeRow(tag + '-body', 0), ctx, makeOrigin(ctx.data, 0, 0)];
+      const events = [
+        start,
+        branch,
+        ...mid,
+        {
+          type: 'session_branch_complete',
+          data: { schemaVersion: 2, messageCount: 1, inputDigest: computeInputDigest(branch, mid) },
+        },
+      ];
+      const r = buildImport(events);
+      return { ...r, originDigest: makeOrigin(ctx.data, 0, 0).data.messageDigest };
+    };
+    const a = runBranch('alpha', 'alpha-q');
+    const b = runBranch('beta', 'beta-q');
+    expect(a.completed).toBe(true);
+    expect(b.completed).toBe(true);
+    expect(a.archives).toEqual(['alpha-body']);
+    expect(b.archives).toEqual(['beta-body']);
+    // Ancestors are bound to their own fork's context, not the other's.
+    expect(a.originDigest).not.toBe(b.originDigest);
+  });
+
+  // --- Negative C1: origin digest does not match the branch's own context ---
+  it('rejects an origin whose messageDigest does not bind to the branch context', () => {
+    const branch = branchFor(1, 1, hex64('genC1'));
+    const ctx = makeCtx(0, 'q1');
+    const events = [
+      start,
+      branch,
+      makeRow('body', 0),
+      ctx,
+      { type: BRANCH_HISTORY_ORIGIN, data: { messageDigest: hex64('wrong'), origin: { first: 0, last: 0 } } },
+    ];
+    expect(() => buildImport(events)).toThrow();
+  });
+
+  // --- Negative C2: a body row beyond the branch totalMessages bound ---
+  it('rejects a branch body row that exceeds totalMessages', () => {
+    const branch = branchFor(1, 0, hex64('genC2'));
+    const events = [start, branch, makeRow('one', 0), makeRow('two', 1)];
+    expect(() => buildImport(events)).toThrow();
+  });
+
+  // --- Negative C3a: stray body message after complete is rejected ---
+  it('rejects a branch body message fed after completion (no post-branch leak)', () => {
+    const branch = branchFor(1, 1, hex64('genC3a'));
+    const ctx = makeCtx(0, 'q1');
+    const mid = [makeRow('body', 0), ctx, makeOrigin(ctx.data, 0, 0)];
+    const valid = [
+      start,
+      branch,
+      ...mid,
+      {
+        type: 'session_branch_complete',
+        data: { schemaVersion: 2, messageCount: 1, inputDigest: computeInputDigest(branch, mid) },
+      },
+    ];
+    const { m, completed, archives } = buildImport(valid);
+    expect(completed).toBe(true);
+    expect(archives).toEqual(['body']);
+    expect(() => m.accept(makeRow('stray', 1))).toThrow();
+  });
+
+  // --- Negative C3b: stray origin after complete is rejected ---
+  it('rejects a stray origin fed after completion (no post-branch leak)', () => {
+    const branch = branchFor(1, 1, hex64('genC3b'));
+    const ctx = makeCtx(0, 'q1');
+    const mid = [makeRow('body', 0), ctx, makeOrigin(ctx.data, 0, 0)];
+    const valid = [
+      start,
+      branch,
+      ...mid,
+      {
+        type: 'session_branch_complete',
+        data: { schemaVersion: 2, messageCount: 1, inputDigest: computeInputDigest(branch, mid) },
+      },
+    ];
+    const { m, completed } = buildImport(valid);
+    expect(completed).toBe(true);
+    expect(() => m.accept(makeOrigin(ctx.data, 1, 1))).toThrow();
+  });
+});

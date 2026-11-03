@@ -1,0 +1,258 @@
+import "./helpers/test-model-egress.js";
+/**
+ * verify-19 — "Cancel approval, then a late-arriving accept".
+ *
+ * Regression coverage for the interactive-approval round-trip:
+ *   - Once an approval_request has been settled (e.g. cancelled via a deny
+ *     verdict), a *later* accept verdict for the same id must be a strict
+ *     no-op: it must not authorize a new request, emit a new
+ *     approval_resolved, or green-light any blocked tool.
+ *   - A normal accept binds only to the original request it was issued for:
+ *     an approve verdict carrying a binding that matches a *different* call
+ *     is rejected (fail closed) rather than executing anything.
+ *
+ * This is exercised through the same runAgentHeadlessStream pump that a
+ * chat-panel consumer drives: approval_request is emitted on stdout and
+ * {\"type\":\"approval\",...} verdicts arrive on stdin.
+ */
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { runAgentHeadlessStream } from "../src/runtime/headless-stream.js";
+import { approvalBindingDigest } from "../src/lib/agent-authority.js";
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+describe("cancel approval, late accept must not authorize", () => {
+  beforeEach(() => {
+    process.env.CC_APPROVAL_TIMEOUT_MS = "30000";
+  });
+  afterEach(() => {
+    delete process.env.CC_APPROVAL_TIMEOUT_MS;
+  });
+
+  // A tool that requires a CONFIRM-tier decision; the injected
+  // permissionConfirm is what executeTool calls for a settings/hook `ask`.
+  const riskyConfirm = (opts) =>
+    opts.permissionConfirm({
+      tool: "run_shell",
+      command: "npm run test:unit",
+      riskLevel: "medium",
+      reason: "settings rule asks",
+    });
+
+  // Issues one RISKY confirm per turn and reports the verdict in its reply.
+  const singleConfirmLoop = async function* (messages, opts) {
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    if (/RISKY/.test(lastUser.content)) {
+      const ok = await riskyConfirm(opts);
+      yield {
+        type: "response-complete",
+        content: ok ? "executed" : "skipped (denied)",
+      };
+    } else {
+      yield { type: "response-complete", content: "plain reply" };
+    }
+    yield { type: "run-ended", reason: "complete" };
+  };
+
+  // Issues TWO distinct RISKY confirms in sequence. Used to prove that a
+  // stale accept for a cancelled first request does not auto-grant the
+  // second, unrelated request.
+  const twoConfirmLoop = async function* (messages, opts) {
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    if (!/RISKY/.test(lastUser.content)) {
+      yield { type: "response-complete", content: "plain reply" };
+      yield { type: "run-ended", reason: "complete" };
+      return;
+    }
+    const ok1 = await riskyConfirm(opts);
+    yield {
+      type: "response-complete",
+      content: ok1 ? "executed" : "skipped (denied)",
+    };
+    const ok2 = await riskyConfirm(opts);
+    yield {
+      type: "response-complete",
+      content: ok2 ? "executed" : "skipped (denied)",
+    };
+    yield { type: "run-ended", reason: "complete" };
+  };
+
+  function harness({ inputGen, agentLoop = singleConfirmLoop }) {
+    const lines = [];
+    return {
+      run: () =>
+        runAgentHeadlessStream(
+          { expandFileRefs: false, interactiveApprovals: true },
+          {
+            bootstrap: async () => ({ db: null }),
+            getApprovalGate: async () => null,
+            writeOut: (s) => lines.push(s),
+            writeErr: () => {},
+            agentLoop,
+            input: inputGen(),
+          },
+        ),
+      events: () =>
+        lines
+          .join("")
+          .trimEnd()
+          .split("\n")
+          .map((l) => JSON.parse(l)),
+    };
+  }
+
+  it("normal accept authorizes exactly the request it was issued for", async () => {
+    const expectedBinding = approvalBindingDigest({
+      toolCallId: "appr-1",
+      args: { command: "npm run test:unit" },
+      policyDigest: "medium",
+    });
+    const h = harness({
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "do the RISKY thing" }) +
+          "\n";
+        await sleep(80); // let the turn reach the confirm
+        yield JSON.stringify({
+          type: "approval",
+          id: "appr-1",
+          decision: { kind: "acceptOnce" },
+          approve: true,
+          binding: expectedBinding,
+        }) + "\n";
+      },
+    });
+    await h.run();
+
+    const req = h.events().find((e) => e.type === "approval_request");
+    expect(req).toMatchObject({ id: "appr-1", binding: expectedBinding });
+    // Exactly one request and exactly one resolution for the accept.
+    expect(
+      h.events().filter((e) => e.type === "approval_request"),
+    ).toHaveLength(1);
+    const resolved = h
+      .events()
+      .filter((e) => e.type === "approval_resolved" && e.id === "appr-1");
+    expect(resolved).toHaveLength(1);
+    expect(resolved[0]).toMatchObject({
+      id: "appr-1",
+      approved: true,
+      via: "user-approve",
+    });
+    expect(h.events().find((e) => e.type === "result").result).toBe(
+      "executed",
+    );
+  });
+
+  it("late accept after a cancel is a no-op and cannot authorize a new request", async () => {
+    const h = harness({
+      agentLoop: twoConfirmLoop,
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "do the RISKY thing" }) +
+          "\n";
+        await sleep(80); // reach the first confirm (appr-1)
+        // Cancel the first request with a deny verdict.
+        yield JSON.stringify({
+          type: "approval",
+          id: "appr-1",
+          approve: false,
+        }) + "\n";
+        await sleep(80); // appr-1 settles (deny), first turn skipped
+        // A late-arriving accept for the *cancelled* id: must be ignored.
+        yield JSON.stringify({
+          type: "approval",
+          id: "appr-1",
+          approve: true,
+        }) + "\n";
+        await sleep(80); // loop issues the second RISKY confirm (appr-2)
+        // The second, distinct request still needs its own fresh verdict.
+        yield JSON.stringify({
+          type: "approval",
+          id: "appr-2",
+          approve: false,
+        }) + "\n";
+      },
+    });
+    await h.run();
+
+    const requests = h.events().filter((e) => e.type === "approval_request");
+    expect(requests.map((r) => r.id)).toEqual(["appr-1", "appr-2"]);
+    expect(requests).toHaveLength(2);
+
+    // appr-1: only the deny resolution — the late accept produced nothing.
+    const resolved1 = h
+      .events()
+      .filter((e) => e.type === "approval_resolved" && e.id === "appr-1");
+    expect(resolved1).toHaveLength(1);
+    expect(resolved1[0]).toMatchObject({
+      id: "appr-1",
+      approved: false,
+      via: "user-deny",
+    });
+
+    // appr-2 was NOT auto-granted by the stale accept for appr-1: it needed
+    // its own deny verdict to be settled, and it was not authorized.
+    const resolved2 = h
+      .events()
+      .filter((e) => e.type === "approval_resolved" && e.id === "appr-2");
+    expect(resolved2).toHaveLength(1);
+    expect(resolved2[0]).toMatchObject({
+      id: "appr-2",
+      approved: false,
+      via: "user-deny",
+    });
+
+    // No approval_resolved is emitted with approved:true anywhere.
+    expect(
+      h.events().some((e) => e.type === "approval_resolved" && e.approved),
+    ).toBe(false);
+
+    const results = h
+      .events()
+      .filter((e) => e.type === "result")
+      .map((e) => e.result);
+    expect(results).toEqual(["skipped (denied)", "skipped (denied)"]);
+  });
+
+  it("a normal accept binds only to the original request (cross-call binding mismatch is rejected)", async () => {
+    // A binding computed for a *different* tool call than the one the request
+    // advertised (same id, different arguments) must be rejected.
+    const foreignBinding = approvalBindingDigest({
+      toolCallId: "appr-1",
+      args: { command: "rm -rf /" },
+      policyDigest: "medium",
+    });
+    const h = harness({
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "do the RISKY thing" }) +
+          "\n";
+        await sleep(80);
+        yield JSON.stringify({
+          type: "approval",
+          id: "appr-1",
+          decision: { kind: "acceptOnce" },
+          approve: true,
+          binding: foreignBinding,
+        }) + "\n";
+      },
+    });
+    await h.run();
+
+    const req = h.events().find((e) => e.type === "approval_request");
+    expect(req.binding).toMatch(/^ab_/);
+    expect(req.binding).not.toBe(foreignBinding);
+
+    const resolved = h
+      .events()
+      .filter((e) => e.type === "approval_resolved" && e.id === "appr-1");
+    expect(resolved).toHaveLength(1);
+    expect(resolved[0]).toMatchObject({
+      id: "appr-1",
+      approved: false,
+      via: "binding-mismatch",
+    });
+    // The mismatched accept did not execute anything.
+    expect(h.events().find((e) => e.type === "result").result).toBe(
+      "skipped (denied)",
+    );
+  });
+});

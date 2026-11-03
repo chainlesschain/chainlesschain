@@ -1,0 +1,65 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  agentPrintArgument,
+  canonicalizeBackgroundSessionArgv,
+  transformBackgroundLaunchArgv,
+} from "../src/lib/background-command-argv.js";
+
+const OPTION_SPECS = [
+  { long: "--model", required: true },
+  { long: "--session", required: true },
+  { long: "--resume", optional: true },
+  { short: "-p", long: "--print", optional: true },
+];
+
+describe("background argv space/quoted argument integrity", () => {
+  it("keeps spaces and embedded quotes inside one print token", () => {
+    const prompt = 'say "hello world"';
+    // The whole prompt stays a single argv token: one "--print=" element
+    // whose payload is the exact bytes of the prompt, quote characters
+    // included, with no separator whitespace inserted.
+    expect(agentPrintArgument(prompt)).toBe('--print=say "hello world"');
+  });
+
+  it("preserves an empty argument as an intact print token", () => {
+    expect(agentPrintArgument("")).toBe("--print=");
+  });
+
+  it("does not expand shell metacharacters inside the print payload", () => {
+    const shellLike = "$HOME `date` * & |";
+    // The returned element is exactly the raw payload; no substitution or
+    // word-splitting is performed, so nothing shell-expands at the boundary.
+    expect(agentPrintArgument(shellLike)).toBe(
+      "--print=$HOME `date` * & |",
+    );
+  });
+
+  it("keeps a required option value containing spaces as one argv element", () => {
+    expect(
+      canonicalizeBackgroundSessionArgv(
+        ["agent", "--model", "my model name", "--session", "s"],
+        { sessionId: "resolved", optionSpecs: OPTION_SPECS },
+      ),
+    ).toEqual(["agent", "--model", "my model name", "--session", "resolved"]);
+  });
+
+  it("keeps an operand containing spaces intact during background launch transform", () => {
+    expect(
+      transformBackgroundLaunchArgv(
+        ["agent", "path with spaces/file.txt", "--session", "s"],
+        { optionSpecs: OPTION_SPECS, commandNames: ["agent", "a"] },
+      ),
+    ).toEqual(["agent", "path with spaces/file.txt", "--session", "s"]);
+  });
+
+  it("inserts a directory with spaces as a single add-dir token", () => {
+    expect(
+      transformBackgroundLaunchArgv(["agent"], {
+        directories: ["/a dir/sub dir"],
+        optionSpecs: OPTION_SPECS,
+        commandNames: ["agent", "a"],
+      }),
+    ).toEqual(["agent", "--add-dir", "/a dir/sub dir"]);
+  });
+});

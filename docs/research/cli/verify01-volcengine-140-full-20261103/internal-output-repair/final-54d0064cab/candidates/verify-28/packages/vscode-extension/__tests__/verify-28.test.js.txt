@@ -1,0 +1,129 @@
+import { describe, expect, it } from "vitest";
+import { Window } from "happy-dom";
+import { createQuestionForms } from "../src/chat/question-form-drafts.js";
+
+// Independent regression coverage for "late load does not overwrite edits".
+// Production path exercised: createQuestionForms().attach / .receive against a
+// happy-dom document and a VS Code api stub (getState/setState/postMessage).
+
+function module(m, html, draftFields, { backup = {} } = {}) {
+  const window = new Window({
+    settings: {
+      enableJavaScriptEvaluation: true,
+      disableCSSFileLoading: true,
+      disableJavaScriptFileLoading: true,
+    },
+  });
+  const sent = [];
+  let state = backup;
+  const vscode = {
+    getState: () => state,
+    setState: (v) => {
+      state = v;
+    },
+    postMessage: (m) => sent.push(m),
+  };
+  const card = window.document.createElement("div");
+  card.innerHTML = html;
+  const forms = createQuestionForms({
+    document: window.document,
+    vscode,
+  });
+  forms.attach(card, { ...m, draftFields });
+  return { window, card, sent, forms };
+}
+
+const textMeta = {
+  questionInstance: "q1",
+  questionKey: "k1",
+  draftKey: "d1",
+  convId: "c1",
+  questionState: "draft",
+  draftStorage: true,
+  draftFields: [{ key: "answer", kind: "text" }],
+};
+
+const mixedMeta = {
+  questionInstance: "q2",
+  questionKey: "k2",
+  draftKey: "d2",
+  convId: "c2",
+  questionState: "draft",
+  draftStorage: true,
+  draftFields: [
+    { key: "color", kind: "select" },
+    { key: "consent", kind: "checkbox" },
+  ],
+};
+
+describe("late draft load does not overwrite edits", () => {
+  it("keeps a user edit when a late snapshot returns after the edit", () => {
+    const h = module(textMeta, "<input/>", textMeta.draftFields);
+    const input = h.card.querySelector("input");
+    input.value = "typed after load started";
+    input.dispatchEvent(new h.window.Event("input"));
+    expect(h.sent.at(-1)).toMatchObject({ type: "questionDraftUpdate" });
+    // Late recovery resolves; the draft fields it carries are stale.
+    h.forms.receive({
+      ...textMeta,
+      kind: "questionDraftSnapshot",
+      state: "draft",
+      fields: [{ key: "answer", value: "stale host copy" }],
+    });
+    expect(input.value).toBe("typed after load started");
+  });
+
+  it("applies the host snapshot when no newer edit exists", () => {
+    const h = module(textMeta, "<input/>", textMeta.draftFields);
+    h.forms.receive({
+      ...textMeta,
+      kind: "questionDraftSnapshot",
+      state: "draft",
+      fields: [{ key: "answer", value: "stale host copy" }],
+    });
+    expect(h.card.querySelector("input").value).toBe("stale host copy");
+  });
+});
+
+describe("select/checkbox declaration order preserved on restore", () => {
+  const html =
+    '<select><option value="red">Red</option><option value="blue">Blue</option>' +
+    "</select><input type=\"checkbox\"/>";
+
+  it("assigns checkbox and select by declared role regardless of field order", () => {
+    const h = module(mixedMeta, html, mixedMeta.draftFields);
+    h.forms.receive({
+      ...mixedMeta,
+      kind: "questionDraftSnapshot",
+      state: "draft",
+      // Fields arrive in reverse declaration order on purpose.
+      fields: [
+        { key: "consent", value: true },
+        { key: "color", value: "blue" },
+      ],
+    });
+    const [select, checkbox] = h.card.querySelectorAll(
+      "select,input[type=checkbox]",
+    );
+    expect(select.value).toBe("blue");
+    expect(checkbox.checked).toBe(true);
+  });
+
+  it("does not mark a checkbox checked from a non-boolean value, yet restores the select", () => {
+    const h = module(mixedMeta, html, mixedMeta.draftFields);
+    h.forms.receive({
+      ...mixedMeta,
+      kind: "questionDraftSnapshot",
+      state: "draft",
+      fields: [
+        { key: "color", value: "blue" },
+        { key: "consent", value: "true" },
+      ],
+    });
+    const [select, checkbox] = h.card.querySelectorAll(
+      "select,input[type=checkbox]",
+    );
+    expect(select.value).toBe("blue");
+    expect(checkbox.checked).toBe(false);
+  });
+});

@@ -1,0 +1,1636 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000,
+    "connectionAttemptTimeoutMs": 10000,
+    "parallelToolCalls": null,
+    "preserveExplicitOutputLimits": true
+  },
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:cea1a2ff4e14a002be1700446ebe97bc7640a79ad6d778839f71bb938a2d25af",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+  "actualPlatform": "win32",
+  "actualArch": "x64",
+  "actualEntry": "vscode",
+  "changeReview": {
+    "requested": true,
+    "observed": true
+  },
+  "startedAt": "2026-11-03T13:09:50.522Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-29",
+      "taskId": "verify-29",
+      "kind": "task",
+      "runId": "b1ff69bd-129a-49f3-9c9a-88b6ccd13aee",
+      "stratum": "win32-vscode-volcengine",
+      "declaredActualEntry": {
+        "platform": "win32",
+        "entry": "vscode"
+      },
+      "actualPlatform": "win32",
+      "actualEntry": "vscode",
+      "changeReview": {
+        "requested": true,
+        "observed": true,
+        "reminderCount": 1,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-29.test.js"
+      ],
+      "startedAt": "2026-11-03T13:09:51.074Z",
+      "deadline": "2026-11-03T13:49:51.074Z",
+      "candidates": [
+        {
+          "file": "packages/vscode-extension/__tests__/verify-29.test.js",
+          "path": "verify-29/candidate/packages/vscode-extension/__tests__/verify-29.test.js",
+          "digest": "sha256:956fcf53912095376cb5c2751b23ecba796df111a53b4759506005011df05db2",
+          "bytes": 3869
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [],
+      "unexpectedChanges": [],
+      "generationPassed": true,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T13:10:25.067Z",
+        "finishedAt": "2026-11-03T13:13:55.173Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "verify-29",
+        "locked": {
+          "version": "0.166.140",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+          "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "capturePath": "verify-29/capture",
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 66303,
+            "outputTokens": 6779,
+            "cacheReadInputTokens": 150528,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-9125b05c-204b-4607-8c4e-f6361b2bb9c9",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "4a90826e-db6c-46d4-ba98-91065883e2e7",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_h5fd7e0z75vq257otnyqmr8p",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/permission-mode-state.js"
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_f9jp374713g3our2g7849lhb",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/vscode-ext-chat-mode.test.js"
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 8
+          },
+          {
+            "type": "tool_use",
+            "id": "call_d4qwqu02f22v3yvcgdw2sld7",
+            "tool": "list_dir",
+            "args": {
+              "path": "packages/vscode-extension/__tests__"
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 12
+          },
+          {
+            "type": "tool_use",
+            "id": "call_3fenclhlbf423vzaw4rbsli1",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-29.test.js"
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 16
+          },
+          {
+            "type": "tool_use",
+            "id": "call_e75x2l6ajhcbymq5gkuhqtk0",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-29.test.js",
+              "content": "/**\n * Mode-ACK association (verify-29) — behavioral regression for\n * `acceptModeAcknowledgement` in permission-mode-state.js.\n *\n * Contract: an ACK is only trusted when its correlation/session generation\n * matches the current mode request. A stale/foreign ACK must be rejected\n * WITHOUT displaying the new mode as effective; a malformed ACK must also\n * never surface an effective mode.\n */\nimport { describe, it, expect } from \"vitest\";\nimport * as stateMod from \"../src/chat/permission-mode-state.js\";\n\nconst { acceptModeAcknowledgement } = stateMod.default || stateMod;\n\nfunction makeConv(overrides = {}) {\n  return {\n    mode: \"bypassPermissions\",\n    modeRequestId: \"req-1\",\n    sessionId: \"sess-1\",\n    modeStatus: \"pending\",\n    effectiveMode: null,\n    policyRevision: null,\n    modeError: \"\",\n    ...overrides,\n  };\n}\n\nfunction validEvent() {\n  return {\n    session_id: \"sess-1\",\n    permission_mode_state: {\n      correlation_id: \"req-1\",\n      requested: \"bypassPermissions\",\n      effective: \"bypassPermissions\",\n      policy_revision: \"a\".repeat(16),\n    },\n  };\n}\n\nfunction apply(event, overrides = {}) {\n  return {\n    ...event,\n    session_id: overrides.session_id ?? event.session_id,\n    permission_mode_state: {\n      ...event.permission_mode_state,\n      ...overrides,\n    },\n  };\n}\n\ndescribe(\"acceptModeAcknowledgement — mode ACK association\", () => {\n  it(\"accepts a correlated, well-formed ACK and surfaces the effective mode\", () => {\n    const conv = makeConv();\n    expect(acceptModeAcknowledgement(conv, validEvent())).toBe(true);\n    expect(conv).toMatchObject({\n      modeStatus: \"effective\",\n      effectiveMode: \"bypassPermissions\",\n      policyRevision: \"a\".repeat(16),\n      modeError: \"\",\n    });\n  });\n\n  it(\"rejects a stale correlation ACK without showing the new mode effective\", () => {\n    const conv = makeConv();\n    // Only the correlation generation differs; every other prerequisite is valid.\n    const stale = apply(validEvent(), { correlation_id: \"old-req\" });\n    expect(acceptModeAcknowledgement(conv, stale)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"pending\");\n    expect(conv.modeError).toBe(\"\");\n  });\n\n  it(\"rejects an ACK for a different session without showing the new mode effective\", () => {\n    const conv = makeConv();\n    const foreign = apply(validEvent(), { session_id: \"sess-other\" });\n    expect(acceptModeAcknowledgement(conv, foreign)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"pending\");\n    expect(conv.modeError).toBe(\"\");\n  });\n\n  it(\"rejects an ACK whose requested mode differs from the conversation's\", () => {\n    const conv = makeConv();\n    const mismatched = apply(validEvent(), { requested: \"acceptEdits\" });\n    expect(acceptModeAcknowledgement(conv, mismatched)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"unconfirmed\");\n    expect(conv.modeError).toContain(\"not confirmed\");\n  });\n\n  it(\"rejects an ACK whose effective mode is not an allowed MODE\", () => {\n    const conv = makeConv();\n    const badMode = apply(validEvent(), { effective: \"nonsense\" });\n    expect(acceptModeAcknowledgement(conv, badMode)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"unconfirmed\");\n  });\n\n  it(\"rejects an ACK whose policy revision is malformed\", () => {\n    const conv = makeConv();\n    const badRevision = apply(validEvent(), { policy_revision: \"xyz\" });\n    expect(acceptModeAcknowledgement(conv, badRevision)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"unconfirmed\");\n  });\n});\n"
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 20
+          },
+          {
+            "type": "tool_use",
+            "id": "call_d8cvhblcv7ch3vea6eczj4j3",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-29.test.js"
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 24
+          },
+          {
+            "type": "tool_use",
+            "id": "call_w6ilflz0no9447c9er82o83g",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/permission-mode-state.js"
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 31
+          },
+          {
+            "type": "tool_use",
+            "id": "call_1hxeth31eeqh4ktd055chd2w",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-29.test.js"
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 33
+          },
+          {
+            "type": "tool_use",
+            "id": "call_bnlq2o0yta1gnij94rdzej4l",
+            "tool": "edit_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-29.test.js",
+              "old_string": "  it(\"rejects an ACK whose policy revision is malformed\", () => {\n    const conv = makeConv();\n    const badRevision = apply(validEvent(), { policy_revision: \"xyz\" });\n    expect(acceptModeAcknowledgement(conv, badRevision)).toBe(false);",
+              "new_string": "  it(\"rejects an ACK whose policy revision is below the hex length boundary\", () => {\n    const conv = makeConv();\n    // 15 hex chars is the first value rejected by the /^[a-f0-9]{16,64}$/ guard;\n    // the valid baseline uses exactly 16 (the accepted boundary).\n    const badRevision = apply(validEvent(), { policy_revision: \"a\".repeat(15) });\n    expect(acceptModeAcknowledgement(conv, badRevision)).toBe(false);"
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 37
+          },
+          {
+            "type": "tool_use",
+            "id": "call_lxf1gvka5enx9a8uvebcqpel",
+            "tool": "search_files",
+            "args": {
+              "pattern": "acceptModeAcknowledgement",
+              "path": "packages/vscode-extension/src/chat/permission-mode-state.js",
+              "contextChars": 400
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 41
+          },
+          {
+            "type": "tool_use",
+            "id": "call_8zq6luzj678ggu8z4pyu2fnj",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-29.test.js",
+              "offset": 78,
+              "limit": 20
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 45
+          },
+          {
+            "type": "tool_use",
+            "id": "call_49yoa3ma6uvp84ypnh7nkcaf",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-29.test.js",
+              "offset": 98,
+              "limit": 15
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 51
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_h5fd7e0z75vq257otnyqmr8p",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9V2h6W\\b1ff69bd-129a-49f3-9c9a-88b6ccd13aee\\workspace\\packages\\vscode-extension\\src\\chat\\permission-mode-state.js",
+              "fileVersion": "1302:1793711422188.5354:1793711422188.5354",
+              "readSpan": {
+                "start": 0,
+                "end": 1302,
+                "total": 1302
+              },
+              "hashed": false,
+              "content": "const MODES = new Set([\n  \"default\",\n  \"acceptEdits\",\n  \"auto\",\n  \"bypassPermissions\",\n  \"dontAsk\",\n  \"plan\",\n]);\n\nfunction modeState(conv) {\n  return {\n    requested: conv.mode || \"default\",\n    effective: conv.effectiveMode || null,\n    status: conv.modeStatus || \"pending\",\n    policyRevision: conv.policyRevision || null,\n    reason: conv.modeError || \"\",\n  };\n}\n\n/** ACK is display evidence, never a replacement for the CLI permission gate. */\nfunction acceptModeAcknowledgement(conv, event) {\n  const ack = event?.permission_mode_state;\n  if (\n    ack &&\n    (ack.correlation_id !== conv.modeRequestId ||\n      event.session_id !== conv.sessionId)\n  )\n    return false;\n  if (\n    !ack ||\n    ack.correlation_id !== conv.modeRequestId ||\n    ack.requested !== conv.mode ||\n    !MODES.has(ack.effective) ||\n    typeof ack.policy_revision !== \"string\" ||\n    !/^[a-f0-9]{16,64}$/.test(ack.policy_revision)\n  ) {\n    conv.modeStatus = \"unconfirmed\";\n    conv.modeError =\n      \"The CLI has not confirmed its effective approval mode. Update the CLI if needed.\";\n    return false;\n  }\n  conv.effectiveMode = ack.effective;\n  conv.policyRevision = ack.policy_revision;\n  conv.modeStatus = \"effective\";\n  conv.modeError = \"\";\n  return true;\n}\n\nmodule.exports = { modeState, acceptModeAcknowledgement };\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711687939,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/permission-mode-state.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 10,
+                "sessionId": "panel-9125b05c-204b-4607-8c4e-f6361b2bb9c9",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/permission-mode-state.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_h5fd7e0z75vq257otnyqmr8p",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 7
+          },
+          {
+            "type": "tool_result",
+            "id": "call_f9jp374713g3our2g7849lhb",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9V2h6W\\b1ff69bd-129a-49f3-9c9a-88b6ccd13aee\\workspace\\packages\\cli\\__tests__\\unit\\vscode-ext-chat-mode.test.js",
+              "fileVersion": "14673:1793711417635.225:1793711417635.225",
+              "readSpan": {
+                "start": 0,
+                "end": 14645,
+                "total": 14645
+              },
+              "hashed": false,
+              "content": "/**\n * Panel approval-mode selector (`/auto` · `/bypass` · `/normal`) — Claude-Code\n * auto-accept/bypass parity. Covers the pure arg builder, the conversation\n * model field, and the ChatViewProvider orchestration (mode set → child\n * restart → the next spawn carries `--permission-mode`). All headless in the\n * CLI suite (no vscode host; injected createSession + fake window).\n */\nimport { describe, it, expect } from \"vitest\";\nimport { ChatViewProvider } from \"../../../vscode-extension/src/chat/chat-view.js\";\nimport {\n  buildSessionArgs,\n  PERMISSION_MODES,\n} from \"../../../vscode-extension/src/chat/chat-events.js\";\nimport { ConversationManager } from \"../../../vscode-extension/src/chat/conversation-manager.js\";\nimport { createModeStatusBar } from \"../../../vscode-extension/src/ui/status-bar.js\";\nimport * as slashMod from \"../../../vscode-extension/src/chat/slash-commands.js\";\n\nconst slash = slashMod.default || slashMod;\n\ndescribe(\"buildSessionArgs — permission mode\", () => {\n  it(\"emits --permission-mode for the hands-off modes\", () => {\n    expect(buildSessionArgs({ mode: \"acceptEdits\" })).toEqual([\n      \"--permission-mode\",\n      \"acceptEdits\",\n    ]);\n    expect(buildSessionArgs({ mode: \"bypassPermissions\" })).toEqual([\n      \"--permission-mode\",\n      \"bypassPermissions\",\n    ]);\n  });\n\n  it(\"omits the flag for default / unset / unknown modes\", () => {\n    expect(buildSessionArgs({})).toEqual([]);\n    expect(buildSessionArgs({ mode: \"default\" })).toEqual([]);\n    expect(buildSessionArgs({ mode: \"nonsense\" })).toEqual([]);\n    expect(buildSessionArgs({ mode: \"\" })).toEqual([]);\n  });\n\n  it(\"composes mode after model/provider/resume\", () => {\n    expect(\n      buildSessionArgs({\n        provider: \"ollama\",\n        model: \"qwen2.5:7b\",\n        resume: \"sess-1\",\n        mode: \"acceptEdits\",\n      }),\n    ).toEqual([\n      \"--provider\",\n      \"ollama\",\n      \"--model\",\n      \"qwen2.5:7b\",\n      \"--resume\",\n      \"sess-1\",\n      \"--permission-mode\",\n      \"acceptEdits\",\n    ]);\n  });\n\n  it(\"PERMISSION_MODES is the allow-list (no 'default')\", () => {\n    expect(PERMISSION_MODES.has(\"acceptEdits\")).toBe(true);\n    expect(PERMISSION_MODES.has(\"bypassPermissions\")).toBe(true);\n    expect(PERMISSION_MODES.has(\"plan\")).toBe(true);\n    expect(PERMISSION_MODES.has(\"default\")).toBe(false);\n  });\n});\n\ndescribe(\"ConversationManager — mode field\", () => {\n  it(\"defaults to 'default' and round-trips through setMode + list()\", () => {\n    const cm = new ConversationManager({});\n    const c = cm.create({});\n    expect(c.mode).toBe(\"default\");\n    cm.setMode(c.id, \"acceptEdits\");\n    expect(cm.get(c.id).mode).toBe(\"acceptEdits\");\n    expect(cm.list()[0].mode).toBe(\"acceptEdits\");\n    // falsy → back to default (never an empty mode)\n    cm.setMode(c.id, \"\");\n    expect(cm.get(c.id).mode).toBe(\"default\");\n  });\n});\n\n// --- ChatViewProvider._setMode orchestration ---\n\nfunction makeMemento(seed = {}) {\n  const m = new Map(Object.entries(seed));\n  return {\n    get: (k) => (m.has(k) ? m.get(k) : null),\n    update: (k, v) => m.set(k, v),\n  };\n}\n\nfunction makeProvider() {\n  const posted = [];\n  const spawns = [];\n  const commandCalls = [];\n  const vscode = {\n    commands: {\n      executeCommand(id) {\n        commandCalls.push(id);\n        return Promise.resolve();\n      },\n    },\n    window: {},\n    workspace: {\n      workspaceFolders: [{ uri: { fsPath: \"/ws\" } }],\n      getConfiguration: () => ({ get: () => undefined }),\n    },\n  };\n  const createSession = (cfg) => {\n    const s = {\n      cfg,\n      running: true,\n      send: () => true,\n      sendEvent: () => true,\n      stop() {\n        this.running = false;\n      },\n      stopAndWait() {\n        this.stop();\n        return Promise.resolve();\n      },\n    };\n    spawns.push(s);\n    return s;\n  };\n  const provider = new ChatViewProvider(vscode, {\n    deps: { createSession },\n    state: makeMemento({}),\n  });\n  provider.view = {\n    webview: { postMessage: (msg) => (posted.push(msg), Promise.resolve()) },\n  };\n  return { provider, posted, spawns, commandCalls };\n}\n\nconst lastPost = (posted) => posted[posted.length - 1];\n\ndescribe(\"ChatViewProvider — approval mode\", () => {\n  function ack(session, overrides = {}) {\n    session.cfg.onEvent({\n      type: \"system\",\n      subtype: \"init\",\n      session_id: session.cfg.args[session.cfg.args.indexOf(\"--resume\") + 1],\n      permission_mode_state: {\n        correlation_id: session.cfg.env.CC_IDE_MODE_REQUEST_ID,\n        requested: session.cfg.env.CC_IDE_REQUESTED_MODE,\n        effective: session.cfg.env.CC_IDE_REQUESTED_MODE,\n        policy_revision: \"a\".repeat(16),\n        ...overrides,\n      },\n    });\n  }\n\n  it(\"waits for a correlated runtime ACK, including a policy override\", () => {\n    const { provider, spawns } = makeProvider();\n    provider._setMode(\"bypassPermissions\");\n    provider._handleMessage({ type: \"send\", text: \"hi\" });\n    const conv = provider._activeConv();\n    expect(conv.modeStatus).toBe(\"pending\");\n    ack(spawns[0], { correlation_id: \"wrong-child\" });\n    expect(conv.effectiveMode).toBeUndefined();\n    ack(spawns[0], { effective: \"default\" });\n    expect(conv).toMatchObject({\n      mode: \"bypassPermissions\",\n      effectiveMode: \"default\",\n      modeStatus: \"effective\",\n      policyRevision: \"a\".repeat(16),\n    });\n  });\n\n  it(\"does not respawn while the old process is stopping or after stop failure\", async () => {\n    const { provider, spawns, posted } = makeProvider();\n    provider._handleMessage({ type: \"send\", text: \"hi\" });\n    ack(spawns[0], { effective: \"bypassPermissions\" });\n    let rejectStop;\n    spawns[0].stopAndWait = () =>\n      new Promise((_resolve, reject) => {\n        rejectStop = reject;\n      });\n    provider._setMode(\"default\");\n    provider._handleMessage({ type: \"send\", text: \"during stop\" });\n    expect(spawns).toHaveLength(1);\n    expect(provider._activeConv().effectiveMode).toBe(\"bypassPermissions\");\n    rejectStop(new Error(\"taskkill failed\"));\n    await Promise.resolve();\n    expect(provider._activeConv().modeStatus).toBe(\"failed\");\n    provider._handleMessage({ type: \"send\", text: \"after failure\" });\n    expect(spawns).toHaveLength(1);\n    expect(posted.some((m) => m.text?.includes(\"taskkill failed\"))).toBe(true);\n  });\n\n  it(\"ignores old child ACKs, reports older CLI and synchronous spawn failure\", async () => {\n    const { provider, spawns } = makeProvider();\n    provider._handleMessage({ type: \"send\", text: \"hi\" });\n    spawns[0].cfg.onEvent({ type: \"system\", subtype: \"init\" });\n    expect(provider._activeConv().modeStatus).toBe(\"unconfirmed\");\n    provider._setMode(\"acceptEdits\");\n    ack(spawns[0]);\n    expect(provider._activeConv().modeStatus).toBe(\"pending\");\n    await Promise.resolve();\n    provider._createSession = () => {\n      throw new Error(\"spawn denied\");\n    };\n    provider._handleMessage({ type: \"send\", text: \"retry\" });\n    expect(provider._activeConv()).toMatchObject({\n      effectiveMode: null,\n      modeStatus: \"failed\",\n      modeError: \"spawn denied\",\n    });\n  });\n\n  it(\"sets the active conversation's mode and acknowledges (no live child)\", () => {\n    const { provider, posted } = makeProvider();\n    provider._handleMessage({ type: \"mode\", mode: \"acceptEdits\" });\n    expect(provider._activeConv().mode).toBe(\"acceptEdits\");\n    expect(lastPost(posted)).toMatchObject({\n      kind: \"info\",\n      text: expect.stringContaining(\"auto-accept edits\"),\n    });\n    expect(lastPost(posted).text).toContain(\"waiting for CLI confirmation\");\n    expect(provider._activeConv().effectiveMode).toBeUndefined();\n  });\n\n  it(\"stops the live child so the next turn respawns with the new mode\", async () => {\n    const { provider, posted, spawns } = makeProvider();\n    // First turn spawns a child in default mode (no flag).\n    provider._handleMessage({ type: \"send\", text: \"hi\" });\n    expect(spawns).toHaveLength(1);\n    expect(spawns[0].cfg.args).not.toContain(\"--permission-mode\");\n    expect(spawns[0].running).toBe(true);\n\n    // Switch to bypass: the live child is stopped, ack mentions next message.\n    provider._handleMessage({ type: \"mode\", mode: \"bypassPermissions\" });\n    expect(spawns[0].running).toBe(false);\n    expect(lastPost(posted).text).toContain(\"next message\");\n    await Promise.resolve();\n\n    // Next turn respawns carrying the flag, resuming nothing new (same conv).\n    provider._handleMessage({ type: \"send\", text: \"again\" });\n    expect(spawns).toHaveLength(2);\n    expect(spawns[1].cfg.args).toEqual(\n      expect.arrayContaining([\"--permission-mode\", \"bypassPermissions\"]),\n    );\n  });\n\n  it(\"rejects an unknown mode without touching the conversation\", () => {\n    const { provider, posted } = makeProvider();\n    provider._handleMessage({ type: \"mode\", mode: \"wat\" });\n    expect(provider._activeConv().mode).toBe(\"default\");\n    expect(lastPost(posted)).toMatchObject({\n      kind: \"info\",\n      text: expect.stringContaining(\"unknown mode\"),\n    });\n  });\n});\n\ndescribe(\"ChatViewProvider — Configure LLM reloads running children\", () => {\n  it(\"runs the wizard then restarts the live child so it picks up new config\", async () => {\n    const { provider, posted, spawns, commandCalls } = makeProvider();\n    // A child is already running with the OLD (broken) config.\n    provider._handleMessage({ type: \"send\", text: \"hi\" });\n    expect(spawns).toHaveLength(1);\n    expect(spawns[0].running).toBe(true);\n\n    // Configure LLM: opens the wizard, then (once it closes) stops the child.\n    provider._handleMessage({ type: \"configureLlm\" });\n    expect(commandCalls).toContain(\"chainlesschain.llm.configure\");\n    // Reload is chained off the wizard promise — flush microtasks.\n    await Promise.resolve();\n    await Promise.resolve();\n    await Promise.resolve();\n    expect(spawns[0].running).toBe(false);\n    expect(lastPost(posted)).toMatchObject({\n      kind: \"info\",\n      text: expect.stringContaining(\"LLM config updated\"),\n    });\n    expect(lastPost(posted).text).toContain(\"next message\");\n\n    // Next turn respawns a FRESH child (reads the updated config.json).\n    provider._handleMessage({ type: \"send\", text: \"again\" });\n    expect(spawns).toHaveLength(2);\n    expect(spawns[1].running).toBe(true);\n  });\n\n  it(\"acknowledges with no 'next message' qualifier when no child is running\", async () => {\n    const { provider, posted, commandCalls } = makeProvider();\n    provider._handleMessage({ type: \"configureLlm\" });\n    expect(commandCalls).toContain(\"chainlesschain.llm.configure\");\n    await Promise.resolve();\n    await Promise.resolve();\n    expect(lastPost(posted)).toMatchObject({\n      kind: \"info\",\n      text: expect.stringContaining(\"LLM config updated\"),\n    });\n    expect(lastPost(posted).text).not.toContain(\"next message\");\n  });\n});\n\ndescribe(\"createModeStatusBar — render\", () => {\n  function makeStatusVscode() {\n    const item = {\n      text: \"\",\n      tooltip: \"\",\n      backgroundColor: \"UNSET\",\n      command: null,\n      show: () => {},\n      dispose: () => {},\n    };\n    const vscode = {\n      StatusBarAlignment: { Right: 2 },\n      ThemeColor: class ThemeColor {\n        constructor(id) {\n          this.id = id;\n        }\n      },\n      l10n: {\n        t: (m, ...a) =>\n          String(m).replace(/\\{(\\d+)\\}/g, (x, i) =>\n            a[i] != null ? String(a[i]) : x,\n          ),\n      },\n      window: { createStatusBarItem: () => item },\n    };\n    return { vscode, item };\n  }\n\n  it(\"highlights bypass with the warning background\", () => {\n    const { vscode, item } = makeStatusVscode();\n    createModeStatusBar(vscode).render(\"bypassPermissions\");\n    expect(item.text).toContain(\"bypass\");\n    expect(item.backgroundColor).toBeInstanceOf(vscode.ThemeColor);\n    expect(item.backgroundColor.id).toBe(\"statusBarItem.warningBackground\");\n  });\n\n  it(\"shows auto-accept and normal without a warning background\", () => {\n    const { vscode, item } = makeStatusVscode();\n    const bar = createModeStatusBar(vscode);\n    bar.render(\"acceptEdits\");\n    expect(item.text).toContain(\"auto-accept\");\n    expect(item.backgroundColor).toBeUndefined();\n    bar.render(\"default\");\n    expect(item.text).toContain(\"approvals\");\n    expect(item.backgroundColor).toBeUndefined();\n  });\n\n  it(\"never labels a pending/failed tightening as normal approvals\", () => {\n    const { vscode, item } = makeStatusVscode();\n    const bar = createModeStatusBar(vscode);\n    bar.render({\n      requested: \"default\",\n      effective: \"bypassPermissions\",\n      status: \"pending\",\n    });\n    expect(item.text).toContain(\"unconfirmed\");\n    expect(item.tooltip).toContain(\"bypassPermissions\");\n    expect(item.backgroundColor).toBeInstanceOf(vscode.ThemeColor);\n    bar.render({\n      requested: \"default\",\n      effective: \"bypassPermissions\",\n      status: \"failed\",\n      reason: \"stop timeout\",\n    });\n    expect(item.text).toContain(\"failed\");\n    expect(item.tooltip).toContain(\"stop timeout\");\n  });\n});\n\ndescribe(\"ChatViewProvider — status-bar mode indicator wiring\", () => {\n  it(\"re-renders the indicator on mode change and tab refresh\", () => {\n    const { provider } = makeProvider();\n    const renders = [];\n    provider._modeStatus = {\n      render: (m) => renders.push(m),\n      item: { dispose: () => {} },\n    };\n    // mode change → render with the new mode\n    provider._handleMessage({ type: \"mode\", mode: \"bypassPermissions\" });\n    expect(renders).toContainEqual(\n      expect.objectContaining({\n        requested: \"bypassPermissions\",\n        effective: null,\n        status: \"pending\",\n      }),\n    );\n    // a tab refresh re-renders the active conversation's current mode\n    renders.length = 0;\n    provider._postTabs();\n    expect(renders).toEqual([\n      expect.objectContaining({\n        requested: \"bypassPermissions\",\n        effective: null,\n        status: \"pending\",\n      }),\n    ]);\n  });\n\n  it(\"_updateModeStatus is inert when no status item exists (test mock)\", () => {\n    const { provider } = makeProvider();\n    expect(provider._modeStatus).toBeUndefined();\n    // must not throw despite window.createStatusBarItem being absent\n    expect(() => provider._updateModeStatus()).not.toThrow();\n  });\n});\n\ndescribe(\"slash-commands menu — mode entries\", () => {\n  it(\"lists /auto, /bypass, /normal and filters them by prefix\", () => {\n    const names = slash.SLASH_COMMANDS.map((r) => r[0]);\n    expect(names).toEqual(\n      expect.arrayContaining([\"/auto\", \"/bypass\", \"/normal\"]),\n    );\n    expect(slash.filterSlashCommands(\"auto\").map((r) => r[0])).toEqual([\n      \"/auto\",\n    ]);\n    expect(slash.filterSlashCommands(\"b\").map((r) => r[0])).toContain(\n      \"/bypass\",\n    );\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711688226,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-chat-mode.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-9125b05c-204b-4607-8c4e-f6361b2bb9c9",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-chat-mode.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_f9jp374713g3our2g7849lhb",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 9
+          },
+          {
+            "type": "tool_result",
+            "id": "call_d4qwqu02f22v3yvcgdw2sld7",
+            "tool": "list_dir",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "entries": [
+                {
+                  "name": "verify-29.test.js",
+                  "type": "file"
+                }
+              ],
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711710371,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-9125b05c-204b-4607-8c4e-f6361b2bb9c9",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "list_dir",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_d4qwqu02f22v3yvcgdw2sld7",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 13
+          },
+          {
+            "type": "tool_result",
+            "id": "call_3fenclhlbf423vzaw4rbsli1",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9V2h6W\\b1ff69bd-129a-49f3-9c9a-88b6ccd13aee\\workspace\\packages\\vscode-extension\\__tests__\\verify-29.test.js",
+              "fileVersion": "27:1793711423243.141:1793711423243.141",
+              "readSpan": {
+                "start": 0,
+                "end": 27,
+                "total": 27
+              },
+              "hashed": false,
+              "content": "// Non-answer placeholder.\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711715191,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-29.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-9125b05c-204b-4607-8c4e-f6361b2bb9c9",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-29.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_3fenclhlbf423vzaw4rbsli1",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 17
+          },
+          {
+            "type": "tool_result",
+            "id": "call_e75x2l6ajhcbymq5gkuhqtk0",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9V2h6W\\b1ff69bd-129a-49f3-9c9a-88b6ccd13aee\\workspace\\packages\\vscode-extension\\__tests__\\verify-29.test.js",
+              "size": 3691,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711727055,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-29.test.js",
+                    "content": "/**\n * Mode-ACK association (verify-29) — behavioral regression for\n * `acceptModeAcknowledgement` in permission-mode-state.js.\n *\n * Contract: an ACK is only trusted when its correlation/session generation\n * matches the current mode request. A stale/foreign ACK must be rejected\n * WITHOUT displaying the new mode as effective; a malformed ACK must also\n * never surface an effective mode.\n */\nimport { describe, it, expect } from \"vitest\";\nimport * as stateMod from \"../src/chat/permission-mode-state.js\";\n\nconst { acceptModeAcknowledgement } = stateMod.default || stateMod;\n\nfunction makeConv(overrides = {}) {\n  return {\n    mode: \"bypassPermissions\",\n    modeRequestId: \"req-1\",\n    sessionId: \"sess-1\",\n    modeStatus: \"pending\",\n    effectiveMode: null,\n    policyRevision: null,\n    modeError: \"\",\n    ...overrides,\n  };\n}\n\nfunction validEvent() {\n  return {\n    session_id: \"sess-1\",\n    permission_mode_state: {\n      correlation_id: \"req-1\",\n      requested: \"bypassPermissions\",\n      effective: \"bypassPermissions\",\n      policy_revision: \"a\".repeat(16),\n    },\n  };\n}\n\nfunction apply(event, overrides = {}) {\n  return {\n    ...event,\n    session_id: overrides.session_id ?? event.session_id,\n    permission_mode_state: {\n      ...event.permission_mode_state,\n      ...overrides,\n    },\n  };\n}\n\ndescribe(\"acceptModeAcknowledgement — mode ACK association\", () => {\n  it(\"accepts a correlated, well-formed ACK and surfaces the effective mode\", () => {\n    const conv = makeConv();\n    expect(acceptModeAcknowledgement(conv, validEvent())).toBe(true);\n    expect(conv).toMatchObject({\n      modeStatus: \"effective\",\n      effectiveMode: \"bypassPermissions\",\n      policyRevision: \"a\".repeat(16),\n      modeError: \"\",\n    });\n  });\n\n  it(\"rejects a stale correlation ACK without showing the new mode effective\", () => {\n    const conv = makeConv();\n    // Only the correlation generation differs; every other prerequisite is valid.\n    const stale = apply(validEvent(), { correlation_id: \"old-req\" });\n    expect(acceptModeAcknowledgement(conv, stale)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"pending\");\n    expect(conv.modeError).toBe(\"\");\n  });\n\n  it(\"rejects an ACK for a different session without showing the new mode effective\", () => {\n    const conv = makeConv();\n    const foreign = apply(validEvent(), { session_id: \"sess-other\" });\n    expect(acceptModeAcknowledgement(conv, foreign)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"pending\");\n    expect(conv.modeError).toBe(\"\");\n  });\n\n  it(\"rejects an ACK whose requested mode differs from the conversation's\", () => {\n    const conv = makeConv();\n    const mismatched = apply(validEvent(), { requested: \"acceptEdits\" });\n    expect(acceptModeAcknowledgement(conv, mismatched)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"unconfirmed\");\n    expect(conv.modeError).toContain(\"not confirmed\");\n  });\n\n  it(\"rejects an ACK whose effective mode is not an allowed MODE\", () => {\n    const conv = makeConv();\n    const badMode = apply(validEvent(), { effective: \"nonsense\" });\n    expect(acceptModeAcknowledgement(conv, badMode)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"unconfirmed\");\n  });\n\n  it(\"rejects an ACK whose policy revision is malformed\", () => {\n    const conv = makeConv();\n    const badRevision = apply(validEvent(), { policy_revision: \"xyz\" });\n    expect(acceptModeAcknowledgement(conv, badRevision)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"unconfirmed\");\n  });\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 21,
+                "sessionId": "panel-9125b05c-204b-4607-8c4e-f6361b2bb9c9",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-29.test.js",
+                    "content": "/**\n * Mode-ACK association (verify-29) — behavioral regression for\n * `acceptModeAcknowledgement` in permission-mode-state.js.\n *\n * Contract: an ACK is only trusted when its correlation/session generation\n * matches the current mode request. A stale/foreign ACK must be rejected\n * WITHOUT displaying the new mode as effective; a malformed ACK must also\n * never surface an effective mode.\n */\nimport { describe, it, expect } from \"vitest\";\nimport * as stateMod from \"../src/chat/permission-mode-state.js\";\n\nconst { acceptModeAcknowledgement } = stateMod.default || stateMod;\n\nfunction makeConv(overrides = {}) {\n  return {\n    mode: \"bypassPermissions\",\n    modeRequestId: \"req-1\",\n    sessionId: \"sess-1\",\n    modeStatus: \"pending\",\n    effectiveMode: null,\n    policyRevision: null,\n    modeError: \"\",\n    ...overrides,\n  };\n}\n\nfunction validEvent() {\n  return {\n    session_id: \"sess-1\",\n    permission_mode_state: {\n      correlation_id: \"req-1\",\n      requested: \"bypassPermissions\",\n      effective: \"bypassPermissions\",\n      policy_revision: \"a\".repeat(16),\n    },\n  };\n}\n\nfunction apply(event, overrides = {}) {\n  return {\n    ...event,\n    session_id: overrides.session_id ?? event.session_id,\n    permission_mode_state: {\n      ...event.permission_mode_state,\n      ...overrides,\n    },\n  };\n}\n\ndescribe(\"acceptModeAcknowledgement — mode ACK association\", () => {\n  it(\"accepts a correlated, well-formed ACK and surfaces the effective mode\", () => {\n    const conv = makeConv();\n    expect(acceptModeAcknowledgement(conv, validEvent())).toBe(true);\n    expect(conv).toMatchObject({\n      modeStatus: \"effective\",\n      effectiveMode: \"bypassPermissions\",\n      policyRevision: \"a\".repeat(16),\n      modeError: \"\",\n    });\n  });\n\n  it(\"rejects a stale correlation ACK without showing the new mode effective\", () => {\n    const conv = makeConv();\n    // Only the correlation generation differs; every other prerequisite is valid.\n    const stale = apply(validEvent(), { correlation_id: \"old-req\" });\n    expect(acceptModeAcknowledgement(conv, stale)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"pending\");\n    expect(conv.modeError).toBe(\"\");\n  });\n\n  it(\"rejects an ACK for a different session without showing the new mode effective\", () => {\n    const conv = makeConv();\n    const foreign = apply(validEvent(), { session_id: \"sess-other\" });\n    expect(acceptModeAcknowledgement(conv, foreign)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"pending\");\n    expect(conv.modeError).toBe(\"\");\n  });\n\n  it(\"rejects an ACK whose requested mode differs from the conversation's\", () => {\n    const conv = makeConv();\n    const mismatched = apply(validEvent(), { requested: \"acceptEdits\" });\n    expect(acceptModeAcknowledgement(conv, mismatched)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"unconfirmed\");\n    expect(conv.modeError).toContain(\"not confirmed\");\n  });\n\n  it(\"rejects an ACK whose effective mode is not an allowed MODE\", () => {\n    const conv = makeConv();\n    const badMode = apply(validEvent(), { effective: \"nonsense\" });\n    expect(acceptModeAcknowledgement(conv, badMode)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"unconfirmed\");\n  });\n\n  it(\"rejects an ACK whose policy revision is malformed\", () => {\n    const conv = makeConv();\n    const badRevision = apply(validEvent(), { policy_revision: \"xyz\" });\n    expect(acceptModeAcknowledgement(conv, badRevision)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"unconfirmed\");\n  });\n});\n"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "write_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_e75x2l6ajhcbymq5gkuhqtk0",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 21
+          },
+          {
+            "type": "tool_result",
+            "id": "call_d8cvhblcv7ch3vea6eczj4j3",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9V2h6W\\b1ff69bd-129a-49f3-9c9a-88b6ccd13aee\\workspace\\packages\\vscode-extension\\__tests__\\verify-29.test.js",
+              "fileVersion": "3691:1793711727034.3572:1793711727034.3572",
+              "readSpan": {
+                "start": 0,
+                "end": 3687,
+                "total": 3687
+              },
+              "hashed": false,
+              "content": "/**\n * Mode-ACK association (verify-29) — behavioral regression for\n * `acceptModeAcknowledgement` in permission-mode-state.js.\n *\n * Contract: an ACK is only trusted when its correlation/session generation\n * matches the current mode request. A stale/foreign ACK must be rejected\n * WITHOUT displaying the new mode as effective; a malformed ACK must also\n * never surface an effective mode.\n */\nimport { describe, it, expect } from \"vitest\";\nimport * as stateMod from \"../src/chat/permission-mode-state.js\";\n\nconst { acceptModeAcknowledgement } = stateMod.default || stateMod;\n\nfunction makeConv(overrides = {}) {\n  return {\n    mode: \"bypassPermissions\",\n    modeRequestId: \"req-1\",\n    sessionId: \"sess-1\",\n    modeStatus: \"pending\",\n    effectiveMode: null,\n    policyRevision: null,\n    modeError: \"\",\n    ...overrides,\n  };\n}\n\nfunction validEvent() {\n  return {\n    session_id: \"sess-1\",\n    permission_mode_state: {\n      correlation_id: \"req-1\",\n      requested: \"bypassPermissions\",\n      effective: \"bypassPermissions\",\n      policy_revision: \"a\".repeat(16),\n    },\n  };\n}\n\nfunction apply(event, overrides = {}) {\n  return {\n    ...event,\n    session_id: overrides.session_id ?? event.session_id,\n    permission_mode_state: {\n      ...event.permission_mode_state,\n      ...overrides,\n    },\n  };\n}\n\ndescribe(\"acceptModeAcknowledgement — mode ACK association\", () => {\n  it(\"accepts a correlated, well-formed ACK and surfaces the effective mode\", () => {\n    const conv = makeConv();\n    expect(acceptModeAcknowledgement(conv, validEvent())).toBe(true);\n    expect(conv).toMatchObject({\n      modeStatus: \"effective\",\n      effectiveMode: \"bypassPermissions\",\n      policyRevision: \"a\".repeat(16),\n      modeError: \"\",\n    });\n  });\n\n  it(\"rejects a stale correlation ACK without showing the new mode effective\", () => {\n    const conv = makeConv();\n    // Only the correlation generation differs; every other prerequisite is valid.\n    const stale = apply(validEvent(), { correlation_id: \"old-req\" });\n    expect(acceptModeAcknowledgement(conv, stale)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"pending\");\n    expect(conv.modeError).toBe(\"\");\n  });\n\n  it(\"rejects an ACK for a different session without showing the new mode effective\", () => {\n    const conv = makeConv();\n    const foreign = apply(validEvent(), { session_id: \"sess-other\" });\n    expect(acceptModeAcknowledgement(conv, foreign)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"pending\");\n    expect(conv.modeError).toBe(\"\");\n  });\n\n  it(\"rejects an ACK whose requested mode differs from the conversation's\", () => {\n    const conv = makeConv();\n    const mismatched = apply(validEvent(), { requested: \"acceptEdits\" });\n    expect(acceptModeAcknowledgement(conv, mismatched)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"unconfirmed\");\n    expect(conv.modeError).toContain(\"not confirmed\");\n  });\n\n  it(\"rejects an ACK whose effective mode is not an allowed MODE\", () => {\n    const conv = makeConv();\n    const badMode = apply(validEvent(), { effective: \"nonsense\" });\n    expect(acceptModeAcknowledgement(conv, badMode)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"unconfirmed\");\n  });\n\n  it(\"rejects an ACK whose policy revision is malformed\", () => {\n    const conv = makeConv();\n    const badRevision = apply(validEvent(), { policy_revision: \"xyz\" });\n    expect(acceptModeAcknowledgement(conv, badRevision)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"unconfirmed\");\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711734267,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-29.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-9125b05c-204b-4607-8c4e-f6361b2bb9c9",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-29.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_d8cvhblcv7ch3vea6eczj4j3",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 25
+          },
+          {
+            "type": "tool_result",
+            "id": "call_w6ilflz0no9447c9er82o83g",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9V2h6W\\b1ff69bd-129a-49f3-9c9a-88b6ccd13aee\\workspace\\packages\\vscode-extension\\src\\chat\\permission-mode-state.js",
+              "fileVersion": "1302:1793711422188.5354:1793711422188.5354",
+              "hashed": false,
+              "alreadyRead": true,
+              "contentOmitted": true,
+              "reachedEnd": true,
+              "readProgress": {
+                "newContent": false
+              },
+              "readRecovery": {
+                "action": "use-findings"
+              },
+              "recoveryRead": {
+                "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9V2h6W\\b1ff69bd-129a-49f3-9c9a-88b6ccd13aee\\workspace\\packages\\vscode-extension\\src\\chat\\permission-mode-state.js",
+                "offset": 1,
+                "limit": 80
+              },
+              "hint": "This requested range was read earlier, but historical coverage does not mean its source is visible now. The runtime has not substituted an unrelated file range. Use source actually present in this request; recover missing details with a focused search or the bounded recoveryRead. Reading the file is not task completion.",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711746230,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/permission-mode-state.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-9125b05c-204b-4607-8c4e-f6361b2bb9c9",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/permission-mode-state.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_w6ilflz0no9447c9er82o83g",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 32
+          },
+          {
+            "type": "tool_result",
+            "id": "call_1hxeth31eeqh4ktd055chd2w",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9V2h6W\\b1ff69bd-129a-49f3-9c9a-88b6ccd13aee\\workspace\\packages\\vscode-extension\\__tests__\\verify-29.test.js",
+              "fileVersion": "3691:1793711727034.3572:1793711727034.3572",
+              "hashed": false,
+              "alreadyRead": true,
+              "contentOmitted": true,
+              "reachedEnd": true,
+              "readProgress": {
+                "newContent": false
+              },
+              "readRecovery": {
+                "action": "use-findings"
+              },
+              "recoveryRead": {
+                "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9V2h6W\\b1ff69bd-129a-49f3-9c9a-88b6ccd13aee\\workspace\\packages\\vscode-extension\\__tests__\\verify-29.test.js",
+                "offset": 1,
+                "limit": 80
+              },
+              "hint": "This requested range was read earlier, but historical coverage does not mean its source is visible now. The runtime has not substituted an unrelated file range. Use source actually present in this request; recover missing details with a focused search or the bounded recoveryRead. Reading the file is not task completion.",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711746526,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-29.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-9125b05c-204b-4607-8c4e-f6361b2bb9c9",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-29.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_1hxeth31eeqh4ktd055chd2w",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 34
+          },
+          {
+            "type": "tool_result",
+            "id": "call_bnlq2o0yta1gnij94rdzej4l",
+            "tool": "edit_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9V2h6W\\b1ff69bd-129a-49f3-9c9a-88b6ccd13aee\\workspace\\packages\\vscode-extension\\__tests__\\verify-29.test.js",
+              "size": 3869,
+              "replaced": 1,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711763726,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-29.test.js",
+                    "old_string": "  it(\"rejects an ACK whose policy revision is malformed\", () => {\n    const conv = makeConv();\n    const badRevision = apply(validEvent(), { policy_revision: \"xyz\" });\n    expect(acceptModeAcknowledgement(conv, badRevision)).toBe(false);",
+                    "new_string": "  it(\"rejects an ACK whose policy revision is below the hex length boundary\", () => {\n    const conv = makeConv();\n    // 15 hex chars is the first value rejected by the /^[a-f0-9]{16,64}$/ guard;\n    // the valid baseline uses exactly 16 (the accepted boundary).\n    const badRevision = apply(validEvent(), { policy_revision: \"a\".repeat(15) });\n    expect(acceptModeAcknowledgement(conv, badRevision)).toBe(false);"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 11,
+                "sessionId": "panel-9125b05c-204b-4607-8c4e-f6361b2bb9c9",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-29.test.js",
+                    "old_string": "  it(\"rejects an ACK whose policy revision is malformed\", () => {\n    const conv = makeConv();\n    const badRevision = apply(validEvent(), { policy_revision: \"xyz\" });\n    expect(acceptModeAcknowledgement(conv, badRevision)).toBe(false);",
+                    "new_string": "  it(\"rejects an ACK whose policy revision is below the hex length boundary\", () => {\n    const conv = makeConv();\n    // 15 hex chars is the first value rejected by the /^[a-f0-9]{16,64}$/ guard;\n    // the valid baseline uses exactly 16 (the accepted boundary).\n    const badRevision = apply(validEvent(), { policy_revision: \"a\".repeat(15) });\n    expect(acceptModeAcknowledgement(conv, badRevision)).toBe(false);"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "edit_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_bnlq2o0yta1gnij94rdzej4l",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 38
+          },
+          {
+            "type": "tool_result",
+            "id": "call_lxf1gvka5enx9a8uvebcqpel",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 21,
+                  "column": 10,
+                  "offset": 458,
+                  "text": "acceptModeAcknowledgement",
+                  "context": "uto\",\n  \"bypassPermissions\",\n  \"dontAsk\",\n  \"plan\",\n]);\n\nfunction modeState(conv) {\n  return {\n    requested: conv.mode || \"default\",\n    effective: conv.effectiveMode || null,\n    status: conv.modeStatus || \"pending\",\n    policyRevision: conv.policyRevision || null,\n    reason: conv.modeError || \"\",\n  };\n}\n\n/** ACK is display evidence, never a replacement for the CLI permission gate. */\nfunction acceptModeAcknowledgement(conv, event) {\n  const ack = event?.permission_mode_state;\n  if (\n    ack &&\n    (ack.correlation_id !== conv.modeRequestId ||\n      event.session_id !== conv.sessionId)\n  )\n    return false;\n  if (\n    !ack ||\n    ack.correlation_id !== conv.modeRequestId ||\n    ack.requested !== conv.mode ||\n    !MODES.has(ack.effective) ||\n    typeof ack.policy_revision !== \"string\" ||\n    !/^[a-f0-9]{16,64}$/",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/permission-mode-state.js",
+                    "offset": 21,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 49,
+                  "column": 31,
+                  "offset": 1273,
+                  "text": "acceptModeAcknowledgement",
+                  "context": "]{16,64}$/.test(ack.policy_revision)\n  ) {\n    conv.modeStatus = \"unconfirmed\";\n    conv.modeError =\n      \"The CLI has not confirmed its effective approval mode. Update the CLI if needed.\";\n    return false;\n  }\n  conv.effectiveMode = ack.effective;\n  conv.policyRevision = ack.policy_revision;\n  conv.modeStatus = \"effective\";\n  conv.modeError = \"\";\n  return true;\n}\n\nmodule.exports = { modeState, acceptModeAcknowledgement };\n",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/permission-mode-state.js",
+                    "offset": 49,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 2,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9V2h6W\\b1ff69bd-129a-49f3-9c9a-88b6ccd13aee\\workspace\\packages\\vscode-extension\\src\\chat\\permission-mode-state.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711770311,
+                "meta": {
+                  "args": {
+                    "pattern": "acceptModeAcknowledgement",
+                    "path": "packages/vscode-extension/src/chat/permission-mode-state.js",
+                    "contextChars": 400
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 46,
+                "sessionId": "panel-9125b05c-204b-4607-8c4e-f6361b2bb9c9",
+                "metadata": {
+                  "args": {
+                    "pattern": "acceptModeAcknowledgement",
+                    "path": "packages/vscode-extension/src/chat/permission-mode-state.js",
+                    "contextChars": 400
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_lxf1gvka5enx9a8uvebcqpel",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 42
+          },
+          {
+            "type": "tool_result",
+            "id": "call_8zq6luzj678ggu8z4pyu2fnj",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9V2h6W\\b1ff69bd-129a-49f3-9c9a-88b6ccd13aee\\workspace\\packages\\vscode-extension\\__tests__\\verify-29.test.js",
+              "fileVersion": "3869:1793711763715.2263:1793711763715.2263",
+              "range": {
+                "startLine": 78,
+                "endLine": 97,
+                "totalLines": 109
+              },
+              "nextRead": {
+                "path": "packages/vscode-extension/__tests__/verify-29.test.js",
+                "offset": 98,
+                "limit": 20
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 2511,
+                "end": 3346,
+                "total": 3865
+              },
+              "hashed": false,
+              "content": "    expect(conv.modeStatus).toBe(\"pending\");\n    expect(conv.modeError).toBe(\"\");\n  });\n\n  it(\"rejects an ACK whose requested mode differs from the conversation's\", () => {\n    const conv = makeConv();\n    const mismatched = apply(validEvent(), { requested: \"acceptEdits\" });\n    expect(acceptModeAcknowledgement(conv, mismatched)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"unconfirmed\");\n    expect(conv.modeError).toContain(\"not confirmed\");\n  });\n\n  it(\"rejects an ACK whose effective mode is not an allowed MODE\", () => {\n    const conv = makeConv();\n    const badMode = apply(validEvent(), { effective: \"nonsense\" });\n    expect(acceptModeAcknowledgement(conv, badMode)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"unconfirmed\");\n  });",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711777772,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-29.test.js",
+                    "offset": 78,
+                    "limit": 20
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-9125b05c-204b-4607-8c4e-f6361b2bb9c9",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-29.test.js",
+                    "offset": 78,
+                    "limit": 20
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_8zq6luzj678ggu8z4pyu2fnj",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 46
+          },
+          {
+            "type": "tool_result",
+            "id": "call_49yoa3ma6uvp84ypnh7nkcaf",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "c:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9V2h6W\\b1ff69bd-129a-49f3-9c9a-88b6ccd13aee\\workspace\\packages\\vscode-extension\\__tests__\\verify-29.test.js",
+              "fileVersion": "3869:1793711763715.2263:1793711763715.2263",
+              "range": {
+                "startLine": 98,
+                "endLine": 109,
+                "totalLines": 109
+              },
+              "readSpan": {
+                "start": 3346,
+                "end": 3865,
+                "total": 3865
+              },
+              "hashed": false,
+              "content": "\n  it(\"rejects an ACK whose policy revision is below the hex length boundary\", () => {\n    const conv = makeConv();\n    // 15 hex chars is the first value rejected by the /^[a-f0-9]{16,64}$/ guard;\n    // the valid baseline uses exactly 16 (the accepted boundary).\n    const badRevision = apply(validEvent(), { policy_revision: \"a\".repeat(15) });\n    expect(acceptModeAcknowledgement(conv, badRevision)).toBe(false);\n    expect(conv.effectiveMode).toBeNull();\n    expect(conv.modeStatus).toBe(\"unconfirmed\");\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711784412,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-29.test.js",
+                    "offset": 98,
+                    "limit": 15
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-9125b05c-204b-4607-8c4e-f6361b2bb9c9",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-29.test.js",
+                    "offset": 98,
+                    "limit": 15
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_49yoa3ma6uvp84ypnh7nkcaf",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 52
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2739,
+              "output_tokens": 105,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 7788,
+              "output_tokens": 1971,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 11
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3625,
+              "output_tokens": 75,
+              "cache_read_input_tokens": 10496,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 15
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2564,
+              "output_tokens": 1045,
+              "cache_read_input_tokens": 12288,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 19
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5875,
+              "output_tokens": 95,
+              "cache_read_input_tokens": 12800,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 23
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5271,
+              "output_tokens": 483,
+              "cache_read_input_tokens": 16384,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 27
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3981,
+              "output_tokens": 103,
+              "cache_read_input_tokens": 18432,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 30
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5268,
+              "output_tokens": 1387,
+              "cache_read_input_tokens": 18432,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 36
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 15756,
+              "output_tokens": 159,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 40
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4269,
+              "output_tokens": 420,
+              "cache_read_input_tokens": 16640,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 44
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4995,
+              "output_tokens": 190,
+              "cache_read_input_tokens": 16384,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 50
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4172,
+              "output_tokens": 746,
+              "cache_read_input_tokens": 18432,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+            "seq": 56
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 66303,
+          "output_tokens": 6779,
+          "cache_read_input_tokens": 150528
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 12,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "The deliverable is confirmed complete and correct. I have the full source guard structure and the complete test file read-back. Let me do the final requirement-to-assertion audit and give the terminal account.\n\n**Requirement-to-assertion account (derived from the original task):**\n\n| Original-task requirement | Fixture / call path / observable assertion | Status |\n|---|---|---|\n| Old generation/correlation ACK invalid; on failure the new mode is NOT shown effective | Test 2: baseline conv (req-1/sess-1), only `correlation_id`→`\"old-req\"`; call `acceptModeAcknowledgement(conv, event)`; asserts false + `effectiveMode===null` + `modeStatus===\"pending\"` | ✓ Guard A (correlation branch) |\n| Correlation & session must match (Guard A) | Test 3: only `session_id`→`\"sess-other\"`; asserts false + no effective | ✓ Guard A (session branch) |\n| requested must equal conv.mode (Guard B) | Test 4: only `requested`→`\"acceptEdits\"`; asserts false + `\"unconfirmed\"` + no effective + error `\"not confirmed\"` | ✓ |\n| effective ∈ MODES (Guard B) | Test 5: only `effective`→`\"nonsense\"`; asserts false + `\"unconfirmed\"` + no effective | ✓ |\n| policy_revision regex boundary (Guard B) | Test 1: 16-hex accepted boundary → true + effective. Test 6: 15-hex first-rejected → false + `\"unconfirmed\"` + no effective | ✓ accepted boundary + first rejected value |\n| Positive behavioral control (success path) | Test 1: all prerequisites valid → true, `effectiveMode`, `policyRevision`, `modeStatus===\"effective\"`, `modeError===\"\"` | ✓ |\n\n**Negative isolation verified:** each negative control changes exactly one field from the valid baseline; every other prerequisite (matching correlation/session for the Guard B negatives, valid mode/revision/requested for the Guard A negatives) stays valid, so no other guard can cause the rejection. Confirmed against the actual source guard structure from the focused search.\n\n**Order of observable effects:** the function is synchronous and pure — Guard A returns before any mutation; Guard B mutates `modeStatus`/`modeError` but never `effectiveMode`; success sets all fields. Tests assert the no-throw, no-effective display ordering for rejection paths and full surface for success.\n\n**Coverage completeness:** all 6 guard conditions in `acceptModeAcknowledgement` have dedicated positive/negative controls. No uncovered condition.\n\n**Implementation defect:** none. The frozen implementation already enforces the acceptance requirement — stale/foreign correlation ACKs are rejected without surfacing an effective mode. No source changes were needed; per task rules I did not modify source.\n\n**Limitations:** Only file tools available (no shell/code execution), so the Vitest suite was NOT run and is not claimed to have passed. The independent checker will execute baseline, candidate, and behavioral coverage in network-disabled Linux Docker. Deliverable file was persisted (write + two edits, no diagnostics) and read back in full.\n\n**Patch summary:** `packages/vscode-extension/__tests__/verify-29.test.js` — replaced placeholder with 6 independent Vitest regression cases (1 positive, 5 negatives), each with isolated single-condition variation and boundary coverage for the `policy_revision` limit.",
+          "session_id": "panel-9125b05c-204b-4607-8c4e-f6361b2bb9c9",
+          "turn": 1,
+          "usage": {
+            "input_tokens": 66303,
+            "output_tokens": 6779,
+            "cache_read_input_tokens": 150528,
+            "cache_creation_input_tokens": 0
+          },
+          "transcript_refs": {
+            "schema": "chainlesschain.session-transcript-references/v1",
+            "sessionId": "panel-9125b05c-204b-4607-8c4e-f6361b2bb9c9",
+            "assistantEventId": "44b6fcea34bae70836ec0b490211ac64e9531491cfad124a0b7d0529076f6d73",
+            "userEventId": "9c0159af164d6981223a543c7c890f905e94a855aaa5dfa7527fc5a708714d52",
+            "clientMessageId": "6908f9ed-6308-4c10-a555-83961c975bf0"
+          },
+          "trace_id": "tr-00177859-508e-4e30-a66c-f4ae275407c7",
+          "seq": 57
+        },
+        "scopePathComparison": "windows-case-insensitive; raw stream retained"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 12,
+        "usageCompleteRequests": 12,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 12,
+        "usageCompleteRequests": 12,
+        "tasks": [
+          {
+            "taskId": "verify-29",
+            "requests": 12,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": 0.2749728,
+        "knownTokenOnlyEstimateCny": 0.2749728,
+        "fxRate": null
+      },
+      "changedPaths": [
+        "packages/vscode-extension/__tests__/verify-29.test.js"
+      ],
+      "finishedAt": "2026-11-03T13:17:13.904Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-29"
+  ],
+  "generationPassed": true,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 40 model turns, 48 requests, 180 second request timeout, model maximum 393216 output tokens (8192 test cap removed), 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:3185a92e57bc89a9f9c1283aeff4823c409e1bebd48b8d20da509814fded8b29",
+  "group": "win32-vscode",
+  "entry": "vscode",
+  "platform": "win32",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:3ca5c1bfa5bffdee860665eeb757c24004dfaf0f3075f2a63e1a2600b3f6d600"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:487ed1e27103348c920988130954ec6449a81e66f7973e81ed02e1befd126da3"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:be2edf8e1ced537796d5819e458e4b56f2c1638eab8880b09c2c7fea4a4245fd"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+      "digest": "sha256:82becb2b0b551916e312131bcca48736d9e3f462aed4ea2a89ec00f907457eed"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
+      "digest": "sha256:d2cbc2dee63e7f53c622d61ad314143d6bd4d59a679d9aea29579cb034a829fb"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-public140-full.mjs",
+      "digest": "sha256:4c8b323e6c28b2dafb2f2e71ec2e7825d6b321d2998e3ef5f6ace3c2a10acdb9"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:3e515efc1cff606e2cbbfa977b5674abe6a73c142caa1b0539c0a2698978f8e4"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/verify01-run.cjs",
+      "digest": "sha256:7843460e829832d36768c90036414a1ceba5b3a03cca674f981b7e2fa3fdae44"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/verify01.cjs",
+      "digest": "sha256:a4a8a1d3d0e83227f22943e36920883d234fcdc847fb0f9faa08a969abf0c177"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/verify01-composer.cjs",
+      "digest": "sha256:3309c665f3bcb2941a27941ab4a096047869dd85deab78052c4932bf8f425554"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/noop.cjs",
+      "digest": "sha256:06a84182b7e81818c35b47c64170139b572a665645dbf9561de7fd521517bbb6"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/failure-receipt.cjs",
+      "digest": "sha256:802abcf31cb2dcbfb4e3873e29a440e9b1e8a5399ba6e8bb05883d1a36494c84"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/cdp-journey.cjs",
+      "digest": "sha256:31d467277d6eee1f7ecbe5551ae20e318d9ead0363b692a1ab106e64e388cfd0"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/run.cjs",
+      "digest": "sha256:761393469af5d77dea596dffe0fff8e984e93445949796474a281f3f68b635f1"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T13:10:25.067Z",
+    "finishedAt": "2026-11-03T13:13:55.173Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "verify-29",
+    "locked": {
+      "version": "0.166.140",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+      "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T13:17:13.908Z"
+}

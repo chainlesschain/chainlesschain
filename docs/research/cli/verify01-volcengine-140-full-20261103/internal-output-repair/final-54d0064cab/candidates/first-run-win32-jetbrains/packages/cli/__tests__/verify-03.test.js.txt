@@ -1,0 +1,82 @@
+import { describe, it, expect } from "vitest";
+import {
+  lookupRate,
+  estimateCost,
+  priceRollup,
+} from "../src/lib/llm-pricing.js";
+
+/**
+ * verify-03 — 新家族未知计价 (new-family unknown pricing).
+ *
+ * Contract under test: an unknown model reports as unpriced and must NOT
+ * inherit an old-family price via substring matching; a known model in the
+ * same provider still prices normally. Source path resolved from this file:
+ * packages/cli/__tests__/verify-03.test.js → ../src/lib/llm-pricing.js
+ */
+describe("verify-03 — new-family unknown model stays unpriced", () => {
+  it("positive: a known model under anthropic is still priced", () => {
+    const r = lookupRate("anthropic", "claude-opus-4-8");
+    expect(r).not.toBeNull();
+    expect(r).toMatchObject({ in: 5, out: 25, pattern: "opus-4-8" });
+  });
+
+  it("negative: an unknown new Opus version returns null, not an old price", () => {
+    // Same provider, only the model id changes. An unversioned "claude-opus-6"
+    // would otherwise hit the generic "opus" rate; the guard must reject it.
+    expect(lookupRate("anthropic", "claude-opus-6")).toBeNull();
+    // Explicitly confirm it did not fall back to the generic/old pattern.
+    expect(lookupRate("anthropic", "claude-opus-6")).not.toMatchObject({
+      pattern: "opus",
+    });
+  });
+
+  it("estimateCost: known→matched, same-family unknown→unpriced zero cost", () => {
+    const known = estimateCost({
+      provider: "anthropic",
+      model: "claude-opus-4-8",
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    });
+    expect(known.matched).toBe(true);
+    expect(known.totalCost).toBeCloseTo(30, 6);
+
+    const unknown = estimateCost({
+      provider: "anthropic",
+      model: "claude-opus-6",
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    });
+    expect(unknown.matched).toBe(false);
+    expect(unknown.totalCost).toBe(0);
+    expect(unknown.rate).toBeNull();
+  });
+
+  it("priceRollup: unknown row is listed unpriced, known row is counted", () => {
+    const r = priceRollup({
+      total: {},
+      byModel: [
+        {
+          provider: "anthropic",
+          model: "claude-opus-4-8",
+          inputTokens: 1_000_000,
+          outputTokens: 0,
+          totalTokens: 1_000_000,
+          calls: 1,
+        },
+        {
+          provider: "anthropic",
+          model: "claude-opus-6",
+          inputTokens: 500,
+          outputTokens: 500,
+          totalTokens: 1000,
+          calls: 1,
+        },
+      ],
+    });
+    expect(r.cost.totalCost).toBeCloseTo(5, 6); // only the known opus-4-8 row
+    expect(r.cost.unpricedCount).toBe(1);
+    expect(r.unpriced).toEqual([
+      { provider: "anthropic", model: "claude-opus-6", totalTokens: 1000 },
+    ]);
+  });
+});

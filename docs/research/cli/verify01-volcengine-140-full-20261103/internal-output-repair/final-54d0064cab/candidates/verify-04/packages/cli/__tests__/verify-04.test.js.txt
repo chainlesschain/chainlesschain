@@ -1,0 +1,163 @@
+import { describe, expect, it } from "vitest";
+import {
+  mergeUsagePricingBucket,
+  projectUsagePricingContext,
+} from "../src/lib/usage-pricing-context.js";
+
+/**
+ * Request-level cache/long-context pricing contract.
+ *
+ * mergeUsagePricingBucket folds per-request token usage into a bounded set of
+ * aggregate price buckets, keeping requests that are subject to different
+ * multipliers (long-context > threshold, service tier, regional processing)
+ * in separate buckets. Token counts that a per-request contract must price
+ * differently — fresh input vs cache reads — are accumulated separately so
+ * downstream pricing can apply the cache multiplier per request.
+ */
+
+const THRESHOLD = 272000;
+
+// entry must be a documented openai model for bucket projection to apply.
+const makeEntry = () => ({ provider: "openai", model: "gpt-6-sol" });
+
+// Sort buckets by their retained requestInputTokens so assertions are stable.
+const byRequestTokens = (a, b) => a.requestInputTokens - b.requestInputTokens;
+
+describe("mergeUsagePricingBucket — request-level cache & long-context contract", () => {
+  it("splits on the strict long-context boundary (> 272000)", () => {
+    const entry = makeEntry();
+    // promptTokens = inputTokens (no cache). Exactly at the threshold is NOT
+    // long; one token over is long.
+    mergeUsagePricingBucket(entry, { inputTokens: THRESHOLD, outputTokens: 1 });
+    mergeUsagePricingBucket(entry, {
+      inputTokens: THRESHOLD + 1,
+      outputTokens: 1,
+    });
+    expect(entry.pricingBuckets).toHaveLength(2);
+    const [atBoundary, overBoundary] = entry.pricingBuckets.slice().sort(byRequestTokens);
+    expect(atBoundary.requestInputTokens).toBe(THRESHOLD);
+    expect(atBoundary.inputTokens).toBe(THRESHOLD);
+    expect(overBoundary.requestInputTokens).toBe(THRESHOLD + 1);
+    expect(overBoundary.inputTokens).toBe(THRESHOLD + 1);
+  });
+
+  it("keeps same-total requests with different cache/long distributions in separate buckets", () => {
+    const entry = makeEntry();
+    // Both requests have the same total tokens (272000 input-side) but differ
+    // in how they cross the long-context threshold and in cache composition.
+    mergeUsagePricingBucket(entry, {
+      inputTokens: 200000,
+      cacheReadTokens: 72000,
+      requestInputTokens: THRESHOLD, // not long
+      outputTokens: 0,
+    });
+    mergeUsagePricingBucket(entry, {
+      inputTokens: 272000,
+      cacheReadTokens: 0,
+      requestInputTokens: THRESHOLD + 1, // long
+      outputTokens: 0,
+    });
+    expect(entry.pricingBuckets).toHaveLength(2);
+    const sorted = entry.pricingBuckets.slice().sort(byRequestTokens);
+    // Per-request contract: fresh input vs cache read are preserved separately.
+    expect(sorted[0]).toMatchObject({
+      requestInputTokens: THRESHOLD,
+      inputTokens: 200000,
+      cacheReadTokens: 72000,
+      calls: 1,
+    });
+    expect(sorted[1]).toMatchObject({
+      requestInputTokens: THRESHOLD + 1,
+      inputTokens: 272000,
+      cacheReadTokens: 0,
+      calls: 1,
+    });
+  });
+
+  it("merges same-total requests when the long-context distribution matches (negative)", () => {
+    const entry = makeEntry();
+    // Same total tokens (272000) and the same long-context flag: cache/input
+    // split still accumulates separately, but into a single bucket.
+    mergeUsagePricingBucket(entry, {
+      inputTokens: 200000,
+      cacheReadTokens: 72000,
+      requestInputTokens: THRESHOLD + 1,
+      totalTokens: THRESHOLD, // per-request total, same for both requests
+    });
+    mergeUsagePricingBucket(entry, {
+      inputTokens: 272000,
+      cacheReadTokens: 0,
+      requestInputTokens: THRESHOLD + 1,
+      totalTokens: THRESHOLD,
+    });
+    expect(entry.pricingBuckets).toHaveLength(1);
+    expect(entry.pricingBuckets[0]).toMatchObject({
+      inputTokens: 472000,
+      cacheReadTokens: 72000,
+      totalTokens: 2 * THRESHOLD,
+      calls: 2,
+    });
+  });
+
+  it("lets requestInputTokens override the computed cache-inclusive prompt length", () => {
+    const entry = makeEntry();
+    // Computed input+cache far exceeds the threshold, but the explicit
+    // requestInputTokens keeps it non-long.
+    mergeUsagePricingBucket(entry, {
+      inputTokens: 300000,
+      cacheReadTokens: 50000,
+      requestInputTokens: 100000,
+      outputTokens: 10,
+    });
+    expect(entry.pricingBuckets).toHaveLength(1);
+    expect(entry.pricingBuckets[0].requestInputTokens).toBe(100000);
+    // Negative control: without requestInputTokens the computed length applies.
+    const computed = makeEntry();
+    mergeUsagePricingBucket(computed, {
+      inputTokens: 300000,
+      cacheReadTokens: 50000,
+      outputTokens: 10,
+    });
+    expect(computed.pricingBuckets[0].requestInputTokens).toBe(350000);
+    // 350000 > 272000 => long, whereas 100000 is not long.
+    expect(entry.pricingBuckets[0].requestInputTokens > THRESHOLD).toBe(false);
+    expect(computed.pricingBuckets[0].requestInputTokens > THRESHOLD).toBe(true);
+  });
+
+  it("splits buckets by service tier and projects unknown tiers safely", () => {
+    const entry = makeEntry();
+    mergeUsagePricingBucket(entry, { inputTokens: 1000, serviceTier: "fast" });
+    mergeUsagePricingBucket(entry, { inputTokens: 1000, serviceTier: "flex" });
+    expect(entry.pricingBuckets).toHaveLength(2);
+    expect(entry.pricingBuckets.map((b) => b.serviceTier).sort()).toEqual([
+      "fast",
+      "flex",
+    ]);
+    // Non-documented tier is projected to "unknown", not dropped or mispriced.
+    expect(
+      projectUsagePricingContext({ service_tier: "constructor" }).service_tier,
+    ).toBe("unknown");
+    expect(
+      projectUsagePricingContext({ serviceTier: "fast" }).service_tier,
+    ).toBe("fast");
+  });
+
+  it("splits buckets by regional processing and rejects a non-boolean value", () => {
+    const entry = makeEntry();
+    mergeUsagePricingBucket(entry, {
+      inputTokens: 1000,
+      regionalProcessing: true,
+    });
+    mergeUsagePricingBucket(entry, {
+      inputTokens: 1000,
+      regionalProcessing: false,
+    });
+    expect(entry.pricingBuckets).toHaveLength(2);
+    expect(
+      entry.pricingBuckets.map((b) => b.regionalProcessing).sort(),
+    ).toEqual([false, true]);
+    expect(() =>
+      projectUsagePricingContext({ regional_processing: "yes" }),
+    ).toThrow(/must be boolean/);
+  });
+});

@@ -1,0 +1,78 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-10",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 2,
+      "passed": 2,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 151,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 720,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":2,\"numPassedTests\":2,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793723166261,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"background agent read-only list index\"],\"fullName\":\"background agent read-only list index reuses an exact authority-file projection without storing session content\",\"status\":\"passed\",\"title\":\"reuses an exact authority-file projection without storing session content\",\"duration\":14.242389000000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent read-only list index\"],\"fullName\":\"background agent read-only list index invalidates on authority replacement and rebuilds a corrupt cache\",\"status\":\"passed\",\"title\":\"invalidates on authority replacement and rebuilds a corrupt cache\",\"duration\":2.4584309999999903,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793723166496,\"endTime\":1793723166512.4585,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/background-agent-list-index.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 755,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":0,\"numFailedTests\":6,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793723166996,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"background agent list index pagination regression\"],\"fullName\":\"background agent list index pagination regression rebuilds a multi-page projection matching the full same-snapshot list, including last page\",\"status\":\"failed\",\"title\":\"rebuilds a multi-page projection matching the full same-snapshot list, including last page\",\"duration\":20.279955,\"failureMessages\":[\"AssertionError: expected +0 to be 7 // Object.is equality\\n    at /workspace/packages/cli/__tests__/verify-10.test.js:76:35\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent list index pagination regression\"],\"fullName\":\"background agent list index pagination regression serves the cached index with the same pagination completeness, including last page\",\"status\":\"failed\",\"title\":\"serves the cached index with the same pagination completeness, including last page\",\"duration\":4.316412000000014,\"failureMessages\":[\"AssertionError: expected [] to deeply equal [ 'a', 'b', 'c', 'd', 'e' ]\\n    at assertFullListConsistency (/workspace/packages/cli/__tests__/verify-10.test.js:44:15)\\n    at /workspace/packages/cli/__tests__/verify-10.test.js:93:5\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent list index pagination regression\"],\"fullName\":\"background agent list index pagination regression invalidates the cached index after a write so pagination matches the enlarged list\",\"status\":\"failed\",\"title\":\"invalidates the cached index after a write so pagination matches the enlarged list\",\"duration\":3.0271129999999857,\"failureMessages\":[\"AssertionError: expected 'index' to be 'rebuilt' // Object.is equality\\n    at /workspace/packages/cli/__tests__/verify-10.test.js:110:28\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent list index pagination regression\"],\"fullName\":\"background agent list index pagination regression invalidates the cached index after a delete so pagination matches the shrunk list\",\"status\":\"failed\",\"title\":\"invalidates the cached index after a delete so pagination matches the shrunk list\",\"duration\":1.963216000000017,\"failureMessages\":[\"AssertionError: expected 'index' to be 'rebuilt' // Object.is equality\\n    at /workspace/packages/cli/__tests__/verify-10.test.js:128:28\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent list index pagination regression\"],\"fullName\":\"background agent list index pagination regression keeps the cached index valid when authority is unchanged (no false invalidation)\",\"status\":\"failed\",\"title\":\"keeps the cached index valid when authority is unchanged (no false invalidation)\",\"duration\":2.1279340000000104,\"failureMessages\":[\"AssertionError: expected [] to deeply equal [ 'a', 'b', 'c' ]\\n    at assertFullListConsistency (/workspace/packages/cli/__tests__/verify-10.test.js:44:15)\\n    at /workspace/packages/cli/__tests__/verify-10.test.js:149:5\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background agent list index pagination regression\"],\"fullName\":\"background agent list index pagination regression after a combined write+delete round, pagination matches the new full list including last page\",\"status\":\"failed\",\"title\":\"after a combined write+delete round, pagination matches the new full list including last page\",\"duration\":1.8726870000000133,\"failureMessages\":[\"AssertionError: expected 'index' to be 'rebuilt' // Object.is equality\\n    at /workspace/packages/cli/__tests__/verify-10.test.js:166:28\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]}],\"startTime\":1793723167230,\"endTime\":1793723167263.8728,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-10.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate or baseline regression failed"
+}

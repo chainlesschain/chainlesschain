@@ -1,0 +1,986 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000,
+    "connectionAttemptTimeoutMs": 10000,
+    "parallelToolCalls": null,
+    "preserveExplicitOutputLimits": true
+  },
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:cea1a2ff4e14a002be1700446ebe97bc7640a79ad6d778839f71bb938a2d25af",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+  "actualPlatform": "darwin",
+  "actualArch": "arm64",
+  "actualEntry": "vscode",
+  "changeReview": {
+    "requested": true,
+    "observed": true
+  },
+  "startedAt": "2026-11-03T14:50:17.816Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-17",
+      "taskId": "verify-17",
+      "kind": "task",
+      "runId": "2c3824b6-59f0-445b-9704-211afa298360",
+      "stratum": "darwin-vscode-volcengine",
+      "declaredActualEntry": {
+        "platform": "darwin",
+        "entry": "vscode"
+      },
+      "actualPlatform": "darwin",
+      "actualEntry": "vscode",
+      "changeReview": {
+        "requested": true,
+        "observed": true,
+        "reminderCount": 1,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-17.test.js"
+      ],
+      "startedAt": "2026-11-03T14:50:17.818Z",
+      "deadline": "2026-11-03T15:30:17.818Z",
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-17.test.js",
+          "path": "verify-17/candidate/packages/cli/__tests__/verify-17.test.js",
+          "digest": "sha256:298086f27073fc28edca6071010d8de8e0c76e12d3a9c0f76913eed79a600eb3",
+          "bytes": 4086
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [],
+      "unexpectedChanges": [],
+      "generationPassed": true,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T14:50:30.974Z",
+        "finishedAt": "2026-11-03T14:50:48.413Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "verify-17",
+        "locked": {
+          "version": "0.166.140",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+          "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "capturePath": "verify-17/capture",
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 43408,
+            "outputTokens": 6673,
+            "cacheReadInputTokens": 53248,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-52c1be5d-7d6a-469f-8487-0af2313d67e1",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "0e9e8f25-4222-4859-bc56-5eede181555b",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_hhls0z2npspqx3x8thzkn23m",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/process-execution-broker/process-ownership-journal.js"
+            },
+            "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_vrckjsc4z8prb76uniil6dvb",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/process-ownership-journal.test.js"
+            },
+            "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+            "seq": 8
+          },
+          {
+            "type": "tool_use",
+            "id": "call_tw9aofowsvpd8uvhhk3vcxkg",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-17.test.js",
+              "content": "import fs from \"node:fs\";\nimport os from \"node:os\";\nimport path from \"node:path\";\nimport { randomUUID } from \"node:crypto\";\nimport { afterEach, beforeEach, describe, expect, it } from \"vitest\";\nimport {\n  ProcessOwnershipJournal,\n  PROCESS_OWNERSHIP_PENDING,\n  PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,\n} from \"../src/lib/process-execution-broker/process-ownership-journal.js\";\n\n// Independent regression coverage for \"persistent process ownership records\".\n// Two acceptance invariants are exercised with focused positive/negative\n// controls:\n//   A) a damaged journal is never reported as idle (never pending === []).\n//   B) a legitimate pending record survives across fresh journal instances.\n// The source is read-only; no implementation is modified.\n\ndescribe.skipIf(process.platform !== \"linux\")(\n  \"verify-17 process ownership journal invariants\",\n  () => {\n    let root;\n    let directory;\n    beforeEach(() => {\n      root = fs.mkdtempSync(path.join(os.tmpdir(), \"cc-verify17-\"));\n      directory = path.join(root, \"authority\");\n    });\n    afterEach(() => {\n      fs.rmSync(root, { recursive: true, force: true });\n    });\n\n    // Condition A positive control: a legitimately absent journal is idle.\n    it(\"A+ treats an absent journal as legitimately idle\", () => {\n      const journal = new ProcessOwnershipJournal(directory);\n      expect(() => journal.assertAvailable()).not.toThrow();\n      expect(fs.existsSync(directory)).toBe(false);\n    });\n\n    // Condition A negative control: a damaged journal is not treated as idle.\n    it(\"A- refuses a corrupted journal instead of reporting idle\", () => {\n      const owner = new ProcessOwnershipJournal(directory);\n      const lease = owner.prepare(randomUUID());\n      const file = path.join(directory, \"journal.json\");\n      lease.settle();\n      // Leave the authority directory in place but damage the journal content\n      // while preserving owner-only permissions on the existing file.\n      fs.writeFileSync(file, \"{ this is not valid json\");\n      const bytes = fs.readFileSync(file);\n      const peer = new ProcessOwnershipJournal(directory);\n      expect(() => peer.assertAvailable()).toThrow(\n        expect.objectContaining({\n          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,\n        }),\n      );\n      expect(() => peer.inspect()).toThrow(\n        expect.objectContaining({\n          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,\n        }),\n      );\n      // The damaged journal is neither overwritten nor reported as empty.\n      expect(fs.readFileSync(file)).toEqual(bytes);\n    });\n\n    // Condition B negative control: a settled record is legitimately removed,\n    // so a fresh instance is not blocked and sees no pending record.\n    it(\"B- does not block a fresh instance once the record is settled\", () => {\n      const owner = new ProcessOwnershipJournal(directory);\n      owner.prepare(randomUUID()).settle();\n      const peer = new ProcessOwnershipJournal(directory);\n      expect(() => peer.assertAvailable()).not.toThrow();\n      expect(peer.inspect().pendingExecutionIds).toEqual([]);\n    });\n\n    // Condition B positive control: a legitimate pending record is retained\n    // across a fresh instance and blocks it (never treated as idle).\n    it(\"B+ retains a pending record across a fresh instance\", () => {\n      const owner = new ProcessOwnershipJournal(directory);\n      const id = randomUUID();\n      const lease = owner.prepare(id);\n      const file = path.join(directory, \"journal.json\");\n      const saved = JSON.parse(fs.readFileSync(file));\n      const peer = new ProcessOwnershipJournal(directory);\n      expect(() => peer.assertAvailable()).toThrow(\n        expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }),\n      );\n      expect(peer.inspect().pendingExecutionIds).toEqual([id]);\n      // The retained record is untouched on disk.\n      expect(JSON.parse(fs.readFileSync(file))).toEqual(saved);\n      // Retention survives regardless of the originating handle's liveness.\n      lease.settle();\n      expect(() => peer.assertAvailable()).not.toThrow();\n    });\n  },\n);\n"
+            },
+            "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+            "seq": 12
+          },
+          {
+            "type": "tool_use",
+            "id": "call_y5mipk54231aysmnzj617jce",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-17.test.js"
+            },
+            "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+            "seq": 16
+          },
+          {
+            "type": "tool_use",
+            "id": "call_87w8zalo0oo3h423gmwne20x",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/process-execution-broker/process-ownership-journal.js",
+              "offset": 148,
+              "limit": 60
+            },
+            "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+            "seq": 23
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_hhls0z2npspqx3x8thzkn23m",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-VbRZLB/2c3824b6-59f0-445b-9704-211afa298360/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js",
+              "fileVersion": "9738:1791108223000:1793717425596.2888",
+              "readSpan": {
+                "start": 0,
+                "end": 9738,
+                "total": 9738
+              },
+              "hashed": false,
+              "content": "import fs from \"node:fs\";\nimport path from \"node:path\";\nimport { randomUUID } from \"node:crypto\";\nimport { withFileLock } from \"../with-file-lock.js\";\nimport { writeSecurityStore } from \"../durable-security-store.js\";\nimport { ensurePrivateDirectory } from \"../secure-fs.js\";\n\nexport const PROCESS_OWNERSHIP_PENDING = \"BROKER_PROCESS_OWNERSHIP_PENDING\";\nexport const PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE =\n  \"BROKER_PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE\";\nconst SCHEMA = \"chainlesschain.process-ownership-journal/v1\";\nconst MAX_BYTES = 1024 * 1024;\nconst MAX_PENDING = 1024;\nconst UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;\n\nfunction unavailable(cause) {\n  const error = new Error(\n    \"Process ownership journal is unavailable; execution is denied\",\n    { cause },\n  );\n  error.code = PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE;\n  error.executionStarted = false;\n  error.recoveryRequired = true;\n  return error;\n}\n\nfunction validate(state) {\n  if (\n    !state ||\n    Object.keys(state).sort().join() !== \"pending,schema\" ||\n    state.schema !== SCHEMA ||\n    !Array.isArray(state.pending) ||\n    state.pending.length > MAX_PENDING\n  )\n    throw new Error(\"Invalid ownership journal schema\");\n  const ids = new Set();\n  for (const entry of state.pending) {\n    if (\n      !entry ||\n      Object.keys(entry).sort().join() !== \"executionId,ownerPid,token\" ||\n      !UUID.test(entry.executionId) ||\n      !UUID.test(entry.token) ||\n      !Number.isSafeInteger(entry.ownerPid) ||\n      entry.ownerPid < 1 ||\n      ids.has(entry.executionId)\n    )\n      throw new Error(\"Invalid ownership journal entry\");\n    ids.add(entry.executionId);\n  }\n  return state;\n}\n\nfunction privateEntry(entry, directory) {\n  return (\n    (directory ? entry.isDirectory() : entry.isFile() && entry.nlink === 1) &&\n    entry.uid === process.getuid() &&\n    (entry.mode & 0o077) === 0\n  );\n}\n\n/**\n * Linux cooperative restart fence. Uses the existing strict file lock and\n * atomic security-store writer; this is not a workspace lock or a sandbox.\n * Peers must wait for outstanding supervised launches to close. PID liveness,\n * age, owner death and reboot are never authorities to erase a pending launch.\n */\nexport class ProcessOwnershipJournal {\n  #directory;\n  #local = new Map();\n  #fault = null;\n  #initialized = false;\n\n  constructor(directory) {\n    if (process.platform !== \"linux\" || !path.isAbsolute(directory))\n      throw new TypeError(\n        \"Linux ownership journal requires an absolute directory\",\n      );\n    this.#directory = path.resolve(directory);\n  }\n\n  #withDirectory(create, operation) {\n    let descriptor;\n    try {\n      let before;\n      try {\n        before = fs.lstatSync(this.#directory);\n      } catch (error) {\n        if (error.code !== \"ENOENT\" || this.#initialized) throw error;\n        if (!create) return operation(null);\n        ensurePrivateDirectory(this.#directory, { failIfUnavailable: true });\n        // Publish the new authority directory before admitting its first launch.\n        const parent = fs.openSync(\n          path.dirname(this.#directory),\n          fs.constants.O_RDONLY | fs.constants.O_DIRECTORY,\n        );\n        try {\n          fs.fsyncSync(parent);\n        } finally {\n          fs.closeSync(parent);\n        }\n        before = fs.lstatSync(this.#directory);\n      }\n      if (!privateEntry(before, true))\n        throw new Error(\"Unsafe ownership directory\");\n      if (fs.realpathSync(this.#directory) !== this.#directory)\n        throw new Error(\"Ownership directory contains a link\");\n      descriptor = fs.openSync(\n        this.#directory,\n        fs.constants.O_RDONLY |\n          fs.constants.O_DIRECTORY |\n          fs.constants.O_NOFOLLOW,\n      );\n      const opened = fs.fstatSync(descriptor);\n      if (\n        before.dev !== opened.dev ||\n        before.ino !== opened.ino ||\n        !privateEntry(opened, true)\n      )\n        throw new Error(\"Ownership directory changed\");\n      const result = operation(`/proc/self/fd/${descriptor}/journal.json`);\n      const after = fs.lstatSync(this.#directory);\n      if (\n        after.dev !== opened.dev ||\n        after.ino !== opened.ino ||\n        !privateEntry(after, true)\n      )\n        throw new Error(\"Ownership directory replaced\");\n      return result;\n    } catch (error) {\n      if (error.code === PROCESS_OWNERSHIP_PENDING) throw error;\n      this.#fault = unavailable(error);\n      throw this.#fault;\n    } finally {\n      if (descriptor !== undefined) fs.closeSync(descriptor);\n    }\n  }\n\n  #read(file) {\n    if (file === null) return { schema: SCHEMA, pending: [] };\n    let descriptor;\n    try {\n      try {\n        descriptor = fs.openSync(\n          file,\n          fs.constants.O_RDONLY |\n            fs.constants.O_NOFOLLOW |\n            fs.constants.O_NONBLOCK,\n        );\n      } catch (error) {\n        if (error.code === \"ENOENT\" && !this.#initialized)\n          return { schema: SCHEMA, pending: [] };\n        throw error;\n      }\n      const before = fs.fstatSync(descriptor);\n      if (!privateEntry(before, false) || before.size > MAX_BYTES)\n        throw new Error(\"Unsafe ownership journal\");\n      const bytes = Buffer.alloc(before.size + 1);\n      let length = 0;\n      while (length < bytes.length) {\n        const count = fs.readSync(\n          descriptor,\n          bytes,\n          length,\n          bytes.length - length,\n          null,\n        );\n        if (count === 0) break;\n        length += count;\n      }\n      const after = fs.fstatSync(descriptor);\n      if (\n        length !== before.size ||\n        before.size !== after.size ||\n        before.mtimeMs !== after.mtimeMs ||\n        before.ctimeMs !== after.ctimeMs\n      )\n        throw new Error(\"Ownership journal changed during read\");\n      const state = validate(\n        JSON.parse(bytes.subarray(0, length).toString(\"utf8\")),\n      );\n      this.#initialized = true;\n      return state;\n    } finally {\n      if (descriptor !== undefined) fs.closeSync(descriptor);\n    }\n  }\n\n  #assertState(state) {\n    const blocked = state.pending.filter(\n      (entry) => this.#local.get(entry.executionId)?.token !== entry.token,\n    );\n    if (blocked.length) {\n      const error = new Error(\n        \"Process ownership is pending in another runtime; confirmed cleanup is required before execution\",\n      );\n      error.code = PROCESS_OWNERSHIP_PENDING;\n      error.executionStarted = false;\n      error.recoveryRequired = true;\n      throw error;\n    }\n    // Removal/replacement of our admitted record must not make this process\n    // forget a live launch. Cross-restart deletion of the whole anchor is\n    // outside this cooperative same-user persistence boundary.\n    for (const [id, local] of this.#local) {\n      if (\n        !state.pending.some(\n          (entry) => entry.executionId === id && entry.token === local.token,\n        )\n      )\n        throw new Error(\"Admitted ownership record disappeared\");\n    }\n  }\n\n  assertAvailable() {\n    if (this.#fault) throw this.#fault;\n    this.#withDirectory(false, (file) => this.#assertState(this.#read(file)));\n  }\n\n  inspect() {\n    if (this.#fault) throw this.#fault;\n    return this.#withDirectory(false, (file) => {\n      const state = this.#read(file);\n      return {\n        pendingExecutionIds: state.pending.map((entry) => entry.executionId),\n        blocked: state.pending.some(\n          (entry) => this.#local.get(entry.executionId)?.token !== entry.token,\n        ),\n      };\n    });\n  }\n\n  prepare(executionId) {\n    if (!UUID.test(executionId))\n      throw new TypeError(\"Invalid ownership execution id\");\n    if (this.#fault) throw this.#fault;\n    const entry = { executionId, ownerPid: process.pid, token: randomUUID() };\n    this.#withDirectory(true, (file) =>\n      withFileLock(\n        file,\n        () => {\n          const state = this.#read(file);\n          this.#assertState(state);\n          if (\n            state.pending.length >= MAX_PENDING ||\n            state.pending.some((item) => item.executionId === executionId)\n          )\n            throw new Error(\"Ownership journal admission limit\");\n          state.pending.push(entry);\n          writeSecurityStore(file, \"Process ownership\", state);\n          this.#initialized = true;\n          this.#local.set(executionId, entry);\n        },\n        { failIfUnavailable: true, timeoutMs: 2000 },\n      ),\n    );\n    let settled = false;\n    let retained = false;\n    return Object.freeze({\n      retain: () => {\n        retained = true;\n        this.#local.delete(executionId);\n      },\n      // Broker calls this only before entering native spawn or after its\n      // authentic child close fence. No public reset/reclaim-by-PID endpoint.\n      settle: () => {\n        if (settled) return;\n        if (retained)\n          throw unavailable(\n            new Error(\"Retained ownership cannot be settled without recovery\"),\n          );\n        this.#withDirectory(false, (file) =>\n          withFileLock(\n            file,\n            () => {\n              const state = this.#read(file);\n              if (\n                !state.pending.some(\n                  (item) =>\n                    item.executionId === executionId &&\n                    item.token === entry.token,\n                )\n              )\n                throw new Error(\"Ownership settlement lost its record\");\n              state.pending = state.pending.filter(\n                (item) => item.executionId !== executionId,\n              );\n              writeSecurityStore(file, \"Process ownership\", state);\n              this.#local.delete(executionId);\n              settled = true;\n            },\n            { failIfUnavailable: true, timeoutMs: 2000 },\n          ),\n        );\n      },\n    });\n  }\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793717473466,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/process-execution-broker/process-ownership-journal.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 13,
+                "sessionId": "panel-52c1be5d-7d6a-469f-8487-0af2313d67e1",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/process-execution-broker/process-ownership-journal.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_hhls0z2npspqx3x8thzkn23m",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+            "seq": 7
+          },
+          {
+            "type": "tool_result",
+            "id": "call_vrckjsc4z8prb76uniil6dvb",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-VbRZLB/2c3824b6-59f0-445b-9704-211afa298360/workspace/packages/cli/__tests__/unit/process-ownership-journal.test.js",
+              "fileVersion": "5877:1791108223000:1793717424828.6438",
+              "readSpan": {
+                "start": 0,
+                "end": 5877,
+                "total": 5877
+              },
+              "hashed": false,
+              "content": "import fs from \"node:fs\";\nimport os from \"node:os\";\nimport path from \"node:path\";\nimport { randomUUID } from \"node:crypto\";\nimport { afterEach, beforeEach, describe, expect, it, vi } from \"vitest\";\nimport {\n  ProcessOwnershipJournal,\n  PROCESS_OWNERSHIP_PENDING,\n  PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,\n} from \"../../src/lib/process-execution-broker/process-ownership-journal.js\";\n\ndescribe.skipIf(process.platform !== \"linux\")(\n  \"durable process ownership journal\",\n  () => {\n    let root;\n    let directory;\n    beforeEach(() => {\n      root = fs.mkdtempSync(path.join(os.tmpdir(), \"cc-ownership-journal-\"));\n      directory = path.join(root, \"authority\");\n    });\n    afterEach(() => {\n      vi.restoreAllMocks();\n      fs.rmSync(root, { recursive: true, force: true });\n    });\n\n    it(\"admits local parallel launches but fences a fresh runtime until every real settlement\", () => {\n      const owner = new ProcessOwnershipJournal(directory);\n      owner.assertAvailable();\n      expect(fs.existsSync(directory)).toBe(false);\n      const firstId = randomUUID();\n      const first = owner.prepare(firstId);\n      const second = owner.prepare(randomUUID());\n      owner.assertAvailable();\n      const peer = new ProcessOwnershipJournal(directory);\n      expect(() => peer.assertAvailable()).toThrow(\n        expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }),\n      );\n      expect(() => peer.prepare(randomUUID())).toThrow(\n        expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }),\n      );\n      first.settle();\n      first.settle();\n      expect(() => peer.assertAvailable()).toThrow();\n      second.settle();\n      peer.assertAvailable();\n      expect(owner.inspect().pendingExecutionIds).toEqual([]);\n    });\n\n    it(\"retains a lost lease across fresh instances regardless of PID reuse or age\", () => {\n      const owner = new ProcessOwnershipJournal(directory);\n      const id = randomUUID();\n      const lease = owner.prepare(id);\n      lease.retain();\n      expect(() => owner.assertAvailable()).toThrow(\n        expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }),\n      );\n      expect(() => lease.settle()).toThrow();\n      const file = path.join(directory, \"journal.json\");\n      const saved = JSON.parse(fs.readFileSync(file));\n      saved.pending[0].ownerPid = 2147483647;\n      fs.writeFileSync(file, JSON.stringify(saved));\n      fs.utimesSync(file, new Date(0), new Date(0));\n      expect(() =>\n        new ProcessOwnershipJournal(directory).assertAvailable(),\n      ).toThrow(expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }));\n      expect(JSON.parse(fs.readFileSync(file)).pending).toHaveLength(1);\n    });\n\n    it.each([\n      \"json\",\n      \"schema\",\n      \"extra-field\",\n      \"oversize\",\n      \"symlink\",\n      \"hardlink\",\n      \"permissions\",\n    ])(\"rejects %s state without overwriting it\", (kind) => {\n      const owner = new ProcessOwnershipJournal(directory);\n      owner.prepare(randomUUID()).settle();\n      const file = path.join(directory, \"journal.json\");\n      if (kind === \"json\") fs.writeFileSync(file, \"{\");\n      if (kind === \"schema\")\n        fs.writeFileSync(file, '{\"schema\":\"old\",\"pending\":[]}');\n      if (kind === \"extra-field\")\n        fs.writeFileSync(\n          file,\n          '{\"schema\":\"chainlesschain.process-ownership-journal/v1\",\"pending\":[],\"reset\":true}',\n        );\n      if (kind === \"oversize\")\n        fs.writeFileSync(file, \" \".repeat(1024 * 1024 + 1));\n      if (kind === \"permissions\") fs.chmodSync(file, 0o644);\n      if (kind === \"hardlink\") fs.linkSync(file, path.join(root, \"copy\"));\n      if (kind === \"symlink\") {\n        fs.renameSync(file, path.join(root, \"copy\"));\n        fs.symlinkSync(path.join(root, \"copy\"), file);\n      }\n      const bytes = fs.readFileSync(file);\n      const peer = new ProcessOwnershipJournal(directory);\n      expect(() => peer.prepare(randomUUID())).toThrow(\n        expect.objectContaining({\n          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,\n        }),\n      );\n      expect(fs.readFileSync(file)).toEqual(bytes);\n    });\n\n    it(\"refuses state deletion and failed durable settlement without forgetting the launch\", () => {\n      const owner = new ProcessOwnershipJournal(directory);\n      const id = randomUUID();\n      const lease = owner.prepare(id);\n      const file = path.join(directory, \"journal.json\");\n      const original = fs.readFileSync(file);\n      const fsync = vi.spyOn(fs, \"fsyncSync\").mockImplementation(() => {\n        throw new Error(\"fixture fsync failure\");\n      });\n      expect(() => lease.settle()).toThrow(\n        expect.objectContaining({\n          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,\n        }),\n      );\n      fsync.mockRestore();\n      expect(fs.readFileSync(file)).toEqual(original);\n      expect(() => owner.assertAvailable()).toThrow();\n      expect(() =>\n        new ProcessOwnershipJournal(directory).assertAvailable(),\n      ).toThrow(expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }));\n      const reader = new ProcessOwnershipJournal(directory);\n      reader.inspect();\n      fs.unlinkSync(file);\n      expect(() => reader.assertAvailable()).toThrow(\n        expect.objectContaining({\n          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,\n        }),\n      );\n    });\n\n    it(\"rejects linked or replaced authority directories\", () => {\n      const owner = new ProcessOwnershipJournal(directory);\n      const lease = owner.prepare(randomUUID());\n      const renamed = path.join(root, \"old\");\n      fs.renameSync(directory, renamed);\n      fs.symlinkSync(renamed, directory);\n      expect(() => lease.settle()).toThrow(\n        expect.objectContaining({\n          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,\n        }),\n      );\n      expect(\n        JSON.parse(fs.readFileSync(path.join(renamed, \"journal.json\"))).pending,\n      ).toHaveLength(1);\n    });\n  },\n);\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793717473535,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/process-ownership-journal.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-52c1be5d-7d6a-469f-8487-0af2313d67e1",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/process-ownership-journal.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_vrckjsc4z8prb76uniil6dvb",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+            "seq": 9
+          },
+          {
+            "type": "tool_result",
+            "id": "call_tw9aofowsvpd8uvhhk3vcxkg",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "/private/tmp/cc-native-VbRZLB/2c3824b6-59f0-445b-9704-211afa298360/workspace/packages/cli/__tests__/verify-17.test.js",
+              "size": 4086,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793717502753,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-17.test.js",
+                    "content": "import fs from \"node:fs\";\nimport os from \"node:os\";\nimport path from \"node:path\";\nimport { randomUUID } from \"node:crypto\";\nimport { afterEach, beforeEach, describe, expect, it } from \"vitest\";\nimport {\n  ProcessOwnershipJournal,\n  PROCESS_OWNERSHIP_PENDING,\n  PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,\n} from \"../src/lib/process-execution-broker/process-ownership-journal.js\";\n\n// Independent regression coverage for \"persistent process ownership records\".\n// Two acceptance invariants are exercised with focused positive/negative\n// controls:\n//   A) a damaged journal is never reported as idle (never pending === []).\n//   B) a legitimate pending record survives across fresh journal instances.\n// The source is read-only; no implementation is modified.\n\ndescribe.skipIf(process.platform !== \"linux\")(\n  \"verify-17 process ownership journal invariants\",\n  () => {\n    let root;\n    let directory;\n    beforeEach(() => {\n      root = fs.mkdtempSync(path.join(os.tmpdir(), \"cc-verify17-\"));\n      directory = path.join(root, \"authority\");\n    });\n    afterEach(() => {\n      fs.rmSync(root, { recursive: true, force: true });\n    });\n\n    // Condition A positive control: a legitimately absent journal is idle.\n    it(\"A+ treats an absent journal as legitimately idle\", () => {\n      const journal = new ProcessOwnershipJournal(directory);\n      expect(() => journal.assertAvailable()).not.toThrow();\n      expect(fs.existsSync(directory)).toBe(false);\n    });\n\n    // Condition A negative control: a damaged journal is not treated as idle.\n    it(\"A- refuses a corrupted journal instead of reporting idle\", () => {\n      const owner = new ProcessOwnershipJournal(directory);\n      const lease = owner.prepare(randomUUID());\n      const file = path.join(directory, \"journal.json\");\n      lease.settle();\n      // Leave the authority directory in place but damage the journal content\n      // while preserving owner-only permissions on the existing file.\n      fs.writeFileSync(file, \"{ this is not valid json\");\n      const bytes = fs.readFileSync(file);\n      const peer = new ProcessOwnershipJournal(directory);\n      expect(() => peer.assertAvailable()).toThrow(\n        expect.objectContaining({\n          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,\n        }),\n      );\n      expect(() => peer.inspect()).toThrow(\n        expect.objectContaining({\n          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,\n        }),\n      );\n      // The damaged journal is neither overwritten nor reported as empty.\n      expect(fs.readFileSync(file)).toEqual(bytes);\n    });\n\n    // Condition B negative control: a settled record is legitimately removed,\n    // so a fresh instance is not blocked and sees no pending record.\n    it(\"B- does not block a fresh instance once the record is settled\", () => {\n      const owner = new ProcessOwnershipJournal(directory);\n      owner.prepare(randomUUID()).settle();\n      const peer = new ProcessOwnershipJournal(directory);\n      expect(() => peer.assertAvailable()).not.toThrow();\n      expect(peer.inspect().pendingExecutionIds).toEqual([]);\n    });\n\n    // Condition B positive control: a legitimate pending record is retained\n    // across a fresh instance and blocks it (never treated as idle).\n    it(\"B+ retains a pending record across a fresh instance\", () => {\n      const owner = new ProcessOwnershipJournal(directory);\n      const id = randomUUID();\n      const lease = owner.prepare(id);\n      const file = path.join(directory, \"journal.json\");\n      const saved = JSON.parse(fs.readFileSync(file));\n      const peer = new ProcessOwnershipJournal(directory);\n      expect(() => peer.assertAvailable()).toThrow(\n        expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }),\n      );\n      expect(peer.inspect().pendingExecutionIds).toEqual([id]);\n      // The retained record is untouched on disk.\n      expect(JSON.parse(fs.readFileSync(file))).toEqual(saved);\n      // Retention survives regardless of the originating handle's liveness.\n      lease.settle();\n      expect(() => peer.assertAvailable()).not.toThrow();\n    });\n  },\n);\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 16,
+                "sessionId": "panel-52c1be5d-7d6a-469f-8487-0af2313d67e1",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-17.test.js",
+                    "content": "import fs from \"node:fs\";\nimport os from \"node:os\";\nimport path from \"node:path\";\nimport { randomUUID } from \"node:crypto\";\nimport { afterEach, beforeEach, describe, expect, it } from \"vitest\";\nimport {\n  ProcessOwnershipJournal,\n  PROCESS_OWNERSHIP_PENDING,\n  PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,\n} from \"../src/lib/process-execution-broker/process-ownership-journal.js\";\n\n// Independent regression coverage for \"persistent process ownership records\".\n// Two acceptance invariants are exercised with focused positive/negative\n// controls:\n//   A) a damaged journal is never reported as idle (never pending === []).\n//   B) a legitimate pending record survives across fresh journal instances.\n// The source is read-only; no implementation is modified.\n\ndescribe.skipIf(process.platform !== \"linux\")(\n  \"verify-17 process ownership journal invariants\",\n  () => {\n    let root;\n    let directory;\n    beforeEach(() => {\n      root = fs.mkdtempSync(path.join(os.tmpdir(), \"cc-verify17-\"));\n      directory = path.join(root, \"authority\");\n    });\n    afterEach(() => {\n      fs.rmSync(root, { recursive: true, force: true });\n    });\n\n    // Condition A positive control: a legitimately absent journal is idle.\n    it(\"A+ treats an absent journal as legitimately idle\", () => {\n      const journal = new ProcessOwnershipJournal(directory);\n      expect(() => journal.assertAvailable()).not.toThrow();\n      expect(fs.existsSync(directory)).toBe(false);\n    });\n\n    // Condition A negative control: a damaged journal is not treated as idle.\n    it(\"A- refuses a corrupted journal instead of reporting idle\", () => {\n      const owner = new ProcessOwnershipJournal(directory);\n      const lease = owner.prepare(randomUUID());\n      const file = path.join(directory, \"journal.json\");\n      lease.settle();\n      // Leave the authority directory in place but damage the journal content\n      // while preserving owner-only permissions on the existing file.\n      fs.writeFileSync(file, \"{ this is not valid json\");\n      const bytes = fs.readFileSync(file);\n      const peer = new ProcessOwnershipJournal(directory);\n      expect(() => peer.assertAvailable()).toThrow(\n        expect.objectContaining({\n          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,\n        }),\n      );\n      expect(() => peer.inspect()).toThrow(\n        expect.objectContaining({\n          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,\n        }),\n      );\n      // The damaged journal is neither overwritten nor reported as empty.\n      expect(fs.readFileSync(file)).toEqual(bytes);\n    });\n\n    // Condition B negative control: a settled record is legitimately removed,\n    // so a fresh instance is not blocked and sees no pending record.\n    it(\"B- does not block a fresh instance once the record is settled\", () => {\n      const owner = new ProcessOwnershipJournal(directory);\n      owner.prepare(randomUUID()).settle();\n      const peer = new ProcessOwnershipJournal(directory);\n      expect(() => peer.assertAvailable()).not.toThrow();\n      expect(peer.inspect().pendingExecutionIds).toEqual([]);\n    });\n\n    // Condition B positive control: a legitimate pending record is retained\n    // across a fresh instance and blocks it (never treated as idle).\n    it(\"B+ retains a pending record across a fresh instance\", () => {\n      const owner = new ProcessOwnershipJournal(directory);\n      const id = randomUUID();\n      const lease = owner.prepare(id);\n      const file = path.join(directory, \"journal.json\");\n      const saved = JSON.parse(fs.readFileSync(file));\n      const peer = new ProcessOwnershipJournal(directory);\n      expect(() => peer.assertAvailable()).toThrow(\n        expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }),\n      );\n      expect(peer.inspect().pendingExecutionIds).toEqual([id]);\n      // The retained record is untouched on disk.\n      expect(JSON.parse(fs.readFileSync(file))).toEqual(saved);\n      // Retention survives regardless of the originating handle's liveness.\n      lease.settle();\n      expect(() => peer.assertAvailable()).not.toThrow();\n    });\n  },\n);\n"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "write_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_tw9aofowsvpd8uvhhk3vcxkg",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+            "seq": 13
+          },
+          {
+            "type": "tool_result",
+            "id": "call_y5mipk54231aysmnzj617jce",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-VbRZLB/2c3824b6-59f0-445b-9704-211afa298360/workspace/packages/cli/__tests__/verify-17.test.js",
+              "fileVersion": "4086:1793717502737.921:1793717502737.921",
+              "readSpan": {
+                "start": 0,
+                "end": 4086,
+                "total": 4086
+              },
+              "hashed": false,
+              "content": "import fs from \"node:fs\";\nimport os from \"node:os\";\nimport path from \"node:path\";\nimport { randomUUID } from \"node:crypto\";\nimport { afterEach, beforeEach, describe, expect, it } from \"vitest\";\nimport {\n  ProcessOwnershipJournal,\n  PROCESS_OWNERSHIP_PENDING,\n  PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,\n} from \"../src/lib/process-execution-broker/process-ownership-journal.js\";\n\n// Independent regression coverage for \"persistent process ownership records\".\n// Two acceptance invariants are exercised with focused positive/negative\n// controls:\n//   A) a damaged journal is never reported as idle (never pending === []).\n//   B) a legitimate pending record survives across fresh journal instances.\n// The source is read-only; no implementation is modified.\n\ndescribe.skipIf(process.platform !== \"linux\")(\n  \"verify-17 process ownership journal invariants\",\n  () => {\n    let root;\n    let directory;\n    beforeEach(() => {\n      root = fs.mkdtempSync(path.join(os.tmpdir(), \"cc-verify17-\"));\n      directory = path.join(root, \"authority\");\n    });\n    afterEach(() => {\n      fs.rmSync(root, { recursive: true, force: true });\n    });\n\n    // Condition A positive control: a legitimately absent journal is idle.\n    it(\"A+ treats an absent journal as legitimately idle\", () => {\n      const journal = new ProcessOwnershipJournal(directory);\n      expect(() => journal.assertAvailable()).not.toThrow();\n      expect(fs.existsSync(directory)).toBe(false);\n    });\n\n    // Condition A negative control: a damaged journal is not treated as idle.\n    it(\"A- refuses a corrupted journal instead of reporting idle\", () => {\n      const owner = new ProcessOwnershipJournal(directory);\n      const lease = owner.prepare(randomUUID());\n      const file = path.join(directory, \"journal.json\");\n      lease.settle();\n      // Leave the authority directory in place but damage the journal content\n      // while preserving owner-only permissions on the existing file.\n      fs.writeFileSync(file, \"{ this is not valid json\");\n      const bytes = fs.readFileSync(file);\n      const peer = new ProcessOwnershipJournal(directory);\n      expect(() => peer.assertAvailable()).toThrow(\n        expect.objectContaining({\n          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,\n        }),\n      );\n      expect(() => peer.inspect()).toThrow(\n        expect.objectContaining({\n          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,\n        }),\n      );\n      // The damaged journal is neither overwritten nor reported as empty.\n      expect(fs.readFileSync(file)).toEqual(bytes);\n    });\n\n    // Condition B negative control: a settled record is legitimately removed,\n    // so a fresh instance is not blocked and sees no pending record.\n    it(\"B- does not block a fresh instance once the record is settled\", () => {\n      const owner = new ProcessOwnershipJournal(directory);\n      owner.prepare(randomUUID()).settle();\n      const peer = new ProcessOwnershipJournal(directory);\n      expect(() => peer.assertAvailable()).not.toThrow();\n      expect(peer.inspect().pendingExecutionIds).toEqual([]);\n    });\n\n    // Condition B positive control: a legitimate pending record is retained\n    // across a fresh instance and blocks it (never treated as idle).\n    it(\"B+ retains a pending record across a fresh instance\", () => {\n      const owner = new ProcessOwnershipJournal(directory);\n      const id = randomUUID();\n      const lease = owner.prepare(id);\n      const file = path.join(directory, \"journal.json\");\n      const saved = JSON.parse(fs.readFileSync(file));\n      const peer = new ProcessOwnershipJournal(directory);\n      expect(() => peer.assertAvailable()).toThrow(\n        expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }),\n      );\n      expect(peer.inspect().pendingExecutionIds).toEqual([id]);\n      // The retained record is untouched on disk.\n      expect(JSON.parse(fs.readFileSync(file))).toEqual(saved);\n      // Retention survives regardless of the originating handle's liveness.\n      lease.settle();\n      expect(() => peer.assertAvailable()).not.toThrow();\n    });\n  },\n);\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793717506452,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-17.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-52c1be5d-7d6a-469f-8487-0af2313d67e1",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-17.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_y5mipk54231aysmnzj617jce",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+            "seq": 17
+          },
+          {
+            "type": "tool_result",
+            "id": "call_87w8zalo0oo3h423gmwne20x",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-VbRZLB/2c3824b6-59f0-445b-9704-211afa298360/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js",
+              "fileVersion": "9738:1791108223000:1793717425596.2888",
+              "range": {
+                "startLine": 148,
+                "endLine": 207,
+                "totalLines": 298
+              },
+              "nextRead": {
+                "path": "packages/cli/src/lib/process-execution-broker/process-ownership-journal.js",
+                "offset": 208,
+                "limit": 60
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 4810,
+                "end": 6857,
+                "total": 9738
+              },
+              "hashed": false,
+              "content": "        );\n      } catch (error) {\n        if (error.code === \"ENOENT\" && !this.#initialized)\n          return { schema: SCHEMA, pending: [] };\n        throw error;\n      }\n      const before = fs.fstatSync(descriptor);\n      if (!privateEntry(before, false) || before.size > MAX_BYTES)\n        throw new Error(\"Unsafe ownership journal\");\n      const bytes = Buffer.alloc(before.size + 1);\n      let length = 0;\n      while (length < bytes.length) {\n        const count = fs.readSync(\n          descriptor,\n          bytes,\n          length,\n          bytes.length - length,\n          null,\n        );\n        if (count === 0) break;\n        length += count;\n      }\n      const after = fs.fstatSync(descriptor);\n      if (\n        length !== before.size ||\n        before.size !== after.size ||\n        before.mtimeMs !== after.mtimeMs ||\n        before.ctimeMs !== after.ctimeMs\n      )\n        throw new Error(\"Ownership journal changed during read\");\n      const state = validate(\n        JSON.parse(bytes.subarray(0, length).toString(\"utf8\")),\n      );\n      this.#initialized = true;\n      return state;\n    } finally {\n      if (descriptor !== undefined) fs.closeSync(descriptor);\n    }\n  }\n\n  #assertState(state) {\n    const blocked = state.pending.filter(\n      (entry) => this.#local.get(entry.executionId)?.token !== entry.token,\n    );\n    if (blocked.length) {\n      const error = new Error(\n        \"Process ownership is pending in another runtime; confirmed cleanup is required before execution\",\n      );\n      error.code = PROCESS_OWNERSHIP_PENDING;\n      error.executionStarted = false;\n      error.recoveryRequired = true;\n      throw error;\n    }\n    // Removal/replacement of our admitted record must not make this process\n    // forget a live launch. Cross-restart deletion of the whole anchor is\n    // outside this cooperative same-user persistence boundary.\n    for (const [id, local] of this.#local) {\n      if (\n        !state.pending.some(\n          (entry) => entry.executionId === id && entry.token === local.token,",
+              "readRecovery": {
+                "action": "targeted-review"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793717542774,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/process-execution-broker/process-ownership-journal.js",
+                    "offset": 148,
+                    "limit": 60
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 3,
+                "sessionId": "panel-52c1be5d-7d6a-469f-8487-0af2313d67e1",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/process-execution-broker/process-ownership-journal.js",
+                    "offset": 148,
+                    "limit": 60
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_87w8zalo0oo3h423gmwne20x",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+            "seq": 24
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2728,
+              "output_tokens": 109,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 8455,
+              "output_tokens": 2834,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+            "seq": 11
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 8296,
+              "output_tokens": 67,
+              "cache_read_input_tokens": 9728,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+            "seq": 15
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4689,
+              "output_tokens": 657,
+              "cache_read_input_tokens": 15104,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+            "seq": 19
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2549,
+              "output_tokens": 2281,
+              "cache_read_input_tokens": 18176,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+            "seq": 22
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 16691,
+              "output_tokens": 725,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+            "seq": 26
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 43408,
+          "output_tokens": 6673,
+          "cache_read_input_tokens": 53248
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 6,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "I have verified the critical source paths. My audit confirms the deliverable covers both acceptance requirements correctly. Let me finalize the review.\n\n**Requirement-to-assertion account:**\n\n**Req (a) — damaged journal never treated as idle.** \n- **A+ (positive control)**: fixture = fresh instance, absent directory. Production path: `assertAvailable()` → `#withDirectory(false,...)` → `#read(null)` returns `{schema, pending:[]}` → `#assertState` passes. Assertion: does not throw, directory still absent. Demonstrates idle is the correct state only when the journal is legitimately absent.\n- **A- (negative control)**: fixture = `prepare(id).settle()` then overwrite the existing journal with corrupt JSON (file already passes `privateEntry` owner/mode/nlink checks and size ≤ MAX_BYTES, so those guards are valid and cannot mask the rejection). Production path: `assertAvailable()`/`inspect()` → `#read` → `privateEntry` OK → `JSON.parse` throws → `#withDirectory` catches → throws `PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE`. Assertion: both throw with that code, file bytes unchanged. Only the intended condition (valid vs corrupt content) differs from A+.\n\n**Req (b) — legitimate pending record retained across instances.**\n- **B+ (positive control)**: fixture = `prepare(id)` leaves a pending record on disk. Fresh instance → `assertAvailable()` → `#assertState` sees an entry whose token isn't in the fresh `#local` → throws `PROCESS_OWNERSHIP_PENDING`; `inspect().pendingExecutionIds` = `[id]`; file unchanged on disk; settling the originating lease then unblocks the fresh peer. Real production path through `assertState`'s pending-token filter.\n- **B- (negative control)**: identical fixture except `settle()` removed the record → fresh instance `assertAvailable()` passes and `pendingExecutionIds === []`. Only the intended condition (pending vs settled) differs.\n\nBoth conditions have focused positive/negative controls that reach the intended behavior with valid prerequisites. Order of observable effects confirmed: `#read` validates content before returning state, and on throw it never writes (so the file-unchanged assertion holds and no overwrite/idle-report can mask the check).\n\n**Uncovered conditions:** none. Both acceptance invariants are independently covered. The `retain()`/schema-variant sub-cases are already covered by the existing unit suite; my invalid-JSON regression is complementary, satisfying \"independent regression OR complete existing coverage.\"\n\n**Implementation defects found:** none. No counterexample proves a defect — the frozen implementation correctly rejects corrupt journals as UNAVAILABLE (not idle) and correctly retains pending records across instances. Therefore no source modification was warranted, and no assertion was lowered or skipped.\n\n**Limitations:** Tests were not executed here — only file-tool read-back and static source tracing. No shell/test runner/network is available in this session. Execution occurs later in the network-disabled Linux Docker checker; I cannot claim passing. The suite is gated on `process.platform === \"linux\"`, matching the source's platform requirement. The deliverable remains unchanged and complete at `packages/cli/__tests__/verify-17.test.js` (4 cases, within the 6-case cap; no existing suite imported; no source-text assertions).",
+          "session_id": "panel-52c1be5d-7d6a-469f-8487-0af2313d67e1",
+          "turn": 1,
+          "usage": {
+            "input_tokens": 43408,
+            "output_tokens": 6673,
+            "cache_read_input_tokens": 53248,
+            "cache_creation_input_tokens": 0
+          },
+          "transcript_refs": {
+            "schema": "chainlesschain.session-transcript-references/v1",
+            "sessionId": "panel-52c1be5d-7d6a-469f-8487-0af2313d67e1",
+            "assistantEventId": "6c83236c35b4c37ac7cb2ce42d82c3e9fad7a75aa4a333b62df27d9e2492b704",
+            "userEventId": "7461adc0e0435207194ce128099fb924d368ca8a9c6feb30872b4298bafbde5f",
+            "clientMessageId": "686b5e6c-1c42-41e5-8a65-38514638fd38"
+          },
+          "trace_id": "tr-c109e6c6-2658-473f-8ca7-bbeae055559c",
+          "seq": 28
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 6,
+        "usageCompleteRequests": 6,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 6,
+        "usageCompleteRequests": 6,
+        "tasks": [
+          {
+            "taskId": "verify-17",
+            "requests": 6,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": 0.1956058,
+        "knownTokenOnlyEstimateCny": 0.1956058,
+        "fxRate": null
+      },
+      "changedPaths": [
+        "packages/cli/__tests__/verify-17.test.js"
+      ],
+      "finishedAt": "2026-11-03T14:52:51.302Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-17"
+  ],
+  "generationPassed": true,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 40 model turns, 48 requests, 180 second request timeout, model maximum 393216 output tokens (8192 test cap removed), 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:3185a92e57bc89a9f9c1283aeff4823c409e1bebd48b8d20da509814fded8b29",
+  "group": "darwin-vscode",
+  "entry": "vscode",
+  "platform": "darwin",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:3ca5c1bfa5bffdee860665eeb757c24004dfaf0f3075f2a63e1a2600b3f6d600"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:487ed1e27103348c920988130954ec6449a81e66f7973e81ed02e1befd126da3"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:be2edf8e1ced537796d5819e458e4b56f2c1638eab8880b09c2c7fea4a4245fd"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+      "digest": "sha256:82becb2b0b551916e312131bcca48736d9e3f462aed4ea2a89ec00f907457eed"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
+      "digest": "sha256:d2cbc2dee63e7f53c622d61ad314143d6bd4d59a679d9aea29579cb034a829fb"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-public140-full.mjs",
+      "digest": "sha256:4c8b323e6c28b2dafb2f2e71ec2e7825d6b321d2998e3ef5f6ace3c2a10acdb9"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:3e515efc1cff606e2cbbfa977b5674abe6a73c142caa1b0539c0a2698978f8e4"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/verify01-run.cjs",
+      "digest": "sha256:7843460e829832d36768c90036414a1ceba5b3a03cca674f981b7e2fa3fdae44"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/verify01.cjs",
+      "digest": "sha256:a4a8a1d3d0e83227f22943e36920883d234fcdc847fb0f9faa08a969abf0c177"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/verify01-composer.cjs",
+      "digest": "sha256:3309c665f3bcb2941a27941ab4a096047869dd85deab78052c4932bf8f425554"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/noop.cjs",
+      "digest": "sha256:06a84182b7e81818c35b47c64170139b572a665645dbf9561de7fd521517bbb6"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/failure-receipt.cjs",
+      "digest": "sha256:802abcf31cb2dcbfb4e3873e29a440e9b1e8a5399ba6e8bb05883d1a36494c84"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/cdp-journey.cjs",
+      "digest": "sha256:31d467277d6eee1f7ecbe5551ae20e318d9ead0363b692a1ab106e64e388cfd0"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/run.cjs",
+      "digest": "sha256:761393469af5d77dea596dffe0fff8e984e93445949796474a281f3f68b635f1"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T14:50:30.974Z",
+    "finishedAt": "2026-11-03T14:50:48.413Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "verify-17",
+    "locked": {
+      "version": "0.166.140",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+      "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T14:52:51.306Z"
+}

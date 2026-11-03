@@ -1,0 +1,124 @@
+import { describe, expect, it } from "vitest";
+import {
+  createEvalComparison,
+  createEvalHistoryRecord,
+  EVAL_CONTEXT_SCHEMA,
+  EVAL_EXECUTION_PROTOCOL,
+  evaluateStrictEvalGate,
+} from "../src/lib/eval/evidence.js";
+
+// verify-24: strict isolation of comparison identity. Two runs over the SAME
+// task population must not be treated as a comparable improvement when the
+// model, permission or runtime identity differs between baseline and candidate.
+
+const NOW = Date.parse("2026-09-12T12:00:00.000Z");
+const D = (character) => `sha256:${character.repeat(64)}`;
+
+function context() {
+  return {
+    schema: EVAL_CONTEXT_SCHEMA,
+    provider: "openai",
+    model: "test-model",
+    modelRevision: "test-model@revision-1",
+    environmentDigest: D("a"),
+    permissionDigest: D("b"),
+    inferenceDigest: D("c"),
+  };
+}
+
+function comparison() {
+  return createEvalComparison({
+    suite: "builtin",
+    corpusDigest: D("d"),
+    provider: "openai",
+    model: "test-model",
+    context: context(),
+    platform: "linux",
+    arch: "x64",
+    node: "v22.22.2",
+  });
+}
+
+function record(index) {
+  const results = [
+    ["a", true],
+    ["b", true],
+  ].map(([id, pass]) => ({
+    id,
+    pass,
+    artifactCheckPassed: pass,
+    executionSucceeded: true,
+    agentOk: true,
+    executionEvidence: {
+      protocol: EVAL_EXECUTION_PROTOCOL,
+      exitCode: 0,
+      signal: null,
+      terminalVerified: true,
+      observedFallback: false,
+    },
+    error: null,
+    detail: "checked",
+    changedFiles: [],
+    unrelatedChanges: [],
+  }));
+  return createEvalHistoryRecord(
+    {
+      total: 2,
+      passed: 2,
+      failed: 0,
+      passRate: 1,
+      unrelatedChangeRate: 0,
+      results,
+    },
+    {
+      comparison: comparison(),
+      runId: `run-${index}`,
+      ranAt: new Date(NOW - (3 - index) * 1000).toISOString(),
+    },
+  );
+}
+
+const gate = (runs) =>
+  evaluateStrictEvalGate({ runs, issues: [] }, { now: NOW });
+
+describe("verify-24: comparison identity isolation", () => {
+  it("PASSES when the same task population runs under an identical comparison identity", () => {
+    const result = gate([record(1), record(2)]);
+    expect(result).toMatchObject({
+      passed: true,
+      status: "PASS",
+      baselineRunId: "run-1",
+      candidateRunId: "run-2",
+    });
+    expect(result.reasons).toEqual([]);
+  });
+
+  it.each([
+    ["model", (comparison) => {
+      comparison.model = "other-model";
+      comparison.declared.model = "other-model";
+    }],
+    ["permissionDigest", (comparison) => {
+      comparison.declared.permissionDigest = D("e");
+    }],
+    ["runtime.node", (comparison) => {
+      comparison.runtime.node = "v24.0.0";
+    }],
+    ["environmentDigest", (comparison) => {
+      comparison.declared.environmentDigest = D("f");
+    }],
+    ["inferenceDigest", (comparison) => {
+      comparison.declared.inferenceDigest = D("g");
+    }],
+  ])(
+    "rejects a same-task pair when only the %s identity differs (not a comparable improvement)",
+    (_field, mutate) => {
+      const candidate = record(2);
+      mutate(candidate.comparison);
+      const result = gate([record(1), candidate]);
+      expect(result.passed).toBe(false);
+      expect(result.status).toBe("INSUFFICIENT_EVIDENCE");
+      expect(result.reasons).toContain("comparison_identity_changed");
+    },
+  );
+});

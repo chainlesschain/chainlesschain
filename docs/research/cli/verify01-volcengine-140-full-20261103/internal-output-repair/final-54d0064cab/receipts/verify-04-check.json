@@ -1,0 +1,165 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-04",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 22,
+      "passed": 22,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "merge-short-and-long-request-price-buckets",
+      "sourceSha256": "7b8898a171561e61a4803ef8aa05ffc947aea3cd85e194c2b8ca6898a535b86c",
+      "total": 6,
+      "passed": 4,
+      "failed": 2
+    },
+    {
+      "name": "drop-cache-tokens-from-request-threshold",
+      "sourceSha256": "63b0dbf58bfccf374c4b480da32f78b06c96ff461905e294005ac9047e7a5abd",
+      "total": 6,
+      "passed": 5,
+      "failed": 1
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 667,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1241,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":7,\"numPassedTestSuites\":7,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":22,\"numPassedTests\":22,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793724211422,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves request pricing through durable projection, budget and Eval\",\"status\":\"passed\",\"title\":\"preserves request pricing through durable projection, budget and Eval\",\"duration\":7.245437000000038,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves pricing conditions in crash-recovery settlements\",\"status\":\"passed\",\"title\":\"preserves pricing conditions in crash-recovery settlements\",\"duration\":2.8433800000000247,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-astra only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-astra only at the official endpoint\",\"duration\":2.271068000000014,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-sol only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-sol only at the official endpoint\",\"duration\":0.685730000000035,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-luna only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-luna only at the official endpoint\",\"duration\":0.6703769999999167,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves Opus 5.5 without changing a custom gateway's assumptions\",\"status\":\"passed\",\"title\":\"resolves Opus 5.5 without changing a custom gateway's assumptions\",\"duration\":1.142439999999965,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts prices cached tokens and long prompts at the request boundary\",\"status\":\"passed\",\"title\":\"prices cached tokens and long prompts at the request boundary\",\"duration\":0.4609649999999874,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts keeps separate request tiers when aggregating one or many sessions\",\"status\":\"passed\",\"title\":\"keeps separate request tiers when aggregating one or many sessions\",\"duration\":2.3360549999999876,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves response service tier for budget settlement\",\"status\":\"passed\",\"title\":\"preserves response service tier for budget settlement\",\"duration\":0.6297759999999926,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts uses the same prices in the legacy database, preserving unknown as NULL\",\"status\":\"passed\",\"title\":\"uses the same prices in the legacy database, preserving unknown as NULL\",\"duration\":3.149444000000017,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793724212009,\"endTime\":1793724212030.1494,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/model-release-contract.test.js\"},{\"assertionResults\":[{\"ancestorTitles\":[\"session-usage\",\"extractUsage\"],\"fullName\":\"session-usage extractUsage reads a token_usage event\",\"status\":\"passed\",\"title\":\"reads a token_usage event\",\"duration\":1.8819090000000074,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"extractUsage\"],\"fullName\":\"session-usage extractUsage reads usage embedded in assistant_message\",\"status\":\"passed\",\"title\":\"reads usage embedded in assistant_message\",\"duration\":0.6477329999999881,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"extractUsage\"],\"fullName\":\"session-usage extractUsage returns null for events without usage\",\"status\":\"passed\",\"title\":\"returns null for events without usage\",\"duration\":0.2193070000000148,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"extractUsage\"],\"fullName\":\"session-usage extractUsage returns null for unknown event types\",\"status\":\"passed\",\"title\":\"returns null for unknown event types\",\"duration\":0.24747899999999845,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"extractUsage\"],\"fullName\":\"session-usage extractUsage returns null when all counts are zero\",\"status\":\"passed\",\"title\":\"returns null when all counts are zero\",\"duration\":0.23350700000000302,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"aggregateUsage\"],\"fullName\":\"session-usage aggregateUsage rolls up total + per-model\",\"status\":\"passed\",\"title\":\"rolls up total + per-model\",\"duration\":1.2587120000000027,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"aggregateUsage\"],\"fullName\":\"session-usage aggregateUsage ignores events without usage\",\"status\":\"passed\",\"title\":\"ignores events without usage\",\"duration\":0.26136900000000196,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"aggregateUsage\"],\"fullName\":\"session-usage aggregateUsage handles empty + nullish input\",\"status\":\"passed\",\"title\":\"handles empty + nullish input\",\"duration\":0.16193100000000982,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"aggregateUsage\"],\"fullName\":\"session-usage aggregateUsage sorts byModel descending by totalTokens\",\"status\":\"passed\",\"title\":\"sorts byModel descending by totalTokens\",\"duration\":0.4472149999999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"allSessionsUsage (resilient roll-up)\"],\"fullName\":\"session-usage allSessionsUsage (resilient roll-up) aggregates across sessions and skips one that fails to read\",\"status\":\"passed\",\"title\":\"aggregates across sessions and skips one that fails to read\",\"duration\":1.3099189999999794,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"allSessionsUsage (resilient roll-up)\"],\"fullName\":\"session-usage allSessionsUsage (resilient roll-up) reports zero skipped when every session reads cleanly\",\"status\":\"passed\",\"title\":\"reports zero skipped when every session reads cleanly\",\"duration\":0.4062250000000063,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"allSessionsUsage (resilient roll-up)\"],\"fullName\":\"session-usage allSessionsUsage (resilient roll-up) sessionUsage rolls up a single session via the injected reader\",\"status\":\"passed\",\"title\":\"sessionUsage rolls up a single session via the injected reader\",\"duration\":0.3635799999999847,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793724212243,\"endTime\":1793724212251.4062,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/session-usage.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 937,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793724212737,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract splits on the strict long-context boundary (> 272000)\",\"status\":\"passed\",\"title\":\"splits on the strict long-context boundary (> 272000)\",\"duration\":2.225459999999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract keeps same-total requests with different cache/long distributions in separate buckets\",\"status\":\"passed\",\"title\":\"keeps same-total requests with different cache/long distributions in separate buckets\",\"duration\":1.3032389999999907,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract merges same-total requests when the long-context distribution matches (negative)\",\"status\":\"passed\",\"title\":\"merges same-total requests when the long-context distribution matches (negative)\",\"duration\":0.3881580000000042,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract lets requestInputTokens override the computed cache-inclusive prompt length\",\"status\":\"passed\",\"title\":\"lets requestInputTokens override the computed cache-inclusive prompt length\",\"duration\":0.3870560000000012,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract splits buckets by service tier and projects unknown tiers safely\",\"status\":\"passed\",\"title\":\"splits buckets by service tier and projects unknown tiers safely\",\"duration\":0.6015649999999937,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract splits buckets by regional processing and rejects a non-boolean value\",\"status\":\"passed\",\"title\":\"splits buckets by regional processing and rejects a non-boolean value\",\"duration\":0.7643869999999993,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793724212931,\"endTime\":1793724212936.7644,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-04.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/usage-pricing-context.js"
+      ],
+      "setup": false,
+      "ms": 161,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 722,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":4,\"numFailedTests\":2,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793724213870,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract splits on the strict long-context boundary (> 272000)\",\"status\":\"failed\",\"title\":\"splits on the strict long-context boundary (> 272000)\",\"duration\":8.083344000000011,\"failureMessages\":[\"AssertionError: expected [ { inputTokens: 544001, …(8) } ] to have a length of 2 but got 1\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1389:20)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/cli/__tests__/verify-04.test.js:36:34\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract keeps same-total requests with different cache/long distributions in separate buckets\",\"status\":\"failed\",\"title\":\"keeps same-total requests with different cache/long distributions in separate buckets\",\"duration\":1.070902999999987,\"failureMessages\":[\"AssertionError: expected [ { inputTokens: 472000, …(8) } ] to have a length of 2 but got 1\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1389:20)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/cli/__tests__/verify-04.test.js:60:34\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract merges same-total requests when the long-context distribution matches (negative)\",\"status\":\"passed\",\"title\":\"merges same-total requests when the long-context distribution matches (negative)\",\"duration\":1.043502999999987,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract lets requestInputTokens override the computed cache-inclusive prompt length\",\"status\":\"passed\",\"title\":\"lets requestInputTokens override the computed cache-inclusive prompt length\",\"duration\":0.6006339999999852,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract splits buckets by service tier and projects unknown tiers safely\",\"status\":\"passed\",\"title\":\"splits buckets by service tier and projects unknown tiers safely\",\"duration\":0.5154770000000042,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract splits buckets by regional processing and rejects a non-boolean value\",\"status\":\"passed\",\"title\":\"splits buckets by regional processing and rejects a non-boolean value\",\"duration\":0.8243460000000198,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793724214061,\"endTime\":1793724214073.8245,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-04.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/usage-pricing-context.js"
+      ],
+      "setup": false,
+      "ms": 150,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 632,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":5,\"numFailedTests\":1,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793724214655,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract splits on the strict long-context boundary (> 272000)\",\"status\":\"passed\",\"title\":\"splits on the strict long-context boundary (> 272000)\",\"duration\":2.178861000000012,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract keeps same-total requests with different cache/long distributions in separate buckets\",\"status\":\"passed\",\"title\":\"keeps same-total requests with different cache/long distributions in separate buckets\",\"duration\":1.2884760000000028,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract merges same-total requests when the long-context distribution matches (negative)\",\"status\":\"passed\",\"title\":\"merges same-total requests when the long-context distribution matches (negative)\",\"duration\":0.3783329999999978,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract lets requestInputTokens override the computed cache-inclusive prompt length\",\"status\":\"failed\",\"title\":\"lets requestInputTokens override the computed cache-inclusive prompt length\",\"duration\":6.222986999999989,\"failureMessages\":[\"AssertionError: expected 300000 to be 350000 // Object.is equality\\n    at /workspace/packages/cli/__tests__/verify-04.test.js:121:59\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract splits buckets by service tier and projects unknown tiers safely\",\"status\":\"passed\",\"title\":\"splits buckets by service tier and projects unknown tiers safely\",\"duration\":0.6425959999999975,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"mergeUsagePricingBucket — request-level cache & long-context contract\"],\"fullName\":\"mergeUsagePricingBucket — request-level cache & long-context contract splits buckets by regional processing and rejects a non-boolean value\",\"status\":\"passed\",\"title\":\"splits buckets by regional processing and rejects a non-boolean value\",\"duration\":0.7934700000000134,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793724214843,\"endTime\":1793724214853.7935,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-04.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

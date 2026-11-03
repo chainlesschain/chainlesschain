@@ -1,0 +1,86 @@
+/**
+ * Regression coverage for the model failure classification policy
+ * (packages/cli/src/lib/model-failure-policy.js).
+ *
+ * The contract: an ingress admission failure (evolution code) is a hard
+ * rejection; a ledger/workflow/budget/abort failure is terminal and must not be
+ * silently retried; a plain transient provider error (HTTP status, retryable
+ * phrasing) is NOT terminal and remains eligible for retry. We must never
+ * collapse a retryable protocol error into an implicit success.
+ */
+
+import { describe, it, expect } from "vitest";
+import {
+  isEvolutionIngressFailure,
+  isTerminalModelFailure,
+} from "../src/lib/model-failure-policy.js";
+
+function withCause(cause) {
+  const outer = new Error("provider request failed");
+  outer.cause = cause;
+  return outer;
+}
+
+describe("isEvolutionIngressFailure", () => {
+  it("is true for a direct ingress admission code and false for a retryable code", () => {
+    expect(
+      isEvolutionIngressFailure({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" }),
+    ).toBe(true);
+    // Same shape, only the code differs → not an ingress admission failure.
+    expect(isEvolutionIngressFailure({ code: "ECONNREFUSED" })).toBe(false);
+  });
+
+  it("detects an ingress code nested in the cause chain, not a transient cause", () => {
+    const ingress = { code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" };
+    expect(isEvolutionIngressFailure(withCause(ingress))).toBe(true);
+    // Identical wrapper, but a plain 503 cause carries no ingress marker.
+    expect(isEvolutionIngressFailure(withCause({ status: 503 }))).toBe(false);
+  });
+});
+
+describe("isTerminalModelFailure", () => {
+  it("does NOT mark a plain retryable 503 as terminal, but does when ledger persistence or ingress admission fails", () => {
+    const plain = withCause({ status: 503 });
+    expect(isTerminalModelFailure(plain)).toBe(false);
+    // Only the ledger marker is added; the rest of the chain is unchanged.
+    expect(
+      isTerminalModelFailure(withCause({ status: 503, runtimeLedgerPersistence: true })),
+    ).toBe(true);
+    // The explicit ingress admission rejection is terminal through the same
+    // policy, never silently retried as a provider outage.
+    expect(
+      isTerminalModelFailure({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" }),
+    ).toBe(true);
+  });
+
+  it("is terminal for an unknown workflow effect, not for the same transient error", () => {
+    expect(isTerminalModelFailure({ status: 503 })).toBe(false);
+    expect(
+      isTerminalModelFailure({ status: 503, workflowEffectOutcomeUnknown: true }),
+    ).toBe(true);
+  });
+
+  it("is terminal for a session budget code at the accepted boundary, rejected at the first non-matching prefix", () => {
+    // Accepted boundary: any CC_/ERR_SESSION_BUDGET_* code.
+    expect(
+      isTerminalModelFailure({ code: "ERR_SESSION_BUDGET_IN_FLIGHT_LIMIT" }),
+    ).toBe(true);
+    expect(isTerminalModelFailure({ code: "CC_SESSION_BUDGET_HARD_LIMIT" })).toBe(
+      true,
+    );
+    // First rejected value: same body but no CC_/ERR_ budget prefix.
+    expect(isTerminalModelFailure({ code: "SESSION_BUDGET_IN_FLIGHT_LIMIT" })).toBe(
+      false,
+    );
+  });
+
+  it("is terminal for an abort error but not for a retryable message on the same error", () => {
+    const aborted = new Error("provider 503");
+    aborted.name = "AbortError";
+    expect(isTerminalModelFailure(withCause(aborted))).toBe(true);
+    // Same wrapper; the inner error only carries a retryable message → retryable.
+    expect(isTerminalModelFailure(withCause(new Error("provider 503")))).toBe(
+      false,
+    );
+  });
+});

@@ -1,0 +1,150 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  SCOPED_PERMISSION_ERROR_CODES,
+  ScopedPermissionStore,
+} from "../src/lib/scoped-permission-store.js";
+
+let root;
+let workspace;
+let stateFile;
+let now;
+
+function store(randomId = "spr_0123456789abcdef0123456789abcdef") {
+  return new ScopedPermissionStore({
+    cwd: workspace,
+    filePath: stateFile,
+    now: () => now,
+    randomId: () => randomId,
+  });
+}
+
+function rewriteState(mutate) {
+  const state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+  mutate(state);
+  fs.writeFileSync(stateFile, JSON.stringify(state));
+}
+
+beforeEach(() => {
+  root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-verify15-"));
+  workspace = path.join(root, "workspace");
+  fs.mkdirSync(workspace, { recursive: true });
+  stateFile = path.join(root, "security", "rules.json");
+  now = Date.UTC(2026, 7, 15, 0, 0, 0);
+});
+
+afterEach(() => {
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+describe("verify-15: revision/generation overflow rejection", () => {
+  it("adds successfully at the last safe generation boundary", () => {
+    store().add({
+      decision: "allow",
+      rule: "Read",
+      expiresAt: now + 60_000,
+    });
+    rewriteState((s) => {
+      s.generation = Number.MAX_SAFE_INTEGER - 1;
+    });
+    const target = store("spr_fedcba9876543210fedcba9876543210");
+    const created = target.add({
+      decision: "deny",
+      rule: "Write",
+      expiresAt: now + 60_000,
+    });
+    expect(created.revision).toBe(1);
+    const listed = target.list();
+    expect(listed.generation).toBe(Number.MAX_SAFE_INTEGER);
+    expect(listed.rules).toHaveLength(2);
+  });
+
+  it("rejects an add when generation is exhausted and keeps prior rules", () => {
+    store().add({
+      decision: "allow",
+      rule: "Read",
+      expiresAt: now + 60_000,
+    });
+    rewriteState((s) => {
+      s.generation = Number.MAX_SAFE_INTEGER;
+    });
+    const target = store("spr_fedcba9876543210fedcba9876543210");
+    expect(() =>
+      target.add({
+        decision: "deny",
+        rule: "Write",
+        expiresAt: now + 60_000,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: SCOPED_PERMISSION_ERROR_CODES.INVALID,
+      }),
+    );
+    const listed = target.list();
+    expect(listed.generation).toBe(Number.MAX_SAFE_INTEGER);
+    expect(listed.rules).toHaveLength(1);
+    expect(listed.rules[0].decision).toBe("allow");
+    expect(listed.rules[0].status).toBe("active");
+  });
+
+  it("revokes at the last safe revision boundary", () => {
+    const created = store().add({
+      decision: "allow",
+      rule: "Read",
+      expiresAt: now + 60_000,
+    });
+    rewriteState((s) => {
+      s.generation = Number.MAX_SAFE_INTEGER - 1;
+      s.rules[0].revision = Number.MAX_SAFE_INTEGER - 1;
+    });
+    const revoked = store().revoke({
+      id: created.id,
+      expectedRevision: Number.MAX_SAFE_INTEGER - 1,
+    });
+    expect(revoked).toMatchObject({
+      status: "revoked",
+      revision: Number.MAX_SAFE_INTEGER,
+    });
+    expect(store().list().generation).toBe(Number.MAX_SAFE_INTEGER);
+  });
+
+  it("rejects a revoke when the rule revision is exhausted without relaxing it", () => {
+    const created = store().add({
+      decision: "allow",
+      rule: "Read",
+      expiresAt: now + 60_000,
+    });
+    rewriteState((s) => {
+      s.rules[0].revision = Number.MAX_SAFE_INTEGER;
+    });
+    expect(() => store().revoke({ id: created.id })).toThrow(
+      expect.objectContaining({
+        code: SCOPED_PERMISSION_ERROR_CODES.INVALID,
+      }),
+    );
+    const listed = store().list();
+    expect(listed.rules[0].status).toBe("active");
+    expect(listed.rules[0].revision).toBe(Number.MAX_SAFE_INTEGER);
+  });
+
+  it("rejects a revoke when the store generation is exhausted without relaxing it", () => {
+    const created = store().add({
+      decision: "allow",
+      rule: "Read",
+      expiresAt: now + 60_000,
+    });
+    rewriteState((s) => {
+      s.generation = Number.MAX_SAFE_INTEGER;
+    });
+    expect(() => store().revoke({ id: created.id })).toThrow(
+      expect.objectContaining({
+        code: SCOPED_PERMISSION_ERROR_CODES.INVALID,
+      }),
+    );
+    const listed = store().list();
+    expect(listed.generation).toBe(Number.MAX_SAFE_INTEGER);
+    expect(listed.rules[0].status).toBe("active");
+  });
+});

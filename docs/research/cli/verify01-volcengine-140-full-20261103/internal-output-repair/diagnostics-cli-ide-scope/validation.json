@@ -1,0 +1,97 @@
+{
+  "schema": "chainlesschain.verify01-evaluation-scope-offline-validation/v1",
+  "checkedAt": "2026-11-03T20:45:28.961831+00:00",
+  "sourceSnapshot": "Working tree bytes bound individually; patch is not present in either tested public140 package set",
+  "localRuntime": {
+    "platform": "Windows",
+    "node": "v22.22.2"
+  },
+  "independentReviewer": "Astra",
+  "vitest": {
+    "files": 7,
+    "passed": 234,
+    "failed": 0,
+    "skipped": 1,
+    "skippedTests": [
+      {
+        "path": "packages/cli/__tests__/unit/agent-core-workspace-path-guard.test.js",
+        "title": "agent workspace path guard blocks an existing file symlink whose target is outside"
+      }
+    ],
+    "report": {
+      "path": "docs/research/cli/verify01-volcengine-140-full-20261103/internal-output-repair/diagnostics-cli-ide-scope/offline-vitest-report.json",
+      "digest": "sha256:f0fa86427e4e8031df9be09abab09c27d9a107e6f21d2d8e4f7a852fa6bbb77c"
+    }
+  },
+  "contracts": {
+    "files": 30,
+    "passed": 203,
+    "failed": 0,
+    "skipped": 0,
+    "tap": {
+      "path": "docs/research/cli/verify01-volcengine-140-full-20261103/internal-output-repair/diagnostics-cli-ide-scope/contracts.tap.txt",
+      "digest": "sha256:3ac573a3fa4a83c61890815a17a3bd4dd797e9d46554bbaa553433f64bd25292"
+    }
+  },
+  "sources": [
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "digest": "sha256:7eab192f86af5d135999a6b44bc358f5d5a9c070fc183091882381ddd631b7fa"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-quality-eval-runtime.js",
+      "digest": "sha256:3f7952c8baca95d3fc8337f31e48c5301c971471d898db53ee1bd7373d05f200"
+    },
+    {
+      "path": "packages/cli/scripts/budget-egress-reviewed-sources.json",
+      "digest": "sha256:5b6f0fc61a48394766a9d9507726565d0ef647f10c7ce3f711ebbdffaac9eb4b"
+    }
+  ],
+  "testSources": [
+    {
+      "path": "packages/cli/__tests__/unit/agent-core-exact-file-mutation-tool-schema.test.js",
+      "digest": "sha256:7da6ab7731642e44e1230ce4ac99b795317465fdec920700c0a7e4e661797fa5"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-core-formal-entry-scope.test.js",
+      "digest": "sha256:1d0f1a725e793f6573ee870cc5a5b237feb5601c63e4d1fb39db96f5d91a95bf"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-core-tool-capability-fence.test.js",
+      "digest": "sha256:0b691493516ecbef350c314bbe2c0238ea0c03638486f0d21a579b6a10070cb8"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-core-workspace-path-guard.test.js",
+      "digest": "sha256:63f2481fa653f11a0fce1031dcddb0a885ca74d7df6da430eca221953aa28f9e"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/headless-change-review.test.js",
+      "digest": "sha256:27798ca73bfae15552c0996eb0a6bebb8d64133f6d07ab93f6119040cc83b924"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/headless-runner.test.js",
+      "digest": "sha256:fe5739a1ebd84dced769731afc6e20e2c9074f744b8bd76d56d6c1aae2af10a3"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/ws-agent-handler.test.js",
+      "digest": "sha256:79d415f59fe18638604ea79b1dbc483cdc911161da0fe23c0e75a36a7a9a2b72"
+    }
+  ],
+  "egress": {
+    "capturedAt": "2026-11-03T20:44:50.268Z",
+    "sourceTreeDigest": "sha256:be1baef4f5f346b60fdd16b64babb63712a4609a33870119bc1b0099eb5cd496",
+    "sourceReviewPassed": true,
+    "candidateFiles": 88,
+    "parseErrors": 0,
+    "reviewIssues": [],
+    "formalPaidReady": false
+  },
+  "providerGenerationRequests": 0,
+  "publishedPackages": [],
+  "newRetestsHeld": true,
+  "releaseGatesSatisfiedByLocalChecks": false,
+  "limitations": [
+    "Existing outside-file symlink case skipped on this local Windows host; Linux/macOS and exact-commit release matrices remain required.",
+    "Offline fetch is intercepted in memory; no model acceptance or causal proof of score improvement is claimed."
+  ]
+}
