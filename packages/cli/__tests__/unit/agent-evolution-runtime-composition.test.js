@@ -7123,6 +7123,156 @@ describe("Agent evolution runtime production composition", () => {
     60_000,
   );
 
+  it.each([
+    ["run_code", '{"language">bash</parameter>\n<parameter: '],
+    ["read_file", '{"language">bash</parameter>\n<parameter: '],
+    ["run_code", null],
+    ["read_file", []],
+  ])(
+    "rejects malformed %s arguments (%j) before effects and continues through strict evolution ingress",
+    async (tool, malformed) => {
+      const f = modelFixture();
+      const input = [{ role: "user", content: "Inspect the branch state" }];
+      fs.writeFileSync(path.join(f.root, "valid.txt"), "Valid file inspected");
+      f.transport.mockImplementation(async (_url, request) => {
+        f.seen.push(JSON.parse(request.body));
+        return {
+          ok: true,
+          json: async () => ({
+            message:
+              f.seen.length === 1
+                ? {
+                    role: "assistant",
+                    content: "Inspecting",
+                    tool_calls: [
+                      {
+                        id: "invalid-arguments",
+                        type: "function",
+                        function: { name: tool, arguments: malformed },
+                      },
+                      ...(tool === "read_file"
+                        ? [
+                            {
+                              id: "valid-read",
+                              type: "function",
+                              function: {
+                                name: "read_file",
+                                arguments: JSON.stringify({
+                                  path: "valid.txt",
+                                }),
+                              },
+                            },
+                          ]
+                        : []),
+                    ],
+                  }
+                : { role: "assistant", content: "done" },
+          }),
+        };
+      });
+      const events = await collectFallbackCore(
+        f,
+        {
+          enabledToolNames: [tool],
+        },
+        input,
+      );
+      expect(f.seen).toHaveLength(2);
+      expect(
+        events.find(
+          (event) =>
+            event.type === "tool-result" &&
+            event.tool_use_id === "invalid-arguments",
+        ),
+      ).toMatchObject({
+        execution_started: false,
+        preExecutionDenied: true,
+        result: { code: "CC_TOOL_ARGUMENTS_INVALID", execution_started: false },
+      });
+      expect(
+        events.some(
+          (event) =>
+            event.type === "tool-executing" &&
+            event.tool_use_id === "invalid-arguments",
+        ),
+      ).toBe(false);
+      expect(events.some((event) => event.type === "response-complete")).toBe(
+        true,
+      );
+      const projectedCall = f.seen[1].messages
+        .flatMap((message) => message.tool_calls || [])
+        .find((call) => call.id === "invalid-arguments");
+      expect(projectedCall.function.arguments).toBe("{}");
+      expect(JSON.stringify(f.seen[1])).not.toContain("</parameter>");
+      expect(
+        input.find((message) => message.tool_calls)?.tool_calls[0].function
+          .arguments,
+      ).toEqual(malformed);
+      if (tool === "read_file") {
+        expect(
+          f.seen[1].messages.find(
+            (message) => message.tool_call_id === "valid-read",
+          ).content,
+        ).toContain("Valid file inspected");
+      }
+      await f.composition.evolutionIngress.complete();
+      expect(f.composition.loadRun().projection.status).toBe("completed");
+    },
+    60_000,
+  );
+
+  it("resumes legacy malformed-call history without modifying or replaying the saved calls", async () => {
+    const f = modelFixture();
+    const malformed = '{"language">bash</parameter>\n<parameter: ';
+    const input = [
+      { role: "user", content: "Continue branch analysis" },
+      {
+        role: "assistant",
+        content: "",
+        tool_calls: [
+          {
+            id: "legacy-malformed",
+            type: "function",
+            function: { name: "run_code", arguments: malformed },
+          },
+        ],
+      },
+      {
+        role: "tool",
+        tool_call_id: "legacy-malformed",
+        content: JSON.stringify({
+          error:
+            "[Run Code Dispatch] run_code language must be a non-empty string",
+          policy: {
+            code: "CC_RUN_CODE_EXECUTION_SNAPSHOT_INVALID",
+            via: "run-code-execution-snapshot",
+            decision: "blocked",
+          },
+        }),
+      },
+    ];
+    const original = structuredClone(input);
+    const events = await collectFallbackCore(f, {}, input);
+    expect(f.seen).toHaveLength(1);
+    expect(
+      f.seen[0].messages.find((message) => message.tool_calls)?.tool_calls[0]
+        .function.arguments,
+    ).toBe("{}");
+    expect(JSON.stringify(f.seen)).not.toContain("</parameter>");
+    expect(input).toEqual(original);
+    expect(
+      events.some(
+        (event) =>
+          event.type === "tool-executing" || event.type === "tool-result",
+      ),
+    ).toBe(false);
+    expect(events.some((event) => event.type === "response-complete")).toBe(
+      true,
+    );
+    await f.composition.evolutionIngress.complete();
+    expect(f.composition.loadRun().projection.status).toBe("completed");
+  }, 60_000);
+
   it.each(["malformed", "duplicates", "nested-budget"])(
     "refuses JSON %s before provider dispatch and latches run failure",
     async (mode) => {
