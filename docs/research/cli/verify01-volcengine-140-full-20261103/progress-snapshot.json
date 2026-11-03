@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "archivedAt": "2026-11-03T14:09:10.343800+00:00",
+  "archivedAt": "2026-11-03T14:54:11.233013+00:00",
   "interimOnly": true,
   "historicalCumulativeAccepted": 34,
   "historicalCumulativeTotal": 45,
@@ -8,23 +8,18 @@
     {
       "round": "initial",
       "runId": 41630636517,
-      "checkedAt": "2026-11-03T14:08:55.470239+00:00",
+      "checkedAt": "2026-11-03T14:54:11.032255+00:00",
       "workflowStatus": "queued",
-      "generationCompleted": 38,
-      "generationSucceeded": 34,
-      "generationFailed": 4,
-      "generationPending": 7,
+      "generationCompleted": 43,
+      "generationSucceeded": 38,
+      "generationFailed": 5,
+      "generationPending": 2,
       "total": 45,
       "acceptanceJobs": {},
       "active": [
         {
-          "id": 125919744373,
-          "name": "Native darwin-vscode-verify-26 (selected samples)",
-          "step": "Run original project tasks through installed native entry"
-        },
-        {
-          "id": 125922131453,
-          "name": "Native darwin-vscode-verify-35 (selected samples)",
+          "id": 125946809701,
+          "name": "Native darwin-jetbrains-verify-27 (selected samples)",
           "step": "Run original project tasks through installed native entry"
         }
       ],
@@ -48,25 +43,35 @@
           "id": 125912505214,
           "name": "Native linux-jetbrains-first-run-linux-jetbrains (selected samples)",
           "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125946099707,
+          "name": "Native darwin-jetbrains-verify-18 (selected samples)",
+          "step": "Run original project tasks through installed native entry"
         }
       ]
     },
     {
       "round": "corrected",
       "runId": 41638188839,
-      "checkedAt": "2026-11-03T14:08:35.858148+00:00",
+      "checkedAt": "2026-11-03T14:54:09.065506+00:00",
       "workflowStatus": "queued",
-      "generationCompleted": 31,
-      "generationSucceeded": 26,
-      "generationFailed": 5,
-      "generationPending": 14,
+      "generationCompleted": 36,
+      "generationSucceeded": 30,
+      "generationFailed": 6,
+      "generationPending": 9,
       "total": 45,
       "acceptanceJobs": {},
       "active": [
         {
-          "id": 125945316316,
-          "name": "Native linux-jetbrains-verify-15 (selected samples)",
+          "id": 125955868033,
+          "name": "Native darwin-vscode-verify-08 (selected samples)",
           "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125956185187,
+          "name": "Native darwin-vscode-verify-26 (selected samples)",
+          "step": "Prepare exact VS Code host and local UI driver dependencies"
         }
       ],
       "failed": [
@@ -93,6 +98,11 @@
         {
           "id": 125949754360,
           "name": "Native darwin-cli-first-run-darwin-cli (selected samples)",
+          "step": "Run original project tasks through installed native entry"
+        },
+        {
+          "id": 125955236579,
+          "name": "Native darwin-vscode-first-run-darwin-vscode (selected samples)",
           "step": "Run original project tasks through installed native entry"
         }
       ]

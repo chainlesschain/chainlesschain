@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "runId": 41638188839,
+  "sampleId": "verify-17",
+  "executionSource": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "rawDeliverySummaryDigest": "sha256:f27694eb95b3e638853fb4e54f79f456aa27950df585fde834f843f4fabbd03d",
+  "generationPassed": true,
+  "independentAcceptancePending": true,
+  "providerGenerationAdmissionResumed": true,
+  "requests": [
+    {
+      "requestId": 1,
+      "startedAt": "2026-11-03T14:51:09.836Z",
+      "finishedAt": "2026-11-03T14:51:13.369Z",
+      "providerHttpStatus": 200,
+      "usageKnown": true
+    },
+    {
+      "requestId": 2,
+      "startedAt": "2026-11-03T14:51:13.629Z",
+      "finishedAt": "2026-11-03T14:51:42.471Z",
+      "providerHttpStatus": 200,
+      "usageKnown": true
+    },
+    {
+      "requestId": 3,
+      "startedAt": "2026-11-03T14:51:42.904Z",
+      "finishedAt": "2026-11-03T14:51:46.353Z",
+      "providerHttpStatus": 200,
+      "usageKnown": true
+    },
+    {
+      "requestId": 4,
+      "startedAt": "2026-11-03T14:51:46.557Z",
+      "finishedAt": "2026-11-03T14:51:56.762Z",
+      "providerHttpStatus": 200,
+      "usageKnown": true
+    },
+    {
+      "requestId": 5,
+      "startedAt": "2026-11-03T14:51:56.883Z",
+      "finishedAt": "2026-11-03T14:52:22.623Z",
+      "providerHttpStatus": 200,
+      "usageKnown": true
+    },
+    {
+      "requestId": 6,
+      "startedAt": "2026-11-03T14:52:22.887Z",
+      "finishedAt": "2026-11-03T14:52:34.025Z",
+      "providerHttpStatus": 200,
+      "usageKnown": true
+    }
+  ],
+  "files": {
+    "request-1.receipt.json": "sha256:21b7845a7db73a71d2073ff94a2b3121fd26869a955db491e5a9c7a1b7f44e2e",
+    "request-2.receipt.json": "sha256:28090897cee4dd4e4c826743be46d1c430b0448e7b7372eaa15b2fec6079f4e3",
+    "request-3.receipt.json": "sha256:4a900348819a6f50f59e8f85605d0815b28bbf213456653f5f42662b0b0cf0ee",
+    "request-4.receipt.json": "sha256:203e3911eb0f25717d450c1d896525eb963fde203fb5dcd2903fc3ee7a7ca64e",
+    "request-5.receipt.json": "sha256:57e755e99c4f57f0fc324a3be0e2c9c568b79fea762a75ebe9bb3f303cf16f71",
+    "request-6.receipt.json": "sha256:fe60c9487954bb491d8d0af985606e3854b6dff58fffdbd773c725a55d51ad82"
+  },
+  "directFinding": "Six actual model requests were admitted with HTTP200 and complete usage after the two earlier AccountOverdueError responses; provider generation admission had resumed by22:51 Beijing time. This is not a balance amount or account billing receipt and does not imply independent candidate acceptance."
+}
