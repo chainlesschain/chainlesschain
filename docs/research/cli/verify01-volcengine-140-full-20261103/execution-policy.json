@@ -9,6 +9,7 @@
   "futureInternalSummaryTokenBudgetMultiple": 2,
   "futurePerRequestOutputTokens": 16384,
   "futureInternalSummaryMaximumOutputTokens": 4096,
+  "preserveCallerInternalReservation": true,
   "futureMaximumTaskOutputTokens": 393216,
   "futureMaximumTaskInputPlusOutputTokens": 1966080,
   "futureMaximumModelTurns": 40,

@@ -91,16 +91,17 @@ test("the future token reference is finite and doubles Sol output and internal-s
   for (const body of [
     request(),
     request(2048),
+    request(4096),
     { ...request(1024), tools: [fileTool] },
   ])
     assert.equal((await f.send(body)).status, 200);
-  assert.deepEqual(seen, [16384, 4096, 1024]);
+  assert.deepEqual(seen, [16384, 2048, 4096, 1024]);
   assert.equal(
     f.broker.taskStatus("verify-31").tokenBudget.knownTotalTokens,
-    303,
+    404,
   );
   const receipt = JSON.parse(
-    fs.readFileSync(path.join(f.root, "request-2.receipt.json"), "utf8"),
+    fs.readFileSync(path.join(f.root, "request-3.receipt.json"), "utf8"),
   );
   assert.equal(receipt.tokenReservation.maximumOutputTokens, 4096);
 });

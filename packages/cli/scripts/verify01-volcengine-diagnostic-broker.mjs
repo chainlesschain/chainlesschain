@@ -195,8 +195,9 @@ export function diagnosticBody(
     service_tier: "default",
     ...(parallelToolCalls === null ? {} : { parallel_tool_calls: false }),
   };
-  // Scale the caller's internal-summary allowance only under the new explicit
-  // user policy. Ordinary explicit limits and all historical policies stay intact.
+  // The2x reference widens the permitted summary ceiling, not the caller's
+  // reservation. Native compaction may have reserved only2048; never turn that
+  // request into4096 behind its accounting boundary.
   if (
     internalSummaryTokenMultiplier === 2 &&
     !streaming &&
@@ -205,7 +206,7 @@ export function diagnosticBody(
     input.max_tokens > 0
   ) {
     body.max_tokens = Math.min(
-      input.max_tokens * 2,
+      input.max_tokens,
       maximumInternalSummaryTokens,
       maximumAnswerTokens,
     );

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "checkedAt": "2026-11-03T15:39:33.293358+00:00",
+  "checkedAt": "2026-11-03T15:54:33.357318+00:00",
   "scope": "Future bounded diagnostic policy and user hold; no retest generation dispatched",
   "tests": {
     "files": 30,
@@ -9,7 +9,7 @@
     "skipped": 0,
     "tap": {
       "path": "docs/research/cli/verify01-volcengine-140-full-20261103/future-budget/contracts.tap.txt",
-      "digest": "sha256:2a7882e05fb4a4225049d5471ee9edb5d71044816e97187eb0d52f9a2bad60ec"
+      "digest": "sha256:51f8890e848ffffab6b66716c3be2d4181d0ec139db816d6d2decd2c383221e4"
     }
   },
   "sourceSnapshot": "Working tree bytes bound individually; not claiming the prior HEAD includes these uncommitted changes",
@@ -20,7 +20,7 @@
     },
     {
       "path": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
-      "digest": "sha256:15b7ebf023c5b6835646041feafe0e40d9fa23a5de31409204143b3d51e71694"
+      "digest": "sha256:279842d30cdf18741eff37e863db86e99605a3631e37c79eb9b29a58dd0bba4d"
     },
     {
       "path": "packages/cli/scripts/verify01-volcengine-public140-generation-recovery.mjs",
@@ -28,7 +28,7 @@
     },
     {
       "path": "packages/cli/test-node/verify01-sol-relative-token-budget.node-test.mjs",
-      "digest": "sha256:21cddf2eefdfb817b4e64bf501f534983c690e2897a3085556e460723708689e"
+      "digest": "sha256:03fc807e528946b35289bbc02d46f3c1733ce87ece6164a7148f6ed8e74845ea"
     },
     {
       "path": "packages/cli/test-node/verify01-volcengine-generation-recovery.node-test.mjs",
@@ -40,11 +40,11 @@
     },
     {
       "path": "packages/cli/scripts/budget-egress-reviewed-sources.json",
-      "digest": "sha256:aaeb11d7fcbfe6f26b4ec62b5c6b9a7c6d2e44851560faffc5a27eb3ed40e64f"
+      "digest": "sha256:90ee9fd3c3a8bcd6323d136b391e624a5bb18648700ad244d4cb1fe1f10162c3"
     },
     {
       "path": "docs/research/cli/verify01-volcengine-140-full-20261103/execution-policy.json",
-      "digest": "sha256:574c758e5acd24237b7840ca798b27aed93d06f2ce81ab3453792bd45c757288"
+      "digest": "sha256:df4ef1fb375af11ac015fe297e80a90e8ba9243559f73ed6e31b2f7984d65da4"
     }
   ],
   "userPolicy": {
@@ -58,6 +58,7 @@
     "futureInternalSummaryTokenBudgetMultiple": 2,
     "futurePerRequestOutputTokens": 16384,
     "futureInternalSummaryMaximumOutputTokens": 4096,
+    "preserveCallerInternalReservation": true,
     "futureMaximumTaskOutputTokens": 393216,
     "futureMaximumTaskInputPlusOutputTokens": 1966080,
     "futureMaximumModelTurns": 40,
@@ -71,8 +72,8 @@
     "interpretation": "Use Sol's configured token allowances multiplied by2 for future new tests; both normal output and internal summaries remain bounded. Retain current dispatched rounds and independently accept existing deliveries. No additional model generation for already tested samples until the user explicitly resumes retesting."
   },
   "egress": {
-    "capturedAt": "2026-11-03T15:36:50.824Z",
-    "sourceTreeDigest": "sha256:1bb905e7857059ae40b158da68ad54fc6e738b08905b442b47e0c7ed58f4a893",
+    "capturedAt": "2026-11-03T15:52:40.023Z",
+    "sourceTreeDigest": "sha256:6f252c96bfc2deb87a6729be0a1a34aa6ffdcb41d888fd9028270b98020b6425",
     "sourceReviewPassed": true,
     "candidateFiles": 88,
     "parseErrors": 0,
@@ -83,7 +84,7 @@
   "existingPublic140FullRoundPoliciesUnchanged": true,
   "newRetestsHeld": true,
   "testsExercise": [
-    "loopback captures16384 task output and4096 internal summary; ordinary explicit1024 remains1024",
+    "loopback captures16384 task output and explicitly reserved4096 summary; caller-owned2048 and ordinary explicit1024 remain unchanged",
     "cumulative output is393216, not786432 from multiplying both48 requests and16384 output",
     "input/output reservation blocks before a new physical slot if remaining total is insufficient",
     "unknown dispatched usage retains its reservation and prevents another request",
