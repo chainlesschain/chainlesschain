@@ -1,0 +1,377 @@
+{
+  "runId": 41599436044,
+  "samples": [
+    {
+      "sampleId": "verify-10",
+      "taskId": "verify-10",
+      "accepted": false,
+      "generationPassed": true,
+      "requests": 8,
+      "detail": "candidate tests did not reject the behavioral mutant",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 2,
+          "passed": 2,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 4,
+          "passed": 4,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": "reuse-index-after-state-update",
+      "numCandidateTests": 4,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": [],
+      "classification": "candidate-coverage-gap"
+    },
+    {
+      "sampleId": "verify-19",
+      "taskId": "verify-19",
+      "accepted": false,
+      "generationPassed": true,
+      "requests": 20,
+      "detail": "candidate tests did not reject the behavioral mutant",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 17,
+          "passed": 17,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 5,
+          "passed": 5,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": "cancellation-grants-pending-approval",
+      "numCandidateTests": 5,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": [],
+      "classification": "candidate-coverage-gap"
+    },
+    {
+      "sampleId": "verify-11",
+      "taskId": "verify-11",
+      "accepted": false,
+      "generationPassed": true,
+      "requests": 17,
+      "detail": "candidate tests did not reject the behavioral mutant",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 16,
+          "passed": 16,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 4,
+          "passed": 4,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": "recover-same-question-from-other-session",
+      "numCandidateTests": 4,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": [],
+      "classification": "candidate-coverage-gap"
+    },
+    {
+      "sampleId": "verify-30",
+      "taskId": "verify-30",
+      "accepted": false,
+      "generationPassed": true,
+      "requests": 5,
+      "detail": "candidate tests did not reject the behavioral mutant",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 13,
+          "passed": 13,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 4,
+          "passed": 4,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "collapse-animation-frame-count-and-cumulative-budget",
+          "sourceSha256": "24ae42225ca67212f70c8ce93ccdbbf5bdd17e29b1775c817e2c03ad015ad2f7",
+          "total": 4,
+          "passed": 0,
+          "failed": 4
+        }
+      ],
+      "firstSurvivingMutant": "ignore-animation-fallback-pixels",
+      "numCandidateTests": 4,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": [],
+      "classification": "candidate-coverage-gap"
+    },
+    {
+      "sampleId": "verify-04",
+      "taskId": "verify-04",
+      "accepted": false,
+      "generationPassed": true,
+      "requests": 42,
+      "detail": "candidate tests did not reject the behavioral mutant",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 22,
+          "passed": 22,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "merge-short-and-long-request-price-buckets",
+          "sourceSha256": "7b8898a171561e61a4803ef8aa05ffc947aea3cd85e194c2b8ca6898a535b86c",
+          "total": 6,
+          "passed": 4,
+          "failed": 2
+        }
+      ],
+      "firstSurvivingMutant": "drop-cache-tokens-from-request-threshold",
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": [],
+      "classification": "candidate-coverage-gap"
+    },
+    {
+      "sampleId": "verify-13",
+      "taskId": "verify-13",
+      "accepted": false,
+      "generationPassed": true,
+      "requests": 11,
+      "detail": "acceptance requires executed test cases",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 13,
+          "passed": 13,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 0,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": [
+        {
+          "name": "/workspace/packages/cli/__tests__/verify-13.test.js",
+          "message": "Cannot find module '../../src/lib/image-file-boundary.js' imported from /workspace/packages/cli/__tests__/verify-13.test.js"
+        }
+      ],
+      "classification": "candidate-unresolved-relative-import"
+    },
+    {
+      "sampleId": "first-run-darwin-cli",
+      "taskId": "verify-07",
+      "accepted": false,
+      "generationPassed": true,
+      "requests": 22,
+      "detail": "candidate tests did not reject the behavioral mutant",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 39,
+          "passed": 39,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 5,
+          "passed": 5,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "repeat-before-cursor-boundary",
+          "sourceSha256": "c18d8ec76cb2a921bc3e4e59b6bb6f89b9eaef805cc63b4db104efa93f097118",
+          "total": 5,
+          "passed": 0,
+          "failed": 5
+        }
+      ],
+      "firstSurvivingMutant": "skip-after-cursor-first-row",
+      "numCandidateTests": 5,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": [],
+      "classification": "candidate-coverage-gap"
+    },
+    {
+      "sampleId": "verify-07",
+      "taskId": "verify-07",
+      "accepted": false,
+      "generationPassed": true,
+      "requests": 14,
+      "detail": "candidate tests did not reject the behavioral mutant",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 39,
+          "passed": 39,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "repeat-before-cursor-boundary",
+          "sourceSha256": "c18d8ec76cb2a921bc3e4e59b6bb6f89b9eaef805cc63b4db104efa93f097118",
+          "total": 6,
+          "passed": 3,
+          "failed": 3
+        }
+      ],
+      "firstSurvivingMutant": "skip-after-cursor-first-row",
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": [],
+      "classification": "candidate-coverage-gap"
+    },
+    {
+      "sampleId": "verify-08",
+      "taskId": "verify-08",
+      "accepted": false,
+      "generationPassed": true,
+      "requests": 25,
+      "detail": "candidate or baseline regression failed",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 58,
+          "passed": 58,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 1,
+      "failures": [
+        {
+          "name": "fork history attribution rejects a history message fed after the branch has completed",
+          "messages": [
+            "Error: Branch display history is incomplete or inconsistent\n    at invalid (/workspace/packages/cli/src/lib/session-branch-history.js:72:19)\n    at require (/workspace/packages/cli/src/lib/session-branch-history.js:79:21)\n    at Object.accept (/workspace/packages/cli/src/lib/session-branch-history.js:145:9)\n    at /workspace/packages/cli/__tests__/verify-08.test.js:98:13\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20"
+          ]
+        }
+      ],
+      "suites": [],
+      "classification": "candidate-invalid-completion-fixture"
+    },
+    {
+      "sampleId": "first-run-darwin-jetbrains",
+      "taskId": "verify-09",
+      "accepted": false,
+      "generationPassed": true,
+      "requests": 17,
+      "detail": "candidate tests did not reject the behavioral mutant",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 11,
+          "passed": 11,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": "trust-tampered-source-digest",
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": [],
+      "classification": "candidate-coverage-gap"
+    },
+    {
+      "sampleId": "verify-09",
+      "taskId": "verify-09",
+      "accepted": false,
+      "generationPassed": true,
+      "requests": 7,
+      "detail": "candidate tests did not reject the behavioral mutant",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 11,
+          "passed": 11,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": "trust-tampered-source-digest",
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": [],
+      "classification": "candidate-coverage-gap"
+    }
+  ],
+  "schema": "chainlesschain.verify01-runtime-repair-failure-analysis/v1",
+  "reportDigest": "sha256:33c40215f5b937c35513a77ad42c161bcf618f7049b895aa82b81037776f3c6f",
+  "reviewSpecsDigest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d",
+  "counts": {
+    "candidate-coverage-gap": 9,
+    "candidate-unresolved-relative-import": 1,
+    "candidate-invalid-completion-fixture": 1
+  },
+  "physicalRequests": 188,
+  "usageCompleteRequests": 188,
+  "allBaselinesPassed": true,
+  "generationPassed": 11,
+  "accepted": 0,
+  "total": 11,
+  "historicalCumulativeAccepted": 34,
+  "limitations": [
+    "Only the eleven historically unresolved cases were retried; this is not a fresh full-cohort success rate.",
+    "Model thinking remains disabled; Sol default-thinking/Responses and CLI version differences remain comparison confounders.",
+    "verify-08 failed on an invalid fixture before the intended assertion; this candidate does not establish a frozen-implementation defect.",
+    "The earlier confirmed frozen-source defects and later repaired-source Sol passes remain separate evidence."
+  ]
+}

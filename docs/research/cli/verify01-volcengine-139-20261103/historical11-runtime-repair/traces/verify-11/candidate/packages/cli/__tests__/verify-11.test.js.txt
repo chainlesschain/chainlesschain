@@ -1,0 +1,200 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  BackgroundInteractionJournal,
+  _deps,
+  loadBackgroundInteractionJournal,
+  updateBackgroundInteractionJournal,
+} from "../src/lib/background-interaction-journal.js";
+
+const baseBinding = {
+  backgroundAgentId: "bg-verify-11",
+  sessionId: "session-1",
+  turnId: "turn-1",
+  toolUseId: "tool-1",
+  sequence: 1,
+};
+
+describe("verify-11: durable problem record ownership", () => {
+  let originals;
+  let eventsBySession;
+
+  beforeEach(() => {
+    originals = {
+      append: _deps.appendEventWithVerifiedProjection,
+      presence: _deps.getSessionPresence,
+      read: _deps.readVerifiedEvents,
+    };
+    eventsBySession = new Map();
+    const eventsOf = (sessionId) => {
+      if (!eventsBySession.has(sessionId)) {
+        eventsBySession.set(sessionId, [{ type: "session_start", data: {} }]);
+      }
+      return eventsBySession.get(sessionId);
+    };
+    _deps.getSessionPresence = vi.fn(() => "present");
+    _deps.readVerifiedEvents = vi.fn((sessionId) =>
+      eventsOf(sessionId).map(({ type, data }) => ({
+        type,
+        data: structuredClone(data),
+      })),
+    );
+    _deps.appendEventWithVerifiedProjection = vi.fn(
+      (sessionId, type, data, { createProjection, validateProjection }) => {
+        const events = eventsOf(sessionId);
+        const projection = createProjection();
+        for (const event of events) projection.accept(structuredClone(event));
+        validateProjection(projection.finish(), {
+          headHash: null,
+          eventCount: events.length,
+        });
+        events.push({ sessionId, type, data: structuredClone(data) });
+        return { hash: "mock-hash" };
+      },
+    );
+  });
+
+  afterEach(() => {
+    _deps.appendEventWithVerifiedProjection = originals.append;
+    _deps.getSessionPresence = originals.presence;
+    _deps.readVerifiedEvents = originals.read;
+  });
+
+  it("keeps the same-named request independent across two sessions", () => {
+    let journalA = new BackgroundInteractionJournal({
+      backgroundAgentId: "bg-verify-11",
+    });
+    journalA = updateBackgroundInteractionJournal("session-1", journalA, (draft) =>
+      draft.recordPending({
+        requestId: "question-deploy",
+        binding: { ...baseBinding, sessionId: "session-1" },
+        payload: { question: "Deploy?" },
+      }),
+    ).journal;
+
+    let journalB = new BackgroundInteractionJournal({
+      backgroundAgentId: "bg-verify-11",
+    });
+    journalB = updateBackgroundInteractionJournal("session-2", journalB, (draft) =>
+      draft.recordPending({
+        requestId: "question-deploy",
+        binding: { ...baseBinding, sessionId: "session-2" },
+        payload: { question: "Deploy?" },
+      }),
+    ).journal;
+
+    journalA = updateBackgroundInteractionJournal("session-1", journalA, (draft) =>
+      draft.settle(
+        "question-deploy",
+        { ...baseBinding, sessionId: "session-1" },
+        { status: "resolved", answer: "yes" },
+      ),
+    ).journal;
+
+    const loadedA = loadBackgroundInteractionJournal("session-1", "bg-verify-11");
+    const loadedB = loadBackgroundInteractionJournal("session-2", "bg-verify-11");
+    expect(loadedA.get("question-deploy")).toMatchObject({
+      status: "resolved",
+      settlement: { answer: "yes" },
+    });
+    // Same request name in the other session is still its own pending row.
+    expect(loadedB.get("question-deploy")).toMatchObject({
+      status: "pending",
+      settlement: null,
+    });
+    expect(loadedB.get("question-deploy").settledAt).toBeNull();
+
+    journalB = updateBackgroundInteractionJournal("session-2", journalB, (draft) =>
+      draft.settle(
+        "question-deploy",
+        { ...baseBinding, sessionId: "session-2" },
+        { status: "resolved", answer: "no" },
+      ),
+    ).journal;
+    expect(
+      loadBackgroundInteractionJournal("session-2", "bg-verify-11").get(
+        "question-deploy",
+      ),
+    ).toMatchObject({ status: "resolved", settlement: { answer: "no" } });
+    expect(
+      loadBackgroundInteractionJournal("session-1", "bg-verify-11").get(
+        "question-deploy",
+      ),
+    ).toMatchObject({ status: "resolved", settlement: { answer: "yes" } });
+  });
+
+  it("rejects a same-named request bound to another session from this session's journal", () => {
+    const journal = new BackgroundInteractionJournal({
+      backgroundAgentId: "bg-verify-11",
+      sessionId: "session-1",
+    });
+    expect(() =>
+      updateBackgroundInteractionJournal("session-1", journal, (draft) =>
+        draft.recordPending({
+          requestId: "question-deploy",
+          binding: { ...baseBinding, sessionId: "session-2" },
+          payload: { question: "Deploy?" },
+        }),
+      ),
+    ).toThrow(/complete interaction binding/);
+    expect(_deps.appendEventWithVerifiedProjection).not.toHaveBeenCalled();
+  });
+
+  it("does not rebuild execution authority when a completed record is replayed as pending", () => {
+    let journal = new BackgroundInteractionJournal({
+      backgroundAgentId: "bg-verify-11",
+    });
+    journal = updateBackgroundInteractionJournal("session-1", journal, (draft) =>
+      draft.recordPending({
+        requestId: "req-1",
+        binding: { ...baseBinding, sessionId: "session-1" },
+        payload: { question: "Deploy?" },
+      }),
+    ).journal;
+    journal = updateBackgroundInteractionJournal("session-1", journal, (draft) =>
+      draft.settle(
+        "req-1",
+        { ...baseBinding, sessionId: "session-1" },
+        { status: "resolved", answer: "yes" },
+      ),
+    ).journal;
+
+    const replay = journal.recordPending({
+      requestId: "req-1",
+      binding: { ...baseBinding, sessionId: "session-1" },
+      payload: { question: "Deploy?" },
+    });
+    expect(replay.applied).toBe(false);
+    expect(journal.get("req-1")).toMatchObject({ status: "resolved" });
+    expect(journal.pending()).toHaveLength(0);
+  });
+
+  it("rejects a replay of a completed record with altered content and keeps it terminal", () => {
+    let journal = new BackgroundInteractionJournal({
+      backgroundAgentId: "bg-verify-11",
+    });
+    journal = updateBackgroundInteractionJournal("session-1", journal, (draft) =>
+      draft.recordPending({
+        requestId: "req-1",
+        binding: { ...baseBinding, sessionId: "session-1" },
+        payload: { question: "Deploy?" },
+      }),
+    ).journal;
+    journal = updateBackgroundInteractionJournal("session-1", journal, (draft) =>
+      draft.settle(
+        "req-1",
+        { ...baseBinding, sessionId: "session-1" },
+        { status: "resolved", answer: "yes" },
+      ),
+    ).journal;
+
+    expect(() =>
+      journal.recordPending({
+        requestId: "req-1",
+        binding: { ...baseBinding, sessionId: "session-1" },
+        payload: { question: "Deploy now?" },
+      }),
+    ).toThrow(/replayed with different binding or payload/);
+    expect(journal.get("req-1")).toMatchObject({ status: "resolved" });
+    expect(journal.pending()).toHaveLength(0);
+  });
+});

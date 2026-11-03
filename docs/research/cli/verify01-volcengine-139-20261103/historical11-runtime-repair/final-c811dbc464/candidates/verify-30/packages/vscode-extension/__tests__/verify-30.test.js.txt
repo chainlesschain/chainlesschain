@@ -1,0 +1,53 @@
+import { describe, it, expect } from "vitest";
+import { inspectImageBudget } from "../src/chat/image-decode-budget.js";
+
+// Single 1x1 GIF frame (header + logical screen descriptor + one image block).
+const gif = Buffer.from(
+  "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+  "base64",
+);
+
+// A GIF animation with `count` image frames over a `canvas` x `canvas` canvas.
+// Each repeated image block is a 1x1 delta frame, so the cumulative decoded
+// pixel budget is canvas*canvas*count, independent of the per-frame size.
+const animated = (count, canvas = 1) => {
+  const header = Buffer.from(gif.subarray(0, 19));
+  header.writeUInt16LE(canvas, 6);
+  header.writeUInt16LE(canvas, 8);
+  return Buffer.concat([
+    header,
+    ...Array.from({ length: count }, () => gif.subarray(19, -1)),
+    Buffer.from([0x3b]),
+  ]);
+};
+
+describe("cumulative animation frame budget (multi-frame admission)", () => {
+  it("retains an animation whose cumulative canvas-pixel total equals the 40 MP boundary", () => {
+    // canvas 2000x2000 = 4,000,000 px; 10 frames = 40,000,000 cumulative.
+    expect(inspectImageBudget(animated(10, 2000))).toMatchObject({
+      format: "gif",
+      frames: 10,
+      decodedPixels: 40_000_000,
+    });
+  });
+
+  it("rejects the first frame past the cumulative 40 MP budget even when frame count is legal", () => {
+    // 11 frames x 4,000,000 px = 44,000,000 > 40,000,000. Frame count (11) is
+    // well under 200, so only the cumulative pixel guard can cause the throw.
+    expect(() => inspectImageBudget(animated(11, 2000))).toThrow(
+      /40 million decoded canvas pixels/,
+    );
+  });
+
+  it("retains an animation whose frame count sits exactly on the 200-frame boundary", () => {
+    // 200 x 1x1 = 200 cumulative pixels, far below the pixel budget.
+    expect(inspectImageBudget(animated(200))).toMatchObject({
+      frames: 200,
+      decodedPixels: 200,
+    });
+  });
+
+  it("rejects the first frame past the 200-frame boundary", () => {
+    expect(() => inspectImageBudget(animated(201))).toThrow(/200 frames/);
+  });
+});

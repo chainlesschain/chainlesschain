@@ -1,0 +1,117 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-09",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 11,
+      "passed": 11,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 284,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1032,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":11,\"numPassedTests\":11,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793694380037,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins carries summary-from system-summary ancestry into a subsequent rewind\",\"status\":\"passed\",\"title\":\"carries summary-from system-summary ancestry into a subsequent rewind\",\"duration\":5.6229960000000005,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins carries summary-to system-summary ancestry into a subsequent rewind\",\"status\":\"passed\",\"title\":\"carries summary-to system-summary ancestry into a subsequent rewind\",\"duration\":1.0037790000000086,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins rejects invalid summary certificates and output without changing the source mapping\",\"status\":\"passed\",\"title\":\"rejects invalid summary certificates and output without changing the source mapping\",\"duration\":4.112151000000011,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins rejects a derived system spanning the rewind point at position 0\",\"status\":\"passed\",\"title\":\"rejects a derived system spanning the rewind point at position 0\",\"duration\":0.34170699999998533,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins rejects a derived system spanning the rewind point at position 2\",\"status\":\"passed\",\"title\":\"rejects a derived system spanning the rewind point at position 2\",\"duration\":0.2170279999999991,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins does not lose a system summary dependency during another Kernel summary\",\"status\":\"passed\",\"title\":\"does not lose a system summary dependency during another Kernel summary\",\"duration\":3.222424999999987,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins leaves ancestry unknown when a summary includes an unmapped derived system\",\"status\":\"passed\",\"title\":\"leaves ancestry unknown when a summary includes an unmapped derived system\",\"duration\":0.4482179999999971,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins drops optional origin tracking at the byte limit, and recovers only from a later explicit snapshot\",\"status\":\"passed\",\"title\":\"drops optional origin tracking at the byte limit, and recovers only from a later explicit snapshot\",\"duration\":368.545713,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins does not infer an origin from equal text at a different indexed source\",\"status\":\"passed\",\"title\":\"does not infer an origin from equal text at a different indexed source\",\"duration\":1.372575999999981,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins requires every summary parent and refuses a prefix that crosses the selected origin\",\"status\":\"passed\",\"title\":\"requires every summary parent and refuses a prefix that crosses the selected origin\",\"duration\":1.9954279999999471,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"display history origins\"],\"fullName\":\"display history origins does not treat changed replacement content or a summary action as a retained prefix\",\"status\":\"passed\",\"title\":\"does not treat changed replacement content or a summary action as a retained prefix\",\"duration\":0.27501599999993687,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793694380272,\"endTime\":1793694380659.275,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/session-history-origins.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 656,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793694381089,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-09: history source tampering rejection\"],\"fullName\":\"verify-09: history source tampering rejection accepts the correct rewind source identity (positive control) and rejects a tampered prevHash\",\"status\":\"passed\",\"title\":\"accepts the correct rewind source identity (positive control) and rejects a tampered prevHash\",\"duration\":2.669138000000004,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-09: history source tampering rejection\"],\"fullName\":\"verify-09: history source tampering rejection rejects a tampered historyPrefix sourceHead while prevHash stays valid\",\"status\":\"passed\",\"title\":\"rejects a tampered historyPrefix sourceHead while prevHash stays valid\",\"duration\":0.4415079999999989,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-09: history source tampering rejection\"],\"fullName\":\"verify-09: history source tampering rejection rejects a tampered sourceMessageCount identity in a rewind\",\"status\":\"passed\",\"title\":\"rejects a tampered sourceMessageCount identity in a rewind\",\"duration\":0.3765589999999861,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-09: history source tampering rejection\"],\"fullName\":\"verify-09: history source tampering rejection rejects tampered retained-message content in a rewind (digest check)\",\"status\":\"passed\",\"title\":\"rejects tampered retained-message content in a rewind (digest check)\",\"duration\":0.4628399999999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-09: history source tampering rejection\"],\"fullName\":\"verify-09: history source tampering rejection accepts the correct summarize source identity (positive control) and rejects a tampered prevHash\",\"status\":\"passed\",\"title\":\"accepts the correct summarize source identity (positive control) and rejects a tampered prevHash\",\"duration\":3.6221400000000017,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-09: history source tampering rejection\"],\"fullName\":\"verify-09: history source tampering rejection rejects tampered summarize output content (digest check)\",\"status\":\"passed\",\"title\":\"rejects tampered summarize output content (digest check)\",\"duration\":0.7484529999999836,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793694381321,\"endTime\":1793694381329.7485,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-09.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/session-history-origins.js"
+      ],
+      "setup": false,
+      "ms": 142,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 897,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793694381955,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-09: history source tampering rejection\"],\"fullName\":\"verify-09: history source tampering rejection accepts the correct rewind source identity (positive control) and rejects a tampered prevHash\",\"status\":\"passed\",\"title\":\"accepts the correct rewind source identity (positive control) and rejects a tampered prevHash\",\"duration\":2.577258999999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-09: history source tampering rejection\"],\"fullName\":\"verify-09: history source tampering rejection rejects a tampered historyPrefix sourceHead while prevHash stays valid\",\"status\":\"passed\",\"title\":\"rejects a tampered historyPrefix sourceHead while prevHash stays valid\",\"duration\":0.4718740000000139,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-09: history source tampering rejection\"],\"fullName\":\"verify-09: history source tampering rejection rejects a tampered sourceMessageCount identity in a rewind\",\"status\":\"passed\",\"title\":\"rejects a tampered sourceMessageCount identity in a rewind\",\"duration\":0.35419500000000426,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-09: history source tampering rejection\"],\"fullName\":\"verify-09: history source tampering rejection rejects tampered retained-message content in a rewind (digest check)\",\"status\":\"passed\",\"title\":\"rejects tampered retained-message content in a rewind (digest check)\",\"duration\":0.49926499999997986,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-09: history source tampering rejection\"],\"fullName\":\"verify-09: history source tampering rejection accepts the correct summarize source identity (positive control) and rejects a tampered prevHash\",\"status\":\"passed\",\"title\":\"accepts the correct summarize source identity (positive control) and rejects a tampered prevHash\",\"duration\":3.6365810000000067,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-09: history source tampering rejection\"],\"fullName\":\"verify-09: history source tampering rejection rejects tampered summarize output content (digest check)\",\"status\":\"passed\",\"title\":\"rejects tampered summarize output content (digest check)\",\"duration\":0.7915669999999864,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793694382180,\"endTime\":1793694382188.7915,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-09.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate tests did not reject the behavioral mutant"
+}

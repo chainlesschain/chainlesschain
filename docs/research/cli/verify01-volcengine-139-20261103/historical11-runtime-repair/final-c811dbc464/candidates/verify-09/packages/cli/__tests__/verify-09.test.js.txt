@@ -1,0 +1,133 @@
+import { describe, expect, it } from "vitest";
+import {
+  createSessionHistoryOrigins,
+  HISTORY_PREFIX_SCHEMA,
+} from "../src/lib/session-history-origins.js";
+import {
+  HISTORY_SUMMARY_SCHEMA,
+  projectCheckpointSummary,
+} from "../src/lib/checkpoint-summary-projection.js";
+import { encodePersistedMessage } from "../src/lib/session-message-provenance.js";
+
+// Independent regression coverage for "history source tampering rejection":
+// a tampered session/source identity must be rejected, while the correct
+// (admissible) source identity remains readable. Each condition is exercised
+// with a positive control and a negative control that changes only that one
+// condition, leaving every other prerequisite valid.
+
+const head = "a".repeat(64);
+
+// A rewind event whose historyPrefix claims the exact, matching source head.
+function rewindEvent(messages, retainedMessageCount) {
+  return {
+    prevHash: head,
+    data: {
+      action: "restore-conversation",
+      messages: messages.slice(0, retainedMessageCount),
+      historyPrefix: {
+        schema: HISTORY_PREFIX_SCHEMA,
+        sourceHead: head,
+        sourceMessageCount: messages.length,
+        retainedMessageCount,
+      },
+    },
+  };
+}
+
+// A summary event whose certificate claims the exact, matching source head.
+function summaryEvent(messages, action, start) {
+  return {
+    prevHash: head,
+    data: {
+      action,
+      turnId: "selected",
+      historySummary: {
+        schema: HISTORY_SUMMARY_SCHEMA,
+        sourceHead: head,
+        sourceMessageCount: messages.length,
+        start,
+        end: messages.length,
+      },
+      messages: projectCheckpointSummary({
+        messages,
+        action,
+        start,
+        end: messages.length,
+        turnId: "selected",
+      }).map(({ message }) => encodePersistedMessage(message)),
+    },
+  };
+}
+
+// Four displayable messages whose snapshot origins are {0,0},{1,1},{2,2},{3,3},
+// so a rewind retaining the first two has a legal cutoff at 2.
+const display = [
+  { role: "user", content: "first" },
+  { role: "assistant", content: "answer" },
+  { role: "user", content: "second" },
+  { role: "assistant", content: "answer" },
+];
+
+describe("verify-09: history source tampering rejection", () => {
+  it("accepts the correct rewind source identity (positive control) and rejects a tampered prevHash", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(display);
+    expect(origins.rewind(rewindEvent(display, 2), 4)).toBe(2);
+
+    const tampered = rewindEvent(display, 2);
+    tampered.prevHash = "b".repeat(64); // only the source identity changes
+    expect(origins.rewind(tampered, 4)).toBeNull();
+  });
+
+  it("rejects a tampered historyPrefix sourceHead while prevHash stays valid", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(display);
+    const tampered = rewindEvent(display, 2);
+    tampered.data.historyPrefix.sourceHead = "b".repeat(64);
+    // prevHash remains head; only the claimed sourceHead diverges.
+    expect(origins.rewind(tampered, 4)).toBeNull();
+    expect(origins.rewind(rewindEvent(display, 2), 4)).toBe(2);
+  });
+
+  it("rejects a tampered sourceMessageCount identity in a rewind", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(display);
+    const tampered = rewindEvent(display, 2);
+    tampered.data.historyPrefix.sourceMessageCount += 1;
+    // All other fields valid; only the claimed source size diverges.
+    expect(origins.rewind(tampered, 4)).toBeNull();
+    expect(origins.rewind(rewindEvent(display, 2), 4)).toBe(2);
+  });
+
+  it("rejects tampered retained-message content in a rewind (digest check)", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(display);
+    const tampered = rewindEvent(display, 2);
+    tampered.data.messages[0] = { role: "user", content: "replacement" };
+    expect(origins.rewind(tampered, 4)).toBeNull();
+    expect(origins.rewind(rewindEvent(display, 2), 4)).toBe(2);
+  });
+
+  it("accepts the correct summarize source identity (positive control) and rejects a tampered prevHash", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(display);
+    expect(origins.summarize(summaryEvent(display, "summary-from", 0))).toBe(
+      true,
+    );
+
+    const tampered = summaryEvent(display, "summary-from", 0);
+    tampered.prevHash = "b".repeat(64);
+    expect(origins.summarize(tampered)).toBe(false);
+  });
+
+  it("rejects tampered summarize output content (digest check)", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(display);
+    const tampered = summaryEvent(display, "summary-from", 0);
+    tampered.data.messages[0] = { role: "user", content: "replacement" };
+    expect(origins.summarize(tampered)).toBe(false);
+    expect(origins.summarize(summaryEvent(display, "summary-from", 0))).toBe(
+      true,
+    );
+  });
+});

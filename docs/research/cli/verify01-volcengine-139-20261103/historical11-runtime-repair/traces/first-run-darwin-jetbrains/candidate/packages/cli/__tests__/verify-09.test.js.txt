@@ -1,0 +1,133 @@
+import { describe, expect, it } from "vitest";
+import {
+  createSessionHistoryOrigins,
+  HISTORY_PREFIX_SCHEMA,
+} from "../src/lib/session-history-origins.js";
+import {
+  messagesToContextItems,
+  contextItemsToMessages,
+  createSummaryContextItem,
+} from "../src/lib/context-memory-kernel/message-adapter.js";
+
+const head = "a".repeat(64);
+
+// Independent regression coverage for the "reject history source tampering"
+// behavior of createSessionHistoryOrigins. Origins are only carried forward
+// when a compaction summary parent digest resolves to the current session's
+// indexed context, and a rewind prefix is only honored when its sourceHead
+// and sourceMessageCount match the actual context. Every negative control is
+// paired with a positive control on the same condition.
+describe("history source identity tampering", () => {
+  function event(messages, retainedMessageCount) {
+    return {
+      prevHash: head,
+      data: {
+        action: "restore-conversation",
+        messages: messages.slice(0, retainedMessageCount),
+        historyPrefix: {
+          schema: HISTORY_PREFIX_SCHEMA,
+          sourceHead: head,
+          sourceMessageCount: messages.length,
+          retainedMessageCount,
+        },
+      },
+    };
+  }
+
+  // A compaction payload from a summary whose parent is the first context item
+  // of `source`, plus a retained trailing user item. The trailing user item
+  // becomes the rewind anchor (its origin is single-pointed).
+  function compactWithSummary(source, summarySessionId, canonicalSessionId) {
+    const contextItems = messagesToContextItems(source, {
+      sessionId: summarySessionId,
+    });
+    const summary = createSummaryContextItem({
+      messages: [{ role: "assistant", content: "digest-bound summary" }],
+      parents: contextItems.slice(0, 1),
+      operationId: "verify09",
+      now: "2026-09-27T00:00:00.000Z",
+    });
+    const outputItems = [summary, contextItems.at(-1)];
+    const output = contextItemsToMessages(outputItems);
+    return {
+      messages: output,
+      canonical: { sessionId: canonicalSessionId, outputItems },
+    };
+  }
+
+  const source = [
+    { role: "user", content: "first" },
+    { role: "user", content: "selected" },
+  ];
+
+  it("positive: a summary whose parents match the canonical session carries ancestry, so the rewind reads a cutoff", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.appendPersisted(source[0], 0);
+    origins.appendPersisted(source[1], 1);
+    const payload = compactWithSummary(source, "session-A", "session-A");
+    origins.compact(payload);
+    // Summary spans parent {first:0,last:0}; the trailing user is {1,1}, so the
+    // retained-one-message rewind cuts back to 1.
+    expect(origins.rewind(event(payload.messages, 1), 2)).toBe(1);
+  });
+
+  it("negative: a summary whose parents were computed under a different session identity cannot resolve, so the rewind is refused", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.appendPersisted(source[0], 0);
+    origins.appendPersisted(source[1], 1);
+    // The summary ancestry is bound to session "other", while compact indexes
+    // the context under "session-A"; the parent digest does not resolve and the
+    // summary carries no origin, blocking the rewind.
+    const payload = compactWithSummary(source, "other", "session-A");
+    origins.compact(payload);
+    expect(origins.rewind(event(payload.messages, 1), 2)).toBeNull();
+  });
+
+  it("negative/positive: a forged prefix sourceHead is refused while the correct head is read back", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.appendPersisted(source[0], 0);
+    origins.appendPersisted(source[1], 1);
+    const valid = event(source, 1);
+    const forged = event(source, 1);
+    // The rewind guard only rejects a prefix when its sourceHead disagrees
+    // with the restore event's prevHash, so forge just the sourceHead.
+    forged.data.historyPrefix.sourceHead = "b".repeat(64);
+    expect(origins.rewind(forged, 2)).toBeNull();
+    expect(origins.rewind(valid, 2)).toBe(1);
+  });
+
+  it("negative/positive: a forged prefix sourceMessageCount is refused while the correct count is read back", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.appendPersisted(source[0], 0);
+    origins.appendPersisted(source[1], 1);
+    const valid = event(source, 1);
+    const forged = event(source, 1);
+    forged.data.historyPrefix.sourceMessageCount = source.length - 1;
+    expect(origins.rewind(forged, 2)).toBeNull();
+    expect(origins.rewind(valid, 2)).toBe(1);
+  });
+
+  it("negative/positive: an unknown prefix schema is refused while the known schema is read back", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.appendPersisted(source[0], 0);
+    origins.appendPersisted(source[1], 1);
+    const valid = event(source, 1);
+    const forged = event(source, 1);
+    forged.data.historyPrefix.schema += "-forged";
+    expect(origins.rewind(forged, 2)).toBeNull();
+    expect(origins.rewind(valid, 2)).toBe(1);
+  });
+
+  it("negative/positive: changed retained message content breaks the fingerprint while the intact prefix is read back", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.appendPersisted(source[0], 0);
+    origins.appendPersisted(source[1], 1);
+    const payload = compactWithSummary(source, "session-B", "session-B");
+    origins.compact(payload);
+    const intact = event(payload.messages, 1);
+    expect(origins.rewind(intact, 2)).toBe(1);
+    const tampered = event(payload.messages, 1);
+    tampered.data.messages[0] = { role: "assistant", content: "forged" };
+    expect(origins.rewind(tampered, 2)).toBeNull();
+  });
+});

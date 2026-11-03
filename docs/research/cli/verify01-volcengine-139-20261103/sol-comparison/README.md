@@ -1,5 +1,7 @@
 # Sol 成功与 DeepSeek 失败的证据对照
 
+**修复后补测已完成：11/11 生成，0/11 验收，历史累计仍为 34/45。** 本轮实际采用提供方默认工具批量调用，原先陷入读取循环的 CLI 首次启动任务已写出文件，但仍漏检增量分页边界；verify-04/07 也继续漏掉 Sol 成功候选已覆盖的条件。故运行条件偏差已修正，并不意味着候选语义质量自动达标。[新一轮逐项原因](../historical11-runtime-repair/README.md)。
+
 这里比较原始任务源码 `b2aa3aba082873570e85dce39b00754e5504ff37` 上的实际生成记录。Sol 来源为 [.133 完整轮 41117741513](https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513)，全轮 39/45；DeepSeek 来源为 [取消输出测试上限的 41585306414](https://github.com/chainlesschain/chainlesschain/actions/runs/41585306414)。这不是相同 CLI 版本、协议和思考配置下的模型单变量实验。
 
 | 样本 | Sol 请求 / 工具操作 | DeepSeek 请求 / 工具操作 | 实际验收差异 |

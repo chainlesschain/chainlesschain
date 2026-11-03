@@ -1,0 +1,115 @@
+import { describe, expect, it } from "vitest";
+import { createSessionTranscriptHistoryProjection } from "../src/lib/session-transcript-history.js";
+
+// Persistence cursor pagination boundary (the "before"/nextCursor walk).
+// Each non-incremental page keeps the newest `limit` rows and hands off with
+// a v2 cursor encoding the oldest ordinal on that page; the following page
+// must begin immediately below that boundary so the whole persistent body is
+// read exactly once: no final body omitted, no boundary row duplicated.
+
+const SESSION_ID = "page-boundary-walk";
+const LIMIT = 2;
+const COUNT = 7;
+
+function eventsOf(count = COUNT) {
+  return Array.from({ length: count }, (_, i) => ({
+    type: "assistant_message",
+    hash: (i + 1).toString(16).padStart(64, "0"),
+    data: { role: "assistant", content: `final-body-${i}` },
+  }));
+}
+
+function pageFor(events, options) {
+  const projection = createSessionTranscriptHistoryProjection(
+    SESSION_ID,
+    options,
+  );
+  events.forEach((event) => projection.accept(event));
+  return projection.finish({
+    headHash: events.at(-1).hash,
+    eventCount: events.length,
+  });
+}
+
+function walk(events, limit) {
+  let cursor = null;
+  const ordinals = [];
+  const texts = [];
+  let emptyPages = 0;
+  for (let guard = 0; guard < 100; guard++) {
+    const page = pageFor(events, { limit, cursor });
+    if (page.messages.length === 0) emptyPages += 1;
+    ordinals.push(...page.messages.map((m) => m.ordinal));
+    texts.push(...page.messages.map((m) => m.text));
+    cursor = page.nextCursor;
+    if (cursor === null) break;
+  }
+  return { cursor, emptyPages, ordinals, texts };
+}
+
+describe("persistent body pagination boundary", () => {
+  it("walks the whole persistent body exactly once and terminates", () => {
+    const { cursor, emptyPages, ordinals, texts } = walk(eventsOf(), LIMIT);
+    // head to tail is fully covered with no trailing empty page
+    expect(cursor).toBe(null);
+    expect(emptyPages).toBe(0);
+    expect(ordinals).toHaveLength(COUNT);
+    expect(new Set(ordinals).size).toBe(COUNT);
+    ordinals.forEach((ordinal) => expect(ordinal).toBeGreaterThanOrEqual(0));
+    ordinals.forEach((ordinal) => expect(ordinal).toBeLessThan(COUNT));
+    // the newest (final) body row is not omitted and is emitted once
+    expect(texts.filter((t) => t === "final-body-6")).toHaveLength(1);
+  });
+
+  it("hands off contiguously at the oldest row of the latest page", () => {
+    const events = eventsOf();
+    const head = pageFor(events, { limit: LIMIT });
+    expect(head.messages.map((m) => m.ordinal)).toEqual([5, 6]);
+    const next = pageFor(events, {
+      limit: LIMIT,
+      cursor: head.nextCursor,
+    });
+    // boundary row 5 is excluded, so the next page starts at 4 (no gap, no dup)
+    expect(next.messages.map((m) => m.ordinal)).toEqual([3, 4]);
+  });
+
+  it("reaches the tail cursor and ends with a null cursor", () => {
+    const events = eventsOf();
+    let page = pageFor(events, { limit: LIMIT });
+    const pages = [page];
+    while (page.nextCursor) {
+      page = pageFor(events, { limit: LIMIT, cursor: page.nextCursor });
+      pages.push(page);
+    }
+    expect(pages.map((p) => p.messages.map((m) => m.ordinal))).toEqual([
+      [5, 6],
+      [3, 4],
+      [1, 2],
+      [0],
+    ]);
+    expect(pages.at(-1).nextCursor).toBe(null);
+  });
+
+  it("does not re-admit the boundary rows in the following page", () => {
+    const events = eventsOf();
+    const head = pageFor(events, { limit: LIMIT }); // [5, 6]
+    const next = pageFor(events, {
+      limit: LIMIT,
+      cursor: head.nextCursor,
+    });
+    // if the `ordinal >= before` guard regressed to `>`, row 5 would reappear
+    expect(next.messages.some((m) => m.ordinal >= 5)).toBe(false);
+    expect(next.messages.map((m) => m.ordinal)).toEqual([3, 4]);
+  });
+
+  it("never omits the first or final body across any page boundary", () => {
+    for (const limit of [1, 2, 3, 4]) {
+      const { ordinals, texts } = walk(eventsOf(), limit);
+      expect(ordinals).toHaveLength(COUNT);
+      expect(new Set(ordinals).size).toBe(COUNT);
+      // both persistent ends of the body are present exactly once
+      expect(texts.filter((t) => t === "final-body-6")).toHaveLength(1);
+      expect(texts.filter((t) => t === "final-body-0")).toHaveLength(1);
+    }
+  });
+});
