@@ -1,0 +1,62 @@
+import { describe, it, expect, vi } from "vitest";
+import { Orchestrator } from "../../src/lib/orchestrator.js";
+
+/**
+ * verify-06: 付费分解前预检（assertDispatchAvailable）
+ *
+ * The router preflight gate (Orchestrator.addTask → AgentRouter.assertDispatchAvailable)
+ * must terminate rejected CLI-only routing before any decomposition, notification or
+ * Run creation, while allowing at least one API backend to proceed.
+ *
+ * Negative control: all backends are CLI (claude + codex) → preflight throws
+ *   AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED; _decompose and notifyStart spies
+ *   are zero and no task is persisted.
+ * Positive control: one API backend (openai) present → preflight passes; decomposition
+ *   and notification proceed.
+ *
+ * Both controls keep every other prerequisite valid so only the backend mix varies.
+ */
+
+describe("verify-06: paid-decomposition preflight", () => {
+  it("rejects CLI-only routing before decomposition, notifications and Run creation", async () => {
+    const notifyStart = vi.fn();
+    const orch = new Orchestrator({
+      agents: { backends: [{ type: "claude" }, { type: "codex" }] },
+      notifier: { isConfigured: true, notifyStart },
+    });
+    const decompose = vi.spyOn(orch, "_decompose");
+
+    await expect(orch.addTask("fix this")).rejects.toMatchObject({
+      code: "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED",
+    });
+
+    expect(decompose).not.toHaveBeenCalled();
+    expect(notifyStart).not.toHaveBeenCalled();
+    expect(orch._tasks.size).toBe(0);
+  });
+
+  it("allows an API backend and proceeds to decomposition and notification", async () => {
+    const notifyStart = vi.fn();
+    const orch = new Orchestrator({
+      agents: { backends: [{ type: "claude" }, { type: "openai" }] },
+      notifier: { isConfigured: true, notifyStart },
+    });
+    orch.notifier.add("mock", {
+      isConfigured: true,
+      notifyStart,
+    });
+
+    // Mock only the external LLM egress; all internal orchestration runs for real.
+    orch._chat = vi.fn(async () =>
+      JSON.stringify({
+        tasks: [{ description: "subtask A", cwd: "/tmp/test-project" }],
+      }),
+    );
+    const decompose = vi.spyOn(orch, "_decompose");
+
+    const result = await orch.addTask("fix this");
+    expect(decompose).toHaveBeenCalled();
+    expect(notifyStart).toHaveBeenCalled();
+    expect(result.subtasks.length).toBe(1);
+  });
+});

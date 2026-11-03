@@ -1,0 +1,78 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-19",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 17,
+      "passed": 17,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 141,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 5927,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":3,\"numPassedTestSuites\":3,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":17,\"numPassedTests\":17,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793723352822,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"parseInputEvent — approval verdicts\"],\"fullName\":\"parseInputEvent — approval verdicts parses approve/deny and rejects malformed ones\",\"status\":\"passed\",\"title\":\"parses approve/deny and rejects malformed ones\",\"duration\":2.668076999999812,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"parseInputEvent — approval verdicts\"],\"fullName\":\"parseInputEvent — approval verdicts carries an optional approval binding when present\",\"status\":\"passed\",\"title\":\"carries an optional approval binding when present\",\"duration\":0.4392750000001797,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"parseInputEvent — approval verdicts\"],\"fullName\":\"parseInputEvent — approval verdicts validates structured decisions and fails closed on drift\",\"status\":\"passed\",\"title\":\"validates structured decisions and fails closed on drift\",\"duration\":71.50529700000016,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip approve: the blocked tool gets true; request + resolution are emitted\",\"status\":\"passed\",\"title\":\"approve: the blocked tool gets true; request + resolution are emitted\",\"duration\":245.61271099999976,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip caller abort settles a pending approval and retires live stdin\",\"status\":\"passed\",\"title\":\"caller abort settles a pending approval and retires live stdin\",\"duration\":42.18770600000016,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip deny: the tool gets false\",\"status\":\"passed\",\"title\":\"deny: the tool gets false\",\"duration\":109.86570800000027,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip a structured decision must echo the advertised binding\",\"status\":\"passed\",\"title\":\"a structured decision must echo the advertised binding\",\"duration\":115.83919100000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip rejects a structured approval that omits the binding\",\"status\":\"passed\",\"title\":\"rejects a structured approval that omits the binding\",\"duration\":114.97633099999985,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip reuses an exact acceptForTurn grant without opening a second card\",\"status\":\"passed\",\"title\":\"reuses an exact acceptForTurn grant without opening a second card\",\"duration\":143.40468099999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip downgrades a session grant to acceptOnce when authority persistence fails\",\"status\":\"passed\",\"title\":\"downgrades a session grant to acceptOnce when authority persistence fails\",\"duration\":115.17139399999996,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip restores a persisted exact session grant before the resumed turn\",\"status\":\"passed\",\"title\":\"restores a persisted exact session grant before the resumed turn\",\"duration\":144.73270500000035,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip discards a corrupt persisted grant ledger and asks again\",\"status\":\"passed\",\"title\":\"discards a corrupt persisted grant ledger and asks again\",\"duration\":107.29025100000035,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip a mismatched binding is rejected (deny, fail closed) — replay/param-substitution\",\"status\":\"passed\",\"title\":\"a mismatched binding is rejected (deny, fail closed) — replay/param-substitution\",\"duration\":108.89830799999982,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip timeout fails closed\",\"status\":\"passed\",\"title\":\"timeout fails closed\",\"duration\":425.03475100000014,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip stdin close while pending fails closed (no hang)\",\"status\":\"passed\",\"title\":\"stdin close while pending fails closed (no hang)\",\"duration\":108.29963300000054,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip flag off → no permissionConfirm is injected (fail-closed stays)\",\"status\":\"passed\",\"title\":\"flag off → no permissionConfirm is injected (fail-closed stays)\",\"duration\":24.593840000000455,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip the ApprovalGate confirmer is swapped only when the flag is on\",\"status\":\"passed\",\"title\":\"the ApprovalGate confirmer is swapped only when the flag is on\",\"duration\":51.68066100000033,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793723356335,\"endTime\":1793723358268.6807,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/headless-stream-approvals.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 4639,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":3,\"numPassedTests\":2,\"numFailedTests\":1,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793723358746,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"cancel approval, late accept must not authorize\"],\"fullName\":\"cancel approval, late accept must not authorize normal accept authorizes exactly the request it was issued for\",\"status\":\"passed\",\"title\":\"normal accept authorizes exactly the request it was issued for\",\"duration\":311.14861900000005,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cancel approval, late accept must not authorize\"],\"fullName\":\"cancel approval, late accept must not authorize late accept after a cancel is a no-op and cannot authorize a new request\",\"status\":\"failed\",\"title\":\"late accept after a cancel is a no-op and cannot authorize a new request\",\"duration\":287.989227,\"failureMessages\":[\"AssertionError: expected [ 'skipped (denied)' ] to deeply equal [ 'skipped (denied)', …(1) ]\\n    at /workspace/packages/cli/__tests__/verify-19.test.js:213:21\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cancel approval, late accept must not authorize\"],\"fullName\":\"cancel approval, late accept must not authorize a normal accept binds only to the original request (cross-call binding mismatch is rejected)\",\"status\":\"passed\",\"title\":\"a normal accept binds only to the original request (cross-call binding mismatch is rejected)\",\"duration\":126.23214099999996,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793723362192,\"endTime\":1793723362917.2322,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-19.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate or baseline regression failed"
+}

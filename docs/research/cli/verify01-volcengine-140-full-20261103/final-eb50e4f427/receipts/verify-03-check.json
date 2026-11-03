@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-03",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 31,
+      "passed": 31,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "unknown-opus-inherits-legacy-price",
+      "sourceSha256": "ba23b5f8b81c1697f549d2b0dd9285f9e7294bfe35f1058d358700816937b538",
+      "total": 6,
+      "passed": 4,
+      "failed": 2
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 153,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1382,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":7,\"numPassedTestSuites\":7,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":31,\"numPassedTests\":31,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793719446825,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate treats local providers as free\",\"status\":\"passed\",\"title\":\"treats local providers as free\",\"duration\":2.311836999999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate matches the most specific pattern first (gpt-4o-mini before gpt-4o)\",\"status\":\"passed\",\"title\":\"matches the most specific pattern first (gpt-4o-mini before gpt-4o)\",\"duration\":0.5606640000000027,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate is case-insensitive on provider and model\",\"status\":\"passed\",\"title\":\"is case-insensitive on provider and model\",\"duration\":0.25305099999999925,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate resolves the GPT-5 family without shadowing (5.5 not caught by 5)\",\"status\":\"passed\",\"title\":\"resolves the GPT-5 family without shadowing (5.5 not caught by 5)\",\"duration\":1.1672259999999994,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate uses current Opus pricing ($5/$25) and prices Fable 5 / Opus 4.x snapshots\",\"status\":\"passed\",\"title\":\"uses current Opus pricing ($5/$25) and prices Fable 5 / Opus 4.x snapshots\",\"duration\":0.6093270000000075,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate prices Doubao Seed 2.0 above the generic seed fallback\",\"status\":\"passed\",\"title\":\"prices Doubao Seed 2.0 above the generic seed fallback\",\"duration\":0.41993200000001707,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate prices the DeepSeek V4 models used by protected quality evals\",\"status\":\"passed\",\"title\":\"prices the DeepSeek V4 models used by protected quality evals\",\"duration\":0.2828850000000216,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate returns null for an unknown provider or model\",\"status\":\"passed\",\"title\":\"returns null for an unknown provider or model\",\"duration\":0.20551900000000956,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — estimateCost\"],\"fullName\":\"llm-pricing — estimateCost computes input/output cost from MTok rates\",\"status\":\"passed\",\"title\":\"computes input/output cost from MTok rates\",\"duration\":0.8160269999999912,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — estimateCost\"],\"fullName\":\"llm-pricing — estimateCost preserves sub-microdollar charges for hard budget decisions\",\"status\":\"passed\",\"title\":\"preserves sub-microdollar charges for hard budget decisions\",\"duration\":0.3185090000000059,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — estimateCost\"],\"fullName\":\"llm-pricing — estimateCost local model costs nothing but is matched+free\",\"status\":\"passed\",\"title\":\"local model costs nothing but is matched+free\",\"duration\":0.3120700000000056,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — estimateCost\"],\"fullName\":\"llm-pricing — estimateCost unknown model → unmatched, zero cost (never guessed)\",\"status\":\"passed\",\"title\":\"unknown model → unmatched, zero cost (never guessed)\",\"duration\":0.1967960000000062,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — priceRollup\"],\"fullName\":\"llm-pricing — priceRollup sums priced rows and lists unpriced ones separately\",\"status\":\"passed\",\"title\":\"sums priced rows and lists unpriced ones separately\",\"duration\":0.5635179999999878,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — priceRollup\"],\"fullName\":\"llm-pricing — priceRollup handles an empty aggregate\",\"status\":\"passed\",\"title\":\"handles an empty aggregate\",\"duration\":0.28019199999999955,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — priceRollup\"],\"fullName\":\"llm-pricing — priceRollup threads a custom table through priceRollup\",\"status\":\"passed\",\"title\":\"threads a custom table through priceRollup\",\"duration\":0.42823400000000333,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) adds a brand-new provider rate usable by lookupRate\",\"status\":\"passed\",\"title\":\"adds a brand-new provider rate usable by lookupRate\",\"duration\":0.2263810000000035,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) normalizes a mixed-case provider key so the override applies\",\"status\":\"passed\",\"title\":\"normalizes a mixed-case provider key so the override applies\",\"duration\":0.5531620000000146,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) a user entry replaces a built-in pattern of the same match\",\"status\":\"passed\",\"title\":\"a user entry replaces a built-in pattern of the same match\",\"duration\":0.3316590000000019,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) skips malformed override entries without throwing\",\"status\":\"passed\",\"title\":\"skips malformed override entries without throwing\",\"duration\":0.2447779999999966,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) rejects negative and Infinity rates (a price can't be < 0 or unbounded)\",\"status\":\"passed\",\"title\":\"rejects negative and Infinity rates (a price can't be < 0 or unbounded)\",\"duration\":0.30723199999999906,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) returns the base table untouched when overrides are absent/invalid\",\"status\":\"passed\",\"title\":\"returns the base table untouched when overrides are absent/invalid\",\"duration\":0.17773699999997916,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793719447075,\"endTime\":1793719447086.3071,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/llm-pricing.test.js\"},{\"assertionResults\":[{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves request pricing through durable projection, budget and Eval\",\"status\":\"passed\",\"title\":\"preserves request pricing through durable projection, budget and Eval\",\"duration\":9.042761999999925,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves pricing conditions in crash-recovery settlements\",\"status\":\"passed\",\"title\":\"preserves pricing conditions in crash-recovery settlements\",\"duration\":3.6451270000000022,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-astra only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-astra only at the official endpoint\",\"duration\":2.8776020000000244,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-sol only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-sol only at the official endpoint\",\"duration\":0.888877999999977,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-luna only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-luna only at the official endpoint\",\"duration\":0.8764489999999796,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves Opus 5.5 without changing a custom gateway's assumptions\",\"status\":\"passed\",\"title\":\"resolves Opus 5.5 without changing a custom gateway's assumptions\",\"duration\":1.4445240000000013,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts prices cached tokens and long prompts at the request boundary\",\"status\":\"passed\",\"title\":\"prices cached tokens and long prompts at the request boundary\",\"duration\":0.6300980000000891,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts keeps separate request tiers when aggregating one or many sessions\",\"status\":\"passed\",\"title\":\"keeps separate request tiers when aggregating one or many sessions\",\"duration\":2.9947879999999714,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves response service tier for budget settlement\",\"status\":\"passed\",\"title\":\"preserves response service tier for budget settlement\",\"duration\":0.878152,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts uses the same prices in the legacy database, preserving unknown as NULL\",\"status\":\"passed\",\"title\":\"uses the same prices in the legacy database, preserving unknown as NULL\",\"duration\":3.7681629999999586,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793719447692,\"endTime\":1793719447718.768,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/model-release-contract.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 704,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793719448184,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-03 — new family must not inherit an older family's price\"],\"fullName\":\"verify-03 — new family must not inherit an older family's price prices a known model in an older family (positive control)\",\"status\":\"passed\",\"title\":\"prices a known model in an older family (positive control)\",\"duration\":3.0360900000000015,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new family must not inherit an older family's price\"],\"fullName\":\"verify-03 — new family must not inherit an older family's price prices a known documented new model (positive control)\",\"status\":\"passed\",\"title\":\"prices a known documented new model (positive control)\",\"duration\":0.611549999999994,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new family must not inherit an older family's price\"],\"fullName\":\"verify-03 — new family must not inherit an older family's price reports an unknown new family model as unpriced, not mis-priced\",\"status\":\"passed\",\"title\":\"reports an unknown new family model as unpriced, not mis-priced\",\"duration\":0.39902100000000473,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new family must not inherit an older family's price\"],\"fullName\":\"verify-03 — new family must not inherit an older family's price a new Opus version does not fall back to the bare opus rate\",\"status\":\"passed\",\"title\":\"a new Opus version does not fall back to the bare opus rate\",\"duration\":0.4430270000000007,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new family must not inherit an older family's price\"],\"fullName\":\"verify-03 — new family must not inherit an older family's price an explicit user override stays authoritative over the guard\",\"status\":\"passed\",\"title\":\"an explicit user override stays authoritative over the guard\",\"duration\":0.565671999999978,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new family must not inherit an older family's price\"],\"fullName\":\"verify-03 — new family must not inherit an older family's price priceRollup lists the unknown new family row as unpriced and prices only known\",\"status\":\"passed\",\"title\":\"priceRollup lists the unknown new family row as unpriced and prices only known\",\"duration\":0.8041900000000055,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793719448412,\"endTime\":1793719448417.8042,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-03.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/llm-pricing.js"
+      ],
+      "setup": false,
+      "ms": 170,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 729,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":4,\"numFailedTests\":2,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793719449070,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-03 — new family must not inherit an older family's price\"],\"fullName\":\"verify-03 — new family must not inherit an older family's price prices a known model in an older family (positive control)\",\"status\":\"passed\",\"title\":\"prices a known model in an older family (positive control)\",\"duration\":3.094628,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new family must not inherit an older family's price\"],\"fullName\":\"verify-03 — new family must not inherit an older family's price prices a known documented new model (positive control)\",\"status\":\"passed\",\"title\":\"prices a known documented new model (positive control)\",\"duration\":0.5757270000000005,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new family must not inherit an older family's price\"],\"fullName\":\"verify-03 — new family must not inherit an older family's price reports an unknown new family model as unpriced, not mis-priced\",\"status\":\"passed\",\"title\":\"reports an unknown new family model as unpriced, not mis-priced\",\"duration\":0.3745140000000049,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new family must not inherit an older family's price\"],\"fullName\":\"verify-03 — new family must not inherit an older family's price a new Opus version does not fall back to the bare opus rate\",\"status\":\"failed\",\"title\":\"a new Opus version does not fall back to the bare opus rate\",\"duration\":6.458511999999985,\"failureMessages\":[\"AssertionError: expected { in: 5, out: 25, pattern: 'opus' } to be null\\n    at /workspace/packages/cli/__tests__/verify-03.test.js:65:54\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new family must not inherit an older family's price\"],\"fullName\":\"verify-03 — new family must not inherit an older family's price an explicit user override stays authoritative over the guard\",\"status\":\"passed\",\"title\":\"an explicit user override stays authoritative over the guard\",\"duration\":0.6362979999999823,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new family must not inherit an older family's price\"],\"fullName\":\"verify-03 — new family must not inherit an older family's price priceRollup lists the unknown new family row as unpriced and prices only known\",\"status\":\"failed\",\"title\":\"priceRollup lists the unknown new family row as unpriced and prices only known\",\"duration\":1.0397749999999917,\"failureMessages\":[\"AssertionError: expected 6.25 to be close to 1.25, received difference is 5, but expected 5e-10\\n    at /workspace/packages/cli/__tests__/verify-03.test.js:103:30\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]}],\"startTime\":1793719449311,\"endTime\":1793719449323.0398,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-03.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

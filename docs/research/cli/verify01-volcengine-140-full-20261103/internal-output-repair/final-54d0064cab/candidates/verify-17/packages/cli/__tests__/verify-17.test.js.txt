@@ -1,0 +1,94 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  ProcessOwnershipJournal,
+  PROCESS_OWNERSHIP_PENDING,
+  PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,
+} from "../src/lib/process-execution-broker/process-ownership-journal.js";
+
+// Independent regression coverage for "persistent process ownership records".
+// Two acceptance invariants are exercised with focused positive/negative
+// controls:
+//   A) a damaged journal is never reported as idle (never pending === []).
+//   B) a legitimate pending record survives across fresh journal instances.
+// The source is read-only; no implementation is modified.
+
+describe.skipIf(process.platform !== "linux")(
+  "verify-17 process ownership journal invariants",
+  () => {
+    let root;
+    let directory;
+    beforeEach(() => {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-verify17-"));
+      directory = path.join(root, "authority");
+    });
+    afterEach(() => {
+      fs.rmSync(root, { recursive: true, force: true });
+    });
+
+    // Condition A positive control: a legitimately absent journal is idle.
+    it("A+ treats an absent journal as legitimately idle", () => {
+      const journal = new ProcessOwnershipJournal(directory);
+      expect(() => journal.assertAvailable()).not.toThrow();
+      expect(fs.existsSync(directory)).toBe(false);
+    });
+
+    // Condition A negative control: a damaged journal is not treated as idle.
+    it("A- refuses a corrupted journal instead of reporting idle", () => {
+      const owner = new ProcessOwnershipJournal(directory);
+      const lease = owner.prepare(randomUUID());
+      const file = path.join(directory, "journal.json");
+      lease.settle();
+      // Leave the authority directory in place but damage the journal content
+      // while preserving owner-only permissions on the existing file.
+      fs.writeFileSync(file, "{ this is not valid json");
+      const bytes = fs.readFileSync(file);
+      const peer = new ProcessOwnershipJournal(directory);
+      expect(() => peer.assertAvailable()).toThrow(
+        expect.objectContaining({
+          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,
+        }),
+      );
+      expect(() => peer.inspect()).toThrow(
+        expect.objectContaining({
+          code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,
+        }),
+      );
+      // The damaged journal is neither overwritten nor reported as empty.
+      expect(fs.readFileSync(file)).toEqual(bytes);
+    });
+
+    // Condition B negative control: a settled record is legitimately removed,
+    // so a fresh instance is not blocked and sees no pending record.
+    it("B- does not block a fresh instance once the record is settled", () => {
+      const owner = new ProcessOwnershipJournal(directory);
+      owner.prepare(randomUUID()).settle();
+      const peer = new ProcessOwnershipJournal(directory);
+      expect(() => peer.assertAvailable()).not.toThrow();
+      expect(peer.inspect().pendingExecutionIds).toEqual([]);
+    });
+
+    // Condition B positive control: a legitimate pending record is retained
+    // across a fresh instance and blocks it (never treated as idle).
+    it("B+ retains a pending record across a fresh instance", () => {
+      const owner = new ProcessOwnershipJournal(directory);
+      const id = randomUUID();
+      const lease = owner.prepare(id);
+      const file = path.join(directory, "journal.json");
+      const saved = JSON.parse(fs.readFileSync(file));
+      const peer = new ProcessOwnershipJournal(directory);
+      expect(() => peer.assertAvailable()).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }),
+      );
+      expect(peer.inspect().pendingExecutionIds).toEqual([id]);
+      // The retained record is untouched on disk.
+      expect(JSON.parse(fs.readFileSync(file))).toEqual(saved);
+      // Retention survives regardless of the originating handle's liveness.
+      lease.settle();
+      expect(() => peer.assertAvailable()).not.toThrow();
+    });
+  },
+);

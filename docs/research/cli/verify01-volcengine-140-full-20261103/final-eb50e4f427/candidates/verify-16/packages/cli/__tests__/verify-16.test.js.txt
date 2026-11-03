@@ -1,0 +1,113 @@
+"use strict";
+
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import observation from "../src/lib/settings-source-observation.cjs";
+
+const { observeSettingsSource } = observation;
+
+let root;
+
+beforeEach(() => {
+  root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-verify16-"));
+});
+
+afterEach(() => {
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+function writeSource(relative, value) {
+  const file = path.join(root, relative);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(
+    file,
+    typeof value === "object" ? JSON.stringify(value) : value,
+  );
+  return file;
+}
+
+describe("conservative failure of invalid settings sources", () => {
+  it("yields an admissible allowed observation for a well-formed source", () => {
+    const file = writeSource("settings.json", {
+      permissions: { allow: ["Read"] },
+    });
+    const observed = observeSettingsSource(file);
+    expect(observed.exists).toBe(true);
+    expect(observed.settings.permissions.allow).toEqual(["Read"]);
+    expect(observed.digest).toBeTruthy();
+    expect(observed.fileIdentity).not.toBeNull();
+  });
+
+  it("does not reuse the prior allowed result after the source is deleted", () => {
+    const file = writeSource("settings.json", {
+      permissions: { allow: ["Read"] },
+    });
+    expect(observeSettingsSource(file).settings.permissions.allow).toEqual([
+      "Read",
+    ]);
+    fs.unlinkSync(file);
+    const after = observeSettingsSource(file);
+    expect(after.exists).toBe(false);
+    expect(after.settings).toBeNull();
+    expect(after.digest).toBeNull();
+    expect(after.fileIdentity).toBeNull();
+  });
+
+  it("does not reuse the prior allowed result after the source is corrupted", () => {
+    const file = writeSource("settings.json", {
+      permissions: { allow: ["Read"] },
+    });
+    expect(observeSettingsSource(file).settings.permissions.allow).toEqual([
+      "Read",
+    ]);
+    fs.writeFileSync(file, "{ broken json");
+    expect(() => observeSettingsSource(file)).toThrow(
+      expect.objectContaining({ code: "CC_SETTINGS_SOURCE_INVALID" }),
+    );
+  });
+
+  it("does not reuse the prior allowed result across an ABA source replacement", () => {
+    const file = writeSource("settings.json", {
+      permissions: { allow: ["Read"] },
+    });
+    const first = observeSettingsSource(file);
+    expect(first.settings.permissions.allow).toEqual(["Read"]);
+
+    const interim = writeSource("interim.json", {
+      permissions: { deny: ["Read"] },
+    });
+    fs.renameSync(interim, file);
+    const second = observeSettingsSource(file);
+    expect(second.settings.permissions.deny).toEqual(["Read"]);
+    expect(second.digest).not.toBe(first.digest);
+
+    const restored = writeSource("restored.json", {
+      permissions: { allow: ["Read"] },
+    });
+    fs.renameSync(restored, file);
+    const third = observeSettingsSource(file);
+    expect(third.settings.permissions.allow).toEqual(["Read"]);
+    expect(third.digest).toBe(first.digest);
+  });
+
+  it("does not reuse the prior allowed result across deletion and recreation", () => {
+    const file = writeSource("settings.json", {
+      permissions: { allow: ["Read"] },
+    });
+    const first = observeSettingsSource(file);
+    expect(first.settings.permissions.allow).toEqual(["Read"]);
+
+    fs.unlinkSync(file);
+    const absent = observeSettingsSource(file);
+    expect(absent.exists).toBe(false);
+    expect(absent.settings).toBeNull();
+
+    // A newly recreated source is distinct and must be re-read, not pinned.
+    fs.writeFileSync(file, JSON.stringify({ permissions: { deny: ["Read"] } }));
+    const recreated = observeSettingsSource(file);
+    expect(recreated.settings.permissions.deny).toEqual(["Read"]);
+    expect(recreated.digest).not.toBe(first.digest);
+  });
+});

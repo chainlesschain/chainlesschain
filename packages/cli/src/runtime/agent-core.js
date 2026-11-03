@@ -7,6 +7,12 @@ import {
   requireUnscopedToolExecution,
 } from "../lib/formal-budget-provider-scope.js";
 import { isFormalBudgetError } from "../lib/formal-budget-errors.js";
+import {
+  FORMAL_QUALITY_ALLOWED_FILES_ENV,
+  FORMAL_QUALITY_FILE_TOOLS,
+  formalQualityAllowedFiles,
+  isFormalQualityHermeticRuntime,
+} from "../lib/formal-quality-eval-runtime.js";
 import { normalizeOllamaBaseUrl } from "../lib/ollama-base-url.js";
 import { ollamaProviderFetch } from "../lib/ollama-provider-fetch.js";
 import {
@@ -14987,7 +14993,59 @@ function permissionDecision(callId, tool, result) {
   });
 }
 
+function bindFormalQualityLoopOptions(options) {
+  // The launcher owns this binding. Apply it at the shared loop so direct
+  // gateway/IDE callers receive the same schema and execution guard as CLI.
+  // Legacy hermetic callers without a file binding retain their own boundary.
+  if (
+    !isFormalQualityHermeticRuntime(process.env) ||
+    !Object.hasOwn(process.env, FORMAL_QUALITY_ALLOWED_FILES_ENV)
+  ) {
+    return options;
+  }
+  const allowedPaths = formalQualityAllowedFiles(process.env);
+  const cwd = options.cwd || process.cwd();
+  const launcherScope = normalizeExactFileMutationScope(
+    { exact: true, worktreeRoot: canonicalRealpath(cwd), allowedPaths },
+    { cwd },
+  );
+  const callerScope = normalizeExactFileMutationScope(
+    options.fileMutationScope,
+    {
+      cwd,
+    },
+  );
+  if (
+    callerScope &&
+    callerScope.allowedPaths.some((file) => !allowedPaths.includes(file))
+  ) {
+    throw new Error("mutation scope widens the formal quality file binding");
+  }
+  if (
+    options.enabledToolNames != null &&
+    !Array.isArray(options.enabledToolNames)
+  ) {
+    throw new Error("formal quality enabled tool names must be an array");
+  }
+  return {
+    ...options,
+    fileMutationScope: callerScope || launcherScope,
+    hermeticExecution: true,
+    exactToolNames: true,
+    // Hermetic execution ignores host executors. Match that on the provider
+    // side too: a same-named host executor must not suppress the path enum
+    // for the built-in mutation tool that will actually execute.
+    externalToolExecutors: null,
+    enabledToolNames: Object.freeze(
+      (options.enabledToolNames ?? FORMAL_QUALITY_FILE_TOOLS).filter((name) =>
+        FORMAL_QUALITY_FILE_TOOLS.includes(name),
+      ),
+    ),
+  };
+}
+
 export async function* agentLoop(messages, options) {
+  options = bindFormalQualityLoopOptions(options);
   // Bind the actual task before compaction, runtime nudges or provider projection.
   // A new host-admitted user turn starts a new loop and receives its own binding.
   const currentUserTask = messages.findLast(

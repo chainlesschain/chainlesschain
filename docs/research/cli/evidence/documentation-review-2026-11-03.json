@@ -1,0 +1,44 @@
+{
+  "schema": "chainlesschain.documentation-review/v1",
+  "checkedAt": "2026-11-03T13:05:32.216Z",
+  "reviewedSourceCommit": "d62866538c1988258b93998f9705c2cdd76ee105",
+  "publicReleaseSource": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+  "cli": "0.166.140",
+  "openVsx": "0.37.176",
+  "jetbrains": {
+    "uploaded": "0.4.193",
+    "publicAvailabilityVerified": false,
+    "verifiedPublic": "0.4.192",
+    "verifiedPublicRecommendedCli": "0.166.139",
+    "marketplaceUpdateId": 1209958
+  },
+  "product": {
+    "version": "v5.0.3.144",
+    "source": "7be0ebbcd9c9e1b52151f32e7229f6868ce320c7",
+    "public": true,
+    "assetCount": 22,
+    "classifiedDownloads": 12,
+    "metadataSource": "https://api.github.com/repos/chainlesschain/chainlesschain/releases/tags/v5.0.3.144",
+    "metadataTransport": "gh api; direct build-time fetch failed, public release metadata used to refresh the cache"
+  },
+  "scope": {
+    "newPaidModelCalls": false,
+    "newPackagePublication": false,
+    "newModelAcceptanceClaimed": false,
+    "full45Workflow": 41630636517,
+    "full45ObservedStatus": "queued",
+    "finalScoreVerified": false,
+    "unrelatedWorktreeEditsExcluded": [
+      "docs/research/cli/verify01-36-plus-9-task-list.md"
+    ],
+    "historicalResults": "Original-project OpenAI 41/45; .138 2/4; Sol cross-revision repaired-project coverage 45/45; Volcengine historical automatic deliveries 34/45; no scope merging"
+  },
+  "sourceSha256": {
+    "docs/research/cli/evidence/release140-public/publication-readback.json": "0a0ffd86341bc89f6b2f3f71ddc7e70601853ad5ee85044df196a45e63fb9065",
+    "docs/research/cli/evidence/release140-public/gates.json": "28904ddaec1caef3ec0b09470affbbee3980de8cdd97dc99bba3e1ff092e4fdb",
+    "docs/research/cli/evidence/release144-public/publication.json": "5567789cb90d166ee178f39f72dd4ad7142d04bedea8c917fd4c31cd00d8a154",
+    "packages/cli/src/runtime/tool-argument-recovery.js": "749ca33229ff71c3438f8621b2ef0dc603355a6c0ab93c055bc37986731ebc7c",
+    "packages/cli/src/lib/evolution/evolution-evidence-projector.js": "bb9a0f805b682614a9c9743bd797dee2180b83d6b71e684f44f364c420f0dad5",
+    "packages/cli/src/lib/read-file-loop-guard.js": "334fd1844dec51b9640a6e6a460c3858c465911af27ef3351be3de66737a10e9"
+  }
+}

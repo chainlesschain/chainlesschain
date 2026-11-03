@@ -1,0 +1,1076 @@
+{
+  "schema": "chainlesschain.verify01-native-task-acceptance/v1",
+  "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "deliverySourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+  "group": "linux-cli",
+  "actualGenerationHost": {
+    "platform": "linux",
+    "entry": "cli",
+    "arch": "x64"
+  },
+  "acceptanceHost": "linux-docker",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+  "sourceSummaryDigest": "sha256:71f4436e6ccbb809ed458206ffc2b5efa43a92f0286bebf4f50fa01ca6951104",
+  "formalSample": false,
+  "startedAt": "2026-11-03T16:42:36.534Z",
+  "samples": [
+    {
+      "sampleId": "verify-31",
+      "taskId": "verify-31",
+      "kind": "task",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+      "originalGenerationPassed": true,
+      "generationPassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      },
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 113413,
+            "outputTokens": 9111,
+            "cacheReadInputTokens": 44032,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": 0.019045348
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "headless-1793711867896-2739",
+          "session_persistence": false,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "isolation_level": "policy-only",
+          "max_turns": 40,
+          "resumed_from": null,
+          "history_messages": 0,
+          "additional_directories": [],
+          "goal_id": null
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_26ixgmglx1ttocxy1mcdnxfr",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/image-file-snapshot.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_7fgsqah8m3geki8cjt1298xt",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-31.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_6lvo8ambtsgzt2ljqz748iwr",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/vscode-ext-image-budget.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_t6pm6q57sjaay6f0b0qw3isq",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_b3dm5rctaye5q74pytfly3e3",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-31.test.js",
+              "content": "import { describe, expect, it, vi } from \"vitest\";\nimport { readImageSnapshot } from \"../src/chat/image-file-snapshot.js\";\n\nfunction fileStat(size, overrides = {}) {\n  return {\n    isFile: () => true,\n    size,\n    dev: 1,\n    ino: 2,\n    mtimeMs: 100,\n    ctimeMs: 200,\n    ...overrides,\n  };\n}\n\n// A handle whose read() mirrors real fs semantics: copies the file bytes into\n// the caller buffer and reports bytesRead, returning 0 past the end so the\n// caller loop terminates. close() is recorded.\nfunction harness({ size, content, readImpl, statImpl, openStat }) {\n  const data = Buffer.from(content ?? \"x\".repeat(size));\n  const calls = { close: 0, open: 0, unlink: 0 };\n  const handle = {\n    stat: vi.fn(async () => (statImpl ? statImpl() : fileStat(size))),\n    read: vi.fn(\n      readImpl ??\n        (async (buf, offset, len, pos) => {\n          const n = Math.min(len, data.length - pos);\n          if (n <= 0) return { bytesRead: 0 };\n          data.copy(buf, offset, pos, pos + n);\n          return { bytesRead: n };\n        }),\n    ),\n    close: vi.fn(async () => {\n      calls.close += 1;\n    }),\n  };\n  const io = {\n    lstat: vi.fn(async () => fileStat(size)),\n    open: vi.fn(async () => {\n      calls.open += 1;\n      if (openStat) return openStat(handle);\n      return handle;\n    }),\n    unlink: vi.fn(async () => {\n      calls.unlink += 1;\n    }),\n  };\n  return { io, handle, calls, data };\n}\n\ndescribe(\"image file snapshot resource cleanup\", () => {\n  it(\"returns the snapshot and closes the handle on success\", async () => {\n    const { io, handle, calls, data } = harness({ size: 5, content: \"hello\" });\n    const snapshot = await readImageSnapshot(\"/img.png\", 5, { io });\n    expect(snapshot.equals(data)).toBe(true);\n    expect(handle.close).toHaveBeenCalledTimes(1);\n    expect(calls.open).toBe(1);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"closes the handle when a read fails mid-loop\", async () => {\n    const { io, handle, calls } = harness({\n      size: 5,\n      readImpl: async () => {\n        throw new Error(\"disk read error\");\n      },\n    });\n    await expect(readImageSnapshot(\"/img.png\", 5, { io })).rejects.toThrow(\n      \"disk read error\",\n    );\n    expect(handle.close).toHaveBeenCalledTimes(1);\n    expect(calls.open).toBe(1);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"closes the handle when the file changes after open\", async () => {\n    const { io, handle, calls } = harness({\n      size: 5,\n      statImpl: () => fileStat(5, { size: 6 }), // differs from lstat before\n    });\n    await expect(readImageSnapshot(\"/img.png\", 5, { io })).rejects.toThrow(\n      \"changed while opening\",\n    );\n    expect(handle.close).toHaveBeenCalledTimes(1);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"does not open a handle when lstat fails before open\", async () => {\n    const { io, calls } = harness({ size: 5 });\n    io.lstat.mockRejectedValueOnce(new Error(\"ENOENT\"));\n    await expect(readImageSnapshot(\"/img.png\", 5, { io })).rejects.toThrow(\n      \"ENOENT\",\n    );\n    expect(calls.open).toBe(0);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"never deletes the referenced image on success or failure\", async () => {\n    const ok = harness({ size: 3, content: \"abc\" });\n    await readImageSnapshot(\"/img.png\", 3, { io: ok.io });\n    expect(ok.calls.unlink).toBe(0);\n    expect(ok.io.unlink).not.toHaveBeenCalled();\n\n    const fail = harness({\n      size: 3,\n      readImpl: async () => {\n        throw new Error(\"read failed\");\n      },\n    });\n    await expect(readImageSnapshot(\"/img.png\", 3, { io: fail.io })).rejects.toThrow(\n      \"read failed\",\n    );\n    expect(fail.calls.unlink).toBe(0);\n    expect(fail.io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"accepts the exact expected size and rejects the first mismatch\", async () => {\n    const { io, data } = harness({ size: 4, content: \"wxyz\" });\n    const snapshot = await readImageSnapshot(\"/img.png\", 4, { io });\n    expect(snapshot.equals(data)).toBe(true);\n\n    const { io: io2, calls } = harness({ size: 4 });\n    await expect(readImageSnapshot(\"/img.png\", 5, { io: io2 })).rejects.toThrow(\n      \"missing or changed\",\n    );\n    expect(calls.open).toBe(0);\n  });\n});\n"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_opw8s7j1e1jmv9u0kkv8xoqs",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-31.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_imi9kl9m2r982cq5po13byok",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/image-file-snapshot.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_mchkbutt60wvzz1qy5tf4e21",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/vscode-ext-image-budget.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_lgug9paasb5509eixekaljty",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_2x7ka4qzzqdw4ibdh5xhcbeq",
+            "tool": "list_dir",
+            "args": {
+              "path": "packages/vscode-extension/__tests__"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_zt2zyyui23chzrslxo8aioak",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-31.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_1xzotprzcudo2ekuh30b7t6i",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-31.test.js",
+              "offset": 1,
+              "limit": 30
+            }
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_26ixgmglx1ttocxy1mcdnxfr",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-WHEyxH/37d3d07b-ebdd-4e20-b220-7dc8b8423de1/workspace/packages/vscode-extension/src/chat/image-file-snapshot.js",
+              "fileVersion": "2060:1791108223000:1793711845709.6687",
+              "readSpan": {
+                "start": 0,
+                "end": 2060,
+                "total": 2060
+              },
+              "hashed": false,
+              "content": "const fs = require(\"fs/promises\");\nconst { constants } = require(\"fs\");\n\n// Fixed allocation + one overflow byte. Reads, hash and validation consume the\n// same snapshot; no unbounded readFile after a separate header/path check.\nasync function readImageSnapshot(\n  file,\n  expectedSize = null,\n  { io = fs, signal, timeoutMs = 5000, now = () => performance.now() } = {},\n) {\n  const deadline = now() + timeoutMs;\n  const check = () => {\n    if (signal?.aborted) throw new Error(\"Image reading cancelled\");\n    if (now() >= deadline)\n      throw new Error(\"Image reading exceeded the time budget\");\n  };\n  const same = (a, b) =>\n    a.isFile() &&\n    b.isFile() &&\n    [\"size\", \"dev\", \"ino\", \"mtimeMs\", \"ctimeMs\"].every(\n      (key) => a[key] === b[key],\n    );\n  check();\n  const before = await io.lstat(file);\n  check();\n  if (\n    !before.isFile() ||\n    before.size <= 0 ||\n    before.size > 20 * 1024 * 1024 ||\n    (expectedSize !== null && before.size !== expectedSize)\n  )\n    throw new Error(\"Saved attachment is missing or changed; attach it again\");\n  const handle = await io.open(\n    file,\n    constants.O_RDONLY | (constants.O_NOFOLLOW || 0),\n  );\n  try {\n    check();\n    const opened = await handle.stat();\n    if (!same(before, opened))\n      throw new Error(\"Saved attachment changed while opening\");\n    const buffer = Buffer.alloc(opened.size + 1);\n    let count = 0;\n    while (count < buffer.length) {\n      check();\n      const { bytesRead } = await handle.read(\n        buffer,\n        count,\n        Math.min(64 * 1024, buffer.length - count),\n        count,\n      );\n      check();\n      if (!bytesRead) break;\n      count += bytesRead;\n    }\n    const after = await handle.stat();\n    const pathAfter = await io.lstat(file);\n    check();\n    if (\n      count !== opened.size ||\n      !same(opened, after) ||\n      !same(opened, pathAfter)\n    )\n      throw new Error(\"Saved attachment changed while reading\");\n    return buffer.subarray(0, count);\n  } finally {\n    await handle.close();\n  }\n}\n\nmodule.exports = { readImageSnapshot };\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711870742,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-file-snapshot.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 7,
+                "sessionId": "headless-1793711867896-2739",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-file-snapshot.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_7fgsqah8m3geki8cjt1298xt",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-WHEyxH/37d3d07b-ebdd-4e20-b220-7dc8b8423de1/workspace/packages/vscode-extension/__tests__/verify-31.test.js",
+              "fileVersion": "27:1793711845742.6687:1793711845742.6687",
+              "readSpan": {
+                "start": 0,
+                "end": 27,
+                "total": 27
+              },
+              "hashed": false,
+              "content": "// Non-answer placeholder.\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711870743,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-31.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "headless-1793711867896-2739",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-31.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_6lvo8ambtsgzt2ljqz748iwr",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-WHEyxH/37d3d07b-ebdd-4e20-b220-7dc8b8423de1/workspace/packages/cli/__tests__/unit/vscode-ext-image-budget.test.js",
+              "fileVersion": "6696:1791108223000:1793711845578.669",
+              "readSpan": {
+                "start": 0,
+                "end": 6696,
+                "total": 6696
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it, vi } from \"vitest\";\nimport fs from \"node:fs/promises\";\nimport { Window } from \"happy-dom\";\nimport {\n  checkImageEnvelope,\n  imageDimensions,\n  writeImageBatch,\n  MAX_IMAGE_BYTES,\n} from \"../../../vscode-extension/src/chat/image-attachments.js\";\nimport { buildChatHtml } from \"../../../vscode-extension/src/chat/chat-html.js\";\nimport { ChatViewProvider } from \"../../../vscode-extension/src/chat/chat-view.js\";\n\nconst png =\n  \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\";\nconst image = { data: `data:image/png;base64,${png}` };\n\ndescribe(\"bounded image intake\", () => {\n  it(\"rejects byte and aggregate limits before allocating buffers\", () => {\n    const large = {\n      data:\n        \"data:image/png;base64,\" +\n        \"A\".repeat(Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 4),\n    };\n    expect(() => checkImageEnvelope([large])).toThrow(\"20 MiB\");\n    const half = {\n      data: \"data:image/png;base64,\" + \"A\".repeat(15 * 1024 * 1024),\n    };\n    expect(() => checkImageEnvelope([half, half])).toThrow(\"total\");\n  });\n\n  it(\"rejects a pixel bomb without writing files\", async () => {\n    const bytes = Buffer.from(png, \"base64\");\n    bytes.writeUInt32BE(100000, 16);\n    bytes.writeUInt32BE(100000, 20);\n    const open = vi.fn();\n    await expect(\n      writeImageBatch(\n        [{ data: `data:image/png;base64,${bytes.toString(\"base64\")}` }],\n        { io: { open } },\n      ),\n    ).rejects.toThrow(\"40 megapixels\");\n    expect(open).not.toHaveBeenCalled();\n  });\n\n  it(\"recognizes JPEG, GIF and WebP headers without decoding pixels\", () => {\n    expect(\n      imageDimensions(Buffer.from(\"47494638396102000300\", \"hex\")),\n    ).toMatchObject({ format: \"gif\", width: 2, height: 3 });\n    expect(\n      imageDimensions(Buffer.from(\"ffd8ffc00008080003000200\", \"hex\")),\n    ).toMatchObject({ format: \"jpeg\", width: 2, height: 3 });\n    const webp = Buffer.alloc(30);\n    webp.write(\"RIFF\", 0);\n    webp.write(\"WEBPVP8X\", 8);\n    webp[24] = 1;\n    webp[27] = 2;\n    expect(imageDimensions(webp)).toMatchObject({\n      format: \"webp\",\n      width: 2,\n      height: 3,\n    });\n  });\n\n  it(\"cleans already-owned files on write failure and reports the failing image\", async () => {\n    const unlink = vi.fn(async () => {});\n    const open = vi.fn(async () => ({\n      writeFile: async () => {\n        throw Object.assign(new Error(\"full\"), { code: \"ENOSPC\" });\n      },\n      close: vi.fn(),\n    }));\n    await expect(\n      writeImageBatch([image], { io: { open, unlink } }),\n    ).rejects.toThrow(\"Image 1\");\n    expect(unlink).toHaveBeenCalledTimes(1);\n    expect(open.mock.calls[0].slice(1)).toEqual([\"wx\", 0o600]);\n  });\n\n  it(\"keeps async image sends bound to their source tab and discards reset results\", async () => {\n    const sent = [];\n    const messages = [];\n    const provider = new ChatViewProvider(\n      {\n        workspace: {\n          workspaceFolders: [],\n          getConfiguration: () => ({ get: () => undefined }),\n        },\n        window: {},\n      },\n      {\n        deps: {\n          resolveChatLlm: () => ({}),\n          createSession: (cfg) => ({\n            running: true,\n            sendEvent: (msg) => {\n              sent.push({ cfg, msg });\n              return true;\n            },\n            stop() {},\n          }),\n        },\n      },\n    );\n    provider.view = {\n      webview: {\n        postMessage(msg) {\n          messages.push(msg);\n          return Promise.resolve();\n        },\n      },\n    };\n    const postFrom = provider._postFrom.bind(provider);\n    provider._postFrom = (...args) => {\n      messages.push(args[1]);\n      return postFrom(...args);\n    };\n    let finish;\n    provider._writeImageTemps = () =>\n      new Promise((resolve) => {\n        finish = resolve;\n      });\n    const a = provider._activeConv();\n    const pending = provider._handleMessage({\n      type: \"send\",\n      text: \"A only\",\n      images: [image],\n    });\n    const b = provider._convs.create({});\n    const files = await writeImageBatch([image]);\n    finish(files);\n    await pending;\n    expect(sent, JSON.stringify(messages)).toHaveLength(1);\n    expect(a.session).toBeTruthy();\n    expect(b.session).toBeNull();\n    provider._convs.switchTo(a.id);\n    const pendingReset = provider._handleMessage({\n      type: \"send\",\n      text: \"old generation\",\n      images: [image],\n    });\n    provider._clearSessionState(a);\n    const staleFiles = await writeImageBatch([image]);\n    finish(staleFiles);\n    await pendingReset;\n    expect(sent).toHaveLength(1);\n    await expect(fs.stat(staleFiles[0])).rejects.toThrow();\n    provider.dispose();\n  });\n\n  it(\"reserves read slots before rapid drops and keeps drafts in their own tab\", async () => {\n    const window = new Window({\n      settings: {\n        enableJavaScriptEvaluation: true,\n        suppressInsecureJavaScriptEnvironmentWarning: true,\n      },\n    });\n    const posted = [];\n    const readers = [];\n    window.FileReader = class {\n      readAsDataURL() {\n        readers.push(this);\n      }\n    };\n    window.acquireVsCodeApi = () => ({\n      postMessage: (event) => posted.push(event),\n      getState: () => ({}),\n      setState() {},\n    });\n    window.document.write(\n      buildChatHtml({ nonce: \"n\", cspSource: \"vscode-resource:\" }),\n    );\n    const input = window.document.getElementById(\"input\");\n    const tabs = (id) =>\n      window.dispatchEvent(\n        new window.MessageEvent(\"message\", {\n          data: {\n            kind: \"tabs\",\n            activeId: id,\n            tabs: [\n              { id: \"a\", title: \"A\" },\n              { id: \"b\", title: \"B\" },\n            ],\n          },\n        }),\n      );\n    tabs(\"a\");\n    input.value = \"draft A\";\n    input.dispatchEvent(new window.Event(\"input\"));\n    const drop = new window.Event(\"drop\");\n    Object.defineProperty(drop, \"dataTransfer\", {\n      value: {\n        items: [{ kind: \"file\", type: \"image/png\" }],\n        files: Array.from({ length: 6 }, () => ({\n          type: \"image/png\",\n          size: 1024,\n        })),\n      },\n    });\n    input.dispatchEvent(drop);\n    expect(readers).toHaveLength(4);\n    window.document.getElementById(\"send\").click();\n    expect(posted.filter((e) => e.type === \"send\")).toHaveLength(0);\n    tabs(\"b\");\n    for (const reader of readers) {\n      reader.result = image.data;\n      reader.onload();\n    }\n    expect(window.document.getElementById(\"attach\").textContent).toBe(\"\");\n    expect(input.value).toBe(\"\");\n    tabs(\"a\");\n    expect(input.value).toBe(\"draft A\");\n    expect(\n      window.document.getElementById(\"attach\").querySelectorAll(\".chip\"),\n    ).toHaveLength(4);\n    await window.happyDOM.abort();\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711875848,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-image-budget.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 3,
+                "sessionId": "headless-1793711867896-2739",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-image-budget.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_t6pm6q57sjaay6f0b0qw3isq",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-WHEyxH/37d3d07b-ebdd-4e20-b220-7dc8b8423de1/workspace/packages/cli/__tests__/unit/vscode-ext-draft-store.test.js",
+              "fileVersion": "30577:1791108223000:1793711845577.669",
+              "readSpan": {
+                "start": 0,
+                "end": 30565,
+                "total": 30565
+              },
+              "hashed": false,
+              "content": "import { afterEach, describe, expect, it, vi } from \"vitest\";\nimport fs from \"node:fs/promises\";\nimport { tmpdir } from \"node:os\";\nimport path from \"node:path\";\nimport { randomUUID } from \"node:crypto\";\nimport { DraftStore } from \"../../../vscode-extension/src/chat/draft-store.js\";\nimport { ChatViewProvider } from \"../../../vscode-extension/src/chat/chat-view.js\";\nimport { buildChatHtml } from \"../../../vscode-extension/src/chat/chat-html.js\";\nimport { Window } from \"happy-dom\";\n\nconst roots = [];\nconst providers = [];\nafterEach(async () => {\n  for (const p of providers.splice(0)) p.dispose();\n  for (const root of roots.splice(0))\n    await fs.rm(root, { recursive: true, force: true });\n});\nasync function storage() {\n  const root = await fs.mkdtemp(path.join(tmpdir(), \"cc-draft-\"));\n  roots.push(root);\n  return root;\n}\nconst image = {\n  data: \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\",\n};\nfunction receipt(sessionId, clientMessageId) {\n  return {\n    sessionId,\n    clientMessageId,\n    inputDigest: \"a\".repeat(64),\n    eventHash: \"b\".repeat(64),\n  };\n}\n\ndescribe(\"durable composer storage\", () => {\n  it(\"commits an empty manifest before image cleanup and completes cleanup after page replacement\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"image draft\", images: [image] });\n    let current = true;\n    let cleanedImage = false;\n    const unlink = fs.unlink.bind(fs);\n    const spy = vi.spyOn(fs, \"unlink\").mockImplementation(async (file) => {\n      if (String(file).endsWith(\".png\")) {\n        await expect(\n          fs.stat(path.join(root, key, \"draft.json\")),\n        ).rejects.toMatchObject({ code: \"ENOENT\" });\n        current = false;\n        cleanedImage = true;\n      }\n      return unlink(file);\n    });\n    try {\n      await store.save(\n        key,\n        { text: \"\", images: [] },\n        {\n          assertCurrent: () => {\n            if (!current) throw new Error(\"inactive page\");\n          },\n        },\n      );\n      expect(cleanedImage).toBe(true);\n      expect(await store.list()).toEqual([]);\n      await expect(fs.stat(path.join(root, key))).rejects.toMatchObject({\n        code: \"ENOENT\",\n      });\n    } finally {\n      spy.mockRestore();\n    }\n  });\n  it(\"rechecks page lifetime before rename and removes an abandoned temporary manifest\", async () => {\n    const root = await storage();\n    const store = new DraftStore(root);\n    const key = randomUUID();\n    await store.save(key, { text: \"original\" });\n    const before = await fs.readFile(path.join(root, key, \"draft.json\"));\n    let release;\n    let paused = false;\n    let current = true;\n    const gate = new Promise((done) => {\n      release = done;\n    });\n    const quota = store._quota.bind(store);\n    const spy = vi\n      .spyOn(store, \"_quota\")\n      .mockImplementation(async (...args) => {\n        await quota(...args);\n        paused = true;\n        await gate;\n      });\n    const saving = store.save(\n      key,\n      { text: \"obsolete\" },\n      {\n        assertCurrent: () => {\n          if (!current) throw new Error(\"inactive page\");\n        },\n      },\n    );\n    const rejection = expect(saving).rejects.toThrow(\"inactive page\");\n    try {\n      await until(() => paused);\n      current = false;\n      release();\n      await rejection;\n      expect(await fs.readFile(path.join(root, key, \"draft.json\"))).toEqual(\n        before,\n      );\n      expect(await fs.readdir(path.join(root, key))).toEqual([\"draft.json\"]);\n    } finally {\n      release();\n      spy.mockRestore();\n      await saving.catch(() => {});\n    }\n  });\n  it(\"recovers text and image snapshots in a fresh store, with no image data in metadata\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"draft 中文\", images: [image] });\n    await store.save(key, { text: \"edited 中文\" });\n    const restored = await new DraftStore(root).view(key);\n    expect(restored.composer.text).toBe(\"edited 中文\");\n    expect(restored.composer.images[0].data).toBe(image.data);\n    const metadata = await fs.readFile(\n      path.join(root, key, \"draft.json\"),\n      \"utf8\",\n    );\n    expect(metadata).not.toContain(\"base64\");\n  });\n  it(\"saves a submitted snapshot before clearing the composer, and retains unknown sends\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"old\", images: [image] });\n    const prepared = await store.prepare(key, \"session-1\", \"input-1\", {\n      text: \"submitted\",\n      images: [image],\n    });\n    expect((await store.view(key)).composer.text).toBe(\"\");\n    await store.settle(key, \"input-1\", \"unknown\");\n    expect(\n      (await new DraftStore(root).recover(key, \"input-1\")).images[0].data,\n    ).toBe(image.data);\n    await expect(\n      store.settle(key, \"input-1\", \"accepted\", receipt(\"other\", \"input-1\")),\n    ).rejects.toThrow(\"match\");\n    await store.settle(\n      key,\n      \"input-1\",\n      \"accepted\",\n      receipt(\"session-1\", \"input-1\"),\n    );\n    await expect(store.recover(key, \"input-1\")).rejects.toThrow(\"Accepted\");\n    await expect(fs.stat(prepared.paths[0])).rejects.toMatchObject({\n      code: \"ENOENT\",\n    });\n  });\n  it(\"does not silently omit missing attachments or accept a tampered snapshot\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"keep text\", images: [image] });\n    const record = JSON.parse(\n      await fs.readFile(path.join(root, key, \"draft.json\"), \"utf8\"),\n    );\n    await fs.unlink(path.join(root, key, record.composer.images[0].file));\n    expect((await store.view(key)).composer).toMatchObject({\n      text: \"keep text\",\n      missingImages: true,\n    });\n    record.composer.images[0].file = \"../../secret.png\";\n    await fs.writeFile(\n      path.join(root, key, \"draft.json\"),\n      JSON.stringify(record),\n    );\n    await expect(store.view(key)).rejects.toThrow(\"Invalid draft\");\n  });\n  it(\"retains the old draft and cleans new attachments when publishing fails\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"original\", images: [image] });\n    const before = (await fs.readdir(path.join(root, key))).sort();\n    const rename = vi\n      .spyOn(fs, \"rename\")\n      .mockRejectedValueOnce(new Error(\"ENOSPC\"));\n    try {\n      await expect(\n        store.save(key, { text: \"new\", images: [image] }),\n      ).rejects.toThrow(\"ENOSPC\");\n    } finally {\n      rename.mockRestore();\n    }\n    expect((await store.view(key)).composer.text).toBe(\"original\");\n    expect((await fs.readdir(path.join(root, key))).sort()).toEqual(before);\n  });\n  it(\"bounds pending records and does not evict unknown inputs\", async () => {\n    const store = new DraftStore(await storage());\n    const key = randomUUID();\n    for (let i = 0; i < 8; i++)\n      await store.prepare(key, \"session\", `input-${i}`, {\n        text: `${i}`,\n        images: [],\n      });\n    await expect(\n      store.prepare(key, \"session\", \"input-9\", { text: \"9\" }),\n    ).rejects.toThrow(\"eight\");\n    expect((await store.view(key)).pending).toHaveLength(8);\n    await expect(store.save(key, { text: \"a\".repeat(100001) })).rejects.toThrow(\n      \"100,000\",\n    );\n  });\n\n  it(\"serializes rapid edits without rewriting attachment snapshots\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"first\", images: [image] });\n    const before = (await fs.readdir(path.join(root, key))).filter((n) =>\n      n.endsWith(\".png\"),\n    );\n    await Promise.all(\n      Array.from({ length: 20 }, (_, i) =>\n        store.save(key, { text: `edit-${i}` }),\n      ),\n    );\n    expect((await store.view(key)).composer.text).toBe(\"edit-19\");\n    expect(\n      (await fs.readdir(path.join(root, key))).filter((n) =>\n        n.endsWith(\".png\"),\n      ),\n    ).toEqual(before);\n    await store.save(key, { text: \"\", images: [] });\n    expect(await store.list()).toEqual([]);\n  });\n});\n\nfunction host(root, state = new Map(), deps = {}) {\n  const messages = [];\n  const sessions = [];\n  const provider = new ChatViewProvider(\n    {\n      workspace: {\n        workspaceFolders: [],\n        getConfiguration: () => ({ get: () => undefined }),\n      },\n      commands: { executeCommand() {} },\n      window: {},\n    },\n    {\n      storagePath: root,\n      state: {\n        get: (k) => state.get(k),\n        update: async (k, v) => state.set(k, v),\n      },\n      deps: {\n        resolveChatLlm: () => ({}),\n        loadTranscriptPage: async () => {\n          throw new Error(\"no transcript\");\n        },\n        createSession: (cfg) => {\n          const session = {\n            cfg,\n            running: true,\n            sent: [],\n            sendEvent: vi.fn((e) => {\n              session.sent.push(e);\n              return true;\n            }),\n            stop() {\n              this.running = false;\n            },\n          };\n          sessions.push(session);\n          return session;\n        },\n        ...deps,\n      },\n    },\n  );\n  providers.push(provider);\n  provider.view = {\n    webview: {\n      postMessage: (m) => {\n        messages.push(m);\n        return Promise.resolve(true);\n      },\n    },\n  };\n  provider._activeConv();\n  provider._postTabs();\n  return { provider, sessions, messages, state };\n}\nasync function until(condition) {\n  await vi.waitFor(() => expect(condition()).toBeTruthy(), {\n    timeout: 4000,\n    interval: 5,\n  });\n}\nfunction init(h, version = 1) {\n  const conv = h.provider._activeConv();\n  h.sessions.at(-1).cfg.onEvent({\n    type: \"system\",\n    subtype: \"init\",\n    session_id: conv.sessionId,\n    input_receipts: { version },\n  });\n}\n\ndescribe(\"host durable input lifecycle\", () => {\n  it(\"rejects a replaced page's saves and drops delayed image writes before publication\", async () => {\n    const h = host(await storage());\n    h.provider.vscode.l10n = { t: (value) => value };\n    h.provider._buildChatHtml(h.provider.view);\n    h.provider._handleMessage({\n      type: \"ready\",\n      webviewNonce: h.provider._draftWebviewNonce,\n      webviewInstance: randomUUID(),\n    });\n    const oldInstance = h.provider._draftWebviewInstance;\n    const conv = h.provider._activeConv();\n    const key = h.provider._draftKey(conv);\n    const request = {\n      type: \"draftUpdate\",\n      convId: conv.id,\n      draftKey: key,\n      webviewInstance: oldInstance,\n      revision: 5,\n      text: \"old page\",\n      images: [image],\n    };\n    const store = h.provider._draftStore;\n    const original = store._images.bind(store);\n    let release;\n    let paused = false;\n    const gate = new Promise((done) => {\n      release = done;\n    });\n    const spy = vi\n      .spyOn(store, \"_images\")\n      .mockImplementation(async (...args) => {\n        const metadata = await original(...args);\n        paused = true;\n        await gate;\n        return metadata;\n      });\n    const oldSave = h.provider._handleMessage(request);\n    try {\n      await until(() => paused);\n      // Reload Webviews executes the same cached HTML, retaining its nonce.\n      h.provider._handleMessage({\n        type: \"ready\",\n        webviewNonce: h.provider._draftWebviewNonce,\n        webviewInstance: randomUUID(),\n      });\n      const currentInstance = h.provider._draftWebviewInstance;\n      expect(currentInstance).not.toBe(oldInstance);\n      expect(\n        h.provider._handleMessage({\n          type: \"protocol\",\n          webviewNonce: h.provider._draftWebviewNonce,\n          webviewInstance: oldInstance,\n        }),\n      ).toBe(false);\n      expect(h.provider._draftWebviewInstance).toBe(currentInstance);\n      const currentSave = h.provider._handleMessage({\n        ...request,\n        webviewInstance: currentInstance,\n        revision: 1,\n        text: \"new page\",\n        images: [],\n      });\n      release();\n      await Promise.all([oldSave, currentSave]);\n      await h.provider._handleMessage(request);\n      expect((await store.view(key)).composer).toEqual({\n        text: \"new page\",\n        images: [],\n      });\n      expect(\n        (await fs.readdir(path.join(store.root, key))).filter((name) =>\n          name.endsWith(\".png\"),\n        ),\n      ).toEqual([]);\n      expect(h.messages.filter((m) => m.kind === \"draftSaved\")).toEqual([\n        expect.objectContaining({\n          webviewInstance: currentInstance,\n          revision: 1,\n        }),\n      ]);\n      expect(\n        h.messages\n          .filter((m) => m.kind === \"draftSaveError\")\n          .every((m) => m.webviewInstance === oldInstance),\n      ).toBe(true);\n    } finally {\n      release();\n      spy.mockRestore();\n      await oldSave;\n    }\n  });\n  it.each([\"prepare\", \"init\", \"unknown\", \"session-stop\"])(\n    \"cancels an undispatched saved input during %s without losing its recovery record\",\n    async (stage) => {\n      const h = host(await storage());\n      const conv = h.provider._activeConv();\n      let release;\n      let paused = false;\n      const gate = new Promise((done) => {\n        release = done;\n      });\n      const method = stage === \"unknown\" ? \"settle\" : \"prepare\";\n      const original = h.provider._draftStore[method].bind(\n        h.provider._draftStore,\n      );\n      const spy = vi\n        .spyOn(h.provider._draftStore, method)\n        .mockImplementation(async (...args) => {\n          const result = await original(...args);\n          if (\n            stage !== \"init\" &&\n            (method === \"prepare\" || args[2] === \"unknown\")\n          ) {\n            paused = true;\n            await gate;\n          }\n          return result;\n        });\n      const sending = h.provider._handleMessage({\n        type: \"send\",\n        text: \"cancelled question\",\n        clientMessageId: \"cancelled-1\",\n      });\n      try {\n        if (stage === \"init\" || stage === \"unknown\") {\n          await until(() => h.sessions.length === 1);\n          if (stage === \"unknown\") init(h);\n          else await until(() => conv.inputInitWaiters?.size === 1);\n        }\n        if (stage !== \"init\") await until(() => paused);\n        if (stage === \"session-stop\") h.provider._stopSession(conv);\n        else expect(h.provider._interruptConversation(conv)).toBe(true);\n        release();\n        expect(await sending).toBe(false);\n        expect(\n          h.sessions.flatMap((s) => s.sent).filter((e) => e.type === \"user\"),\n        ).toEqual([]);\n        expect(\n          (await h.provider._draftStore.view(conv.draftKey)).pending[0],\n        ).toMatchObject({\n          id: \"cancelled-1\",\n          status: \"rejected\",\n          text: \"cancelled question\",\n        });\n        expect(\n          h.messages.find((m) => m.kind === \"submissionFailed\").text,\n        ).toContain(\"stopped\");\n      } finally {\n        release();\n        await sending;\n        spy.mockRestore();\n      }\n    },\n  );\n\n  it(\"does not start the agent when the submission cannot be saved\", async () => {\n    const h = host(await storage());\n    const conv = h.provider._activeConv();\n    await h.provider._draftStore.save(conv.draftKey, {\n      text: \"retained draft\",\n    });\n    const prepare = vi\n      .spyOn(h.provider._draftStore, \"prepare\")\n      .mockRejectedValueOnce(new Error(\"disk full\"));\n    await h.provider._handleMessage({\n      type: \"send\",\n      text: \"retained draft\",\n      clientMessageId: \"input-1\",\n    });\n    expect(h.sessions).toEqual([]);\n    expect(\n      (await h.provider._draftStore.view(conv.draftKey)).composer.text,\n    ).toBe(\"retained draft\");\n    expect(h.messages.find((m) => m.kind === \"submissionFailed\")).toMatchObject(\n      { stored: false },\n    );\n    prepare.mockRestore();\n  });\n  it(\"waits for init, persists UNKNOWN before writing and settles only a correlated ACK\", async () => {\n    const h = host(await storage());\n    const conv = h.provider._activeConv();\n    const sending = h.provider._handleMessage({\n      type: \"send\",\n      text: \"question\",\n      clientMessageId: \"input-1\",\n    });\n    await until(() => h.sessions.length === 1);\n    expect(h.sessions[0].sent).toEqual([]);\n    init(h);\n    await sending;\n    expect(h.sessions[0].sent[0]).toMatchObject({\n      type: \"user\",\n      client_message_id: \"input-1\",\n      text: \"question\",\n    });\n    expect(\n      (await h.provider._draftStore.view(conv.draftKey)).pending[0].status,\n    ).toBe(\"unknown\");\n    expect(h.messages.some((m) => m.kind === \"sendAccepted\")).toBe(false);\n    h.sessions[0].cfg.onEvent({\n      type: \"system\",\n      subtype: \"input_accepted\",\n      session_id: \"wrong\",\n      client_message_id: \"input-1\",\n      receipt: receipt(\"wrong\", \"input-1\"),\n    });\n    expect(\n      (await h.provider._draftStore.view(conv.draftKey)).pending[0].status,\n    ).toBe(\"unknown\");\n    h.sessions[0].cfg.onEvent({\n      type: \"system\",\n      subtype: \"input_accepted\",\n      session_id: conv.sessionId,\n      client_message_id: \"input-1\",\n      receipt: receipt(conv.sessionId, \"input-1\"),\n    });\n    expect(\n      (await h.provider._draftStore.view(conv.draftKey)).pending[0].status,\n    ).toBe(\"accepted\");\n  });\n  it(\"reloads a stable draft identity and reconciles read-only without starting a session\", async () => {\n    const root = await storage();\n    const h = host(root);\n    const conv = h.provider._activeConv();\n    const sending = h.provider._handleMessage({\n      type: \"send\",\n      text: \"lost ACK\",\n      clientMessageId: \"input-1\",\n    });\n    await until(() => h.sessions.length);\n    init(h);\n    await sending;\n    await h.provider._draftStore.save(conv.draftKey, {\n      text: \"next draft\",\n      images: [image],\n    });\n    h.provider.dispose();\n    let finishLookup;\n    const lookup = vi.fn(\n      (sid, id) =>\n        new Promise((resolve) => {\n          finishLookup = () =>\n            resolve({ accepted: true, receipt: receipt(sid, id) });\n        }),\n    );\n    const restored = host(root, h.state, { readInputReceipt: lookup });\n    const next = restored.provider._activeConv();\n    expect(next.draftKey).toBe(conv.draftKey);\n    const recovering = restored.provider._restoreDraft(next, {\n      reconcile: true,\n    });\n    await until(() => finishLookup);\n    expect(restored.sessions).toEqual([]);\n    expect(lookup).toHaveBeenCalledWith(conv.sessionId, \"input-1\");\n    const snapshot = restored.messages.find((m) => m.kind === \"draftSnapshot\");\n    expect(snapshot.composer.text).toBe(\"next draft\");\n    expect(snapshot.composer.images[0].data).toBe(image.data);\n    expect(snapshot.pending[0].status).toBe(\"unknown\");\n    finishLookup();\n    await recovering;\n    expect(\n      restored.messages.filter((m) => m.kind === \"draftSnapshot\").at(-1)\n        .pending[0].status,\n    ).toBe(\"accepted\");\n  });\n  it(\"keeps legacy CLI and failed pipe writes unknown and recoverable\", async () => {\n    const h = host(await storage());\n    const conv = h.provider._activeConv();\n    const sending = h.provider._handleMessage({\n      type: \"send\",\n      text: \"retain me\",\n      clientMessageId: \"input-1\",\n    });\n    await until(() => h.sessions.length);\n    h.sessions[0].sendEvent.mockReturnValue(false);\n    init(h, 0);\n    await sending;\n    expect(\n      (await h.provider._draftStore.view(conv.draftKey)).pending[0].status,\n    ).toBe(\"unknown\");\n    expect(\n      (await h.provider._draftStore.recover(conv.draftKey, \"input-1\")).text,\n    ).toBe(\"retain me\");\n  });\n  it(\"does not dispatch a saved input after its conversation is reset\", async () => {\n    const h = host(await storage());\n    const conv = h.provider._activeConv();\n    const sending = h.provider._handleMessage({\n      type: \"send\",\n      text: \"old\",\n      clientMessageId: \"input-1\",\n    });\n    await until(() => h.sessions.length);\n    const oldKey = conv.draftKey;\n    h.provider._handleMessage({ type: \"new\" });\n    await sending;\n    expect(h.sessions[0].sent).toEqual([]);\n    expect(conv.draftKey).not.toBe(oldKey);\n    expect((await h.provider._draftStore.view(oldKey)).pending[0].status).toBe(\n      \"rejected\",\n    );\n  });\n\n  it(\"keeps closed drafts discoverable and reopens the same draft identity\", async () => {\n    const h = host(await storage());\n    const conv = h.provider._activeConv();\n    await h.provider._draftStore.save(conv.draftKey, { text: \"closed draft\" });\n    h.provider._webviewReady = true;\n    h.provider._handleMessage({ type: \"closeTab\", id: conv.id });\n    expect((await h.provider._draftStore.list()).map((d) => d.label)).toContain(\n      \"closed draft\",\n    );\n    h.provider.reopenClosedSession();\n    expect(h.provider._activeConv().draftKey).toBe(conv.draftKey);\n    expect(h.sessions).toEqual([]);\n  });\n});\n\nfunction webview(backup, { withoutRandomUUID = false } = {}) {\n  const window = new Window({\n    settings: {\n      enableJavaScriptEvaluation: true,\n      disableCSSFileLoading: true,\n      disableJavaScriptFileLoading: true,\n    },\n  });\n  const posted = [];\n  // This harness tests ACK/page routing; actual codecs run in the separate\n  // Chromium journey. Keep completion explicit so ACK alone cannot show img.\n  const decoders = [];\n  window.HTMLCanvasElement.prototype.getContext = () => ({\n    clearRect() {},\n    drawImage() {},\n  });\n  window.Worker = class {\n    constructor() {\n      decoders.push(this);\n    }\n    postMessage(images) {\n      this.images = images;\n    }\n    terminate() {\n      this.terminated = true;\n    }\n  };\n  if (withoutRandomUUID)\n    Object.defineProperty(window, \"crypto\", {\n      value: {\n        getRandomValues: window.crypto.getRandomValues.bind(window.crypto),\n      },\n    });\n  let state = backup || {};\n  window.acquireVsCodeApi = () => ({\n    postMessage: (m) => posted.push(m),\n    getState: () => state,\n    setState: (s) => {\n      state = s;\n    },\n  });\n  window.document.write(\n    buildChatHtml({ nonce: \"n\", cspSource: \"vscode-resource:\" }),\n  );\n  const emit = (data) =>\n    window.dispatchEvent(new window.MessageEvent(\"message\", { data }));\n  const keys = {\n    a: \"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\",\n    b: \"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb\",\n  };\n  const tabs = (id) =>\n    emit({\n      kind: \"tabs\",\n      activeId: id,\n      tabs: Object.keys(keys).map((id) => ({\n        id,\n        title: id,\n        draftKey: keys[id],\n        draftStorage: true,\n      })),\n    });\n  return {\n    window,\n    posted,\n    decoders,\n    emit,\n    keys,\n    tabs,\n    input: window.document.getElementById(\"input\"),\n    state: () => state,\n    page: posted.find((m) => m.type === \"ready\"),\n  };\n}\ndescribe(\"composer recovery in the generated Webview\", () => {\n  it(\"initializes the page and draft handshake without the secure-context randomUUID API\", async () => {\n    const ui = webview(undefined, { withoutRandomUUID: true });\n    try {\n      expect(ui.page.webviewInstance).toMatch(\n        /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/,\n      );\n      ui.emit({ kind: \"thinking\", text: \"reasoning is visible\" });\n      expect(\n        ui.window.document.querySelector(\"details.thinking\").textContent,\n      ).toContain(\"reasoning is visible\");\n    } finally {\n      await ui.window.happyDOM.abort();\n    }\n  });\n  it(\"binds recovery actions to the current page and keeps their errors visible\", async () => {\n    const ui = webview();\n    try {\n      ui.tabs(\"a\");\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        pending: [{ id: \"input-1\", status: \"unknown\", text: \"saved input\" }],\n      });\n      for (const [label, type] of [\n        [\"Check acceptance\", \"draftReconcile\"],\n        [\"Copy to composer\", \"draftRecover\"],\n        [\"Discard saved input\", \"draftDiscard\"],\n      ]) {\n        [...ui.window.document.querySelectorAll(\"button\")]\n          .find((button) => button.textContent === label)\n          .click();\n        const request = ui.posted.find((m) => m.type === type);\n        expect(request).toMatchObject({\n          webviewInstance: ui.page.webviewInstance,\n          convId: \"a\",\n          draftKey: ui.keys.a,\n        });\n        ui.emit({ ...request, kind: \"draftSaveError\", text: type + \" failed\" });\n        expect(ui.window.document.body.textContent).toContain(type + \" failed\");\n      }\n    } finally {\n      await ui.window.happyDOM.abort();\n    }\n  });\n  it(\"ignores previous-page image ACKs while accepting the current page's background ACK\", async () => {\n    const oldUi = webview();\n    const ui = webview();\n    try {\n      expect(ui.page.webviewNonce).toBe(oldUi.page.webviewNonce);\n      expect(ui.page.webviewInstance).not.toBe(oldUi.page.webviewInstance);\n      ui.tabs(\"a\");\n      ui.window.FileReader = class {\n        readAsDataURL() {\n          this.result = image.data;\n          this.onload();\n        }\n      };\n      const paste = new ui.window.Event(\"paste\", { cancelable: true });\n      Object.defineProperty(paste, \"clipboardData\", {\n        value: {\n          items: [\n            {\n              type: \"image/png\",\n              getAsFile: () => ({ type: \"image/png\", size: 70 }),\n            },\n          ],\n        },\n      });\n      ui.input.dispatchEvent(paste);\n      await until(() => ui.posted.some((m) => m.type === \"draftUpdate\"));\n      const request = ui.posted.find((m) => m.type === \"draftUpdate\");\n      expect(request.revision).toBe(1);\n      expect(request.webviewInstance).toBe(ui.page.webviewInstance);\n      const attachments = ui.window.document.getElementById(\"attach\");\n      const before = ui.window.document.body.textContent;\n      ui.emit({\n        ...request,\n        kind: \"draftSaved\",\n        webviewInstance: oldUi.page.webviewInstance,\n        revision: 5,\n        imagesChanged: true,\n      });\n      ui.emit({\n        ...request,\n        kind: \"draftSaveError\",\n        webviewInstance: oldUi.page.webviewInstance,\n        text: \"old error\",\n      });\n      expect(attachments.querySelectorAll(\"canvas\")).toHaveLength(0);\n      expect(ui.window.document.body.textContent).toBe(before);\n      ui.tabs(\"b\");\n      ui.emit({ ...request, kind: \"draftSaved\", imagesChanged: true });\n      ui.tabs(\"a\");\n      expect(attachments.querySelectorAll(\"canvas\")).toHaveLength(0);\n      expect(ui.decoders).toHaveLength(1);\n      ui.decoders[0].onmessage({\n        data: {\n          results: [\n            {\n              decodedWidth: 1,\n              decodedHeight: 1,\n              frames: 1,\n              thumbnails: [{ bitmap: { close() {} }, duration: 100 }],\n            },\n          ],\n        },\n      });\n      await until(() => attachments.querySelectorAll(\"canvas\").length === 1);\n      expect(attachments.querySelectorAll(\"canvas\")).toHaveLength(1);\n      expect(attachments.querySelectorAll(\"img\")).toHaveLength(0);\n      expect(ui.window.document.body.textContent).toContain(\n        \"Draft saved on this device\",\n      );\n      expect(ui.posted.some((m) => m.type === \"send\")).toBe(false);\n    } finally {\n      await ui.window.happyDOM.abort();\n      await oldUi.window.happyDOM.abort();\n    }\n  });\n  it(\"restores saved text and images, but never overwrites newer local edits\", async () => {\n    const ui = webview();\n    try {\n      ui.tabs(\"a\");\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        composer: { text: \"saved\", images: [image] },\n        pending: [],\n      });\n      expect(ui.input.value).toBe(\"saved\");\n      expect(\n        ui.window.document.getElementById(\"attach\").querySelectorAll(\".chip\"),\n      ).toHaveLength(1);\n      ui.input.value = \"new typing\";\n      ui.input.dispatchEvent(new ui.window.Event(\"input\"));\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        composer: { text: \"stale\", images: [] },\n        pending: [],\n      });\n      expect(ui.input.value).toBe(\"new typing\");\n      expect(ui.state().draftTextBackup.text).toBe(\"new typing\");\n    } finally {\n      await ui.window.happyDOM.abort();\n    }\n  });\n  it(\"keeps input until a matching saved-submission ACK, including background ACKs\", async () => {\n    const ui = webview();\n    try {\n      ui.tabs(\"a\");\n      ui.input.value = \"A question\";\n      ui.input.dispatchEvent(new ui.window.Event(\"input\"));\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        composer: { text: \"\", images: [] },\n        pending: [],\n      });\n      ui.window.document.getElementById(\"send\").click();\n      const send = ui.posted.find((m) => m.type === \"send\");\n      expect(send.clientMessageId).toBeTruthy();\n      expect(ui.input.value).toBe(\"A question\");\n      ui.tabs(\"b\");\n      ui.input.value = \"B draft\";\n      ui.input.dispatchEvent(new ui.window.Event(\"input\"));\n      ui.emit({\n        kind: \"submissionStored\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        clientMessageId: send.clientMessageId,\n      });\n      expect(ui.input.value).toBe(\"B draft\");\n      ui.tabs(\"a\");\n      expect(ui.input.value).toBe(\"\");\n    } finally {\n      await ui.window.happyDOM.abort();\n    }\n  });\n  it(\"restores the short text backup across Webview reload and blocks missing images\", async () => {\n    const key = \"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\";\n    const ui = webview({\n      draftTextBackup: { key, text: \"last keystroke\", pendingId: null },\n    });\n    try {\n      ui.tabs(\"a\");\n      expect(ui.input.value).toBe(\"last keystroke\");\n      ui.window.document.getElementById(\"send\").click();\n      expect(ui.posted.filter((m) => m.type === \"send\")).toEqual([]);\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        composer: { text: \"older text\", images: [image] },\n        pending: [],\n      });\n      expect(ui.input.value).toBe(\"last keystroke\");\n      expect(\n        ui.window.document.getElementById(\"attach\").querySelectorAll(\".chip\"),\n      ).toHaveLength(1);\n      ui.tabs(\"b\");\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"b\",\n        draftKey: ui.keys.b,\n        composer: { text: \"image draft\", images: [], missingImages: true },\n        pending: [],\n      });\n      ui.window.document.getElementById(\"send\").click();\n      expect(ui.posted.filter((m) => m.type === \"send\")).toEqual([]);\n    } finally {\n      await ui.window.happyDOM.abort();\n    }\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711875848,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "headless-1793711867896-2739",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_b3dm5rctaye5q74pytfly3e3",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "/tmp/cc-native-WHEyxH/37d3d07b-ebdd-4e20-b220-7dc8b8423de1/workspace/packages/vscode-extension/__tests__/verify-31.test.js",
+              "size": 4230,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711912198,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-31.test.js",
+                    "content": "import { describe, expect, it, vi } from \"vitest\";\nimport { readImageSnapshot } from \"../src/chat/image-file-snapshot.js\";\n\nfunction fileStat(size, overrides = {}) {\n  return {\n    isFile: () => true,\n    size,\n    dev: 1,\n    ino: 2,\n    mtimeMs: 100,\n    ctimeMs: 200,\n    ...overrides,\n  };\n}\n\n// A handle whose read() mirrors real fs semantics: copies the file bytes into\n// the caller buffer and reports bytesRead, returning 0 past the end so the\n// caller loop terminates. close() is recorded.\nfunction harness({ size, content, readImpl, statImpl, openStat }) {\n  const data = Buffer.from(content ?? \"x\".repeat(size));\n  const calls = { close: 0, open: 0, unlink: 0 };\n  const handle = {\n    stat: vi.fn(async () => (statImpl ? statImpl() : fileStat(size))),\n    read: vi.fn(\n      readImpl ??\n        (async (buf, offset, len, pos) => {\n          const n = Math.min(len, data.length - pos);\n          if (n <= 0) return { bytesRead: 0 };\n          data.copy(buf, offset, pos, pos + n);\n          return { bytesRead: n };\n        }),\n    ),\n    close: vi.fn(async () => {\n      calls.close += 1;\n    }),\n  };\n  const io = {\n    lstat: vi.fn(async () => fileStat(size)),\n    open: vi.fn(async () => {\n      calls.open += 1;\n      if (openStat) return openStat(handle);\n      return handle;\n    }),\n    unlink: vi.fn(async () => {\n      calls.unlink += 1;\n    }),\n  };\n  return { io, handle, calls, data };\n}\n\ndescribe(\"image file snapshot resource cleanup\", () => {\n  it(\"returns the snapshot and closes the handle on success\", async () => {\n    const { io, handle, calls, data } = harness({ size: 5, content: \"hello\" });\n    const snapshot = await readImageSnapshot(\"/img.png\", 5, { io });\n    expect(snapshot.equals(data)).toBe(true);\n    expect(handle.close).toHaveBeenCalledTimes(1);\n    expect(calls.open).toBe(1);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"closes the handle when a read fails mid-loop\", async () => {\n    const { io, handle, calls } = harness({\n      size: 5,\n      readImpl: async () => {\n        throw new Error(\"disk read error\");\n      },\n    });\n    await expect(readImageSnapshot(\"/img.png\", 5, { io })).rejects.toThrow(\n      \"disk read error\",\n    );\n    expect(handle.close).toHaveBeenCalledTimes(1);\n    expect(calls.open).toBe(1);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"closes the handle when the file changes after open\", async () => {\n    const { io, handle, calls } = harness({\n      size: 5,\n      statImpl: () => fileStat(5, { size: 6 }), // differs from lstat before\n    });\n    await expect(readImageSnapshot(\"/img.png\", 5, { io })).rejects.toThrow(\n      \"changed while opening\",\n    );\n    expect(handle.close).toHaveBeenCalledTimes(1);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"does not open a handle when lstat fails before open\", async () => {\n    const { io, calls } = harness({ size: 5 });\n    io.lstat.mockRejectedValueOnce(new Error(\"ENOENT\"));\n    await expect(readImageSnapshot(\"/img.png\", 5, { io })).rejects.toThrow(\n      \"ENOENT\",\n    );\n    expect(calls.open).toBe(0);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"never deletes the referenced image on success or failure\", async () => {\n    const ok = harness({ size: 3, content: \"abc\" });\n    await readImageSnapshot(\"/img.png\", 3, { io: ok.io });\n    expect(ok.calls.unlink).toBe(0);\n    expect(ok.io.unlink).not.toHaveBeenCalled();\n\n    const fail = harness({\n      size: 3,\n      readImpl: async () => {\n        throw new Error(\"read failed\");\n      },\n    });\n    await expect(readImageSnapshot(\"/img.png\", 3, { io: fail.io })).rejects.toThrow(\n      \"read failed\",\n    );\n    expect(fail.calls.unlink).toBe(0);\n    expect(fail.io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"accepts the exact expected size and rejects the first mismatch\", async () => {\n    const { io, data } = harness({ size: 4, content: \"wxyz\" });\n    const snapshot = await readImageSnapshot(\"/img.png\", 4, { io });\n    expect(snapshot.equals(data)).toBe(true);\n\n    const { io: io2, calls } = harness({ size: 4 });\n    await expect(readImageSnapshot(\"/img.png\", 5, { io: io2 })).rejects.toThrow(\n      \"missing or changed\",\n    );\n    expect(calls.open).toBe(0);\n  });\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 23,
+                "sessionId": "headless-1793711867896-2739",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-31.test.js",
+                    "content": "import { describe, expect, it, vi } from \"vitest\";\nimport { readImageSnapshot } from \"../src/chat/image-file-snapshot.js\";\n\nfunction fileStat(size, overrides = {}) {\n  return {\n    isFile: () => true,\n    size,\n    dev: 1,\n    ino: 2,\n    mtimeMs: 100,\n    ctimeMs: 200,\n    ...overrides,\n  };\n}\n\n// A handle whose read() mirrors real fs semantics: copies the file bytes into\n// the caller buffer and reports bytesRead, returning 0 past the end so the\n// caller loop terminates. close() is recorded.\nfunction harness({ size, content, readImpl, statImpl, openStat }) {\n  const data = Buffer.from(content ?? \"x\".repeat(size));\n  const calls = { close: 0, open: 0, unlink: 0 };\n  const handle = {\n    stat: vi.fn(async () => (statImpl ? statImpl() : fileStat(size))),\n    read: vi.fn(\n      readImpl ??\n        (async (buf, offset, len, pos) => {\n          const n = Math.min(len, data.length - pos);\n          if (n <= 0) return { bytesRead: 0 };\n          data.copy(buf, offset, pos, pos + n);\n          return { bytesRead: n };\n        }),\n    ),\n    close: vi.fn(async () => {\n      calls.close += 1;\n    }),\n  };\n  const io = {\n    lstat: vi.fn(async () => fileStat(size)),\n    open: vi.fn(async () => {\n      calls.open += 1;\n      if (openStat) return openStat(handle);\n      return handle;\n    }),\n    unlink: vi.fn(async () => {\n      calls.unlink += 1;\n    }),\n  };\n  return { io, handle, calls, data };\n}\n\ndescribe(\"image file snapshot resource cleanup\", () => {\n  it(\"returns the snapshot and closes the handle on success\", async () => {\n    const { io, handle, calls, data } = harness({ size: 5, content: \"hello\" });\n    const snapshot = await readImageSnapshot(\"/img.png\", 5, { io });\n    expect(snapshot.equals(data)).toBe(true);\n    expect(handle.close).toHaveBeenCalledTimes(1);\n    expect(calls.open).toBe(1);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"closes the handle when a read fails mid-loop\", async () => {\n    const { io, handle, calls } = harness({\n      size: 5,\n      readImpl: async () => {\n        throw new Error(\"disk read error\");\n      },\n    });\n    await expect(readImageSnapshot(\"/img.png\", 5, { io })).rejects.toThrow(\n      \"disk read error\",\n    );\n    expect(handle.close).toHaveBeenCalledTimes(1);\n    expect(calls.open).toBe(1);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"closes the handle when the file changes after open\", async () => {\n    const { io, handle, calls } = harness({\n      size: 5,\n      statImpl: () => fileStat(5, { size: 6 }), // differs from lstat before\n    });\n    await expect(readImageSnapshot(\"/img.png\", 5, { io })).rejects.toThrow(\n      \"changed while opening\",\n    );\n    expect(handle.close).toHaveBeenCalledTimes(1);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"does not open a handle when lstat fails before open\", async () => {\n    const { io, calls } = harness({ size: 5 });\n    io.lstat.mockRejectedValueOnce(new Error(\"ENOENT\"));\n    await expect(readImageSnapshot(\"/img.png\", 5, { io })).rejects.toThrow(\n      \"ENOENT\",\n    );\n    expect(calls.open).toBe(0);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"never deletes the referenced image on success or failure\", async () => {\n    const ok = harness({ size: 3, content: \"abc\" });\n    await readImageSnapshot(\"/img.png\", 3, { io: ok.io });\n    expect(ok.calls.unlink).toBe(0);\n    expect(ok.io.unlink).not.toHaveBeenCalled();\n\n    const fail = harness({\n      size: 3,\n      readImpl: async () => {\n        throw new Error(\"read failed\");\n      },\n    });\n    await expect(readImageSnapshot(\"/img.png\", 3, { io: fail.io })).rejects.toThrow(\n      \"read failed\",\n    );\n    expect(fail.calls.unlink).toBe(0);\n    expect(fail.io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"accepts the exact expected size and rejects the first mismatch\", async () => {\n    const { io, data } = harness({ size: 4, content: \"wxyz\" });\n    const snapshot = await readImageSnapshot(\"/img.png\", 4, { io });\n    expect(snapshot.equals(data)).toBe(true);\n\n    const { io: io2, calls } = harness({ size: 4 });\n    await expect(readImageSnapshot(\"/img.png\", 5, { io: io2 })).rejects.toThrow(\n      \"missing or changed\",\n    );\n    expect(calls.open).toBe(0);\n  });\n});\n"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_opw8s7j1e1jmv9u0kkv8xoqs",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-WHEyxH/37d3d07b-ebdd-4e20-b220-7dc8b8423de1/workspace/packages/vscode-extension/__tests__/verify-31.test.js",
+              "fileVersion": "4230:1793711912175.9253:1793711912176.6177",
+              "readSpan": {
+                "start": 0,
+                "end": 4230,
+                "total": 4230
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it, vi } from \"vitest\";\nimport { readImageSnapshot } from \"../src/chat/image-file-snapshot.js\";\n\nfunction fileStat(size, overrides = {}) {\n  return {\n    isFile: () => true,\n    size,\n    dev: 1,\n    ino: 2,\n    mtimeMs: 100,\n    ctimeMs: 200,\n    ...overrides,\n  };\n}\n\n// A handle whose read() mirrors real fs semantics: copies the file bytes into\n// the caller buffer and reports bytesRead, returning 0 past the end so the\n// caller loop terminates. close() is recorded.\nfunction harness({ size, content, readImpl, statImpl, openStat }) {\n  const data = Buffer.from(content ?? \"x\".repeat(size));\n  const calls = { close: 0, open: 0, unlink: 0 };\n  const handle = {\n    stat: vi.fn(async () => (statImpl ? statImpl() : fileStat(size))),\n    read: vi.fn(\n      readImpl ??\n        (async (buf, offset, len, pos) => {\n          const n = Math.min(len, data.length - pos);\n          if (n <= 0) return { bytesRead: 0 };\n          data.copy(buf, offset, pos, pos + n);\n          return { bytesRead: n };\n        }),\n    ),\n    close: vi.fn(async () => {\n      calls.close += 1;\n    }),\n  };\n  const io = {\n    lstat: vi.fn(async () => fileStat(size)),\n    open: vi.fn(async () => {\n      calls.open += 1;\n      if (openStat) return openStat(handle);\n      return handle;\n    }),\n    unlink: vi.fn(async () => {\n      calls.unlink += 1;\n    }),\n  };\n  return { io, handle, calls, data };\n}\n\ndescribe(\"image file snapshot resource cleanup\", () => {\n  it(\"returns the snapshot and closes the handle on success\", async () => {\n    const { io, handle, calls, data } = harness({ size: 5, content: \"hello\" });\n    const snapshot = await readImageSnapshot(\"/img.png\", 5, { io });\n    expect(snapshot.equals(data)).toBe(true);\n    expect(handle.close).toHaveBeenCalledTimes(1);\n    expect(calls.open).toBe(1);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"closes the handle when a read fails mid-loop\", async () => {\n    const { io, handle, calls } = harness({\n      size: 5,\n      readImpl: async () => {\n        throw new Error(\"disk read error\");\n      },\n    });\n    await expect(readImageSnapshot(\"/img.png\", 5, { io })).rejects.toThrow(\n      \"disk read error\",\n    );\n    expect(handle.close).toHaveBeenCalledTimes(1);\n    expect(calls.open).toBe(1);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"closes the handle when the file changes after open\", async () => {\n    const { io, handle, calls } = harness({\n      size: 5,\n      statImpl: () => fileStat(5, { size: 6 }), // differs from lstat before\n    });\n    await expect(readImageSnapshot(\"/img.png\", 5, { io })).rejects.toThrow(\n      \"changed while opening\",\n    );\n    expect(handle.close).toHaveBeenCalledTimes(1);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"does not open a handle when lstat fails before open\", async () => {\n    const { io, calls } = harness({ size: 5 });\n    io.lstat.mockRejectedValueOnce(new Error(\"ENOENT\"));\n    await expect(readImageSnapshot(\"/img.png\", 5, { io })).rejects.toThrow(\n      \"ENOENT\",\n    );\n    expect(calls.open).toBe(0);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"never deletes the referenced image on success or failure\", async () => {\n    const ok = harness({ size: 3, content: \"abc\" });\n    await readImageSnapshot(\"/img.png\", 3, { io: ok.io });\n    expect(ok.calls.unlink).toBe(0);\n    expect(ok.io.unlink).not.toHaveBeenCalled();\n\n    const fail = harness({\n      size: 3,\n      readImpl: async () => {\n        throw new Error(\"read failed\");\n      },\n    });\n    await expect(readImageSnapshot(\"/img.png\", 3, { io: fail.io })).rejects.toThrow(\n      \"read failed\",\n    );\n    expect(fail.calls.unlink).toBe(0);\n    expect(fail.io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"accepts the exact expected size and rejects the first mismatch\", async () => {\n    const { io, data } = harness({ size: 4, content: \"wxyz\" });\n    const snapshot = await readImageSnapshot(\"/img.png\", 4, { io });\n    expect(snapshot.equals(data)).toBe(true);\n\n    const { io: io2, calls } = harness({ size: 4 });\n    await expect(readImageSnapshot(\"/img.png\", 5, { io: io2 })).rejects.toThrow(\n      \"missing or changed\",\n    );\n    expect(calls.open).toBe(0);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711919441,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-31.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 0,
+                "sessionId": "headless-1793711867896-2739",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-31.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_imi9kl9m2r982cq5po13byok",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-WHEyxH/37d3d07b-ebdd-4e20-b220-7dc8b8423de1/workspace/packages/vscode-extension/src/chat/image-file-snapshot.js",
+              "fileVersion": "2060:1791108223000:1793711845709.6687",
+              "readSpan": {
+                "start": 0,
+                "end": 2060,
+                "total": 2060
+              },
+              "hashed": false,
+              "content": "const fs = require(\"fs/promises\");\nconst { constants } = require(\"fs\");\n\n// Fixed allocation + one overflow byte. Reads, hash and validation consume the\n// same snapshot; no unbounded readFile after a separate header/path check.\nasync function readImageSnapshot(\n  file,\n  expectedSize = null,\n  { io = fs, signal, timeoutMs = 5000, now = () => performance.now() } = {},\n) {\n  const deadline = now() + timeoutMs;\n  const check = () => {\n    if (signal?.aborted) throw new Error(\"Image reading cancelled\");\n    if (now() >= deadline)\n      throw new Error(\"Image reading exceeded the time budget\");\n  };\n  const same = (a, b) =>\n    a.isFile() &&\n    b.isFile() &&\n    [\"size\", \"dev\", \"ino\", \"mtimeMs\", \"ctimeMs\"].every(\n      (key) => a[key] === b[key],\n    );\n  check();\n  const before = await io.lstat(file);\n  check();\n  if (\n    !before.isFile() ||\n    before.size <= 0 ||\n    before.size > 20 * 1024 * 1024 ||\n    (expectedSize !== null && before.size !== expectedSize)\n  )\n    throw new Error(\"Saved attachment is missing or changed; attach it again\");\n  const handle = await io.open(\n    file,\n    constants.O_RDONLY | (constants.O_NOFOLLOW || 0),\n  );\n  try {\n    check();\n    const opened = await handle.stat();\n    if (!same(before, opened))\n      throw new Error(\"Saved attachment changed while opening\");\n    const buffer = Buffer.alloc(opened.size + 1);\n    let count = 0;\n    while (count < buffer.length) {\n      check();\n      const { bytesRead } = await handle.read(\n        buffer,\n        count,\n        Math.min(64 * 1024, buffer.length - count),\n        count,\n      );\n      check();\n      if (!bytesRead) break;\n      count += bytesRead;\n    }\n    const after = await handle.stat();\n    const pathAfter = await io.lstat(file);\n    check();\n    if (\n      count !== opened.size ||\n      !same(opened, after) ||\n      !same(opened, pathAfter)\n    )\n      throw new Error(\"Saved attachment changed while reading\");\n    return buffer.subarray(0, count);\n  } finally {\n    await handle.close();\n  }\n}\n\nmodule.exports = { readImageSnapshot };\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711934572,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-file-snapshot.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793711867896-2739",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-file-snapshot.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_mchkbutt60wvzz1qy5tf4e21",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-WHEyxH/37d3d07b-ebdd-4e20-b220-7dc8b8423de1/workspace/packages/cli/__tests__/unit/vscode-ext-image-budget.test.js",
+              "fileVersion": "6696:1791108223000:1793711845578.669",
+              "readSpan": {
+                "start": 0,
+                "end": 6696,
+                "total": 6696
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it, vi } from \"vitest\";\nimport fs from \"node:fs/promises\";\nimport { Window } from \"happy-dom\";\nimport {\n  checkImageEnvelope,\n  imageDimensions,\n  writeImageBatch,\n  MAX_IMAGE_BYTES,\n} from \"../../../vscode-extension/src/chat/image-attachments.js\";\nimport { buildChatHtml } from \"../../../vscode-extension/src/chat/chat-html.js\";\nimport { ChatViewProvider } from \"../../../vscode-extension/src/chat/chat-view.js\";\n\nconst png =\n  \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\";\nconst image = { data: `data:image/png;base64,${png}` };\n\ndescribe(\"bounded image intake\", () => {\n  it(\"rejects byte and aggregate limits before allocating buffers\", () => {\n    const large = {\n      data:\n        \"data:image/png;base64,\" +\n        \"A\".repeat(Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 4),\n    };\n    expect(() => checkImageEnvelope([large])).toThrow(\"20 MiB\");\n    const half = {\n      data: \"data:image/png;base64,\" + \"A\".repeat(15 * 1024 * 1024),\n    };\n    expect(() => checkImageEnvelope([half, half])).toThrow(\"total\");\n  });\n\n  it(\"rejects a pixel bomb without writing files\", async () => {\n    const bytes = Buffer.from(png, \"base64\");\n    bytes.writeUInt32BE(100000, 16);\n    bytes.writeUInt32BE(100000, 20);\n    const open = vi.fn();\n    await expect(\n      writeImageBatch(\n        [{ data: `data:image/png;base64,${bytes.toString(\"base64\")}` }],\n        { io: { open } },\n      ),\n    ).rejects.toThrow(\"40 megapixels\");\n    expect(open).not.toHaveBeenCalled();\n  });\n\n  it(\"recognizes JPEG, GIF and WebP headers without decoding pixels\", () => {\n    expect(\n      imageDimensions(Buffer.from(\"47494638396102000300\", \"hex\")),\n    ).toMatchObject({ format: \"gif\", width: 2, height: 3 });\n    expect(\n      imageDimensions(Buffer.from(\"ffd8ffc00008080003000200\", \"hex\")),\n    ).toMatchObject({ format: \"jpeg\", width: 2, height: 3 });\n    const webp = Buffer.alloc(30);\n    webp.write(\"RIFF\", 0);\n    webp.write(\"WEBPVP8X\", 8);\n    webp[24] = 1;\n    webp[27] = 2;\n    expect(imageDimensions(webp)).toMatchObject({\n      format: \"webp\",\n      width: 2,\n      height: 3,\n    });\n  });\n\n  it(\"cleans already-owned files on write failure and reports the failing image\", async () => {\n    const unlink = vi.fn(async () => {});\n    const open = vi.fn(async () => ({\n      writeFile: async () => {\n        throw Object.assign(new Error(\"full\"), { code: \"ENOSPC\" });\n      },\n      close: vi.fn(),\n    }));\n    await expect(\n      writeImageBatch([image], { io: { open, unlink } }),\n    ).rejects.toThrow(\"Image 1\");\n    expect(unlink).toHaveBeenCalledTimes(1);\n    expect(open.mock.calls[0].slice(1)).toEqual([\"wx\", 0o600]);\n  });\n\n  it(\"keeps async image sends bound to their source tab and discards reset results\", async () => {\n    const sent = [];\n    const messages = [];\n    const provider = new ChatViewProvider(\n      {\n        workspace: {\n          workspaceFolders: [],\n          getConfiguration: () => ({ get: () => undefined }),\n        },\n        window: {},\n      },\n      {\n        deps: {\n          resolveChatLlm: () => ({}),\n          createSession: (cfg) => ({\n            running: true,\n            sendEvent: (msg) => {\n              sent.push({ cfg, msg });\n              return true;\n            },\n            stop() {},\n          }),\n        },\n      },\n    );\n    provider.view = {\n      webview: {\n        postMessage(msg) {\n          messages.push(msg);\n          return Promise.resolve();\n        },\n      },\n    };\n    const postFrom = provider._postFrom.bind(provider);\n    provider._postFrom = (...args) => {\n      messages.push(args[1]);\n      return postFrom(...args);\n    };\n    let finish;\n    provider._writeImageTemps = () =>\n      new Promise((resolve) => {\n        finish = resolve;\n      });\n    const a = provider._activeConv();\n    const pending = provider._handleMessage({\n      type: \"send\",\n      text: \"A only\",\n      images: [image],\n    });\n    const b = provider._convs.create({});\n    const files = await writeImageBatch([image]);\n    finish(files);\n    await pending;\n    expect(sent, JSON.stringify(messages)).toHaveLength(1);\n    expect(a.session).toBeTruthy();\n    expect(b.session).toBeNull();\n    provider._convs.switchTo(a.id);\n    const pendingReset = provider._handleMessage({\n      type: \"send\",\n      text: \"old generation\",\n      images: [image],\n    });\n    provider._clearSessionState(a);\n    const staleFiles = await writeImageBatch([image]);\n    finish(staleFiles);\n    await pendingReset;\n    expect(sent).toHaveLength(1);\n    await expect(fs.stat(staleFiles[0])).rejects.toThrow();\n    provider.dispose();\n  });\n\n  it(\"reserves read slots before rapid drops and keeps drafts in their own tab\", async () => {\n    const window = new Window({\n      settings: {\n        enableJavaScriptEvaluation: true,\n        suppressInsecureJavaScriptEnvironmentWarning: true,\n      },\n    });\n    const posted = [];\n    const readers = [];\n    window.FileReader = class {\n      readAsDataURL() {\n        readers.push(this);\n      }\n    };\n    window.acquireVsCodeApi = () => ({\n      postMessage: (event) => posted.push(event),\n      getState: () => ({}),\n      setState() {},\n    });\n    window.document.write(\n      buildChatHtml({ nonce: \"n\", cspSource: \"vscode-resource:\" }),\n    );\n    const input = window.document.getElementById(\"input\");\n    const tabs = (id) =>\n      window.dispatchEvent(\n        new window.MessageEvent(\"message\", {\n          data: {\n            kind: \"tabs\",\n            activeId: id,\n            tabs: [\n              { id: \"a\", title: \"A\" },\n              { id: \"b\", title: \"B\" },\n            ],\n          },\n        }),\n      );\n    tabs(\"a\");\n    input.value = \"draft A\";\n    input.dispatchEvent(new window.Event(\"input\"));\n    const drop = new window.Event(\"drop\");\n    Object.defineProperty(drop, \"dataTransfer\", {\n      value: {\n        items: [{ kind: \"file\", type: \"image/png\" }],\n        files: Array.from({ length: 6 }, () => ({\n          type: \"image/png\",\n          size: 1024,\n        })),\n      },\n    });\n    input.dispatchEvent(drop);\n    expect(readers).toHaveLength(4);\n    window.document.getElementById(\"send\").click();\n    expect(posted.filter((e) => e.type === \"send\")).toHaveLength(0);\n    tabs(\"b\");\n    for (const reader of readers) {\n      reader.result = image.data;\n      reader.onload();\n    }\n    expect(window.document.getElementById(\"attach\").textContent).toBe(\"\");\n    expect(input.value).toBe(\"\");\n    tabs(\"a\");\n    expect(input.value).toBe(\"draft A\");\n    expect(\n      window.document.getElementById(\"attach\").querySelectorAll(\".chip\"),\n    ).toHaveLength(4);\n    await window.happyDOM.abort();\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711934572,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-image-budget.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793711867896-2739",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-image-budget.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_lgug9paasb5509eixekaljty",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-WHEyxH/37d3d07b-ebdd-4e20-b220-7dc8b8423de1/workspace/packages/cli/__tests__/unit/vscode-ext-draft-store.test.js",
+              "fileVersion": "30577:1791108223000:1793711845577.669",
+              "readSpan": {
+                "start": 0,
+                "end": 30565,
+                "total": 30565
+              },
+              "hashed": false,
+              "content": "import { afterEach, describe, expect, it, vi } from \"vitest\";\nimport fs from \"node:fs/promises\";\nimport { tmpdir } from \"node:os\";\nimport path from \"node:path\";\nimport { randomUUID } from \"node:crypto\";\nimport { DraftStore } from \"../../../vscode-extension/src/chat/draft-store.js\";\nimport { ChatViewProvider } from \"../../../vscode-extension/src/chat/chat-view.js\";\nimport { buildChatHtml } from \"../../../vscode-extension/src/chat/chat-html.js\";\nimport { Window } from \"happy-dom\";\n\nconst roots = [];\nconst providers = [];\nafterEach(async () => {\n  for (const p of providers.splice(0)) p.dispose();\n  for (const root of roots.splice(0))\n    await fs.rm(root, { recursive: true, force: true });\n});\nasync function storage() {\n  const root = await fs.mkdtemp(path.join(tmpdir(), \"cc-draft-\"));\n  roots.push(root);\n  return root;\n}\nconst image = {\n  data: \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\",\n};\nfunction receipt(sessionId, clientMessageId) {\n  return {\n    sessionId,\n    clientMessageId,\n    inputDigest: \"a\".repeat(64),\n    eventHash: \"b\".repeat(64),\n  };\n}\n\ndescribe(\"durable composer storage\", () => {\n  it(\"commits an empty manifest before image cleanup and completes cleanup after page replacement\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"image draft\", images: [image] });\n    let current = true;\n    let cleanedImage = false;\n    const unlink = fs.unlink.bind(fs);\n    const spy = vi.spyOn(fs, \"unlink\").mockImplementation(async (file) => {\n      if (String(file).endsWith(\".png\")) {\n        await expect(\n          fs.stat(path.join(root, key, \"draft.json\")),\n        ).rejects.toMatchObject({ code: \"ENOENT\" });\n        current = false;\n        cleanedImage = true;\n      }\n      return unlink(file);\n    });\n    try {\n      await store.save(\n        key,\n        { text: \"\", images: [] },\n        {\n          assertCurrent: () => {\n            if (!current) throw new Error(\"inactive page\");\n          },\n        },\n      );\n      expect(cleanedImage).toBe(true);\n      expect(await store.list()).toEqual([]);\n      await expect(fs.stat(path.join(root, key))).rejects.toMatchObject({\n        code: \"ENOENT\",\n      });\n    } finally {\n      spy.mockRestore();\n    }\n  });\n  it(\"rechecks page lifetime before rename and removes an abandoned temporary manifest\", async () => {\n    const root = await storage();\n    const store = new DraftStore(root);\n    const key = randomUUID();\n    await store.save(key, { text: \"original\" });\n    const before = await fs.readFile(path.join(root, key, \"draft.json\"));\n    let release;\n    let paused = false;\n    let current = true;\n    const gate = new Promise((done) => {\n      release = done;\n    });\n    const quota = store._quota.bind(store);\n    const spy = vi\n      .spyOn(store, \"_quota\")\n      .mockImplementation(async (...args) => {\n        await quota(...args);\n        paused = true;\n        await gate;\n      });\n    const saving = store.save(\n      key,\n      { text: \"obsolete\" },\n      {\n        assertCurrent: () => {\n          if (!current) throw new Error(\"inactive page\");\n        },\n      },\n    );\n    const rejection = expect(saving).rejects.toThrow(\"inactive page\");\n    try {\n      await until(() => paused);\n      current = false;\n      release();\n      await rejection;\n      expect(await fs.readFile(path.join(root, key, \"draft.json\"))).toEqual(\n        before,\n      );\n      expect(await fs.readdir(path.join(root, key))).toEqual([\"draft.json\"]);\n    } finally {\n      release();\n      spy.mockRestore();\n      await saving.catch(() => {});\n    }\n  });\n  it(\"recovers text and image snapshots in a fresh store, with no image data in metadata\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"draft 中文\", images: [image] });\n    await store.save(key, { text: \"edited 中文\" });\n    const restored = await new DraftStore(root).view(key);\n    expect(restored.composer.text).toBe(\"edited 中文\");\n    expect(restored.composer.images[0].data).toBe(image.data);\n    const metadata = await fs.readFile(\n      path.join(root, key, \"draft.json\"),\n      \"utf8\",\n    );\n    expect(metadata).not.toContain(\"base64\");\n  });\n  it(\"saves a submitted snapshot before clearing the composer, and retains unknown sends\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"old\", images: [image] });\n    const prepared = await store.prepare(key, \"session-1\", \"input-1\", {\n      text: \"submitted\",\n      images: [image],\n    });\n    expect((await store.view(key)).composer.text).toBe(\"\");\n    await store.settle(key, \"input-1\", \"unknown\");\n    expect(\n      (await new DraftStore(root).recover(key, \"input-1\")).images[0].data,\n    ).toBe(image.data);\n    await expect(\n      store.settle(key, \"input-1\", \"accepted\", receipt(\"other\", \"input-1\")),\n    ).rejects.toThrow(\"match\");\n    await store.settle(\n      key,\n      \"input-1\",\n      \"accepted\",\n      receipt(\"session-1\", \"input-1\"),\n    );\n    await expect(store.recover(key, \"input-1\")).rejects.toThrow(\"Accepted\");\n    await expect(fs.stat(prepared.paths[0])).rejects.toMatchObject({\n      code: \"ENOENT\",\n    });\n  });\n  it(\"does not silently omit missing attachments or accept a tampered snapshot\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"keep text\", images: [image] });\n    const record = JSON.parse(\n      await fs.readFile(path.join(root, key, \"draft.json\"), \"utf8\"),\n    );\n    await fs.unlink(path.join(root, key, record.composer.images[0].file));\n    expect((await store.view(key)).composer).toMatchObject({\n      text: \"keep text\",\n      missingImages: true,\n    });\n    record.composer.images[0].file = \"../../secret.png\";\n    await fs.writeFile(\n      path.join(root, key, \"draft.json\"),\n      JSON.stringify(record),\n    );\n    await expect(store.view(key)).rejects.toThrow(\"Invalid draft\");\n  });\n  it(\"retains the old draft and cleans new attachments when publishing fails\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"original\", images: [image] });\n    const before = (await fs.readdir(path.join(root, key))).sort();\n    const rename = vi\n      .spyOn(fs, \"rename\")\n      .mockRejectedValueOnce(new Error(\"ENOSPC\"));\n    try {\n      await expect(\n        store.save(key, { text: \"new\", images: [image] }),\n      ).rejects.toThrow(\"ENOSPC\");\n    } finally {\n      rename.mockRestore();\n    }\n    expect((await store.view(key)).composer.text).toBe(\"original\");\n    expect((await fs.readdir(path.join(root, key))).sort()).toEqual(before);\n  });\n  it(\"bounds pending records and does not evict unknown inputs\", async () => {\n    const store = new DraftStore(await storage());\n    const key = randomUUID();\n    for (let i = 0; i < 8; i++)\n      await store.prepare(key, \"session\", `input-${i}`, {\n        text: `${i}`,\n        images: [],\n      });\n    await expect(\n      store.prepare(key, \"session\", \"input-9\", { text: \"9\" }),\n    ).rejects.toThrow(\"eight\");\n    expect((await store.view(key)).pending).toHaveLength(8);\n    await expect(store.save(key, { text: \"a\".repeat(100001) })).rejects.toThrow(\n      \"100,000\",\n    );\n  });\n\n  it(\"serializes rapid edits without rewriting attachment snapshots\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"first\", images: [image] });\n    const before = (await fs.readdir(path.join(root, key))).filter((n) =>\n      n.endsWith(\".png\"),\n    );\n    await Promise.all(\n      Array.from({ length: 20 }, (_, i) =>\n        store.save(key, { text: `edit-${i}` }),\n      ),\n    );\n    expect((await store.view(key)).composer.text).toBe(\"edit-19\");\n    expect(\n      (await fs.readdir(path.join(root, key))).filter((n) =>\n        n.endsWith(\".png\"),\n      ),\n    ).toEqual(before);\n    await store.save(key, { text: \"\", images: [] });\n    expect(await store.list()).toEqual([]);\n  });\n});\n\nfunction host(root, state = new Map(), deps = {}) {\n  const messages = [];\n  const sessions = [];\n  const provider = new ChatViewProvider(\n    {\n      workspace: {\n        workspaceFolders: [],\n        getConfiguration: () => ({ get: () => undefined }),\n      },\n      commands: { executeCommand() {} },\n      window: {},\n    },\n    {\n      storagePath: root,\n      state: {\n        get: (k) => state.get(k),\n        update: async (k, v) => state.set(k, v),\n      },\n      deps: {\n        resolveChatLlm: () => ({}),\n        loadTranscriptPage: async () => {\n          throw new Error(\"no transcript\");\n        },\n        createSession: (cfg) => {\n          const session = {\n            cfg,\n            running: true,\n            sent: [],\n            sendEvent: vi.fn((e) => {\n              session.sent.push(e);\n              return true;\n            }),\n            stop() {\n              this.running = false;\n            },\n          };\n          sessions.push(session);\n          return session;\n        },\n        ...deps,\n      },\n    },\n  );\n  providers.push(provider);\n  provider.view = {\n    webview: {\n      postMessage: (m) => {\n        messages.push(m);\n        return Promise.resolve(true);\n      },\n    },\n  };\n  provider._activeConv();\n  provider._postTabs();\n  return { provider, sessions, messages, state };\n}\nasync function until(condition) {\n  await vi.waitFor(() => expect(condition()).toBeTruthy(), {\n    timeout: 4000,\n    interval: 5,\n  });\n}\nfunction init(h, version = 1) {\n  const conv = h.provider._activeConv();\n  h.sessions.at(-1).cfg.onEvent({\n    type: \"system\",\n    subtype: \"init\",\n    session_id: conv.sessionId,\n    input_receipts: { version },\n  });\n}\n\ndescribe(\"host durable input lifecycle\", () => {\n  it(\"rejects a replaced page's saves and drops delayed image writes before publication\", async () => {\n    const h = host(await storage());\n    h.provider.vscode.l10n = { t: (value) => value };\n    h.provider._buildChatHtml(h.provider.view);\n    h.provider._handleMessage({\n      type: \"ready\",\n      webviewNonce: h.provider._draftWebviewNonce,\n      webviewInstance: randomUUID(),\n    });\n    const oldInstance = h.provider._draftWebviewInstance;\n    const conv = h.provider._activeConv();\n    const key = h.provider._draftKey(conv);\n    const request = {\n      type: \"draftUpdate\",\n      convId: conv.id,\n      draftKey: key,\n      webviewInstance: oldInstance,\n      revision: 5,\n      text: \"old page\",\n      images: [image],\n    };\n    const store = h.provider._draftStore;\n    const original = store._images.bind(store);\n    let release;\n    let paused = false;\n    const gate = new Promise((done) => {\n      release = done;\n    });\n    const spy = vi\n      .spyOn(store, \"_images\")\n      .mockImplementation(async (...args) => {\n        const metadata = await original(...args);\n        paused = true;\n        await gate;\n        return metadata;\n      });\n    const oldSave = h.provider._handleMessage(request);\n    try {\n      await until(() => paused);\n      // Reload Webviews executes the same cached HTML, retaining its nonce.\n      h.provider._handleMessage({\n        type: \"ready\",\n        webviewNonce: h.provider._draftWebviewNonce,\n        webviewInstance: randomUUID(),\n      });\n      const currentInstance = h.provider._draftWebviewInstance;\n      expect(currentInstance).not.toBe(oldInstance);\n      expect(\n        h.provider._handleMessage({\n          type: \"protocol\",\n          webviewNonce: h.provider._draftWebviewNonce,\n          webviewInstance: oldInstance,\n        }),\n      ).toBe(false);\n      expect(h.provider._draftWebviewInstance).toBe(currentInstance);\n      const currentSave = h.provider._handleMessage({\n        ...request,\n        webviewInstance: currentInstance,\n        revision: 1,\n        text: \"new page\",\n        images: [],\n      });\n      release();\n      await Promise.all([oldSave, currentSave]);\n      await h.provider._handleMessage(request);\n      expect((await store.view(key)).composer).toEqual({\n        text: \"new page\",\n        images: [],\n      });\n      expect(\n        (await fs.readdir(path.join(store.root, key))).filter((name) =>\n          name.endsWith(\".png\"),\n        ),\n      ).toEqual([]);\n      expect(h.messages.filter((m) => m.kind === \"draftSaved\")).toEqual([\n        expect.objectContaining({\n          webviewInstance: currentInstance,\n          revision: 1,\n        }),\n      ]);\n      expect(\n        h.messages\n          .filter((m) => m.kind === \"draftSaveError\")\n          .every((m) => m.webviewInstance === oldInstance),\n      ).toBe(true);\n    } finally {\n      release();\n      spy.mockRestore();\n      await oldSave;\n    }\n  });\n  it.each([\"prepare\", \"init\", \"unknown\", \"session-stop\"])(\n    \"cancels an undispatched saved input during %s without losing its recovery record\",\n    async (stage) => {\n      const h = host(await storage());\n      const conv = h.provider._activeConv();\n      let release;\n      let paused = false;\n      const gate = new Promise((done) => {\n        release = done;\n      });\n      const method = stage === \"unknown\" ? \"settle\" : \"prepare\";\n      const original = h.provider._draftStore[method].bind(\n        h.provider._draftStore,\n      );\n      const spy = vi\n        .spyOn(h.provider._draftStore, method)\n        .mockImplementation(async (...args) => {\n          const result = await original(...args);\n          if (\n            stage !== \"init\" &&\n            (method === \"prepare\" || args[2] === \"unknown\")\n          ) {\n            paused = true;\n            await gate;\n          }\n          return result;\n        });\n      const sending = h.provider._handleMessage({\n        type: \"send\",\n        text: \"cancelled question\",\n        clientMessageId: \"cancelled-1\",\n      });\n      try {\n        if (stage === \"init\" || stage === \"unknown\") {\n          await until(() => h.sessions.length === 1);\n          if (stage === \"unknown\") init(h);\n          else await until(() => conv.inputInitWaiters?.size === 1);\n        }\n        if (stage !== \"init\") await until(() => paused);\n        if (stage === \"session-stop\") h.provider._stopSession(conv);\n        else expect(h.provider._interruptConversation(conv)).toBe(true);\n        release();\n        expect(await sending).toBe(false);\n        expect(\n          h.sessions.flatMap((s) => s.sent).filter((e) => e.type === \"user\"),\n        ).toEqual([]);\n        expect(\n          (await h.provider._draftStore.view(conv.draftKey)).pending[0],\n        ).toMatchObject({\n          id: \"cancelled-1\",\n          status: \"rejected\",\n          text: \"cancelled question\",\n        });\n        expect(\n          h.messages.find((m) => m.kind === \"submissionFailed\").text,\n        ).toContain(\"stopped\");\n      } finally {\n        release();\n        await sending;\n        spy.mockRestore();\n      }\n    },\n  );\n\n  it(\"does not start the agent when the submission cannot be saved\", async () => {\n    const h = host(await storage());\n    const conv = h.provider._activeConv();\n    await h.provider._draftStore.save(conv.draftKey, {\n      text: \"retained draft\",\n    });\n    const prepare = vi\n      .spyOn(h.provider._draftStore, \"prepare\")\n      .mockRejectedValueOnce(new Error(\"disk full\"));\n    await h.provider._handleMessage({\n      type: \"send\",\n      text: \"retained draft\",\n      clientMessageId: \"input-1\",\n    });\n    expect(h.sessions).toEqual([]);\n    expect(\n      (await h.provider._draftStore.view(conv.draftKey)).composer.text,\n    ).toBe(\"retained draft\");\n    expect(h.messages.find((m) => m.kind === \"submissionFailed\")).toMatchObject(\n      { stored: false },\n    );\n    prepare.mockRestore();\n  });\n  it(\"waits for init, persists UNKNOWN before writing and settles only a correlated ACK\", async () => {\n    const h = host(await storage());\n    const conv = h.provider._activeConv();\n    const sending = h.provider._handleMessage({\n      type: \"send\",\n      text: \"question\",\n      clientMessageId: \"input-1\",\n    });\n    await until(() => h.sessions.length === 1);\n    expect(h.sessions[0].sent).toEqual([]);\n    init(h);\n    await sending;\n    expect(h.sessions[0].sent[0]).toMatchObject({\n      type: \"user\",\n      client_message_id: \"input-1\",\n      text: \"question\",\n    });\n    expect(\n      (await h.provider._draftStore.view(conv.draftKey)).pending[0].status,\n    ).toBe(\"unknown\");\n    expect(h.messages.some((m) => m.kind === \"sendAccepted\")).toBe(false);\n    h.sessions[0].cfg.onEvent({\n      type: \"system\",\n      subtype: \"input_accepted\",\n      session_id: \"wrong\",\n      client_message_id: \"input-1\",\n      receipt: receipt(\"wrong\", \"input-1\"),\n    });\n    expect(\n      (await h.provider._draftStore.view(conv.draftKey)).pending[0].status,\n    ).toBe(\"unknown\");\n    h.sessions[0].cfg.onEvent({\n      type: \"system\",\n      subtype: \"input_accepted\",\n      session_id: conv.sessionId,\n      client_message_id: \"input-1\",\n      receipt: receipt(conv.sessionId, \"input-1\"),\n    });\n    expect(\n      (await h.provider._draftStore.view(conv.draftKey)).pending[0].status,\n    ).toBe(\"accepted\");\n  });\n  it(\"reloads a stable draft identity and reconciles read-only without starting a session\", async () => {\n    const root = await storage();\n    const h = host(root);\n    const conv = h.provider._activeConv();\n    const sending = h.provider._handleMessage({\n      type: \"send\",\n      text: \"lost ACK\",\n      clientMessageId: \"input-1\",\n    });\n    await until(() => h.sessions.length);\n    init(h);\n    await sending;\n    await h.provider._draftStore.save(conv.draftKey, {\n      text: \"next draft\",\n      images: [image],\n    });\n    h.provider.dispose();\n    let finishLookup;\n    const lookup = vi.fn(\n      (sid, id) =>\n        new Promise((resolve) => {\n          finishLookup = () =>\n            resolve({ accepted: true, receipt: receipt(sid, id) });\n        }),\n    );\n    const restored = host(root, h.state, { readInputReceipt: lookup });\n    const next = restored.provider._activeConv();\n    expect(next.draftKey).toBe(conv.draftKey);\n    const recovering = restored.provider._restoreDraft(next, {\n      reconcile: true,\n    });\n    await until(() => finishLookup);\n    expect(restored.sessions).toEqual([]);\n    expect(lookup).toHaveBeenCalledWith(conv.sessionId, \"input-1\");\n    const snapshot = restored.messages.find((m) => m.kind === \"draftSnapshot\");\n    expect(snapshot.composer.text).toBe(\"next draft\");\n    expect(snapshot.composer.images[0].data).toBe(image.data);\n    expect(snapshot.pending[0].status).toBe(\"unknown\");\n    finishLookup();\n    await recovering;\n    expect(\n      restored.messages.filter((m) => m.kind === \"draftSnapshot\").at(-1)\n        .pending[0].status,\n    ).toBe(\"accepted\");\n  });\n  it(\"keeps legacy CLI and failed pipe writes unknown and recoverable\", async () => {\n    const h = host(await storage());\n    const conv = h.provider._activeConv();\n    const sending = h.provider._handleMessage({\n      type: \"send\",\n      text: \"retain me\",\n      clientMessageId: \"input-1\",\n    });\n    await until(() => h.sessions.length);\n    h.sessions[0].sendEvent.mockReturnValue(false);\n    init(h, 0);\n    await sending;\n    expect(\n      (await h.provider._draftStore.view(conv.draftKey)).pending[0].status,\n    ).toBe(\"unknown\");\n    expect(\n      (await h.provider._draftStore.recover(conv.draftKey, \"input-1\")).text,\n    ).toBe(\"retain me\");\n  });\n  it(\"does not dispatch a saved input after its conversation is reset\", async () => {\n    const h = host(await storage());\n    const conv = h.provider._activeConv();\n    const sending = h.provider._handleMessage({\n      type: \"send\",\n      text: \"old\",\n      clientMessageId: \"input-1\",\n    });\n    await until(() => h.sessions.length);\n    const oldKey = conv.draftKey;\n    h.provider._handleMessage({ type: \"new\" });\n    await sending;\n    expect(h.sessions[0].sent).toEqual([]);\n    expect(conv.draftKey).not.toBe(oldKey);\n    expect((await h.provider._draftStore.view(oldKey)).pending[0].status).toBe(\n      \"rejected\",\n    );\n  });\n\n  it(\"keeps closed drafts discoverable and reopens the same draft identity\", async () => {\n    const h = host(await storage());\n    const conv = h.provider._activeConv();\n    await h.provider._draftStore.save(conv.draftKey, { text: \"closed draft\" });\n    h.provider._webviewReady = true;\n    h.provider._handleMessage({ type: \"closeTab\", id: conv.id });\n    expect((await h.provider._draftStore.list()).map((d) => d.label)).toContain(\n      \"closed draft\",\n    );\n    h.provider.reopenClosedSession();\n    expect(h.provider._activeConv().draftKey).toBe(conv.draftKey);\n    expect(h.sessions).toEqual([]);\n  });\n});\n\nfunction webview(backup, { withoutRandomUUID = false } = {}) {\n  const window = new Window({\n    settings: {\n      enableJavaScriptEvaluation: true,\n      disableCSSFileLoading: true,\n      disableJavaScriptFileLoading: true,\n    },\n  });\n  const posted = [];\n  // This harness tests ACK/page routing; actual codecs run in the separate\n  // Chromium journey. Keep completion explicit so ACK alone cannot show img.\n  const decoders = [];\n  window.HTMLCanvasElement.prototype.getContext = () => ({\n    clearRect() {},\n    drawImage() {},\n  });\n  window.Worker = class {\n    constructor() {\n      decoders.push(this);\n    }\n    postMessage(images) {\n      this.images = images;\n    }\n    terminate() {\n      this.terminated = true;\n    }\n  };\n  if (withoutRandomUUID)\n    Object.defineProperty(window, \"crypto\", {\n      value: {\n        getRandomValues: window.crypto.getRandomValues.bind(window.crypto),\n      },\n    });\n  let state = backup || {};\n  window.acquireVsCodeApi = () => ({\n    postMessage: (m) => posted.push(m),\n    getState: () => state,\n    setState: (s) => {\n      state = s;\n    },\n  });\n  window.document.write(\n    buildChatHtml({ nonce: \"n\", cspSource: \"vscode-resource:\" }),\n  );\n  const emit = (data) =>\n    window.dispatchEvent(new window.MessageEvent(\"message\", { data }));\n  const keys = {\n    a: \"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\",\n    b: \"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb\",\n  };\n  const tabs = (id) =>\n    emit({\n      kind: \"tabs\",\n      activeId: id,\n      tabs: Object.keys(keys).map((id) => ({\n        id,\n        title: id,\n        draftKey: keys[id],\n        draftStorage: true,\n      })),\n    });\n  return {\n    window,\n    posted,\n    decoders,\n    emit,\n    keys,\n    tabs,\n    input: window.document.getElementById(\"input\"),\n    state: () => state,\n    page: posted.find((m) => m.type === \"ready\"),\n  };\n}\ndescribe(\"composer recovery in the generated Webview\", () => {\n  it(\"initializes the page and draft handshake without the secure-context randomUUID API\", async () => {\n    const ui = webview(undefined, { withoutRandomUUID: true });\n    try {\n      expect(ui.page.webviewInstance).toMatch(\n        /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/,\n      );\n      ui.emit({ kind: \"thinking\", text: \"reasoning is visible\" });\n      expect(\n        ui.window.document.querySelector(\"details.thinking\").textContent,\n      ).toContain(\"reasoning is visible\");\n    } finally {\n      await ui.window.happyDOM.abort();\n    }\n  });\n  it(\"binds recovery actions to the current page and keeps their errors visible\", async () => {\n    const ui = webview();\n    try {\n      ui.tabs(\"a\");\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        pending: [{ id: \"input-1\", status: \"unknown\", text: \"saved input\" }],\n      });\n      for (const [label, type] of [\n        [\"Check acceptance\", \"draftReconcile\"],\n        [\"Copy to composer\", \"draftRecover\"],\n        [\"Discard saved input\", \"draftDiscard\"],\n      ]) {\n        [...ui.window.document.querySelectorAll(\"button\")]\n          .find((button) => button.textContent === label)\n          .click();\n        const request = ui.posted.find((m) => m.type === type);\n        expect(request).toMatchObject({\n          webviewInstance: ui.page.webviewInstance,\n          convId: \"a\",\n          draftKey: ui.keys.a,\n        });\n        ui.emit({ ...request, kind: \"draftSaveError\", text: type + \" failed\" });\n        expect(ui.window.document.body.textContent).toContain(type + \" failed\");\n      }\n    } finally {\n      await ui.window.happyDOM.abort();\n    }\n  });\n  it(\"ignores previous-page image ACKs while accepting the current page's background ACK\", async () => {\n    const oldUi = webview();\n    const ui = webview();\n    try {\n      expect(ui.page.webviewNonce).toBe(oldUi.page.webviewNonce);\n      expect(ui.page.webviewInstance).not.toBe(oldUi.page.webviewInstance);\n      ui.tabs(\"a\");\n      ui.window.FileReader = class {\n        readAsDataURL() {\n          this.result = image.data;\n          this.onload();\n        }\n      };\n      const paste = new ui.window.Event(\"paste\", { cancelable: true });\n      Object.defineProperty(paste, \"clipboardData\", {\n        value: {\n          items: [\n            {\n              type: \"image/png\",\n              getAsFile: () => ({ type: \"image/png\", size: 70 }),\n            },\n          ],\n        },\n      });\n      ui.input.dispatchEvent(paste);\n      await until(() => ui.posted.some((m) => m.type === \"draftUpdate\"));\n      const request = ui.posted.find((m) => m.type === \"draftUpdate\");\n      expect(request.revision).toBe(1);\n      expect(request.webviewInstance).toBe(ui.page.webviewInstance);\n      const attachments = ui.window.document.getElementById(\"attach\");\n      const before = ui.window.document.body.textContent;\n      ui.emit({\n        ...request,\n        kind: \"draftSaved\",\n        webviewInstance: oldUi.page.webviewInstance,\n        revision: 5,\n        imagesChanged: true,\n      });\n      ui.emit({\n        ...request,\n        kind: \"draftSaveError\",\n        webviewInstance: oldUi.page.webviewInstance,\n        text: \"old error\",\n      });\n      expect(attachments.querySelectorAll(\"canvas\")).toHaveLength(0);\n      expect(ui.window.document.body.textContent).toBe(before);\n      ui.tabs(\"b\");\n      ui.emit({ ...request, kind: \"draftSaved\", imagesChanged: true });\n      ui.tabs(\"a\");\n      expect(attachments.querySelectorAll(\"canvas\")).toHaveLength(0);\n      expect(ui.decoders).toHaveLength(1);\n      ui.decoders[0].onmessage({\n        data: {\n          results: [\n            {\n              decodedWidth: 1,\n              decodedHeight: 1,\n              frames: 1,\n              thumbnails: [{ bitmap: { close() {} }, duration: 100 }],\n            },\n          ],\n        },\n      });\n      await until(() => attachments.querySelectorAll(\"canvas\").length === 1);\n      expect(attachments.querySelectorAll(\"canvas\")).toHaveLength(1);\n      expect(attachments.querySelectorAll(\"img\")).toHaveLength(0);\n      expect(ui.window.document.body.textContent).toContain(\n        \"Draft saved on this device\",\n      );\n      expect(ui.posted.some((m) => m.type === \"send\")).toBe(false);\n    } finally {\n      await ui.window.happyDOM.abort();\n      await oldUi.window.happyDOM.abort();\n    }\n  });\n  it(\"restores saved text and images, but never overwrites newer local edits\", async () => {\n    const ui = webview();\n    try {\n      ui.tabs(\"a\");\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        composer: { text: \"saved\", images: [image] },\n        pending: [],\n      });\n      expect(ui.input.value).toBe(\"saved\");\n      expect(\n        ui.window.document.getElementById(\"attach\").querySelectorAll(\".chip\"),\n      ).toHaveLength(1);\n      ui.input.value = \"new typing\";\n      ui.input.dispatchEvent(new ui.window.Event(\"input\"));\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        composer: { text: \"stale\", images: [] },\n        pending: [],\n      });\n      expect(ui.input.value).toBe(\"new typing\");\n      expect(ui.state().draftTextBackup.text).toBe(\"new typing\");\n    } finally {\n      await ui.window.happyDOM.abort();\n    }\n  });\n  it(\"keeps input until a matching saved-submission ACK, including background ACKs\", async () => {\n    const ui = webview();\n    try {\n      ui.tabs(\"a\");\n      ui.input.value = \"A question\";\n      ui.input.dispatchEvent(new ui.window.Event(\"input\"));\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        composer: { text: \"\", images: [] },\n        pending: [],\n      });\n      ui.window.document.getElementById(\"send\").click();\n      const send = ui.posted.find((m) => m.type === \"send\");\n      expect(send.clientMessageId).toBeTruthy();\n      expect(ui.input.value).toBe(\"A question\");\n      ui.tabs(\"b\");\n      ui.input.value = \"B draft\";\n      ui.input.dispatchEvent(new ui.window.Event(\"input\"));\n      ui.emit({\n        kind: \"submissionStored\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        clientMessageId: send.clientMessageId,\n      });\n      expect(ui.input.value).toBe(\"B draft\");\n      ui.tabs(\"a\");\n      expect(ui.input.value).toBe(\"\");\n    } finally {\n      await ui.window.happyDOM.abort();\n    }\n  });\n  it(\"restores the short text backup across Webview reload and blocks missing images\", async () => {\n    const key = \"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\";\n    const ui = webview({\n      draftTextBackup: { key, text: \"last keystroke\", pendingId: null },\n    });\n    try {\n      ui.tabs(\"a\");\n      expect(ui.input.value).toBe(\"last keystroke\");\n      ui.window.document.getElementById(\"send\").click();\n      expect(ui.posted.filter((m) => m.type === \"send\")).toEqual([]);\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        composer: { text: \"older text\", images: [image] },\n        pending: [],\n      });\n      expect(ui.input.value).toBe(\"last keystroke\");\n      expect(\n        ui.window.document.getElementById(\"attach\").querySelectorAll(\".chip\"),\n      ).toHaveLength(1);\n      ui.tabs(\"b\");\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"b\",\n        draftKey: ui.keys.b,\n        composer: { text: \"image draft\", images: [], missingImages: true },\n        pending: [],\n      });\n      ui.window.document.getElementById(\"send\").click();\n      expect(ui.posted.filter((m) => m.type === \"send\")).toEqual([]);\n    } finally {\n      await ui.window.happyDOM.abort();\n    }\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711939087,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793711867896-2739",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_2x7ka4qzzqdw4ibdh5xhcbeq",
+            "tool": "list_dir",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "entries": [
+                {
+                  "name": "verify-31.test.js",
+                  "type": "file"
+                }
+              ],
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711939086,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793711867896-2739",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_zt2zyyui23chzrslxo8aioak",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-WHEyxH/37d3d07b-ebdd-4e20-b220-7dc8b8423de1/workspace/packages/vscode-extension/__tests__/verify-31.test.js",
+              "fileVersion": "4230:1793711912175.9253:1793711912176.6177",
+              "readSpan": {
+                "start": 0,
+                "end": 4230,
+                "total": 4230
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it, vi } from \"vitest\";\nimport { readImageSnapshot } from \"../src/chat/image-file-snapshot.js\";\n\nfunction fileStat(size, overrides = {}) {\n  return {\n    isFile: () => true,\n    size,\n    dev: 1,\n    ino: 2,\n    mtimeMs: 100,\n    ctimeMs: 200,\n    ...overrides,\n  };\n}\n\n// A handle whose read() mirrors real fs semantics: copies the file bytes into\n// the caller buffer and reports bytesRead, returning 0 past the end so the\n// caller loop terminates. close() is recorded.\nfunction harness({ size, content, readImpl, statImpl, openStat }) {\n  const data = Buffer.from(content ?? \"x\".repeat(size));\n  const calls = { close: 0, open: 0, unlink: 0 };\n  const handle = {\n    stat: vi.fn(async () => (statImpl ? statImpl() : fileStat(size))),\n    read: vi.fn(\n      readImpl ??\n        (async (buf, offset, len, pos) => {\n          const n = Math.min(len, data.length - pos);\n          if (n <= 0) return { bytesRead: 0 };\n          data.copy(buf, offset, pos, pos + n);\n          return { bytesRead: n };\n        }),\n    ),\n    close: vi.fn(async () => {\n      calls.close += 1;\n    }),\n  };\n  const io = {\n    lstat: vi.fn(async () => fileStat(size)),\n    open: vi.fn(async () => {\n      calls.open += 1;\n      if (openStat) return openStat(handle);\n      return handle;\n    }),\n    unlink: vi.fn(async () => {\n      calls.unlink += 1;\n    }),\n  };\n  return { io, handle, calls, data };\n}\n\ndescribe(\"image file snapshot resource cleanup\", () => {\n  it(\"returns the snapshot and closes the handle on success\", async () => {\n    const { io, handle, calls, data } = harness({ size: 5, content: \"hello\" });\n    const snapshot = await readImageSnapshot(\"/img.png\", 5, { io });\n    expect(snapshot.equals(data)).toBe(true);\n    expect(handle.close).toHaveBeenCalledTimes(1);\n    expect(calls.open).toBe(1);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"closes the handle when a read fails mid-loop\", async () => {\n    const { io, handle, calls } = harness({\n      size: 5,\n      readImpl: async () => {\n        throw new Error(\"disk read error\");\n      },\n    });\n    await expect(readImageSnapshot(\"/img.png\", 5, { io })).rejects.toThrow(\n      \"disk read error\",\n    );\n    expect(handle.close).toHaveBeenCalledTimes(1);\n    expect(calls.open).toBe(1);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"closes the handle when the file changes after open\", async () => {\n    const { io, handle, calls } = harness({\n      size: 5,\n      statImpl: () => fileStat(5, { size: 6 }), // differs from lstat before\n    });\n    await expect(readImageSnapshot(\"/img.png\", 5, { io })).rejects.toThrow(\n      \"changed while opening\",\n    );\n    expect(handle.close).toHaveBeenCalledTimes(1);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"does not open a handle when lstat fails before open\", async () => {\n    const { io, calls } = harness({ size: 5 });\n    io.lstat.mockRejectedValueOnce(new Error(\"ENOENT\"));\n    await expect(readImageSnapshot(\"/img.png\", 5, { io })).rejects.toThrow(\n      \"ENOENT\",\n    );\n    expect(calls.open).toBe(0);\n    expect(io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"never deletes the referenced image on success or failure\", async () => {\n    const ok = harness({ size: 3, content: \"abc\" });\n    await readImageSnapshot(\"/img.png\", 3, { io: ok.io });\n    expect(ok.calls.unlink).toBe(0);\n    expect(ok.io.unlink).not.toHaveBeenCalled();\n\n    const fail = harness({\n      size: 3,\n      readImpl: async () => {\n        throw new Error(\"read failed\");\n      },\n    });\n    await expect(readImageSnapshot(\"/img.png\", 3, { io: fail.io })).rejects.toThrow(\n      \"read failed\",\n    );\n    expect(fail.calls.unlink).toBe(0);\n    expect(fail.io.unlink).not.toHaveBeenCalled();\n  });\n\n  it(\"accepts the exact expected size and rejects the first mismatch\", async () => {\n    const { io, data } = harness({ size: 4, content: \"wxyz\" });\n    const snapshot = await readImageSnapshot(\"/img.png\", 4, { io });\n    expect(snapshot.equals(data)).toBe(true);\n\n    const { io: io2, calls } = harness({ size: 4 });\n    await expect(readImageSnapshot(\"/img.png\", 5, { io: io2 })).rejects.toThrow(\n      \"missing or changed\",\n    );\n    expect(calls.open).toBe(0);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711943852,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-31.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793711867896-2739",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-31.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_1xzotprzcudo2ekuh30b7t6i",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-WHEyxH/37d3d07b-ebdd-4e20-b220-7dc8b8423de1/workspace/packages/vscode-extension/__tests__/verify-31.test.js",
+              "fileVersion": "4230:1793711912175.9253:1793711912176.6177",
+              "range": {
+                "startLine": 1,
+                "endLine": 30,
+                "totalLines": 129
+              },
+              "nextRead": {
+                "path": "packages/vscode-extension/__tests__/verify-31.test.js",
+                "offset": 31,
+                "limit": 30
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 0,
+                "end": 1028,
+                "total": 4230
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it, vi } from \"vitest\";\nimport { readImageSnapshot } from \"../src/chat/image-file-snapshot.js\";\n\nfunction fileStat(size, overrides = {}) {\n  return {\n    isFile: () => true,\n    size,\n    dev: 1,\n    ino: 2,\n    mtimeMs: 100,\n    ctimeMs: 200,\n    ...overrides,\n  };\n}\n\n// A handle whose read() mirrors real fs semantics: copies the file bytes into\n// the caller buffer and reports bytesRead, returning 0 past the end so the\n// caller loop terminates. close() is recorded.\nfunction harness({ size, content, readImpl, statImpl, openStat }) {\n  const data = Buffer.from(content ?? \"x\".repeat(size));\n  const calls = { close: 0, open: 0, unlink: 0 };\n  const handle = {\n    stat: vi.fn(async () => (statImpl ? statImpl() : fileStat(size))),\n    read: vi.fn(\n      readImpl ??\n        (async (buf, offset, len, pos) => {\n          const n = Math.min(len, data.length - pos);\n          if (n <= 0) return { bytesRead: 0 };\n          data.copy(buf, offset, pos, pos + n);\n          return { bytesRead: n };",
+              "readRecovery": {
+                "action": "targeted-review"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793711976742,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-31.test.js",
+                    "offset": 1,
+                    "limit": 30
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793711867896-2739",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-31.test.js",
+                    "offset": 1,
+                    "limit": 30
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 1194,
+              "output_tokens": 104,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4190,
+              "output_tokens": 132,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 16964,
+              "output_tokens": 3617,
+              "cache_read_input_tokens": 4352,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 24826,
+              "output_tokens": 79,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 13281,
+              "output_tokens": 626,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 1459,
+              "output_tokens": 118,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6384,
+              "output_tokens": 197,
+              "cache_read_input_tokens": 2816,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 15163,
+              "output_tokens": 72,
+              "cache_read_input_tokens": 6144,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 7416,
+              "output_tokens": 3113,
+              "cache_read_input_tokens": 16384,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 22536,
+              "output_tokens": 1053,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 113413,
+          "output_tokens": 9111,
+          "cache_read_input_tokens": 44032
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 10,
+        "estimatedCostUSD": 0.019045348,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "I've now fully read the deliverable (all 129 lines) and the frozen source. The deliverable already contains six complete independent regression tests that fully cover the acceptance requirements. Let me verify the source's actual contract matches these assertions before concluding.\n\nThe frozen `readImageSnapshot` contract (from my earlier read of `image-file-snapshot.js`):\n- `io.lstat(file)` validates isFile, size bounds, expectedSize → throws \"missing or changed\"\n- `io.open(file, O_RDONLY|O_NOFOLLOW)` \n- try: `handle.stat()` must equal before → \"changed while opening\"; read loop with `check()`; after stats must match → \"changed while reading\"\n- `finally { await handle.close(); }`\n- **The source never calls `io.unlink`** — it never deletes the referenced image.\n\nAudit of the six existing cases against each independent requirement:\n\n1. **Success path** (`returns the snapshot and closes the handle on success`): `harness({size:5, content:\"hello\"})`; assert snapshot bytes equal, `close` called once, `open` once, `unlink` never. Covers handle cleanup on success + non-deletion of referenced image.\n\n2. **Read failure mid-loop** (`closes the handle when a read fails mid-loop`): `readImpl` throws \"disk read error\"; assert rejection, `close` called once, `open` once, `unlink` never. Covers handle cleanup after read failure (the \"读取/复制失败后句柄清理\" requirement).\n\n3. **Change after open** (`closes the handle when the file changes after open`): `statImpl` returns size 6 vs before size 5 → \"changed while opening\"; assert `close` called once, `unlink` never. Covers handle cleanup when validation fails after handle acquisition (a second distinct failure path after the handle is opened).\n\n4. **Failure before open** (`does not open a handle when lstat fails before open`): `lstat.mockRejectedValueOnce(ENOENT)`; assert `open` count 0, `unlink` never. Covers that a pre-open failure leaks no handle.\n\n5. **Never deletes referenced image** (`never deletes the referenced image on success or failure`): both a success and a read-failure harness; assert `unlink` count 0 in both. This directly covers \"不删除成功引用图片\" for both branches.\n\n6. **expectedSize boundary** (`accepts the exact expected size and rejects the first mismatch`): file size 4 + expectedSize 4 → success; file size 4 + expectedSize 5 → \"missing or changed\" with `open` count 0. Covers the stated boundary + first rejected value.\n\nEvery acceptance requirement maps to a fixture, real production call path (`readImageSnapshot`), and observable assertion. Positive and negative controls differ only in the intended condition. The import path `../src/chat/image-file-snapshot.js` resolves correctly from `packages/vscode-extension/__tests__/` to `packages/vscode-extension/src/chat/image-file-snapshot.js`.\n\nRegarding \"临时文件清理\" (temp file cleanup): the frozen `readImageSnapshot` creates no temp files and never calls `unlink` — the only resource it acquires is the file handle, cleaned via `finally { await handle.close() }`. The tests correctly assert this actual contract (handle closed on every failure path; referenced image never unlinked). I found **no defect in the frozen implementation** — the resource-cleanup logic is correct, so no counterexample-driven fix is warranted.\n\nNo code changes are needed; the deliverable is already complete and correct. Tests were not executed (no execution tools available in this environment).\n\n**Delivery account:**\n- **Deliverable**: `packages/vscode-extension/__tests__/verify-31.test.js` is complete with exactly 6 independent Vitest regression cases; no placeholder remains.\n- **Coverage audit**: Each acceptance condition has a positive+negative control reaching the real `readImageSnapshot` boundary with valid prerequisites — handle cleanup after read failure (case 2), handle cleanup after open-time change (case 3), no handle leak on pre-open failure (case 4), non-deletion of referenced images on both success and failure (cases 1, 5), and the expectedSize accepted boundary vs first rejected value (case 6). All conditions covered.\n- **Implementation defect**: None found in the frozen `image-file-snapshot.js`; the `finally`-based handle close is correct and `unlink` is never invoked (matching the \"don't delete referenced images\" requirement). No source change is warranted, and I did not modify source.\n- **Limitations**: No shell/execution tools are available, so tests were not actually run; the claims above rest on static inspection of the source contract and the tests. Native generation does not imply native pass.",
+          "session_id": "headless-1793711867896-2739",
+          "num_turns": 10,
+          "duration_ms": 122552,
+          "usage": {
+            "input_tokens": 113413,
+            "output_tokens": 9111,
+            "cache_read_input_tokens": 44032,
+            "cache_creation_input_tokens": 0
+          },
+          "total_cost_usd": 0.019045348
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 10,
+        "usageCompleteRequests": 10,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateAcceptancePassed": true,
+      "passed": true,
+      "generationAssessment": {
+        "passed": true,
+        "originalGenerationPassed": true,
+        "originalTerminalVerified": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 113413,
+            "outputTokens": 9111,
+            "cacheReadInputTokens": 44032,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": 0.019045348
+        },
+        "dialect": "one-shot"
+      },
+      "sourceScopePassed": true,
+      "unexpectedChanges": [],
+      "frozenSourceAssessment": {
+        "exact": true,
+        "contentVerified": true,
+        "filenameEncoding": "utf8"
+      },
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-31-setup-b8b85fd6-7e8a-48e6-9449-804ab552739c.json",
+        "receiptDigest": "sha256:828899928d609db9d0e997f880d9496a458974a373d3c61d0d2aacc3605c479e",
+        "scriptDigest": "sha256:06f1631e91ea0ce86436cd326996b8b7b117887cd225f2d64264fcc67a65d35f",
+        "receiptPath": "pack/acceptance-evidence/verify-31-setup-b8b85fd6-7e8a-48e6-9449-804ab552739c.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 31,
+            "passed": 31,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-31-check-2d1fb505-b669-4dac-81b1-0cbf82f6d3a4.json",
+        "receiptDigest": "sha256:8d3285f1fe5f8e5046596a7b8267846f6a3da25e75cbb446390fc0f9b23e8f4c",
+        "scriptDigest": "sha256:24eca41ad4329ee9a9506964723c44d22d410fee9f41917ce1b9bc3ef175d565",
+        "receiptPath": "pack/acceptance-evidence/verify-31-check-2d1fb505-b669-4dac-81b1-0cbf82f6d3a4.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 31,
+            "passed": 31,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          }
+        ],
+        "mutations": [
+          {
+            "name": "leak-read-handle-on-failure",
+            "sourceSha256": "85b4d79f7c3f29a92887d408c99545fbe431416b47b6b582b4a5c32066dc8049",
+            "total": 6,
+            "passed": 3,
+            "failed": 3
+          }
+        ]
+      },
+      "finishedAt": "2026-11-03T16:43:44.037Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-31"
+  ],
+  "passed": true,
+  "finishedAt": "2026-11-03T16:43:44.040Z"
+}

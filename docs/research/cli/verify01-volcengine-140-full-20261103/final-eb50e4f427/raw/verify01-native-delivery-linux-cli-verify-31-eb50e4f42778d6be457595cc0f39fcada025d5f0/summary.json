@@ -1,0 +1,1588 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000,
+    "connectionAttemptTimeoutMs": 10000,
+    "parallelToolCalls": null
+  },
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:f38ba1d4c166229766cd78adfd38ccfc2413b21ad4f533ef7d87f5ec1bf10f69",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:9df4efc5365ed381684a1990009c4b162ec96ae9ce229df13d4b583860a3559c",
+  "actualPlatform": "linux",
+  "actualArch": "x64",
+  "actualEntry": "cli",
+  "changeReview": {
+    "requested": true,
+    "observed": false
+  },
+  "startedAt": "2026-11-03T12:11:59.144Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-31",
+      "taskId": "verify-31",
+      "kind": "task",
+      "runId": "d0730f64-97c6-445d-942e-bfeb70237991",
+      "stratum": "linux-cli-volcengine",
+      "declaredActualEntry": {
+        "platform": "linux",
+        "entry": "cli"
+      },
+      "actualPlatform": "linux",
+      "actualEntry": "cli",
+      "changeReview": {
+        "requested": true,
+        "observed": false,
+        "reminderCount": 0,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:9df4efc5365ed381684a1990009c4b162ec96ae9ce229df13d4b583860a3559c",
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-31.test.js"
+      ],
+      "startedAt": "2026-11-03T12:11:59.145Z",
+      "deadline": "2026-11-03T12:51:59.145Z",
+      "candidates": [
+        {
+          "file": "packages/vscode-extension/__tests__/verify-31.test.js",
+          "path": "verify-31/candidate/packages/vscode-extension/__tests__/verify-31.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [],
+      "unexpectedChanges": [],
+      "generationPassed": false,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T12:12:00.825Z",
+        "finishedAt": "2026-11-03T12:12:20.318Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "verify-31",
+        "locked": {
+          "version": "0.166.140",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+          "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      },
+      "model": {
+        "pass": false,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 94966,
+            "outputTokens": 4730,
+            "cacheReadInputTokens": 95488,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": 0.015956472000000003
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": false,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "headless-1793707942049-2740",
+          "session_persistence": false,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "isolation_level": "policy-only",
+          "max_turns": 40,
+          "resumed_from": null,
+          "history_messages": 0,
+          "additional_directories": [],
+          "goal_id": null
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_6r2itueec3k114u8jj1oq9r1",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/image-file-snapshot.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_8gvq0f66isj04jl0ptvbfecm",
+            "tool": "list_dir",
+            "args": {
+              "path": "packages/vscode-extension/__tests__"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_au38h2ff2m5cwwyzpia4p4eq",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-31.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_1rysce2b7ymq8n8vk084y5zg",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/vscode-ext-image-budget.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_kxssazlsjeop5tjzix8scamf",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_ok7w5b205hbotxpa67pyfwz3",
+            "tool": "search_files",
+            "args": {
+              "pattern": "readImageSnapshot",
+              "directory": "packages",
+              "content_search": true
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_czrt7y0d6mxo42uc4dyijm57",
+            "tool": "search_files",
+            "args": {
+              "pattern": "readImageSnapshot",
+              "path": "packages/vscode-extension/src/chat/image-attachments.js",
+              "contextChars": 600
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_o892vydw4dvqdj8xmh824gu1",
+            "tool": "search_files",
+            "args": {
+              "pattern": "readImageSnapshot",
+              "path": "packages/vscode-extension/src/chat/draft-store.js",
+              "contextChars": 600
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_6yof48amgf5vqofm5xp3d6t6",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/image-attachments.js",
+              "offset": 180,
+              "limit": 90
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_xltjjd6z7c1tpkjx9815rjb8",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/image-file-snapshot.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_c62t93mf88osjhdj1krf0dhs",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/image-attachments.js",
+              "offset": 270,
+              "limit": 30
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_79r2ru367fw6galvft5ig0mc",
+            "tool": "search_files",
+            "args": {
+              "pattern": "checkImageEnvelope",
+              "path": "packages/vscode-extension/src/chat/image-attachments.js",
+              "contextChars": 400
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_a6yq7tqbnadsaxgnurtiy7o9",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/draft-store.js",
+              "pattern": "class DraftStore|constructor|async load|async _load|module.exports",
+              "contextChars": 300
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_nzcgagdte4x77m3vql3tnaah",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/draft-store.js",
+              "limit": 70
+            }
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_6r2itueec3k114u8jj1oq9r1",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-hkDaF7/d0730f64-97c6-445d-942e-bfeb70237991/workspace/packages/vscode-extension/src/chat/image-file-snapshot.js",
+              "fileVersion": "2060:1791108223000:1793707919985.7312",
+              "readSpan": {
+                "start": 0,
+                "end": 2060,
+                "total": 2060
+              },
+              "hashed": false,
+              "content": "const fs = require(\"fs/promises\");\nconst { constants } = require(\"fs\");\n\n// Fixed allocation + one overflow byte. Reads, hash and validation consume the\n// same snapshot; no unbounded readFile after a separate header/path check.\nasync function readImageSnapshot(\n  file,\n  expectedSize = null,\n  { io = fs, signal, timeoutMs = 5000, now = () => performance.now() } = {},\n) {\n  const deadline = now() + timeoutMs;\n  const check = () => {\n    if (signal?.aborted) throw new Error(\"Image reading cancelled\");\n    if (now() >= deadline)\n      throw new Error(\"Image reading exceeded the time budget\");\n  };\n  const same = (a, b) =>\n    a.isFile() &&\n    b.isFile() &&\n    [\"size\", \"dev\", \"ino\", \"mtimeMs\", \"ctimeMs\"].every(\n      (key) => a[key] === b[key],\n    );\n  check();\n  const before = await io.lstat(file);\n  check();\n  if (\n    !before.isFile() ||\n    before.size <= 0 ||\n    before.size > 20 * 1024 * 1024 ||\n    (expectedSize !== null && before.size !== expectedSize)\n  )\n    throw new Error(\"Saved attachment is missing or changed; attach it again\");\n  const handle = await io.open(\n    file,\n    constants.O_RDONLY | (constants.O_NOFOLLOW || 0),\n  );\n  try {\n    check();\n    const opened = await handle.stat();\n    if (!same(before, opened))\n      throw new Error(\"Saved attachment changed while opening\");\n    const buffer = Buffer.alloc(opened.size + 1);\n    let count = 0;\n    while (count < buffer.length) {\n      check();\n      const { bytesRead } = await handle.read(\n        buffer,\n        count,\n        Math.min(64 * 1024, buffer.length - count),\n        count,\n      );\n      check();\n      if (!bytesRead) break;\n      count += bytesRead;\n    }\n    const after = await handle.stat();\n    const pathAfter = await io.lstat(file);\n    check();\n    if (\n      count !== opened.size ||\n      !same(opened, after) ||\n      !same(opened, pathAfter)\n    )\n      throw new Error(\"Saved attachment changed while reading\");\n    return buffer.subarray(0, count);\n  } finally {\n    await handle.close();\n  }\n}\n\nmodule.exports = { readImageSnapshot };\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707944820,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-file-snapshot.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "headless-1793707942049-2740",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-file-snapshot.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_8gvq0f66isj04jl0ptvbfecm",
+            "tool": "list_dir",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "entries": [
+                {
+                  "name": "verify-31.test.js",
+                  "type": "file"
+                }
+              ],
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707944820,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 8,
+                "sessionId": "headless-1793707942049-2740",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_au38h2ff2m5cwwyzpia4p4eq",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-hkDaF7/d0730f64-97c6-445d-942e-bfeb70237991/workspace/packages/vscode-extension/__tests__/verify-31.test.js",
+              "fileVersion": "27:1793707920017.7314:1793707920017.7314",
+              "readSpan": {
+                "start": 0,
+                "end": 27,
+                "total": 27
+              },
+              "hashed": false,
+              "content": "// Non-answer placeholder.\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707948635,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-31.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793707942049-2740",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-31.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_1rysce2b7ymq8n8vk084y5zg",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-hkDaF7/d0730f64-97c6-445d-942e-bfeb70237991/workspace/packages/cli/__tests__/unit/vscode-ext-image-budget.test.js",
+              "fileVersion": "6696:1791108223000:1793707919855.7307",
+              "readSpan": {
+                "start": 0,
+                "end": 6696,
+                "total": 6696
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it, vi } from \"vitest\";\nimport fs from \"node:fs/promises\";\nimport { Window } from \"happy-dom\";\nimport {\n  checkImageEnvelope,\n  imageDimensions,\n  writeImageBatch,\n  MAX_IMAGE_BYTES,\n} from \"../../../vscode-extension/src/chat/image-attachments.js\";\nimport { buildChatHtml } from \"../../../vscode-extension/src/chat/chat-html.js\";\nimport { ChatViewProvider } from \"../../../vscode-extension/src/chat/chat-view.js\";\n\nconst png =\n  \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\";\nconst image = { data: `data:image/png;base64,${png}` };\n\ndescribe(\"bounded image intake\", () => {\n  it(\"rejects byte and aggregate limits before allocating buffers\", () => {\n    const large = {\n      data:\n        \"data:image/png;base64,\" +\n        \"A\".repeat(Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 4),\n    };\n    expect(() => checkImageEnvelope([large])).toThrow(\"20 MiB\");\n    const half = {\n      data: \"data:image/png;base64,\" + \"A\".repeat(15 * 1024 * 1024),\n    };\n    expect(() => checkImageEnvelope([half, half])).toThrow(\"total\");\n  });\n\n  it(\"rejects a pixel bomb without writing files\", async () => {\n    const bytes = Buffer.from(png, \"base64\");\n    bytes.writeUInt32BE(100000, 16);\n    bytes.writeUInt32BE(100000, 20);\n    const open = vi.fn();\n    await expect(\n      writeImageBatch(\n        [{ data: `data:image/png;base64,${bytes.toString(\"base64\")}` }],\n        { io: { open } },\n      ),\n    ).rejects.toThrow(\"40 megapixels\");\n    expect(open).not.toHaveBeenCalled();\n  });\n\n  it(\"recognizes JPEG, GIF and WebP headers without decoding pixels\", () => {\n    expect(\n      imageDimensions(Buffer.from(\"47494638396102000300\", \"hex\")),\n    ).toMatchObject({ format: \"gif\", width: 2, height: 3 });\n    expect(\n      imageDimensions(Buffer.from(\"ffd8ffc00008080003000200\", \"hex\")),\n    ).toMatchObject({ format: \"jpeg\", width: 2, height: 3 });\n    const webp = Buffer.alloc(30);\n    webp.write(\"RIFF\", 0);\n    webp.write(\"WEBPVP8X\", 8);\n    webp[24] = 1;\n    webp[27] = 2;\n    expect(imageDimensions(webp)).toMatchObject({\n      format: \"webp\",\n      width: 2,\n      height: 3,\n    });\n  });\n\n  it(\"cleans already-owned files on write failure and reports the failing image\", async () => {\n    const unlink = vi.fn(async () => {});\n    const open = vi.fn(async () => ({\n      writeFile: async () => {\n        throw Object.assign(new Error(\"full\"), { code: \"ENOSPC\" });\n      },\n      close: vi.fn(),\n    }));\n    await expect(\n      writeImageBatch([image], { io: { open, unlink } }),\n    ).rejects.toThrow(\"Image 1\");\n    expect(unlink).toHaveBeenCalledTimes(1);\n    expect(open.mock.calls[0].slice(1)).toEqual([\"wx\", 0o600]);\n  });\n\n  it(\"keeps async image sends bound to their source tab and discards reset results\", async () => {\n    const sent = [];\n    const messages = [];\n    const provider = new ChatViewProvider(\n      {\n        workspace: {\n          workspaceFolders: [],\n          getConfiguration: () => ({ get: () => undefined }),\n        },\n        window: {},\n      },\n      {\n        deps: {\n          resolveChatLlm: () => ({}),\n          createSession: (cfg) => ({\n            running: true,\n            sendEvent: (msg) => {\n              sent.push({ cfg, msg });\n              return true;\n            },\n            stop() {},\n          }),\n        },\n      },\n    );\n    provider.view = {\n      webview: {\n        postMessage(msg) {\n          messages.push(msg);\n          return Promise.resolve();\n        },\n      },\n    };\n    const postFrom = provider._postFrom.bind(provider);\n    provider._postFrom = (...args) => {\n      messages.push(args[1]);\n      return postFrom(...args);\n    };\n    let finish;\n    provider._writeImageTemps = () =>\n      new Promise((resolve) => {\n        finish = resolve;\n      });\n    const a = provider._activeConv();\n    const pending = provider._handleMessage({\n      type: \"send\",\n      text: \"A only\",\n      images: [image],\n    });\n    const b = provider._convs.create({});\n    const files = await writeImageBatch([image]);\n    finish(files);\n    await pending;\n    expect(sent, JSON.stringify(messages)).toHaveLength(1);\n    expect(a.session).toBeTruthy();\n    expect(b.session).toBeNull();\n    provider._convs.switchTo(a.id);\n    const pendingReset = provider._handleMessage({\n      type: \"send\",\n      text: \"old generation\",\n      images: [image],\n    });\n    provider._clearSessionState(a);\n    const staleFiles = await writeImageBatch([image]);\n    finish(staleFiles);\n    await pendingReset;\n    expect(sent).toHaveLength(1);\n    await expect(fs.stat(staleFiles[0])).rejects.toThrow();\n    provider.dispose();\n  });\n\n  it(\"reserves read slots before rapid drops and keeps drafts in their own tab\", async () => {\n    const window = new Window({\n      settings: {\n        enableJavaScriptEvaluation: true,\n        suppressInsecureJavaScriptEnvironmentWarning: true,\n      },\n    });\n    const posted = [];\n    const readers = [];\n    window.FileReader = class {\n      readAsDataURL() {\n        readers.push(this);\n      }\n    };\n    window.acquireVsCodeApi = () => ({\n      postMessage: (event) => posted.push(event),\n      getState: () => ({}),\n      setState() {},\n    });\n    window.document.write(\n      buildChatHtml({ nonce: \"n\", cspSource: \"vscode-resource:\" }),\n    );\n    const input = window.document.getElementById(\"input\");\n    const tabs = (id) =>\n      window.dispatchEvent(\n        new window.MessageEvent(\"message\", {\n          data: {\n            kind: \"tabs\",\n            activeId: id,\n            tabs: [\n              { id: \"a\", title: \"A\" },\n              { id: \"b\", title: \"B\" },\n            ],\n          },\n        }),\n      );\n    tabs(\"a\");\n    input.value = \"draft A\";\n    input.dispatchEvent(new window.Event(\"input\"));\n    const drop = new window.Event(\"drop\");\n    Object.defineProperty(drop, \"dataTransfer\", {\n      value: {\n        items: [{ kind: \"file\", type: \"image/png\" }],\n        files: Array.from({ length: 6 }, () => ({\n          type: \"image/png\",\n          size: 1024,\n        })),\n      },\n    });\n    input.dispatchEvent(drop);\n    expect(readers).toHaveLength(4);\n    window.document.getElementById(\"send\").click();\n    expect(posted.filter((e) => e.type === \"send\")).toHaveLength(0);\n    tabs(\"b\");\n    for (const reader of readers) {\n      reader.result = image.data;\n      reader.onload();\n    }\n    expect(window.document.getElementById(\"attach\").textContent).toBe(\"\");\n    expect(input.value).toBe(\"\");\n    tabs(\"a\");\n    expect(input.value).toBe(\"draft A\");\n    expect(\n      window.document.getElementById(\"attach\").querySelectorAll(\".chip\"),\n    ).toHaveLength(4);\n    await window.happyDOM.abort();\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707954676,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-image-budget.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 3,
+                "sessionId": "headless-1793707942049-2740",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-image-budget.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_kxssazlsjeop5tjzix8scamf",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-hkDaF7/d0730f64-97c6-445d-942e-bfeb70237991/workspace/packages/cli/__tests__/unit/vscode-ext-draft-store.test.js",
+              "fileVersion": "30577:1791108223000:1793707919855.7307",
+              "readSpan": {
+                "start": 0,
+                "end": 30565,
+                "total": 30565
+              },
+              "hashed": false,
+              "content": "import { afterEach, describe, expect, it, vi } from \"vitest\";\nimport fs from \"node:fs/promises\";\nimport { tmpdir } from \"node:os\";\nimport path from \"node:path\";\nimport { randomUUID } from \"node:crypto\";\nimport { DraftStore } from \"../../../vscode-extension/src/chat/draft-store.js\";\nimport { ChatViewProvider } from \"../../../vscode-extension/src/chat/chat-view.js\";\nimport { buildChatHtml } from \"../../../vscode-extension/src/chat/chat-html.js\";\nimport { Window } from \"happy-dom\";\n\nconst roots = [];\nconst providers = [];\nafterEach(async () => {\n  for (const p of providers.splice(0)) p.dispose();\n  for (const root of roots.splice(0))\n    await fs.rm(root, { recursive: true, force: true });\n});\nasync function storage() {\n  const root = await fs.mkdtemp(path.join(tmpdir(), \"cc-draft-\"));\n  roots.push(root);\n  return root;\n}\nconst image = {\n  data: \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\",\n};\nfunction receipt(sessionId, clientMessageId) {\n  return {\n    sessionId,\n    clientMessageId,\n    inputDigest: \"a\".repeat(64),\n    eventHash: \"b\".repeat(64),\n  };\n}\n\ndescribe(\"durable composer storage\", () => {\n  it(\"commits an empty manifest before image cleanup and completes cleanup after page replacement\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"image draft\", images: [image] });\n    let current = true;\n    let cleanedImage = false;\n    const unlink = fs.unlink.bind(fs);\n    const spy = vi.spyOn(fs, \"unlink\").mockImplementation(async (file) => {\n      if (String(file).endsWith(\".png\")) {\n        await expect(\n          fs.stat(path.join(root, key, \"draft.json\")),\n        ).rejects.toMatchObject({ code: \"ENOENT\" });\n        current = false;\n        cleanedImage = true;\n      }\n      return unlink(file);\n    });\n    try {\n      await store.save(\n        key,\n        { text: \"\", images: [] },\n        {\n          assertCurrent: () => {\n            if (!current) throw new Error(\"inactive page\");\n          },\n        },\n      );\n      expect(cleanedImage).toBe(true);\n      expect(await store.list()).toEqual([]);\n      await expect(fs.stat(path.join(root, key))).rejects.toMatchObject({\n        code: \"ENOENT\",\n      });\n    } finally {\n      spy.mockRestore();\n    }\n  });\n  it(\"rechecks page lifetime before rename and removes an abandoned temporary manifest\", async () => {\n    const root = await storage();\n    const store = new DraftStore(root);\n    const key = randomUUID();\n    await store.save(key, { text: \"original\" });\n    const before = await fs.readFile(path.join(root, key, \"draft.json\"));\n    let release;\n    let paused = false;\n    let current = true;\n    const gate = new Promise((done) => {\n      release = done;\n    });\n    const quota = store._quota.bind(store);\n    const spy = vi\n      .spyOn(store, \"_quota\")\n      .mockImplementation(async (...args) => {\n        await quota(...args);\n        paused = true;\n        await gate;\n      });\n    const saving = store.save(\n      key,\n      { text: \"obsolete\" },\n      {\n        assertCurrent: () => {\n          if (!current) throw new Error(\"inactive page\");\n        },\n      },\n    );\n    const rejection = expect(saving).rejects.toThrow(\"inactive page\");\n    try {\n      await until(() => paused);\n      current = false;\n      release();\n      await rejection;\n      expect(await fs.readFile(path.join(root, key, \"draft.json\"))).toEqual(\n        before,\n      );\n      expect(await fs.readdir(path.join(root, key))).toEqual([\"draft.json\"]);\n    } finally {\n      release();\n      spy.mockRestore();\n      await saving.catch(() => {});\n    }\n  });\n  it(\"recovers text and image snapshots in a fresh store, with no image data in metadata\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"draft 中文\", images: [image] });\n    await store.save(key, { text: \"edited 中文\" });\n    const restored = await new DraftStore(root).view(key);\n    expect(restored.composer.text).toBe(\"edited 中文\");\n    expect(restored.composer.images[0].data).toBe(image.data);\n    const metadata = await fs.readFile(\n      path.join(root, key, \"draft.json\"),\n      \"utf8\",\n    );\n    expect(metadata).not.toContain(\"base64\");\n  });\n  it(\"saves a submitted snapshot before clearing the composer, and retains unknown sends\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"old\", images: [image] });\n    const prepared = await store.prepare(key, \"session-1\", \"input-1\", {\n      text: \"submitted\",\n      images: [image],\n    });\n    expect((await store.view(key)).composer.text).toBe(\"\");\n    await store.settle(key, \"input-1\", \"unknown\");\n    expect(\n      (await new DraftStore(root).recover(key, \"input-1\")).images[0].data,\n    ).toBe(image.data);\n    await expect(\n      store.settle(key, \"input-1\", \"accepted\", receipt(\"other\", \"input-1\")),\n    ).rejects.toThrow(\"match\");\n    await store.settle(\n      key,\n      \"input-1\",\n      \"accepted\",\n      receipt(\"session-1\", \"input-1\"),\n    );\n    await expect(store.recover(key, \"input-1\")).rejects.toThrow(\"Accepted\");\n    await expect(fs.stat(prepared.paths[0])).rejects.toMatchObject({\n      code: \"ENOENT\",\n    });\n  });\n  it(\"does not silently omit missing attachments or accept a tampered snapshot\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"keep text\", images: [image] });\n    const record = JSON.parse(\n      await fs.readFile(path.join(root, key, \"draft.json\"), \"utf8\"),\n    );\n    await fs.unlink(path.join(root, key, record.composer.images[0].file));\n    expect((await store.view(key)).composer).toMatchObject({\n      text: \"keep text\",\n      missingImages: true,\n    });\n    record.composer.images[0].file = \"../../secret.png\";\n    await fs.writeFile(\n      path.join(root, key, \"draft.json\"),\n      JSON.stringify(record),\n    );\n    await expect(store.view(key)).rejects.toThrow(\"Invalid draft\");\n  });\n  it(\"retains the old draft and cleans new attachments when publishing fails\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"original\", images: [image] });\n    const before = (await fs.readdir(path.join(root, key))).sort();\n    const rename = vi\n      .spyOn(fs, \"rename\")\n      .mockRejectedValueOnce(new Error(\"ENOSPC\"));\n    try {\n      await expect(\n        store.save(key, { text: \"new\", images: [image] }),\n      ).rejects.toThrow(\"ENOSPC\");\n    } finally {\n      rename.mockRestore();\n    }\n    expect((await store.view(key)).composer.text).toBe(\"original\");\n    expect((await fs.readdir(path.join(root, key))).sort()).toEqual(before);\n  });\n  it(\"bounds pending records and does not evict unknown inputs\", async () => {\n    const store = new DraftStore(await storage());\n    const key = randomUUID();\n    for (let i = 0; i < 8; i++)\n      await store.prepare(key, \"session\", `input-${i}`, {\n        text: `${i}`,\n        images: [],\n      });\n    await expect(\n      store.prepare(key, \"session\", \"input-9\", { text: \"9\" }),\n    ).rejects.toThrow(\"eight\");\n    expect((await store.view(key)).pending).toHaveLength(8);\n    await expect(store.save(key, { text: \"a\".repeat(100001) })).rejects.toThrow(\n      \"100,000\",\n    );\n  });\n\n  it(\"serializes rapid edits without rewriting attachment snapshots\", async () => {\n    const root = await storage();\n    const key = randomUUID();\n    const store = new DraftStore(root);\n    await store.save(key, { text: \"first\", images: [image] });\n    const before = (await fs.readdir(path.join(root, key))).filter((n) =>\n      n.endsWith(\".png\"),\n    );\n    await Promise.all(\n      Array.from({ length: 20 }, (_, i) =>\n        store.save(key, { text: `edit-${i}` }),\n      ),\n    );\n    expect((await store.view(key)).composer.text).toBe(\"edit-19\");\n    expect(\n      (await fs.readdir(path.join(root, key))).filter((n) =>\n        n.endsWith(\".png\"),\n      ),\n    ).toEqual(before);\n    await store.save(key, { text: \"\", images: [] });\n    expect(await store.list()).toEqual([]);\n  });\n});\n\nfunction host(root, state = new Map(), deps = {}) {\n  const messages = [];\n  const sessions = [];\n  const provider = new ChatViewProvider(\n    {\n      workspace: {\n        workspaceFolders: [],\n        getConfiguration: () => ({ get: () => undefined }),\n      },\n      commands: { executeCommand() {} },\n      window: {},\n    },\n    {\n      storagePath: root,\n      state: {\n        get: (k) => state.get(k),\n        update: async (k, v) => state.set(k, v),\n      },\n      deps: {\n        resolveChatLlm: () => ({}),\n        loadTranscriptPage: async () => {\n          throw new Error(\"no transcript\");\n        },\n        createSession: (cfg) => {\n          const session = {\n            cfg,\n            running: true,\n            sent: [],\n            sendEvent: vi.fn((e) => {\n              session.sent.push(e);\n              return true;\n            }),\n            stop() {\n              this.running = false;\n            },\n          };\n          sessions.push(session);\n          return session;\n        },\n        ...deps,\n      },\n    },\n  );\n  providers.push(provider);\n  provider.view = {\n    webview: {\n      postMessage: (m) => {\n        messages.push(m);\n        return Promise.resolve(true);\n      },\n    },\n  };\n  provider._activeConv();\n  provider._postTabs();\n  return { provider, sessions, messages, state };\n}\nasync function until(condition) {\n  await vi.waitFor(() => expect(condition()).toBeTruthy(), {\n    timeout: 4000,\n    interval: 5,\n  });\n}\nfunction init(h, version = 1) {\n  const conv = h.provider._activeConv();\n  h.sessions.at(-1).cfg.onEvent({\n    type: \"system\",\n    subtype: \"init\",\n    session_id: conv.sessionId,\n    input_receipts: { version },\n  });\n}\n\ndescribe(\"host durable input lifecycle\", () => {\n  it(\"rejects a replaced page's saves and drops delayed image writes before publication\", async () => {\n    const h = host(await storage());\n    h.provider.vscode.l10n = { t: (value) => value };\n    h.provider._buildChatHtml(h.provider.view);\n    h.provider._handleMessage({\n      type: \"ready\",\n      webviewNonce: h.provider._draftWebviewNonce,\n      webviewInstance: randomUUID(),\n    });\n    const oldInstance = h.provider._draftWebviewInstance;\n    const conv = h.provider._activeConv();\n    const key = h.provider._draftKey(conv);\n    const request = {\n      type: \"draftUpdate\",\n      convId: conv.id,\n      draftKey: key,\n      webviewInstance: oldInstance,\n      revision: 5,\n      text: \"old page\",\n      images: [image],\n    };\n    const store = h.provider._draftStore;\n    const original = store._images.bind(store);\n    let release;\n    let paused = false;\n    const gate = new Promise((done) => {\n      release = done;\n    });\n    const spy = vi\n      .spyOn(store, \"_images\")\n      .mockImplementation(async (...args) => {\n        const metadata = await original(...args);\n        paused = true;\n        await gate;\n        return metadata;\n      });\n    const oldSave = h.provider._handleMessage(request);\n    try {\n      await until(() => paused);\n      // Reload Webviews executes the same cached HTML, retaining its nonce.\n      h.provider._handleMessage({\n        type: \"ready\",\n        webviewNonce: h.provider._draftWebviewNonce,\n        webviewInstance: randomUUID(),\n      });\n      const currentInstance = h.provider._draftWebviewInstance;\n      expect(currentInstance).not.toBe(oldInstance);\n      expect(\n        h.provider._handleMessage({\n          type: \"protocol\",\n          webviewNonce: h.provider._draftWebviewNonce,\n          webviewInstance: oldInstance,\n        }),\n      ).toBe(false);\n      expect(h.provider._draftWebviewInstance).toBe(currentInstance);\n      const currentSave = h.provider._handleMessage({\n        ...request,\n        webviewInstance: currentInstance,\n        revision: 1,\n        text: \"new page\",\n        images: [],\n      });\n      release();\n      await Promise.all([oldSave, currentSave]);\n      await h.provider._handleMessage(request);\n      expect((await store.view(key)).composer).toEqual({\n        text: \"new page\",\n        images: [],\n      });\n      expect(\n        (await fs.readdir(path.join(store.root, key))).filter((name) =>\n          name.endsWith(\".png\"),\n        ),\n      ).toEqual([]);\n      expect(h.messages.filter((m) => m.kind === \"draftSaved\")).toEqual([\n        expect.objectContaining({\n          webviewInstance: currentInstance,\n          revision: 1,\n        }),\n      ]);\n      expect(\n        h.messages\n          .filter((m) => m.kind === \"draftSaveError\")\n          .every((m) => m.webviewInstance === oldInstance),\n      ).toBe(true);\n    } finally {\n      release();\n      spy.mockRestore();\n      await oldSave;\n    }\n  });\n  it.each([\"prepare\", \"init\", \"unknown\", \"session-stop\"])(\n    \"cancels an undispatched saved input during %s without losing its recovery record\",\n    async (stage) => {\n      const h = host(await storage());\n      const conv = h.provider._activeConv();\n      let release;\n      let paused = false;\n      const gate = new Promise((done) => {\n        release = done;\n      });\n      const method = stage === \"unknown\" ? \"settle\" : \"prepare\";\n      const original = h.provider._draftStore[method].bind(\n        h.provider._draftStore,\n      );\n      const spy = vi\n        .spyOn(h.provider._draftStore, method)\n        .mockImplementation(async (...args) => {\n          const result = await original(...args);\n          if (\n            stage !== \"init\" &&\n            (method === \"prepare\" || args[2] === \"unknown\")\n          ) {\n            paused = true;\n            await gate;\n          }\n          return result;\n        });\n      const sending = h.provider._handleMessage({\n        type: \"send\",\n        text: \"cancelled question\",\n        clientMessageId: \"cancelled-1\",\n      });\n      try {\n        if (stage === \"init\" || stage === \"unknown\") {\n          await until(() => h.sessions.length === 1);\n          if (stage === \"unknown\") init(h);\n          else await until(() => conv.inputInitWaiters?.size === 1);\n        }\n        if (stage !== \"init\") await until(() => paused);\n        if (stage === \"session-stop\") h.provider._stopSession(conv);\n        else expect(h.provider._interruptConversation(conv)).toBe(true);\n        release();\n        expect(await sending).toBe(false);\n        expect(\n          h.sessions.flatMap((s) => s.sent).filter((e) => e.type === \"user\"),\n        ).toEqual([]);\n        expect(\n          (await h.provider._draftStore.view(conv.draftKey)).pending[0],\n        ).toMatchObject({\n          id: \"cancelled-1\",\n          status: \"rejected\",\n          text: \"cancelled question\",\n        });\n        expect(\n          h.messages.find((m) => m.kind === \"submissionFailed\").text,\n        ).toContain(\"stopped\");\n      } finally {\n        release();\n        await sending;\n        spy.mockRestore();\n      }\n    },\n  );\n\n  it(\"does not start the agent when the submission cannot be saved\", async () => {\n    const h = host(await storage());\n    const conv = h.provider._activeConv();\n    await h.provider._draftStore.save(conv.draftKey, {\n      text: \"retained draft\",\n    });\n    const prepare = vi\n      .spyOn(h.provider._draftStore, \"prepare\")\n      .mockRejectedValueOnce(new Error(\"disk full\"));\n    await h.provider._handleMessage({\n      type: \"send\",\n      text: \"retained draft\",\n      clientMessageId: \"input-1\",\n    });\n    expect(h.sessions).toEqual([]);\n    expect(\n      (await h.provider._draftStore.view(conv.draftKey)).composer.text,\n    ).toBe(\"retained draft\");\n    expect(h.messages.find((m) => m.kind === \"submissionFailed\")).toMatchObject(\n      { stored: false },\n    );\n    prepare.mockRestore();\n  });\n  it(\"waits for init, persists UNKNOWN before writing and settles only a correlated ACK\", async () => {\n    const h = host(await storage());\n    const conv = h.provider._activeConv();\n    const sending = h.provider._handleMessage({\n      type: \"send\",\n      text: \"question\",\n      clientMessageId: \"input-1\",\n    });\n    await until(() => h.sessions.length === 1);\n    expect(h.sessions[0].sent).toEqual([]);\n    init(h);\n    await sending;\n    expect(h.sessions[0].sent[0]).toMatchObject({\n      type: \"user\",\n      client_message_id: \"input-1\",\n      text: \"question\",\n    });\n    expect(\n      (await h.provider._draftStore.view(conv.draftKey)).pending[0].status,\n    ).toBe(\"unknown\");\n    expect(h.messages.some((m) => m.kind === \"sendAccepted\")).toBe(false);\n    h.sessions[0].cfg.onEvent({\n      type: \"system\",\n      subtype: \"input_accepted\",\n      session_id: \"wrong\",\n      client_message_id: \"input-1\",\n      receipt: receipt(\"wrong\", \"input-1\"),\n    });\n    expect(\n      (await h.provider._draftStore.view(conv.draftKey)).pending[0].status,\n    ).toBe(\"unknown\");\n    h.sessions[0].cfg.onEvent({\n      type: \"system\",\n      subtype: \"input_accepted\",\n      session_id: conv.sessionId,\n      client_message_id: \"input-1\",\n      receipt: receipt(conv.sessionId, \"input-1\"),\n    });\n    expect(\n      (await h.provider._draftStore.view(conv.draftKey)).pending[0].status,\n    ).toBe(\"accepted\");\n  });\n  it(\"reloads a stable draft identity and reconciles read-only without starting a session\", async () => {\n    const root = await storage();\n    const h = host(root);\n    const conv = h.provider._activeConv();\n    const sending = h.provider._handleMessage({\n      type: \"send\",\n      text: \"lost ACK\",\n      clientMessageId: \"input-1\",\n    });\n    await until(() => h.sessions.length);\n    init(h);\n    await sending;\n    await h.provider._draftStore.save(conv.draftKey, {\n      text: \"next draft\",\n      images: [image],\n    });\n    h.provider.dispose();\n    let finishLookup;\n    const lookup = vi.fn(\n      (sid, id) =>\n        new Promise((resolve) => {\n          finishLookup = () =>\n            resolve({ accepted: true, receipt: receipt(sid, id) });\n        }),\n    );\n    const restored = host(root, h.state, { readInputReceipt: lookup });\n    const next = restored.provider._activeConv();\n    expect(next.draftKey).toBe(conv.draftKey);\n    const recovering = restored.provider._restoreDraft(next, {\n      reconcile: true,\n    });\n    await until(() => finishLookup);\n    expect(restored.sessions).toEqual([]);\n    expect(lookup).toHaveBeenCalledWith(conv.sessionId, \"input-1\");\n    const snapshot = restored.messages.find((m) => m.kind === \"draftSnapshot\");\n    expect(snapshot.composer.text).toBe(\"next draft\");\n    expect(snapshot.composer.images[0].data).toBe(image.data);\n    expect(snapshot.pending[0].status).toBe(\"unknown\");\n    finishLookup();\n    await recovering;\n    expect(\n      restored.messages.filter((m) => m.kind === \"draftSnapshot\").at(-1)\n        .pending[0].status,\n    ).toBe(\"accepted\");\n  });\n  it(\"keeps legacy CLI and failed pipe writes unknown and recoverable\", async () => {\n    const h = host(await storage());\n    const conv = h.provider._activeConv();\n    const sending = h.provider._handleMessage({\n      type: \"send\",\n      text: \"retain me\",\n      clientMessageId: \"input-1\",\n    });\n    await until(() => h.sessions.length);\n    h.sessions[0].sendEvent.mockReturnValue(false);\n    init(h, 0);\n    await sending;\n    expect(\n      (await h.provider._draftStore.view(conv.draftKey)).pending[0].status,\n    ).toBe(\"unknown\");\n    expect(\n      (await h.provider._draftStore.recover(conv.draftKey, \"input-1\")).text,\n    ).toBe(\"retain me\");\n  });\n  it(\"does not dispatch a saved input after its conversation is reset\", async () => {\n    const h = host(await storage());\n    const conv = h.provider._activeConv();\n    const sending = h.provider._handleMessage({\n      type: \"send\",\n      text: \"old\",\n      clientMessageId: \"input-1\",\n    });\n    await until(() => h.sessions.length);\n    const oldKey = conv.draftKey;\n    h.provider._handleMessage({ type: \"new\" });\n    await sending;\n    expect(h.sessions[0].sent).toEqual([]);\n    expect(conv.draftKey).not.toBe(oldKey);\n    expect((await h.provider._draftStore.view(oldKey)).pending[0].status).toBe(\n      \"rejected\",\n    );\n  });\n\n  it(\"keeps closed drafts discoverable and reopens the same draft identity\", async () => {\n    const h = host(await storage());\n    const conv = h.provider._activeConv();\n    await h.provider._draftStore.save(conv.draftKey, { text: \"closed draft\" });\n    h.provider._webviewReady = true;\n    h.provider._handleMessage({ type: \"closeTab\", id: conv.id });\n    expect((await h.provider._draftStore.list()).map((d) => d.label)).toContain(\n      \"closed draft\",\n    );\n    h.provider.reopenClosedSession();\n    expect(h.provider._activeConv().draftKey).toBe(conv.draftKey);\n    expect(h.sessions).toEqual([]);\n  });\n});\n\nfunction webview(backup, { withoutRandomUUID = false } = {}) {\n  const window = new Window({\n    settings: {\n      enableJavaScriptEvaluation: true,\n      disableCSSFileLoading: true,\n      disableJavaScriptFileLoading: true,\n    },\n  });\n  const posted = [];\n  // This harness tests ACK/page routing; actual codecs run in the separate\n  // Chromium journey. Keep completion explicit so ACK alone cannot show img.\n  const decoders = [];\n  window.HTMLCanvasElement.prototype.getContext = () => ({\n    clearRect() {},\n    drawImage() {},\n  });\n  window.Worker = class {\n    constructor() {\n      decoders.push(this);\n    }\n    postMessage(images) {\n      this.images = images;\n    }\n    terminate() {\n      this.terminated = true;\n    }\n  };\n  if (withoutRandomUUID)\n    Object.defineProperty(window, \"crypto\", {\n      value: {\n        getRandomValues: window.crypto.getRandomValues.bind(window.crypto),\n      },\n    });\n  let state = backup || {};\n  window.acquireVsCodeApi = () => ({\n    postMessage: (m) => posted.push(m),\n    getState: () => state,\n    setState: (s) => {\n      state = s;\n    },\n  });\n  window.document.write(\n    buildChatHtml({ nonce: \"n\", cspSource: \"vscode-resource:\" }),\n  );\n  const emit = (data) =>\n    window.dispatchEvent(new window.MessageEvent(\"message\", { data }));\n  const keys = {\n    a: \"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\",\n    b: \"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb\",\n  };\n  const tabs = (id) =>\n    emit({\n      kind: \"tabs\",\n      activeId: id,\n      tabs: Object.keys(keys).map((id) => ({\n        id,\n        title: id,\n        draftKey: keys[id],\n        draftStorage: true,\n      })),\n    });\n  return {\n    window,\n    posted,\n    decoders,\n    emit,\n    keys,\n    tabs,\n    input: window.document.getElementById(\"input\"),\n    state: () => state,\n    page: posted.find((m) => m.type === \"ready\"),\n  };\n}\ndescribe(\"composer recovery in the generated Webview\", () => {\n  it(\"initializes the page and draft handshake without the secure-context randomUUID API\", async () => {\n    const ui = webview(undefined, { withoutRandomUUID: true });\n    try {\n      expect(ui.page.webviewInstance).toMatch(\n        /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/,\n      );\n      ui.emit({ kind: \"thinking\", text: \"reasoning is visible\" });\n      expect(\n        ui.window.document.querySelector(\"details.thinking\").textContent,\n      ).toContain(\"reasoning is visible\");\n    } finally {\n      await ui.window.happyDOM.abort();\n    }\n  });\n  it(\"binds recovery actions to the current page and keeps their errors visible\", async () => {\n    const ui = webview();\n    try {\n      ui.tabs(\"a\");\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        pending: [{ id: \"input-1\", status: \"unknown\", text: \"saved input\" }],\n      });\n      for (const [label, type] of [\n        [\"Check acceptance\", \"draftReconcile\"],\n        [\"Copy to composer\", \"draftRecover\"],\n        [\"Discard saved input\", \"draftDiscard\"],\n      ]) {\n        [...ui.window.document.querySelectorAll(\"button\")]\n          .find((button) => button.textContent === label)\n          .click();\n        const request = ui.posted.find((m) => m.type === type);\n        expect(request).toMatchObject({\n          webviewInstance: ui.page.webviewInstance,\n          convId: \"a\",\n          draftKey: ui.keys.a,\n        });\n        ui.emit({ ...request, kind: \"draftSaveError\", text: type + \" failed\" });\n        expect(ui.window.document.body.textContent).toContain(type + \" failed\");\n      }\n    } finally {\n      await ui.window.happyDOM.abort();\n    }\n  });\n  it(\"ignores previous-page image ACKs while accepting the current page's background ACK\", async () => {\n    const oldUi = webview();\n    const ui = webview();\n    try {\n      expect(ui.page.webviewNonce).toBe(oldUi.page.webviewNonce);\n      expect(ui.page.webviewInstance).not.toBe(oldUi.page.webviewInstance);\n      ui.tabs(\"a\");\n      ui.window.FileReader = class {\n        readAsDataURL() {\n          this.result = image.data;\n          this.onload();\n        }\n      };\n      const paste = new ui.window.Event(\"paste\", { cancelable: true });\n      Object.defineProperty(paste, \"clipboardData\", {\n        value: {\n          items: [\n            {\n              type: \"image/png\",\n              getAsFile: () => ({ type: \"image/png\", size: 70 }),\n            },\n          ],\n        },\n      });\n      ui.input.dispatchEvent(paste);\n      await until(() => ui.posted.some((m) => m.type === \"draftUpdate\"));\n      const request = ui.posted.find((m) => m.type === \"draftUpdate\");\n      expect(request.revision).toBe(1);\n      expect(request.webviewInstance).toBe(ui.page.webviewInstance);\n      const attachments = ui.window.document.getElementById(\"attach\");\n      const before = ui.window.document.body.textContent;\n      ui.emit({\n        ...request,\n        kind: \"draftSaved\",\n        webviewInstance: oldUi.page.webviewInstance,\n        revision: 5,\n        imagesChanged: true,\n      });\n      ui.emit({\n        ...request,\n        kind: \"draftSaveError\",\n        webviewInstance: oldUi.page.webviewInstance,\n        text: \"old error\",\n      });\n      expect(attachments.querySelectorAll(\"canvas\")).toHaveLength(0);\n      expect(ui.window.document.body.textContent).toBe(before);\n      ui.tabs(\"b\");\n      ui.emit({ ...request, kind: \"draftSaved\", imagesChanged: true });\n      ui.tabs(\"a\");\n      expect(attachments.querySelectorAll(\"canvas\")).toHaveLength(0);\n      expect(ui.decoders).toHaveLength(1);\n      ui.decoders[0].onmessage({\n        data: {\n          results: [\n            {\n              decodedWidth: 1,\n              decodedHeight: 1,\n              frames: 1,\n              thumbnails: [{ bitmap: { close() {} }, duration: 100 }],\n            },\n          ],\n        },\n      });\n      await until(() => attachments.querySelectorAll(\"canvas\").length === 1);\n      expect(attachments.querySelectorAll(\"canvas\")).toHaveLength(1);\n      expect(attachments.querySelectorAll(\"img\")).toHaveLength(0);\n      expect(ui.window.document.body.textContent).toContain(\n        \"Draft saved on this device\",\n      );\n      expect(ui.posted.some((m) => m.type === \"send\")).toBe(false);\n    } finally {\n      await ui.window.happyDOM.abort();\n      await oldUi.window.happyDOM.abort();\n    }\n  });\n  it(\"restores saved text and images, but never overwrites newer local edits\", async () => {\n    const ui = webview();\n    try {\n      ui.tabs(\"a\");\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        composer: { text: \"saved\", images: [image] },\n        pending: [],\n      });\n      expect(ui.input.value).toBe(\"saved\");\n      expect(\n        ui.window.document.getElementById(\"attach\").querySelectorAll(\".chip\"),\n      ).toHaveLength(1);\n      ui.input.value = \"new typing\";\n      ui.input.dispatchEvent(new ui.window.Event(\"input\"));\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        composer: { text: \"stale\", images: [] },\n        pending: [],\n      });\n      expect(ui.input.value).toBe(\"new typing\");\n      expect(ui.state().draftTextBackup.text).toBe(\"new typing\");\n    } finally {\n      await ui.window.happyDOM.abort();\n    }\n  });\n  it(\"keeps input until a matching saved-submission ACK, including background ACKs\", async () => {\n    const ui = webview();\n    try {\n      ui.tabs(\"a\");\n      ui.input.value = \"A question\";\n      ui.input.dispatchEvent(new ui.window.Event(\"input\"));\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        composer: { text: \"\", images: [] },\n        pending: [],\n      });\n      ui.window.document.getElementById(\"send\").click();\n      const send = ui.posted.find((m) => m.type === \"send\");\n      expect(send.clientMessageId).toBeTruthy();\n      expect(ui.input.value).toBe(\"A question\");\n      ui.tabs(\"b\");\n      ui.input.value = \"B draft\";\n      ui.input.dispatchEvent(new ui.window.Event(\"input\"));\n      ui.emit({\n        kind: \"submissionStored\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        clientMessageId: send.clientMessageId,\n      });\n      expect(ui.input.value).toBe(\"B draft\");\n      ui.tabs(\"a\");\n      expect(ui.input.value).toBe(\"\");\n    } finally {\n      await ui.window.happyDOM.abort();\n    }\n  });\n  it(\"restores the short text backup across Webview reload and blocks missing images\", async () => {\n    const key = \"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\";\n    const ui = webview({\n      draftTextBackup: { key, text: \"last keystroke\", pendingId: null },\n    });\n    try {\n      ui.tabs(\"a\");\n      expect(ui.input.value).toBe(\"last keystroke\");\n      ui.window.document.getElementById(\"send\").click();\n      expect(ui.posted.filter((m) => m.type === \"send\")).toEqual([]);\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"a\",\n        draftKey: ui.keys.a,\n        composer: { text: \"older text\", images: [image] },\n        pending: [],\n      });\n      expect(ui.input.value).toBe(\"last keystroke\");\n      expect(\n        ui.window.document.getElementById(\"attach\").querySelectorAll(\".chip\"),\n      ).toHaveLength(1);\n      ui.tabs(\"b\");\n      ui.emit({\n        kind: \"draftSnapshot\",\n        convId: \"b\",\n        draftKey: ui.keys.b,\n        composer: { text: \"image draft\", images: [], missingImages: true },\n        pending: [],\n      });\n      ui.window.document.getElementById(\"send\").click();\n      expect(ui.posted.filter((m) => m.type === \"send\")).toEqual([]);\n    } finally {\n      await ui.window.happyDOM.abort();\n    }\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707954676,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "headless-1793707942049-2740",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_ok7w5b205hbotxpa67pyfwz3",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                "./vscode-extension/src/chat/image-file-snapshot.js",
+                "./vscode-extension/src/chat/image-attachments.js",
+                "./vscode-extension/src/chat/draft-store.js",
+                "./cli/__tests__/unit/vscode-ext-image-decode-budget.test.js"
+              ],
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707961787,
+                "meta": {
+                  "args": {
+                    "pattern": "readImageSnapshot",
+                    "directory": "packages",
+                    "content_search": true
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 169,
+                "sessionId": "headless-1793707942049-2740",
+                "metadata": {
+                  "args": {
+                    "pattern": "readImageSnapshot",
+                    "directory": "packages",
+                    "content_search": true
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_czrt7y0d6mxo42uc4dyijm57",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 12,
+                  "column": 9,
+                  "offset": 291,
+                  "text": "readImageSnapshot",
+                  "context": "const {\n  Worker,\n  isMainThread,\n  parentPort,\n  workerData,\n} = require(\"worker_threads\");\nconst fs = require(\"fs/promises\");\nconst path = require(\"path\");\nconst os = require(\"os\");\nconst crypto = require(\"crypto\");\nconst { inspectImageBudget } = require(\"./image-decode-budget\");\nconst { readImageSnapshot } = require(\"./image-file-snapshot\");\n\n// Byte limit follows CLI clipboard-image. Both IDEs share these turn limits.\nconst MAX_IMAGES = 4;\nconst MAX_IMAGE_BYTES = 20 * 1024 * 1024;\nconst MAX_TURN_BYTES = MAX_IMAGE_BYTES;\nconst MAX_IMAGE_PIXELS = 40_000_000;\n\nfunction imageDimensions(data) {\n  const ascii = (start, end) => data.toString(\"ascii\", start, end);\n  if (\n    data.length >= 24 &&\n    data\n      .subarray(0, 8)\n      .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) &&\n    ascii(12, 16) === \"IHDR\"\n  ) {\n    return {\n      format: \"png\",\n      width: data.readUInt32BE(16),\n      ",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/image-attachments.js",
+                    "offset": 12,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 253,
+                  "column": 29,
+                  "offset": 8534,
+                  "text": "readImageSnapshot",
+                  "context": " });\n      worker.once(\"error\", reject);\n      worker.once(\"exit\", (code) => {\n        if (!replied) reject(new Error(`Image preparation stopped (${code})`));\n      });\n    });\n    clearTimeout(timer);\n    for (const source of prepared) {\n      check();\n      const target = path.join(directory, path.basename(source));\n      // Own the destination before copying so cancellation can clean it, while\n      // retaining support for filesystems that do not implement hard links.\n      const handle = await fs.open(target, \"wx\", 0o600);\n      files.push(target);\n      try {\n        const bytes = await readImageSnapshot(source, null, {\n          signal,\n          timeoutMs: Math.max(1, deadline - performance.now()),\n        });\n        check();\n        await handle.writeFile(bytes, { signal });\n        check();\n      } finally {\n        await handle.close();\n      }\n    }\n    check();\n    return files;\n  } catch (error) {\n    await Promise.allSettled(files.map((file) => fs.unlink(file)));\n    throw error;\n  } finally {\n    clearTimeout(timer);\n    signal?.removeEventListener(\"abort\", abort);\n    if (worker) await worker.terminate();\n    await fs.rm(staging, { recursive: true, force: true });\n  }\n}\n\nif (!isMa",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/image-attachments.js",
+                    "offset": 253,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 2,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/tmp/cc-native-hkDaF7/d0730f64-97c6-445d-942e-bfeb70237991/workspace/packages/vscode-extension/src/chat/image-attachments.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707968352,
+                "meta": {
+                  "args": {
+                    "pattern": "readImageSnapshot",
+                    "path": "packages/vscode-extension/src/chat/image-attachments.js",
+                    "contextChars": 600
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 40,
+                "sessionId": "headless-1793707942049-2740",
+                "metadata": {
+                  "args": {
+                    "pattern": "readImageSnapshot",
+                    "path": "packages/vscode-extension/src/chat/image-attachments.js",
+                    "contextChars": 600
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_o892vydw4dvqdj8xmh824gu1",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 5,
+                  "column": 9,
+                  "offset": 187,
+                  "text": "readImageSnapshot",
+                  "context": "const fs = require(\"fs/promises\");\nconst path = require(\"path\");\nconst crypto = require(\"crypto\");\nconst { checkImageEnvelope, writeImageTemps } = require(\"./image-attachments\");\nconst { readImageSnapshot } = require(\"./image-file-snapshot\");\n\nconst MAX_TEXT = 100000;\nconst MAX_RECORD_BYTES = 2 * 1024 * 1024;\nconst MAX_STORAGE_BYTES = 100 * 1024 * 1024;\nconst IMAGE_NAME = /^cc-chat-img-[a-f0-9-]{36}\\.(png|jpg|gif|webp)$/;\nconst KEY = /^[a-f0-9-]{36}$/;\nconst CLIENT_ID = /^[a-zA-Z0-9_-]{1,80}$/;\nconst hash = (value) => crypto.createHash(\"sha256\").update(value).digest(\"hex\");\n\nfunction text(value) {\n  if (typeof value !== \"string\" || value.length > MAX_TEXT)\n    throw new Error(\"Draft text exceeds 100,000 characters or is invalid\");\n  return value;\n}\nfunction validImages(images) {\n  return (\n   ",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/draft-store.js",
+                    "offset": 5,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 193,
+                  "column": 28,
+                  "offset": 6100,
+                  "text": "readImageSnapshot",
+                  "context": "X_STORAGE_BYTES)\n          throw new Error(\n            \"Draft storage exceeds 100 MiB; discard old saved inputs before adding images\",\n          );\n      }\n    }\n  }\n  async _images(key, images) {\n    checkImageEnvelope(images);\n    await this._quota(\n      images.reduce((n, i) => n + i.data.length * 0.75, 0),\n      key,\n    );\n    const directory = this._directory(key);\n    await fs.mkdir(directory, { recursive: true, mode: 0o700 });\n    const files = await writeImageTemps(images, { directory });\n    const metadata = [];\n    try {\n      for (const file of files) {\n        const data = await readImageSnapshot(file);\n        const ext = path.extname(file).slice(1);\n        metadata.push({\n          file: path.basename(file),\n          size: data.length,\n          hash: hash(data),\n          mime: `image/${ext === \"jpg\" ? \"jpeg\" : ext}`,\n        });\n      }\n      return metadata;\n    } catch (error) {\n      await Promise.allSettled(files.map((file) => fs.unlink(file)));\n      throw error;\n    }\n  }\n  async _write(record, assertCurrent = () => {}) {\n    assertCurrent();\n    const directory = this._directory(record.key);\n    if (\n      !record.composer.text &&\n      !record.composer.images.length &&\n ",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/draft-store.js",
+                    "offset": 193,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 275,
+                  "column": 26,
+                  "offset": 8949,
+                  "text": "readImageSnapshot",
+                  "context": "renced owned images, after publishing the new manifest.\n    const keep = new Set(\n      [\n        ...record.composer.images,\n        ...record.pending.flatMap((p) => p.images),\n      ].map((i) => i.file),\n    );\n    for (const name of await fs.readdir(directory).catch(() => [])) {\n      if (IMAGE_NAME.test(name) && !keep.has(name))\n        await fs.unlink(path.join(directory, name)).catch(() => {});\n    }\n  }\n  async _payload(key, snapshot) {\n    const images = [];\n    for (const meta of snapshot.images) {\n      const file = path.join(this._directory(key), meta.file);\n      const data = await readImageSnapshot(file, meta.size);\n      if (data.length !== meta.size || hash(data) !== meta.hash)\n        throw new Error(\n          \"Saved attachment is missing or changed; attach it again\",\n        );\n      images.push({\n        data: `data:${meta.mime};base64,${data.toString(\"base64\")}`,\n        size: data.length,\n      });\n    }\n    return { text: snapshot.text, images };\n  }\n  save(key, draft, { assertCurrent = () => {} } = {}) {\n    if (draft.images !== undefined) checkImageEnvelope(draft.images);\n    return this._serial(\n      async () => {\n        assertCurrent();\n        const record = await this._",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/draft-store.js",
+                    "offset": 275,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 3,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/tmp/cc-native-hkDaF7/d0730f64-97c6-445d-942e-bfeb70237991/workspace/packages/vscode-extension/src/chat/draft-store.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707968352,
+                "meta": {
+                  "args": {
+                    "pattern": "readImageSnapshot",
+                    "path": "packages/vscode-extension/src/chat/draft-store.js",
+                    "contextChars": 600
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 39,
+                "sessionId": "headless-1793707942049-2740",
+                "metadata": {
+                  "args": {
+                    "pattern": "readImageSnapshot",
+                    "path": "packages/vscode-extension/src/chat/draft-store.js",
+                    "contextChars": 600
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_6yof48amgf5vqofm5xp3d6t6",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-hkDaF7/d0730f64-97c6-445d-942e-bfeb70237991/workspace/packages/vscode-extension/src/chat/image-attachments.js",
+              "fileVersion": "9560:1791108223000:1793707919985.7312",
+              "range": {
+                "startLine": 180,
+                "endLine": 269,
+                "totalLines": 294
+              },
+              "nextRead": {
+                "path": "packages/vscode-extension/src/chat/image-attachments.js",
+                "offset": 270,
+                "limit": 90
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 5709,
+                "end": 8959,
+                "total": 9560
+              },
+              "hashed": false,
+              "content": "      try {\n        await handle.writeFile(data);\n      } finally {\n        await handle.close();\n      }\n    }\n    return files;\n  } catch (error) {\n    await Promise.allSettled(files.map((file) => io.unlink(file)));\n    throw new Error(\n      `Image ${files.length || 1}: attachment could not be written (${error.code || error.message})`,\n    );\n  }\n}\n\nasync function writeImageTemps(\n  images,\n  { directory = os.tmpdir(), signal, timeoutMs = 5000 } = {},\n) {\n  checkImageEnvelope(images);\n  if (signal?.aborted) throw new Error(\"Image preparation cancelled\");\n  if (!images.length) return [];\n  // The parent owns a private staging directory before starting the worker.\n  // Termination can therefore clean even a partial file created just before\n  // the worker reported it, without deleting paths owned by anyone else.\n  // Windows mkdtemp does not automatically expand long prefixes like mkdir\n  // does. Profile/workspace storage can legitimately exceed MAX_PATH; keep\n  // staging beside the destination and use the extended-length form only for\n  // this filesystem call (toNamespacedPath is a no-op on other platforms).\n  const staging = await fs.mkdtemp(\n    path.toNamespacedPath(path.join(directory, \".cc-image-\")),\n  );\n  const files = [];\n  let worker, timer, abort;\n  const deadline = performance.now() + timeoutMs;\n  const check = () => {\n    if (signal?.aborted) throw new Error(\"Image preparation cancelled\");\n    if (performance.now() >= deadline)\n      throw new Error(\"Image preparation exceeded the time budget\");\n  };\n  try {\n    check();\n    const prepared = await new Promise((resolve, reject) => {\n      worker = new Worker(__filename, {\n        workerData: { images, directory: staging },\n      });\n      abort = () => reject(new Error(\"Image preparation cancelled\"));\n      signal?.addEventListener(\"abort\", abort, { once: true });\n      if (signal?.aborted) abort();\n      timer = setTimeout(\n        () => reject(new Error(\"Image preparation exceeded the time budget\")),\n        timeoutMs,\n      );\n      let replied = false;\n      worker.once(\"message\", (result) => {\n        replied = true;\n        if (result.error) reject(new Error(result.error));\n        else resolve(result.files);\n      });\n      worker.once(\"error\", reject);\n      worker.once(\"exit\", (code) => {\n        if (!replied) reject(new Error(`Image preparation stopped (${code})`));\n      });\n    });\n    clearTimeout(timer);\n    for (const source of prepared) {\n      check();\n      const target = path.join(directory, path.basename(source));\n      // Own the destination before copying so cancellation can clean it, while\n      // retaining support for filesystems that do not implement hard links.\n      const handle = await fs.open(target, \"wx\", 0o600);\n      files.push(target);\n      try {\n        const bytes = await readImageSnapshot(source, null, {\n          signal,\n          timeoutMs: Math.max(1, deadline - performance.now()),\n        });\n        check();\n        await handle.writeFile(bytes, { signal });\n        check();\n      } finally {\n        await handle.close();\n      }\n    }\n    check();\n    return files;\n  } catch (error) {\n    await Promise.allSettled(files.map((file) => fs.unlink(file)));\n    throw error;\n  } finally {",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793707999393,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-attachments.js",
+                    "offset": 180,
+                    "limit": 90
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "headless-1793707942049-2740",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-attachments.js",
+                    "offset": 180,
+                    "limit": 90
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_xltjjd6z7c1tpkjx9815rjb8",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-hkDaF7/d0730f64-97c6-445d-942e-bfeb70237991/workspace/packages/vscode-extension/src/chat/image-file-snapshot.js",
+              "fileVersion": "2060:1791108223000:1793707919985.7312",
+              "range": {
+                "startLine": 1,
+                "endLine": 72,
+                "totalLines": 72
+              },
+              "readSpan": {
+                "start": 0,
+                "end": 2060,
+                "total": 2060
+              },
+              "hashed": false,
+              "content": "const fs = require(\"fs/promises\");\nconst { constants } = require(\"fs\");\n\n// Fixed allocation + one overflow byte. Reads, hash and validation consume the\n// same snapshot; no unbounded readFile after a separate header/path check.\nasync function readImageSnapshot(\n  file,\n  expectedSize = null,\n  { io = fs, signal, timeoutMs = 5000, now = () => performance.now() } = {},\n) {\n  const deadline = now() + timeoutMs;\n  const check = () => {\n    if (signal?.aborted) throw new Error(\"Image reading cancelled\");\n    if (now() >= deadline)\n      throw new Error(\"Image reading exceeded the time budget\");\n  };\n  const same = (a, b) =>\n    a.isFile() &&\n    b.isFile() &&\n    [\"size\", \"dev\", \"ino\", \"mtimeMs\", \"ctimeMs\"].every(\n      (key) => a[key] === b[key],\n    );\n  check();\n  const before = await io.lstat(file);\n  check();\n  if (\n    !before.isFile() ||\n    before.size <= 0 ||\n    before.size > 20 * 1024 * 1024 ||\n    (expectedSize !== null && before.size !== expectedSize)\n  )\n    throw new Error(\"Saved attachment is missing or changed; attach it again\");\n  const handle = await io.open(\n    file,\n    constants.O_RDONLY | (constants.O_NOFOLLOW || 0),\n  );\n  try {\n    check();\n    const opened = await handle.stat();\n    if (!same(before, opened))\n      throw new Error(\"Saved attachment changed while opening\");\n    const buffer = Buffer.alloc(opened.size + 1);\n    let count = 0;\n    while (count < buffer.length) {\n      check();\n      const { bytesRead } = await handle.read(\n        buffer,\n        count,\n        Math.min(64 * 1024, buffer.length - count),\n        count,\n      );\n      check();\n      if (!bytesRead) break;\n      count += bytesRead;\n    }\n    const after = await handle.stat();\n    const pathAfter = await io.lstat(file);\n    check();\n    if (\n      count !== opened.size ||\n      !same(opened, after) ||\n      !same(opened, pathAfter)\n    )\n      throw new Error(\"Saved attachment changed while reading\");\n    return buffer.subarray(0, count);\n  } finally {\n    await handle.close();\n  }\n}\n\nmodule.exports = { readImageSnapshot };\n",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "2060:1791108223000:1793707919985.7312"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708011362,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-file-snapshot.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793707942049-2740",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-file-snapshot.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_c62t93mf88osjhdj1krf0dhs",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-hkDaF7/d0730f64-97c6-445d-942e-bfeb70237991/workspace/packages/vscode-extension/src/chat/image-attachments.js",
+              "fileVersion": "9560:1791108223000:1793707919985.7312",
+              "range": {
+                "startLine": 270,
+                "endLine": 294,
+                "totalLines": 294
+              },
+              "readSpan": {
+                "start": 8959,
+                "end": 9560,
+                "total": 9560
+              },
+              "hashed": false,
+              "content": "    clearTimeout(timer);\n    signal?.removeEventListener(\"abort\", abort);\n    if (worker) await worker.terminate();\n    await fs.rm(staging, { recursive: true, force: true });\n  }\n}\n\nif (!isMainThread && workerData?.images) {\n  writeImageBatch(workerData.images, { directory: workerData.directory }).then(\n    (files) => parentPort.postMessage({ files }),\n    (error) => parentPort.postMessage({ error: error.message }),\n  );\n}\n\nmodule.exports = {\n  MAX_IMAGES,\n  MAX_IMAGE_BYTES,\n  MAX_TURN_BYTES,\n  MAX_IMAGE_PIXELS,\n  imageDimensions,\n  checkImageEnvelope,\n  writeImageBatch,\n  writeImageTemps,\n};\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708019310,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-attachments.js",
+                    "offset": 270,
+                    "limit": 30
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793707942049-2740",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-attachments.js",
+                    "offset": 270,
+                    "limit": 30
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_79r2ru367fw6galvft5ig0mc",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 102,
+                  "column": 10,
+                  "offset": 2946,
+                  "text": "checkImageEnvelope",
+                  "context": "ength >= 8\n      ) {\n        return {\n          format: \"jpeg\",\n          width: data.readUInt16BE(offset + 5),\n          height: data.readUInt16BE(offset + 3),\n        };\n      }\n      offset += length;\n    }\n  }\n  throw new Error(\n    \"Unsupported or malformed image header; use PNG, JPEG, GIF or WebP\",\n  );\n}\n\n/** Cheap bound before cloning worker data or allocating decoded buffers. */\nfunction checkImageEnvelope(images) {\n  if (!Array.isArray(images) || images.length > MAX_IMAGES)\n    throw new Error(\"Attach at most 4 images per message\");\n  let total = 0;\n  for (const [index, image] of images.entries()) {\n    if (\n      typeof image?.data !== \"string\" ||\n      image.data.length > Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 64\n    )\n      throw new Error(\n        `Image ${index + 1}: exceeds the 20 MiB limit or",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/image-attachments.js",
+                    "offset": 102,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 137,
+                  "column": 3,
+                  "offset": 4091,
+                  "text": "checkImageEnvelope",
+                  "context": " - 1) * 3) / 4 - padding;\n    if (size <= 0 || size > MAX_IMAGE_BYTES)\n      throw new Error(\n        `Image ${index + 1}: exceeds the 20 MiB limit or is empty`,\n      );\n    total += size;\n    if (total > MAX_TURN_BYTES)\n      throw new Error(`Image ${index + 1}: total attachments exceed 20 MiB`);\n  }\n}\n\nasync function writeImageBatch(\n  images,\n  { directory = os.tmpdir(), io = fs } = {},\n) {\n  checkImageEnvelope(images);\n  let decodedPixels = 0;\n  const decoded = images.map((image, index) => {\n    try {\n      const match =\n        /^data:image\\/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/]*={0,2})$/.exec(\n          image.data,\n        );\n      if (!match || match[2].length % 4 !== 0)\n        throw new Error(\"invalid MIME or base64 data\");\n      const data = Buffer.from(match[2], \"base64\");\n      if (data.toS",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/image-attachments.js",
+                    "offset": 137,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 199,
+                  "column": 3,
+                  "offset": 6174,
+                  "text": "checkImageEnvelope",
+                  "context": " {\n        await handle.close();\n      }\n    }\n    return files;\n  } catch (error) {\n    await Promise.allSettled(files.map((file) => io.unlink(file)));\n    throw new Error(\n      `Image ${files.length || 1}: attachment could not be written (${error.code || error.message})`,\n    );\n  }\n}\n\nasync function writeImageTemps(\n  images,\n  { directory = os.tmpdir(), signal, timeoutMs = 5000 } = {},\n) {\n  checkImageEnvelope(images);\n  if (signal?.aborted) throw new Error(\"Image preparation cancelled\");\n  if (!images.length) return [];\n  // The parent owns a private staging directory before starting the worker.\n  // Termination can therefore clean even a partial file created just before\n  // the worker reported it, without deleting paths owned by anyone else.\n  // Windows mkdtemp does not automatically expand long pr",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/image-attachments.js",
+                    "offset": 199,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 290,
+                  "column": 3,
+                  "offset": 9499,
+                  "text": "checkImageEnvelope",
+                  "context": " { recursive: true, force: true });\n  }\n}\n\nif (!isMainThread && workerData?.images) {\n  writeImageBatch(workerData.images, { directory: workerData.directory }).then(\n    (files) => parentPort.postMessage({ files }),\n    (error) => parentPort.postMessage({ error: error.message }),\n  );\n}\n\nmodule.exports = {\n  MAX_IMAGES,\n  MAX_IMAGE_BYTES,\n  MAX_TURN_BYTES,\n  MAX_IMAGE_PIXELS,\n  imageDimensions,\n  checkImageEnvelope,\n  writeImageBatch,\n  writeImageTemps,\n};\n",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/image-attachments.js",
+                    "offset": 290,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 4,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/tmp/cc-native-hkDaF7/d0730f64-97c6-445d-942e-bfeb70237991/workspace/packages/vscode-extension/src/chat/image-attachments.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708019345,
+                "meta": {
+                  "args": {
+                    "pattern": "checkImageEnvelope",
+                    "path": "packages/vscode-extension/src/chat/image-attachments.js",
+                    "contextChars": 400
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 36,
+                "sessionId": "headless-1793707942049-2740",
+                "metadata": {
+                  "args": {
+                    "pattern": "checkImageEnvelope",
+                    "path": "packages/vscode-extension/src/chat/image-attachments.js",
+                    "contextChars": 400
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_a6yq7tqbnadsaxgnurtiy7o9",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [],
+              "count": 0,
+              "hasMore": false,
+              "nextOffset": null,
+              "hint": "No literal matches. This pattern contains regex syntax, but this search used literal matching. If alternation or regex was intended, set regex: true; otherwise search one exact symbol. Do not infer that the symbols are absent from this result.",
+              "path": "/tmp/cc-native-hkDaF7/d0730f64-97c6-445d-942e-bfeb70237991/workspace/packages/vscode-extension/src/chat/draft-store.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708031187,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/draft-store.js",
+                    "pattern": "class DraftStore|constructor|async load|async _load|module.exports",
+                    "contextChars": 300
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 34,
+                "sessionId": "headless-1793707942049-2740",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/draft-store.js",
+                    "pattern": "class DraftStore|constructor|async load|async _load|module.exports",
+                    "contextChars": 300
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_nzcgagdte4x77m3vql3tnaah",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-hkDaF7/d0730f64-97c6-445d-942e-bfeb70237991/workspace/packages/vscode-extension/src/chat/draft-store.js",
+              "fileVersion": "16677:1791108223000:1793707919985.7312",
+              "range": {
+                "startLine": 1,
+                "endLine": 70,
+                "totalLines": 503
+              },
+              "nextRead": {
+                "path": "packages/vscode-extension/src/chat/draft-store.js",
+                "offset": 71,
+                "limit": 70
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 0,
+                "end": 2187,
+                "total": 16677
+              },
+              "hashed": false,
+              "content": "const fs = require(\"fs/promises\");\nconst path = require(\"path\");\nconst crypto = require(\"crypto\");\nconst { checkImageEnvelope, writeImageTemps } = require(\"./image-attachments\");\nconst { readImageSnapshot } = require(\"./image-file-snapshot\");\n\nconst MAX_TEXT = 100000;\nconst MAX_RECORD_BYTES = 2 * 1024 * 1024;\nconst MAX_STORAGE_BYTES = 100 * 1024 * 1024;\nconst IMAGE_NAME = /^cc-chat-img-[a-f0-9-]{36}\\.(png|jpg|gif|webp)$/;\nconst KEY = /^[a-f0-9-]{36}$/;\nconst CLIENT_ID = /^[a-zA-Z0-9_-]{1,80}$/;\nconst hash = (value) => crypto.createHash(\"sha256\").update(value).digest(\"hex\");\n\nfunction text(value) {\n  if (typeof value !== \"string\" || value.length > MAX_TEXT)\n    throw new Error(\"Draft text exceeds 100,000 characters or is invalid\");\n  return value;\n}\nfunction validImages(images) {\n  return (\n    Array.isArray(images) &&\n    images.length <= 4 &&\n    images.every(\n      (i) =>\n        IMAGE_NAME.test(i.file) &&\n        Number.isSafeInteger(i.size) &&\n        i.size > 0 &&\n        i.size <= 20 * 1024 * 1024 &&\n        /^[a-f0-9]{64}$/.test(i.hash) &&\n        [\"image/png\", \"image/jpeg\", \"image/gif\", \"image/webp\"].includes(i.mime),\n    ) &&\n    images.reduce((n, i) => n + i.size, 0) <= 20 * 1024 * 1024\n  );\n}\n\nfunction validQuestion(q) {\n  if (\n    !q ||\n    !KEY.test(q.id) ||\n    !/^[a-f0-9]{64}$/.test(q.digest || \"\") ||\n    typeof q.sessionId !== \"string\" ||\n    typeof q.requestId !== \"string\" ||\n    typeof q.title !== \"string\" ||\n    q.title.length > 1024 ||\n    ![\"draft\", \"archived\"].includes(q.status) ||\n    !Array.isArray(q.fields) ||\n    q.fields.length > 128 ||\n    Buffer.byteLength(JSON.stringify(q)) > 128 * 1024\n  )\n    throw new Error(\"Invalid question draft\");\n  text(q.text);\n  const keys = new Set();\n  for (const f of q.fields) {\n    if (\n      !f ||\n      typeof f.key !== \"string\" ||\n      f.key.length > 8192 ||\n      keys.has(f.key) ||\n      (typeof f.value !== \"boolean\" &&\n        (typeof f.value !== \"string\" || f.value.length > 32768))\n    )\n      throw new Error(\"Invalid question draft field\");\n    keys.add(f.key);\n  }\n}\n\n/** UI recovery data only. Never grants execution or approval authority. */\nclass DraftStore {\n  constructor(root) {",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793708038827,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/draft-store.js",
+                    "limit": 70
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 0,
+                "sessionId": "headless-1793707942049-2740",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/draft-store.js",
+                    "limit": 70
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 1194,
+              "output_tokens": 98,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3822,
+              "output_tokens": 59,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2353,
+              "output_tokens": 124,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 17403,
+              "output_tokens": 322,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4614,
+              "output_tokens": 214,
+              "cache_read_input_tokens": 17152,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 7701,
+              "output_tokens": 2518,
+              "cache_read_input_tokens": 16384,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 24562,
+              "output_tokens": 302,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 13049,
+              "output_tokens": 260,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 7790,
+              "output_tokens": 582,
+              "cache_read_input_tokens": 12800,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6326,
+              "output_tokens": 141,
+              "cache_read_input_tokens": 14848,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6152,
+              "output_tokens": 110,
+              "cache_read_input_tokens": 15872,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 94966,
+          "output_tokens": 4730,
+          "cache_read_input_tokens": 95488
+        },
+        "usageComplete": true,
+        "failureCategory": "deliverable-unverified",
+        "modelUsageRecordCount": 11,
+        "estimatedCostUSD": 0.015956472000000003,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "I have enough understanding of the source. The implementation appears correct. Now let me write the deliverable tests. I'll write the test file focusing on the acceptance criteria with focused cases.\n\nLet me determine the import paths. The deliverable is at `packages/vscode-extension/__tests__/verify-31.test.js`. Source at `packages/vscode-extension/src/chat/image-file-snapshot.js`. Relative: `../src/chat/image-file-snapshot.js`.\n\nLet me write the test file now.",
+          "session_id": "headless-1793707942049-2740",
+          "num_turns": 11,
+          "duration_ms": 103100,
+          "usage": {
+            "input_tokens": 94966,
+            "output_tokens": 4730,
+            "cache_read_input_tokens": 95488,
+            "cache_creation_input_tokens": 0
+          },
+          "total_cost_usd": 0.015956472000000003,
+          "compaction_degradations": [
+            {
+              "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+              "summary_mode": "none"
+            },
+            {
+              "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+              "summary_mode": "none"
+            },
+            {
+              "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+              "summary_mode": "none"
+            },
+            {
+              "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+              "summary_mode": "none"
+            }
+          ]
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "tasks": [
+          {
+            "taskId": "verify-31",
+            "requests": 11,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": 0.3370168,
+        "knownTokenOnlyEstimateCny": 0.3370168,
+        "fxRate": null
+      },
+      "changedPaths": [],
+      "finishedAt": "2026-11-03T12:14:05.963Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-31"
+  ],
+  "generationPassed": false,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 40 model turns, 48 requests, 180 second request timeout, model maximum 393216 output tokens (8192 test cap removed), 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:082bc5a98c8a209b214f2aa1fa66bf07976cd719f0d3d33b17f8b215f21799c0",
+  "group": "linux-cli",
+  "entry": "cli",
+  "platform": "linux",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:3ca5c1bfa5bffdee860665eeb757c24004dfaf0f3075f2a63e1a2600b3f6d600"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:7bf33df63888e550ac1ebd6a469d99e56ea1bb54f1d094b359b0c7fa1da1ffa6"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:be2edf8e1ced537796d5819e458e4b56f2c1638eab8880b09c2c7fea4a4245fd"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+      "digest": "sha256:82becb2b0b551916e312131bcca48736d9e3f462aed4ea2a89ec00f907457eed"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
+      "digest": "sha256:d2cbc2dee63e7f53c622d61ad314143d6bd4d59a679d9aea29579cb034a829fb"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-public140-full.mjs",
+      "digest": "sha256:f7c7f0dbe8cb572e4832b41f53aa89139e5ab398d7bdb603b7beb9942a9312f9"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:3e515efc1cff606e2cbbfa977b5674abe6a73c142caa1b0539c0a2698978f8e4"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T12:12:00.825Z",
+    "finishedAt": "2026-11-03T12:12:20.318Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "verify-31",
+    "locked": {
+      "version": "0.166.140",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+      "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T12:14:05.966Z"
+}

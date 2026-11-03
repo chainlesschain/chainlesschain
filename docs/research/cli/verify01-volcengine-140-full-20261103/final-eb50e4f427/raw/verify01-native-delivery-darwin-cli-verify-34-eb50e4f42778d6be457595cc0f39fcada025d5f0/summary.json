@@ -1,0 +1,1514 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000,
+    "connectionAttemptTimeoutMs": 10000,
+    "parallelToolCalls": null
+  },
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:f38ba1d4c166229766cd78adfd38ccfc2413b21ad4f533ef7d87f5ec1bf10f69",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:9df4efc5365ed381684a1990009c4b162ec96ae9ce229df13d4b583860a3559c",
+  "actualPlatform": "darwin",
+  "actualArch": "arm64",
+  "actualEntry": "cli",
+  "changeReview": {
+    "requested": true,
+    "observed": true
+  },
+  "startedAt": "2026-11-03T13:26:19.088Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-34",
+      "taskId": "verify-34",
+      "kind": "task",
+      "runId": "6035423e-69ca-45ff-b823-8e5299ff5c4c",
+      "stratum": "darwin-cli-volcengine",
+      "declaredActualEntry": {
+        "platform": "darwin",
+        "entry": "cli"
+      },
+      "actualPlatform": "darwin",
+      "actualEntry": "cli",
+      "changeReview": {
+        "requested": true,
+        "observed": true,
+        "reminderCount": 1,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:9df4efc5365ed381684a1990009c4b162ec96ae9ce229df13d4b583860a3559c",
+      "expectedFiles": [
+        "docs/development/verify-34-outcome-runbook.md"
+      ],
+      "startedAt": "2026-11-03T13:26:19.090Z",
+      "deadline": "2026-11-03T14:06:19.090Z",
+      "candidates": [
+        {
+          "file": "docs/development/verify-34-outcome-runbook.md",
+          "path": "verify-34/candidate/docs/development/verify-34-outcome-runbook.md",
+          "digest": "sha256:d37f0ea40b0714c3e90070f85a6f2a06bdffd8e28961e28ba18a6406a05eef8e",
+          "bytes": 7775
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [],
+      "unexpectedChanges": [],
+      "generationPassed": true,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T13:26:24.416Z",
+        "finishedAt": "2026-11-03T13:26:44.103Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "verify-34",
+        "locked": {
+          "version": "0.166.140",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+          "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      },
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 61286,
+            "outputTokens": 8487,
+            "cacheReadInputTokens": 91392,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": 0.012235888000000002
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "headless-1793712405535-2693",
+          "session_persistence": false,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "isolation_level": "policy-only",
+          "max_turns": 40,
+          "resumed_from": null,
+          "history_messages": 0,
+          "additional_directories": [],
+          "goal_id": null
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_k1wjsb7v6sv1xhd2aveavb05",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/scripts/task-outcome-report.mjs"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_cc72jta3vb3fyn67ii10rb6e",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/task-outcome-report.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_wjlyrvhjdviwv7o0mqknj952",
+            "tool": "write_file",
+            "args": {
+              "path": "docs/development/verify-34-outcome-runbook.md",
+              "content": "# verify-34 冻结计划操作说明（Outcome Report Runbook）\n\n本文档是仓库运维操作说明，描述如何运行真实冻结计划报告脚本\n`packages/cli/scripts/task-outcome-report.mjs` 并解读其结果。命令与断言均以该\n脚本实际源码及现有单测 `packages/cli/__tests__/unit/task-outcome-report.test.js`\n为据；运行环境与评测计划不允许修改，断言不可降低，失败不可跳过。\n\n## 1. 脚本角色与退出码契约\n\n该脚本是只读基线报告工具（无模型调用、无生产 attestation），\n`--help` 输出明确声明：\n\n> Read-only baseline report (no model calls or production attestation).\n> Exit 0: baseline recorded; 2: insufficient evidence; 1: invalid input.\n> No improvement PASS is issued.\n\n退出码由以下源码逻辑决定：\n\n| 退出码 | 触发条件 | 源码依据 |\n|--------|----------|----------|\n| `0` | 基线记录成功（`report.status` 非 `INSUFFICIENT_EVIDENCE`） | 主分支最后 `process.exitCode = 2` 仅当 insufficient 时执行；其余自然退出为 0 |\n| `2` | `report.status === \"INSUFFICIENT_EVIDENCE\"` | `if (report.status === \"INSUFFICIENT_EVIDENCE\") process.exitCode = 2;` |\n| `1` | 任何抛出的输入/计划/证据错误 | 外层 `catch` 统一 `process.exitCode = 1` |\n\n关键结论（源码+测试共同验证）：\n\n- **缺失样本 → 退出 2**。测试 `\"retains missing planned samples and does not\n  turn unknown costs into zero\"` 中追加一个从未运行的样本后\n  `result.status` 为 `INSUFFICIENT_EVIDENCE`；CLI 集成测试中无 history 时\n  `result.status` 为 2 且 `task: { planned:1, observed:0, succeeded:0 }`。\n- **未知费用绝不被当作 0**。未知费用样本使 `task.totalCost` 与\n  `costPerSuccess` 为 `null`（非 0），测试断言 `expect(...totalCost).toBeNull()`。\n  有效样本的已知费用（`cost: 0.1`）才会计入 `totalCost: 0.1`。\n- **永远不发放改善 PASS**。`--help` 明确 \"No improvement PASS is issued\"；\n  测试断言 `improvementVerdict: \"NOT_EVALUATED\"`、`productionAttested: false`。\n\n## 2. 前置输入文件\n\n| 选项 | 必需 | 说明 | 来源 |\n|------|------|------|------|\n| `--plan` | 是 | 冻结计划 JSON | `readJson(values.plan)`，缺失或超 16 MiB 即抛错退出 1 |\n| `--fingerprint` | 否（互斥分支） | 只打印计划摘要到 stdout，退出 0 | `outcomeDigest(plan)` |\n| `--plan-digest` | 是（非 fingerprint 时） | 须匹配 `/^sha256:[a-f0-9]{64}$/u`，否则抛错退出 1 | 冻结计划后再收集证据 |\n| `--history` | 否 | Eval 历史 JSONL | `readEvalHistory(...)`；缺省为 `{ runs: [], issues: [] }` |\n| `--observations` | 否 | 观测 JSON（数组） | `readJson(...)`；缺省为 `[]` |\n| `--maintenance` | 否 | 维护记录 JSON | `readJson(...)`；缺省为 `null` |\n\n`readJson` 的双重大小检查：`fs.statSync(file).size > 16*1024*1024` 与\n`bytes.length > 16*1024*1024`，任一超出即抛 \"missing input or input exceeds\n16 MiB\"（退出 1）。\n\n## 3. 标准运维流程（含正/负控制）\n\n冻结计划后先取指纹，再（可选）收集证据，最后产出报告。\n\n```bash\n# 第 1 步：对冻结计划取摘要（离线、无模型调用）\nnode packages/cli/scripts/task-outcome-report.mjs \\\n  --plan plan.json --fingerprint\n# stdout 为 sha256:...；退出 0。该值写入评审记录，冻结后不得再改 plan。\n\n# 第 2 步：用该摘要跑完整报告（history/observations/maintenance 可选）\nnode packages/cli/scripts/task-outcome-report.mjs \\\n  --plan plan.json \\\n  --plan-digest sha256:... \\\n  --history history.jsonl \\\n  --observations observations.json \\\n  [--maintenance maintenance.json]\n```\n\n### 3.1 指纹正/负控制\n\n- **正控制**：同一 `plan.json` 上 `--fingerprint` 输出\n  `outcomeDigest(plan)`。现有测试用 `execFileSync(... \"--fingerprint\").trim()`\n  与 `outcomeDigest(input.plan)` 相等断言。\n- **负控制**：变更 `plan.samples` 任一元素（删除一个样本）后重新计算摘要，\n  再以旧摘要调用报告，脚本抛 `digest mismatch` 退出 1。测试\n  `\"detects a changed frozen plan\"` 覆盖。\n\n### 3.2 缺失样本退出 2 的正/负控制\n\n- **负控制（缺失）**：计划含 `planned:2` 但证据只覆盖 1 个样本 → 状态\n  `INSUFFICIENT_EVIDENCE`，退出 2；报告保留该样本为\n  `task: { planned:2, observed:1, succeeded:1, successRate:0.5 }`。\n- **正控制（齐全）**：所有计划样本均有合法观测与对应 run → 状态\n  `BASELINE_RECORDED`，退出 0。同一控制边界：先验历史解析问题\n  （`history.issues` 含 `invalid_history_record`）也导致\n  `INSUFFICIENT_EVIDENCE`，说明该状态是“证据不充分”的通用判据而非单因。\n\n### 3.3 未知费用不归零的正/负控制\n\n- **负控制（未知费用）**：观测含合法成本（`cost: 0.1`）的样本之外，追加一个\n  无观测样本 → `totalCost` 与 `costPerSuccess` 为 `null`（不被当作 0）。\n  测试断言 `expect(result.task.totalCost).toBeNull()`。\n- **正控制（已知费用）**：全部样本有合法 `cost: 0.1` → `totalCost: 0.1`、\n  `costPerSuccess: 0.1`（见测试首条）。\n- 预算控制：`cost: 2 > costBudget 1` 或 `elapsedMs: 1001 > timeBudgetMs 1000`\n  时对应 row `reasons` 含 `budget_exceeded`（测试 `\"enforces the frozen\n  budget\"`），费用仍原样保留，仅判定为超预算。\n\n### 3.4 不发放改善 PASS 的正/负控制\n\n- **正控制（完整基线）**：齐全证据下 `improvementVerdict: \"NOT_EVALUATED\"`、\n  `productionAttested: false`，CLI 完整调用退出 0。\n- **负控制（同函数无 PASS 路径）**：`buildOutcomeReport` 的返回值不包含任何\n  发放 PASS 的字段；`--help` 文本亦明确 \"No improvement PASS is issued\"。\n  改善判定始终为 `NOT_EVALUATED`，不受证据多少影响。\n\n## 4. 需人工解读的边界与限制\n\n- **无命令行执行环境**：本文档为静态运维说明，未实际执行脚本；命令与断言\n  依据源码与现有单测推导。若以本机重跑，应复现上述退出码。\n- **16 MiB 输入上限**：任何 `--plan/--observations/--maintenance` JSON 超限\n  会直接退出 1，属输入校验而非证据缺陷。\n- **maintenance 缺失不视为免费**：`maintenance` 为 `null`、\n  `{ complete:false, entries:[] }` 或 window 不符时 `maintenance.totalHours`\n  为 `null`（测试 `\"does not report missing maintenance as free\"`）。\n- **证据复用/越界**：多样本共用同一 `runId` 抛 `multiple samples`；观测\n  `sampleId` 不在计划内抛 `outside the frozen plan`；观测时间超出 window 产生\n  `sample-1:observation_outside_window`；首次运行阶段乱序产生\n  `sample-1:inconsistent_first_run_stages`。这些都退出 1 或计入\n  `INSUFFICIENT_EVIDENCE`，需在评审记录中作为证据缺陷说明。\n\n## 5. 覆盖审计（对照验收要求）\n\n| 验收要求 | 覆盖方式 | 对应控制 |\n|----------|----------|----------|\n| 指纹 | `--fingerprint` 输出 `outcomeDigest(plan)`，退出 0 | 3.1 正控制 |\n| 缺失样本退出 2 | 计划内未覆盖样本 → `INSUFFICIENT_EVIDENCE`、退出 2 | 3.2 负控制 |\n| 未知费用 | 无观测样本 → `totalCost/costPerSuccess` 为 `null`（非 0） | 3.3 负控制 |\n| 禁止改善 PASS | `improvementVerdict: \"NOT_EVALUATED\"`，`--help` 明确不发放 | 3.4 控制 |\n\n全部四项验收均映射到同一真实脚本调用边界，且各负控制保持其余前置（合法\n`--plan-digest`、齐全或合法的 history/observations）有效，不会被其它保护器\n误判。未覆盖项：真实网络评测环境中的 provider/生产 attestation 路径——本脚本\n明确不执行模型调用，其不在本运维说明边界内。\n"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_3cz0z1t3gl0qax2w6d7j8rrf",
+            "tool": "write_file",
+            "args": {
+              "content": "# verify-34 冻结计划操作说明（Outcome Report Runbook）\n\n本文档是仓库运维操作说明，描述如何运行真实冻结计划报告脚本\n`packages/cli/scripts/task-outcome-report.mjs` 并解读其结果。命令与断言均以该\n脚本实际源码及现有单测 `packages/cli/__tests__/unit/task-outcome-report.test.js`\n为据；评测计划不允许修改，断言不可降低，失败不可跳过。\n\n## 1. 脚本角色与退出码契约\n\n该脚本是只读基线报告工具（无模型调用、无生产 attestation），\n`--help` 输出明确声明：\n\n> Read-only baseline report (no model calls or production attestation).\n> Exit 0: baseline recorded; 2: insufficient evidence; 1: invalid input.\n> No improvement PASS is issued.\n\n退出码由以下源码逻辑决定：\n\n| 退出码 | 触发条件 | 源码依据 |\n|--------|----------|----------|\n| `0` | 基线记录成功（`report.status` 非 `INSUFFICIENT_EVIDENCE`） | 主分支最后仅当 insufficient 时设置 `process.exitCode = 2`；其余自然退出为 0 |\n| `2` | `report.status === \"INSUFFICIENT_EVIDENCE\"` | `if (report.status === \"INSUFFICIENT_EVIDENCE\") process.exitCode = 2;` |\n| `1` | 任何抛出的输入/计划/证据错误 | 外层 `catch` 统一 `process.exitCode = 1` |\n\n关键结论（源码+测试共同验证）：\n\n- **缺失样本 → 退出 2**。测试 `\"retains missing planned samples and does not\n  turn unknown costs into zero\"` 中追加一个从未运行的样本后\n  `result.status` 为 `INSUFFICIENT_EVIDENCE`；CLI 集成测试中无 history 时\n  `result.status` 为 2 且 `task: { planned:1, observed:0, succeeded:0 }`。\n- **未知费用绝不被当作 0**。未知费用样本使 `task.totalCost` 与\n  `costPerSuccess` 为 `null`（非 0），测试断言 `expect(...totalCost).toBeNull()`。\n  有效样本的已知费用（`cost: 0.1`）才会计入 `totalCost: 0.1`。\n- **永远不发放改善 PASS**。`--help` 明确 \"No improvement PASS is issued\"；\n  测试断言 `improvementVerdict: \"NOT_EVALUATED\"`、`productionAttested: false`。\n\n## 2. 前置输入文件\n\n| 选项 | 必需 | 说明 | 来源 |\n|------|------|------|------|\n| `--plan` | 是 | 冻结计划 JSON | `readJson(values.plan)`，缺失或超 16 MiB 即抛错退出 1 |\n| `--fingerprint` | 否（互斥分支） | 只打印计划摘要到 stdout，退出 0 | `outcomeDigest(plan)` |\n| `--plan-digest` | 是（非 fingerprint 时） | 须匹配 `/^sha256:[a-f0-9]{64}$/u`，否则抛错退出 1 | 冻结计划后再收集证据 |\n| `--history` | 否 | Eval 历史 JSONL | `readEvalHistory(...)`；缺省为 `{ runs: [], issues: [] }` |\n| `--observations` | 否 | 观测 JSON（数组） | `readJson(...)`；缺省为 `[]` |\n| `--maintenance` | 否 | 维护记录 JSON | `readJson(...)`；缺省为 `null` |\n\n`readJson` 的双重大小检查：`fs.statSync(file).size > 16*1024*1024` 与\n`bytes.length > 16*1024*1024`，任一超出即抛 \"missing input or input exceeds\n16 MiB\"（退出 1）。\n\n## 3. 标准运维流程（含正/负控制）\n\n冻结计划后先取指纹，再（可选）收集证据，最后产出报告。\n\n```bash\n# 第 1 步：对冻结计划取摘要（离线、无模型调用）\nnode packages/cli/scripts/task-outcome-report.mjs \\\n  --plan plan.json --fingerprint\n# stdout 为 sha256:...；退出 0。该值写入评审记录，冻结后不得再改 plan。\n\n# 第 2 步：用该摘要跑完整报告（history/observations/maintenance 可选）\nnode packages/cli/scripts/task-outcome-report.mjs \\\n  --plan plan.json \\\n  --plan-digest sha256:... \\\n  --history history.jsonl \\\n  --observations observations.json \\\n  [--maintenance maintenance.json]\n```\n\n### 3.1 指纹正/负控制\n\n- **正控制**：同一 `plan.json` 上 `--fingerprint` 输出\n  `outcomeDigest(plan)`。现有测试用 `execFileSync(... \"--fingerprint\").trim()`\n  与 `outcomeDigest(input.plan)` 相等断言。\n- **负控制**：变更 `plan.samples` 任一元素（删除一个样本）后重新计算摘要，\n  再以旧摘要调用报告，脚本抛 `digest mismatch` 退出 1。测试\n  `\"detects a changed frozen plan\"` 覆盖。\n\n### 3.2 缺失样本退出 2 的正/负控制\n\n- **负控制（缺失）**：计划含 `planned:2` 但证据只覆盖 1 个样本 → 状态\n  `INSUFFICIENT_EVIDENCE`，退出 2；报告保留该样本为\n  `task: { planned:2, observed:1, succeeded:1, successRate:0.5 }`。\n- **正控制（齐全）**：所有计划样本均有合法观测与对应 run → 状态\n  `BASELINE_RECORDED`，退出 0。同一控制边界：先验历史解析问题\n  （`history.issues` 含 `invalid_history_record`）也导致\n  `INSUFFICIENT_EVIDENCE`，说明该状态是“证据不充分”的通用判据而非单因。\n\n### 3.3 未知费用不归零的正/负控制\n\n- **负控制（未知费用）**：观测含合法成本（`cost: 0.1`）的样本之外，追加一个\n  无观测样本 → `totalCost` 与 `costPerSuccess` 为 `null`（不被当作 0）。\n  测试断言 `expect(result.task.totalCost).toBeNull()`。\n- **正控制（已知费用）**：全部样本有合法 `cost: 0.1` → `totalCost: 0.1`、\n  `costPerSuccess: 0.1`（见测试首条）。\n- 预算控制：`cost: 2 > costBudget 1` 或 `elapsedMs: 1001 > timeBudgetMs 1000`\n  时对应 row `reasons` 含 `budget_exceeded`（测试 `\"enforces the frozen\n  budget\"`），费用仍原样保留，仅判定为超预算。\n\n### 3.4 不发放改善 PASS 的正/负控制\n\n- **正控制（完整基线）**：齐全证据下 `improvementVerdict: \"NOT_EVALUATED\"`、\n  `productionAttested: false`，CLI 完整调用退出 0。\n- **负控制（同函数无 PASS 路径）**：`buildOutcomeReport` 的返回值不包含任何\n  发放 PASS 的字段；`--help` 文本亦明确 \"No improvement PASS is issued\"。\n  改善判定始终为 `NOT_EVALUATED`，不受证据多少影响。\n\n## 4. 需人工解读的边界与限制\n\n- **无命令行执行环境**：本文档为静态运维说明，未实际执行脚本；命令与断言\n  依据源码与现有单测推导。若以本机重跑，应复现上述退出码。\n- **16 MiB 输入上限**：任何 `--plan/--observations/--maintenance` JSON 超限\n  会直接退出 1，属输入校验而非证据缺陷。\n- **maintenance 缺失不视为免费**：`maintenance` 为 `null`、\n  `{ complete:false, entries:[] }` 或 window 不符时 `maintenance.totalHours`\n  为 `null`（测试 `\"does not report missing maintenance as free\"`）。\n- **证据复用/越界**：多样本共用同一 `runId` 抛 `multiple samples`；观测\n  `sampleId` 不在计划内抛 `outside the frozen plan`；观测时间超出 window 产生\n  `sample-1:observation_outside_window`；首次运行阶段乱序产生\n  `sample-1:inconsistent_first_run_stages`。这些都退出 1 或计入\n  `INSUFFICIENT_EVIDENCE`，需在评审记录中作为证据缺陷说明。\n\n## 5. 覆盖审计（对照验收要求）\n\n| 验收要求 | 覆盖方式 | 对应控制 |\n|----------|----------|----------|\n| 指纹 | `--fingerprint` 输出 `outcomeDigest(plan)`，退出 0 | 3.1 正控制 |\n| 缺失样本退出 2 | 计划内未覆盖样本 → `INSUFFICIENT_EVIDENCE`、退出 2 | 3.2 负控制 |\n| 未知费用 | 无观测样本 → `totalCost/costPerSuccess` 为 `null`（非 0） | 3.3 负控制 |\n| 禁止改善 PASS | `improvementVerdict: \"NOT_EVALUATED\"`，`--help` 明确不发放 | 3.4 控制 |\n\n全部四项验收均映射到同一真实脚本调用边界，且各负控制保持其余前置（合法\n`--plan-digest`、齐全或合法的 history/observations）有效，不会被其它保护器\n误判。未覆盖项：真实网络评测环境中的 provider/生产 attestation 路径——本脚本\n明确不执行模型调用，其不在本运维说明边界内。\n",
+              "path": "docs/development/verify-34-outcome-runbook.md"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_2evbwjrbh7xfm2voqi7irkd2",
+            "tool": "read_file",
+            "args": {
+              "path": "docs/development/verify-34-outcome-runbook.md"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_zz1javtac4gw822p5gsujbjc",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/scripts/task-outcome-report.mjs"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_1ccngfzqo9w5wra5i22yy6bv",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/task-outcome-report.test.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_m7xv44ovgpw8wypvh8tr87c8",
+            "tool": "search_files",
+            "args": {
+              "pattern": "export function buildOutcomeReport|export function outcomeDigest|export function validateOutcomePlan|OUTCOME_PLAN_SCHEMA",
+              "path": "packages/cli/src/lib/eval/outcomes.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_w24w0094znzl0vprjtxxj5r7",
+            "tool": "search_files",
+            "args": {
+              "pattern": "export function readEvalHistory",
+              "path": "packages/cli/src/lib/eval/evidence.js"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_ye5nn55v8y99p0a9jk857uzv",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/cli/src/lib/eval/outcomes.js",
+              "pattern": "export function buildOutcomeReport"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_55rqqd0cb2lky3807s4hgv23",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/cli/src/lib/eval/outcomes.js",
+              "pattern": "export const OUTCOME_PLAN_SCHEMA"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_of8bhuky2oaecg7j8y7w9351",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/cli/src/lib/eval/outcomes.js",
+              "pattern": "export function outcomeDigest"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_3dzg12u0uu8zqgmbt789ude8",
+            "tool": "search_files",
+            "args": {
+              "path": "packages/cli/src/lib/eval/outcomes.js",
+              "pattern": "export function validateOutcomePlan"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_izahqee5jowsf21h73gkonxs",
+            "tool": "read_file",
+            "args": {
+              "path": "docs/development/verify-34-outcome-runbook.md"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "call_a9pqbdagy1bbojsllgohokde",
+            "tool": "read_file",
+            "args": {
+              "path": "docs/development/verify-34-outcome-runbook.md",
+              "offset": 150,
+              "limit": 200
+            }
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_k1wjsb7v6sv1xhd2aveavb05",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-OCf4rH/6035423e-69ca-45ff-b823-8e5299ff5c4c/workspace/packages/cli/scripts/task-outcome-report.mjs",
+              "fileVersion": "2453:1791108223000:1793712382957.3835",
+              "readSpan": {
+                "start": 0,
+                "end": 2453,
+                "total": 2453
+              },
+              "hashed": false,
+              "content": "#!/usr/bin/env node\nimport fs from \"node:fs\";\nimport { parseArgs } from \"node:util\";\nimport { readEvalHistory } from \"../src/lib/eval/evidence.js\";\nimport {\n  buildOutcomeReport,\n  outcomeDigest,\n  validateOutcomePlan,\n} from \"../src/lib/eval/outcomes.js\";\n\nfunction readJson(file) {\n  if (!file || fs.statSync(file).size > 16 * 1024 * 1024)\n    throw new Error(\"missing input or input exceeds 16 MiB\");\n  const bytes = fs.readFileSync(file);\n  if (bytes.length > 16 * 1024 * 1024) throw new Error(\"input exceeds 16 MiB\");\n  return JSON.parse(bytes.toString(\"utf8\"));\n}\n\ntry {\n  const { values } = parseArgs({\n    options: {\n      plan: { type: \"string\" },\n      history: { type: \"string\" },\n      observations: { type: \"string\" },\n      maintenance: { type: \"string\" },\n      \"plan-digest\": { type: \"string\" },\n      fingerprint: { type: \"boolean\" },\n      help: { type: \"boolean\" },\n    },\n  });\n  if (values.help) {\n    console.log(\n      \"Read-only baseline report (no model calls or production attestation).\\n\" +\n        \"node scripts/task-outcome-report.mjs --plan plan.json --fingerprint\\n\" +\n        \"node scripts/task-outcome-report.mjs --plan plan.json --plan-digest sha256:... --history history.jsonl --observations observations.json [--maintenance maintenance.json]\\n\" +\n        \"JSON goes to stdout. Exit 0: baseline recorded; 2: insufficient evidence; 1: invalid input. No improvement PASS is issued.\",\n    );\n  } else {\n    const plan = readJson(values.plan);\n    validateOutcomePlan(plan);\n    if (values.fingerprint) console.log(outcomeDigest(plan));\n    else {\n      if (!/^sha256:[a-f0-9]{64}$/u.test(values[\"plan-digest\"] || \"\"))\n        throw new Error(\n          \"--plan-digest is required; freeze it before collecting evidence\",\n        );\n      const report = buildOutcomeReport(\n        {\n          plan,\n          history: values.history\n            ? readEvalHistory(values.history)\n            : { runs: [], issues: [] },\n          observations: values.observations\n            ? readJson(values.observations)\n            : [],\n          maintenance: values.maintenance ? readJson(values.maintenance) : null,\n        },\n        { expectedPlanDigest: values[\"plan-digest\"] },\n      );\n      console.log(JSON.stringify(report, null, 2));\n      if (report.status === \"INSUFFICIENT_EVIDENCE\") process.exitCode = 2;\n    }\n  }\n} catch (error) {\n  console.error(`Outcome report failed: ${error.message}`);\n  process.exitCode = 1;\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712409119,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/scripts/task-outcome-report.mjs"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 6,
+                "sessionId": "headless-1793712405535-2693",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/scripts/task-outcome-report.mjs"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_cc72jta3vb3fyn67ii10rb6e",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-OCf4rH/6035423e-69ca-45ff-b823-8e5299ff5c4c/workspace/packages/cli/__tests__/unit/task-outcome-report.test.js",
+              "fileVersion": "13255:1791108223000:1793712382823.8357",
+              "readSpan": {
+                "start": 0,
+                "end": 13255,
+                "total": 13255
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport fs from \"node:fs\";\nimport os from \"node:os\";\nimport path from \"node:path\";\nimport { execFileSync, spawnSync } from \"node:child_process\";\nimport { fileURLToPath } from \"node:url\";\nimport {\n  createEvalComparison,\n  createEvalHistoryRecord,\n  EVAL_CONTEXT_SCHEMA,\n  EVAL_EXECUTION_PROTOCOL,\n} from \"../../src/lib/eval/evidence.js\";\nimport {\n  buildOutcomeReport,\n  outcomeDigest,\n  OUTCOME_PLAN_SCHEMA,\n} from \"../../src/lib/eval/outcomes.js\";\n\nconst NOW = Date.parse(\"2026-09-15T12:00:00.000Z\");\nconst SHA = \"a\".repeat(40);\nconst D = (letter) => `sha256:${letter.repeat(64)}`;\nconst SCRIPT = fileURLToPath(\n  new URL(\"../../scripts/task-outcome-report.mjs\", import.meta.url),\n);\nfunction fixture() {\n  const comparison = createEvalComparison({\n    suite: \"builtin\",\n    corpusDigest: D(\"a\"),\n    provider: \"test\",\n    model: \"test-model\",\n    context: {\n      schema: EVAL_CONTEXT_SCHEMA,\n      provider: \"test\",\n      model: \"test-model\",\n      modelRevision: \"test-r1\",\n      environmentDigest: D(\"b\"),\n      permissionDigest: D(\"c\"),\n      inferenceDigest: D(\"d\"),\n    },\n  });\n  const window = {\n    start: \"2026-09-15T10:00:00.000Z\",\n    end: \"2026-09-15T11:00:00.000Z\",\n  };\n  const samples = [\"task\", \"first-run\"].map((kind, index) => ({\n    id: `sample-${index}`,\n    kind,\n    taskId: \"fix-build\",\n    stratum: \"windows-cli-test\",\n    comparisonDigest: outcomeDigest(comparison),\n    timeBudgetMs: 1000,\n    costBudget: 1,\n  }));\n  const runs = samples.map((sample, index) =>\n    createEvalHistoryRecord(\n      {\n        total: 1,\n        passed: 1,\n        failed: 0,\n        passRate: 1,\n        unrelatedChangeRate: 0,\n        results: [\n          {\n            id: sample.taskId,\n            pass: true,\n            artifactCheckPassed: true,\n            executionSucceeded: true,\n            agentOk: true,\n            error: null,\n            ms: 100,\n            executionEvidence: {\n              protocol: EVAL_EXECUTION_PROTOCOL,\n              exitCode: 0,\n              signal: null,\n              terminalVerified: true,\n              observedFallback: false,\n            },\n          },\n        ],\n      },\n      {\n        runId: `run-${index}`,\n        ranAt: \"2026-09-15T10:30:00.000Z\",\n        label: SHA,\n        comparison,\n      },\n    ),\n  );\n  return {\n    plan: {\n      schema: OUTCOME_PLAN_SCHEMA,\n      commitSha: SHA,\n      currency: \"USD\",\n      window,\n      samples,\n    },\n    history: { runs, issues: [] },\n    observations: samples.map((sample, index) => ({\n      sampleId: sample.id,\n      observedAt: \"2026-09-15T10:30:00.000Z\",\n      runId: `run-${index}`,\n      cost: 0.1,\n      elapsedMs: 500,\n      retries: 0,\n      manualRepairs: 0,\n      ...(sample.kind === \"first-run\"\n        ? {\n            firstRun: {\n              cleanEnvironment: true,\n              stages: Object.fromEntries(\n                [\n                  \"install\",\n                  \"configure\",\n                  \"authenticate\",\n                  \"tool\",\n                  \"artifact\",\n                ].map((stage) => [\n                  stage,\n                  { passed: true, receipt: `receipt:${stage}` },\n                ]),\n              ),\n            },\n          }\n        : {}),\n    })),\n    maintenance: {\n      window,\n      complete: true,\n      entries: [\n        {\n          id: \"support-1\",\n          category: \"support\",\n          hours: 2,\n          evidenceRef: \"ticket:1\",\n        },\n        {\n          id: \"build-1\",\n          category: \"construction\",\n          hours: 8,\n          evidenceRef: \"ticket:2\",\n        },\n      ],\n    },\n  };\n}\nconst report = (input) => buildOutcomeReport(input, { now: NOW });\n\ndescribe(\"task outcome baseline\", () => {\n  it(\"reuses Eval evidence and records a baseline without issuing an improvement PASS\", () => {\n    const result = report(fixture());\n    expect(result).toMatchObject({\n      status: \"BASELINE_RECORDED\",\n      improvementVerdict: \"NOT_EVALUATED\",\n      productionAttested: false,\n    });\n    expect(result.task).toMatchObject({\n      succeeded: 1,\n      planned: 1,\n      successRate: 1,\n      costPerSuccess: 0.1,\n    });\n    expect(result.maintenance).toMatchObject({\n      totalHours: 2,\n      per100Attempts: 100,\n      constructionHours: 8,\n    });\n  });\n  it(\"retains missing planned samples and does not turn unknown costs into zero\", () => {\n    const input = fixture();\n    input.plan.samples.push({ ...input.plan.samples[0], id: \"never-ran\" });\n    const result = report(input);\n    expect(result.task).toMatchObject({\n      planned: 2,\n      observed: 1,\n      succeeded: 1,\n      successRate: 0.5,\n      totalCost: null,\n      costPerSuccess: null,\n    });\n    expect(result.status).toBe(\"INSUFFICIENT_EVIDENCE\");\n    expect(result.maintenance.per100Attempts).toBeNull();\n  });\n  it(\"counts an execution failure despite a correct artifact and preserves its expense\", () => {\n    const input = fixture();\n    Object.assign(input.history.runs[0], { passed: 0, failed: 1, passRate: 0 });\n    Object.assign(input.history.runs[0].results[0], {\n      pass: false,\n      agentOk: false,\n      executionSucceeded: false,\n      error: \"timeout\",\n    });\n    input.history.runs[0].results[0].executionEvidence.exitCode = 1;\n    input.observations[0].failureCause = \"model-protocol\";\n    const result = report(input);\n    expect(result.task).toMatchObject({\n      succeeded: 0,\n      totalCost: 0.1,\n      costPerSuccess: null,\n    });\n    expect(result.status).toBe(\"BASELINE_RECORDED\");\n  });\n  it.each([\n    \"dryRun\",\n    \"label\",\n    \"comparison\",\n    \"terminal\",\n    \"fallback\",\n    \"deleted-task\",\n    \"tampered-pass\",\n  ])(\"cannot count %s evidence as success\", (change) => {\n    const input = fixture();\n    const run = input.history.runs[0];\n    if (change === \"dryRun\") run.dryRun = true;\n    if (change === \"label\") run.label = \"other-commit\";\n    if (change === \"comparison\") run.comparison.model = \"different\";\n    if (change === \"terminal\")\n      run.results[0].executionEvidence.terminalVerified = false;\n    if (change === \"fallback\")\n      run.results[0].executionEvidence.observedFallback = true;\n    if (change === \"deleted-task\") run.results = [];\n    if (change === \"tampered-pass\") run.results[0].artifactCheckPassed = false;\n    expect(report(input).task.succeeded).toBe(0);\n  });\n  it(\"keeps retry expenses within one sample and rejects manual repair as initial success\", () => {\n    const input = fixture();\n    Object.assign(input.observations[0], {\n      retries: 3,\n      cost: 0.8,\n      manualRepairs: 1,\n    });\n    expect(report(input).task).toMatchObject({\n      planned: 1,\n      succeeded: 0,\n      totalCost: 0.8,\n      retries: 3,\n      manualRepairs: 1,\n    });\n  });\n  it.each([{ cost: 2 }, { elapsedMs: 1001 }])(\n    \"enforces the frozen budget %j\",\n    (override) => {\n      const input = fixture();\n      Object.assign(input.observations[0], override);\n      expect(report(input).rows[0].reasons).toContain(\"budget_exceeded\");\n    },\n  );\n  it(\"does not count READY without the full first-run journey\", () => {\n    const input = fixture();\n    input.observations[1].firstRun.stages.artifact.passed = false;\n    expect(report(input).firstRun.succeeded).toBe(0);\n    expect(report(input).firstRunFunnel.at(-1).passed).toBe(0);\n  });\n  it(\"accepts documented installation failure as a failed observation even before any Eval run\", () => {\n    const input = fixture();\n    input.observations[1].runId = null;\n    input.observations[1].failureCause = \"install\";\n    for (const stage of Object.values(input.observations[1].firstRun.stages))\n      stage.passed = false;\n    const result = report(input);\n    expect(result.status).toBe(\"BASELINE_RECORDED\");\n    expect(result.firstRun).toMatchObject({\n      observed: 1,\n      succeeded: 0,\n      totalCost: 0.1,\n    });\n  });\n  it(\"rejects out-of-order first-run stage evidence\", () => {\n    const input = fixture();\n    input.observations[1].firstRun.stages.install.passed = false;\n    expect(report(input).issues).toContain(\n      \"sample-1:inconsistent_first_run_stages\",\n    );\n    expect(\n      report(input).firstRunFunnel.every((stage) => stage.passed === 0),\n    ).toBe(true);\n  });\n  it(\"rejects evidence reuse and extra observations instead of increasing the denominator\", () => {\n    const input = fixture();\n    input.observations[1].runId = \"run-0\";\n    expect(() => report(input)).toThrow(\"multiple samples\");\n    input.observations[1].sampleId = \"unplanned\";\n    expect(() => report(input)).toThrow(\"outside the frozen plan\");\n  });\n  it(\"rejects duplicate plan samples\", () => {\n    const input = fixture();\n    input.plan.samples.push(input.plan.samples[0]);\n    expect(() => report(input)).toThrow(\"duplicate\");\n  });\n  it(\"detects a changed frozen plan\", () => {\n    const input = fixture();\n    const digest = outcomeDigest(input.plan);\n    input.plan.samples.pop();\n    expect(() =>\n      buildOutcomeReport(input, { now: NOW, expectedPlanDigest: digest }),\n    ).toThrow(\"digest mismatch\");\n  });\n  it.each([\n    null,\n    { complete: false, entries: [] },\n    { complete: true, window: { start: \"other\" }, entries: [] },\n  ])(\"does not report missing maintenance as free: %j\", (maintenance) => {\n    const input = fixture();\n    input.maintenance = maintenance;\n    expect(report(input).maintenance.totalHours).toBeNull();\n  });\n  it(\"retains history parse failures\", () => {\n    const input = fixture();\n    input.history.issues.push({ code: \"invalid_history_record\", line: 2 });\n    expect(report(input).status).toBe(\"INSUFFICIENT_EVIDENCE\");\n  });\n  it(\"rejects observations outside the window even when no model task started\", () => {\n    const input = fixture();\n    input.observations[1].runId = null;\n    input.observations[1].observedAt = \"2026-09-14T10:30:00.000Z\";\n    for (const stage of Object.values(input.observations[1].firstRun.stages))\n      stage.passed = false;\n    expect(report(input).issues).toContain(\n      \"sample-1:observation_outside_window\",\n    );\n  });\n  it.each([NaN, -1, Infinity, \"0\"])(\n    \"rejects invalid observed costs %s\",\n    (cost) => {\n      const input = fixture();\n      input.observations[0].cost = cost;\n      expect(report(input).task.totalCost).toBeNull();\n      expect(report(input).task.succeeded).toBe(0);\n    },\n  );\n  it(\"keeps per-task repeated samples and strata visible\", () => {\n    const input = fixture();\n    input.plan.samples.push({ ...input.plan.samples[0], id: \"repeat\" });\n    const result = report(input);\n    expect(result.groups[0]).toMatchObject({\n      taskId: \"fix-build\",\n      planned: 2,\n      succeeded: 1,\n    });\n  });\n  it(\"runs the offline CLI with distinct complete, incomplete, and invalid exits\", () => {\n    const dir = fs.mkdtempSync(path.join(os.tmpdir(), \"cc-outcome-test-\"));\n    try {\n      const input = fixture();\n      const runtimeNow = Date.now();\n      input.plan.window.start = new Date(runtimeNow - 7200000).toISOString();\n      input.plan.window.end = new Date(runtimeNow - 3600000).toISOString();\n      for (const run of input.history.runs)\n        run.ranAt = new Date(runtimeNow - 5400000).toISOString();\n      for (const observation of input.observations)\n        observation.observedAt = new Date(runtimeNow - 5400000).toISOString();\n      const file = path.join(dir, \"plan.json\");\n      fs.writeFileSync(file, JSON.stringify(input.plan));\n      const digest = execFileSync(\n        process.execPath,\n        [SCRIPT, \"--plan\", file, \"--fingerprint\"],\n        { encoding: \"utf8\" },\n      ).trim();\n      expect(digest).toBe(outcomeDigest(input.plan));\n      const result = spawnSync(\n        process.execPath,\n        [SCRIPT, \"--plan\", file, \"--plan-digest\", digest],\n        { encoding: \"utf8\" },\n      );\n      expect(result.status).toBe(2);\n      expect(JSON.parse(result.stdout).task).toMatchObject({\n        planned: 1,\n        observed: 0,\n        succeeded: 0,\n      });\n      const changed = spawnSync(\n        process.execPath,\n        [SCRIPT, \"--plan\", file, \"--plan-digest\", D(\"f\")],\n        { encoding: \"utf8\" },\n      );\n      expect(changed.status).toBe(1);\n      const history = path.join(dir, \"history.jsonl\");\n      const observations = path.join(dir, \"observations.json\");\n      const maintenance = path.join(dir, \"maintenance.json\");\n      fs.writeFileSync(\n        history,\n        input.history.runs.map((run) => JSON.stringify(run)).join(\"\\n\"),\n      );\n      fs.writeFileSync(observations, JSON.stringify(input.observations));\n      fs.writeFileSync(maintenance, JSON.stringify(input.maintenance));\n      const complete = spawnSync(\n        process.execPath,\n        [\n          SCRIPT,\n          \"--plan\",\n          file,\n          \"--plan-digest\",\n          digest,\n          \"--history\",\n          history,\n          \"--observations\",\n          observations,\n          \"--maintenance\",\n          maintenance,\n        ],\n        { encoding: \"utf8\" },\n      );\n      expect(complete.status, complete.stderr || complete.stdout).toBe(0);\n      expect(JSON.parse(complete.stdout)).toMatchObject({\n        status: \"BASELINE_RECORDED\",\n        improvementVerdict: \"NOT_EVALUATED\",\n      });\n    } finally {\n      fs.rmSync(dir, { recursive: true, force: true });\n    }\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712409119,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/task-outcome-report.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "headless-1793712405535-2693",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/task-outcome-report.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_wjlyrvhjdviwv7o0mqknj952",
+            "tool": "write_file",
+            "is_error": true,
+            "error": "[Subtree Instructions] Mutation deferred before its first effect. Review these authoritative subtree rules, then retry the tool call.",
+            "result": {
+              "error": "[Subtree Instructions] Mutation deferred before its first effect. Review these authoritative subtree rules, then retry the tool call.",
+              "policy": {
+                "decision": "deferred",
+                "via": "subtree-instructions"
+              },
+              "subtreeInstructions": [
+                {
+                  "path": "/private/tmp/cc-native-OCf4rH/6035423e-69ca-45ff-b823-8e5299ff5c4c/workspace/docs/development/AGENTS.md",
+                  "scope": "project",
+                  "content": "# Repository Guidelines\n\n## Project Structure & Module Organization\nChainlessChain is a Node/Electron monorepo. The root `package.json` orchestrates workspaces such as `desktop-app-vue` (Electron + Vue 3 + TypeScript), `backend` (services, FastAPI helpers, Docker stack), and `mobile-app-*`. Desktop source lives under `desktop-app-vue/src`, split into `main` (Electron processes), `renderer` (Vue UI), and `preload`. Tests and plans sit in `tests/` and `docs/plan`. Assets, installers, and scripts are in `desktop-app-vue/assets`, `build/`, and `scripts/`. Respect this layout when adding modules or data files.\n\n## Build, Test, and Development Commands\n- `npm run dev:desktop` (root): starts Electron + Vite dev servers.\n- `npm run build:desktop` (root): builds production bundles for the desktop app.\n- `npm run dev` inside `desktop-app-vue`: runs `build:main`, Vite renderer, and Electron concurrently.\n- `npm run test` (root): runs workspace test suites (Vitest, Playwright, etc.).\n- `npm run docker:up` / `npm run docker:down`: control backend support services (Ollama, Qdrant, DB).\nDocument new commands in `README.md` or module-specific docs.\n\n## Coding Style & Naming Conventions\n- TypeScript/JavaScript use 2-space indentation. Vue SFCs follow `<script setup>` where possible.\n- Prefer named exports for shared modules; avoid default exports in shared type definitions (`src/shared`).\n- Run `npm run lint` (ESLint + TS/Vue rules) and `npm run format` (Prettier defaults) before committing.\n- Components and pages use `PascalCase` filenames, hooks use `use*`, and stores live under `src/renderer/stores`.\n\n## Testing Guidelines\n- Vitest is the primary unit test runner (`npm run test:unit`). Integration/e2e suites use Playwright (`npm run test:e2e`).\n- Place tests near their targets with `.test.ts|tsx` suffixes. Mock external services (LLM, file IO) rather than hitting live Docker stacks.\n- When modifying critical flows (database adapters, sync, crypto), add regression tests and update fixtures under `tests/`.\n\n## Commit & Pull Request Guidelines\n- Follow Conventional Commit flavor seen in history (`feat:`, `fix:`, `chore:`, `docs:`). Keep messages concise and imperative.\n- Pull requests should describe scope, risks, and include evidence: screenshots for UI, logs for CLI/setup changes, and the commands/tests run.\n- Link issues when applicable, keep diffs scoped to one concern, and ensure `npm run lint` plus `npm test` pass before requesting review.\n\n## Security & Configuration Tips\n- Never commit secrets or hardware-key credentials. Load runtime settings from `.env` or Docker env vars.\n- Treat `backend/docker` volumes and model data as sensitive; scrub before sharing.\n- For crypto or identity flows, document threat assumptions in the PR and add regression tests whenever possible.\n\n## 附录：规范章节补全（v5.0.3.108）\n\n> 为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。\n\n### 1. 概述\n见正文头部。本文：Repository Guidelines。\n\n### 2. 核心特性\n见正文要点 / 特性 / 范围章节。\n\n### 3. 系统架构\n见正文架构 / 设计章节（或项目根 docs/design/ 系统设计主文档）。\n\n### 4. 系统定位\n见正文定位 / 背景章节。\n\n### 5. 核心功能\n见正文功能 / 内容章节。\n\n### 6. 技术架构\n见正文技术 / 实现章节。\n\n### 7. 系统特点\n见正文（状态 / 版本 / 特性）。\n\n### 8. 应用场景\n见正文应用场景 / 背景。\n\n### 9. 竞品对比\n见正文对比 / 借鉴（如有）。\n\n### 10. 配置参考\n见正文配置 / 参数 / 环境章节。\n\n### 11. 性能指标\n见正文性能 / 指标章节（如有）。\n\n### 12. 测试覆盖\n见正文测试 / 验证章节（如有）。\n\n### 13. 安全考虑\n见正文安全 / 权限章节（如适用）。\n\n### 14. 故障排除\n见正文故障 / 已知限制 / 常见问题章节。\n\n### 15. 关键文件\n见正文实现位置 / 关键文件章节。\n\n### 16. 使用示例\n见正文命令 / 操作 / API 示例。\n\n### 17. 相关文档\n见正文相关链接；项目根 docs/design/ 系统设计主文档与对应模块文档。\n"
+                }
+              ],
+              "mutationPerformed": false
+            },
+            "permission_decision_id": "call_wjlyrvhjdviwv7o0mqknj952:perm:subtree-instructions",
+            "permission_decision": {
+              "version": 1,
+              "id": "call_wjlyrvhjdviwv7o0mqknj952:perm:subtree-instructions",
+              "tool": "write_file",
+              "decision": "deferred",
+              "via": "subtree-instructions",
+              "rule": null,
+              "reason": null,
+              "chain": []
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_3cz0z1t3gl0qax2w6d7j8rrf",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "/private/tmp/cc-native-OCf4rH/6035423e-69ca-45ff-b823-8e5299ff5c4c/workspace/docs/development/verify-34-outcome-runbook.md",
+              "size": 7775,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "not-checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance."
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712458998,
+                "meta": {
+                  "args": {
+                    "content": "# verify-34 冻结计划操作说明（Outcome Report Runbook）\n\n本文档是仓库运维操作说明，描述如何运行真实冻结计划报告脚本\n`packages/cli/scripts/task-outcome-report.mjs` 并解读其结果。命令与断言均以该\n脚本实际源码及现有单测 `packages/cli/__tests__/unit/task-outcome-report.test.js`\n为据；评测计划不允许修改，断言不可降低，失败不可跳过。\n\n## 1. 脚本角色与退出码契约\n\n该脚本是只读基线报告工具（无模型调用、无生产 attestation），\n`--help` 输出明确声明：\n\n> Read-only baseline report (no model calls or production attestation).\n> Exit 0: baseline recorded; 2: insufficient evidence; 1: invalid input.\n> No improvement PASS is issued.\n\n退出码由以下源码逻辑决定：\n\n| 退出码 | 触发条件 | 源码依据 |\n|--------|----------|----------|\n| `0` | 基线记录成功（`report.status` 非 `INSUFFICIENT_EVIDENCE`） | 主分支最后仅当 insufficient 时设置 `process.exitCode = 2`；其余自然退出为 0 |\n| `2` | `report.status === \"INSUFFICIENT_EVIDENCE\"` | `if (report.status === \"INSUFFICIENT_EVIDENCE\") process.exitCode = 2;` |\n| `1` | 任何抛出的输入/计划/证据错误 | 外层 `catch` 统一 `process.exitCode = 1` |\n\n关键结论（源码+测试共同验证）：\n\n- **缺失样本 → 退出 2**。测试 `\"retains missing planned samples and does not\n  turn unknown costs into zero\"` 中追加一个从未运行的样本后\n  `result.status` 为 `INSUFFICIENT_EVIDENCE`；CLI 集成测试中无 history 时\n  `result.status` 为 2 且 `task: { planned:1, observed:0, succeeded:0 }`。\n- **未知费用绝不被当作 0**。未知费用样本使 `task.totalCost` 与\n  `costPerSuccess` 为 `null`（非 0），测试断言 `expect(...totalCost).toBeNull()`。\n  有效样本的已知费用（`cost: 0.1`）才会计入 `totalCost: 0.1`。\n- **永远不发放改善 PASS**。`--help` 明确 \"No improvement PASS is issued\"；\n  测试断言 `improvementVerdict: \"NOT_EVALUATED\"`、`productionAttested: false`。\n\n## 2. 前置输入文件\n\n| 选项 | 必需 | 说明 | 来源 |\n|------|------|------|------|\n| `--plan` | 是 | 冻结计划 JSON | `readJson(values.plan)`，缺失或超 16 MiB 即抛错退出 1 |\n| `--fingerprint` | 否（互斥分支） | 只打印计划摘要到 stdout，退出 0 | `outcomeDigest(plan)` |\n| `--plan-digest` | 是（非 fingerprint 时） | 须匹配 `/^sha256:[a-f0-9]{64}$/u`，否则抛错退出 1 | 冻结计划后再收集证据 |\n| `--history` | 否 | Eval 历史 JSONL | `readEvalHistory(...)`；缺省为 `{ runs: [], issues: [] }` |\n| `--observations` | 否 | 观测 JSON（数组） | `readJson(...)`；缺省为 `[]` |\n| `--maintenance` | 否 | 维护记录 JSON | `readJson(...)`；缺省为 `null` |\n\n`readJson` 的双重大小检查：`fs.statSync(file).size > 16*1024*1024` 与\n`bytes.length > 16*1024*1024`，任一超出即抛 \"missing input or input exceeds\n16 MiB\"（退出 1）。\n\n## 3. 标准运维流程（含正/负控制）\n\n冻结计划后先取指纹，再（可选）收集证据，最后产出报告。\n\n```bash\n# 第 1 步：对冻结计划取摘要（离线、无模型调用）\nnode packages/cli/scripts/task-outcome-report.mjs \\\n  --plan plan.json --fingerprint\n# stdout 为 sha256:...；退出 0。该值写入评审记录，冻结后不得再改 plan。\n\n# 第 2 步：用该摘要跑完整报告（history/observations/maintenance 可选）\nnode packages/cli/scripts/task-outcome-report.mjs \\\n  --plan plan.json \\\n  --plan-digest sha256:... \\\n  --history history.jsonl \\\n  --observations observations.json \\\n  [--maintenance maintenance.json]\n```\n\n### 3.1 指纹正/负控制\n\n- **正控制**：同一 `plan.json` 上 `--fingerprint` 输出\n  `outcomeDigest(plan)`。现有测试用 `execFileSync(... \"--fingerprint\").trim()`\n  与 `outcomeDigest(input.plan)` 相等断言。\n- **负控制**：变更 `plan.samples` 任一元素（删除一个样本）后重新计算摘要，\n  再以旧摘要调用报告，脚本抛 `digest mismatch` 退出 1。测试\n  `\"detects a changed frozen plan\"` 覆盖。\n\n### 3.2 缺失样本退出 2 的正/负控制\n\n- **负控制（缺失）**：计划含 `planned:2` 但证据只覆盖 1 个样本 → 状态\n  `INSUFFICIENT_EVIDENCE`，退出 2；报告保留该样本为\n  `task: { planned:2, observed:1, succeeded:1, successRate:0.5 }`。\n- **正控制（齐全）**：所有计划样本均有合法观测与对应 run → 状态\n  `BASELINE_RECORDED`，退出 0。同一控制边界：先验历史解析问题\n  （`history.issues` 含 `invalid_history_record`）也导致\n  `INSUFFICIENT_EVIDENCE`，说明该状态是“证据不充分”的通用判据而非单因。\n\n### 3.3 未知费用不归零的正/负控制\n\n- **负控制（未知费用）**：观测含合法成本（`cost: 0.1`）的样本之外，追加一个\n  无观测样本 → `totalCost` 与 `costPerSuccess` 为 `null`（不被当作 0）。\n  测试断言 `expect(result.task.totalCost).toBeNull()`。\n- **正控制（已知费用）**：全部样本有合法 `cost: 0.1` → `totalCost: 0.1`、\n  `costPerSuccess: 0.1`（见测试首条）。\n- 预算控制：`cost: 2 > costBudget 1` 或 `elapsedMs: 1001 > timeBudgetMs 1000`\n  时对应 row `reasons` 含 `budget_exceeded`（测试 `\"enforces the frozen\n  budget\"`），费用仍原样保留，仅判定为超预算。\n\n### 3.4 不发放改善 PASS 的正/负控制\n\n- **正控制（完整基线）**：齐全证据下 `improvementVerdict: \"NOT_EVALUATED\"`、\n  `productionAttested: false`，CLI 完整调用退出 0。\n- **负控制（同函数无 PASS 路径）**：`buildOutcomeReport` 的返回值不包含任何\n  发放 PASS 的字段；`--help` 文本亦明确 \"No improvement PASS is issued\"。\n  改善判定始终为 `NOT_EVALUATED`，不受证据多少影响。\n\n## 4. 需人工解读的边界与限制\n\n- **无命令行执行环境**：本文档为静态运维说明，未实际执行脚本；命令与断言\n  依据源码与现有单测推导。若以本机重跑，应复现上述退出码。\n- **16 MiB 输入上限**：任何 `--plan/--observations/--maintenance` JSON 超限\n  会直接退出 1，属输入校验而非证据缺陷。\n- **maintenance 缺失不视为免费**：`maintenance` 为 `null`、\n  `{ complete:false, entries:[] }` 或 window 不符时 `maintenance.totalHours`\n  为 `null`（测试 `\"does not report missing maintenance as free\"`）。\n- **证据复用/越界**：多样本共用同一 `runId` 抛 `multiple samples`；观测\n  `sampleId` 不在计划内抛 `outside the frozen plan`；观测时间超出 window 产生\n  `sample-1:observation_outside_window`；首次运行阶段乱序产生\n  `sample-1:inconsistent_first_run_stages`。这些都退出 1 或计入\n  `INSUFFICIENT_EVIDENCE`，需在评审记录中作为证据缺陷说明。\n\n## 5. 覆盖审计（对照验收要求）\n\n| 验收要求 | 覆盖方式 | 对应控制 |\n|----------|----------|----------|\n| 指纹 | `--fingerprint` 输出 `outcomeDigest(plan)`，退出 0 | 3.1 正控制 |\n| 缺失样本退出 2 | 计划内未覆盖样本 → `INSUFFICIENT_EVIDENCE`、退出 2 | 3.2 负控制 |\n| 未知费用 | 无观测样本 → `totalCost/costPerSuccess` 为 `null`（非 0） | 3.3 负控制 |\n| 禁止改善 PASS | `improvementVerdict: \"NOT_EVALUATED\"`，`--help` 明确不发放 | 3.4 控制 |\n\n全部四项验收均映射到同一真实脚本调用边界，且各负控制保持其余前置（合法\n`--plan-digest`、齐全或合法的 history/observations）有效，不会被其它保护器\n误判。未覆盖项：真实网络评测环境中的 provider/生产 attestation 路径——本脚本\n明确不执行模型调用，其不在本运维说明边界内。\n",
+                    "path": "docs/development/verify-34-outcome-runbook.md"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 15,
+                "sessionId": "headless-1793712405535-2693",
+                "metadata": {
+                  "args": {
+                    "content": "# verify-34 冻结计划操作说明（Outcome Report Runbook）\n\n本文档是仓库运维操作说明，描述如何运行真实冻结计划报告脚本\n`packages/cli/scripts/task-outcome-report.mjs` 并解读其结果。命令与断言均以该\n脚本实际源码及现有单测 `packages/cli/__tests__/unit/task-outcome-report.test.js`\n为据；评测计划不允许修改，断言不可降低，失败不可跳过。\n\n## 1. 脚本角色与退出码契约\n\n该脚本是只读基线报告工具（无模型调用、无生产 attestation），\n`--help` 输出明确声明：\n\n> Read-only baseline report (no model calls or production attestation).\n> Exit 0: baseline recorded; 2: insufficient evidence; 1: invalid input.\n> No improvement PASS is issued.\n\n退出码由以下源码逻辑决定：\n\n| 退出码 | 触发条件 | 源码依据 |\n|--------|----------|----------|\n| `0` | 基线记录成功（`report.status` 非 `INSUFFICIENT_EVIDENCE`） | 主分支最后仅当 insufficient 时设置 `process.exitCode = 2`；其余自然退出为 0 |\n| `2` | `report.status === \"INSUFFICIENT_EVIDENCE\"` | `if (report.status === \"INSUFFICIENT_EVIDENCE\") process.exitCode = 2;` |\n| `1` | 任何抛出的输入/计划/证据错误 | 外层 `catch` 统一 `process.exitCode = 1` |\n\n关键结论（源码+测试共同验证）：\n\n- **缺失样本 → 退出 2**。测试 `\"retains missing planned samples and does not\n  turn unknown costs into zero\"` 中追加一个从未运行的样本后\n  `result.status` 为 `INSUFFICIENT_EVIDENCE`；CLI 集成测试中无 history 时\n  `result.status` 为 2 且 `task: { planned:1, observed:0, succeeded:0 }`。\n- **未知费用绝不被当作 0**。未知费用样本使 `task.totalCost` 与\n  `costPerSuccess` 为 `null`（非 0），测试断言 `expect(...totalCost).toBeNull()`。\n  有效样本的已知费用（`cost: 0.1`）才会计入 `totalCost: 0.1`。\n- **永远不发放改善 PASS**。`--help` 明确 \"No improvement PASS is issued\"；\n  测试断言 `improvementVerdict: \"NOT_EVALUATED\"`、`productionAttested: false`。\n\n## 2. 前置输入文件\n\n| 选项 | 必需 | 说明 | 来源 |\n|------|------|------|------|\n| `--plan` | 是 | 冻结计划 JSON | `readJson(values.plan)`，缺失或超 16 MiB 即抛错退出 1 |\n| `--fingerprint` | 否（互斥分支） | 只打印计划摘要到 stdout，退出 0 | `outcomeDigest(plan)` |\n| `--plan-digest` | 是（非 fingerprint 时） | 须匹配 `/^sha256:[a-f0-9]{64}$/u`，否则抛错退出 1 | 冻结计划后再收集证据 |\n| `--history` | 否 | Eval 历史 JSONL | `readEvalHistory(...)`；缺省为 `{ runs: [], issues: [] }` |\n| `--observations` | 否 | 观测 JSON（数组） | `readJson(...)`；缺省为 `[]` |\n| `--maintenance` | 否 | 维护记录 JSON | `readJson(...)`；缺省为 `null` |\n\n`readJson` 的双重大小检查：`fs.statSync(file).size > 16*1024*1024` 与\n`bytes.length > 16*1024*1024`，任一超出即抛 \"missing input or input exceeds\n16 MiB\"（退出 1）。\n\n## 3. 标准运维流程（含正/负控制）\n\n冻结计划后先取指纹，再（可选）收集证据，最后产出报告。\n\n```bash\n# 第 1 步：对冻结计划取摘要（离线、无模型调用）\nnode packages/cli/scripts/task-outcome-report.mjs \\\n  --plan plan.json --fingerprint\n# stdout 为 sha256:...；退出 0。该值写入评审记录，冻结后不得再改 plan。\n\n# 第 2 步：用该摘要跑完整报告（history/observations/maintenance 可选）\nnode packages/cli/scripts/task-outcome-report.mjs \\\n  --plan plan.json \\\n  --plan-digest sha256:... \\\n  --history history.jsonl \\\n  --observations observations.json \\\n  [--maintenance maintenance.json]\n```\n\n### 3.1 指纹正/负控制\n\n- **正控制**：同一 `plan.json` 上 `--fingerprint` 输出\n  `outcomeDigest(plan)`。现有测试用 `execFileSync(... \"--fingerprint\").trim()`\n  与 `outcomeDigest(input.plan)` 相等断言。\n- **负控制**：变更 `plan.samples` 任一元素（删除一个样本）后重新计算摘要，\n  再以旧摘要调用报告，脚本抛 `digest mismatch` 退出 1。测试\n  `\"detects a changed frozen plan\"` 覆盖。\n\n### 3.2 缺失样本退出 2 的正/负控制\n\n- **负控制（缺失）**：计划含 `planned:2` 但证据只覆盖 1 个样本 → 状态\n  `INSUFFICIENT_EVIDENCE`，退出 2；报告保留该样本为\n  `task: { planned:2, observed:1, succeeded:1, successRate:0.5 }`。\n- **正控制（齐全）**：所有计划样本均有合法观测与对应 run → 状态\n  `BASELINE_RECORDED`，退出 0。同一控制边界：先验历史解析问题\n  （`history.issues` 含 `invalid_history_record`）也导致\n  `INSUFFICIENT_EVIDENCE`，说明该状态是“证据不充分”的通用判据而非单因。\n\n### 3.3 未知费用不归零的正/负控制\n\n- **负控制（未知费用）**：观测含合法成本（`cost: 0.1`）的样本之外，追加一个\n  无观测样本 → `totalCost` 与 `costPerSuccess` 为 `null`（不被当作 0）。\n  测试断言 `expect(result.task.totalCost).toBeNull()`。\n- **正控制（已知费用）**：全部样本有合法 `cost: 0.1` → `totalCost: 0.1`、\n  `costPerSuccess: 0.1`（见测试首条）。\n- 预算控制：`cost: 2 > costBudget 1` 或 `elapsedMs: 1001 > timeBudgetMs 1000`\n  时对应 row `reasons` 含 `budget_exceeded`（测试 `\"enforces the frozen\n  budget\"`），费用仍原样保留，仅判定为超预算。\n\n### 3.4 不发放改善 PASS 的正/负控制\n\n- **正控制（完整基线）**：齐全证据下 `improvementVerdict: \"NOT_EVALUATED\"`、\n  `productionAttested: false`，CLI 完整调用退出 0。\n- **负控制（同函数无 PASS 路径）**：`buildOutcomeReport` 的返回值不包含任何\n  发放 PASS 的字段；`--help` 文本亦明确 \"No improvement PASS is issued\"。\n  改善判定始终为 `NOT_EVALUATED`，不受证据多少影响。\n\n## 4. 需人工解读的边界与限制\n\n- **无命令行执行环境**：本文档为静态运维说明，未实际执行脚本；命令与断言\n  依据源码与现有单测推导。若以本机重跑，应复现上述退出码。\n- **16 MiB 输入上限**：任何 `--plan/--observations/--maintenance` JSON 超限\n  会直接退出 1，属输入校验而非证据缺陷。\n- **maintenance 缺失不视为免费**：`maintenance` 为 `null`、\n  `{ complete:false, entries:[] }` 或 window 不符时 `maintenance.totalHours`\n  为 `null`（测试 `\"does not report missing maintenance as free\"`）。\n- **证据复用/越界**：多样本共用同一 `runId` 抛 `multiple samples`；观测\n  `sampleId` 不在计划内抛 `outside the frozen plan`；观测时间超出 window 产生\n  `sample-1:observation_outside_window`；首次运行阶段乱序产生\n  `sample-1:inconsistent_first_run_stages`。这些都退出 1 或计入\n  `INSUFFICIENT_EVIDENCE`，需在评审记录中作为证据缺陷说明。\n\n## 5. 覆盖审计（对照验收要求）\n\n| 验收要求 | 覆盖方式 | 对应控制 |\n|----------|----------|----------|\n| 指纹 | `--fingerprint` 输出 `outcomeDigest(plan)`，退出 0 | 3.1 正控制 |\n| 缺失样本退出 2 | 计划内未覆盖样本 → `INSUFFICIENT_EVIDENCE`、退出 2 | 3.2 负控制 |\n| 未知费用 | 无观测样本 → `totalCost/costPerSuccess` 为 `null`（非 0） | 3.3 负控制 |\n| 禁止改善 PASS | `improvementVerdict: \"NOT_EVALUATED\"`，`--help` 明确不发放 | 3.4 控制 |\n\n全部四项验收均映射到同一真实脚本调用边界，且各负控制保持其余前置（合法\n`--plan-digest`、齐全或合法的 history/observations）有效，不会被其它保护器\n误判。未覆盖项：真实网络评测环境中的 provider/生产 attestation 路径——本脚本\n明确不执行模型调用，其不在本运维说明边界内。\n",
+                    "path": "docs/development/verify-34-outcome-runbook.md"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_2evbwjrbh7xfm2voqi7irkd2",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-OCf4rH/6035423e-69ca-45ff-b823-8e5299ff5c4c/workspace/docs/development/verify-34-outcome-runbook.md",
+              "fileVersion": "7775:1793712458985.9226:1793712458989.7007",
+              "readSpan": {
+                "start": 0,
+                "end": 5163,
+                "total": 5163
+              },
+              "hashed": false,
+              "content": "# verify-34 冻结计划操作说明（Outcome Report Runbook）\n\n本文档是仓库运维操作说明，描述如何运行真实冻结计划报告脚本\n`packages/cli/scripts/task-outcome-report.mjs` 并解读其结果。命令与断言均以该\n脚本实际源码及现有单测 `packages/cli/__tests__/unit/task-outcome-report.test.js`\n为据；评测计划不允许修改，断言不可降低，失败不可跳过。\n\n## 1. 脚本角色与退出码契约\n\n该脚本是只读基线报告工具（无模型调用、无生产 attestation），\n`--help` 输出明确声明：\n\n> Read-only baseline report (no model calls or production attestation).\n> Exit 0: baseline recorded; 2: insufficient evidence; 1: invalid input.\n> No improvement PASS is issued.\n\n退出码由以下源码逻辑决定：\n\n| 退出码 | 触发条件 | 源码依据 |\n|--------|----------|----------|\n| `0` | 基线记录成功（`report.status` 非 `INSUFFICIENT_EVIDENCE`） | 主分支最后仅当 insufficient 时设置 `process.exitCode = 2`；其余自然退出为 0 |\n| `2` | `report.status === \"INSUFFICIENT_EVIDENCE\"` | `if (report.status === \"INSUFFICIENT_EVIDENCE\") process.exitCode = 2;` |\n| `1` | 任何抛出的输入/计划/证据错误 | 外层 `catch` 统一 `process.exitCode = 1` |\n\n关键结论（源码+测试共同验证）：\n\n- **缺失样本 → 退出 2**。测试 `\"retains missing planned samples and does not\n  turn unknown costs into zero\"` 中追加一个从未运行的样本后\n  `result.status` 为 `INSUFFICIENT_EVIDENCE`；CLI 集成测试中无 history 时\n  `result.status` 为 2 且 `task: { planned:1, observed:0, succeeded:0 }`。\n- **未知费用绝不被当作 0**。未知费用样本使 `task.totalCost` 与\n  `costPerSuccess` 为 `null`（非 0），测试断言 `expect(...totalCost).toBeNull()`。\n  有效样本的已知费用（`cost: 0.1`）才会计入 `totalCost: 0.1`。\n- **永远不发放改善 PASS**。`--help` 明确 \"No improvement PASS is issued\"；\n  测试断言 `improvementVerdict: \"NOT_EVALUATED\"`、`productionAttested: false`。\n\n## 2. 前置输入文件\n\n| 选项 | 必需 | 说明 | 来源 |\n|------|------|------|------|\n| `--plan` | 是 | 冻结计划 JSON | `readJson(values.plan)`，缺失或超 16 MiB 即抛错退出 1 |\n| `--fingerprint` | 否（互斥分支） | 只打印计划摘要到 stdout，退出 0 | `outcomeDigest(plan)` |\n| `--plan-digest` | 是（非 fingerprint 时） | 须匹配 `/^sha256:[a-f0-9]{64}$/u`，否则抛错退出 1 | 冻结计划后再收集证据 |\n| `--history` | 否 | Eval 历史 JSONL | `readEvalHistory(...)`；缺省为 `{ runs: [], issues: [] }` |\n| `--observations` | 否 | 观测 JSON（数组） | `readJson(...)`；缺省为 `[]` |\n| `--maintenance` | 否 | 维护记录 JSON | `readJson(...)`；缺省为 `null` |\n\n`readJson` 的双重大小检查：`fs.statSync(file).size > 16*1024*1024` 与\n`bytes.length > 16*1024*1024`，任一超出即抛 \"missing input or input exceeds\n16 MiB\"（退出 1）。\n\n## 3. 标准运维流程（含正/负控制）\n\n冻结计划后先取指纹，再（可选）收集证据，最后产出报告。\n\n```bash\n# 第 1 步：对冻结计划取摘要（离线、无模型调用）\nnode packages/cli/scripts/task-outcome-report.mjs \\\n  --plan plan.json --fingerprint\n# stdout 为 sha256:...；退出 0。该值写入评审记录，冻结后不得再改 plan。\n\n# 第 2 步：用该摘要跑完整报告（history/observations/maintenance 可选）\nnode packages/cli/scripts/task-outcome-report.mjs \\\n  --plan plan.json \\\n  --plan-digest sha256:... \\\n  --history history.jsonl \\\n  --observations observations.json \\\n  [--maintenance maintenance.json]\n```\n\n### 3.1 指纹正/负控制\n\n- **正控制**：同一 `plan.json` 上 `--fingerprint` 输出\n  `outcomeDigest(plan)`。现有测试用 `execFileSync(... \"--fingerprint\").trim()`\n  与 `outcomeDigest(input.plan)` 相等断言。\n- **负控制**：变更 `plan.samples` 任一元素（删除一个样本）后重新计算摘要，\n  再以旧摘要调用报告，脚本抛 `digest mismatch` 退出 1。测试\n  `\"detects a changed frozen plan\"` 覆盖。\n\n### 3.2 缺失样本退出 2 的正/负控制\n\n- **负控制（缺失）**：计划含 `planned:2` 但证据只覆盖 1 个样本 → 状态\n  `INSUFFICIENT_EVIDENCE`，退出 2；报告保留该样本为\n  `task: { planned:2, observed:1, succeeded:1, successRate:0.5 }`。\n- **正控制（齐全）**：所有计划样本均有合法观测与对应 run → 状态\n  `BASELINE_RECORDED`，退出 0。同一控制边界：先验历史解析问题\n  （`history.issues` 含 `invalid_history_record`）也导致\n  `INSUFFICIENT_EVIDENCE`，说明该状态是“证据不充分”的通用判据而非单因。\n\n### 3.3 未知费用不归零的正/负控制\n\n- **负控制（未知费用）**：观测含合法成本（`cost: 0.1`）的样本之外，追加一个\n  无观测样本 → `totalCost` 与 `costPerSuccess` 为 `null`（不被当作 0）。\n  测试断言 `expect(result.task.totalCost).toBeNull()`。\n- **正控制（已知费用）**：全部样本有合法 `cost: 0.1` → `totalCost: 0.1`、\n  `costPerSuccess: 0.1`（见测试首条）。\n- 预算控制：`cost: 2 > costBudget 1` 或 `elapsedMs: 1001 > timeBudgetMs 1000`\n  时对应 row `reasons` 含 `budget_exceeded`（测试 `\"enforces the frozen\n  budget\"`），费用仍原样保留，仅判定为超预算。\n\n### 3.4 不发放改善 PASS 的正/负控制\n\n- **正控制（完整基线）**：齐全证据下 `improvementVerdict: \"NOT_EVALUATED\"`、\n  `productionAttested: false`，CLI 完整调用退出 0。\n- **负控制（同函数无 PASS 路径）**：`buildOutcomeReport` 的返回值不包含任何\n  发放 PASS 的字段；`--help` 文本亦明确 \"No improvement PASS is issued\"。\n  改善判定始终为 `NOT_EVALUATED`，不受证据多少影响。\n\n## 4. 需人工解读的边界与限制\n\n- **无命令行执行环境**：本文档为静态运维说明，未实际执行脚本；命令与断言\n  依据源码与现有单测推导。若以本机重跑，应复现上述退出码。\n- **16 MiB 输入上限**：任何 `--plan/--observations/--maintenance` JSON 超限\n  会直接退出 1，属输入校验而非证据缺陷。\n- **maintenance 缺失不视为免费**：`maintenance` 为 `null`、\n  `{ complete:false, entries:[] }` 或 window 不符时 `maintenance.totalHours`\n  为 `null`（测试 `\"does not report missing maintenance as free\"`）。\n- **证据复用/越界**：多样本共用同一 `runId` 抛 `multiple samples`；观测\n  `sampleId` 不在计划内抛 `outside the frozen plan`；观测时间超出 window 产生\n  `sample-1:observation_outside_window`；首次运行阶段乱序产生\n  `sample-1:inconsistent_first_run_stages`。这些都退出 1 或计入\n  `INSUFFICIENT_EVIDENCE`，需在评审记录中作为证据缺陷说明。\n\n## 5. 覆盖审计（对照验收要求）\n\n| 验收要求 | 覆盖方式 | 对应控制 |\n|----------|----------|----------|\n| 指纹 | `--fingerprint` 输出 `outcomeDigest(plan)`，退出 0 | 3.1 正控制 |\n| 缺失样本退出 2 | 计划内未覆盖样本 → `INSUFFICIENT_EVIDENCE`、退出 2 | 3.2 负控制 |\n| 未知费用 | 无观测样本 → `totalCost/costPerSuccess` 为 `null`（非 0） | 3.3 负控制 |\n| 禁止改善 PASS | `improvementVerdict: \"NOT_EVALUATED\"`，`--help` 明确不发放 | 3.4 控制 |\n\n全部四项验收均映射到同一真实脚本调用边界，且各负控制保持其余前置（合法\n`--plan-digest`、齐全或合法的 history/observations）有效，不会被其它保护器\n误判。未覆盖项：真实网络评测环境中的 provider/生产 attestation 路径——本脚本\n明确不执行模型调用，其不在本运维说明边界内。\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712463205,
+                "meta": {
+                  "args": {
+                    "path": "docs/development/verify-34-outcome-runbook.md"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 0,
+                "sessionId": "headless-1793712405535-2693",
+                "metadata": {
+                  "args": {
+                    "path": "docs/development/verify-34-outcome-runbook.md"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_zz1javtac4gw822p5gsujbjc",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-OCf4rH/6035423e-69ca-45ff-b823-8e5299ff5c4c/workspace/packages/cli/scripts/task-outcome-report.mjs",
+              "fileVersion": "2453:1791108223000:1793712382957.3835",
+              "readSpan": {
+                "start": 0,
+                "end": 2453,
+                "total": 2453
+              },
+              "hashed": false,
+              "content": "#!/usr/bin/env node\nimport fs from \"node:fs\";\nimport { parseArgs } from \"node:util\";\nimport { readEvalHistory } from \"../src/lib/eval/evidence.js\";\nimport {\n  buildOutcomeReport,\n  outcomeDigest,\n  validateOutcomePlan,\n} from \"../src/lib/eval/outcomes.js\";\n\nfunction readJson(file) {\n  if (!file || fs.statSync(file).size > 16 * 1024 * 1024)\n    throw new Error(\"missing input or input exceeds 16 MiB\");\n  const bytes = fs.readFileSync(file);\n  if (bytes.length > 16 * 1024 * 1024) throw new Error(\"input exceeds 16 MiB\");\n  return JSON.parse(bytes.toString(\"utf8\"));\n}\n\ntry {\n  const { values } = parseArgs({\n    options: {\n      plan: { type: \"string\" },\n      history: { type: \"string\" },\n      observations: { type: \"string\" },\n      maintenance: { type: \"string\" },\n      \"plan-digest\": { type: \"string\" },\n      fingerprint: { type: \"boolean\" },\n      help: { type: \"boolean\" },\n    },\n  });\n  if (values.help) {\n    console.log(\n      \"Read-only baseline report (no model calls or production attestation).\\n\" +\n        \"node scripts/task-outcome-report.mjs --plan plan.json --fingerprint\\n\" +\n        \"node scripts/task-outcome-report.mjs --plan plan.json --plan-digest sha256:... --history history.jsonl --observations observations.json [--maintenance maintenance.json]\\n\" +\n        \"JSON goes to stdout. Exit 0: baseline recorded; 2: insufficient evidence; 1: invalid input. No improvement PASS is issued.\",\n    );\n  } else {\n    const plan = readJson(values.plan);\n    validateOutcomePlan(plan);\n    if (values.fingerprint) console.log(outcomeDigest(plan));\n    else {\n      if (!/^sha256:[a-f0-9]{64}$/u.test(values[\"plan-digest\"] || \"\"))\n        throw new Error(\n          \"--plan-digest is required; freeze it before collecting evidence\",\n        );\n      const report = buildOutcomeReport(\n        {\n          plan,\n          history: values.history\n            ? readEvalHistory(values.history)\n            : { runs: [], issues: [] },\n          observations: values.observations\n            ? readJson(values.observations)\n            : [],\n          maintenance: values.maintenance ? readJson(values.maintenance) : null,\n        },\n        { expectedPlanDigest: values[\"plan-digest\"] },\n      );\n      console.log(JSON.stringify(report, null, 2));\n      if (report.status === \"INSUFFICIENT_EVIDENCE\") process.exitCode = 2;\n    }\n  }\n} catch (error) {\n  console.error(`Outcome report failed: ${error.message}`);\n  process.exitCode = 1;\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712478827,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/scripts/task-outcome-report.mjs"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793712405535-2693",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/scripts/task-outcome-report.mjs"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_1ccngfzqo9w5wra5i22yy6bv",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-OCf4rH/6035423e-69ca-45ff-b823-8e5299ff5c4c/workspace/packages/cli/__tests__/unit/task-outcome-report.test.js",
+              "fileVersion": "13255:1791108223000:1793712382823.8357",
+              "readSpan": {
+                "start": 0,
+                "end": 13255,
+                "total": 13255
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport fs from \"node:fs\";\nimport os from \"node:os\";\nimport path from \"node:path\";\nimport { execFileSync, spawnSync } from \"node:child_process\";\nimport { fileURLToPath } from \"node:url\";\nimport {\n  createEvalComparison,\n  createEvalHistoryRecord,\n  EVAL_CONTEXT_SCHEMA,\n  EVAL_EXECUTION_PROTOCOL,\n} from \"../../src/lib/eval/evidence.js\";\nimport {\n  buildOutcomeReport,\n  outcomeDigest,\n  OUTCOME_PLAN_SCHEMA,\n} from \"../../src/lib/eval/outcomes.js\";\n\nconst NOW = Date.parse(\"2026-09-15T12:00:00.000Z\");\nconst SHA = \"a\".repeat(40);\nconst D = (letter) => `sha256:${letter.repeat(64)}`;\nconst SCRIPT = fileURLToPath(\n  new URL(\"../../scripts/task-outcome-report.mjs\", import.meta.url),\n);\nfunction fixture() {\n  const comparison = createEvalComparison({\n    suite: \"builtin\",\n    corpusDigest: D(\"a\"),\n    provider: \"test\",\n    model: \"test-model\",\n    context: {\n      schema: EVAL_CONTEXT_SCHEMA,\n      provider: \"test\",\n      model: \"test-model\",\n      modelRevision: \"test-r1\",\n      environmentDigest: D(\"b\"),\n      permissionDigest: D(\"c\"),\n      inferenceDigest: D(\"d\"),\n    },\n  });\n  const window = {\n    start: \"2026-09-15T10:00:00.000Z\",\n    end: \"2026-09-15T11:00:00.000Z\",\n  };\n  const samples = [\"task\", \"first-run\"].map((kind, index) => ({\n    id: `sample-${index}`,\n    kind,\n    taskId: \"fix-build\",\n    stratum: \"windows-cli-test\",\n    comparisonDigest: outcomeDigest(comparison),\n    timeBudgetMs: 1000,\n    costBudget: 1,\n  }));\n  const runs = samples.map((sample, index) =>\n    createEvalHistoryRecord(\n      {\n        total: 1,\n        passed: 1,\n        failed: 0,\n        passRate: 1,\n        unrelatedChangeRate: 0,\n        results: [\n          {\n            id: sample.taskId,\n            pass: true,\n            artifactCheckPassed: true,\n            executionSucceeded: true,\n            agentOk: true,\n            error: null,\n            ms: 100,\n            executionEvidence: {\n              protocol: EVAL_EXECUTION_PROTOCOL,\n              exitCode: 0,\n              signal: null,\n              terminalVerified: true,\n              observedFallback: false,\n            },\n          },\n        ],\n      },\n      {\n        runId: `run-${index}`,\n        ranAt: \"2026-09-15T10:30:00.000Z\",\n        label: SHA,\n        comparison,\n      },\n    ),\n  );\n  return {\n    plan: {\n      schema: OUTCOME_PLAN_SCHEMA,\n      commitSha: SHA,\n      currency: \"USD\",\n      window,\n      samples,\n    },\n    history: { runs, issues: [] },\n    observations: samples.map((sample, index) => ({\n      sampleId: sample.id,\n      observedAt: \"2026-09-15T10:30:00.000Z\",\n      runId: `run-${index}`,\n      cost: 0.1,\n      elapsedMs: 500,\n      retries: 0,\n      manualRepairs: 0,\n      ...(sample.kind === \"first-run\"\n        ? {\n            firstRun: {\n              cleanEnvironment: true,\n              stages: Object.fromEntries(\n                [\n                  \"install\",\n                  \"configure\",\n                  \"authenticate\",\n                  \"tool\",\n                  \"artifact\",\n                ].map((stage) => [\n                  stage,\n                  { passed: true, receipt: `receipt:${stage}` },\n                ]),\n              ),\n            },\n          }\n        : {}),\n    })),\n    maintenance: {\n      window,\n      complete: true,\n      entries: [\n        {\n          id: \"support-1\",\n          category: \"support\",\n          hours: 2,\n          evidenceRef: \"ticket:1\",\n        },\n        {\n          id: \"build-1\",\n          category: \"construction\",\n          hours: 8,\n          evidenceRef: \"ticket:2\",\n        },\n      ],\n    },\n  };\n}\nconst report = (input) => buildOutcomeReport(input, { now: NOW });\n\ndescribe(\"task outcome baseline\", () => {\n  it(\"reuses Eval evidence and records a baseline without issuing an improvement PASS\", () => {\n    const result = report(fixture());\n    expect(result).toMatchObject({\n      status: \"BASELINE_RECORDED\",\n      improvementVerdict: \"NOT_EVALUATED\",\n      productionAttested: false,\n    });\n    expect(result.task).toMatchObject({\n      succeeded: 1,\n      planned: 1,\n      successRate: 1,\n      costPerSuccess: 0.1,\n    });\n    expect(result.maintenance).toMatchObject({\n      totalHours: 2,\n      per100Attempts: 100,\n      constructionHours: 8,\n    });\n  });\n  it(\"retains missing planned samples and does not turn unknown costs into zero\", () => {\n    const input = fixture();\n    input.plan.samples.push({ ...input.plan.samples[0], id: \"never-ran\" });\n    const result = report(input);\n    expect(result.task).toMatchObject({\n      planned: 2,\n      observed: 1,\n      succeeded: 1,\n      successRate: 0.5,\n      totalCost: null,\n      costPerSuccess: null,\n    });\n    expect(result.status).toBe(\"INSUFFICIENT_EVIDENCE\");\n    expect(result.maintenance.per100Attempts).toBeNull();\n  });\n  it(\"counts an execution failure despite a correct artifact and preserves its expense\", () => {\n    const input = fixture();\n    Object.assign(input.history.runs[0], { passed: 0, failed: 1, passRate: 0 });\n    Object.assign(input.history.runs[0].results[0], {\n      pass: false,\n      agentOk: false,\n      executionSucceeded: false,\n      error: \"timeout\",\n    });\n    input.history.runs[0].results[0].executionEvidence.exitCode = 1;\n    input.observations[0].failureCause = \"model-protocol\";\n    const result = report(input);\n    expect(result.task).toMatchObject({\n      succeeded: 0,\n      totalCost: 0.1,\n      costPerSuccess: null,\n    });\n    expect(result.status).toBe(\"BASELINE_RECORDED\");\n  });\n  it.each([\n    \"dryRun\",\n    \"label\",\n    \"comparison\",\n    \"terminal\",\n    \"fallback\",\n    \"deleted-task\",\n    \"tampered-pass\",\n  ])(\"cannot count %s evidence as success\", (change) => {\n    const input = fixture();\n    const run = input.history.runs[0];\n    if (change === \"dryRun\") run.dryRun = true;\n    if (change === \"label\") run.label = \"other-commit\";\n    if (change === \"comparison\") run.comparison.model = \"different\";\n    if (change === \"terminal\")\n      run.results[0].executionEvidence.terminalVerified = false;\n    if (change === \"fallback\")\n      run.results[0].executionEvidence.observedFallback = true;\n    if (change === \"deleted-task\") run.results = [];\n    if (change === \"tampered-pass\") run.results[0].artifactCheckPassed = false;\n    expect(report(input).task.succeeded).toBe(0);\n  });\n  it(\"keeps retry expenses within one sample and rejects manual repair as initial success\", () => {\n    const input = fixture();\n    Object.assign(input.observations[0], {\n      retries: 3,\n      cost: 0.8,\n      manualRepairs: 1,\n    });\n    expect(report(input).task).toMatchObject({\n      planned: 1,\n      succeeded: 0,\n      totalCost: 0.8,\n      retries: 3,\n      manualRepairs: 1,\n    });\n  });\n  it.each([{ cost: 2 }, { elapsedMs: 1001 }])(\n    \"enforces the frozen budget %j\",\n    (override) => {\n      const input = fixture();\n      Object.assign(input.observations[0], override);\n      expect(report(input).rows[0].reasons).toContain(\"budget_exceeded\");\n    },\n  );\n  it(\"does not count READY without the full first-run journey\", () => {\n    const input = fixture();\n    input.observations[1].firstRun.stages.artifact.passed = false;\n    expect(report(input).firstRun.succeeded).toBe(0);\n    expect(report(input).firstRunFunnel.at(-1).passed).toBe(0);\n  });\n  it(\"accepts documented installation failure as a failed observation even before any Eval run\", () => {\n    const input = fixture();\n    input.observations[1].runId = null;\n    input.observations[1].failureCause = \"install\";\n    for (const stage of Object.values(input.observations[1].firstRun.stages))\n      stage.passed = false;\n    const result = report(input);\n    expect(result.status).toBe(\"BASELINE_RECORDED\");\n    expect(result.firstRun).toMatchObject({\n      observed: 1,\n      succeeded: 0,\n      totalCost: 0.1,\n    });\n  });\n  it(\"rejects out-of-order first-run stage evidence\", () => {\n    const input = fixture();\n    input.observations[1].firstRun.stages.install.passed = false;\n    expect(report(input).issues).toContain(\n      \"sample-1:inconsistent_first_run_stages\",\n    );\n    expect(\n      report(input).firstRunFunnel.every((stage) => stage.passed === 0),\n    ).toBe(true);\n  });\n  it(\"rejects evidence reuse and extra observations instead of increasing the denominator\", () => {\n    const input = fixture();\n    input.observations[1].runId = \"run-0\";\n    expect(() => report(input)).toThrow(\"multiple samples\");\n    input.observations[1].sampleId = \"unplanned\";\n    expect(() => report(input)).toThrow(\"outside the frozen plan\");\n  });\n  it(\"rejects duplicate plan samples\", () => {\n    const input = fixture();\n    input.plan.samples.push(input.plan.samples[0]);\n    expect(() => report(input)).toThrow(\"duplicate\");\n  });\n  it(\"detects a changed frozen plan\", () => {\n    const input = fixture();\n    const digest = outcomeDigest(input.plan);\n    input.plan.samples.pop();\n    expect(() =>\n      buildOutcomeReport(input, { now: NOW, expectedPlanDigest: digest }),\n    ).toThrow(\"digest mismatch\");\n  });\n  it.each([\n    null,\n    { complete: false, entries: [] },\n    { complete: true, window: { start: \"other\" }, entries: [] },\n  ])(\"does not report missing maintenance as free: %j\", (maintenance) => {\n    const input = fixture();\n    input.maintenance = maintenance;\n    expect(report(input).maintenance.totalHours).toBeNull();\n  });\n  it(\"retains history parse failures\", () => {\n    const input = fixture();\n    input.history.issues.push({ code: \"invalid_history_record\", line: 2 });\n    expect(report(input).status).toBe(\"INSUFFICIENT_EVIDENCE\");\n  });\n  it(\"rejects observations outside the window even when no model task started\", () => {\n    const input = fixture();\n    input.observations[1].runId = null;\n    input.observations[1].observedAt = \"2026-09-14T10:30:00.000Z\";\n    for (const stage of Object.values(input.observations[1].firstRun.stages))\n      stage.passed = false;\n    expect(report(input).issues).toContain(\n      \"sample-1:observation_outside_window\",\n    );\n  });\n  it.each([NaN, -1, Infinity, \"0\"])(\n    \"rejects invalid observed costs %s\",\n    (cost) => {\n      const input = fixture();\n      input.observations[0].cost = cost;\n      expect(report(input).task.totalCost).toBeNull();\n      expect(report(input).task.succeeded).toBe(0);\n    },\n  );\n  it(\"keeps per-task repeated samples and strata visible\", () => {\n    const input = fixture();\n    input.plan.samples.push({ ...input.plan.samples[0], id: \"repeat\" });\n    const result = report(input);\n    expect(result.groups[0]).toMatchObject({\n      taskId: \"fix-build\",\n      planned: 2,\n      succeeded: 1,\n    });\n  });\n  it(\"runs the offline CLI with distinct complete, incomplete, and invalid exits\", () => {\n    const dir = fs.mkdtempSync(path.join(os.tmpdir(), \"cc-outcome-test-\"));\n    try {\n      const input = fixture();\n      const runtimeNow = Date.now();\n      input.plan.window.start = new Date(runtimeNow - 7200000).toISOString();\n      input.plan.window.end = new Date(runtimeNow - 3600000).toISOString();\n      for (const run of input.history.runs)\n        run.ranAt = new Date(runtimeNow - 5400000).toISOString();\n      for (const observation of input.observations)\n        observation.observedAt = new Date(runtimeNow - 5400000).toISOString();\n      const file = path.join(dir, \"plan.json\");\n      fs.writeFileSync(file, JSON.stringify(input.plan));\n      const digest = execFileSync(\n        process.execPath,\n        [SCRIPT, \"--plan\", file, \"--fingerprint\"],\n        { encoding: \"utf8\" },\n      ).trim();\n      expect(digest).toBe(outcomeDigest(input.plan));\n      const result = spawnSync(\n        process.execPath,\n        [SCRIPT, \"--plan\", file, \"--plan-digest\", digest],\n        { encoding: \"utf8\" },\n      );\n      expect(result.status).toBe(2);\n      expect(JSON.parse(result.stdout).task).toMatchObject({\n        planned: 1,\n        observed: 0,\n        succeeded: 0,\n      });\n      const changed = spawnSync(\n        process.execPath,\n        [SCRIPT, \"--plan\", file, \"--plan-digest\", D(\"f\")],\n        { encoding: \"utf8\" },\n      );\n      expect(changed.status).toBe(1);\n      const history = path.join(dir, \"history.jsonl\");\n      const observations = path.join(dir, \"observations.json\");\n      const maintenance = path.join(dir, \"maintenance.json\");\n      fs.writeFileSync(\n        history,\n        input.history.runs.map((run) => JSON.stringify(run)).join(\"\\n\"),\n      );\n      fs.writeFileSync(observations, JSON.stringify(input.observations));\n      fs.writeFileSync(maintenance, JSON.stringify(input.maintenance));\n      const complete = spawnSync(\n        process.execPath,\n        [\n          SCRIPT,\n          \"--plan\",\n          file,\n          \"--plan-digest\",\n          digest,\n          \"--history\",\n          history,\n          \"--observations\",\n          observations,\n          \"--maintenance\",\n          maintenance,\n        ],\n        { encoding: \"utf8\" },\n      );\n      expect(complete.status, complete.stderr || complete.stdout).toBe(0);\n      expect(JSON.parse(complete.stdout)).toMatchObject({\n        status: \"BASELINE_RECORDED\",\n        improvementVerdict: \"NOT_EVALUATED\",\n      });\n    } finally {\n      fs.rmSync(dir, { recursive: true, force: true });\n    }\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712478827,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/task-outcome-report.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793712405535-2693",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/task-outcome-report.test.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_m7xv44ovgpw8wypvh8tr87c8",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [],
+              "count": 0,
+              "hasMore": false,
+              "nextOffset": null,
+              "hint": "No literal matches. This pattern contains regex syntax, but this search used literal matching. If alternation or regex was intended, set regex: true; otherwise search one exact symbol. Do not infer that the symbols are absent from this result.",
+              "path": "/private/tmp/cc-native-OCf4rH/6035423e-69ca-45ff-b823-8e5299ff5c4c/workspace/packages/cli/src/lib/eval/outcomes.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712484369,
+                "meta": {
+                  "args": {
+                    "pattern": "export function buildOutcomeReport|export function outcomeDigest|export function validateOutcomePlan|OUTCOME_PLAN_SCHEMA",
+                    "path": "packages/cli/src/lib/eval/outcomes.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 31,
+                "sessionId": "headless-1793712405535-2693",
+                "metadata": {
+                  "args": {
+                    "pattern": "export function buildOutcomeReport|export function outcomeDigest|export function validateOutcomePlan|OUTCOME_PLAN_SCHEMA",
+                    "path": "packages/cli/src/lib/eval/outcomes.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_w24w0094znzl0vprjtxxj5r7",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 186,
+                  "column": 1,
+                  "offset": 5491,
+                  "text": "export function readEvalHistory",
+                  "context": "    runs.push(value);\n    } catch {\n      issues.push({ code: \"invalid_history_record\", line: index + 1 });\n    }\n  });\n  return { runs, issues };\n}\n\nexport function readEvalHistory(file) {\n  if (!fs.existsSync(file)) return { runs: [], issues: [] };\n  if (fs.statSync(file).size > MAX_HISTORY_BYTES) {\n    return { runs: [], issue",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/evidence.js",
+                    "offset": 186,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 1,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/private/tmp/cc-native-OCf4rH/6035423e-69ca-45ff-b823-8e5299ff5c4c/workspace/packages/cli/src/lib/eval/evidence.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712484369,
+                "meta": {
+                  "args": {
+                    "pattern": "export function readEvalHistory",
+                    "path": "packages/cli/src/lib/eval/evidence.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 30,
+                "sessionId": "headless-1793712405535-2693",
+                "metadata": {
+                  "args": {
+                    "pattern": "export function readEvalHistory",
+                    "path": "packages/cli/src/lib/eval/evidence.js"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_ye5nn55v8y99p0a9jk857uzv",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 133,
+                  "column": 1,
+                  "offset": 4123,
+                  "text": "export function buildOutcomeReport",
+                  "context": "(sum, row) => sum + row.manualRepairs, 0)\n      : null,\n  };\n}\n\n/** Read-only measurement. Declarations and local Eval files are not attestations. */\nexport function buildOutcomeReport(\n  { plan, history, observations = [], maintenance = null },\n  { now = Date.now(), expectedPlanDigest } = {},\n) {\n  const samples = validateOutcomePl",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 133,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 1,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/private/tmp/cc-native-OCf4rH/6035423e-69ca-45ff-b823-8e5299ff5c4c/workspace/packages/cli/src/lib/eval/outcomes.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712488887,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "pattern": "export function buildOutcomeReport"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 63,
+                "sessionId": "headless-1793712405535-2693",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "pattern": "export function buildOutcomeReport"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_55rqqd0cb2lky3807s4hgv23",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 7,
+                  "column": 1,
+                  "offset": 101,
+                  "text": "export const OUTCOME_PLAN_SCHEMA",
+                  "context": "import {\n  evalDigest,\n  evalHistoryRecordIssues,\n  evalExecutionSucceeded,\n} from \"./evidence.js\";\n\nexport const OUTCOME_PLAN_SCHEMA = \"chainlesschain.outcome-plan/v1\";\nexport const OUTCOME_REPORT_SCHEMA = \"chainlesschain.outcome-report/v1\";\nconst DIGEST = /^sha256:[a-f0-9]{64}$/u;",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 7,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 1,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/private/tmp/cc-native-OCf4rH/6035423e-69ca-45ff-b823-8e5299ff5c4c/workspace/packages/cli/src/lib/eval/outcomes.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712488890,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "pattern": "export const OUTCOME_PLAN_SCHEMA"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 66,
+                "sessionId": "headless-1793712405535-2693",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "pattern": "export const OUTCOME_PLAN_SCHEMA"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_of8bhuky2oaecg7j8y7w9351",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 49,
+                  "column": 1,
+                  "offset": 1366,
+                  "text": "export function outcomeDigest",
+                  "context": "= \"object\") return value;\n  return Object.fromEntries(\n    Object.keys(value)\n      .sort()\n      .map((key) => [key, canonical(value[key])]),\n  );\n}\nexport function outcomeDigest(value) {\n  return evalDigest(JSON.stringify(canonical(value)));\n}\nfunction epoch(value) {\n  const time = Date.parse(value);\n  return typeof value ===",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 49,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 1,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/private/tmp/cc-native-OCf4rH/6035423e-69ca-45ff-b823-8e5299ff5c4c/workspace/packages/cli/src/lib/eval/outcomes.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712488888,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "pattern": "export function outcomeDigest"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 64,
+                "sessionId": "headless-1793712405535-2693",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "pattern": "export function outcomeDigest"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_3dzg12u0uu8zqgmbt789ude8",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 73,
+                  "column": 1,
+                  "offset": 1996,
+                  "text": "export function validateOutcomePlan",
+                  "context": "w[key]) && !index.has(row[key]),\n      `${label} contains a missing or duplicate ${key}`,\n    );\n    index.set(row[key], row);\n  }\n  return index;\n}\n\nexport function validateOutcomePlan(plan) {\n  assert(plan?.schema === OUTCOME_PLAN_SCHEMA, \"invalid outcome plan schema\");\n  assert(\n    /^[a-f0-9]{40}$/u.test(plan.commitSha || \"\"),\n  ",
+                  "nextRead": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "offset": 73,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 1,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/private/tmp/cc-native-OCf4rH/6035423e-69ca-45ff-b823-8e5299ff5c4c/workspace/packages/cli/src/lib/eval/outcomes.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712488892,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "pattern": "export function validateOutcomePlan"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 68,
+                "sessionId": "headless-1793712405535-2693",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/outcomes.js",
+                    "pattern": "export function validateOutcomePlan"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_izahqee5jowsf21h73gkonxs",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-OCf4rH/6035423e-69ca-45ff-b823-8e5299ff5c4c/workspace/docs/development/verify-34-outcome-runbook.md",
+              "fileVersion": "7775:1793712458985.9226:1793712458989.7007",
+              "readSpan": {
+                "start": 0,
+                "end": 5163,
+                "total": 5163
+              },
+              "hashed": false,
+              "content": "# verify-34 冻结计划操作说明（Outcome Report Runbook）\n\n本文档是仓库运维操作说明，描述如何运行真实冻结计划报告脚本\n`packages/cli/scripts/task-outcome-report.mjs` 并解读其结果。命令与断言均以该\n脚本实际源码及现有单测 `packages/cli/__tests__/unit/task-outcome-report.test.js`\n为据；评测计划不允许修改，断言不可降低，失败不可跳过。\n\n## 1. 脚本角色与退出码契约\n\n该脚本是只读基线报告工具（无模型调用、无生产 attestation），\n`--help` 输出明确声明：\n\n> Read-only baseline report (no model calls or production attestation).\n> Exit 0: baseline recorded; 2: insufficient evidence; 1: invalid input.\n> No improvement PASS is issued.\n\n退出码由以下源码逻辑决定：\n\n| 退出码 | 触发条件 | 源码依据 |\n|--------|----------|----------|\n| `0` | 基线记录成功（`report.status` 非 `INSUFFICIENT_EVIDENCE`） | 主分支最后仅当 insufficient 时设置 `process.exitCode = 2`；其余自然退出为 0 |\n| `2` | `report.status === \"INSUFFICIENT_EVIDENCE\"` | `if (report.status === \"INSUFFICIENT_EVIDENCE\") process.exitCode = 2;` |\n| `1` | 任何抛出的输入/计划/证据错误 | 外层 `catch` 统一 `process.exitCode = 1` |\n\n关键结论（源码+测试共同验证）：\n\n- **缺失样本 → 退出 2**。测试 `\"retains missing planned samples and does not\n  turn unknown costs into zero\"` 中追加一个从未运行的样本后\n  `result.status` 为 `INSUFFICIENT_EVIDENCE`；CLI 集成测试中无 history 时\n  `result.status` 为 2 且 `task: { planned:1, observed:0, succeeded:0 }`。\n- **未知费用绝不被当作 0**。未知费用样本使 `task.totalCost` 与\n  `costPerSuccess` 为 `null`（非 0），测试断言 `expect(...totalCost).toBeNull()`。\n  有效样本的已知费用（`cost: 0.1`）才会计入 `totalCost: 0.1`。\n- **永远不发放改善 PASS**。`--help` 明确 \"No improvement PASS is issued\"；\n  测试断言 `improvementVerdict: \"NOT_EVALUATED\"`、`productionAttested: false`。\n\n## 2. 前置输入文件\n\n| 选项 | 必需 | 说明 | 来源 |\n|------|------|------|------|\n| `--plan` | 是 | 冻结计划 JSON | `readJson(values.plan)`，缺失或超 16 MiB 即抛错退出 1 |\n| `--fingerprint` | 否（互斥分支） | 只打印计划摘要到 stdout，退出 0 | `outcomeDigest(plan)` |\n| `--plan-digest` | 是（非 fingerprint 时） | 须匹配 `/^sha256:[a-f0-9]{64}$/u`，否则抛错退出 1 | 冻结计划后再收集证据 |\n| `--history` | 否 | Eval 历史 JSONL | `readEvalHistory(...)`；缺省为 `{ runs: [], issues: [] }` |\n| `--observations` | 否 | 观测 JSON（数组） | `readJson(...)`；缺省为 `[]` |\n| `--maintenance` | 否 | 维护记录 JSON | `readJson(...)`；缺省为 `null` |\n\n`readJson` 的双重大小检查：`fs.statSync(file).size > 16*1024*1024` 与\n`bytes.length > 16*1024*1024`，任一超出即抛 \"missing input or input exceeds\n16 MiB\"（退出 1）。\n\n## 3. 标准运维流程（含正/负控制）\n\n冻结计划后先取指纹，再（可选）收集证据，最后产出报告。\n\n```bash\n# 第 1 步：对冻结计划取摘要（离线、无模型调用）\nnode packages/cli/scripts/task-outcome-report.mjs \\\n  --plan plan.json --fingerprint\n# stdout 为 sha256:...；退出 0。该值写入评审记录，冻结后不得再改 plan。\n\n# 第 2 步：用该摘要跑完整报告（history/observations/maintenance 可选）\nnode packages/cli/scripts/task-outcome-report.mjs \\\n  --plan plan.json \\\n  --plan-digest sha256:... \\\n  --history history.jsonl \\\n  --observations observations.json \\\n  [--maintenance maintenance.json]\n```\n\n### 3.1 指纹正/负控制\n\n- **正控制**：同一 `plan.json` 上 `--fingerprint` 输出\n  `outcomeDigest(plan)`。现有测试用 `execFileSync(... \"--fingerprint\").trim()`\n  与 `outcomeDigest(input.plan)` 相等断言。\n- **负控制**：变更 `plan.samples` 任一元素（删除一个样本）后重新计算摘要，\n  再以旧摘要调用报告，脚本抛 `digest mismatch` 退出 1。测试\n  `\"detects a changed frozen plan\"` 覆盖。\n\n### 3.2 缺失样本退出 2 的正/负控制\n\n- **负控制（缺失）**：计划含 `planned:2` 但证据只覆盖 1 个样本 → 状态\n  `INSUFFICIENT_EVIDENCE`，退出 2；报告保留该样本为\n  `task: { planned:2, observed:1, succeeded:1, successRate:0.5 }`。\n- **正控制（齐全）**：所有计划样本均有合法观测与对应 run → 状态\n  `BASELINE_RECORDED`，退出 0。同一控制边界：先验历史解析问题\n  （`history.issues` 含 `invalid_history_record`）也导致\n  `INSUFFICIENT_EVIDENCE`，说明该状态是“证据不充分”的通用判据而非单因。\n\n### 3.3 未知费用不归零的正/负控制\n\n- **负控制（未知费用）**：观测含合法成本（`cost: 0.1`）的样本之外，追加一个\n  无观测样本 → `totalCost` 与 `costPerSuccess` 为 `null`（不被当作 0）。\n  测试断言 `expect(result.task.totalCost).toBeNull()`。\n- **正控制（已知费用）**：全部样本有合法 `cost: 0.1` → `totalCost: 0.1`、\n  `costPerSuccess: 0.1`（见测试首条）。\n- 预算控制：`cost: 2 > costBudget 1` 或 `elapsedMs: 1001 > timeBudgetMs 1000`\n  时对应 row `reasons` 含 `budget_exceeded`（测试 `\"enforces the frozen\n  budget\"`），费用仍原样保留，仅判定为超预算。\n\n### 3.4 不发放改善 PASS 的正/负控制\n\n- **正控制（完整基线）**：齐全证据下 `improvementVerdict: \"NOT_EVALUATED\"`、\n  `productionAttested: false`，CLI 完整调用退出 0。\n- **负控制（同函数无 PASS 路径）**：`buildOutcomeReport` 的返回值不包含任何\n  发放 PASS 的字段；`--help` 文本亦明确 \"No improvement PASS is issued\"。\n  改善判定始终为 `NOT_EVALUATED`，不受证据多少影响。\n\n## 4. 需人工解读的边界与限制\n\n- **无命令行执行环境**：本文档为静态运维说明，未实际执行脚本；命令与断言\n  依据源码与现有单测推导。若以本机重跑，应复现上述退出码。\n- **16 MiB 输入上限**：任何 `--plan/--observations/--maintenance` JSON 超限\n  会直接退出 1，属输入校验而非证据缺陷。\n- **maintenance 缺失不视为免费**：`maintenance` 为 `null`、\n  `{ complete:false, entries:[] }` 或 window 不符时 `maintenance.totalHours`\n  为 `null`（测试 `\"does not report missing maintenance as free\"`）。\n- **证据复用/越界**：多样本共用同一 `runId` 抛 `multiple samples`；观测\n  `sampleId` 不在计划内抛 `outside the frozen plan`；观测时间超出 window 产生\n  `sample-1:observation_outside_window`；首次运行阶段乱序产生\n  `sample-1:inconsistent_first_run_stages`。这些都退出 1 或计入\n  `INSUFFICIENT_EVIDENCE`，需在评审记录中作为证据缺陷说明。\n\n## 5. 覆盖审计（对照验收要求）\n\n| 验收要求 | 覆盖方式 | 对应控制 |\n|----------|----------|----------|\n| 指纹 | `--fingerprint` 输出 `outcomeDigest(plan)`，退出 0 | 3.1 正控制 |\n| 缺失样本退出 2 | 计划内未覆盖样本 → `INSUFFICIENT_EVIDENCE`、退出 2 | 3.2 负控制 |\n| 未知费用 | 无观测样本 → `totalCost/costPerSuccess` 为 `null`（非 0） | 3.3 负控制 |\n| 禁止改善 PASS | `improvementVerdict: \"NOT_EVALUATED\"`，`--help` 明确不发放 | 3.4 控制 |\n\n全部四项验收均映射到同一真实脚本调用边界，且各负控制保持其余前置（合法\n`--plan-digest`、齐全或合法的 history/observations）有效，不会被其它保护器\n误判。未覆盖项：真实网络评测环境中的 provider/生产 attestation 路径——本脚本\n明确不执行模型调用，其不在本运维说明边界内。\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712495559,
+                "meta": {
+                  "args": {
+                    "path": "docs/development/verify-34-outcome-runbook.md"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 0,
+                "sessionId": "headless-1793712405535-2693",
+                "metadata": {
+                  "args": {
+                    "path": "docs/development/verify-34-outcome-runbook.md"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_result",
+            "id": "call_a9pqbdagy1bbojsllgohokde",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-OCf4rH/6035423e-69ca-45ff-b823-8e5299ff5c4c/workspace/docs/development/verify-34-outcome-runbook.md",
+              "fileVersion": "7775:1793712458985.9226:1793712458989.7007",
+              "range": {
+                "startLine": 137,
+                "endLine": 137,
+                "totalLines": 137
+              },
+              "readSpan": {
+                "start": 5163,
+                "end": 5163,
+                "total": 5163
+              },
+              "hashed": false,
+              "content": "",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "7775:1793712458985.9226:1793712458989.7007"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712509692,
+                "meta": {
+                  "args": {
+                    "path": "docs/development/verify-34-outcome-runbook.md",
+                    "offset": 150,
+                    "limit": 200
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "headless-1793712405535-2693",
+                "metadata": {
+                  "args": {
+                    "path": "docs/development/verify-34-outcome-runbook.md",
+                    "offset": 150,
+                    "limit": 200
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 1136,
+              "output_tokens": 101,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 7140,
+              "output_tokens": 2915,
+              "cache_read_input_tokens": 2816,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5969,
+              "output_tokens": 2403,
+              "cache_read_input_tokens": 8192,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 9014,
+              "output_tokens": 77,
+              "cache_read_input_tokens": 12800,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6211,
+              "output_tokens": 430,
+              "cache_read_input_tokens": 20480,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 1401,
+              "output_tokens": 117,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 8189,
+              "output_tokens": 209,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3333,
+              "output_tokens": 294,
+              "cache_read_input_tokens": 8192,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5458,
+              "output_tokens": 179,
+              "cache_read_input_tokens": 8192,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 8134,
+              "output_tokens": 918,
+              "cache_read_input_tokens": 10240,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5301,
+              "output_tokens": 844,
+              "cache_read_input_tokens": 14336,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 61286,
+          "output_tokens": 8487,
+          "cache_read_input_tokens": 91392
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 11,
+        "estimatedCostUSD": 0.012235888000000002,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "The deliverable is already complete and accurate. I've verified every claim against the frozen source (`task-outcome-report.mjs`) and the existing tests (`task-outcome-report.test.js`). Let me confirm the read-back completed fully by checking the final lines of the file to ensure it's not truncated.\n\nThe file is 137 lines total and I've seen lines 1-137 (the read reached end). The content is complete, ending with section 5 coverage audit. All four acceptance requirements are mapped with positive/negative controls. No defects in the frozen implementation were found — the runbook accurately describes real behavior without inventing flaws.\n\nThe deliverable satisfies all requirements:\n- **指纹**: section 3.1 positive control (`--fingerprint` → `outcomeDigest(plan)`, exit 0)\n- **缺失样本退出2**: section 3.2 negative control (`planned:2, observed:1` → `INSUFFICIENT_EVIDENCE`, exit 2)\n- **未知费用**: section 3.3 negative control (`totalCost/costPerSuccess` → `null`, never 0)\n- **禁止改善PASS**: section 3.4 (`improvementVerdict: \"NOT_EVALUATED\"`, help text \"No improvement PASS is issued\")\n- **覆盖审计**: section 5 maps each requirement to its control\n\nThe runbook honestly notes in section 4 that no CLI execution was performed (only static source/test verification), which is the correct limitation statement given only file tools are available.\n\nThe deliverable is final and correct. No further edits needed.\n\n## 交付说明\n\n**交付物**: `docs/development/verify-34-outcome-runbook.md`（137 行，已读回确认完整）为真实脚本 `packages/cli/scripts/task-outcome-report.mjs` 的仓库运维说明。\n\n**验收映射（对照要求逐项验证源码/测试）**:\n- **指纹**: `--fingerprint` 分支源码 `console.log(outcomeDigest(plan))` 退出 0；测试用 `execFileSync(... \"--fingerprint\").trim()` 与 `outcomeDigest(input.plan)` 相等断言。负控制=改动计划后旧摘要抛 `digest mismatch` 退出 1。\n- **缺失样本退出2**: 主分支 `if (report.status === \"INSUFFICIENT_EVIDENCE\") process.exitCode = 2;`；测试 `planned:2/observed:1/successRate:0.5` → `INSUFFICIENT_EVIDENCE`，CLI 无证据时 status 2。\n- **未知费用**: 无观测样本使 `totalCost/costPerSuccess` 为 `null`（非 0）；有效 `cost:0.1` 才计入 `totalCost:0.1`。\n- **禁止改善PASS**: `improvementVerdict: \"NOT_EVALUATED\"`、`productionAttested:false`，`--help` 明确 \"No improvement PASS is issued\"。\n\n**正/负控制设计**: 每一验收条件都有正负对照，负控制仅改变目标条件（缺失样本、未知费用、篡改摘要、误发 PASS），其余前置（合法 `--plan-digest`、齐全 history/observations）保持有效，避免其他保护器造成误判。缺失样本的退出2与控制边界明确区分——历史解析问题（`invalid_history_record`）也触发同一 `INSUFFICIENT_EVIDENCE`，说明该状态是通用证据不充分判据而非单因，已在文中标注。\n\n**未发现实现缺陷**: 冻结源码行为与文档描述完全一致，未虚构缺陷，无需最小修复。\n\n**局限**: 仅有文件工具、无 shell/执行环境，故未实际运行脚本；文档已在第4节如实声明为\"静态运维说明，命令与断言依据源码与现有单测推导\"，未声称测试通过。文件已读回确认完整。",
+          "session_id": "headless-1793712405535-2693",
+          "num_turns": 11,
+          "duration_ms": 115518,
+          "usage": {
+            "input_tokens": 61286,
+            "output_tokens": 8487,
+            "cache_read_input_tokens": 91392,
+            "cache_creation_input_tokens": 0
+          },
+          "total_cost_usd": 0.012235888000000002
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "tasks": [
+          {
+            "taskId": "verify-34",
+            "requests": 11,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": 0.26938019999999996,
+        "knownTokenOnlyEstimateCny": 0.26938019999999996,
+        "fxRate": null
+      },
+      "changedPaths": [
+        "docs/development/verify-34-outcome-runbook.md"
+      ],
+      "finishedAt": "2026-11-03T13:28:43.046Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-34"
+  ],
+  "generationPassed": true,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 40 model turns, 48 requests, 180 second request timeout, model maximum 393216 output tokens (8192 test cap removed), 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:082bc5a98c8a209b214f2aa1fa66bf07976cd719f0d3d33b17f8b215f21799c0",
+  "group": "darwin-cli",
+  "entry": "cli",
+  "platform": "darwin",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:3ca5c1bfa5bffdee860665eeb757c24004dfaf0f3075f2a63e1a2600b3f6d600"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:7bf33df63888e550ac1ebd6a469d99e56ea1bb54f1d094b359b0c7fa1da1ffa6"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:be2edf8e1ced537796d5819e458e4b56f2c1638eab8880b09c2c7fea4a4245fd"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+      "digest": "sha256:82becb2b0b551916e312131bcca48736d9e3f462aed4ea2a89ec00f907457eed"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
+      "digest": "sha256:d2cbc2dee63e7f53c622d61ad314143d6bd4d59a679d9aea29579cb034a829fb"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-public140-full.mjs",
+      "digest": "sha256:f7c7f0dbe8cb572e4832b41f53aa89139e5ab398d7bdb603b7beb9942a9312f9"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:3e515efc1cff606e2cbbfa977b5674abe6a73c142caa1b0539c0a2698978f8e4"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T13:26:24.416Z",
+    "finishedAt": "2026-11-03T13:26:44.103Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "verify-34",
+    "locked": {
+      "version": "0.166.140",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+      "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T13:28:43.049Z"
+}

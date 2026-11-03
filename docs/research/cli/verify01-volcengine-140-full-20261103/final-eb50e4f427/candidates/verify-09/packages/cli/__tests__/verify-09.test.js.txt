@@ -1,0 +1,89 @@
+import { describe, expect, it } from "vitest";
+import {
+  createSessionHistoryOrigins,
+  HISTORY_PREFIX_SCHEMA,
+} from "../src/lib/session-history-origins.js";
+
+const head = "a".repeat(64);
+const otherHead = "b".repeat(64);
+
+// Display history: [user0, user1, assistant2]. Every displayable message is
+// given a singleton origin {first: i, last: i} by snapshot, so user1 at index 1
+// is a valid rewind anchor.
+const messages = [
+  { role: "user", content: "first" },
+  { role: "user", content: "cut" },
+  { role: "assistant", content: "answer" },
+];
+
+function baseEvent() {
+  return {
+    prevHash: head,
+    data: {
+      action: "restore-conversation",
+      messages: messages.slice(0, 1),
+      historyPrefix: {
+        schema: HISTORY_PREFIX_SCHEMA,
+        sourceHead: head,
+        sourceMessageCount: messages.length,
+        retainedMessageCount: 1,
+      },
+    },
+  };
+}
+
+function fresh() {
+  const origins = createSessionHistoryOrigins();
+  origins.snapshot(messages);
+  return origins;
+}
+
+describe("historical source tampering rejection (verify-09)", () => {
+  it("accepts the correct source identity and exposes the retained prefix", () => {
+    const origins = fresh();
+    // Valid rewind against an untampered session/source identity.
+    expect(origins.rewind(baseEvent(), 4)).toBe(1);
+    // After the rewind the retained prefix (1 message) is the new source; a
+    // second valid rewind on it still works, proving the positive control is
+    // genuinely readable rather than a stub.
+    const next = {
+      prevHash: head,
+      data: {
+        action: "restore-conversation",
+        messages: messages.slice(0, 1),
+        historyPrefix: {
+          schema: HISTORY_PREFIX_SCHEMA,
+          sourceHead: head,
+          sourceMessageCount: 1,
+          retainedMessageCount: 0,
+        },
+      },
+    };
+    expect(origins.rewind(next, 2)).toBe(0);
+  });
+
+  it.each([
+    ["a forged sourceHead", (event) => {
+      event.data.historyPrefix.sourceHead = otherHead;
+    }],
+    ["a forged prevHash (session head)", (event) => {
+      event.prevHash = otherHead;
+    }],
+    ["a forged sourceMessageCount", (event) => {
+      event.data.historyPrefix.sourceMessageCount = messages.length - 1;
+    }],
+    ["tampered retained content", (event) => {
+      event.data.messages[0].content = "forged";
+    }],
+    ["a moved cut point that no longer anchors on a user message", (event) => {
+      event.data.historyPrefix.retainedMessageCount = 2;
+    }],
+  ])("rejects rewind when %s is tampered while other prerequisites stay valid", (_label, tamper) => {
+    const origins = fresh();
+    const event = baseEvent();
+    tamper(event);
+    expect(origins.rewind(event, 4)).toBeNull();
+    // The untampered control remains readable afterwards.
+    expect(origins.rewind(baseEvent(), 4)).toBe(1);
+  });
+});

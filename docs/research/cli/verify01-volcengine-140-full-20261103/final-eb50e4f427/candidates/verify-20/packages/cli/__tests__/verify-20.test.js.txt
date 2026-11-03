@@ -1,0 +1,85 @@
+import { describe, expect, it } from "vitest";
+import {
+  buildPermissionDecision,
+  PERMISSION_DECISION_VERSION,
+} from "../src/lib/permission-decision.js";
+
+// Regression: an explicit "deny" (or any explicit decision) must never be
+// downgraded to "allow" by a lower-priority fallback, and an unrecognized
+// policy decision must not be coerced to a recognized value.
+describe("deny decisions are not downgraded to allow", () => {
+  it("keeps an explicit deny from policy even when the chain fallback says allow", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-deny",
+      tool: "run_shell",
+      result: {
+        policy: { decision: "deny", via: "strict", reason: "blocked" },
+        permissionChain: [{ layer: "generic-allow", outcome: "allow" }],
+      },
+    });
+    expect(decision).toMatchObject({
+      version: PERMISSION_DECISION_VERSION,
+      decision: "deny",
+      via: "strict",
+    });
+    expect(decision.decision).not.toBe("allow");
+    expect(decision.id).toBe("tu-deny:perm:strict");
+  });
+
+  it("mirrors an explicit allow instead of reversing it toward deny", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-allow",
+      tool: "run_shell",
+      result: {
+        policy: { decision: "allow", via: "explicit", reason: "ok" },
+        permissionChain: [{ layer: "generic-deny", outcome: "deny" }],
+      },
+    });
+    expect(decision).toMatchObject({ decision: "allow", via: "explicit" });
+    expect(decision.decision).not.toBe("deny");
+  });
+
+  it("preserves an unknown policy decision instead of defaulting it to allow", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-unknown",
+      tool: "run_shell",
+      result: { policy: { decision: "review", via: "custom", reason: "wip" } },
+    });
+    expect(decision).not.toBeNull();
+    expect(decision.decision).toBe("review");
+    expect(decision.decision).not.toBe("allow");
+  });
+
+  it("returns null rather than inventing an allow decision when nothing is present", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-empty",
+      tool: "read_file",
+      result: { content: "ordinary tool output" },
+    });
+    expect(decision).toBeNull();
+  });
+
+  it("keeps an explicit deny from the approval source", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-approval-deny",
+      tool: "run_shell",
+      result: {
+        approval: { decision: "deny", via: "gate", reason: "needs approval" },
+      },
+    });
+    expect(decision).toMatchObject({ decision: "deny", via: "gate" });
+    expect(decision.decision).not.toBe("allow");
+  });
+
+  it("keeps an explicit allow from the approval source (mirror of the deny case)", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-approval-allow",
+      tool: "run_shell",
+      result: {
+        approval: { decision: "allow", via: "gate", reason: "approved" },
+      },
+    });
+    expect(decision).toMatchObject({ decision: "allow", via: "gate" });
+    expect(decision.decision).not.toBe("deny");
+  });
+});

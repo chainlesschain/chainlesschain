@@ -1,0 +1,133 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { applyMemoryCommand } from "@chainlesschain/context-memory-kernel";
+import { createDurableMemoryFixture } from "../scripts/persistent-capacity-benchmark.mjs";
+import { SegmentedMemoryPort } from "../src/lib/context-memory-kernel/segmented-memory-port.js";
+
+const roots = [];
+function location() {
+  const root = mkdtempSync(join(tmpdir(), "cc-verify22-"));
+  roots.push(root);
+  return join(root, "kernel-v1.json");
+}
+function reinforce(record) {
+  return applyMemoryCommand(record, {
+    type: "reinforce",
+    expectedRevision: record.revision,
+    confidenceDelta: 0.01,
+    authority: "test",
+    at: "2026-10-04T00:00:00.000Z",
+  });
+}
+afterEach(() => {
+  vi.restoreAllMocks();
+  syncBuiltinESMExports();
+  while (roots.length) rmSync(roots.pop(), { recursive: true, force: true });
+});
+
+/**
+ * Injects a directory-fsync failure at the requested post-publish index.
+ * `syncDirectory` opens a directory descriptor and fsyncs it. After the
+ * manifest is renamed into place (published === true) there are at most two
+ * directory syncs: the parent-authority directory sync that follows the
+ * rename, then a possible shard-directory sync inside post-commit GC. Failing
+ * the first one covers "manifest 发布后注入同步失败" at the earliest boundary.
+ */
+function failPostPublishDirectorySync(filePath, atIndex) {
+  const rename = fs.renameSync;
+  const sync = fs.fsyncSync;
+  let published = false;
+  let postPublishSyncs = 0;
+  vi.spyOn(fs, "renameSync").mockImplementation((from, to) => {
+    rename(from, to);
+    if (to === filePath) published = true;
+  });
+  vi.spyOn(fs, "fsyncSync").mockImplementation((fd) => {
+    if (
+      published &&
+      fs.fstatSync(fd).isDirectory() &&
+      ++postPublishSyncs === atIndex
+    )
+      throw new Error("injected post-publish directory sync");
+    return sync(fd);
+  });
+  syncBuiltinESMExports();
+  return { postPublishSyncs };
+}
+
+describe("memory commit post-publication sync semantics", () => {
+  it("commits with no injected failure: ok, revision advanced, reopen reads new record", async () => {
+    const filePath = location();
+    const state = createDurableMemoryFixture(2);
+    const port = new SegmentedMemoryPort({ filePath });
+    await port.importSnapshot(state);
+    const transition = reinforce(Object.values(state.records)[0]);
+    const result = await port.commit(transition, 1);
+    expect(result).toMatchObject({ ok: true, storeRevision: 3 });
+    expect(await new SegmentedMemoryPort({ filePath }).read(
+      transition.record.memoryId,
+    )).toEqual(transition.record);
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "manifest publish then sync failure: declares committed, reopen still reads the new state",
+    async () => {
+      const filePath = location();
+      const state = createDurableMemoryFixture(2);
+      const port = new SegmentedMemoryPort({ filePath });
+      await port.importSnapshot(state);
+      const transition = reinforce(Object.values(state.records)[0]);
+      const { postPublishSyncs } = failPostPublishDirectorySync(filePath, 1);
+      await expect(port.commit(transition, 1)).rejects.toMatchObject({
+        code: "CONTEXT_MEMORY_COMMIT_PUBLISHED",
+        committed: true,
+        cleanupComplete: false,
+        storeRevision: 3,
+      });
+      expect(postPublishSyncs).toBe(1);
+      // The authority is authoritative; a reopened port must observe the new
+      // state despite the sync failure being reported to the caller.
+      expect(await new SegmentedMemoryPort({ filePath }).read(
+        transition.record.memoryId,
+      )).toEqual(transition.record);
+      expect(await new SegmentedMemoryPort({ filePath }).getRevision()).toBe(3);
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "pre-publish sync failure: not committed, authority unchanged, new record absent on reopen",
+    async () => {
+      const filePath = location();
+      const state = createDurableMemoryFixture(2);
+      const port = new SegmentedMemoryPort({ filePath });
+      await port.importSnapshot(state);
+      const before = readFileSync(filePath);
+      const transition = reinforce(Object.values(state.records)[0]);
+      const sync = fs.fsyncSync;
+      let syncs = 0;
+      vi.spyOn(fs, "fsyncSync").mockImplementation((fd) => {
+        if (fs.fstatSync(fd).isDirectory() && ++syncs === 1)
+          throw new Error("injected pre-publish shard directory sync");
+        return sync(fd);
+      });
+      syncBuiltinESMExports();
+      await expect(port.commit(transition, 1)).rejects.toThrow(
+        "injected pre-publish shard directory sync",
+      );
+      vi.restoreAllMocks();
+      syncBuiltinESMExports();
+      // The publish never happened: no committed flag, and the stored state
+      // is the pre-commit snapshot rather than the transitioned record.
+      expect(readFileSync(filePath)).toEqual(before);
+      const reopened = new SegmentedMemoryPort({ filePath });
+      expect(await reopened.read(transition.record.memoryId)).toEqual(
+        Object.values(state.records)[0],
+      );
+      expect(await reopened.getRevision()).toBe(2);
+    },
+  );
+});

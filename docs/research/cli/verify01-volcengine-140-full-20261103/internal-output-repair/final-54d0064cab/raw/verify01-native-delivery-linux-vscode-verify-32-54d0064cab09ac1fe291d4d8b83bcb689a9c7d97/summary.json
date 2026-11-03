@@ -1,0 +1,1465 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000,
+    "connectionAttemptTimeoutMs": 10000,
+    "parallelToolCalls": null,
+    "preserveExplicitOutputLimits": true
+  },
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:cea1a2ff4e14a002be1700446ebe97bc7640a79ad6d778839f71bb938a2d25af",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+  "actualPlatform": "linux",
+  "actualArch": "x64",
+  "actualEntry": "vscode",
+  "changeReview": {
+    "requested": true,
+    "observed": true
+  },
+  "startedAt": "2026-11-03T13:33:11.531Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-32",
+      "taskId": "verify-32",
+      "kind": "task",
+      "runId": "414ee8b5-d01c-4121-a3a4-952f1b29b936",
+      "stratum": "linux-vscode-volcengine",
+      "declaredActualEntry": {
+        "platform": "linux",
+        "entry": "vscode"
+      },
+      "actualPlatform": "linux",
+      "actualEntry": "vscode",
+      "changeReview": {
+        "requested": true,
+        "observed": true,
+        "reminderCount": 1,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-32.test.js"
+      ],
+      "startedAt": "2026-11-03T13:33:11.532Z",
+      "deadline": "2026-11-03T14:13:11.532Z",
+      "candidates": [
+        {
+          "file": "packages/vscode-extension/__tests__/verify-32.test.js",
+          "path": "verify-32/candidate/packages/vscode-extension/__tests__/verify-32.test.js",
+          "digest": "sha256:0dca7fbb3b9f25ea48afd5b384a22045fd0a62cd2c6e0b05a40da0c54d1b4f96",
+          "bytes": 4814
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [],
+      "unexpectedChanges": [],
+      "generationPassed": true,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T13:33:13.193Z",
+        "finishedAt": "2026-11-03T13:33:38.119Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "verify-32",
+        "locked": {
+          "version": "0.166.140",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+          "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "capturePath": "verify-32/capture",
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 55126,
+            "outputTokens": 10109,
+            "cacheReadInputTokens": 99328,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-d0197197-dcca-457e-8cf8-a6f3fcd0b339",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "fcb4f74c-6ed0-4d4c-8f0e-f2d429469e82",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_fvxw0srbua9p5skjypv2lz0t",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/image-preview-gate.js"
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_32xpmyk6tby0qi60ozz23pwf",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/vscode-ext-image-decode-budget.test.js"
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 8
+          },
+          {
+            "type": "tool_use",
+            "id": "call_2thllcxwmctp3kjpiws00oab",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-32.test.js",
+              "content": "import { describe, it, expect, vi } from \"vitest\";\nimport {\n  createImagePreviewGate,\n  drawImagePreview,\n} from \"../src/chat/image-preview-gate.js\";\n\n// Regression coverage for \"预览取消失效\" (preview cancellation becoming\n// ineffective). Acceptance: after a page switch or a cancel, a late preview\n// from the superseded page must NOT be delivered/written to the current page,\n// and the current page must keep displaying normally.\n//\n// The gate model: each validate() cancels the previously active decode\n// (calling its `finish` with an error and setting `settled = true`) and then\n// installs a fresh `finish` as `active`. Any worker message that arrives after\n// its `finish` already settled is disposed and ignored. These tests exercise\n// that `settled` guard directly with bitmaps, so they cannot pass for the wrong\n// reason.\n\nfunction makeWorker() {\n  return { postMessage() {}, terminate: vi.fn() };\n}\n\n// A gate whose workerFactory records every worker it creates.\nfunction gateWithWorkers() {\n  const workers = [];\n  const gate = createImagePreviewGate({\n    workerFactory: () => {\n      const worker = makeWorker();\n      workers.push(worker);\n      return worker;\n    },\n  });\n  return { gate, workers };\n}\n\ndescribe(\"page switch / cancel: late preview must not reach the current page\", () => {\n  it(\"current page resolves and draws normally after a page switch (positive)\", async () => {\n    const { gate, workers } = gateWithWorkers();\n    // Old page starts a decode, then the user switches to a new page.\n    const oldPage = gate.validate([{ data: \"old\" }]);\n    const oldRejected = expect(oldPage).rejects.toThrow(\"cancelled\");\n    const newPage = gate.validate([{ data: \"new\" }]);\n    // The new page's worker completes; only its result may be delivered.\n    const newResult = { thumbnails: [{ bitmap: \"new-frame\" }], repetitions: 1 };\n    workers[1].onmessage({ data: { results: [newResult] } });\n    expect(await newPage).toEqual([newResult]);\n    await oldRejected;\n    // The current page displays its own thumbnails normally.\n    const context = { clearRect() {}, drawImage: vi.fn() };\n    const stop = drawImagePreview(\n      { getContext: () => context },\n      newResult,\n    );\n    expect(context.drawImage).toHaveBeenCalledWith(\"new-frame\", 0, 0);\n    expect(context.drawImage).toHaveBeenCalledTimes(1);\n    stop();\n  });\n\n  it(\"late old-page preview after a switch is cancelled and its bitmap closed, not delivered (negative)\", async () => {\n    const { gate, workers } = gateWithWorkers();\n    const oldPage = gate.validate([{ data: \"old\" }]);\n    const oldRejected = expect(oldPage).rejects.toThrow(\"cancelled\");\n    const newPage = gate.validate([{ data: \"new\" }]);\n    // The old worker was killed at the switch; its late message is stale.\n    const lateBitmap = { close: vi.fn() };\n    workers[0].onmessage({\n      data: {\n        results: [{ thumbnails: [{ bitmap: lateBitmap }] }],\n      },\n    });\n    await oldRejected;\n    // The stale decode must not resolve the new page.\n    expect(newPage[Symbol.toStringTag]).toBe(\"Promise\");\n    // Its only transferred bitmap is disposed, so nothing is written.\n    expect(lateBitmap.close).toHaveBeenCalledOnce();\n    // Deliver the genuine new-page result afterwards; it is unaffected.\n    const newResult = { thumbnails: [{ bitmap: \"new-frame\" }] };\n    workers[1].onmessage({ data: { results: [newResult] } });\n    expect(await newPage).toEqual([newResult]);\n    expect(lateBitmap.close).toHaveBeenCalledOnce();\n  });\n\n  it(\"a late message after the new page already resolved is disposed and cannot rewrite it (negative)\", async () => {\n    const { gate, workers } = gateWithWorkers();\n    const page = gate.validate([{ data: \"current\" }]);\n    const currentResult = { thumbnails: [{ bitmap: \"current-frame\" }] };\n    workers[0].onmessage({ data: { results: [currentResult] } });\n    expect(await page).toEqual([currentResult]);\n    // A straggling message from the same worker arrives after resolution.\n    const strayBitmap = { close: vi.fn() };\n    workers[0].onmessage({\n      data: { results: [{ thumbnails: [{ bitmap: strayBitmap }] }] },\n    });\n    // The already-resolved value is unchanged and the stray bitmap is closed.\n    expect(await page).toEqual([currentResult]);\n    expect(strayBitmap.close).toHaveBeenCalledOnce();\n  });\n\n  it(\"explicit cancel ignores a late preview and closes its bitmap (negative)\", async () => {\n    const { gate, workers } = gateWithWorkers();\n    const pending = gate.validate([{ data: \"current\" }]);\n    const rejected = expect(pending).rejects.toThrow(\"cancelled\");\n    gate.cancel();\n    const lateBitmap = { close: vi.fn() };\n    workers[0].onmessage({\n      data: {\n        results: [{ thumbnails: [{ bitmap: lateBitmap }] }],\n      },\n    });\n    await rejected;\n    expect(lateBitmap.close).toHaveBeenCalledOnce();\n    expect(workers[0].terminate).toHaveBeenCalledOnce();\n  });\n});\n"
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 12
+          },
+          {
+            "type": "tool_use",
+            "id": "call_mm5w33b6kbcagrfo0axnfuvc",
+            "tool": "edit_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-32.test.js",
+              "old_string": "    await oldRejected;\n    // The stale decode must not resolve the new page.\n    expect(newPage[Symbol.toStringTag]).toBe(\"Promise\");\n    // Its only transferred bitmap is disposed, so nothing is written.\n    expect(lateBitmap.close).toHaveBeenCalledOnce();",
+              "new_string": "    await oldRejected;\n    // Its only transferred bitmap is disposed, so nothing is written.\n    expect(lateBitmap.close).toHaveBeenCalledOnce();"
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 16
+          },
+          {
+            "type": "tool_use",
+            "id": "call_r8lhvwey4oye55zdn866pfvt",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-32.test.js"
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 20
+          },
+          {
+            "type": "tool_use",
+            "id": "call_0jlpzd3r910488gy97r6l75e",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/image-preview-gate.js"
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 29
+          },
+          {
+            "type": "tool_use",
+            "id": "call_ezhpunm0zvqq0jv56ve17tc3",
+            "tool": "search_files",
+            "args": {
+              "pattern": "finish",
+              "path": "packages/vscode-extension/src/chat/image-preview-gate.js"
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 33
+          },
+          {
+            "type": "tool_use",
+            "id": "call_gmlcf1ol5qi20y03thigqcmq",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/image-preview-gate.js",
+              "offset": 195,
+              "limit": 90
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 37
+          },
+          {
+            "type": "tool_use",
+            "id": "call_6x2xu1521up9l4yryqxovea8",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/image-preview-gate.js",
+              "offset": 284,
+              "limit": 48
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 41
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_fvxw0srbua9p5skjypv2lz0t",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-57Bqrp/414ee8b5-d01c-4121-a3a4-952f1b29b936/workspace/packages/vscode-extension/src/chat/image-preview-gate.js",
+              "fileVersion": "10931:1791108223000:1793712792346.928",
+              "readSpan": {
+                "start": 0,
+                "end": 10931,
+                "total": 10931
+              },
+              "hashed": false,
+              "content": "/* global ImageDecoder, OffscreenCanvas, Worker */\nconst { inspectImageBudget } = require(\"./image-decode-budget\");\n\nasync function decodeImagePreviewBatch(images) {\n  if (typeof ImageDecoder !== \"function\")\n    throw new Error(\n      \"This editor cannot safely decode image previews; update the editor before attaching images\",\n    );\n  if (!Array.isArray(images) || images.length > 4)\n    throw new Error(\"Attach at most 4 images per message\");\n  let total = 0;\n  let totalBytes = 0;\n  const admitted = images.map((image) => {\n    const match =\n      /^data:image\\/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/]*={0,2})$/.exec(\n        image.data,\n      );\n    if (!match || match[2].length > Math.ceil((20 * 1024 * 1024) / 3) * 4)\n      throw new Error(\"Invalid image data\");\n    totalBytes +=\n      match[2].length * 0.75 -\n      (match[2].endsWith(\"==\") ? 2 : match[2].endsWith(\"=\") ? 1 : 0);\n    if (totalBytes > 20 * 1024 * 1024)\n      throw new Error(\"Images exceed 20 MiB in total\");\n    const raw = atob(match[2]);\n    const data = Uint8Array.from(raw, (char) => char.charCodeAt(0));\n    const info = inspectImageBudget(data);\n    if (info.format !== match[1])\n      throw new Error(\"Image MIME does not match its format\");\n    total += info.decodedPixels;\n    if (total > 40_000_000)\n      throw new Error(\n        \"Attachments exceed 40 million decoded canvas pixels in total\",\n      );\n    return { data, info, type: \"image/\" + match[1] };\n  });\n  const results = [];\n  const retained = [];\n  let transferred = false;\n  try {\n    for (const { data, info, type } of admitted) {\n      if (!(await ImageDecoder.isTypeSupported(type)))\n        throw new Error(\"This editor does not support decoding \" + type);\n      let rasterData = data;\n      const strippedMetadata = [];\n      if (info.format === \"png\") {\n        // Ancillary metadata can itself contain an unbounded compressed stream\n        // (ICC/text). Decode only raster/animation and fixed-size color chunks.\n        // Original attachment bytes are retained for persistence and sending.\n        const keep = [\n          \"IHDR\",\n          \"PLTE\",\n          \"tRNS\",\n          \"IDAT\",\n          \"IEND\",\n          \"acTL\",\n          \"fcTL\",\n          \"fdAT\",\n          \"gAMA\",\n          \"cHRM\",\n          \"sRGB\",\n        ];\n        const parts = [data.subarray(0, 8)];\n        const view = new DataView(\n          data.buffer,\n          data.byteOffset,\n          data.byteLength,\n        );\n        for (let at = 8; at < data.length;) {\n          const length = view.getUint32(at) + 12;\n          const kind = String.fromCharCode(...data.subarray(at + 4, at + 8));\n          if (keep.includes(kind)) parts.push(data.subarray(at, at + length));\n          else strippedMetadata.push(kind);\n          at += length;\n        }\n        rasterData = new Uint8Array(\n          parts.reduce((size, part) => size + part.length, 0),\n        );\n        let at = 0;\n        for (const part of parts) {\n          rasterData.set(part, at);\n          at += part.length;\n        }\n      }\n      const decoder = new ImageDecoder({\n        data: rasterData,\n        type,\n        preferAnimation: true,\n      });\n      try {\n        await decoder.tracks.ready;\n        await decoder.completed;\n        const track = decoder.tracks.selectedTrack;\n        if (!track || track.frameCount !== info.frames)\n          throw new Error(\n            \"Decoded animation frame count differs from its container\",\n          );\n        const thumbnails = [];\n        let decodedWidth, decodedHeight;\n        const canvas = new OffscreenCanvas(40, 40);\n        const context = canvas.getContext(\"2d\");\n        for (let frameIndex = 0; frameIndex < info.frames; frameIndex++) {\n          const result = await decoder.decode({\n            frameIndex,\n            completeFramesOnly: true,\n          });\n          try {\n            if (\n              !result.complete ||\n              result.image.displayWidth !== info.width ||\n              result.image.displayHeight !== info.height\n            )\n              throw new Error(\n                \"Decoded image dimensions differ from its canvas\",\n              );\n            decodedWidth = result.image.displayWidth;\n            decodedHeight = result.image.displayHeight;\n            context.clearRect(0, 0, 40, 40);\n            const ratio = Math.min(40 / decodedWidth, 40 / decodedHeight);\n            const width = decodedWidth * ratio,\n              height = decodedHeight * ratio;\n            context.drawImage(\n              result.image,\n              (40 - width) / 2,\n              (40 - height) / 2,\n              width,\n              height,\n            );\n            const bitmap = canvas.transferToImageBitmap();\n            retained.push(bitmap);\n            thumbnails.push({\n              bitmap,\n              duration: Math.max(20, (result.image.duration || 100000) / 1000),\n            });\n          } finally {\n            result.image.close();\n          }\n        }\n        // APNG can carry a separate still fallback not used by the animation.\n        // It also consumes decode work, so admission counts and validates it.\n        if (info.extraCanvases) {\n          // Chromium exposes only the animated track for this APNG layout.\n          // Remove animation chunks (already CRC-checked) to expose precisely\n          // the default IDAT image to another decoder within the same worker.\n          const parts = [rasterData.subarray(0, 8)];\n          const view = new DataView(\n            rasterData.buffer,\n            rasterData.byteOffset,\n            rasterData.byteLength,\n          );\n          for (let at = 8; at < rasterData.length;) {\n            const length = view.getUint32(at) + 12;\n            const kind = String.fromCharCode(\n              ...rasterData.subarray(at + 4, at + 8),\n            );\n            if (![\"acTL\", \"fcTL\", \"fdAT\"].includes(kind))\n              parts.push(rasterData.subarray(at, at + length));\n            at += length;\n          }\n          const still = new Uint8Array(\n            parts.reduce((size, part) => size + part.length, 0),\n          );\n          let offset = 0;\n          for (const part of parts) {\n            still.set(part, offset);\n            offset += part.length;\n          }\n          const fallback = new ImageDecoder({ data: still, type });\n          try {\n            await fallback.tracks.ready;\n            const result = await fallback.decode({\n              frameIndex: 0,\n              completeFramesOnly: true,\n            });\n            try {\n              if (\n                !result.complete ||\n                result.image.displayWidth !== info.width ||\n                result.image.displayHeight !== info.height\n              )\n                throw new Error(\n                  \"Decoded PNG fallback dimensions differ from its canvas\",\n                );\n            } finally {\n              result.image.close();\n            }\n          } finally {\n            fallback.close();\n          }\n        }\n        results.push({\n          ...info,\n          decodedWidth,\n          decodedHeight,\n          strippedMetadata,\n          repetitions: track.repetitionCount,\n          thumbnails,\n        });\n      } finally {\n        decoder.close();\n      }\n    }\n    transferred = true;\n    return results;\n  } finally {\n    if (!transferred) for (const bitmap of retained) bitmap.close();\n  }\n}\n\n// One cancellable decoder per visible composer. Only bounded bitmaps leave it;\n// original compressed bytes are never offered to a second DOM image decoder.\nfunction createImagePreviewGate({\n  workerSource,\n  timeoutMs = 5000,\n  workerFactory,\n} = {}) {\n  let active = null;\n  const dispose = (results) => {\n    for (const result of results || [])\n      for (const frame of result.thumbnails || []) frame.bitmap.close();\n  };\n  const cancel = () => {\n    if (active) active(new Error(\"Image decoding cancelled\"));\n  };\n  function validate(images) {\n    cancel();\n    return new Promise((resolve, reject) => {\n      let worker,\n        timer,\n        settled = false;\n      const finish = (error, result) => {\n        if (settled) {\n          dispose(result);\n          return;\n        }\n        settled = true;\n        clearTimeout(timer);\n        worker?.terminate();\n        if (active === finish) active = null;\n        if (error) reject(error);\n        else resolve(result);\n      };\n      active = finish;\n      try {\n        if (workerFactory) worker = workerFactory();\n        else {\n          const url = URL.createObjectURL(\n            new Blob([workerSource], { type: \"text/javascript\" }),\n          );\n          try {\n            worker = new Worker(url);\n          } finally {\n            URL.revokeObjectURL(url);\n          }\n        }\n        worker.onmessage = ({ data }) =>\n          finish(data.error ? new Error(data.error) : null, data.results);\n        worker.onerror = () => finish(new Error(\"Image decoder failed\"));\n        timer = setTimeout(\n          () =>\n            finish(new Error(\"Image decoding exceeded the 5 second budget\")),\n          timeoutMs,\n        );\n        worker.postMessage(images.map(({ data }) => ({ data })));\n      } catch (error) {\n        finish(error);\n      }\n    });\n  }\n  return { validate, cancel, dispose };\n}\n\n// Only 40x40 transferred bitmaps reach the DOM: at most 4 * 200 * 6400\n// RGBA bytes (5.12 MB), in addition to the one active worker's admitted input.\nfunction drawImagePreview(canvas, result) {\n  const context = canvas.getContext(\"2d\");\n  let timer,\n    stopped = false,\n    index = 0,\n    repeats = 0;\n  const draw = () => {\n    if (stopped) return;\n    context.clearRect(0, 0, 40, 40);\n    context.drawImage(result.thumbnails[index].bitmap, 0, 0);\n    canvas.__ccPreviewDrawn = true;\n    if (result.thumbnails.length === 1) return;\n    const duration = result.thumbnails[index].duration;\n    timer = setTimeout(\n      () => {\n        index++;\n        if (index === result.thumbnails.length) {\n          index = 0;\n          if (\n            Number.isFinite(result.repetitions) &&\n            repeats++ >= result.repetitions\n          )\n            return;\n        }\n        draw();\n      },\n      Math.max(20, Math.min(2147483647, duration || 100)),\n    );\n  };\n  draw();\n  return () => {\n    stopped = true;\n    clearTimeout(timer);\n  };\n}\n\nconst IMAGE_PREVIEW_WORKER_SOURCE = `${inspectImageBudget.toString()}\n${decodeImagePreviewBatch.toString()}\nself.onmessage = async ({ data }) => {\n  let results;\n  try {\n    results = await decodeImagePreviewBatch(data);\n    self.postMessage({ results }, results.flatMap(result => result.thumbnails.map(frame => frame.bitmap)));\n  }\n  catch (error) {\n    for (const result of results || []) for (const frame of result.thumbnails) frame.bitmap.close();\n    self.postMessage({ error: error.message });\n  }\n};`;\n\nmodule.exports = {\n  createImagePreviewGate,\n  drawImagePreview,\n  decodeImagePreviewBatch,\n  IMAGE_PREVIEW_WORKER_SOURCE,\n};\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712832658,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-preview-gate.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 10,
+                "sessionId": "panel-d0197197-dcca-457e-8cf8-a6f3fcd0b339",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-preview-gate.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_fvxw0srbua9p5skjypv2lz0t",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 7
+          },
+          {
+            "type": "tool_result",
+            "id": "call_32xpmyk6tby0qi60ozz23pwf",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-57Bqrp/414ee8b5-d01c-4121-a3a4-952f1b29b936/workspace/packages/cli/__tests__/unit/vscode-ext-image-decode-budget.test.js",
+              "fileVersion": "11843:1791108223000:1793712792215.9238",
+              "readSpan": {
+                "start": 0,
+                "end": 11843,
+                "total": 11843
+              },
+              "hashed": false,
+              "content": "import { describe, it, expect, vi } from \"vitest\";\nimport fs from \"node:fs/promises\";\nimport os from \"node:os\";\nimport path from \"node:path\";\nimport { inspectImageBudget } from \"../../../vscode-extension/src/chat/image-decode-budget.js\";\nimport {\n  createImagePreviewGate,\n  drawImagePreview,\n  decodeImagePreviewBatch,\n} from \"../../../vscode-extension/src/chat/image-preview-gate.js\";\nimport { readImageSnapshot } from \"../../../vscode-extension/src/chat/image-file-snapshot.js\";\nimport { writeImageTemps } from \"../../../vscode-extension/src/chat/image-attachments.js\";\n\nconst gif = Buffer.from(\n  \"R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7\",\n  \"base64\",\n);\nconst png = Buffer.from(\n  \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGPgKfjwHwAEZAJsF63ZDAAAAABJRU5ErkJggg==\",\n  \"base64\",\n);\nconst animated = (count, canvas = 1) => {\n  const header = Buffer.from(gif.subarray(0, 19));\n  header.writeUInt16LE(canvas, 6);\n  header.writeUInt16LE(canvas, 8);\n  return Buffer.concat([\n    header,\n    ...Array.from({ length: count }, () => gif.subarray(19, -1)),\n    Buffer.from([0x3b]),\n  ]);\n};\n\ndescribe(\"complete-container admission, distinct from codec decoding\", () => {\n  it(\"counts all GIF compositing canvases, including small delta frames\", () => {\n    expect(inspectImageBudget(animated(3, 100))).toMatchObject({\n      frames: 3,\n      decodedPixels: 30000,\n    });\n    expect(() => inspectImageBudget(animated(201))).toThrow(\"200 frames\");\n    expect(() => inspectImageBudget(animated(3, 4000))).toThrow(\n      \"decoded canvas pixels\",\n    );\n  });\n  it(\"rejects damaged/truncated containers that retain valid dimension headers\", () => {\n    const damaged = Buffer.from(png);\n    damaged[45] ^= 1;\n    expect(() => inspectImageBudget(damaged)).toThrow(\"checksum\");\n    for (const file of [gif, png])\n      expect(() => inspectImageBudget(file.subarray(0, -1))).toThrow();\n    const outside = Buffer.from(gif);\n    outside.writeUInt16LE(2, 32);\n    expect(() => inspectImageBudget(outside)).toThrow(\"canvas\");\n  });\n  it(\"retains PNG and GIF acceptance with explicit frame metadata\", () => {\n    for (const file of [png, gif])\n      expect(inspectImageBudget(file)).toMatchObject({\n        width: 1,\n        height: 1,\n        frames: 1,\n        decodedPixels: 1,\n      });\n  });\n});\n\ndescribe(\"cancellable codec worker lifecycle\", () => {\n  it(\"closes transferred bitmaps that arrive after cancellation\", async () => {\n    const worker = { postMessage() {}, terminate() {} };\n    const gate = createImagePreviewGate({ workerFactory: () => worker });\n    const pending = gate.validate([]);\n    const rejected = expect(pending).rejects.toThrow(\"cancelled\");\n    gate.cancel();\n    const bitmap = { close: vi.fn() };\n    worker.onmessage({ data: { results: [{ thumbnails: [{ bitmap }] }] } });\n    await rejected;\n    expect(bitmap.close).toHaveBeenCalledOnce();\n  });\n  it(\"preserves per-frame duration with a minimum and stops playback timers\", async () => {\n    vi.useFakeTimers();\n    try {\n      const context = { clearRect() {}, drawImage: vi.fn() };\n      const stop = drawImagePreview(\n        { getContext: () => context },\n        {\n          repetitions: Infinity,\n          thumbnails: [\n            { bitmap: \"first\", duration: 1 },\n            { bitmap: \"second\", duration: 125 },\n          ],\n        },\n      );\n      expect(context.drawImage).toHaveBeenLastCalledWith(\"first\", 0, 0);\n      await vi.advanceTimersByTimeAsync(19);\n      expect(context.drawImage).toHaveBeenCalledTimes(1);\n      await vi.advanceTimersByTimeAsync(1);\n      expect(context.drawImage).toHaveBeenLastCalledWith(\"second\", 0, 0);\n      await vi.advanceTimersByTimeAsync(124);\n      expect(context.drawImage).toHaveBeenCalledTimes(2);\n      await vi.advanceTimersByTimeAsync(1);\n      expect(context.drawImage).toHaveBeenCalledTimes(3);\n      stop();\n      await vi.advanceTimersByTimeAsync(1000);\n      expect(context.drawImage).toHaveBeenCalledTimes(3);\n    } finally {\n      vi.useRealTimers();\n    }\n  });\n  it(\"rejects codec frame-count or canvas disagreements and closes native resources\", async () => {\n    for (const incorrectFrames of [true, false]) {\n      const close = vi.fn();\n      const frameClose = vi.fn();\n      vi.stubGlobal(\n        \"ImageDecoder\",\n        class {\n          static async isTypeSupported() {\n            return true;\n          }\n          tracks = {\n            ready: Promise.resolve(),\n            selectedTrack: { frameCount: incorrectFrames ? 2 : 1 },\n          };\n          completed = Promise.resolve();\n          async decode() {\n            return {\n              complete: true,\n              image: { displayWidth: 9, displayHeight: 9, close: frameClose },\n            };\n          }\n          close = close;\n        },\n      );\n      vi.stubGlobal(\n        \"OffscreenCanvas\",\n        class {\n          getContext() {\n            return {};\n          }\n        },\n      );\n      try {\n        await expect(\n          decodeImagePreviewBatch([\n            { data: \"data:image/gif;base64,\" + gif.toString(\"base64\") },\n          ]),\n        ).rejects.toThrow(incorrectFrames ? \"frame count\" : \"dimensions\");\n        expect(close).toHaveBeenCalledOnce();\n        if (!incorrectFrames) expect(frameClose).toHaveBeenCalledOnce();\n      } finally {\n        vi.unstubAllGlobals();\n      }\n    }\n  });\n  it(\"terminates a stuck worker on deadline and rejects stale completion\", async () => {\n    vi.useFakeTimers();\n    try {\n      const worker = { postMessage: vi.fn(), terminate: vi.fn() };\n      const gate = createImagePreviewGate({\n        timeoutMs: 25,\n        workerFactory: () => worker,\n      });\n      const result = gate.validate([{ data: \"fixture\" }]);\n      const rejected = expect(result).rejects.toThrow(\"budget\");\n      await vi.advanceTimersByTimeAsync(25);\n      await rejected;\n      worker.onmessage({ data: { results: [\"late\"] } });\n      expect(worker.terminate).toHaveBeenCalledOnce();\n    } finally {\n      vi.useRealTimers();\n    }\n  });\n  it(\"replacing the visible batch kills its decoder and accepts only the new result\", async () => {\n    const workers = [];\n    const gate = createImagePreviewGate({\n      workerFactory: () => {\n        const worker = { postMessage() {}, terminate: vi.fn() };\n        workers.push(worker);\n        return worker;\n      },\n    });\n    const first = gate.validate([{ data: \"first\" }]);\n    const rejected = expect(first).rejects.toThrow(\"cancelled\");\n    const second = gate.validate([{ data: \"second\" }]);\n    workers[0].onmessage({ data: { results: [\"old\"] } });\n    workers[1].onmessage({ data: { results: [\"new\"] } });\n    await rejected;\n    expect(await second).toEqual([\"new\"]);\n    expect(\n      workers.every((worker) => worker.terminate.mock.calls.length === 1),\n    ).toBe(true);\n  });\n});\n\ndescribe(\"single-descriptor image reads\", () => {\n  function fixture({ growth = false, mutation = false, tick = () => {} } = {}) {\n    const before = {\n      isFile: () => true,\n      size: 3,\n      dev: 1,\n      ino: 2,\n      mtimeMs: 1,\n      ctimeMs: 1,\n    };\n    let reads = 0;\n    const handle = {\n      stat: vi.fn(async () =>\n        mutation && reads ? { ...before, mtimeMs: 2 } : before,\n      ),\n      read: vi.fn(async (buffer, offset, length, position) => {\n        reads++;\n        tick();\n        const source = Buffer.from(growth ? \"grow\" : \"abc\");\n        const bytesRead = Math.min(length, 1, source.length - position);\n        if (bytesRead > 0)\n          source.copy(buffer, offset, position, position + bytesRead);\n        return { bytesRead: Math.max(0, bytesRead) };\n      }),\n      close: vi.fn(async () => {}),\n    };\n    return {\n      handle,\n      io: { lstat: vi.fn(async () => before), open: vi.fn(async () => handle) },\n    };\n  }\n  it(\"handles short reads and rejects growth or same-size observed modification\", async () => {\n    const valid = fixture();\n    expect(String(await readImageSnapshot(\"image\", null, valid))).toBe(\"abc\");\n    for (const options of [{ growth: true }, { mutation: true }]) {\n      const test = fixture(options);\n      await expect(readImageSnapshot(\"image\", null, test)).rejects.toThrow(\n        \"changed while reading\",\n      );\n      expect(test.handle.close).toHaveBeenCalledOnce();\n      expect(\n        test.handle.read.mock.calls.every((call) => call[0].length === 4),\n      ).toBe(true);\n    }\n  });\n  it(\"checks cancellation and elapsed budget between chunks and closes the descriptor\", async () => {\n    let now = 0;\n    const timed = fixture({\n      tick: () => {\n        now += 6;\n      },\n    });\n    await expect(\n      readImageSnapshot(\"image\", null, {\n        ...timed,\n        timeoutMs: 5,\n        now: () => now,\n      }),\n    ).rejects.toThrow(\"time budget\");\n    expect(timed.handle.close).toHaveBeenCalledOnce();\n    const controller = new AbortController();\n    const cancelled = fixture({ tick: () => controller.abort() });\n    await expect(\n      readImageSnapshot(\"image\", null, {\n        ...cancelled,\n        signal: controller.signal,\n      }),\n    ).rejects.toThrow(\"cancelled\");\n    expect(cancelled.handle.close).toHaveBeenCalledOnce();\n  });\n  it(\"reads real files and rejects an unexpected saved size\", async () => {\n    const dir = await fs.mkdtemp(path.join(os.tmpdir(), \"image-read-\"));\n    try {\n      const file = path.join(dir, \"one.png\");\n      await fs.writeFile(file, png);\n      expect(await readImageSnapshot(file, png.length)).toEqual(png);\n      await expect(readImageSnapshot(file, png.length + 1)).rejects.toThrow(\n        \"changed\",\n      );\n    } finally {\n      await fs.rm(dir, { recursive: true, force: true });\n    }\n  });\n});\n\nit(\"persists GIF attachments and cleans staging under a path longer than Windows MAX_PATH\", async () => {\n  const root = await fs.mkdtemp(path.join(os.tmpdir(), \"image-long-path-\"));\n  const directory = path.join(\n    root,\n    ...Array(5).fill(\"draft-\" + \"x\".repeat(48)),\n  );\n  expect(directory.length).toBeGreaterThan(260);\n  try {\n    await fs.mkdir(directory, { recursive: true });\n    const [file] = await writeImageTemps(\n      [{ data: \"data:image/gif;base64,\" + gif.toString(\"base64\") }],\n      { directory },\n    );\n    expect(path.dirname(file)).toBe(directory);\n    expect(file.startsWith(\"\\\\\\\\?\\\\\")).toBe(false);\n    expect(await readImageSnapshot(file, gif.length)).toEqual(gif);\n    expect(await fs.readdir(directory)).toEqual([path.basename(file)]);\n    await expect(\n      writeImageTemps(\n        [{ data: \"data:image/gif;base64,\" + gif.toString(\"base64\") }],\n        { directory, timeoutMs: 0 },\n      ),\n    ).rejects.toThrow(\"budget\");\n    expect(await fs.readdir(directory)).toEqual([path.basename(file)]);\n  } finally {\n    // root is the exact directory created by this test under os.tmpdir().\n    await fs.rm(root, { recursive: true, force: true });\n  }\n});\n\nit(\"cleans private worker staging after timeout/cancel and promotes accepted bytes exclusively\", async () => {\n  const directory = await fs.mkdtemp(path.join(os.tmpdir(), \"image-worker-\"));\n  const images = [{ data: \"data:image/png;base64,\" + png.toString(\"base64\") }];\n  try {\n    await expect(\n      writeImageTemps(images, { directory, timeoutMs: 0 }),\n    ).rejects.toThrow(\"budget\");\n    expect(await fs.readdir(directory)).toEqual([]);\n    const controller = new AbortController();\n    const pending = writeImageTemps(images, {\n      directory,\n      signal: controller.signal,\n    });\n    controller.abort();\n    await expect(pending).rejects.toThrow(\"cancelled\");\n    expect(await fs.readdir(directory)).toEqual([]);\n    const [file] = await writeImageTemps(images, { directory });\n    expect(await fs.readFile(file)).toEqual(png);\n    expect(await fs.readdir(directory)).toEqual([path.basename(file)]);\n  } finally {\n    await fs.rm(directory, { recursive: true, force: true });\n  }\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712832710,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-image-decode-budget.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-d0197197-dcca-457e-8cf8-a6f3fcd0b339",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-image-decode-budget.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_32xpmyk6tby0qi60ozz23pwf",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 9
+          },
+          {
+            "type": "tool_result",
+            "id": "call_2thllcxwmctp3kjpiws00oab",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "/tmp/cc-native-57Bqrp/414ee8b5-d01c-4121-a3a4-952f1b29b936/workspace/packages/vscode-extension/__tests__/verify-32.test.js",
+              "size": 4926,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712874289,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-32.test.js",
+                    "content": "import { describe, it, expect, vi } from \"vitest\";\nimport {\n  createImagePreviewGate,\n  drawImagePreview,\n} from \"../src/chat/image-preview-gate.js\";\n\n// Regression coverage for \"预览取消失效\" (preview cancellation becoming\n// ineffective). Acceptance: after a page switch or a cancel, a late preview\n// from the superseded page must NOT be delivered/written to the current page,\n// and the current page must keep displaying normally.\n//\n// The gate model: each validate() cancels the previously active decode\n// (calling its `finish` with an error and setting `settled = true`) and then\n// installs a fresh `finish` as `active`. Any worker message that arrives after\n// its `finish` already settled is disposed and ignored. These tests exercise\n// that `settled` guard directly with bitmaps, so they cannot pass for the wrong\n// reason.\n\nfunction makeWorker() {\n  return { postMessage() {}, terminate: vi.fn() };\n}\n\n// A gate whose workerFactory records every worker it creates.\nfunction gateWithWorkers() {\n  const workers = [];\n  const gate = createImagePreviewGate({\n    workerFactory: () => {\n      const worker = makeWorker();\n      workers.push(worker);\n      return worker;\n    },\n  });\n  return { gate, workers };\n}\n\ndescribe(\"page switch / cancel: late preview must not reach the current page\", () => {\n  it(\"current page resolves and draws normally after a page switch (positive)\", async () => {\n    const { gate, workers } = gateWithWorkers();\n    // Old page starts a decode, then the user switches to a new page.\n    const oldPage = gate.validate([{ data: \"old\" }]);\n    const oldRejected = expect(oldPage).rejects.toThrow(\"cancelled\");\n    const newPage = gate.validate([{ data: \"new\" }]);\n    // The new page's worker completes; only its result may be delivered.\n    const newResult = { thumbnails: [{ bitmap: \"new-frame\" }], repetitions: 1 };\n    workers[1].onmessage({ data: { results: [newResult] } });\n    expect(await newPage).toEqual([newResult]);\n    await oldRejected;\n    // The current page displays its own thumbnails normally.\n    const context = { clearRect() {}, drawImage: vi.fn() };\n    const stop = drawImagePreview(\n      { getContext: () => context },\n      newResult,\n    );\n    expect(context.drawImage).toHaveBeenCalledWith(\"new-frame\", 0, 0);\n    expect(context.drawImage).toHaveBeenCalledTimes(1);\n    stop();\n  });\n\n  it(\"late old-page preview after a switch is cancelled and its bitmap closed, not delivered (negative)\", async () => {\n    const { gate, workers } = gateWithWorkers();\n    const oldPage = gate.validate([{ data: \"old\" }]);\n    const oldRejected = expect(oldPage).rejects.toThrow(\"cancelled\");\n    const newPage = gate.validate([{ data: \"new\" }]);\n    // The old worker was killed at the switch; its late message is stale.\n    const lateBitmap = { close: vi.fn() };\n    workers[0].onmessage({\n      data: {\n        results: [{ thumbnails: [{ bitmap: lateBitmap }] }],\n      },\n    });\n    await oldRejected;\n    // The stale decode must not resolve the new page.\n    expect(newPage[Symbol.toStringTag]).toBe(\"Promise\");\n    // Its only transferred bitmap is disposed, so nothing is written.\n    expect(lateBitmap.close).toHaveBeenCalledOnce();\n    // Deliver the genuine new-page result afterwards; it is unaffected.\n    const newResult = { thumbnails: [{ bitmap: \"new-frame\" }] };\n    workers[1].onmessage({ data: { results: [newResult] } });\n    expect(await newPage).toEqual([newResult]);\n    expect(lateBitmap.close).toHaveBeenCalledOnce();\n  });\n\n  it(\"a late message after the new page already resolved is disposed and cannot rewrite it (negative)\", async () => {\n    const { gate, workers } = gateWithWorkers();\n    const page = gate.validate([{ data: \"current\" }]);\n    const currentResult = { thumbnails: [{ bitmap: \"current-frame\" }] };\n    workers[0].onmessage({ data: { results: [currentResult] } });\n    expect(await page).toEqual([currentResult]);\n    // A straggling message from the same worker arrives after resolution.\n    const strayBitmap = { close: vi.fn() };\n    workers[0].onmessage({\n      data: { results: [{ thumbnails: [{ bitmap: strayBitmap }] }] },\n    });\n    // The already-resolved value is unchanged and the stray bitmap is closed.\n    expect(await page).toEqual([currentResult]);\n    expect(strayBitmap.close).toHaveBeenCalledOnce();\n  });\n\n  it(\"explicit cancel ignores a late preview and closes its bitmap (negative)\", async () => {\n    const { gate, workers } = gateWithWorkers();\n    const pending = gate.validate([{ data: \"current\" }]);\n    const rejected = expect(pending).rejects.toThrow(\"cancelled\");\n    gate.cancel();\n    const lateBitmap = { close: vi.fn() };\n    workers[0].onmessage({\n      data: {\n        results: [{ thumbnails: [{ bitmap: lateBitmap }] }],\n      },\n    });\n    await rejected;\n    expect(lateBitmap.close).toHaveBeenCalledOnce();\n    expect(workers[0].terminate).toHaveBeenCalledOnce();\n  });\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 15,
+                "sessionId": "panel-d0197197-dcca-457e-8cf8-a6f3fcd0b339",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-32.test.js",
+                    "content": "import { describe, it, expect, vi } from \"vitest\";\nimport {\n  createImagePreviewGate,\n  drawImagePreview,\n} from \"../src/chat/image-preview-gate.js\";\n\n// Regression coverage for \"预览取消失效\" (preview cancellation becoming\n// ineffective). Acceptance: after a page switch or a cancel, a late preview\n// from the superseded page must NOT be delivered/written to the current page,\n// and the current page must keep displaying normally.\n//\n// The gate model: each validate() cancels the previously active decode\n// (calling its `finish` with an error and setting `settled = true`) and then\n// installs a fresh `finish` as `active`. Any worker message that arrives after\n// its `finish` already settled is disposed and ignored. These tests exercise\n// that `settled` guard directly with bitmaps, so they cannot pass for the wrong\n// reason.\n\nfunction makeWorker() {\n  return { postMessage() {}, terminate: vi.fn() };\n}\n\n// A gate whose workerFactory records every worker it creates.\nfunction gateWithWorkers() {\n  const workers = [];\n  const gate = createImagePreviewGate({\n    workerFactory: () => {\n      const worker = makeWorker();\n      workers.push(worker);\n      return worker;\n    },\n  });\n  return { gate, workers };\n}\n\ndescribe(\"page switch / cancel: late preview must not reach the current page\", () => {\n  it(\"current page resolves and draws normally after a page switch (positive)\", async () => {\n    const { gate, workers } = gateWithWorkers();\n    // Old page starts a decode, then the user switches to a new page.\n    const oldPage = gate.validate([{ data: \"old\" }]);\n    const oldRejected = expect(oldPage).rejects.toThrow(\"cancelled\");\n    const newPage = gate.validate([{ data: \"new\" }]);\n    // The new page's worker completes; only its result may be delivered.\n    const newResult = { thumbnails: [{ bitmap: \"new-frame\" }], repetitions: 1 };\n    workers[1].onmessage({ data: { results: [newResult] } });\n    expect(await newPage).toEqual([newResult]);\n    await oldRejected;\n    // The current page displays its own thumbnails normally.\n    const context = { clearRect() {}, drawImage: vi.fn() };\n    const stop = drawImagePreview(\n      { getContext: () => context },\n      newResult,\n    );\n    expect(context.drawImage).toHaveBeenCalledWith(\"new-frame\", 0, 0);\n    expect(context.drawImage).toHaveBeenCalledTimes(1);\n    stop();\n  });\n\n  it(\"late old-page preview after a switch is cancelled and its bitmap closed, not delivered (negative)\", async () => {\n    const { gate, workers } = gateWithWorkers();\n    const oldPage = gate.validate([{ data: \"old\" }]);\n    const oldRejected = expect(oldPage).rejects.toThrow(\"cancelled\");\n    const newPage = gate.validate([{ data: \"new\" }]);\n    // The old worker was killed at the switch; its late message is stale.\n    const lateBitmap = { close: vi.fn() };\n    workers[0].onmessage({\n      data: {\n        results: [{ thumbnails: [{ bitmap: lateBitmap }] }],\n      },\n    });\n    await oldRejected;\n    // The stale decode must not resolve the new page.\n    expect(newPage[Symbol.toStringTag]).toBe(\"Promise\");\n    // Its only transferred bitmap is disposed, so nothing is written.\n    expect(lateBitmap.close).toHaveBeenCalledOnce();\n    // Deliver the genuine new-page result afterwards; it is unaffected.\n    const newResult = { thumbnails: [{ bitmap: \"new-frame\" }] };\n    workers[1].onmessage({ data: { results: [newResult] } });\n    expect(await newPage).toEqual([newResult]);\n    expect(lateBitmap.close).toHaveBeenCalledOnce();\n  });\n\n  it(\"a late message after the new page already resolved is disposed and cannot rewrite it (negative)\", async () => {\n    const { gate, workers } = gateWithWorkers();\n    const page = gate.validate([{ data: \"current\" }]);\n    const currentResult = { thumbnails: [{ bitmap: \"current-frame\" }] };\n    workers[0].onmessage({ data: { results: [currentResult] } });\n    expect(await page).toEqual([currentResult]);\n    // A straggling message from the same worker arrives after resolution.\n    const strayBitmap = { close: vi.fn() };\n    workers[0].onmessage({\n      data: { results: [{ thumbnails: [{ bitmap: strayBitmap }] }] },\n    });\n    // The already-resolved value is unchanged and the stray bitmap is closed.\n    expect(await page).toEqual([currentResult]);\n    expect(strayBitmap.close).toHaveBeenCalledOnce();\n  });\n\n  it(\"explicit cancel ignores a late preview and closes its bitmap (negative)\", async () => {\n    const { gate, workers } = gateWithWorkers();\n    const pending = gate.validate([{ data: \"current\" }]);\n    const rejected = expect(pending).rejects.toThrow(\"cancelled\");\n    gate.cancel();\n    const lateBitmap = { close: vi.fn() };\n    workers[0].onmessage({\n      data: {\n        results: [{ thumbnails: [{ bitmap: lateBitmap }] }],\n      },\n    });\n    await rejected;\n    expect(lateBitmap.close).toHaveBeenCalledOnce();\n    expect(workers[0].terminate).toHaveBeenCalledOnce();\n  });\n});\n"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "write_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_2thllcxwmctp3kjpiws00oab",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 13
+          },
+          {
+            "type": "tool_result",
+            "id": "call_mm5w33b6kbcagrfo0axnfuvc",
+            "tool": "edit_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "/tmp/cc-native-57Bqrp/414ee8b5-d01c-4121-a3a4-952f1b29b936/workspace/packages/vscode-extension/__tests__/verify-32.test.js",
+              "size": 4814,
+              "replaced": 1,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712894231,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-32.test.js",
+                    "old_string": "    await oldRejected;\n    // The stale decode must not resolve the new page.\n    expect(newPage[Symbol.toStringTag]).toBe(\"Promise\");\n    // Its only transferred bitmap is disposed, so nothing is written.\n    expect(lateBitmap.close).toHaveBeenCalledOnce();",
+                    "new_string": "    await oldRejected;\n    // Its only transferred bitmap is disposed, so nothing is written.\n    expect(lateBitmap.close).toHaveBeenCalledOnce();"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 6,
+                "sessionId": "panel-d0197197-dcca-457e-8cf8-a6f3fcd0b339",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-32.test.js",
+                    "old_string": "    await oldRejected;\n    // The stale decode must not resolve the new page.\n    expect(newPage[Symbol.toStringTag]).toBe(\"Promise\");\n    // Its only transferred bitmap is disposed, so nothing is written.\n    expect(lateBitmap.close).toHaveBeenCalledOnce();",
+                    "new_string": "    await oldRejected;\n    // Its only transferred bitmap is disposed, so nothing is written.\n    expect(lateBitmap.close).toHaveBeenCalledOnce();"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "edit_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_mm5w33b6kbcagrfo0axnfuvc",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 17
+          },
+          {
+            "type": "tool_result",
+            "id": "call_r8lhvwey4oye55zdn866pfvt",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-57Bqrp/414ee8b5-d01c-4121-a3a4-952f1b29b936/workspace/packages/vscode-extension/__tests__/verify-32.test.js",
+              "fileVersion": "4814:1793712894225.5618:1793712894225.5618",
+              "readSpan": {
+                "start": 0,
+                "end": 4802,
+                "total": 4802
+              },
+              "hashed": false,
+              "content": "import { describe, it, expect, vi } from \"vitest\";\nimport {\n  createImagePreviewGate,\n  drawImagePreview,\n} from \"../src/chat/image-preview-gate.js\";\n\n// Regression coverage for \"预览取消失效\" (preview cancellation becoming\n// ineffective). Acceptance: after a page switch or a cancel, a late preview\n// from the superseded page must NOT be delivered/written to the current page,\n// and the current page must keep displaying normally.\n//\n// The gate model: each validate() cancels the previously active decode\n// (calling its `finish` with an error and setting `settled = true`) and then\n// installs a fresh `finish` as `active`. Any worker message that arrives after\n// its `finish` already settled is disposed and ignored. These tests exercise\n// that `settled` guard directly with bitmaps, so they cannot pass for the wrong\n// reason.\n\nfunction makeWorker() {\n  return { postMessage() {}, terminate: vi.fn() };\n}\n\n// A gate whose workerFactory records every worker it creates.\nfunction gateWithWorkers() {\n  const workers = [];\n  const gate = createImagePreviewGate({\n    workerFactory: () => {\n      const worker = makeWorker();\n      workers.push(worker);\n      return worker;\n    },\n  });\n  return { gate, workers };\n}\n\ndescribe(\"page switch / cancel: late preview must not reach the current page\", () => {\n  it(\"current page resolves and draws normally after a page switch (positive)\", async () => {\n    const { gate, workers } = gateWithWorkers();\n    // Old page starts a decode, then the user switches to a new page.\n    const oldPage = gate.validate([{ data: \"old\" }]);\n    const oldRejected = expect(oldPage).rejects.toThrow(\"cancelled\");\n    const newPage = gate.validate([{ data: \"new\" }]);\n    // The new page's worker completes; only its result may be delivered.\n    const newResult = { thumbnails: [{ bitmap: \"new-frame\" }], repetitions: 1 };\n    workers[1].onmessage({ data: { results: [newResult] } });\n    expect(await newPage).toEqual([newResult]);\n    await oldRejected;\n    // The current page displays its own thumbnails normally.\n    const context = { clearRect() {}, drawImage: vi.fn() };\n    const stop = drawImagePreview(\n      { getContext: () => context },\n      newResult,\n    );\n    expect(context.drawImage).toHaveBeenCalledWith(\"new-frame\", 0, 0);\n    expect(context.drawImage).toHaveBeenCalledTimes(1);\n    stop();\n  });\n\n  it(\"late old-page preview after a switch is cancelled and its bitmap closed, not delivered (negative)\", async () => {\n    const { gate, workers } = gateWithWorkers();\n    const oldPage = gate.validate([{ data: \"old\" }]);\n    const oldRejected = expect(oldPage).rejects.toThrow(\"cancelled\");\n    const newPage = gate.validate([{ data: \"new\" }]);\n    // The old worker was killed at the switch; its late message is stale.\n    const lateBitmap = { close: vi.fn() };\n    workers[0].onmessage({\n      data: {\n        results: [{ thumbnails: [{ bitmap: lateBitmap }] }],\n      },\n    });\n    await oldRejected;\n    // Its only transferred bitmap is disposed, so nothing is written.\n    expect(lateBitmap.close).toHaveBeenCalledOnce();\n    // Deliver the genuine new-page result afterwards; it is unaffected.\n    const newResult = { thumbnails: [{ bitmap: \"new-frame\" }] };\n    workers[1].onmessage({ data: { results: [newResult] } });\n    expect(await newPage).toEqual([newResult]);\n    expect(lateBitmap.close).toHaveBeenCalledOnce();\n  });\n\n  it(\"a late message after the new page already resolved is disposed and cannot rewrite it (negative)\", async () => {\n    const { gate, workers } = gateWithWorkers();\n    const page = gate.validate([{ data: \"current\" }]);\n    const currentResult = { thumbnails: [{ bitmap: \"current-frame\" }] };\n    workers[0].onmessage({ data: { results: [currentResult] } });\n    expect(await page).toEqual([currentResult]);\n    // A straggling message from the same worker arrives after resolution.\n    const strayBitmap = { close: vi.fn() };\n    workers[0].onmessage({\n      data: { results: [{ thumbnails: [{ bitmap: strayBitmap }] }] },\n    });\n    // The already-resolved value is unchanged and the stray bitmap is closed.\n    expect(await page).toEqual([currentResult]);\n    expect(strayBitmap.close).toHaveBeenCalledOnce();\n  });\n\n  it(\"explicit cancel ignores a late preview and closes its bitmap (negative)\", async () => {\n    const { gate, workers } = gateWithWorkers();\n    const pending = gate.validate([{ data: \"current\" }]);\n    const rejected = expect(pending).rejects.toThrow(\"cancelled\");\n    gate.cancel();\n    const lateBitmap = { close: vi.fn() };\n    workers[0].onmessage({\n      data: {\n        results: [{ thumbnails: [{ bitmap: lateBitmap }] }],\n      },\n    });\n    await rejected;\n    expect(lateBitmap.close).toHaveBeenCalledOnce();\n    expect(workers[0].terminate).toHaveBeenCalledOnce();\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712898810,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-32.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-d0197197-dcca-457e-8cf8-a6f3fcd0b339",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-32.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_r8lhvwey4oye55zdn866pfvt",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 21
+          },
+          {
+            "type": "tool_result",
+            "id": "call_0jlpzd3r910488gy97r6l75e",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-57Bqrp/414ee8b5-d01c-4121-a3a4-952f1b29b936/workspace/packages/vscode-extension/src/chat/image-preview-gate.js",
+              "fileVersion": "10931:1791108223000:1793712792346.928",
+              "range": {
+                "startLine": 1,
+                "endLine": 80,
+                "totalLines": 331
+              },
+              "nextRead": {
+                "path": "packages/vscode-extension/src/chat/image-preview-gate.js",
+                "offset": 81,
+                "limit": 80
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 0,
+                "end": 2951,
+                "total": 10931
+              },
+              "hashed": false,
+              "content": "/* global ImageDecoder, OffscreenCanvas, Worker */\nconst { inspectImageBudget } = require(\"./image-decode-budget\");\n\nasync function decodeImagePreviewBatch(images) {\n  if (typeof ImageDecoder !== \"function\")\n    throw new Error(\n      \"This editor cannot safely decode image previews; update the editor before attaching images\",\n    );\n  if (!Array.isArray(images) || images.length > 4)\n    throw new Error(\"Attach at most 4 images per message\");\n  let total = 0;\n  let totalBytes = 0;\n  const admitted = images.map((image) => {\n    const match =\n      /^data:image\\/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/]*={0,2})$/.exec(\n        image.data,\n      );\n    if (!match || match[2].length > Math.ceil((20 * 1024 * 1024) / 3) * 4)\n      throw new Error(\"Invalid image data\");\n    totalBytes +=\n      match[2].length * 0.75 -\n      (match[2].endsWith(\"==\") ? 2 : match[2].endsWith(\"=\") ? 1 : 0);\n    if (totalBytes > 20 * 1024 * 1024)\n      throw new Error(\"Images exceed 20 MiB in total\");\n    const raw = atob(match[2]);\n    const data = Uint8Array.from(raw, (char) => char.charCodeAt(0));\n    const info = inspectImageBudget(data);\n    if (info.format !== match[1])\n      throw new Error(\"Image MIME does not match its format\");\n    total += info.decodedPixels;\n    if (total > 40_000_000)\n      throw new Error(\n        \"Attachments exceed 40 million decoded canvas pixels in total\",\n      );\n    return { data, info, type: \"image/\" + match[1] };\n  });\n  const results = [];\n  const retained = [];\n  let transferred = false;\n  try {\n    for (const { data, info, type } of admitted) {\n      if (!(await ImageDecoder.isTypeSupported(type)))\n        throw new Error(\"This editor does not support decoding \" + type);\n      let rasterData = data;\n      const strippedMetadata = [];\n      if (info.format === \"png\") {\n        // Ancillary metadata can itself contain an unbounded compressed stream\n        // (ICC/text). Decode only raster/animation and fixed-size color chunks.\n        // Original attachment bytes are retained for persistence and sending.\n        const keep = [\n          \"IHDR\",\n          \"PLTE\",\n          \"tRNS\",\n          \"IDAT\",\n          \"IEND\",\n          \"acTL\",\n          \"fcTL\",\n          \"fdAT\",\n          \"gAMA\",\n          \"cHRM\",\n          \"sRGB\",\n        ];\n        const parts = [data.subarray(0, 8)];\n        const view = new DataView(\n          data.buffer,\n          data.byteOffset,\n          data.byteLength,\n        );\n        for (let at = 8; at < data.length;) {\n          const length = view.getUint32(at) + 12;\n          const kind = String.fromCharCode(...data.subarray(at + 4, at + 8));\n          if (keep.includes(kind)) parts.push(data.subarray(at, at + length));\n          else strippedMetadata.push(kind);\n          at += length;\n        }\n        rasterData = new Uint8Array(\n          parts.reduce((size, part) => size + part.length, 0),\n        );\n        let at = 0;\n        for (const part of parts) {",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "10931:1791108223000:1793712792346.928"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712920402,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-preview-gate.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 13,
+                "sessionId": "panel-d0197197-dcca-457e-8cf8-a6f3fcd0b339",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-preview-gate.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_0jlpzd3r910488gy97r6l75e",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 30
+          },
+          {
+            "type": "tool_result",
+            "id": "call_ezhpunm0zvqq0jv56ve17tc3",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 231,
+                  "column": 13,
+                  "offset": 8058,
+                  "text": "finish",
+                  "context": " validate(images) {\n    cancel();\n    return new Promise((resolve, reject) => {\n      let worker,\n        timer,\n        settled = false;\n      const finish = (error, result) => {\n        if (settled) {\n          dispose(result);\n          return;\n        }\n        settled = true;\n        clearTimeout(tim",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/image-preview-gate.js",
+                    "offset": 231,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 239,
+                  "column": 24,
+                  "offset": 8271,
+                  "text": "finish",
+                  "context": "dispose(result);\n          return;\n        }\n        settled = true;\n        clearTimeout(timer);\n        worker?.terminate();\n        if (active === finish) active = null;\n        if (error) reject(error);\n        else resolve(result);\n      };\n      active = finish;\n      try {\n        if (workerFactory",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/image-preview-gate.js",
+                    "offset": 239,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 243,
+                  "column": 16,
+                  "offset": 8382,
+                  "text": "finish",
+                  "context": "r?.terminate();\n        if (active === finish) active = null;\n        if (error) reject(error);\n        else resolve(result);\n      };\n      active = finish;\n      try {\n        if (workerFactory) worker = workerFactory();\n        else {\n          const url = URL.createObjectURL(\n            new Blob([wor",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/image-preview-gate.js",
+                    "offset": 243,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 257,
+                  "column": 11,
+                  "offset": 8780,
+                  "text": "finish",
+                  "context": "new Worker(url);\n          } finally {\n            URL.revokeObjectURL(url);\n          }\n        }\n        worker.onmessage = ({ data }) =>\n          finish(data.error ? new Error(data.error) : null, data.results);\n        worker.onerror = () => finish(new Error(\"Image decoder failed\"));\n        timer = s",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/image-preview-gate.js",
+                    "offset": 257,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 258,
+                  "column": 32,
+                  "offset": 8876,
+                  "text": "finish",
+                  "context": " }\n        worker.onmessage = ({ data }) =>\n          finish(data.error ? new Error(data.error) : null, data.results);\n        worker.onerror = () => finish(new Error(\"Image decoder failed\"));\n        timer = setTimeout(\n          () =>\n            finish(new Error(\"Image decoding exceeded the 5 second bu",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/image-preview-gate.js",
+                    "offset": 258,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 261,
+                  "column": 13,
+                  "offset": 8975,
+                  "text": "finish",
+                  "context": "ull, data.results);\n        worker.onerror = () => finish(new Error(\"Image decoder failed\"));\n        timer = setTimeout(\n          () =>\n            finish(new Error(\"Image decoding exceeded the 5 second budget\")),\n          timeoutMs,\n        );\n        worker.postMessage(images.map(({ data }) => ({ dat",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/image-preview-gate.js",
+                    "offset": 261,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 266,
+                  "column": 9,
+                  "offset": 9171,
+                  "text": "finish",
+                  "context": "5 second budget\")),\n          timeoutMs,\n        );\n        worker.postMessage(images.map(({ data }) => ({ data })));\n      } catch (error) {\n        finish(error);\n      }\n    });\n  }\n  return { validate, cancel, dispose };\n}\n\n// Only 40x40 transferred bitmaps reach the DOM: at most 4 * 200 * 6400\n// RGB",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/image-preview-gate.js",
+                    "offset": 266,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 7,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/tmp/cc-native-57Bqrp/414ee8b5-d01c-4121-a3a4-952f1b29b936/workspace/packages/vscode-extension/src/chat/image-preview-gate.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712926187,
+                "meta": {
+                  "args": {
+                    "pattern": "finish",
+                    "path": "packages/vscode-extension/src/chat/image-preview-gate.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 41,
+                "sessionId": "panel-d0197197-dcca-457e-8cf8-a6f3fcd0b339",
+                "metadata": {
+                  "args": {
+                    "pattern": "finish",
+                    "path": "packages/vscode-extension/src/chat/image-preview-gate.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_ezhpunm0zvqq0jv56ve17tc3",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 34
+          },
+          {
+            "type": "tool_result",
+            "id": "call_gmlcf1ol5qi20y03thigqcmq",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-57Bqrp/414ee8b5-d01c-4121-a3a4-952f1b29b936/workspace/packages/vscode-extension/src/chat/image-preview-gate.js",
+              "fileVersion": "10931:1791108223000:1793712792346.928",
+              "range": {
+                "startLine": 195,
+                "endLine": 284,
+                "totalLines": 331
+              },
+              "nextRead": {
+                "path": "packages/vscode-extension/src/chat/image-preview-gate.js",
+                "offset": 285,
+                "limit": 90
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 7079,
+                "end": 9701,
+                "total": 10931
+              },
+              "hashed": false,
+              "content": "          strippedMetadata,\n          repetitions: track.repetitionCount,\n          thumbnails,\n        });\n      } finally {\n        decoder.close();\n      }\n    }\n    transferred = true;\n    return results;\n  } finally {\n    if (!transferred) for (const bitmap of retained) bitmap.close();\n  }\n}\n\n// One cancellable decoder per visible composer. Only bounded bitmaps leave it;\n// original compressed bytes are never offered to a second DOM image decoder.\nfunction createImagePreviewGate({\n  workerSource,\n  timeoutMs = 5000,\n  workerFactory,\n} = {}) {\n  let active = null;\n  const dispose = (results) => {\n    for (const result of results || [])\n      for (const frame of result.thumbnails || []) frame.bitmap.close();\n  };\n  const cancel = () => {\n    if (active) active(new Error(\"Image decoding cancelled\"));\n  };\n  function validate(images) {\n    cancel();\n    return new Promise((resolve, reject) => {\n      let worker,\n        timer,\n        settled = false;\n      const finish = (error, result) => {\n        if (settled) {\n          dispose(result);\n          return;\n        }\n        settled = true;\n        clearTimeout(timer);\n        worker?.terminate();\n        if (active === finish) active = null;\n        if (error) reject(error);\n        else resolve(result);\n      };\n      active = finish;\n      try {\n        if (workerFactory) worker = workerFactory();\n        else {\n          const url = URL.createObjectURL(\n            new Blob([workerSource], { type: \"text/javascript\" }),\n          );\n          try {\n            worker = new Worker(url);\n          } finally {\n            URL.revokeObjectURL(url);\n          }\n        }\n        worker.onmessage = ({ data }) =>\n          finish(data.error ? new Error(data.error) : null, data.results);\n        worker.onerror = () => finish(new Error(\"Image decoder failed\"));\n        timer = setTimeout(\n          () =>\n            finish(new Error(\"Image decoding exceeded the 5 second budget\")),\n          timeoutMs,\n        );\n        worker.postMessage(images.map(({ data }) => ({ data })));\n      } catch (error) {\n        finish(error);\n      }\n    });\n  }\n  return { validate, cancel, dispose };\n}\n\n// Only 40x40 transferred bitmaps reach the DOM: at most 4 * 200 * 6400\n// RGBA bytes (5.12 MB), in addition to the one active worker's admitted input.\nfunction drawImagePreview(canvas, result) {\n  const context = canvas.getContext(\"2d\");\n  let timer,\n    stopped = false,\n    index = 0,\n    repeats = 0;\n  const draw = () => {\n    if (stopped) return;\n    context.clearRect(0, 0, 40, 40);\n    context.drawImage(result.thumbnails[index].bitmap, 0, 0);",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "10931:1791108223000:1793712792346.928"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712930288,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-preview-gate.js",
+                    "offset": 195,
+                    "limit": 90
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-d0197197-dcca-457e-8cf8-a6f3fcd0b339",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-preview-gate.js",
+                    "offset": 195,
+                    "limit": 90
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_gmlcf1ol5qi20y03thigqcmq",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 38
+          },
+          {
+            "type": "tool_result",
+            "id": "call_6x2xu1521up9l4yryqxovea8",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-57Bqrp/414ee8b5-d01c-4121-a3a4-952f1b29b936/workspace/packages/vscode-extension/src/chat/image-preview-gate.js",
+              "fileVersion": "10931:1791108223000:1793712792346.928",
+              "range": {
+                "startLine": 284,
+                "endLine": 331,
+                "totalLines": 331
+              },
+              "readSpan": {
+                "start": 9639,
+                "end": 10931,
+                "total": 10931
+              },
+              "hashed": false,
+              "content": "    context.drawImage(result.thumbnails[index].bitmap, 0, 0);\n    canvas.__ccPreviewDrawn = true;\n    if (result.thumbnails.length === 1) return;\n    const duration = result.thumbnails[index].duration;\n    timer = setTimeout(\n      () => {\n        index++;\n        if (index === result.thumbnails.length) {\n          index = 0;\n          if (\n            Number.isFinite(result.repetitions) &&\n            repeats++ >= result.repetitions\n          )\n            return;\n        }\n        draw();\n      },\n      Math.max(20, Math.min(2147483647, duration || 100)),\n    );\n  };\n  draw();\n  return () => {\n    stopped = true;\n    clearTimeout(timer);\n  };\n}\n\nconst IMAGE_PREVIEW_WORKER_SOURCE = `${inspectImageBudget.toString()}\n${decodeImagePreviewBatch.toString()}\nself.onmessage = async ({ data }) => {\n  let results;\n  try {\n    results = await decodeImagePreviewBatch(data);\n    self.postMessage({ results }, results.flatMap(result => result.thumbnails.map(frame => frame.bitmap)));\n  }\n  catch (error) {\n    for (const result of results || []) for (const frame of result.thumbnails) frame.bitmap.close();\n    self.postMessage({ error: error.message });\n  }\n};`;\n\nmodule.exports = {\n  createImagePreviewGate,\n  drawImagePreview,\n  decodeImagePreviewBatch,\n  IMAGE_PREVIEW_WORKER_SOURCE,\n};\n",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "10931:1791108223000:1793712792346.928"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793712947295,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-preview-gate.js",
+                    "offset": 284,
+                    "limit": 48
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-d0197197-dcca-457e-8cf8-a6f3fcd0b339",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-preview-gate.js",
+                    "offset": 284,
+                    "limit": 48
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_6x2xu1521up9l4yryqxovea8",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 42
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2726,
+              "output_tokens": 108,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 9769,
+              "output_tokens": 3914,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 11
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 9088,
+              "output_tokens": 1207,
+              "cache_read_input_tokens": 12032,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 15
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3810,
+              "output_tokens": 74,
+              "cache_read_input_tokens": 19200,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 19
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4256,
+              "output_tokens": 738,
+              "cache_read_input_tokens": 20992,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 23
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5539,
+              "output_tokens": 96,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 28
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5232,
+              "output_tokens": 102,
+              "cache_read_input_tokens": 6400,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 32
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3973,
+              "output_tokens": 119,
+              "cache_read_input_tokens": 8704,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 36
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4507,
+              "output_tokens": 1726,
+              "cache_read_input_tokens": 10240,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 40
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6226,
+              "output_tokens": 2025,
+              "cache_read_input_tokens": 11520,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+            "seq": 44
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 55126,
+          "output_tokens": 10109,
+          "cache_read_input_tokens": 99328
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 10,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "I have now fully verified the source against my tests. Let me carefully audit each case.\n\n**Confirmed from source (lines 195-284, 284-331, exports 331):**\n\n1. `createImagePreviewGate` returns `{ validate, cancel, dispose }` — exports are `createImagePreviewGate, drawImagePreview, decodeImagePreviewBatch, IMAGE_PREVIEW_WORKER_SOURCE`. ✓ My import `{ createImagePreviewGate, drawImagePreview }` matches.\n\n2. `validate(images)` calls `cancel()` first. `cancel()` calls `active(new Error(\"Image decoding cancelled\"))` — the previous page's `finish`. That finish has `settled=false` → sets `settled=true`, terminates worker, `active=null`, rejects \"cancelled\". ✓ Case 2's `oldPage` rejects \"cancelled\".\n\n3. `finish` when already settled → `dispose(result)` (closes each `frame.bitmap`) and returns, NOT resolving/rejecting. ✓ Case 2/3/4 late-bitmap close.\n\n4. `worker.onmessage = ({data}) => finish(data.error ? ... : null, data.results)`. ✓ My calls `workers[0].onmessage({data:{results:[...]}})` pass `results` to `finish`, which `dispose` iterates.\n\n5. `dispose` iterates `result.thumbnails[].bitmap.close()`. My payload `[{thumbnails:[{bitmap:lateBitmap}]}]` as `results` array. ✓\n\n6. `drawImagePreview`: `draw()` called immediately, does `clearRect(0,0,40,40)` + `drawImage(result.thumbnails[index].bitmap, 0, 0)`. With single-thumbnail result (`thumbnails.length===1`), returns after one draw. ✓ Case 1 asserts one `drawImage` call with `(\"new-frame\", 0, 0)`.\n\nNow let me check **observable-order concern the reviewer raised** (\"Check the actual order of observable effects when an operation throws\"). In case 2, when the second `validate([new])` runs, `cancel()` calls the old finish with error synchronously → `oldPage` rejects. This happens synchronously during the `validate([new])` call. My `oldRejected` is attached before. Good.\n\nOne concern in **case 1**: I assert `context.drawImage` called `(\"new-frame\", 0, 0)` and called once, then call `stop()`. Since thumbnails.length===1, `draw()` returns after one drawImage and schedules no timer. `stop()` clears an undefined timer. Fine. The `clearRect` mock and `drawImage` mock are `vi.fn()`. ✓\n\n**Now the critical concern in case 1's positive control of the acceptance requirement**: \"当前页面正常显示\" (current page displays normally). Case 1 draws the new page's result via `drawImagePreview`. But there's a subtlety — is this actually testing that the *gate* delivered the new result to the current page? Yes: `newPage` resolves to `[newResult]`, and `drawImagePreview` draws it. ✓\n\n**Coverage audit against the requirement list** derived from the original task:\n- R1: After page switch, late preview from old page does not write to the new page. → Case 2 (negative: old late bitmap disposed, not delivered). ✓\n- R2: After cancel, late preview not delivered. → Case 4 (negative: explicit cancel, late bitmap disposed). ✓\n- R3: Current page displays normally. → Case 1 (positive: current page resolves and draws). ✓\n- R4 (supplementary): Late message after resolution can't rewrite current value. → Case 3 (negative). ✓\n\nAll four cases use real production call paths (`validate` → `finish` → `dispose`; `drawImagePreview` → context.drawImage) with valid prerequisites. Positive/negative differ only in the intended condition.\n\nLet me check for any **test-count cap concern**. The original said \"at most six cases\". I have 4. No cap reached. No gap requiring merge.\n\nNow, one thing I want to double-check: **does my test correctly prove \"late preview not written to new page\"** as opposed to merely that the bitmap was closed? The acceptance is behavioral: \"迟到预览不写入新页面\" (late preview does not write to the new page). My cases 2 and 4 assert the late bitmap is disposed (closed) via the `settled` guard — this is the production mechanism by which the gate prevents a late preview from being written. Since `finish` with `settled=true` only calls `dispose` and never resolves, the late result cannot reach any consumer. The `lateBitmap.close` assertion is the observable effect of that guard. This is a valid observable assertion.\n\nHowever, let me reconsider whether the *disposal* is the best observable for \"not written to new page\". Actually a stronger observable would be: the late old-page result never resolves `oldPage` (it already rejected) and never gets into `newPage`. My case 2 does assert that `newPage` resolves to only the genuine new result (`toEqual([newResult])`), proving the late old result did NOT get delivered into the new page's value. That directly covers R1. ✓\n\nEverything checks out. The existing deliverable is complete and correct against the source. **No gaps identified**; no repair needed.\n\nLet me verify one more potential issue: In case 2, after `oldPage` rejects and `workers[0]` terminated, I call `workers[0].onmessage(...)`. But `worker.onmessage` was set inside `validate` to `finish0`. Since `finish0` is already settled, calling it disposes. ✓. And `workers[1].onmessage` → `finish1` → resolves `newPage`. ✓\n\nAlso checking: is there any issue that `expect(oldPage).rejects.toThrow(\"cancelled\")` — the error message is \"Image decoding cancelled\", which contains \"cancelled\". `toThrow(\"cancelled\")` matches substring. ✓\n\nThe deliverable is complete and correct. I've done a thorough independent audit. No source changes needed (no defect found — the frozen implementation's `settled` guard correctly handles late previews).\n\nLet me write my final concise account.\n\n## Final Account\n\nI independently audited the deliverable `packages/vscode-extension/__tests__/verify-32.test.js` against the frozen source `packages/vscode-extension/src/chat/image-preview-gate.js` (lines 195–331 verified directly).\n\n**Requirement-to-assertion mapping** (requirements derived from the original task, not from the tests):\n\n- **R1 — After page switch, a late preview from the superseded page must not be written to the new page.** Case 2 (negative): `validate(\"old\")` then `validate(\"new\")` triggers `cancel()` → old `finish` rejects \"cancelled\" (verified: `cancel()` calls `active(new Error(...))`). A late message on `workers[0]` reaches `finish` with `settled=true`, so only `dispose` runs (old bitmap closed) and it never resolves — the old result cannot reach any consumer. Then `newPage` resolves to exactly `[newResult]` (`toEqual`), proving the late old result was not delivered into the new page.\n- **R2 — After an explicit cancel, a late preview is not delivered.** Case 4 (negative): `gate.cancel()` rejects \"cancelled\" and terminates the worker (verified in `finish`), and a late message's bitmap is closed via the same `settled` guard.\n- **R3 — The current page keeps displaying normally.** Case 1 (positive): `newPage` resolves to its own result and `drawImagePreview` draws `(\"new-frame\", 0, 0)` once via the real `context.drawImage` path (verified: single-thumbnail `draw()` returns after one draw).\n- **R4 — A straggling message after resolution cannot rewrite the current value.** Case 3 (negative): the resolved value is unchanged and the stray bitmap is disposed.\n\n**Controls and guard integrity:** All cases use real production call paths (`validate` → `finish` → `dispose`; `drawImagePreview` → `context.drawImage`). Positive/negative pairs differ only in the intended condition (delivery timing or cancel path) while keeping workers and bitmap payloads valid, so the `settled` guard — not a different guard — produces each rejection/disposal. Exports `createImagePreviewGate`, `drawImagePreview` and the `worker.onmessage`/`dispose` semantics were confirmed against source.\n\n**Coverage audit:** All four independently-derived conditions are covered; no uncovered condition remains. Test count is 4 of the allowed six — no cap reached, no redundant-case merge needed.\n\n**Defect finding:** No implementation defect was found — the frozen `settled` guard correctly disposes late previews and isolates the new page. No source modification was warranted.\n\n**Limitations:** Tests were written and read back but not executed (no shell/code tools permitted in this environment; the checker runs separately in network-disabled Docker). I do not claim they passed.",
+          "session_id": "panel-d0197197-dcca-457e-8cf8-a6f3fcd0b339",
+          "turn": 1,
+          "usage": {
+            "input_tokens": 55126,
+            "output_tokens": 10109,
+            "cache_read_input_tokens": 99328,
+            "cache_creation_input_tokens": 0
+          },
+          "transcript_refs": {
+            "schema": "chainlesschain.session-transcript-references/v1",
+            "sessionId": "panel-d0197197-dcca-457e-8cf8-a6f3fcd0b339",
+            "assistantEventId": "45e7f4cad8f4e135ed3e977a249fc8d469ea01eab88ea6cc2f2c145aa5adbd8d",
+            "userEventId": "18b9d9810c809698aa32b3da73fe2a8778400e312025574dad81bdaaa7e5b71c",
+            "clientMessageId": "84b20d02-32a9-4d25-a7e7-cec6ea3af599"
+          },
+          "trace_id": "tr-18a425f0-3ffa-4cd8-a078-968620d38bc8",
+          "seq": 46
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 10,
+        "usageCompleteRequests": 10,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 10,
+        "usageCompleteRequests": 10,
+        "tasks": [
+          {
+            "taskId": "verify-32",
+            "requests": 10,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": 0.26629179999999997,
+        "knownTokenOnlyEstimateCny": 0.26629179999999997,
+        "fxRate": null
+      },
+      "changedPaths": [
+        "packages/vscode-extension/__tests__/verify-32.test.js"
+      ],
+      "finishedAt": "2026-11-03T13:36:18.754Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-32"
+  ],
+  "generationPassed": true,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 40 model turns, 48 requests, 180 second request timeout, model maximum 393216 output tokens (8192 test cap removed), 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:3185a92e57bc89a9f9c1283aeff4823c409e1bebd48b8d20da509814fded8b29",
+  "group": "linux-vscode",
+  "entry": "vscode",
+  "platform": "linux",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:3ca5c1bfa5bffdee860665eeb757c24004dfaf0f3075f2a63e1a2600b3f6d600"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:487ed1e27103348c920988130954ec6449a81e66f7973e81ed02e1befd126da3"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:be2edf8e1ced537796d5819e458e4b56f2c1638eab8880b09c2c7fea4a4245fd"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+      "digest": "sha256:82becb2b0b551916e312131bcca48736d9e3f462aed4ea2a89ec00f907457eed"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
+      "digest": "sha256:d2cbc2dee63e7f53c622d61ad314143d6bd4d59a679d9aea29579cb034a829fb"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-public140-full.mjs",
+      "digest": "sha256:4c8b323e6c28b2dafb2f2e71ec2e7825d6b321d2998e3ef5f6ace3c2a10acdb9"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:3e515efc1cff606e2cbbfa977b5674abe6a73c142caa1b0539c0a2698978f8e4"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/verify01-run.cjs",
+      "digest": "sha256:7843460e829832d36768c90036414a1ceba5b3a03cca674f981b7e2fa3fdae44"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/verify01.cjs",
+      "digest": "sha256:a4a8a1d3d0e83227f22943e36920883d234fcdc847fb0f9faa08a969abf0c177"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/verify01-composer.cjs",
+      "digest": "sha256:3309c665f3bcb2941a27941ab4a096047869dd85deab78052c4932bf8f425554"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/noop.cjs",
+      "digest": "sha256:06a84182b7e81818c35b47c64170139b572a665645dbf9561de7fd521517bbb6"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/failure-receipt.cjs",
+      "digest": "sha256:802abcf31cb2dcbfb4e3873e29a440e9b1e8a5399ba6e8bb05883d1a36494c84"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/cdp-journey.cjs",
+      "digest": "sha256:31d467277d6eee1f7ecbe5551ae20e318d9ead0363b692a1ab106e64e388cfd0"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/run.cjs",
+      "digest": "sha256:761393469af5d77dea596dffe0fff8e984e93445949796474a281f3f68b635f1"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T13:33:13.193Z",
+    "finishedAt": "2026-11-03T13:33:38.119Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "verify-32",
+    "locked": {
+      "version": "0.166.140",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+      "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T13:36:18.758Z"
+}

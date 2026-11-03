@@ -1,0 +1,2038 @@
+{
+  "schema": "chainlesschain.verify01-public140-full-analysis/v1",
+  "roundKind": "public140-full-36-plus-9",
+  "runId": 41630636517,
+  "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc",
+  "reviewSpecsDigest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d",
+  "counts": {
+    "accepted": 17,
+    "candidate-coverage-gap": 8,
+    "candidate-import-error": 3,
+    "candidate-acceptance-failure": 12,
+    "generation-not-passed": 4,
+    "provider-account-overdue": 1
+  },
+  "accepted": 17,
+  "total": 45,
+  "generationPassed": 40,
+  "candidateAcceptancePassed": 19,
+  "physicalRequests": 730,
+  "usageCompleteRequests": 727,
+  "samples": [
+    {
+      "sampleId": "first-run-win32-cli",
+      "taskId": "verify-01",
+      "accepted": true,
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "accepted",
+      "providerErrorCode": null,
+      "requests": 17,
+      "usageCompleteRequests": 17,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 75,
+          "passed": 75,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 5,
+          "passed": 5,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "custom-endpoint-inherits-official-profile",
+          "sourceSha256": "7b9f578314b4856f00231a9a88e69385cedfc29ce9b393e613d72f5dcca757b9",
+          "total": 5,
+          "passed": 4,
+          "failed": 1
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 5,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-01",
+      "taskId": "verify-01",
+      "accepted": true,
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "accepted",
+      "providerErrorCode": null,
+      "requests": 16,
+      "usageCompleteRequests": 16,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 75,
+          "passed": 75,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 11,
+          "passed": 11,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "custom-endpoint-inherits-official-profile",
+          "sourceSha256": "7b9f578314b4856f00231a9a88e69385cedfc29ce9b393e613d72f5dcca757b9",
+          "total": 11,
+          "passed": 4,
+          "failed": 7
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 11,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-10",
+      "taskId": "verify-10",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-coverage-gap",
+      "providerErrorCode": null,
+      "requests": 9,
+      "usageCompleteRequests": 9,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate tests did not reject the behavioral mutant",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 2,
+          "passed": 2,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": "reuse-index-after-state-update",
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-19",
+      "taskId": "verify-19",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-coverage-gap",
+      "providerErrorCode": null,
+      "requests": 37,
+      "usageCompleteRequests": 37,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate tests did not reject the behavioral mutant",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 17,
+          "passed": 17,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": "cancellation-grants-pending-approval",
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-28",
+      "taskId": "verify-28",
+      "accepted": true,
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "accepted",
+      "providerErrorCode": null,
+      "requests": 26,
+      "usageCompleteRequests": 26,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 14,
+          "passed": 14,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 5,
+          "passed": 5,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "late-snapshot-overwrites-new-input",
+          "sourceSha256": "da0308218a5d31c1afd5202b6f035cb88cbce758f6fe5320c5aec0b8739e8f5f",
+          "total": 5,
+          "passed": 4,
+          "failed": 1
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 5,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "first-run-win32-vscode",
+      "taskId": "verify-02",
+      "accepted": true,
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "accepted",
+      "providerErrorCode": null,
+      "requests": 20,
+      "usageCompleteRequests": 20,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 75,
+          "passed": 75,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 5,
+          "passed": 5,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "unknown-suffix-inherits-certified-model",
+          "sourceSha256": "6bc0fe6ea2b04760e932435f97f74fac4739f63cdf58a422def8464ae1267da3",
+          "total": 5,
+          "passed": 2,
+          "failed": 3
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 5,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-02",
+      "taskId": "verify-02",
+      "accepted": true,
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "accepted",
+      "providerErrorCode": null,
+      "requests": 14,
+      "usageCompleteRequests": 14,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 75,
+          "passed": 75,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 8,
+          "passed": 8,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "unknown-suffix-inherits-certified-model",
+          "sourceSha256": "6bc0fe6ea2b04760e932435f97f74fac4739f63cdf58a422def8464ae1267da3",
+          "total": 8,
+          "passed": 4,
+          "failed": 4
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 8,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-11",
+      "taskId": "verify-11",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-import-error",
+      "providerErrorCode": null,
+      "requests": 34,
+      "usageCompleteRequests": 34,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "acceptance requires executed test cases",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 16,
+          "passed": 16,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 0,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": [
+        {
+          "name": "/workspace/packages/cli/__tests__/verify-11.test.js",
+          "message": "Cannot find module '../../src/lib/background-interaction-journal.js' imported from /workspace/packages/cli/__tests__/verify-11.test.js"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-20",
+      "taskId": "verify-20",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-coverage-gap",
+      "providerErrorCode": null,
+      "requests": 8,
+      "usageCompleteRequests": 8,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate tests did not reject the behavioral mutant",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 4,
+          "passed": 4,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": "approval-overrides-policy-deny",
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-29",
+      "taskId": "verify-29",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-acceptance-failure",
+      "providerErrorCode": null,
+      "requests": 10,
+      "usageCompleteRequests": 10,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate or baseline regression failed",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 19,
+          "passed": 19,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 1,
+      "failures": [
+        {
+          "name": "acceptModeAcknowledgement — mode ACK correlation rejects an ACK bound to a different session and does not mark effective",
+          "messages": [
+            "AssertionError: expected true to be false // Object.is equality\n    at /workspace/packages/vscode-extension/__tests__/verify-29.test.js:84:54\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        }
+      ],
+      "suites": []
+    },
+    {
+      "sampleId": "first-run-win32-jetbrains",
+      "taskId": "verify-03",
+      "accepted": true,
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "accepted",
+      "providerErrorCode": null,
+      "requests": 12,
+      "usageCompleteRequests": 12,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 31,
+          "passed": 31,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "unknown-opus-inherits-legacy-price",
+          "sourceSha256": "ba23b5f8b81c1697f549d2b0dd9285f9e7294bfe35f1058d358700816937b538",
+          "total": 6,
+          "passed": 4,
+          "failed": 2
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-03",
+      "taskId": "verify-03",
+      "accepted": true,
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "accepted",
+      "providerErrorCode": null,
+      "requests": 13,
+      "usageCompleteRequests": 13,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 31,
+          "passed": 31,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "unknown-opus-inherits-legacy-price",
+          "sourceSha256": "ba23b5f8b81c1697f549d2b0dd9285f9e7294bfe35f1058d358700816937b538",
+          "total": 6,
+          "passed": 4,
+          "failed": 2
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-12",
+      "taskId": "verify-12",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-import-error",
+      "providerErrorCode": null,
+      "requests": 20,
+      "usageCompleteRequests": 20,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "acceptance requires executed test cases",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 11,
+          "passed": 11,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 0,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": [
+        {
+          "name": "/workspace/packages/cli/__tests__/verify-12.test.js",
+          "message": "Cannot find module '../../src/lib/background-command-argv.js' imported from /workspace/packages/cli/__tests__/verify-12.test.js"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-21",
+      "taskId": "verify-21",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-acceptance-failure",
+      "providerErrorCode": null,
+      "requests": 9,
+      "usageCompleteRequests": 9,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "mutant failure must include an assertion, not a syntax/import/runner error",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 19,
+          "passed": 19,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-30",
+      "taskId": "verify-30",
+      "accepted": false,
+      "generationPassed": false,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "generation-not-passed",
+      "providerErrorCode": null,
+      "requests": 4,
+      "usageCompleteRequests": 3,
+      "brokerError": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED",
+      "brokerPoisoned": null,
+      "modelFailure": "agent-error",
+      "modelError": "volcengine API error: HTTP 403 — DIAGNOSTIC_REQUEST_NOT_DISPATCHED.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "detail": "acceptance requires executed test cases",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 13,
+          "passed": 13,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 0,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": [
+        {
+          "name": "/workspace/packages/vscode-extension/__tests__/verify-30.test.js",
+          "message": "No test suite found in file /workspace/packages/vscode-extension/__tests__/verify-30.test.js"
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-linux-cli",
+      "taskId": "verify-04",
+      "accepted": true,
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "accepted",
+      "providerErrorCode": null,
+      "requests": 31,
+      "usageCompleteRequests": 31,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 22,
+          "passed": 22,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "merge-short-and-long-request-price-buckets",
+          "sourceSha256": "7b8898a171561e61a4803ef8aa05ffc947aea3cd85e194c2b8ca6898a535b86c",
+          "total": 6,
+          "passed": 4,
+          "failed": 2
+        },
+        {
+          "name": "drop-cache-tokens-from-request-threshold",
+          "sourceSha256": "63b0dbf58bfccf374c4b480da32f78b06c96ff461905e294005ac9047e7a5abd",
+          "total": 6,
+          "passed": 5,
+          "failed": 1
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-04",
+      "taskId": "verify-04",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-acceptance-failure",
+      "providerErrorCode": null,
+      "requests": 29,
+      "usageCompleteRequests": 29,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate or baseline regression failed",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 22,
+          "passed": 22,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 4,
+      "failures": [
+        {
+          "name": "request-level pricing cache & long-context distribution splits an equal-total set across the long-context boundary per request",
+          "messages": [
+            "TypeError: actual value must be number or bigint, received \"object\"\n    at assertTypes (file:///workspace/node_modules/@vitest/utils/dist/helpers.js:56:9)\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1338:3)\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\n    at /workspace/packages/cli/__tests__/verify-04.test.js:46:25\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+          ]
+        },
+        {
+          "name": "request-level pricing cache & long-context distribution does not change cost when equal totals move within the same long flag",
+          "messages": [
+            "AssertionError: expected { byModel: [ { …(17) } ], …(2) } to be close to { byModel: [ { …(17) } ], …(2) }, received difference is NaN, but expected 5e-11\n    at /workspace/packages/cli/__tests__/verify-04.test.js:56:15\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "name": "request-level pricing cache & long-context distribution prices cache reads at the discounted rate for equal prompt totals",
+          "messages": [
+            "TypeError: actual value must be number or bigint, received \"object\"\n    at assertTypes (file:///workspace/node_modules/@vitest/utils/dist/helpers.js:56:9)\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1350:3)\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\n    at /workspace/packages/cli/__tests__/verify-04.test.js:68:20\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+          ]
+        },
+        {
+          "name": "request-level pricing cache & long-context distribution prices equal cache composition identically regardless of which request carries it",
+          "messages": [
+            "AssertionError: expected { byModel: [ { …(17) } ], …(2) } to be close to { byModel: [ { …(17) } ], …(2) }, received difference is NaN, but expected 5e-11\n    at /workspace/packages/cli/__tests__/verify-04.test.js:83:19\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        }
+      ],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-13",
+      "taskId": "verify-13",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-coverage-gap",
+      "providerErrorCode": null,
+      "requests": 10,
+      "usageCompleteRequests": 10,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate tests did not reject the behavioral mutant",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 13,
+          "passed": 13,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "ignore-image-change-on-pinned-handle",
+          "sourceSha256": "e0cd0906e581ae0516fbb93f51b6cb9b157cf0c7175abb9d8e702733ce8c432b",
+          "total": 6,
+          "passed": 5,
+          "failed": 1
+        }
+      ],
+      "firstSurvivingMutant": "allow-over-pixel-budget",
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-22",
+      "taskId": "verify-22",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-acceptance-failure",
+      "providerErrorCode": null,
+      "requests": 25,
+      "usageCompleteRequests": 25,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate or baseline regression failed",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 19,
+          "passed": 19,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 3,
+      "numFailedCandidateTests": 1,
+      "failures": [
+        {
+          "name": "memory commit post-publication sync semantics manifest publish then sync failure: declares committed, reopen still reads the new state",
+          "messages": [
+            "AssertionError: expected +0 to be 1 // Object.is equality\n    at /workspace/packages/cli/__tests__/verify-22.test.js:91:32\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          ]
+        }
+      ],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-31",
+      "taskId": "verify-31",
+      "accepted": false,
+      "generationPassed": false,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "generation-not-passed",
+      "providerErrorCode": null,
+      "requests": 11,
+      "usageCompleteRequests": 11,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": "deliverable-unverified",
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "acceptance requires executed test cases",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 31,
+          "passed": 31,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 0,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": [
+        {
+          "name": "/workspace/packages/vscode-extension/__tests__/verify-31.test.js",
+          "message": "No test suite found in file /workspace/packages/vscode-extension/__tests__/verify-31.test.js"
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-linux-vscode",
+      "taskId": "verify-05",
+      "accepted": false,
+      "generationPassed": false,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "generation-not-passed",
+      "providerErrorCode": null,
+      "requests": 3,
+      "usageCompleteRequests": 2,
+      "brokerError": null,
+      "brokerPoisoned": "DIAGNOSTIC_TIMEOUT_USAGE_UNKNOWN",
+      "modelFailure": "agent-error",
+      "modelError": "Compaction request failed before provider usage could be confirmed; the session stopped without retrying the request. Provider access was denied; check model permissions. Review the saved session and provider usage, check the model connection, then resume explicitly.",
+      "modelResultSubtype": "error_compaction_usage_unknown",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 42,
+          "passed": 42,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "installed-cli-passes-dispatch-preflight",
+          "sourceSha256": "699f4327571313f3b5f4990692feeb1ea7e521a2ec593d86f8733c7a33ecc8b1",
+          "total": 6,
+          "passed": 5,
+          "failed": 1
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-05",
+      "taskId": "verify-05",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-acceptance-failure",
+      "providerErrorCode": null,
+      "requests": 17,
+      "usageCompleteRequests": 17,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate or baseline regression failed",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 42,
+          "passed": 42,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 5,
+      "numFailedCandidateTests": 2,
+      "failures": [
+        {
+          "name": "verify-05 installation vs admission separation C2: only an installed CLI backend is refused by assertDispatchAvailable",
+          "messages": [
+            "AssertionError: expected [Function] to throw error including 'AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_U…' but got 'External Claude/Codex CLIs are blocke…'\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1552:16)\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\n    at /workspace/packages/cli/__tests__/verify-05.test.js:74:52\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20"
+          ]
+        },
+        {
+          "name": "verify-05 installation vs admission separation C5: assertDispatchAvailable refuses when no backends exist",
+          "messages": [
+            "AssertionError: expected [Function] to throw error including 'AGENT_ROUTER_NO_BACKENDS' but got 'No agent backends available. Use cc a…'\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1552:16)\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\n    at /workspace/packages/cli/__tests__/verify-05.test.js:117:52\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20"
+          ]
+        }
+      ],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-14",
+      "taskId": "verify-14",
+      "accepted": true,
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "accepted",
+      "providerErrorCode": null,
+      "requests": 12,
+      "usageCompleteRequests": 12,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 41,
+          "passed": 41,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 4,
+          "passed": 4,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "attribute-error-to-wrong-image",
+          "sourceSha256": "9ba8b77c526e3f46c47a092af149dbba8690a5723dcc230165b649b790f4849d",
+          "total": 4,
+          "passed": 1,
+          "failed": 3
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 4,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-23",
+      "taskId": "verify-23",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-acceptance-failure",
+      "providerErrorCode": null,
+      "requests": 11,
+      "usageCompleteRequests": 11,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate or baseline regression failed",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 30,
+          "passed": 30,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 5,
+      "numFailedCandidateTests": 4,
+      "failures": [
+        {
+          "name": "verify-23: missing samples keep the full planned denominator keeps the full plan denominator and known totals when all samples are observed",
+          "messages": [
+            "AssertionError: expected { planned: 1, observed: 1, …(8) } to match object { planned: 2, observed: 2, …(4) }\n(4 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\n    at /workspace/packages/cli/__tests__/verify-23.test.js:139:25\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20"
+          ]
+        },
+        {
+          "name": "verify-23: missing samples keep the full planned denominator retains every planned sample and fixes the denominator when observations are partial",
+          "messages": [
+            "AssertionError: expected { planned: 1, observed: 1, …(8) } to match object { planned: 2, observed: 1, …(2) }\n(6 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\n    at /workspace/packages/cli/__tests__/verify-23.test.js:158:25\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20"
+          ]
+        },
+        {
+          "name": "verify-23: missing samples keep the full planned denominator does not masquerade an unknown cost as zero for a partially observed plan",
+          "messages": [
+            "AssertionError: expected 0.1 to be null\n    at /workspace/packages/cli/__tests__/verify-23.test.js:194:35\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "name": "verify-23: missing samples keep the full planned denominator also leaves cost null when an observed sample has no known cost",
+          "messages": [
+            "AssertionError: expected { planned: 1, observed: 1, …(8) } to match object { planned: 2, observed: 2 }\n(8 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\n    at /workspace/packages/cli/__tests__/verify-23.test.js:204:25\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20"
+          ]
+        }
+      ],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-32",
+      "taskId": "verify-32",
+      "accepted": true,
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "accepted",
+      "providerErrorCode": null,
+      "requests": 11,
+      "usageCompleteRequests": 11,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 13,
+          "passed": 13,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "cancelled-preview-resolves-successfully",
+          "sourceSha256": "0fc78bdc4c0c64003240f870ab9c638f48b2cd04aedf58416cb7bbcbca284b1d",
+          "total": 6,
+          "passed": 2,
+          "failed": 4
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "first-run-linux-jetbrains",
+      "taskId": "verify-06",
+      "accepted": false,
+      "generationPassed": false,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "generation-not-passed",
+      "providerErrorCode": null,
+      "requests": 17,
+      "usageCompleteRequests": 17,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": "deliverable-unverified",
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "acceptance requires executed test cases",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 31,
+          "passed": 31,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 0,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": [
+        {
+          "name": "/workspace/packages/cli/__tests__/verify-06.test.js",
+          "message": "No test suite found in file /workspace/packages/cli/__tests__/verify-06.test.js"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-06",
+      "taskId": "verify-06",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-acceptance-failure",
+      "providerErrorCode": null,
+      "requests": 34,
+      "usageCompleteRequests": 34,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate or baseline regression failed",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 31,
+          "passed": 31,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 4,
+      "numFailedCandidateTests": 2,
+      "failures": [
+        {
+          "name": "paid pre-decomposition precheck (verify-06) reaches decomposition when an admissible backend exists",
+          "messages": [
+            "TypeError: Cannot read properties of undefined (reading 'catch')\n    at Orchestrator.addTask (/workspace/packages/cli/src/lib/orchestrator.js:230:9)\n    at /workspace/packages/cli/__tests__/verify-06.test.js:68:16\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)"
+          ]
+        },
+        {
+          "name": "paid pre-decomposition precheck (verify-06) allows the start notification only after the preflight admits",
+          "messages": [
+            "TypeError: Cannot read properties of undefined (reading 'catch')\n    at Orchestrator.addTask (/workspace/packages/cli/src/lib/orchestrator.js:230:9)\n    at /workspace/packages/cli/__tests__/verify-06.test.js:89:16\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)"
+          ]
+        }
+      ],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-15",
+      "taskId": "verify-15",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-acceptance-failure",
+      "providerErrorCode": null,
+      "requests": 6,
+      "usageCompleteRequests": 6,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate or baseline regression failed",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 12,
+          "passed": 12,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 5,
+      "numFailedCandidateTests": 3,
+      "failures": [
+        {
+          "name": "ScopedPermissionStore generation/revision upper-bound overflow rejects add at the upper generation and retains the old permission",
+          "messages": [
+            "AssertionError: expected error to match asymmetric matcher\n    at /workspace/packages/cli/__tests__/verify-15.test.js:87:7\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "name": "ScopedPermissionStore generation/revision upper-bound overflow rejects revoke at the upper generation and keeps the rule active",
+          "messages": [
+            "AssertionError: expected error to match asymmetric matcher\n    at /workspace/packages/cli/__tests__/verify-15.test.js:112:53\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "name": "ScopedPermissionStore generation/revision upper-bound overflow rejects revoke at the upper revision and keeps the permission",
+          "messages": [
+            "AssertionError: expected error to match asymmetric matcher\n    at /workspace/packages/cli/__tests__/verify-15.test.js:153:53\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        }
+      ],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-24",
+      "taskId": "verify-24",
+      "accepted": true,
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "accepted",
+      "providerErrorCode": null,
+      "requests": 5,
+      "usageCompleteRequests": 5,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 22,
+          "passed": 22,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "compare-different-runtime-identities",
+          "sourceSha256": "8b289918121a57dc4d30c53fe4315e3103f178d7c169c493be8b6374a226941e",
+          "total": 6,
+          "passed": 2,
+          "failed": 4
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-33",
+      "taskId": "verify-33",
+      "accepted": true,
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "accepted",
+      "providerErrorCode": null,
+      "requests": 9,
+      "usageCompleteRequests": 9,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 18,
+          "passed": 18,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "reset-byte-budget-for-each-image",
+          "sourceSha256": "21c9965eaaf44ed5f91f192e2ac9073aa2affeca369fa41e33d5998b3685cafe",
+          "total": 6,
+          "passed": 3,
+          "failed": 3
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "first-run-darwin-cli",
+      "taskId": "verify-07",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-coverage-gap",
+      "providerErrorCode": null,
+      "requests": 37,
+      "usageCompleteRequests": 37,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate tests did not reject the behavioral mutant",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 39,
+          "passed": 39,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": "repeat-before-cursor-boundary",
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-07",
+      "taskId": "verify-07",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-acceptance-failure",
+      "providerErrorCode": null,
+      "requests": 36,
+      "usageCompleteRequests": 36,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate or baseline regression failed",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 39,
+          "passed": 39,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 5,
+      "numFailedCandidateTests": 5,
+      "failures": [
+        {
+          "name": "session-transcript-history incremental 'after' pagination boundaries iterating from offset 0 yields every row exactly once and includes the final body",
+          "messages": [
+            "Error: unsafe session id: [object Object]\n    at sessionPath (/workspace/packages/cli/src/harness/jsonl-session-store.js:837:11)\n    at appendEventLocked (/workspace/packages/cli/src/harness/jsonl-session-store.js:1616:20)\n    at /workspace/packages/cli/src/harness/jsonl-session-store.js:1853:5\n    at runClassifiedAppend (/workspace/packages/cli/src/harness/jsonl-session-store.js:1839:12)\n    at appendEvent (/workspace/packages/cli/src/harness/jsonl-session-store.js:1852:10)\n    at startSession (/workspace/packages/cli/src/harness/jsonl-session-store.js:2796:3)\n    at /workspace/packages/cli/__tests__/verify-07.test.js:55:41\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20"
+          ]
+        },
+        {
+          "name": "session-transcript-history incremental 'after' pagination boundaries a hasMore=true page's nextCursor continues exactly at last.ordinal+1 (no overlap/gap)",
+          "messages": [
+            "Error: unsafe session id: [object Object]\n    at sessionPath (/workspace/packages/cli/src/harness/jsonl-session-store.js:837:11)\n    at appendEventLocked (/workspace/packages/cli/src/harness/jsonl-session-store.js:1616:20)\n    at /workspace/packages/cli/src/harness/jsonl-session-store.js:1853:5\n    at runClassifiedAppend (/workspace/packages/cli/src/harness/jsonl-session-store.js:1839:12)\n    at appendEvent (/workspace/packages/cli/src/harness/jsonl-session-store.js:1852:10)\n    at startSession (/workspace/packages/cli/src/harness/jsonl-session-store.js:2796:3)\n    at /workspace/packages/cli/__tests__/verify-07.test.js:107:41\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20"
+          ]
+        },
+        {
+          "name": "session-transcript-history incremental 'after' pagination boundaries an 'after' cursor at offset===eventCount returns an empty tail page with hasMore=false",
+          "messages": [
+            "Error: unsafe session id: [object Object]\n    at sessionPath (/workspace/packages/cli/src/harness/jsonl-session-store.js:837:11)\n    at appendEventLocked (/workspace/packages/cli/src/harness/jsonl-session-store.js:1616:20)\n    at /workspace/packages/cli/src/harness/jsonl-session-store.js:1853:5\n    at runClassifiedAppend (/workspace/packages/cli/src/harness/jsonl-session-store.js:1839:12)\n    at appendEvent (/workspace/packages/cli/src/harness/jsonl-session-store.js:1852:10)\n    at startSession (/workspace/packages/cli/src/harness/jsonl-session-store.js:2796:3)\n    at /workspace/packages/cli/__tests__/verify-07.test.js:147:41\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20"
+          ]
+        },
+        {
+          "name": "session-transcript-history incremental 'after' pagination boundaries hasMore is true only while nextOffset is still below eventCount",
+          "messages": [
+            "Error: unsafe session id: [object Object]\n    at sessionPath (/workspace/packages/cli/src/harness/jsonl-session-store.js:837:11)\n    at appendEventLocked (/workspace/packages/cli/src/harness/jsonl-session-store.js:1616:20)\n    at /workspace/packages/cli/src/harness/jsonl-session-store.js:1853:5\n    at runClassifiedAppend (/workspace/packages/cli/src/harness/jsonl-session-store.js:1839:12)\n    at appendEvent (/workspace/packages/cli/src/harness/jsonl-session-store.js:1852:10)\n    at startSession (/workspace/packages/cli/src/harness/jsonl-session-store.js:2796:3)\n    at /workspace/packages/cli/__tests__/verify-07.test.js:175:41\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20"
+          ]
+        },
+        {
+          "name": "session-transcript-history incremental 'after' pagination boundaries the final message body is not omitted across the boundary even in a large session",
+          "messages": [
+            "Error: unsafe session id: [object Object]\n    at sessionPath (/workspace/packages/cli/src/harness/jsonl-session-store.js:837:11)\n    at appendEventLocked (/workspace/packages/cli/src/harness/jsonl-session-store.js:1616:20)\n    at /workspace/packages/cli/src/harness/jsonl-session-store.js:1853:5\n    at runClassifiedAppend (/workspace/packages/cli/src/harness/jsonl-session-store.js:1839:12)\n    at appendEvent (/workspace/packages/cli/src/harness/jsonl-session-store.js:1852:10)\n    at startSession (/workspace/packages/cli/src/harness/jsonl-session-store.js:2796:3)\n    at /workspace/packages/cli/__tests__/verify-07.test.js:216:41\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20"
+          ]
+        }
+      ],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-16",
+      "taskId": "verify-16",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-coverage-gap",
+      "providerErrorCode": null,
+      "requests": 7,
+      "usageCompleteRequests": 7,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate tests did not reject the behavioral mutant",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 25,
+          "passed": 25,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 5,
+          "passed": 5,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": "ignore-opened-source-identity-change",
+      "numCandidateTests": 5,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-25",
+      "taskId": "verify-25",
+      "accepted": true,
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "accepted",
+      "providerErrorCode": null,
+      "requests": 14,
+      "usageCompleteRequests": 14,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 25,
+          "passed": 25,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 4,
+          "passed": 4,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "delete-prior-draft-before-atomic-publication",
+          "sourceSha256": "031c95c589d5ab3cadd7746d9d8769086fc93a772167d316e858614690cdd945",
+          "total": 4,
+          "passed": 2,
+          "failed": 2
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 4,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-34",
+      "taskId": "verify-34",
+      "accepted": true,
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "accepted",
+      "providerErrorCode": null,
+      "requests": 11,
+      "usageCompleteRequests": 11,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 30,
+          "passed": 30,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": null,
+      "numFailedCandidateTests": null,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "taskId": "verify-08",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-import-error",
+      "providerErrorCode": null,
+      "requests": 24,
+      "usageCompleteRequests": 24,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "acceptance requires executed test cases",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 58,
+          "passed": 58,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 0,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": [
+        {
+          "name": "/workspace/packages/cli/__tests__/verify-08.test.js",
+          "message": "Cannot find module '../../src/lib/session-branch-history.js' imported from /workspace/packages/cli/__tests__/verify-08.test.js"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-08",
+      "taskId": "verify-08",
+      "accepted": true,
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "accepted",
+      "providerErrorCode": null,
+      "requests": 22,
+      "usageCompleteRequests": 22,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 58,
+          "passed": 58,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "accept-history-capability-from-wrong-parent",
+          "sourceSha256": "b027cb66824de4c42d9b71b8b2c7f2de1b45eda1533601bea1e8a16ea6c38b68",
+          "total": 6,
+          "passed": 5,
+          "failed": 1
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-17",
+      "taskId": "verify-17",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-coverage-gap",
+      "providerErrorCode": null,
+      "requests": 9,
+      "usageCompleteRequests": 9,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate tests did not reject the behavioral mutant",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 11,
+          "passed": 11,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 4,
+          "passed": 4,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": "treat-corrupt-journal-as-empty",
+      "numCandidateTests": 4,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-26",
+      "taskId": "verify-26",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-acceptance-failure",
+      "providerErrorCode": null,
+      "requests": 32,
+      "usageCompleteRequests": 32,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate or baseline regression failed",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 14,
+          "passed": 14,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 4,
+      "numFailedCandidateTests": 1,
+      "failures": [
+        {
+          "name": "sensitive question fields are excluded from the persisted projection persists an ordinary text field (positive control)",
+          "messages": [
+            "AssertionError: expected '[{\"key\":\"[\\\"note\\\"]\",\"value\":\"visible…' to contain '[\"note\"]'\n    at /workspace/packages/vscode-extension/__tests__/verify-26.test.js:32:24\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        }
+      ],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-35",
+      "taskId": "verify-35",
+      "accepted": true,
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "accepted",
+      "providerErrorCode": null,
+      "requests": 10,
+      "usageCompleteRequests": 10,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 77,
+          "passed": 77,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "retry-governance-rejection-as-provider-outage",
+          "sourceSha256": "0e2b5fdba66f6dc19d0885640a068ee04df7aa112a00db33473260128f705881",
+          "total": 6,
+          "passed": 5,
+          "failed": 1
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "first-run-darwin-jetbrains",
+      "taskId": "verify-09",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-coverage-gap",
+      "providerErrorCode": null,
+      "requests": 10,
+      "usageCompleteRequests": 10,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate tests did not reject the behavioral mutant",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 11,
+          "passed": 11,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": "trust-tampered-source-digest",
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-09",
+      "taskId": "verify-09",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-acceptance-failure",
+      "providerErrorCode": null,
+      "requests": 7,
+      "usageCompleteRequests": 7,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate or baseline regression failed",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 11,
+          "passed": 11,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 2,
+      "failures": [
+        {
+          "name": "historical source tampering rejection (verify-09) accepts the correct source identity and exposes the retained prefix",
+          "messages": [
+            "AssertionError: expected null to be +0 // Object.is equality\n    at /workspace/packages/cli/__tests__/verify-09.test.js:62:37\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "name": "historical source tampering rejection (verify-09) rejects rewind when tampered retained content is tampered while other prerequisites stay valid",
+          "messages": [
+            "AssertionError: expected null to be 1 // Object.is equality\n    at /workspace/packages/cli/__tests__/verify-09.test.js:87:44\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)"
+          ]
+        }
+      ],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-18",
+      "taskId": "verify-18",
+      "accepted": false,
+      "generationPassed": false,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "provider-account-overdue",
+      "providerErrorCode": "AccountOverdueError",
+      "requests": 3,
+      "usageCompleteRequests": 2,
+      "brokerError": null,
+      "brokerPoisoned": "DIAGNOSTIC_NON_200_NO_RETRY",
+      "modelFailure": "agent-error",
+      "modelError": "volcengine API error: HTTP 403 — DIAGNOSTIC_NON_200_NO_RETRY.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 2,
+          "passed": 2,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "ignore-unresolved-in-memory-owner",
+          "sourceSha256": "3cb4e78f5ba587f705a9760cf119077875b612d91e4f4ead7b018315991ccf1d",
+          "total": 6,
+          "passed": 3,
+          "failed": 3
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 6,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-27",
+      "taskId": "verify-27",
+      "accepted": true,
+      "generationPassed": true,
+      "candidateAcceptancePassed": true,
+      "sourceScopePassed": true,
+      "classification": "accepted",
+      "providerErrorCode": null,
+      "requests": 13,
+      "usageCompleteRequests": 13,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 14,
+          "passed": 14,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 4,
+          "passed": 4,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "restore-mismatched-question-identity",
+          "sourceSha256": "b89f9b26e5deb245c1fedb8f07f55a2b72be880d965c78eaaa2fe0e6c52e2ddb",
+          "total": 4,
+          "passed": 2,
+          "failed": 2
+        }
+      ],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 4,
+      "numFailedCandidateTests": 0,
+      "failures": [],
+      "suites": []
+    },
+    {
+      "sampleId": "verify-36",
+      "taskId": "verify-36",
+      "accepted": false,
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "sourceScopePassed": true,
+      "classification": "candidate-acceptance-failure",
+      "providerErrorCode": null,
+      "requests": 15,
+      "usageCompleteRequests": 15,
+      "brokerError": null,
+      "brokerPoisoned": null,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "detail": "candidate or baseline regression failed",
+      "tests": [
+        {
+          "kind": "baseline",
+          "total": 7,
+          "passed": 7,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "firstSurvivingMutant": null,
+      "numCandidateTests": 5,
+      "numFailedCandidateTests": 3,
+      "failures": [
+        {
+          "name": "verify-36: background launch config identity fidelity rejects an illegal permission mode on restore instead of loosening to default",
+          "messages": [
+            "AssertionError: expected [Function] to throw an error\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1552:16)\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\n    at /workspace/packages/cli/__tests__/verify-36.test.js:67:7\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20"
+          ]
+        },
+        {
+          "name": "verify-36: background launch config identity fidelity rejects an illegal sandbox mode on restore instead of dropping it",
+          "messages": [
+            "AssertionError: expected [Function] to throw an error\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1552:16)\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\n    at /workspace/packages/cli/__tests__/verify-36.test.js:82:7\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20"
+          ]
+        },
+        {
+          "name": "verify-36: background launch config identity fidelity rejects an illegal tri-state mcp switch on restore instead of defaulting to auto",
+          "messages": [
+            "AssertionError: expected [Function] to throw an error\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1552:16)\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\n    at /workspace/packages/cli/__tests__/verify-36.test.js:92:7\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20"
+          ]
+        }
+      ],
+      "suites": []
+    }
+  ]
+}

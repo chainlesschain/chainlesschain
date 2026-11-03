@@ -1,0 +1,331 @@
+/**
+ * Fork history ownership — independent regression coverage for
+ * packages/cli/src/lib/session-branch-history.js.
+ *
+ * Acceptance: two branches each restore a valid ancestor and their own
+ * independent body text; content must not bleed in from another branch or from
+ * events after the branch completes. These cases drive `createBranchHistoryImport`
+ * directly (pure, deterministic event stream) so every guard is exercised
+ * without filesystem, RNG, clock or git.
+ */
+import { describe, it, expect } from "vitest";
+import { createHash } from "node:crypto";
+import {
+  BRANCH_HISTORY_SCHEMA,
+  createBranchHistoryImport,
+  branchMessageDigest,
+} from "../../src/lib/session-branch-history.js";
+
+const hash64 = (seed) => createHash("sha256").update(seed).digest("hex");
+
+/**
+ * Runs a stream through a fresh importer, recording every non-null accept()
+ * result (e.g. { kind: "archive", message } / { kind: "origin", message,
+ * origin } / { kind: "complete" }) and the first thrown error (if any). Then
+ * calls finish(); a branch left active is reported as an error, matching the
+ * parser's `finish()` guard.
+ */
+function run(events) {
+  const importer = createBranchHistoryImport();
+  const results = [];
+  let error = null;
+  for (const event of events) {
+    try {
+      const result = importer.accept(event);
+      if (result && result.kind) results.push(result);
+    } catch (err) {
+      error = err;
+      break;
+    }
+  }
+  if (!error) {
+    try {
+      importer.finish();
+    } catch (err) {
+      error = err;
+    }
+  }
+  return { importer, results, error };
+}
+
+/** Asserts the given call rejects with the branch-history-invalid code. */
+function expectInvalid(fn) {
+  let err = null;
+  try {
+    fn();
+  } catch (e) {
+    err = e;
+  }
+  expect(err).not.toBeNull();
+  expect(err.code).toBe("SESSION_BRANCH_HISTORY_INVALID");
+  return err;
+}
+
+/**
+ * Builds the event stream for one branch import. `archives` are body message
+ * rows (`{ role, sourceEventId, sourceItemIndex, parts: [...] }`), `contexts`
+ * are ancestor messages (`{ type, role, content, origin }`; origin null for
+ * system). The closing `session_branch_complete` inputDigest is recomputed
+ * exactly as the importer does: start and branch as a prefix, then every
+ * following event as a suffix, then a closing "]".
+ */
+function buildBranchEvents({
+  startData = { provider: "test" },
+  archives = [],
+  contexts = [],
+  complete = true,
+}) {
+  const events = [];
+  events.push({ type: "session_start", data: { ...startData } });
+  const branchData = {
+    history: {
+      schema: BRANCH_HISTORY_SCHEMA,
+      sourceGeneration: hash64("gen"),
+      totalMessages: archives.length,
+      contextMessageCount: contexts.length,
+      coverage: { kind: "from-origin", boundaryEvent: null, reason: null },
+    },
+  };
+  events.push({ type: "session_branch", data: branchData });
+  for (const a of archives) {
+    a.parts.forEach((text, partIndex) => {
+      events.push({
+        type: "session_history_message",
+        data: {
+          role: a.role,
+          text,
+          part: partIndex,
+          last: partIndex === a.parts.length - 1,
+          sourceEventId: a.sourceEventId,
+          sourceItemIndex: a.sourceItemIndex,
+        },
+      });
+    });
+  }
+  for (const c of contexts) {
+    const message = { role: c.role, content: c.content };
+    events.push({ type: c.type, data: message });
+    events.push({
+      type: "session_history_origin",
+      data: { messageDigest: branchMessageDigest(message), origin: c.origin },
+    });
+  }
+  if (complete) {
+    const start = { type: "session_start", data: { ...startData } };
+    const parts = [
+      `[${JSON.stringify(start)},${JSON.stringify({
+        type: events[1].type,
+        data: events[1].data,
+      })}`,
+    ];
+    for (let i = 2; i < events.length; i++) {
+      parts.push(
+        `,${JSON.stringify({ type: events[i].type, data: events[i].data })}`,
+      );
+    }
+    parts.push("]");
+    events.push({
+      type: "session_branch_complete",
+      data: {
+        schemaVersion: 2,
+        messageCount: contexts.length,
+        inputDigest: `sha256:${createHash("sha256")
+          .update(parts.join(""))
+          .digest("hex")}`,
+      },
+    });
+  }
+  return events;
+}
+
+describe("createBranchHistoryImport — fork history ownership", () => {
+  it("two separate forks each restore their own valid ancestor and body", () => {
+    const eventsA = buildBranchEvents({
+      archives: [
+        {
+          role: "user",
+          sourceEventId: hash64("a-e"),
+          sourceItemIndex: 0,
+          parts: ["body A"],
+        },
+      ],
+      contexts: [
+        {
+          type: "assistant_message",
+          role: "assistant",
+          content: "ancestor A",
+          origin: { first: 0, last: 0 },
+        },
+      ],
+    });
+    const eventsB = buildBranchEvents({
+      archives: [
+        {
+          role: "user",
+          sourceEventId: hash64("b-e"),
+          sourceItemIndex: 0,
+          parts: ["body B"],
+        },
+      ],
+      contexts: [
+        {
+          type: "assistant_message",
+          role: "assistant",
+          content: "ancestor B",
+          origin: { first: 0, last: 0 },
+        },
+      ],
+    });
+
+    const resA = run(eventsA);
+    const resB = run(eventsB);
+    expect(resA.error).toBeNull();
+    expect(resB.error).toBeNull();
+
+    // Each fork restores only its own body text (no cross-branch bleed).
+    expect(resA.results.find((r) => r.kind === "archive")).toEqual({
+      kind: "archive",
+      message: { role: "user", content: "body A" },
+    });
+    expect(resB.results.find((r) => r.kind === "archive")).toEqual({
+      kind: "archive",
+      message: { role: "user", content: "body B" },
+    });
+
+    // Each fork restores its own valid ancestor (origin within its own rows).
+    expect(resA.results.find((r) => r.kind === "origin")).toEqual({
+      kind: "origin",
+      message: { role: "assistant", content: "ancestor A" },
+      origin: { first: 0, last: 0 },
+    });
+    expect(resB.results.find((r) => r.kind === "origin")).toEqual({
+      kind: "origin",
+      message: { role: "assistant", content: "ancestor B" },
+      origin: { first: 0, last: 0 },
+    });
+
+    // Both streams completed cleanly.
+    expect(resA.results.some((r) => r.kind === "complete")).toBe(true);
+    expect(resB.results.some((r) => r.kind === "complete")).toBe(true);
+  });
+
+  it("rejects an ancestor whose origin points outside the fork's own rows", () => {
+    // Positive control: origin { first: 0, last: 0 } with one archived row is
+    // accepted (covered above). Negative changes ONLY origin.last to 1 so the
+    // guard `origin.last < state.rows` (1 < 1 === false) is the sole reason.
+    const events = buildBranchEvents({
+      archives: [
+        {
+          role: "user",
+          sourceEventId: hash64("e"),
+          sourceItemIndex: 0,
+          parts: ["body"],
+        },
+      ],
+      contexts: [
+        {
+          type: "assistant_message",
+          role: "assistant",
+          content: "ancestor",
+          origin: { first: 0, last: 1 },
+        },
+      ],
+    });
+    const { error } = run(events);
+    expect(error).not.toBeNull();
+    expect(error.code).toBe("SESSION_BRANCH_HISTORY_INVALID");
+  });
+
+  it("joins multi-part body text attributed to one message", () => {
+    const events = buildBranchEvents({
+      archives: [
+        {
+          role: "user",
+          sourceEventId: hash64("m"),
+          sourceItemIndex: 0,
+          parts: ["part1", "part2"],
+        },
+      ],
+    });
+    const { results, error } = run(events);
+    expect(error).toBeNull();
+    expect(results.find((r) => r.kind === "archive")).toEqual({
+      kind: "archive",
+      message: { role: "user", content: "part1part2" },
+    });
+  });
+
+  it("rejects consecutive parts attributed to a different source event", () => {
+    // Positive control: parts with the SAME identity are joined (covered above).
+    // Negative changes ONLY the second part's sourceEventId, so the
+    // `state.textIdentity === identity` guard is the sole reason for rejection.
+    const events = buildBranchEvents({
+      archives: [
+        {
+          role: "user",
+          sourceEventId: hash64("m1"),
+          sourceItemIndex: 0,
+          parts: ["part1", "part2"],
+        },
+      ],
+    });
+    const second = events.find(
+      (e) => e.type === "session_history_message" && e.data.part === 1,
+    );
+    second.data.sourceEventId = hash64("m2-other");
+    const { error } = run(events);
+    expect(error).not.toBeNull();
+    expect(error.code).toBe("SESSION_BRANCH_HISTORY_INVALID");
+  });
+
+  it("rejects history content that arrives after the branch completes", () => {
+    // Positive control: a fully-imported stream ends with { kind: "complete" }
+    // and a clean finish() (covered above). Negative adds one stray message
+    // after completion, so the `!active` guard is the sole reason for rejection.
+    const events = buildBranchEvents({
+      archives: [
+        {
+          role: "user",
+          sourceEventId: hash64("e"),
+          sourceItemIndex: 0,
+          parts: ["body"],
+        },
+      ],
+    });
+    const importer = createBranchHistoryImport();
+    for (const event of events) importer.accept(event);
+    expectInvalid(() =>
+      importer.accept({
+        type: "session_history_message",
+        data: {
+          role: "user",
+          text: "stray",
+          part: 0,
+          last: true,
+          sourceEventId: hash64("stray"),
+          sourceItemIndex: 0,
+        },
+      }),
+    );
+  });
+
+  it("finish() rejects an incomplete fork that never completed", () => {
+    // Positive control: a fully-imported stream finishes cleanly (covered
+    // above). Negative omits only the completion event, so the `finish()`
+    // active guard is the sole reason for rejection.
+    const events = buildBranchEvents({
+      archives: [
+        {
+          role: "user",
+          sourceEventId: hash64("e"),
+          sourceItemIndex: 0,
+          parts: ["body"],
+        },
+      ],
+      complete: false,
+    });
+    const importer = createBranchHistoryImport();
+    for (const event of events) importer.accept(event);
+    expectInvalid(() => importer.finish());
+  });
+});

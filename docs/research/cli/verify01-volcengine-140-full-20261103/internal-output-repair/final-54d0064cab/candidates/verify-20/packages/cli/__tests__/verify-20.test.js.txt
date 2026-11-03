@@ -1,0 +1,111 @@
+import { describe, expect, it } from "vitest";
+import { buildPermissionDecision } from "../src/lib/permission-decision.js";
+
+/**
+ * Regression coverage for "deny decision is not downgraded":
+ * an explicit deny, and an unknown policy decision, must survive verbatim
+ * through the decision precedence chain and must never be rewritten to
+ * "allow" by any fallback.
+ *
+ * Each independent condition has a positive control (deny/unknown preserved)
+ * and a negative control (same shape, decision changed to "allow" -> the
+ * function reflects the actual value rather than forcing either polarity).
+ */
+describe("verify-20: deny decision is not downgraded to allow", () => {
+  it("honors an explicit deny from policy.decision when approval/chain are absent", () => {
+    const positive = buildPermissionDecision({
+      toolUseId: "tu-deny",
+      tool: "run_shell",
+      result: {
+        policy: { decision: "deny", via: "managed", reason: "blocked" },
+      },
+    });
+    expect(positive).not.toBeNull();
+    expect(positive.decision).toBe("deny");
+    expect(positive.decision).not.toBe("allow");
+
+    // negative control: change only the decision value.
+    const negative = buildPermissionDecision({
+      toolUseId: "tu-allow",
+      tool: "run_shell",
+      result: {
+        policy: { decision: "allow", via: "managed", reason: "blocked" },
+      },
+    });
+    expect(negative.decision).toBe("allow");
+  });
+
+  it("honors an explicit deny from approval.decision when policy.decision is absent", () => {
+    const positive = buildPermissionDecision({
+      result: {
+        approval: { decision: "deny", via: "auto-mode-config" },
+      },
+    });
+    expect(positive.decision).toBe("deny");
+    expect(positive.decision).not.toBe("allow");
+
+    // negative control: change only the decision value.
+    const negative = buildPermissionDecision({
+      result: {
+        approval: { decision: "allow", via: "auto-mode-config" },
+      },
+    });
+    expect(negative.decision).toBe("allow");
+  });
+
+  it("honors an explicit deny from the terminal chain outcome when both policy and approval decisions are absent", () => {
+    const positive = buildPermissionDecision({
+      result: {
+        permissionChain: [
+          { layer: "settings-rules", outcome: "no-match" },
+          { layer: "approval-gate", outcome: "deny", via: "managed" },
+        ],
+      },
+    });
+    expect(positive).not.toBeNull();
+    expect(positive.decision).toBe("deny");
+    expect(positive.decision).not.toBe("allow");
+
+    // negative control: change only the terminal outcome value.
+    const negative = buildPermissionDecision({
+      result: {
+        permissionChain: [
+          { layer: "settings-rules", outcome: "no-match" },
+          { layer: "approval-gate", outcome: "allow", via: "managed" },
+        ],
+      },
+    });
+    expect(negative.decision).toBe("allow");
+  });
+
+  it("preserves an unknown policy decision without coercing it to allow", () => {
+    const positive = buildPermissionDecision({
+      result: {
+        policy: { decision: "unknown", via: "external", reason: "unmapped" },
+      },
+    });
+    expect(positive.decision).toBe("unknown");
+    expect(positive.decision).not.toBe("allow");
+
+    // negative control: a present "allow" must not be forced to anything else.
+    const negative = buildPermissionDecision({
+      result: {
+        policy: { decision: "allow", via: "external", reason: "unmapped" },
+      },
+    });
+    expect(negative.decision).toBe("allow");
+  });
+
+  it("does not fabricate allow when no decision is present but a chain exists", () => {
+    const decision = buildPermissionDecision({
+      result: {
+        permissionChain: [{ layer: "approval-gate", outcome: "uncertain" }],
+      },
+    });
+    // chain present keeps the record alive, but the decision must not be
+    // filled in with "allow" as a fallback.
+    expect(decision).not.toBeNull();
+    expect(decision.decision).not.toBe("allow");
+    expect(decision.decision).not.toBe("deny");
+  });
+});

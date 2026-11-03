@@ -1,0 +1,156 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { DraftStore } from "../src/chat/draft-store.js";
+
+const roots = [];
+afterEach(async () => {
+  for (const root of roots.splice(0))
+    await fs.rm(root, { recursive: true, force: true });
+});
+async function storage() {
+  const root = await fs.mkdtemp(path.join(tmpdir(), "cc-verify25-"));
+  roots.push(root);
+  return root;
+}
+const image = {
+  data: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+};
+function manifest(root, key) {
+  return path.join(root, key, "draft.json");
+}
+function imagesIn(root, key) {
+  return fs.readdir(path.join(root, key)).then((names) =>
+    names.filter((n) => n.endsWith(".png")).sort(),
+  );
+}
+
+describe("draft write failure retains the old record", () => {
+  it("persists a new text draft atomically and makes it recoverable from a fresh store", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "first draft" });
+    await store.save(key, { text: "second draft" });
+    expect((await store.view(key)).composer.text).toBe("second draft");
+    // A second store reads the committed manifest straight from disk.
+    expect((await new DraftStore(root).view(key)).composer.text).toBe(
+      "second draft",
+    );
+  });
+
+  it("keeps the old draft recoverable and removes the temp manifest when the atomic rename fails", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "original" });
+    const before = await fs.readFile(manifest(root, key));
+    const rename = vi
+      .spyOn(fs, "rename")
+      .mockRejectedValueOnce(new Error("ENOSPC"));
+    try {
+      await expect(store.save(key, { text: "new text" })).rejects.toThrow(
+        "ENOSPC",
+      );
+    } finally {
+      rename.mockRestore();
+    }
+    // The failed commit did not replace the committed manifest.
+    expect(await fs.readFile(manifest(root, key))).toEqual(before);
+    expect((await new DraftStore(root).view(key)).composer.text).toBe(
+      "original",
+    );
+    expect(await fs.readdir(path.join(root, key))).toEqual(["draft.json"]);
+  });
+
+  it("aborts before the rename when the page is replaced and still preserves the old draft", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "original" });
+    const before = await fs.readFile(manifest(root, key));
+    let checks = 0;
+    await expect(
+      store.save(key, { text: "obsolete" }, {
+        assertCurrent: () => {
+          checks += 1;
+          if (checks === 3) throw new Error("inactive page");
+        },
+      }),
+    ).rejects.toThrow("inactive page");
+    // The temp manifest had been written but the rename never committed.
+    expect(await fs.readFile(manifest(root, key))).toEqual(before);
+    expect((await store.view(key)).composer.text).toBe("original");
+    expect(await fs.readdir(path.join(root, key))).toEqual(["draft.json"]);
+  });
+
+  it("commits the submitted input and clears the composer only after a successful write", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "old draft", images: [image] });
+    const prepared = await store.prepare(key, "session-1", "input-1", {
+      text: "submitted question",
+      images: [image],
+    });
+    const view = await new DraftStore(root).view(key);
+    expect(view.composer).toEqual({ text: "", images: [] });
+    expect(view.pending).toHaveLength(1);
+    expect(view.pending[0]).toMatchObject({
+      id: "input-1",
+      status: "prepared",
+      text: "submitted question",
+    });
+    await expect(fs.stat(prepared.paths[0])).resolves.toBeTruthy();
+  });
+
+  it("does not clear the composer prematurely when the send commit fails", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "old draft", images: [image] });
+    const beforeImages = await imagesIn(root, key);
+    const rename = vi
+      .spyOn(fs, "rename")
+      .mockRejectedValueOnce(new Error("ENOSPC"));
+    try {
+      await expect(
+        store.prepare(key, "session-1", "input-1", {
+          text: "submitted",
+          images: [image],
+        }),
+      ).rejects.toThrow("ENOSPC");
+    } finally {
+      rename.mockRestore();
+    }
+    const view = await new DraftStore(root).view(key);
+    // The send never committed, so the composer was not cleared on disk.
+    expect(view.composer.text).toBe("old draft");
+    expect(view.composer.images).toHaveLength(1);
+    expect(view.pending).toEqual([]);
+    // The newly staged attachment was cleaned up; only the old image remains.
+    expect(await imagesIn(root, key)).toEqual(beforeImages);
+  });
+
+  it("remains usable after a failed write and overwrites from the retained draft", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "retained" });
+    const rename = vi
+      .spyOn(fs, "rename")
+      .mockRejectedValueOnce(new Error("ENOSPC"));
+    try {
+      await expect(store.save(key, { text: "dropped" })).rejects.toThrow(
+        "ENOSPC",
+      );
+    } finally {
+      rename.mockRestore();
+    }
+    expect((await store.view(key)).composer.text).toBe("retained");
+    await store.save(key, { text: "final" });
+    expect((await new DraftStore(root).view(key)).composer.text).toBe("final");
+  });
+});

@@ -1,0 +1,755 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000,
+    "connectionAttemptTimeoutMs": 10000,
+    "parallelToolCalls": null
+  },
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:f38ba1d4c166229766cd78adfd38ccfc2413b21ad4f533ef7d87f5ec1bf10f69",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:9df4efc5365ed381684a1990009c4b162ec96ae9ce229df13d4b583860a3559c",
+  "actualPlatform": "darwin",
+  "actualArch": "arm64",
+  "actualEntry": "jetbrains",
+  "changeReview": {
+    "requested": true,
+    "observed": false
+  },
+  "startedAt": "2026-11-03T14:40:19.402Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-18",
+      "taskId": "verify-18",
+      "kind": "task",
+      "runId": "d53776e4-be1d-4b8f-b7e4-57ce289d5af4",
+      "stratum": "darwin-jetbrains-volcengine",
+      "declaredActualEntry": {
+        "platform": "darwin",
+        "entry": "jetbrains"
+      },
+      "actualPlatform": "darwin",
+      "actualEntry": "jetbrains",
+      "changeReview": {
+        "requested": true,
+        "observed": false,
+        "reminderCount": 0,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:9df4efc5365ed381684a1990009c4b162ec96ae9ce229df13d4b583860a3559c",
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-18.test.js"
+      ],
+      "startedAt": "2026-11-03T14:40:19.404Z",
+      "deadline": "2026-11-03T15:20:19.404Z",
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-18.test.js",
+          "path": "verify-18/candidate/packages/cli/__tests__/verify-18.test.js",
+          "digest": "sha256:16fb918ee2ab7decaa0f87b9377597ecddfcacb60e240d78a1a40997ceff7811",
+          "bytes": 4507
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml"
+      ],
+      "unexpectedChanges": [],
+      "generationPassed": false,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T14:40:24.644Z",
+        "finishedAt": "2026-11-03T14:40:45.616Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "verify-18",
+        "locked": {
+          "version": "0.166.140",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+          "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": false,
+        "failure": "model task failed before a restartable result; see real protocol",
+        "restartRequired": true
+      },
+      "capturePath": "verify-18/capture",
+      "model": {
+        "pass": false,
+        "terminal": {
+          "terminalVerified": false,
+          "observedFallback": false,
+          "usage": null,
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-1793717222045-1aaa6d",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "5879ef5f-ed7c-4bfb-bcef-57f36e620991",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-5b5f1cab-c72b-4139-8c8c-3f447b90b0ec",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_u7s7u6dc6u9uzj27yapmgquj",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/process-execution-broker/process-ownership-quarantine.js"
+            },
+            "trace_id": "tr-5b5f1cab-c72b-4139-8c8c-3f447b90b0ec",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_jw8xa51s0zdan4ae0klb1p7c",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/process-ownership-quarantine.test.js"
+            },
+            "trace_id": "tr-5b5f1cab-c72b-4139-8c8c-3f447b90b0ec",
+            "seq": 7
+          },
+          {
+            "type": "tool_use",
+            "id": "call_71zu0dwgyd3yb8vnie207iit",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-18.test.js",
+              "content": "import { EventEmitter } from \"node:events\";\nimport { beforeEach, describe, expect, it, vi } from \"vitest\";\n\n// Independent regression coverage for the \"ownership unknown keeps blocking\"\n// guarantee: a supervisor that loses contact (unconfirmed tree cleanup) blocks\n// later managed executions, and a merely-disappeared root process must not be\n// mistaken for full tree exit. Source path resolved explicitly from this\n// deliverable directory (packages/cli/__tests__/) as ../src/...\nconst ledgerPath =\n  \"../src/lib/process-execution-broker/process-ownership-quarantine.js\";\n\nbeforeEach(() => vi.resetModules());\n\nfunction child(pid = 456) {\n  return Object.assign(new EventEmitter(), {\n    pid,\n    ownedProcessTreeClosed: new Promise(() => {}),\n  });\n}\n\ndescribe(\"verify-18 ownership-unknown keeps blocking\", () => {\n  it(\"blocks subsequent execution when supervisor ownership is unconfirmed via the owner-loss error code\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };\n    ledger.observeProcessOwnership(proc, \"lost-owner\");\n    proc.emit(\n      \"error\",\n      Object.assign(new Error(\"owner lost\"), {\n        code: \"EXTERNAL_AGENT_CLEANUP_UNCONFIRMED\",\n      }),\n    );\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(true);\n    expect(\n      ledger.getProcessOwnershipStatus().unresolvedExecutionIds,\n    ).toContain(\"lost-owner\");\n    expect(() => ledger.assertProcessOwnershipAvailable()).toThrow(\n      expect.objectContaining({\n        code: ledger.PROCESS_OWNERSHIP_UNCONFIRMED,\n        recoveryRequired: true,\n        executionStarted: false,\n      }),\n    );\n  });\n\n  it(\"does not block on an ordinary signal error (only the owner-loss code is a fence)\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };\n    ledger.observeProcessOwnership(proc, \"signal-owner\");\n    proc.emit(\"error\", new Error(\"signal failed\"));\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(false);\n    expect(() => ledger.assertProcessOwnershipAvailable()).not.toThrow();\n  });\n\n  it(\"blocks subsequent execution when a cleanup:unconfirmed receipt confirms=false\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    ledger.observeProcessOwnership(proc, \"unconfirmed-owner\");\n    proc.emit(\"cleanup:unconfirmed\", { cleanup: { confirmed: false } });\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(true);\n    expect(() => ledger.assertProcessOwnershipAvailable()).toThrow(\n      expect.objectContaining({\n        code: ledger.PROCESS_OWNERSHIP_UNCONFIRMED,\n      }),\n    );\n  });\n\n  it(\"does not block when the cleanup:unconfirmed receipt confirms=true\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    ledger.observeProcessOwnership(proc, \"clean-owner\");\n    proc.emit(\"cleanup:unconfirmed\", { cleanup: { confirmed: true } });\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(false);\n    expect(() => ledger.assertProcessOwnershipAvailable()).not.toThrow();\n  });\n\n  it(\"keeps blocking after the root process disappears: root exit is not full tree exit\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };\n    ledger.observeProcessOwnership(proc, \"tree-owner\");\n    proc.emit(\n      \"error\",\n      Object.assign(new Error(\"owner lost\"), {\n        code: \"EXTERNAL_AGENT_CLEANUP_UNCONFIRMED\",\n      }),\n    );\n    proc.emit(\"close\", 0); // root pid gone\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(true);\n    expect(\n      ledger.getProcessOwnershipStatus().unresolvedExecutionIds,\n    ).toContain(\"tree-owner\");\n    expect(() => ledger.assertProcessOwnershipAvailable()).toThrow(\n      expect.objectContaining({\n        code: ledger.PROCESS_OWNERSHIP_UNCONFIRMED,\n      }),\n    );\n  });\n\n  it(\"does not invent a block from a root close when no owner was unconfirmed\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };\n    ledger.observeProcessOwnership(proc, \"quiet-owner\");\n    proc.emit(\"close\", 0);\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(false);\n    expect(() => ledger.assertProcessOwnershipAvailable()).not.toThrow();\n  });\n});\n"
+            },
+            "trace_id": "tr-5b5f1cab-c72b-4139-8c8c-3f447b90b0ec",
+            "seq": 12
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_u7s7u6dc6u9uzj27yapmgquj",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-ro5HTP/d53776e4-be1d-4b8f-b7e4-57ce289d5af4/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-quarantine.js",
+              "fileVersion": "3192:1791108223000:1793716822757.5479",
+              "readSpan": {
+                "start": 0,
+                "end": 3192,
+                "total": 3192
+              },
+              "hashed": false,
+              "content": "import path from \"node:path\";\nimport { getMachineSecurityAnchorDir } from \"../paths.js\";\nimport { ProcessOwnershipJournal } from \"./process-ownership-journal.js\";\n\n// Shared by every Broker in this JS runtime. A new Broker, different cwd or\n// cleared audit history cannot turn a lost process owner into cleanup evidence.\n// Linux additionally records ownership before the native launch. Retaining\n// that record across restart is a fence, not proof of descendant cleanup.\nconst unresolvedOwners = new Map();\nlet journal = null;\n\nfunction durableJournal() {\n  if (process.platform !== \"linux\") return null;\n  journal ??= new ProcessOwnershipJournal(\n    path.join(getMachineSecurityAnchorDir(), \"process-ownership-v1\"),\n  );\n  return journal;\n}\n\nexport function prepareProcessOwnership(executionId) {\n  return durableJournal()?.prepare(executionId) ?? null;\n}\n\nexport const PROCESS_OWNERSHIP_UNCONFIRMED =\n  \"BROKER_PROCESS_OWNERSHIP_UNCONFIRMED\";\n\nexport function observeProcessOwnership(proc, executionId, lease = null) {\n  // The facade emits close only after actual tree cleanup, or after a native\n  // spawn that created no supervisor at all. Persist that fact before Bridge\n  // callers receive close. An error/exit/PID probe cannot settle this record.\n  if (lease)\n    proc.prependOnceListener(\"close\", () => {\n      if (\n        proc.pid &&\n        proc.ownedProcessTreeEvidence?.cleanup?.confirmed !== true\n      )\n        return;\n      try {\n        lease.settle();\n      } catch (error) {\n        proc.emit(\"error\", error);\n      }\n    });\n  if (!proc?.ownedProcessTreeClosed || !proc.pid) return;\n  const retain = (receipt) => {\n    if (receipt?.cleanup?.confirmed !== false) return;\n    lease?.retain();\n    if (!unresolvedOwners.has(executionId)) {\n      unresolvedOwners.set(executionId, { proc, durable: lease !== null });\n    }\n  };\n  // Install before post-spawn bookkeeping and caller listeners. The error\n  // precedes cleanup:unconfirmed, so reentrant callers must already be fenced.\n  proc.on(\"error\", (error) => {\n    if (error.code === \"EXTERNAL_AGENT_CLEANUP_UNCONFIRMED\")\n      retain(proc.ownedProcessTreeEvidence);\n  });\n  proc.once(\"cleanup:unconfirmed\", retain);\n}\n\nexport function getProcessOwnershipStatus() {\n  const durable = durableJournal()?.inspect();\n  return {\n    blocked: unresolvedOwners.size > 0 || durable?.blocked === true,\n    unresolvedExecutionIds: [\n      ...new Set([\n        ...unresolvedOwners.keys(),\n        ...(durable?.blocked ? durable.pendingExecutionIds : []),\n      ]),\n    ],\n    recoveryRequired: unresolvedOwners.size > 0 || durable?.blocked === true,\n    durable:\n      !!durable &&\n      [...unresolvedOwners.values()].every((owner) => owner.durable),\n    restartSafe: false,\n  };\n}\n\nexport function assertProcessOwnershipAvailable() {\n  if (unresolvedOwners.size === 0) {\n    durableJournal()?.assertAvailable();\n    return;\n  }\n  const error = new Error(\n    \"Managed process execution is blocked because an earlier process tree has unconfirmed cleanup; restarting does not prove cleanup\",\n  );\n  error.code = PROCESS_OWNERSHIP_UNCONFIRMED;\n  error.recoveryRequired = true;\n  error.executionStarted = false;\n  throw error;\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793717230575,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/process-execution-broker/process-ownership-quarantine.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 9,
+                "sessionId": "panel-1793717222045-1aaa6d",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/process-execution-broker/process-ownership-quarantine.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_u7s7u6dc6u9uzj27yapmgquj",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-5b5f1cab-c72b-4139-8c8c-3f447b90b0ec",
+            "seq": 8
+          },
+          {
+            "type": "tool_result",
+            "id": "call_jw8xa51s0zdan4ae0klb1p7c",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-ro5HTP/d53776e4-be1d-4b8f-b7e4-57ce289d5af4/workspace/packages/cli/__tests__/unit/process-ownership-quarantine.test.js",
+              "fileVersion": "3671:1791108223000:1793716822467.4822",
+              "readSpan": {
+                "start": 0,
+                "end": 3671,
+                "total": 3671
+              },
+              "hashed": false,
+              "content": "import { EventEmitter } from \"node:events\";\nimport { beforeEach, describe, expect, it, vi } from \"vitest\";\n\nbeforeEach(() => vi.resetModules());\n\nfunction child(pid = 456) {\n  return Object.assign(new EventEmitter(), {\n    pid,\n    ownedProcessTreeClosed: new Promise(() => {}),\n  });\n}\n\ndescribe(\"Broker process ownership quarantine\", () => {\n  it(\"does not confuse spawn or ordinary signal errors with lost tree ownership\", async () => {\n    const ledger =\n      await import(\"../../src/lib/process-execution-broker/process-ownership-quarantine.js\");\n    const proc = child();\n    ledger.observeProcessOwnership(proc, \"owned\");\n    proc.emit(\"error\", new Error(\"signal failed\"));\n    proc.emit(\"cleanup:unconfirmed\", { cleanup: { confirmed: true } });\n    const noSpawn = child(undefined);\n    noSpawn.pid = undefined;\n    noSpawn.on(\"error\", () => {});\n    ledger.observeProcessOwnership(noSpawn, \"not-started\");\n    noSpawn.emit(\"cleanup:unconfirmed\", { cleanup: { confirmed: false } });\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(false);\n    expect(() => ledger.assertProcessOwnershipAvailable()).not.toThrow();\n  });\n\n  it(\"fences every process API before native launch, including new Brokers and reentry\", async () => {\n    const ledger =\n      await import(\"../../src/lib/process-execution-broker/process-ownership-quarantine.js\");\n    const { default: broker } =\n      await import(\"../../src/lib/process-execution-broker/index.js\");\n    const proc = child();\n    const native = vi.fn(() => {\n      throw new Error(\"native launch must not run\");\n    });\n    broker._native = { spawn: native, spawnSync: native };\n    ledger.observeProcessOwnership(proc, \"owned\");\n    const launches = [\n      () => broker.spawn(\"node\", [], { policy: \"allow\" }),\n      () => broker.spawnSync(\"node\", [], { policy: \"allow\" }),\n      () => broker.spawnPty({ spawn: native }, \"node\"),\n      () => broker.exec(\"node\", {}),\n      () => broker.execSync(\"node\"),\n      () => broker.execFile(\"node\", []),\n      () => broker.execFileSync(\"node\", []),\n      () => broker.fork(\"fixture.cjs\"),\n      () => broker.beginWorkspaceTransaction({}),\n      () => broker.recoverWorkspaceTransactions({}),\n      () => broker.restoreWorkspaceTransaction(\"fixture\"),\n      () => broker.undoWorkspaceTransactionRestore(\"fixture\"),\n      () =>\n        new broker.constructor().spawn(\"node\", [], {\n          cwd: \"/different\",\n          policy: \"allow\",\n        }),\n    ];\n    let reentryObserved = false;\n    proc.on(\"error\", () => {\n      reentryObserved = true;\n      for (const launch of launches)\n        expect(launch).toThrow(\n          expect.objectContaining({\n            code: ledger.PROCESS_OWNERSHIP_UNCONFIRMED,\n            recoveryRequired: true,\n            executionStarted: false,\n          }),\n        );\n    });\n    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };\n    proc.emit(\n      \"error\",\n      Object.assign(new Error(\"owner lost\"), {\n        code: \"EXTERNAL_AGENT_CLEANUP_UNCONFIRMED\",\n      }),\n    );\n    proc.emit(\"cleanup:unconfirmed\", proc.ownedProcessTreeEvidence);\n    expect(reentryObserved).toBe(true);\n    expect(native).not.toHaveBeenCalled();\n    broker.flushAuditLog();\n    const snapshot = broker.getProcessOwnershipStatus();\n    expect(snapshot).toEqual({\n      blocked: true,\n      unresolvedExecutionIds: [\"owned\"],\n      recoveryRequired: true,\n      durable: false,\n      restartSafe: false,\n    });\n    snapshot.unresolvedExecutionIds.length = 0;\n    proc.emit(\"close\", 0);\n    expect(broker.getProcessOwnershipStatus().unresolvedExecutionIds).toEqual([\n      \"owned\",\n    ]);\n    expect(launches[0]).toThrow();\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793717230575,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/process-ownership-quarantine.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 3,
+                "sessionId": "panel-1793717222045-1aaa6d",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/process-ownership-quarantine.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_jw8xa51s0zdan4ae0klb1p7c",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-5b5f1cab-c72b-4139-8c8c-3f447b90b0ec",
+            "seq": 9
+          },
+          {
+            "type": "tool_result",
+            "id": "call_71zu0dwgyd3yb8vnie207iit",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "/private/tmp/cc-native-ro5HTP/d53776e4-be1d-4b8f-b7e4-57ce289d5af4/workspace/packages/cli/__tests__/verify-18.test.js",
+              "size": 4507,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 0,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793717290158,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-18.test.js",
+                    "content": "import { EventEmitter } from \"node:events\";\nimport { beforeEach, describe, expect, it, vi } from \"vitest\";\n\n// Independent regression coverage for the \"ownership unknown keeps blocking\"\n// guarantee: a supervisor that loses contact (unconfirmed tree cleanup) blocks\n// later managed executions, and a merely-disappeared root process must not be\n// mistaken for full tree exit. Source path resolved explicitly from this\n// deliverable directory (packages/cli/__tests__/) as ../src/...\nconst ledgerPath =\n  \"../src/lib/process-execution-broker/process-ownership-quarantine.js\";\n\nbeforeEach(() => vi.resetModules());\n\nfunction child(pid = 456) {\n  return Object.assign(new EventEmitter(), {\n    pid,\n    ownedProcessTreeClosed: new Promise(() => {}),\n  });\n}\n\ndescribe(\"verify-18 ownership-unknown keeps blocking\", () => {\n  it(\"blocks subsequent execution when supervisor ownership is unconfirmed via the owner-loss error code\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };\n    ledger.observeProcessOwnership(proc, \"lost-owner\");\n    proc.emit(\n      \"error\",\n      Object.assign(new Error(\"owner lost\"), {\n        code: \"EXTERNAL_AGENT_CLEANUP_UNCONFIRMED\",\n      }),\n    );\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(true);\n    expect(\n      ledger.getProcessOwnershipStatus().unresolvedExecutionIds,\n    ).toContain(\"lost-owner\");\n    expect(() => ledger.assertProcessOwnershipAvailable()).toThrow(\n      expect.objectContaining({\n        code: ledger.PROCESS_OWNERSHIP_UNCONFIRMED,\n        recoveryRequired: true,\n        executionStarted: false,\n      }),\n    );\n  });\n\n  it(\"does not block on an ordinary signal error (only the owner-loss code is a fence)\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };\n    ledger.observeProcessOwnership(proc, \"signal-owner\");\n    proc.emit(\"error\", new Error(\"signal failed\"));\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(false);\n    expect(() => ledger.assertProcessOwnershipAvailable()).not.toThrow();\n  });\n\n  it(\"blocks subsequent execution when a cleanup:unconfirmed receipt confirms=false\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    ledger.observeProcessOwnership(proc, \"unconfirmed-owner\");\n    proc.emit(\"cleanup:unconfirmed\", { cleanup: { confirmed: false } });\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(true);\n    expect(() => ledger.assertProcessOwnershipAvailable()).toThrow(\n      expect.objectContaining({\n        code: ledger.PROCESS_OWNERSHIP_UNCONFIRMED,\n      }),\n    );\n  });\n\n  it(\"does not block when the cleanup:unconfirmed receipt confirms=true\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    ledger.observeProcessOwnership(proc, \"clean-owner\");\n    proc.emit(\"cleanup:unconfirmed\", { cleanup: { confirmed: true } });\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(false);\n    expect(() => ledger.assertProcessOwnershipAvailable()).not.toThrow();\n  });\n\n  it(\"keeps blocking after the root process disappears: root exit is not full tree exit\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };\n    ledger.observeProcessOwnership(proc, \"tree-owner\");\n    proc.emit(\n      \"error\",\n      Object.assign(new Error(\"owner lost\"), {\n        code: \"EXTERNAL_AGENT_CLEANUP_UNCONFIRMED\",\n      }),\n    );\n    proc.emit(\"close\", 0); // root pid gone\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(true);\n    expect(\n      ledger.getProcessOwnershipStatus().unresolvedExecutionIds,\n    ).toContain(\"tree-owner\");\n    expect(() => ledger.assertProcessOwnershipAvailable()).toThrow(\n      expect.objectContaining({\n        code: ledger.PROCESS_OWNERSHIP_UNCONFIRMED,\n      }),\n    );\n  });\n\n  it(\"does not invent a block from a root close when no owner was unconfirmed\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };\n    ledger.observeProcessOwnership(proc, \"quiet-owner\");\n    proc.emit(\"close\", 0);\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(false);\n    expect(() => ledger.assertProcessOwnershipAvailable()).not.toThrow();\n  });\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 26,
+                "sessionId": "panel-1793717222045-1aaa6d",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-18.test.js",
+                    "content": "import { EventEmitter } from \"node:events\";\nimport { beforeEach, describe, expect, it, vi } from \"vitest\";\n\n// Independent regression coverage for the \"ownership unknown keeps blocking\"\n// guarantee: a supervisor that loses contact (unconfirmed tree cleanup) blocks\n// later managed executions, and a merely-disappeared root process must not be\n// mistaken for full tree exit. Source path resolved explicitly from this\n// deliverable directory (packages/cli/__tests__/) as ../src/...\nconst ledgerPath =\n  \"../src/lib/process-execution-broker/process-ownership-quarantine.js\";\n\nbeforeEach(() => vi.resetModules());\n\nfunction child(pid = 456) {\n  return Object.assign(new EventEmitter(), {\n    pid,\n    ownedProcessTreeClosed: new Promise(() => {}),\n  });\n}\n\ndescribe(\"verify-18 ownership-unknown keeps blocking\", () => {\n  it(\"blocks subsequent execution when supervisor ownership is unconfirmed via the owner-loss error code\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };\n    ledger.observeProcessOwnership(proc, \"lost-owner\");\n    proc.emit(\n      \"error\",\n      Object.assign(new Error(\"owner lost\"), {\n        code: \"EXTERNAL_AGENT_CLEANUP_UNCONFIRMED\",\n      }),\n    );\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(true);\n    expect(\n      ledger.getProcessOwnershipStatus().unresolvedExecutionIds,\n    ).toContain(\"lost-owner\");\n    expect(() => ledger.assertProcessOwnershipAvailable()).toThrow(\n      expect.objectContaining({\n        code: ledger.PROCESS_OWNERSHIP_UNCONFIRMED,\n        recoveryRequired: true,\n        executionStarted: false,\n      }),\n    );\n  });\n\n  it(\"does not block on an ordinary signal error (only the owner-loss code is a fence)\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };\n    ledger.observeProcessOwnership(proc, \"signal-owner\");\n    proc.emit(\"error\", new Error(\"signal failed\"));\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(false);\n    expect(() => ledger.assertProcessOwnershipAvailable()).not.toThrow();\n  });\n\n  it(\"blocks subsequent execution when a cleanup:unconfirmed receipt confirms=false\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    ledger.observeProcessOwnership(proc, \"unconfirmed-owner\");\n    proc.emit(\"cleanup:unconfirmed\", { cleanup: { confirmed: false } });\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(true);\n    expect(() => ledger.assertProcessOwnershipAvailable()).toThrow(\n      expect.objectContaining({\n        code: ledger.PROCESS_OWNERSHIP_UNCONFIRMED,\n      }),\n    );\n  });\n\n  it(\"does not block when the cleanup:unconfirmed receipt confirms=true\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    ledger.observeProcessOwnership(proc, \"clean-owner\");\n    proc.emit(\"cleanup:unconfirmed\", { cleanup: { confirmed: true } });\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(false);\n    expect(() => ledger.assertProcessOwnershipAvailable()).not.toThrow();\n  });\n\n  it(\"keeps blocking after the root process disappears: root exit is not full tree exit\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };\n    ledger.observeProcessOwnership(proc, \"tree-owner\");\n    proc.emit(\n      \"error\",\n      Object.assign(new Error(\"owner lost\"), {\n        code: \"EXTERNAL_AGENT_CLEANUP_UNCONFIRMED\",\n      }),\n    );\n    proc.emit(\"close\", 0); // root pid gone\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(true);\n    expect(\n      ledger.getProcessOwnershipStatus().unresolvedExecutionIds,\n    ).toContain(\"tree-owner\");\n    expect(() => ledger.assertProcessOwnershipAvailable()).toThrow(\n      expect.objectContaining({\n        code: ledger.PROCESS_OWNERSHIP_UNCONFIRMED,\n      }),\n    );\n  });\n\n  it(\"does not invent a block from a root close when no owner was unconfirmed\", async () => {\n    const ledger = await import(ledgerPath);\n    const proc = child();\n    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };\n    ledger.observeProcessOwnership(proc, \"quiet-owner\");\n    proc.emit(\"close\", 0);\n    expect(ledger.getProcessOwnershipStatus().blocked).toBe(false);\n    expect(() => ledger.assertProcessOwnershipAvailable()).not.toThrow();\n  });\n});\n"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "write_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_71zu0dwgyd3yb8vnie207iit",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-5b5f1cab-c72b-4139-8c8c-3f447b90b0ec",
+            "seq": 13
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2738,
+              "output_tokens": 122,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-5b5f1cab-c72b-4139-8c8c-3f447b90b0ec",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6794,
+              "output_tokens": 6254,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-5b5f1cab-c72b-4139-8c8c-3f447b90b0ec",
+            "seq": 11
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 9532,
+          "output_tokens": 6376,
+          "cache_read_input_tokens": 6144
+        },
+        "usageComplete": false,
+        "failureCategory": "agent-error",
+        "modelUsageRecordCount": 2,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "error",
+          "is_error": true,
+          "error": "volcengine API error: HTTP 403 — DIAGNOSTIC_NON_200_NO_RETRY.",
+          "turn": 1,
+          "trace_id": "tr-5b5f1cab-c72b-4139-8c8c-3f447b90b0ec",
+          "seq": 16
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 3,
+        "usageCompleteRequests": 2,
+        "passed": false,
+        "poisoned": "DIAGNOSTIC_NON_200_NO_RETRY",
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 3,
+        "usageCompleteRequests": 2,
+        "tasks": [
+          {
+            "taskId": "verify-18",
+            "requests": 3,
+            "errorCode": null
+          }
+        ],
+        "poisoned": "DIAGNOSTIC_NON_200_NO_RETRY",
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": null,
+        "knownTokenOnlyEstimateCny": 0.08659440000000002,
+        "fxRate": null
+      },
+      "changedPaths": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml",
+        "packages/cli/__tests__/verify-18.test.js"
+      ],
+      "finishedAt": "2026-11-03T14:48:39.259Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-18"
+  ],
+  "generationPassed": false,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 40 model turns, 48 requests, 180 second request timeout, model maximum 393216 output tokens (8192 test cap removed), 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:082bc5a98c8a209b214f2aa1fa66bf07976cd719f0d3d33b17f8b215f21799c0",
+  "group": "darwin-jetbrains",
+  "entry": "jetbrains",
+  "platform": "darwin",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:3ca5c1bfa5bffdee860665eeb757c24004dfaf0f3075f2a63e1a2600b3f6d600"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:7bf33df63888e550ac1ebd6a469d99e56ea1bb54f1d094b359b0c7fa1da1ffa6"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:be2edf8e1ced537796d5819e458e4b56f2c1638eab8880b09c2c7fea4a4245fd"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+      "digest": "sha256:82becb2b0b551916e312131bcca48736d9e3f462aed4ea2a89ec00f907457eed"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
+      "digest": "sha256:d2cbc2dee63e7f53c622d61ad314143d6bd4d59a679d9aea29579cb034a829fb"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-public140-full.mjs",
+      "digest": "sha256:f7c7f0dbe8cb572e4832b41f53aa89139e5ab398d7bdb603b7beb9942a9312f9"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:3e515efc1cff606e2cbbfa977b5674abe6a73c142caa1b0539c0a2698978f8e4"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-plugin-artifact.mjs",
+      "digest": "sha256:ce04147c3e2f97c7d44d37052f5e8329595efe9bbcb852b51952535ba96357bc"
+    },
+    {
+      "file": "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.mjs",
+      "digest": "sha256:b8fc449018df5d188d9aada8469e023bd220ece659620b2323cf796e9d08fdcb"
+    },
+    {
+      "file": "packages/jetbrains-plugin/build.gradle.kts",
+      "digest": "sha256:17510157d489a11ed93bde3b2cb06cf3f939edac6ffd8b26735c047f44e3aba7"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "digest": "sha256:29655e9a949948528018ad85baf368e5240445216caa747719c95d6c83903e0b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/UiFailureDiagnostics.java",
+      "digest": "sha256:5802b749fd82048d196e90ce5f0f2f4e4c7cfc527590f07b62ccafb73d4c6a20"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "digest": "sha256:44cb87d4c64437b64204a4bca9d7faaec68a6cbbff8b7303c491e17e7597337b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "digest": "sha256:b2a5f856e6607ec559b1c7d17be14a110cccd6bcaea323cbab5ae1458109ee5b"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T14:40:24.644Z",
+    "finishedAt": "2026-11-03T14:40:45.616Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "verify-18",
+    "locked": {
+      "version": "0.166.140",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+      "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T14:48:39.262Z"
+}

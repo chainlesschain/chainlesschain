@@ -1,0 +1,109 @@
+{
+  "schema": "chainlesschain.verify01-cli-ide-evaluation-scope/v1",
+  "runId": 41638188839,
+  "executionSource": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "releaseSource": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+  "cliVersion": "0.166.140",
+  "vscodeVersion": "0.37.176",
+  "jetbrainsVersion": "0.4.193",
+  "scope": "Launcher-owned hermetic quality evaluation only; not a finding that normal IDE file permissions are disabled",
+  "requests": [
+    {
+      "sampleId": "verify-04",
+      "requestNumber": 1,
+      "entry": "cli",
+      "expectedDeliverable": "packages/cli/__tests__/verify-04.test.js",
+      "archiveDigest": "sha256:5703ad2b0e877d76365954e8dc5df87ef787c58a15372b3e9c2a10be3d12d869",
+      "archiveMember": "verify-04/broker/request-1.effective.json",
+      "effectiveRequestDigest": "sha256:3394dbacac11a479f1684f3185e148b34bd9d246db8655b2b481e6c442ce0895",
+      "mutationTools": [
+        {
+          "name": "write_file",
+          "path": {
+            "type": "string",
+            "description": "Use exactly one listed canonical repo-relative path. Read tools may return absolute paths; those are not valid mutation arguments in this run. Do not use an absolute path, ./ prefix, .. segment or backslash. This schema is guidance; all execution-time permission and file-identity checks still apply.",
+            "enum": [
+              "packages/cli/__tests__/verify-04.test.js"
+            ]
+          }
+        },
+        {
+          "name": "edit_file",
+          "path": {
+            "type": "string",
+            "description": "Use exactly one listed canonical repo-relative path. Read tools may return absolute paths; those are not valid mutation arguments in this run. Do not use an absolute path, ./ prefix, .. segment or backslash. This schema is guidance; all execution-time permission and file-identity checks still apply.",
+            "enum": [
+              "packages/cli/__tests__/verify-04.test.js"
+            ]
+          }
+        },
+        {
+          "name": "edit_file_hashed",
+          "path": {
+            "type": "string",
+            "description": "Use exactly one listed canonical repo-relative path. Read tools may return absolute paths; those are not valid mutation arguments in this run. Do not use an absolute path, ./ prefix, .. segment or backslash. This schema is guidance; all execution-time permission and file-identity checks still apply.",
+            "enum": [
+              "packages/cli/__tests__/verify-04.test.js"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-linux-jetbrains",
+      "requestNumber": 21,
+      "entry": "jetbrains-ws",
+      "expectedDeliverable": "packages/cli/__tests__/verify-06.test.js",
+      "archiveDigest": "sha256:2636be002f9607e7c619f5acc5d7b3672a53b8eda6c268b3f101117c53059e9e",
+      "archiveMember": "first-run-linux-jetbrains/broker/request-21.effective.json",
+      "effectiveRequestDigest": "sha256:a1337eb761fa5c027312f9426dd088ce555826c71cf6161138a0debb2d0462ee",
+      "mutationTools": [
+        {
+          "name": "write_file",
+          "path": {
+            "type": "string",
+            "description": "File path"
+          }
+        },
+        {
+          "name": "edit_file",
+          "path": {
+            "type": "string",
+            "description": "File path"
+          }
+        },
+        {
+          "name": "edit_file_hashed",
+          "path": {
+            "type": "string",
+            "description": "File path"
+          }
+        }
+      ]
+    }
+  ],
+  "releaseSources": [
+    {
+      "path": "packages/cli/src/commands/agent.js",
+      "releaseSourceDigest": "sha256:cfa3c35dbf5e8940650d10742b5b25eec377150bf9268363415e558d01053d4e"
+    },
+    {
+      "path": "packages/cli/src/gateways/ws/ws-agent-handler.js",
+      "releaseSourceDigest": "sha256:86121833ff718b648ff36a5e581b1171cc630eb0d676967e644393e68f19be27"
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "releaseSourceDigest": "sha256:e88d93975701247e486ca99f2b5bcafb826b8052f82c0aa1e5c8e0f05ddb6d6c"
+    }
+  ],
+  "existingPathProof": "../diagnostics-first-linux-jetbrains-path/proof.json",
+  "finding": "CLI command bound exact file mutation scope; IDE gateway called shared agentLoop without that binding. Real provider mutation schemas differ. The IDE model requested a wrong integration directory and the execution wrote it. Both model instruction violation and missing evaluation boundary are retained.",
+  "scoreImpact": "The affected first-run-linux-jetbrains already has historical success, so fixing this path does not automatically reduce the remaining nine historical gaps. No old failed run is upgraded.",
+  "remediation": "Bind trusted launcher file allowlist and file-tool ceiling at shared agentLoop; preserve caller narrowing/empty/read-only tool ceilings; reject invalid or widened bindings before provider dispatch; keep same-name external executors from erasing builtin schema projection in that hermetic context.",
+  "releaseDecision": {
+    "cli": "Shared runtime source fix should ship through a later CLI release after exact-commit CI and strict-sandbox matrices pass. No emergency release is inferred from evaluation-only behavior.",
+    "idePlugins": "No IDE protocol or plugin source defect established here; existing plugins use CLI gateway. Rebuild only if CLI pairing or compatibility policy requires it.",
+    "harness": "Output-limit preservation and internal-summary length verdict fixes live in diagnostic broker/scripts and do not themselves require npm/IDE publication.",
+    "paidRetests": "Held by user; offline regressions do not count as model acceptance."
+  }
+}

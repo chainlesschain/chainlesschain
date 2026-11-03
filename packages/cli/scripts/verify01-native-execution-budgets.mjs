@@ -11,6 +11,11 @@ import {
   public140FullBudgets,
   loadPublic140FullRound,
 } from "./verify01-volcengine-public140-full.mjs";
+import {
+  isPublic140GenerationRecovery,
+  public140GenerationRecoveryBudgets,
+  loadPublic140GenerationRecovery,
+} from "./verify01-volcengine-public140-generation-recovery.mjs";
 
 export const DEFAULT_NATIVE_BUDGETS = Object.freeze({
   modelTurns: 20,
@@ -67,6 +72,8 @@ function readBoundEvidence(
 }
 
 export function nativeExecutionBudgets(manifest, provider = "volcengine") {
+  if (manifest?.volcengineGenerationRecovery !== undefined)
+    return public140GenerationRecoveryBudgets(manifest, provider);
   if (manifest?.volcengineFullRound !== undefined)
     return public140FullBudgets(manifest, provider);
   const retry = manifest?.volcengineBudgetRetry;
@@ -132,6 +139,8 @@ export function isBudgetLimitedNativeSample(row, outputTokens) {
 }
 
 export function loadVolcengineBudgetRetry(manifest, { repositoryRoot, plan }) {
+  if (isPublic140GenerationRecovery(manifest))
+    return loadPublic140GenerationRecovery(manifest, { repositoryRoot, plan });
   if (isPublic140FullRound(manifest))
     return loadPublic140FullRound(manifest, { repositoryRoot, plan });
   const retry = manifest?.volcengineBudgetRetry;

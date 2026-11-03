@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "runId": 41630636517,
+  "sampleId": "verify-18",
+  "executionSource": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "generationPassed": false,
+  "classification": "provider-account-overdue",
+  "rawDeliverySummaryDigest": "sha256:d095d9237de8a3c7e00e7875150ffaa24b164bce0ed3f24c9afd78604ef54466",
+  "requests": [
+    {
+      "requestId": 3,
+      "startedAt": "2026-11-03T14:48:10.390Z",
+      "finishedAt": "2026-11-03T14:48:18.058Z",
+      "providerHttpStatus": 403,
+      "providerErrorCode": "AccountOverdueError",
+      "usageKnown": false,
+      "billedCost": null
+    }
+  ],
+  "files": {
+    "request-3.receipt.json": "sha256:5b490bae69252e358ea90932da96c08a3286905b7ae5ace1d15446812751ea0f",
+    "response-3.sse": "sha256:4f66727dd36620f5bbf49a4116c58d5578c4b3e5ef12a85155503e264c8f5d0d"
+  },
+  "directFinding": "The actual Volcengine endpoint returned HTTP403 AccountOverdueError. This is a provider-account billing interruption, not evidence of model task ability or a CLI/IDE execution failure. No automatic retry was performed.",
+  "accountBalanceRestored": null,
+  "recoveryAuthorization": "User instructed continuation on 2026-11-03 after identifying the likely overdue balance; keep prior successes and replay interrupted samples separately.",
+  "limitations": [
+    "The error body does not include token usage or an account billing receipt. Unknown cost stays null, never zero.",
+    "Later successful requests are required to demonstrate billing admission has recovered; catalog authentication alone does not prove account balance."
+  ]
+}

@@ -1,0 +1,63 @@
+import { describe, it, expect } from "vitest";
+import { inspectImageBudget } from "../src/chat/image-decode-budget.js";
+
+// A valid minimal 1x1 GIF89a used as the frame block source.
+const gif = Buffer.from(
+  "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+  "base64",
+);
+
+// Build an animated GIF with `count` full-canvas frames of size `canvas x canvas`.
+// Each frame block is a 1x1 descriptor, so per-frame dimensions stay trivial while
+// the accumulated decode budget scales with canvas^2 * count.
+const animated = (count, canvas = 1) => {
+  const header = Buffer.from(gif.subarray(0, 19));
+  header.writeUInt16LE(canvas, 6);
+  header.writeUInt16LE(canvas, 8);
+  return Buffer.concat([
+    header,
+    ...Array.from({ length: count }, () => gif.subarray(19, -1)),
+    Buffer.from([0x3b]),
+  ]);
+};
+
+describe("cumulative animation frame budget (independent regression)", () => {
+  it("rejects multi-frame cumulative pixel over-limit while frame count is legal", () => {
+    // 200 frames (count is exactly the accepted boundary) but 448^2 * 200 =
+    // 40,140,800 > 40,000,000 accumulated canvas pixels. Only the cumulative
+    // pixel guard can reject this; the frame-count guard stays quiet.
+    expect(() => inspectImageBudget(animated(200, 448))).toThrow(
+      "decoded canvas pixels",
+    );
+  });
+
+  it("retains the legal cumulative pixel boundary image", () => {
+    // 200 frames at 447x447 => 199_809 * 200 = 39_961_800 <= 40_000_000.
+    const budget = inspectImageBudget(animated(200, 447));
+    expect(budget).toMatchObject({
+      format: "gif",
+      frames: 200,
+      decodedPixels: 447 * 447 * 200,
+    });
+  });
+
+  it("rejects more than 200 frames but retains exactly 200", () => {
+    // 1x1 canvas: pixel budget is trivially satisfied, so only the 200-frame
+    // guard can reject 201 frames.
+    expect(() => inspectImageBudget(animated(201))).toThrow("200 frames");
+    expect(inspectImageBudget(animated(200))).toMatchObject({
+      frames: 200,
+      decodedPixels: 200,
+    });
+  });
+
+  it("retains a legal minimal single-frame container", () => {
+    expect(inspectImageBudget(gif)).toMatchObject({
+      format: "gif",
+      width: 1,
+      height: 1,
+      frames: 1,
+      decodedPixels: 1,
+    });
+  });
+});

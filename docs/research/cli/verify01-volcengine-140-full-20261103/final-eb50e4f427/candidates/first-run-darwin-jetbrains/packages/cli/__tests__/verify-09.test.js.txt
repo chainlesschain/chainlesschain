@@ -1,0 +1,162 @@
+import { describe, expect, it } from "vitest";
+import {
+  createSessionHistoryOrigins,
+  HISTORY_PREFIX_SCHEMA,
+} from "../src/lib/session-history-origins.js";
+
+const head = "a".repeat(64);
+const otherHead = "b".repeat(64);
+
+/**
+ * Build an origin tracker seeded by caller-supplied mappings so the regression
+ * can exercise the origin-tampering guards directly. appendMappedPersisted
+ * accepts raw displayable messages (decodeVerifiedPersistedMessage passes plain
+ * object messages through) and records the supplied origin verbatim.
+ */
+function seeded(messages, origins) {
+  const originsApi = createSessionHistoryOrigins();
+  messages.forEach((message, index) =>
+    originsApi.appendMappedPersisted(message, origins[index]),
+  );
+  return originsApi;
+}
+
+function prefixEvent(messages, retainedMessageCount, overrides) {
+  return {
+    prevHash: head,
+    data: {
+      action: "restore-conversation",
+      messages: messages.slice(0, retainedMessageCount),
+      historyPrefix: {
+        schema: HISTORY_PREFIX_SCHEMA,
+        sourceHead: head,
+        sourceMessageCount: messages.length,
+        retainedMessageCount,
+        ...overrides,
+      },
+    },
+  };
+}
+
+describe("history source tampering rejection", () => {
+  it("reads a correct origin-bearing prefix back (positive baseline)", () => {
+    const messages = [
+      { role: "user", content: "cut" },
+      { role: "user", content: "later" },
+    ];
+    const originsApi = seeded(messages, [
+      { first: 0, last: 0 },
+      { first: 1, last: 1 },
+    ]);
+    // cut=1: retained [cut] has origin.last 0 < cutoff 1; removed [later] has
+    // origin.first 1 >= cutoff; fingerprint(retained) matches the payload.
+    expect(originsApi.rewind(prefixEvent(messages, 1), 2)).toBe(1);
+  });
+
+  it("rejects a mismatched session/source head but accepts the matching head", () => {
+    const messages = [
+      { role: "user", content: "cut" },
+      { role: "user", content: "later" },
+    ];
+    const originsApi = seeded(messages, [
+      { first: 0, last: 0 },
+      { first: 1, last: 1 },
+    ]);
+    expect(originsApi.rewind(prefixEvent(messages, 1), 2)).toBe(1);
+    // Only the source head is swapped; every other prerequisite stays valid.
+    expect(
+      originsApi.rewind(
+        prefixEvent(messages, 1, { sourceHead: otherHead }),
+        2,
+      ),
+    ).toBeNull();
+  });
+
+  it("rejects a mismatched source message count but accepts the real count", () => {
+    const messages = [
+      { role: "user", content: "cut" },
+      { role: "user", content: "later" },
+    ];
+    const originsApi = seeded(messages, [
+      { first: 0, last: 0 },
+      { first: 1, last: 1 },
+    ]);
+    expect(originsApi.rewind(prefixEvent(messages, 1), 2)).toBe(1);
+    // Only the sourceMessageCount is off by one; head, action, bounds and
+    // fingerprint remain the valid positive-control values.
+    expect(
+      originsApi.rewind(
+        prefixEvent(messages, 1, { sourceMessageCount: messages.length - 1 }),
+        2,
+      ),
+    ).toBeNull();
+  });
+
+  it("rejects a forged spanning origin on the rewind anchor", () => {
+    const messages = [
+      { role: "user", content: "cut" },
+      { role: "user", content: "anchor" },
+      { role: "user", content: "later" },
+    ];
+    const valid = [
+      { first: 0, last: 0 },
+      { first: 1, last: 1 },
+      { first: 2, last: 2 },
+    ];
+    // Positive: anchor is a user with origin.first === origin.last (1), so the
+    // cutoff resolves to 1 and no removed entry precedes it.
+    expect(seeded(messages, valid).rewind(prefixEvent(messages, 1), 3)).toBe(1);
+    // Negative: only the anchor origin is forged into a span crossing the
+    // cutoff; all other prerequisites (head, count, retained [0,0], removed
+    // [2,2], fingerprint) remain valid so only this guard can reject it.
+    const forged = [...valid];
+    forged[1] = { first: 0, last: 1 };
+    expect(seeded(messages, forged).rewind(prefixEvent(messages, 1), 3)).toBe(
+      null,
+    );
+  });
+
+  it("rejects a retained origin that crosses the cutoff", () => {
+    const messages = [
+      { role: "user", content: "cut" },
+      { role: "user", content: "later" },
+    ];
+    const valid = [
+      { first: 0, last: 0 },
+      { first: 1, last: 1 },
+    ];
+    // Positive: retained [cut].origin.last 0 < cutoff 1.
+    expect(seeded(messages, valid).rewind(prefixEvent(messages, 1), 2)).toBe(1);
+    // Negative: only the retained entry's origin is forged to extend past the
+    // cutoff (last 2 >= 1); the anchor, removed entries, head and count are the
+    // same valid controls so only the retained-crossing guard can reject.
+    const forged = [...valid];
+    forged[0] = { first: 0, last: 2 };
+    expect(seeded(messages, forged).rewind(prefixEvent(messages, 1), 2)).toBe(
+      null,
+    );
+  });
+
+  it("rejects a removed origin that precedes the cutoff", () => {
+    const messages = [
+      { role: "user", content: "cut" },
+      { role: "user", content: "anchor" },
+      { role: "user", content: "later" },
+    ];
+    const valid = [
+      { first: 0, last: 0 },
+      { first: 1, last: 1 },
+      { first: 2, last: 2 },
+    ];
+    // Positive: no removed entry has origin.first < cutoff 1.
+    expect(seeded(messages, valid).rewind(prefixEvent(messages, 1), 3)).toBe(1);
+    // Negative: only the trailing removed entry's origin is forged to start
+    // before the cutoff (first 0 < 1); the anchor, retained entry, head and
+    // count remain valid controls so only the removed-preceding guard rejects.
+    const forged = [...valid];
+    forged[2] = { first: 0, last: 2 };
+    expect(seeded(messages, forged).rewind(prefixEvent(messages, 1), 3)).toBe(
+      null,
+    );
+  });
+});

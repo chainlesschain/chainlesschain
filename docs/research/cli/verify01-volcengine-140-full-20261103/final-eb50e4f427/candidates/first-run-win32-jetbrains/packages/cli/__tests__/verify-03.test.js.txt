@@ -1,0 +1,73 @@
+import { describe, it, expect } from "vitest";
+import { lookupRate, estimateCost } from "../src/lib/llm-pricing.js";
+
+/**
+ * verify-03 — "新家族未知计价" (unknown pricing for a brand-new family/version).
+ *
+ * Independent regression coverage on the frozen llm-pricing source. An unknown
+ * model must surface as UNPRICED (matched:false / lookupRate null) and must NOT
+ * silently inherit a stale rate from an older family pattern. Known models must
+ * keep pricing through the same boundary. Positive and negative controls differ
+ * only in the model id (the single condition under test).
+ */
+describe("verify-03 — new-family unknown pricing", () => {
+  it("prices a known model in a known family (positive control)", () => {
+    // claude-opus-4-8 has its own table entry → still priced, not unpriced.
+    expect(lookupRate("anthropic", "claude-opus-4-8")).toMatchObject({
+      pattern: "opus-4-8",
+      in: 5,
+      out: 25,
+    });
+  });
+
+  it("prices a known older version via the generic opus fallback", () => {
+    // A current-family id (Opus 4.x, no specific entry) still resolves through
+    // the generic "opus" row at the current rate. Only brand-new unknown
+    // versions must become unpriced — proving the guard's scope is narrow.
+    expect(lookupRate("anthropic", "claude-opus-4-9")).toMatchObject({
+      pattern: "opus",
+      in: 5,
+      out: 25,
+    });
+  });
+
+  it("does not price a brand-new unknown Opus version (no stale inherit)", () => {
+    // Version >=5 with no specific entry must NOT fall back to the generic
+    // "opus" rate. lookupRate returns null → unpriced.
+    expect(lookupRate("anthropic", "claude-opus-5-0")).toBeNull();
+  });
+
+  it("surfaces a new unknown family version as unpriced at estimateCost", () => {
+    const c = estimateCost({
+      provider: "anthropic",
+      model: "claude-opus-5-0",
+      inputTokens: 1000,
+      outputTokens: 500,
+    });
+    expect(c.matched).toBe(false);
+    expect(c.rate).toBeNull();
+    expect(c.totalCost).toBe(0);
+  });
+
+  it("keeps pricing for a known OpenAI model while an unknown family is unpriced", () => {
+    expect(lookupRate("openai", "gpt-4o")).toMatchObject({
+      pattern: "gpt-4o",
+      in: 2.5,
+      out: 10,
+    });
+    // Brand-new family (gpt-6) with no pattern → unpriced, not gpt-5.
+    expect(lookupRate("openai", "gpt-6")).toBeNull();
+  });
+
+  it("still bills a known model at estimateCost after the unpriced boundary", () => {
+    const c = estimateCost({
+      provider: "openai",
+      model: "gpt-4o",
+      inputTokens: 1_000_000,
+      outputTokens: 0,
+    });
+    expect(c.matched).toBe(true);
+    expect(c.free).toBe(false);
+    expect(c.totalCost).toBeCloseTo(2.5, 6);
+  });
+});

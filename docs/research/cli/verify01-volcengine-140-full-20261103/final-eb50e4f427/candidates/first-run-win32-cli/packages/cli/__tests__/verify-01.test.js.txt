@@ -1,0 +1,106 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+// Independent regression coverage for "official endpoint vs same-named custom
+// gateway isolation": a model served at the official endpoint may carry
+// documented (official) certification, but the same-named model served at a
+// custom gateway must never share it. Volcengine has no documented official
+// catalog, so its legacy models stay assumed at either endpoint.
+describe("official endpoint vs same-named custom gateway isolation", () => {
+  it("applies official certification only at the official openai endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "https://api.openai.com/v1",
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 128000,
+      windowSource: "official-model-docs",
+      windowAssumed: false,
+      runtimeVerified: false,
+      advertisedMaxOutputTokens: 16384,
+    });
+    expect(profile.sources.length).toBeGreaterThan(0);
+  });
+
+  it("does not let a same-named custom gateway share that official certification", () => {
+    const custom = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(custom).toMatchObject({
+      contextWindowTokens: 128000,
+      windowSource: "legacy-catalog",
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+    });
+    expect(custom.sources).toEqual([]);
+    expect(custom.limitations.join(" ")).toMatch(
+      /not applied to a custom endpoint/,
+    );
+    const official = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "https://api.openai.com/v1",
+    });
+    // Certification is not shared: only the official endpoint is non-assumed.
+    expect(official.windowAssumed).toBe(false);
+    expect(custom.windowAssumed).toBe(true);
+  });
+
+  it("keeps a legacy volcengine model assumed at the official endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "volcengine",
+      model: "doubao-seed-1-6-251015",
+      baseUrl: "https://api.volcengine.com/v1",
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 32768,
+      windowSource: "legacy-catalog",
+      windowAssumed: true,
+      runtimeProtocol: "chat-completions",
+      advertisedMaxOutputTokens: null,
+    });
+    expect(profile.sources).toEqual([]);
+  });
+
+  it("does not fabricate official certification for the same volcengine model at a custom gateway", () => {
+    const official = resolveModelCapabilityProfile({
+      provider: "volcengine",
+      model: "doubao-seed-1-6-251015",
+      baseUrl: "https://api.volcengine.com/v1",
+    });
+    const custom = resolveModelCapabilityProfile({
+      provider: "volcengine",
+      model: "doubao-seed-1-6-251015",
+      baseUrl: "https://gateway.example/v1",
+    });
+    for (const profile of [official, custom]) {
+      expect(profile.windowAssumed).toBe(true);
+      expect(profile.windowSource).toBe("legacy-catalog");
+      expect(profile.advertisedMaxOutputTokens).toBeNull();
+      expect(profile.runtimeVerified).toBe(false);
+    }
+  });
+
+  it("keeps an unknown volcengine window an assumed estimate at either endpoint", () => {
+    for (const baseUrl of [
+      "https://api.volcengine.com/v1",
+      "https://gateway.example/v1",
+    ]) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "volcengine",
+        model: "doubao-seed-future-999999",
+        baseUrl,
+      });
+      expect(profile).toMatchObject({
+        windowSource: "provider-default",
+        windowAssumed: true,
+        runtimeVerified: false,
+        advertisedMaxOutputTokens: null,
+        sources: [],
+      });
+    }
+  });
+});

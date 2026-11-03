@@ -1,0 +1,143 @@
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+  rmSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { applyMemoryCommand } from "@chainlesschain/context-memory-kernel";
+import { createDurableMemoryFixture } from "../scripts/persistent-capacity-benchmark.mjs";
+import {
+  SegmentedMemoryPort,
+  SEGMENTED_STORE_SCHEMA,
+} from "../src/lib/context-memory-kernel/segmented-memory-port.js";
+import { STORE_SCHEMA } from "../src/lib/context-memory-kernel/durable-memory-port.js";
+
+const roots = [];
+function location() {
+  const root = mkdtempSync(join(tmpdir(), "cc-verify21-shadow-"));
+  roots.push(root);
+  return join(root, "kernel-v1.json");
+}
+function reinforce(record) {
+  return applyMemoryCommand(record, {
+    type: "reinforce",
+    expectedRevision: record.revision,
+    confidenceDelta: 0.01,
+    authority: "test",
+    at: "2026-10-04T00:00:00.000Z",
+  });
+}
+function parentOf(filePath) {
+  return join(filePath, "..");
+}
+afterEach(() => {
+  while (roots.length) rmSync(roots.pop(), { recursive: true, force: true });
+});
+
+describe("Memory shadow reads are write-free (v1/v2)", () => {
+  it("v1 shadow read does not migrate and leaves authority bytes and directory entries unchanged", async () => {
+    const filePath = location();
+    const parent = parentOf(filePath);
+    const state = createDurableMemoryFixture(2);
+    writeFileSync(filePath, JSON.stringify(state));
+    const bytesBefore = readFileSync(filePath).toString();
+    const entriesBefore = readdirSync(parent).sort();
+
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.query()).toHaveLength(2);
+    expect(await shadow.getRevision()).toBe(state.storeRevision);
+    const record = Object.values(state.records)[0];
+    expect(await shadow.read(record.memoryId)).toEqual(record);
+    expect(await shadow.exportSnapshot()).toEqual(state);
+
+    // No migration: the authority must still be a v1 (STORE_SCHEMA) store.
+    expect(JSON.parse(readFileSync(filePath)).schema).toBe(STORE_SCHEMA);
+    // No writes: authority bytes and directory entries are byte-identical.
+    expect(readFileSync(filePath).toString()).toBe(bytesBefore);
+    expect(readdirSync(parent).sort()).toEqual(entriesBefore);
+  });
+
+  it("a writable v1 port migrates the same store, proving readOnly is the migration guard", async () => {
+    const filePath = location();
+    const state = createDurableMemoryFixture(2);
+    writeFileSync(filePath, JSON.stringify(state));
+
+    const writable = new SegmentedMemoryPort({ filePath });
+    expect(await writable.query()).toHaveLength(2);
+    // Changing only the readOnly flag flips behavior: migration now occurs.
+    expect(JSON.parse(readFileSync(filePath)).schema).toBe(
+      SEGMENTED_STORE_SCHEMA,
+    );
+  });
+
+  it("v2 shadow read keeps an orphan shard and leaves manifest bytes and directory entries unchanged", async () => {
+    const filePath = location();
+    const parent = parentOf(filePath);
+    const state = createDurableMemoryFixture(2);
+    await new SegmentedMemoryPort({ filePath }).importSnapshot(state);
+    const shardDir = `${filePath}.shards`;
+    const manifestBefore = readFileSync(filePath).toString();
+    const parentBefore = readdirSync(parent).sort();
+    const shardEntriesBefore = readdirSync(shardDir).sort();
+    const orphanName = `00-${"a".repeat(64)}.json`;
+    const orphan = join(shardDir, orphanName);
+    writeFileSync(orphan, "orphan-payload");
+
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.query()).toHaveLength(2);
+    expect(await shadow.exportSnapshot()).toEqual(state);
+    expect(await shadow.getRevision()).toBe(state.storeRevision);
+
+    // No GC: the orphan is retained and the shard directory is unchanged.
+    expect(readFileSync(orphan, "utf8")).toBe("orphan-payload");
+    expect(readdirSync(shardDir).sort()).toEqual(
+      [...shardEntriesBefore, orphanName].sort(),
+    );
+    // No writes: manifest bytes and parent entries are unchanged.
+    expect(readFileSync(filePath).toString()).toBe(manifestBefore);
+    expect(readdirSync(parent).sort()).toEqual(parentBefore);
+  });
+
+  it("a writable v2 port collects the same orphan, proving readOnly is the GC guard", async () => {
+    const filePath = location();
+    const state = createDurableMemoryFixture(2);
+    await new SegmentedMemoryPort({ filePath }).importSnapshot(state);
+    const shardDir = `${filePath}.shards`;
+    const orphanName = `00-${"a".repeat(64)}.json`;
+    writeFileSync(join(shardDir, orphanName), "orphan-payload");
+
+    const writable = new SegmentedMemoryPort({ filePath });
+    expect(await writable.query()).toHaveLength(2);
+    // Changing only the readOnly flag flips behavior: GC now removes the orphan.
+    expect(readdirSync(shardDir).sort()).not.toContain(orphanName);
+  });
+
+  it("a shadow port rejects commit and import instead of writing", async () => {
+    const filePath = location();
+    const state = createDurableMemoryFixture(2);
+    await new SegmentedMemoryPort({ filePath }).importSnapshot(state);
+    const manifestBefore = readFileSync(filePath).toString();
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    const record = Object.values(state.records)[0];
+
+    await expect(shadow.commit(reinforce(record), 1)).rejects.toMatchObject({
+      code: "CONTEXT_MEMORY_READ_ONLY",
+    });
+    expect(readFileSync(filePath).toString()).toBe(manifestBefore);
+
+    // Import into an absent authority must also be refused before any write.
+    const absent = location();
+    const absentParent = parentOf(absent);
+    const absentEntriesBefore = readdirSync(absentParent).sort();
+    await expect(
+      new SegmentedMemoryPort({ filePath: absent, readOnly: true }).importSnapshot(
+        state,
+      ),
+    ).rejects.toMatchObject({ code: "CONTEXT_MEMORY_READ_ONLY" });
+    expect(readdirSync(absentParent).sort()).toEqual(absentEntriesBefore);
+  });
+});

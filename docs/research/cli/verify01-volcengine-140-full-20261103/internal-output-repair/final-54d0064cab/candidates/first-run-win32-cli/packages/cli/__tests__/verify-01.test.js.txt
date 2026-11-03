@@ -1,0 +1,91 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+describe("official endpoint isolation from a same-named custom gateway", () => {
+  it("certifies a documented model only at the exact official endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+      baseUrl: "https://api.openai.com/v1",
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 1050000,
+      advertisedMaxOutputTokens: 128000,
+      runtimeProtocol: "openai-responses",
+      windowAssumed: false,
+      runtimeVerified: false,
+    });
+    expect(profile.sources).toContain(
+      "https://developers.openai.com/api/docs/models/gpt-6-astra",
+    );
+  });
+
+  it("never shares official certification with a same-named model on a custom gateway", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 128000,
+      windowSource: "provider-default",
+      windowAssumed: true,
+      runtimeProtocol: "chat-completions",
+      advertisedMaxOutputTokens: null,
+    });
+    expect(profile.sources).toEqual([]);
+    expect(profile.reasoningEfforts).toBeUndefined();
+  });
+
+  it("requires the canonical official URL, rejecting a trailing-slash variant", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+      baseUrl: "https://api.openai.com/v1/",
+    });
+    expect(profile.windowAssumed).toBe(true);
+    expect(profile.advertisedMaxOutputTokens).toBeNull();
+    expect(profile.runtimeProtocol).toBe("chat-completions");
+  });
+
+  it("certifies the documented Anthropic model at its official endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "anthropic",
+      model: "claude-opus-5-5",
+      baseUrl: "https://api.anthropic.com/v1",
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 1000000,
+      windowAssumed: false,
+      runtimeProtocol: "anthropic-messages",
+      advertisedMaxOutputTokens: null,
+    });
+  });
+
+  it("downgrades the same Anthropic model on a custom gateway to an assumption", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "anthropic",
+      model: "claude-opus-5-5",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(profile.windowAssumed).toBe(true);
+    expect(profile.windowSource).toBe("provider-default");
+    expect(profile.contextWindowTokens).toBe(200000);
+    expect(profile.sources).toEqual([]);
+  });
+
+  it("keeps an unknown model's window unknown even at the official endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "future-model",
+      baseUrl: "https://api.openai.com/v1",
+    });
+    expect(profile).toMatchObject({
+      windowSource: "provider-default",
+      windowAssumed: true,
+      contextWindowTokens: 128000,
+    });
+    expect(profile.sources).toEqual([]);
+    expect(profile.advertisedMaxOutputTokens).toBeNull();
+  });
+});

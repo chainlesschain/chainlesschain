@@ -1,0 +1,120 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { createHash } from "node:crypto";
+import observation from "../src/lib/settings-source-observation.cjs";
+
+const { observeSettingsSource } = observation;
+
+let root;
+
+beforeEach(() => {
+  root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-verify16-"));
+});
+afterEach(() => {
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+function write(relative, value) {
+  const file = path.join(root, relative);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(
+    file,
+    typeof value === "object" && !Buffer.isBuffer(value)
+      ? JSON.stringify(value)
+      : value,
+  );
+  return file;
+}
+
+function digestOf(bytes) {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+// Runs the callback after the first successful non-empty read of the inspected
+// descriptor, so the mutation happens between the before/after fstat checks.
+function onFirstRead(callback) {
+  let called = false;
+  return {
+    ...fs,
+    readSync(...args) {
+      const count = fs.readSync(...args);
+      if (count && !called) {
+        called = true;
+        callback();
+      }
+      return count;
+    },
+  };
+}
+
+describe("invalid settings source conservative failure", () => {
+  it("reuses the identical digest when an unchanged source is re-observed (positive control)", () => {
+    const bytes = '{"permissions":{"allow":["Read"]}}\n';
+    const file = write("settings.json", bytes);
+    const first = observeSettingsSource(file);
+    const second = observeSettingsSource(file);
+    expect(first.digest).toBe(digestOf(bytes));
+    expect(second.digest).toBe(first.digest);
+    expect(second.settings.permissions.allow).toEqual(["Read"]);
+  });
+
+  it("rejects a source deleted after a prior observation so the old allowed digest is never reused", () => {
+    const bytes = '{"permissions":{"allow":["Read"]}}\n';
+    const file = write("settings.json", bytes);
+    const before = observeSettingsSource(file);
+    expect(before.digest).toBe(digestOf(bytes));
+    fs.unlinkSync(file);
+    const after = observeSettingsSource(file);
+    expect(after.exists).toBe(false);
+    expect(after.digest).toBeNull();
+    expect(after.digest).not.toBe(before.digest);
+    expect(after.settings).toBeNull();
+  });
+
+  it("rejects an in-place corruption during inspection instead of returning a stale digest", () => {
+    const file = write("settings.json", '{"permissions":{"allow":["Read"]}}');
+    const before = observeSettingsSource(file);
+    expect(before.digest).not.toBeNull();
+    const runtimeFs = onFirstRead(() =>
+      fs.writeFileSync(file, '{"permissions":{"deny":["Read"]}}'),
+    );
+    expect(() => observeSettingsSource(file, { fs: runtimeFs })).toThrow(
+      expect.objectContaining({ code: "CC_SETTINGS_SOURCE_CHANGED" }),
+    );
+  });
+
+  it("rejects an ABA source swap to a different inode during one inspection so old bytes are not republished", () => {
+    const file = write("settings.json", '{"permissions":{"allow":["Read"]}}');
+    const originalIno = String(fs.statSync(file, { bigint: true }).ino);
+    const runtimeFs = onFirstRead(() => {
+      // A -> B -> A; every replacement is a fresh inode.
+      fs.renameSync(file, path.join(root, "aside.json"));
+      fs.writeFileSync(file, '{"permissions":{"deny":["Read"]}}');
+      const restored = path.join(root, "restored.json");
+      fs.writeFileSync(restored, '{"permissions":{"allow":["Read"]}}');
+      fs.renameSync(restored, file);
+      fs.unlinkSync(path.join(root, "aside.json"));
+    });
+    expect(() => observeSettingsSource(file, { fs: runtimeFs })).toThrow(
+      expect.objectContaining({ code: "CC_SETTINGS_SOURCE_CHANGED" }),
+    );
+    expect(String(fs.statSync(file, { bigint: true }).ino)).not.toBe(
+      originalIno,
+    );
+  });
+
+  it("reports a fresh digest after atomic replacement between observations (no stale reuse)", () => {
+    const first = '{"permissions":{"allow":["Read"]}}\n';
+    const second = '{"permissions":{"allow":["Read","Write"]}}\n';
+    const file = write("settings.json", first);
+    const before = observeSettingsSource(file);
+    const replacement = write("next.json", second);
+    fs.renameSync(replacement, file);
+    const after = observeSettingsSource(file);
+    expect(after.digest).toBe(digestOf(second));
+    expect(after.digest).not.toBe(before.digest);
+    expect(after.settings.permissions.allow).toEqual(["Read", "Write"]);
+  });
+});

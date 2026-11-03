@@ -7,6 +7,10 @@ import {
   assertPublic140FullDispatch,
 } from "./verify01-volcengine-public140-full.mjs";
 import {
+  isPublic140GenerationRecovery,
+  assertPublic140GenerationRecoveryDispatch,
+} from "./verify01-volcengine-public140-generation-recovery.mjs";
+import {
   isHistoricalRetry,
   runtimeRepairBinding,
   ORIGINAL_PROJECT,
@@ -66,6 +70,8 @@ export function assertFreshVolcengineRound(options, plan) {
   const declaration = options.packageBinding?.bytes
     ? JSON.parse(options.packageBinding.bytes.toString("utf8"))
     : null;
+  if (isPublic140GenerationRecovery(declaration))
+    return assertPublic140GenerationRecoveryDispatch(options, plan);
   if (isPublic140FullRound(declaration))
     return assertPublic140FullDispatch(options, plan);
   return assertLegacyFreshVolcengineRound(options);

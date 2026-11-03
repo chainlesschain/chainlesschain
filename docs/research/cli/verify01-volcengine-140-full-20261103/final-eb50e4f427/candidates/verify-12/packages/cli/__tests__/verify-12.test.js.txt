@@ -1,0 +1,179 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  agentPrintArgument,
+  assertBackgroundArgvDurable,
+  canonicalizeBackgroundSessionArgv,
+  stripFirstTurnPromptArgv,
+  transformBackgroundLaunchArgv,
+} from "../../src/lib/background-command-argv.js";
+
+/**
+ * Mirrors the Commander option grammar used by the real background launcher.
+ * Defined locally so this suite stays independent of any existing unit test.
+ */
+const OPTION_SPECS = [
+  { long: "--model", required: true },
+  { long: "--title", required: true },
+  { short: "-p", long: "--print", optional: true },
+  { short: "-c", long: "--continue" },
+  { long: "--no-worktree" },
+  { long: "--session", required: true },
+  { long: "--resume", optional: true },
+  { long: "--fork-session" },
+  { long: "--fork-request-id", required: true },
+  { short: "-y", long: "--yolo" },
+  { long: "--verbose" },
+  { long: "--profile", required: true },
+];
+
+describe("verify-12: argument integrity with spaces, empty values, and quoted paths", () => {
+  it("keeps an option value with spaces as a single token and drops it only when it is a parent option", () => {
+    // Positive control: a value containing spaces is one argv element and is
+    // carried through verbatim. A value that happens to be a literal empty
+    // string stays a present (not dropped) element.
+    const spaced = canonicalizeBackgroundSessionArgv(
+      ["agent", "--title", "hello world", "--session=old", "task"],
+      { sessionId: "resolved", optionSpecs: OPTION_SPECS },
+    );
+    expect(spaced).toEqual([
+      "agent",
+      "--title",
+      "hello world",
+      "task",
+      "--session",
+      "resolved",
+    ]);
+
+    // Negative control for the same option-boundary logic: an empty string is
+    // still a real value token of --title and must not be mistaken for a flag.
+    const empty = canonicalizeBackgroundSessionArgv(
+      ["agent", "--title", "", "--session", "old"],
+      { sessionId: "resolved", optionSpecs: OPTION_SPECS },
+    );
+    expect(empty).toEqual(["agent", "--title", "", "--session", "resolved"]);
+  });
+
+  it("keeps a quoted path with spaces inside one token instead of splitting it on whitespace", () => {
+    // Positive control: the platform passes a quoted path as a single argv
+    // element; the transform must not re-split it.
+    const launched = transformBackgroundLaunchArgv(
+      [
+        "agent",
+        "--model",
+        "C:\\Program Files\\model.bin",
+        "--no-worktree",
+        "--title",
+        "work",
+      ],
+      { optionSpecs: OPTION_SPECS },
+    );
+    expect(launched).toEqual([
+      "agent",
+      "--model",
+      "C:\\Program Files\\model.bin",
+      "--title",
+      "work",
+    ]);
+
+    // Negative control: a real --no-worktree option (grammar-identified) is
+    // removed, while the identical-looking value under --model is retained.
+    const retained = transformBackgroundLaunchArgv(
+      ["agent", "--model", "--no-worktree", "--title", "work"],
+      { optionSpecs: OPTION_SPECS },
+    );
+    expect(retained).toEqual(["agent", "--model", "--no-worktree", "--title", "work"]);
+  });
+
+  it("holds a prompt with spaces or leading dashes inside a single --print token", () => {
+    // Positive control: whitespace inside the prompt stays inside one token
+    // because it is glued onto --print=, so no shell split can occur.
+    expect(agentPrintArgument("refactor this file now")).toBe(
+      "--print=refactor this file now",
+    );
+    expect(agentPrintArgument("--help")).toBe("--print=--help");
+
+    // Negative control: the empty prompt still produces exactly one token
+    // (--print= with an empty payload), never a split or a dropped argument.
+    expect(agentPrintArgument("")).toBe("--print=");
+  });
+
+  it("strips the first-turn operand but never corrupts a spaced option value", () => {
+    // Positive control: a required option with a spaced value survives intact
+    // while the prompt operand is removed.
+    const stripped = stripFirstTurnPromptArgv(
+      ["agent", "--title", "a title with spaces", "prompt text", "--session", "s"],
+      { optionSpecs: OPTION_SPECS },
+    );
+    expect(stripped).toEqual([
+      "agent",
+      "--title",
+      "a title with spaces",
+      "--session",
+      "s",
+    ]);
+
+    // Negative control: an empty-string operand is dropped, and the option
+    // token/value boundary of the following --session stays untouched.
+    const strippedEmpty = stripFirstTurnPromptArgv(
+      ["agent", "--title", "kept", "", "--session", "s"],
+      { optionSpecs: OPTION_SPECS },
+    );
+    expect(strippedEmpty).toEqual(["agent", "--title", "kept", "--session", "s"]);
+  });
+
+  it("rejects an ephemeral authority token but allows the same literal after --", () => {
+    // Negative control: --ephemeral anywhere before the terminator is an
+    // unsupported durable-authority violation.
+    expect(() =>
+      assertBackgroundArgvDurable([
+        "agent",
+        "--title",
+        "ephemeral work",
+        "--ephemeral",
+      ]),
+    ).toThrowError(
+      expect.objectContaining({ code: "BACKGROUND_EPHEMERAL_UNSUPPORTED" }),
+    );
+
+    // Positive control: the identical literal after -- is prompt data, not an
+    // option, and must not be rejected.
+    expect(() =>
+      assertBackgroundArgvDurable([
+        "agent",
+        "--session",
+        "durable",
+        "--",
+        "--ephemeral",
+      ]),
+    ).not.toThrow();
+  });
+
+  it("retains option-shaped values verbatim instead of collapsing them into options", () => {
+    // Positive control: a --title value that looks like an option name is a
+    // value, so it is preserved byte-for-byte and no second option appears.
+    expect(
+      canonicalizeBackgroundSessionArgv(
+        ["agent", "--title", "--session", "--model", "x"],
+        { sessionId: "resolved", optionSpecs: OPTION_SPECS },
+      ),
+    ).toEqual([
+      "agent",
+      "--title",
+      "--session",
+      "--model",
+      "x",
+      "--session",
+      "resolved",
+    ]);
+
+    // Negative control: when --session is a real option with an attached value
+    // spelling, it is canonicalized away as expected.
+    expect(
+      canonicalizeBackgroundSessionArgv(
+        ["agent", "--session=old", "--title", "t"],
+        { sessionId: "resolved", optionSpecs: OPTION_SPECS },
+      ),
+    ).toEqual(["agent", "--title", "t", "--session", "resolved"]);
+  });
+});

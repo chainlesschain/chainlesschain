@@ -1,0 +1,202 @@
+import { describe, expect, it } from "vitest";
+import {
+  createEvalComparison,
+  createEvalHistoryRecord,
+  EVAL_CONTEXT_SCHEMA,
+  EVAL_EXECUTION_PROTOCOL,
+} from "../src/lib/eval/evidence.js";
+import {
+  buildOutcomeReport,
+  outcomeDigest,
+  OUTCOME_PLAN_SCHEMA,
+} from "../src/lib/eval/outcomes.js";
+
+const NOW = Date.parse("2026-09-15T12:00:00.000Z");
+const SHA = "a".repeat(40);
+const D = (letter) => `sha256:${letter.repeat(64)}`;
+const FIRST_RUN_STAGES = [
+  "install",
+  "configure",
+  "authenticate",
+  "tool",
+  "artifact",
+];
+
+function makeRun(comparison, runId, taskId, ranAt) {
+  return createEvalHistoryRecord(
+    {
+      total: 1,
+      passed: 1,
+      failed: 0,
+      passRate: 1,
+      unrelatedChangeRate: 0,
+      results: [
+        {
+          id: taskId,
+          pass: true,
+          artifactCheckPassed: true,
+          executionSucceeded: true,
+          agentOk: true,
+          error: null,
+          ms: 100,
+          executionEvidence: {
+            protocol: EVAL_EXECUTION_PROTOCOL,
+            exitCode: 0,
+            signal: null,
+            terminalVerified: true,
+            observedFallback: false,
+          },
+        },
+      ],
+    },
+    { runId, ranAt, label: SHA, comparison },
+  );
+}
+
+// Two task samples and one first-run sample sharing one frozen plan.
+function fixture() {
+  const comparison = createEvalComparison({
+    suite: "builtin",
+    corpusDigest: D("a"),
+    provider: "test",
+    model: "test-model",
+    context: {
+      schema: EVAL_CONTEXT_SCHEMA,
+      provider: "test",
+      model: "test-model",
+      modelRevision: "test-r1",
+      environmentDigest: D("b"),
+      permissionDigest: D("c"),
+      inferenceDigest: D("d"),
+    },
+  });
+  const window = {
+    start: "2026-09-15T10:00:00.000Z",
+    end: "2026-09-15T11:00:00.000Z",
+  };
+  const samples = [
+    { id: "task-a", kind: "task", taskId: "fix-build" },
+    { id: "task-b", kind: "task", taskId: "fix-build" },
+    { id: "first-run", kind: "first-run", taskId: "setup" },
+  ].map((sample) => ({
+    ...sample,
+    stratum: "cli-verify",
+    comparisonDigest: outcomeDigest(comparison),
+    timeBudgetMs: 1000,
+    costBudget: 1,
+  }));
+  const observations = samples.map((sample, index) => ({
+    sampleId: sample.id,
+    observedAt: "2026-09-15T10:30:00.000Z",
+    runId: `run-${index}`,
+    cost: 0.1,
+    elapsedMs: 500,
+    retries: 0,
+    manualRepairs: 0,
+    ...(sample.kind === "first-run"
+      ? {
+          firstRun: {
+            cleanEnvironment: true,
+            stages: Object.fromEntries(
+              FIRST_RUN_STAGES.map((stage) => [
+                stage,
+                { passed: true, receipt: `receipt:${stage}` },
+              ]),
+            ),
+          },
+        }
+      : {}),
+  }));
+  return {
+    plan: {
+      schema: OUTCOME_PLAN_SCHEMA,
+      commitSha: SHA,
+      currency: "USD",
+      window,
+      samples,
+    },
+    history: {
+      runs: observations.map((observation, index) =>
+        makeRun(
+          comparison,
+          observation.runId,
+          samples[index].taskId,
+          "2026-09-15T10:30:00.000Z",
+        ),
+      ),
+      issues: [],
+    },
+    observations,
+    maintenance: {
+      window,
+      complete: true,
+      entries: [
+        { id: "support-1", category: "support", hours: 1, evidenceRef: "ticket:1" },
+      ],
+    },
+  };
+}
+const report = (input) => buildOutcomeReport(input, { now: NOW });
+
+describe("verify-23 missing-sample fixed denominator and unknown cost", () => {
+  it("keeps the full planned denominator when every sample is observed", () => {
+    const result = report(fixture());
+    // Task summary covers two planned task samples, so successRate uses 2.
+    expect(result.task).toMatchObject({
+      planned: 2,
+      observed: 2,
+      missing: 0,
+      succeeded: 2,
+      successRate: 1,
+      totalCost: 0.2,
+      costPerSuccess: 0.1,
+    });
+    expect(result.status).toBe("BASELINE_RECORDED");
+  });
+
+  it("does not shrink the denominator when one planned sample is missing", () => {
+    const input = fixture();
+    // Single change: remove the task-b observation. Nothing else is altered.
+    input.observations.splice(1, 1);
+    const result = report(input);
+    expect(result.task).toMatchObject({
+      planned: 2, // denominator stays fixed at the full planned population
+      observed: 1,
+      missing: 1,
+      succeeded: 1,
+      successRate: 0.5, // computed against planned (2), not observed (1)
+    });
+    // The unobserved sample keeps an unknown cost; it is not counted as zero.
+    expect(result.task.totalCost).toBeNull();
+    expect(result.task.costPerSuccess).toBeNull();
+    expect(result.rows[1]).toMatchObject({ observed: false, cost: null });
+    expect(result.status).toBe("INSUFFICIENT_EVIDENCE");
+  });
+
+  it("keeps an unknown cost null instead of counting it as zero", () => {
+    const input = fixture();
+    // Single change: task-b is still observed but its cost is invalid (unknown).
+    input.observations[1].cost = NaN;
+    const result = report(input);
+    // The sample is present and observed; only its cost is unknown.
+    expect(result.task).toMatchObject({ observed: 2, missing: 0 });
+    expect(result.rows[1]).toMatchObject({ observed: true, cost: null });
+    // An unknown cost makes the totals incomplete rather than becoming zero.
+    expect(result.task.totalCost).toBeNull();
+    expect(result.task.costPerSuccess).toBeNull();
+    expect(result.rows[1].reasons).toContain("missing_or_invalid_cost");
+  });
+
+  it("counts a genuinely zero cost but not an unknown one", () => {
+    const input = fixture();
+    // Single change: task-b's cost is a legitimate zero (nonnegative is valid).
+    input.observations[1].cost = 0;
+    const result = report(input);
+    expect(result.task).toMatchObject({
+      observed: 2,
+      totalCost: 0.1, // task-a's 0.1 plus task-b's real 0
+      costPerSuccess: 0.05,
+    });
+    expect(result.status).toBe("BASELINE_RECORDED");
+  });
+});

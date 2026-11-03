@@ -1,0 +1,136 @@
+# verify-34 冻结计划操作说明（Outcome Report Runbook）
+
+本文档是仓库运维操作说明，描述如何运行真实冻结计划报告脚本
+`packages/cli/scripts/task-outcome-report.mjs` 并解读其结果。命令与断言均以该
+脚本实际源码及现有单测 `packages/cli/__tests__/unit/task-outcome-report.test.js`
+为据；评测计划不允许修改，断言不可降低，失败不可跳过。
+
+## 1. 脚本角色与退出码契约
+
+该脚本是只读基线报告工具（无模型调用、无生产 attestation），
+`--help` 输出明确声明：
+
+> Read-only baseline report (no model calls or production attestation).
+> Exit 0: baseline recorded; 2: insufficient evidence; 1: invalid input.
+> No improvement PASS is issued.
+
+退出码由以下源码逻辑决定：
+
+| 退出码 | 触发条件 | 源码依据 |
+|--------|----------|----------|
+| `0` | 基线记录成功（`report.status` 非 `INSUFFICIENT_EVIDENCE`） | 主分支最后仅当 insufficient 时设置 `process.exitCode = 2`；其余自然退出为 0 |
+| `2` | `report.status === "INSUFFICIENT_EVIDENCE"` | `if (report.status === "INSUFFICIENT_EVIDENCE") process.exitCode = 2;` |
+| `1` | 任何抛出的输入/计划/证据错误 | 外层 `catch` 统一 `process.exitCode = 1` |
+
+关键结论（源码+测试共同验证）：
+
+- **缺失样本 → 退出 2**。测试 `"retains missing planned samples and does not
+  turn unknown costs into zero"` 中追加一个从未运行的样本后
+  `result.status` 为 `INSUFFICIENT_EVIDENCE`；CLI 集成测试中无 history 时
+  `result.status` 为 2 且 `task: { planned:1, observed:0, succeeded:0 }`。
+- **未知费用绝不被当作 0**。未知费用样本使 `task.totalCost` 与
+  `costPerSuccess` 为 `null`（非 0），测试断言 `expect(...totalCost).toBeNull()`。
+  有效样本的已知费用（`cost: 0.1`）才会计入 `totalCost: 0.1`。
+- **永远不发放改善 PASS**。`--help` 明确 "No improvement PASS is issued"；
+  测试断言 `improvementVerdict: "NOT_EVALUATED"`、`productionAttested: false`。
+
+## 2. 前置输入文件
+
+| 选项 | 必需 | 说明 | 来源 |
+|------|------|------|------|
+| `--plan` | 是 | 冻结计划 JSON | `readJson(values.plan)`，缺失或超 16 MiB 即抛错退出 1 |
+| `--fingerprint` | 否（互斥分支） | 只打印计划摘要到 stdout，退出 0 | `outcomeDigest(plan)` |
+| `--plan-digest` | 是（非 fingerprint 时） | 须匹配 `/^sha256:[a-f0-9]{64}$/u`，否则抛错退出 1 | 冻结计划后再收集证据 |
+| `--history` | 否 | Eval 历史 JSONL | `readEvalHistory(...)`；缺省为 `{ runs: [], issues: [] }` |
+| `--observations` | 否 | 观测 JSON（数组） | `readJson(...)`；缺省为 `[]` |
+| `--maintenance` | 否 | 维护记录 JSON | `readJson(...)`；缺省为 `null` |
+
+`readJson` 的双重大小检查：`fs.statSync(file).size > 16*1024*1024` 与
+`bytes.length > 16*1024*1024`，任一超出即抛 "missing input or input exceeds
+16 MiB"（退出 1）。
+
+## 3. 标准运维流程（含正/负控制）
+
+冻结计划后先取指纹，再（可选）收集证据，最后产出报告。
+
+```bash
+# 第 1 步：对冻结计划取摘要（离线、无模型调用）
+node packages/cli/scripts/task-outcome-report.mjs \
+  --plan plan.json --fingerprint
+# stdout 为 sha256:...；退出 0。该值写入评审记录，冻结后不得再改 plan。
+
+# 第 2 步：用该摘要跑完整报告（history/observations/maintenance 可选）
+node packages/cli/scripts/task-outcome-report.mjs \
+  --plan plan.json \
+  --plan-digest sha256:... \
+  --history history.jsonl \
+  --observations observations.json \
+  [--maintenance maintenance.json]
+```
+
+### 3.1 指纹正/负控制
+
+- **正控制**：同一 `plan.json` 上 `--fingerprint` 输出
+  `outcomeDigest(plan)`。现有测试用 `execFileSync(... "--fingerprint").trim()`
+  与 `outcomeDigest(input.plan)` 相等断言。
+- **负控制**：变更 `plan.samples` 任一元素（删除一个样本）后重新计算摘要，
+  再以旧摘要调用报告，脚本抛 `digest mismatch` 退出 1。测试
+  `"detects a changed frozen plan"` 覆盖。
+
+### 3.2 缺失样本退出 2 的正/负控制
+
+- **负控制（缺失）**：计划含 `planned:2` 但证据只覆盖 1 个样本 → 状态
+  `INSUFFICIENT_EVIDENCE`，退出 2；报告保留该样本为
+  `task: { planned:2, observed:1, succeeded:1, successRate:0.5 }`。
+- **正控制（齐全）**：所有计划样本均有合法观测与对应 run → 状态
+  `BASELINE_RECORDED`，退出 0。同一控制边界：先验历史解析问题
+  （`history.issues` 含 `invalid_history_record`）也导致
+  `INSUFFICIENT_EVIDENCE`，说明该状态是“证据不充分”的通用判据而非单因。
+
+### 3.3 未知费用不归零的正/负控制
+
+- **负控制（未知费用）**：观测含合法成本（`cost: 0.1`）的样本之外，追加一个
+  无观测样本 → `totalCost` 与 `costPerSuccess` 为 `null`（不被当作 0）。
+  测试断言 `expect(result.task.totalCost).toBeNull()`。
+- **正控制（已知费用）**：全部样本有合法 `cost: 0.1` → `totalCost: 0.1`、
+  `costPerSuccess: 0.1`（见测试首条）。
+- 预算控制：`cost: 2 > costBudget 1` 或 `elapsedMs: 1001 > timeBudgetMs 1000`
+  时对应 row `reasons` 含 `budget_exceeded`（测试 `"enforces the frozen
+  budget"`），费用仍原样保留，仅判定为超预算。
+
+### 3.4 不发放改善 PASS 的正/负控制
+
+- **正控制（完整基线）**：齐全证据下 `improvementVerdict: "NOT_EVALUATED"`、
+  `productionAttested: false`，CLI 完整调用退出 0。
+- **负控制（同函数无 PASS 路径）**：`buildOutcomeReport` 的返回值不包含任何
+  发放 PASS 的字段；`--help` 文本亦明确 "No improvement PASS is issued"。
+  改善判定始终为 `NOT_EVALUATED`，不受证据多少影响。
+
+## 4. 需人工解读的边界与限制
+
+- **无命令行执行环境**：本文档为静态运维说明，未实际执行脚本；命令与断言
+  依据源码与现有单测推导。若以本机重跑，应复现上述退出码。
+- **16 MiB 输入上限**：任何 `--plan/--observations/--maintenance` JSON 超限
+  会直接退出 1，属输入校验而非证据缺陷。
+- **maintenance 缺失不视为免费**：`maintenance` 为 `null`、
+  `{ complete:false, entries:[] }` 或 window 不符时 `maintenance.totalHours`
+  为 `null`（测试 `"does not report missing maintenance as free"`）。
+- **证据复用/越界**：多样本共用同一 `runId` 抛 `multiple samples`；观测
+  `sampleId` 不在计划内抛 `outside the frozen plan`；观测时间超出 window 产生
+  `sample-1:observation_outside_window`；首次运行阶段乱序产生
+  `sample-1:inconsistent_first_run_stages`。这些都退出 1 或计入
+  `INSUFFICIENT_EVIDENCE`，需在评审记录中作为证据缺陷说明。
+
+## 5. 覆盖审计（对照验收要求）
+
+| 验收要求 | 覆盖方式 | 对应控制 |
+|----------|----------|----------|
+| 指纹 | `--fingerprint` 输出 `outcomeDigest(plan)`，退出 0 | 3.1 正控制 |
+| 缺失样本退出 2 | 计划内未覆盖样本 → `INSUFFICIENT_EVIDENCE`、退出 2 | 3.2 负控制 |
+| 未知费用 | 无观测样本 → `totalCost/costPerSuccess` 为 `null`（非 0） | 3.3 负控制 |
+| 禁止改善 PASS | `improvementVerdict: "NOT_EVALUATED"`，`--help` 明确不发放 | 3.4 控制 |
+
+全部四项验收均映射到同一真实脚本调用边界，且各负控制保持其余前置（合法
+`--plan-digest`、齐全或合法的 history/observations）有效，不会被其它保护器
+误判。未覆盖项：真实网络评测环境中的 provider/生产 attestation 路径——本脚本
+明确不执行模型调用，其不在本运维说明边界内。

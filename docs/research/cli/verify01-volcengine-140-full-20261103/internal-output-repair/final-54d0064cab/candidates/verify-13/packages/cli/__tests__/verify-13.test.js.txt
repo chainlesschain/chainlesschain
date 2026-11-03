@@ -1,0 +1,100 @@
+import { describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  MAX_INPUT_IMAGE_BYTES,
+  readBoundedImage,
+} from "../src/lib/image-file-boundary.js";
+import { PNG_BYTES } from "./helpers/image-file-fixtures.js";
+
+const root = fs.mkdtempSync(join(tmpdir(), "cc-verify-13-"));
+function makeFile(name, data = PNG_BYTES, size) {
+  const target = join(root, name);
+  fs.writeFileSync(target, data);
+  if (size) fs.truncateSync(target, size);
+  return target;
+}
+function ioWithClose(closeSync = fs.closeSync) {
+  return { ...fs, closeSync };
+}
+
+describe("attachment same-handle read boundary", () => {
+  it("reads a normal small image and closes its pinned descriptor", () => {
+    const target = makeFile("small.png");
+    const closeSync = vi.fn(fs.closeSync);
+    const result = readBoundedImage(
+      target,
+      "image/png",
+      PNG_BYTES.length,
+      ioWithClose(closeSync),
+    );
+    expect(result).toBeInstanceOf(Buffer);
+    expect(result.equals(PNG_BYTES)).toBe(true);
+    expect(closeSync).toHaveBeenCalledOnce();
+  });
+
+  it("accepts an image whose size exactly equals the remaining per-message bytes", () => {
+    const target = makeFile("boundary.png");
+    const result = readBoundedImage(
+      target,
+      "image/png",
+      PNG_BYTES.length,
+      ioWithClose(),
+    );
+    expect(result.equals(PNG_BYTES)).toBe(true);
+  });
+
+  it("rejects a same-handle input that exceeds the remaining per-message bytes before reading", () => {
+    const target = makeFile("total-over.png");
+    const readSync = vi.fn(fs.readSync);
+    const closeSync = vi.fn(fs.closeSync);
+    expect(() =>
+      readBoundedImage(
+        target,
+        "image/png",
+        PNG_BYTES.length - 1,
+        { ...fs, readSync, closeSync },
+      ),
+    ).toThrow(/Total image attachments exceed 20 MiB per message/);
+    expect(readSync).not.toHaveBeenCalled();
+    expect(closeSync).toHaveBeenCalledOnce();
+  });
+
+  it("rejects an oversized file before any read and still closes the handle", () => {
+    const target = makeFile("oversized.png", PNG_BYTES, MAX_INPUT_IMAGE_BYTES + 1);
+    const readSync = vi.fn(fs.readSync);
+    const closeSync = vi.fn(fs.closeSync);
+    expect(() =>
+      readBoundedImage(target, "image/png", MAX_INPUT_IMAGE_BYTES, {
+        ...fs,
+        readSync,
+        closeSync,
+      }),
+    ).toThrow(/1 byte to 20 MiB/);
+    expect(readSync).not.toHaveBeenCalled();
+    expect(closeSync).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a file replaced between the size check and the full read, closing the handle", () => {
+    const target = makeFile("replaced.png");
+    let changed = false;
+    const readSync = vi.fn((...args) => {
+      const read = fs.readSync(...args);
+      if (!changed) {
+        changed = true;
+        fs.appendFileSync(target, Buffer.alloc(32));
+      }
+      return read;
+    });
+    const closeSync = vi.fn(fs.closeSync);
+    expect(() =>
+      readBoundedImage(target, "image/png", PNG_BYTES.length, {
+        ...fs,
+        readSync,
+        closeSync,
+      }),
+    ).toThrow(/changed while being read/);
+    expect(closeSync).toHaveBeenCalledOnce();
+  });
+});

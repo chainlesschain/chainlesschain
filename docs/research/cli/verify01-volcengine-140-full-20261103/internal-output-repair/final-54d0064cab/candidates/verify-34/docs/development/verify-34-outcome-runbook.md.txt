@@ -1,0 +1,150 @@
+# verify-34 冻结计划操作说明（Outcome Report Runbook）
+
+本文档说明如何用仓库内真实脚本 `packages/cli/scripts/task-outcome-report.mjs`
+为固定的项目快照（verify-34）收集、校验并冻结任务结果基线。
+所有命令与退出码均依据该脚本源码及 `packages/cli/__tests__/unit/task-outcome-report.test.js`
+中的回归测试核对。
+
+> 脚本是**只读基线**工具：不做任何模型调用，也不出具生产环境正式鉴证。
+> 它只会记录基线（`BASELINE_RECORDED`）或报告证据不足（`INSUFFICIENT_EVIDENCE`），
+> **永远不会**给出“改善已通过”（improvement PASS）的结论。
+
+---
+
+## 1. 脚本与关键文件
+
+| 文件 | 作用 |
+| --- | --- |
+| `packages/cli/scripts/task-outcome-report.mjs` | 命令行入口，负责解析参数、读输入、校验并输出 JSON 报告 |
+| `packages/cli/src/lib/eval/outcomes.js` | `buildOutcomeReport` / `outcomeDigest` / `validateOutcomePlan` |
+| `packages/cli/src/lib/eval/evidence.js` | `readEvalHistory` / `createEvalHistoryRecord` / `createEvalComparison` |
+| `packages/cli/__tests__/unit/task-outcome-report.test.js` | 回归测试，覆盖 CLI 退出码与报告字段 |
+
+## 2. 命令行参数
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `--plan <file>` | string | 是 | 冻结计划 JSON（含 commitSha、currency、window、samples） |
+| `--fingerprint` | boolean | 否 | 打印计划指纹（`outcomeDigest(plan)`）后退出 0，不收集证据 |
+| `--plan-digest <sha256:...>` | string | 二选一 | 冻结计划摘要，证据收集模式必须提供 |
+| `--history <file>` | string | 否 | Eval 历史 JSONL；缺省视为 `{runs:[],issues:[]}` |
+| `--observations <file>` | string | 否 | 观测 JSON 数组；缺省视为 `[]` |
+| `--maintenance <file>` | string | 否 | 运维记录 JSON；缺省视为 `null` |
+| `--help` | boolean | 否 | 打印用法后退出 0 |
+
+JSON 输出到 stdout。退出码：
+
+- `0` —— 基线已记录（`BASELINE_RECORDED`）或指纹/帮助输出；
+- `2` —— 证据不足（`INSUFFICIENT_EVIDENCE`）；
+- `1` —— 输入无效（缺 `--plan-digest`、摘要不匹配、超过 16 MiB、非法成本等）。
+
+---
+
+## 3. 标准工作流
+
+### 3.1 冻结计划并记录指纹
+
+在**收集任何证据之前**冻结计划，先生成其指纹并妥善保存：
+
+```sh
+node packages/cli/scripts/task-outcome-report.mjs \
+  --plan plan.json \
+  --fingerprint
+# 退出码 0；stdout 形如：
+# sha256:<64 位十六进制>
+```
+
+把输出的 `sha256:...` 记为 `PLAN_DIGEST`，与 `plan.json` 一起放入只读快照。
+之后所有证据收集与报告都必须用同一个摘要，任何改动都会被检出。
+
+### 3.2 生成完整基线报告
+
+```sh
+node packages/cli/scripts/task-outcome-report.mjs \
+  --plan plan.json \
+  --plan-digest "$PLAN_DIGEST" \
+  --history history.jsonl \
+  --observations observations.json \
+  --maintenance maintenance.json
+# 退出码 0，stdout 为 JSON 报告
+```
+
+完整报告满足以下断言（与单元测试“runs the offline CLI with distinct … exits”一致）：
+
+- `status === "BASELINE_RECORDED"`
+- `improvementVerdict === "NOT_EVALUATED"`（禁止改善 PASS）
+- `productionAttested === false`
+
+### 3.3 证据不足：缺失样本 → 退出码 2
+
+当计划中存在**没有任何观测对应的样本**（或历史解析失败）时，报告为
+`INSUFFICIENT_EVIDENCE` 且进程退出码为 `2`。此时**不得**当作基线通过。
+
+```sh
+node packages/cli/scripts/task-outcome-report.mjs \
+  --plan plan.json \
+  --plan-digest "$PLAN_DIGEST"
+# 退出码 2；报告 status == "INSUFFICIENT_EVIDENCE"
+# task.observed == 0、task.succeeded == 0、task.totalCost == null
+```
+
+原因：未提供 `--history` / `--observations` 时脚本以空集合代替，计划样本全部缺失。
+
+### 3.4 未知费用不允许归零
+
+证据缺失或非法时，费用**必须保持为 `null`，绝不虚构为 0**。检查要点：
+
+- 缺失样本 → `task.totalCost`、`task.costPerSuccess`、`maintenance.per100Attempts` 均为 `null`；
+- 非法成本（`NaN`、`-1`、`Infinity`、字符串 `"0"`）→ `task.totalCost` 为 `null`；
+- 缺失/不完整运维 → `maintenance.totalHours` 为 `null`（见 `does not report missing maintenance as free`）。
+
+若你在输出里看到某个费用被补成 `0`，说明那是**有实际证据的零消耗**，而非“缺失当零”——
+请核对观测记录中确有一条 `cost: 0` 的合法观测。
+
+---
+
+## 4. 失败排查
+
+| 现象 | 退出码 | 原因与处理 |
+| --- | --- | --- |
+| `missing input or input exceeds 16 MiB` | 1 | 计划/观测/运维文件缺失或大于 16 MiB；缩小输入或修正路径 |
+| `--plan-digest is required; freeze it before collecting evidence` | 1 | 证据收集模式未提供 `--plan-digest`；先按 3.1 冻结并记录指纹 |
+| `digest mismatch` | 1 | 传入的 `--plan-digest` 与 `plan.json` 指纹不一致；计划被改动或摘要抄错，**回到冻结的快照** |
+| `status == INSUFFICIENT_EVIDENCE` | 2 | 有计划样本无观测或历史解析失败；补齐证据后重跑，不得直接视为通过 |
+| 输出中 `totalCost: null` | 0/2 | 缺失或非法费用被保留为 `null`，这是**预期行为**，不是缺陷 |
+
+## 5. 验收要点对照
+
+| 验收要求 | 判定方式 | 相关源码/测试证据 |
+| --- | --- | --- |
+| 指纹 | `--fingerprint` 输出 `outcomeDigest(plan)` 且退出 0 | 脚本 `if (values.fingerprint) console.log(outcomeDigest(plan))`；测试比对 CLI 指纹等于 `outcomeDigest(input.plan)` |
+| 缺失样本退出 2 | 有计划样本无观测 → `INSUFFICIENT_EVIDENCE`，`process.exitCode = 2` | 脚本 `if (report.status === "INSUFFICIENT_EVIDENCE") process.exitCode = 2`；测试 `expect(result.status).toBe(2)` |
+| 未知费用禁止归零 | 缺失/非法费用保持 `null`，不补 0 | 测试断言 `totalCost: null`、`costPerSuccess: null`、`maintenance.per100Attempts: null` |
+| 禁止改善 PASS | 始终 `improvementVerdict === "NOT_EVALUATED"`、`productionAttested === false` | 脚本帮助文本“No improvement PASS is issued”；测试断言 `improvementVerdict: "NOT_EVALUATED"` |
+
+## 6. 源码核验与证据充分性
+
+本 runbook 依据对以下真实文件的全量/定向核验编写，未修改任何源码或测试：
+
+- `packages/cli/scripts/task-outcome-report.mjs`（全文）：`--fingerprint` 分支调用
+  `outcomeDigest(plan)` 后退出 0；`--plan-digest` 校验 `^sha256:[a-f0-9]{64}$`；
+  报告 `status === "INSUFFICIENT_EVIDENCE"` 时 `process.exitCode = 2`；
+  `readJson` 对缺失或 >16 MiB 输入抛错；帮助文本明确“No improvement PASS is issued”。
+- `packages/cli/src/lib/eval/outcomes.js`：导出 `OUTCOME_PLAN_SCHEMA` /
+  `outcomeDigest` / `validateOutcomePlan` / `buildOutcomeReport`；报告字段
+  `productionAttested: false`、`status: issues.length ? "INSUFFICIENT_EVIDENCE" :
+  "BASELINE_RECORDED"`、`improvementVerdict: "NOT_EVALUATED"`。
+- `packages/cli/src/lib/eval/evidence.js`：导出 `readEvalHistory`（返回
+  `{ runs, issues }`），历史解析失败会进入 `issues`。
+- `packages/cli/__tests__/unit/task-outcome-report.test.js`：“runs the offline CLI
+  with distinct complete, incomplete, and invalid exits”实测退出码 0（完整）、
+  2（缺失样本）、1（摘要不匹配），并断言 `status: "BASELINE_RECORDED"` 与
+  `improvementVerdict: "NOT_EVALUATED"`；“retains missing planned samples and does
+  not turn unknown costs into zero”断言缺失时 `totalCost` / `costPerSuccess` /
+  `maintenance.per100Attempts` 均为 `null`。
+
+**证据充分性**：本环境仅提供文件读取工具，无 shell/执行权限，因此**未实际运行脚本**，
+也未在 Linux Docker 中执行回归测试；`npm run test:unit` 与第 3、4 节命令的通过与否
+不可由本 runbook 判定。以上命令与退出码均为源码 + 既有测试的直接描述，而非实测结果。
+发布运维说明前，请在可执行环境运行第 3、4 节命令并执行
+`npm run test:unit`（重点覆盖 `task-outcome-report.test.js`），把实际结果补记于此节。

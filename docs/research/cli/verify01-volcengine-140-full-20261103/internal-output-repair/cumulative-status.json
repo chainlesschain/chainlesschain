@@ -1,0 +1,1445 @@
+{
+  "schema": "chainlesschain.volcengine-historical-cumulative-status/v3",
+  "checkedAt": "2026-11-03T20:43:49.165592+00:00",
+  "scope": "Historical automatic candidate-deliverable union plus strict independently accepted public140 full-round samples; preserve prior34 and qualification caveat",
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "accepted": 36,
+  "total": 45,
+  "percentage": 80.0,
+  "tasks": {
+    "accepted": 29,
+    "total": 36
+  },
+  "firstRuns": {
+    "accepted": 7,
+    "total": 9
+  },
+  "historicalBaseline": {
+    "path": "docs/research/cli/verify01-volcengine-140-full-20261103/cumulative-status.json",
+    "digest": "sha256:ce727ac2d38bde19551b39cce2454fc3073d3375beacee83d579f92ce2d42bb8",
+    "accepted": 35,
+    "preservedSuccessfulSampleIds": [
+      "first-run-darwin-vscode",
+      "first-run-linux-cli",
+      "first-run-linux-jetbrains",
+      "first-run-linux-vscode",
+      "first-run-win32-cli",
+      "first-run-win32-jetbrains",
+      "first-run-win32-vscode",
+      "verify-01",
+      "verify-02",
+      "verify-03",
+      "verify-05",
+      "verify-06",
+      "verify-08",
+      "verify-12",
+      "verify-14",
+      "verify-15",
+      "verify-16",
+      "verify-17",
+      "verify-18",
+      "verify-20",
+      "verify-21",
+      "verify-22",
+      "verify-23",
+      "verify-24",
+      "verify-25",
+      "verify-26",
+      "verify-27",
+      "verify-28",
+      "verify-29",
+      "verify-31",
+      "verify-32",
+      "verify-33",
+      "verify-34",
+      "verify-35",
+      "verify-36"
+    ]
+  },
+  "latestFullRound": {
+    "runId": 41638188839,
+    "source": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+    "reportPath": "docs/research/cli/verify01-volcengine-140-full-20261103/internal-output-repair/final-54d0064cab/results.json",
+    "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa",
+    "accepted": 24,
+    "candidateAcceptancePassed": 24,
+    "generationPassed": 39,
+    "total": 45,
+    "tasks": {
+      "accepted": 21,
+      "total": 36
+    },
+    "firstRuns": {
+      "accepted": 3,
+      "total": 9
+    },
+    "newAcceptedSampleIds": [
+      "verify-04"
+    ],
+    "previousSuccessesNotAcceptedThisRound": [
+      "first-run-darwin-vscode",
+      "first-run-linux-cli",
+      "first-run-linux-jetbrains",
+      "first-run-linux-vscode",
+      "verify-05",
+      "verify-06",
+      "verify-08",
+      "verify-20",
+      "verify-21",
+      "verify-27",
+      "verify-33",
+      "verify-36"
+    ],
+    "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+    "evidenceVerified": {
+      "summaries": 90,
+      "receipts": 90,
+      "candidates": 45
+    }
+  },
+  "historicalQualificationBoundaries": [
+    {
+      "sampleId": "verify-06",
+      "runId": "40634447041",
+      "candidateAcceptancePassed": true,
+      "generationPassed": false,
+      "endToEndPassed": false,
+      "meaning": "Counted under the existing historical automatic-deliverable ledger; not upgraded to strict native end-to-end success"
+    }
+  ],
+  "remainingSampleIds": [
+    "first-run-darwin-cli",
+    "first-run-darwin-jetbrains",
+    "verify-07",
+    "verify-09",
+    "verify-10",
+    "verify-11",
+    "verify-13",
+    "verify-19",
+    "verify-30"
+  ],
+  "samples": [
+    {
+      "sampleId": "first-run-darwin-cli",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": [],
+      "latestRuntimeRepair": {
+        "runId": 41599436044,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:33c40215f5b937c35513a77ad42c161bcf618f7049b895aa82b81037776f3c6f"
+      },
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": false,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "acceptance requires executed test cases",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "first-run-darwin-jetbrains",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": [],
+      "latestRuntimeRepair": {
+        "runId": 41599436044,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:33c40215f5b937c35513a77ad42c161bcf618f7049b895aa82b81037776f3c6f"
+      },
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "acceptance requires executed test cases",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": false,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "acceptance requires executed test cases",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "first-run-linux-cli",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028.json",
+          "runId": "40632820075",
+          "rawSummary": {
+            "path": "next-package-128-review-20261028/40632820075/objects/cd80fffc4390f5bae54379a3b11b4c8572304567d9e73d3773ec7a3340de0752.gz",
+            "originalDigest": "sha256:cd80fffc4390f5bae54379a3b11b4c8572304567d9e73d3773ec7a3340de0752",
+            "storedDigest": "sha256:c6fb1fbdc46f0de0efc5a27df94ecea5dc20a0596845b474218800a106375372",
+            "originalBytes": 124746
+          },
+          "candidateAcceptancePassed": true,
+          "generationPassed": true,
+          "endToEndPassed": true
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": false,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "acceptance requires executed test cases",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "first-run-linux-jetbrains",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": false,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "acceptance requires executed test cases",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": false,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "acceptance requires executed test cases",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "first-run-linux-vscode",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": false,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "first-run-win32-cli",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "first-run-win32-jetbrains",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "first-run-win32-vscode",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-01",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-02",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-03",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-04",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [],
+      "latestRuntimeRepair": {
+        "runId": 41599436044,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:33c40215f5b937c35513a77ad42c161bcf618f7049b895aa82b81037776f3c6f"
+      },
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-05",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-06",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028.json",
+          "runId": "40634447041",
+          "rawSummary": {
+            "path": "next-package-128-review-20261028/40634447041/objects/760c03a6b2ab01bc4768b71382d5b97c808725fcac426ef96791b7042036ab5e.gz",
+            "originalDigest": "sha256:760c03a6b2ab01bc4768b71382d5b97c808725fcac426ef96791b7042036ab5e",
+            "storedDigest": "sha256:e4384144155c5b7951256d469fbaa52b5fc51a602fc4dc24796c6c801ccb2cbc",
+            "originalBytes": 195902
+          },
+          "candidateAcceptancePassed": true,
+          "generationPassed": false,
+          "endToEndPassed": false
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "acceptance requires executed test cases",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-07",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": [],
+      "latestRuntimeRepair": {
+        "runId": 41599436044,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:33c40215f5b937c35513a77ad42c161bcf618f7049b895aa82b81037776f3c6f"
+      },
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-08",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [],
+      "latestRuntimeRepair": {
+        "runId": 41599436044,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:33c40215f5b937c35513a77ad42c161bcf618f7049b895aa82b81037776f3c6f"
+      },
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-09",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": [],
+      "latestRuntimeRepair": {
+        "runId": 41599436044,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:33c40215f5b937c35513a77ad42c161bcf618f7049b895aa82b81037776f3c6f"
+      },
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-10",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": [],
+      "latestRuntimeRepair": {
+        "runId": 41599436044,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:33c40215f5b937c35513a77ad42c161bcf618f7049b895aa82b81037776f3c6f"
+      },
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-11",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": [],
+      "latestRuntimeRepair": {
+        "runId": 41599436044,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:33c40215f5b937c35513a77ad42c161bcf618f7049b895aa82b81037776f3c6f"
+      },
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "acceptance requires executed test cases",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": false,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "acceptance requires executed test cases",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-12",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "acceptance requires executed test cases",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-13",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": [],
+      "latestRuntimeRepair": {
+        "runId": 41599436044,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "acceptance requires executed test cases",
+        "reportDigest": "sha256:33c40215f5b937c35513a77ad42c161bcf618f7049b895aa82b81037776f3c6f"
+      },
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-14",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-15",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-16",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-17",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-18",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": false,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-19",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": [],
+      "latestRuntimeRepair": {
+        "runId": 41599436044,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:33c40215f5b937c35513a77ad42c161bcf618f7049b895aa82b81037776f3c6f"
+      },
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": false,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-20",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-21",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "mutant failure must include an assertion, not a syntax/import/runner error",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "mutant failure must include an assertion, not a syntax/import/runner error",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-22",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-23",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-24",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-25",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-26",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-27",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-28",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-29",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-30",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": [],
+      "latestRuntimeRepair": {
+        "runId": 41599436044,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:33c40215f5b937c35513a77ad42c161bcf618f7049b895aa82b81037776f3c6f"
+      },
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": false,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "acceptance requires executed test cases",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate tests did not reject the behavioral mutant",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-31",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": false,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "acceptance requires executed test cases",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-32",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-33",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-34",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-35",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": true,
+        "generationPassed": true,
+        "candidateAcceptancePassed": true,
+        "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    },
+    {
+      "sampleId": "verify-36",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ],
+      "latestPublic140Full": {
+        "runId": 41630636517,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:efb1091167e033e749a8362e570313cd774f93c4189552bd7e108de2ab6c41dc"
+      },
+      "latestPublic140ExplicitLimitsFull": {
+        "runId": 41638188839,
+        "accepted": false,
+        "generationPassed": true,
+        "candidateAcceptancePassed": false,
+        "checkerDetail": "candidate or baseline regression failed",
+        "reportDigest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa"
+      }
+    }
+  ],
+  "formalSample": false,
+  "formalFrozenPlanStatus": "NOT_RUN",
+  "limitations": [
+    "Historical verify06 candidate acceptance does not become historical end-to-end success.",
+    "The cumulative union is not a same-version full-round score.",
+    "Latest full round uses exact released140 runtime; the prior unpublished139 runtime repair is a different cohort.",
+    "Sol45 is cross-version coverage including repaired task source; thinking mode and transport differ."
+  ],
+  "pre140HistoricalAccepted": 34
+}

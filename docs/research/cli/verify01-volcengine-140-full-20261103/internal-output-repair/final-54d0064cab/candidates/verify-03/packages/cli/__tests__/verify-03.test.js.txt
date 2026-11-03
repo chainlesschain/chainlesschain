@@ -1,0 +1,64 @@
+import { describe, it, expect } from "vitest";
+import { lookupRate, estimateCost } from "../src/lib/llm-pricing.js";
+
+// Regression: "new family unknown pricing".
+// An unrecognized new version of the Opus family (opus 5+ that is NOT the
+// documented `claude-opus-5-5`) must be reported as unpriced (null from
+// lookupRate, matched:false from estimateCost) rather than silently inheriting
+// the current $5/$25 "opus" list price. Known models — including the
+// documented opus-5-5 — keep pricing. Positive and negative controls share the
+// same guard so a different mechanism cannot cause the rejection.
+
+describe("llm-pricing — new Opus family unknown pricing", () => {
+  it("prices a known current Opus 4 model; an unknown Opus 6 is unpriced (no old-family hit)", () => {
+    // Positive: a recognized 4.x model resolves to its own $5/$25 rate.
+    expect(
+      lookupRate("anthropic", "claude-opus-4-5-20251101"),
+    ).toMatchObject({ pattern: "opus-4-5", in: 5, out: 25 });
+    // Negative: an unknown opus 6 must NOT inherit the generic "opus" $5/$25.
+    expect(lookupRate("anthropic", "claude-opus-6")).toBeNull();
+  });
+
+  it("treats version 4 as the accepted boundary and rejects version 5 onward", () => {
+    // Positive: an unrecognized 4.x suffix falls back to the current opus rate.
+    expect(
+      lookupRate("anthropic", "claude-opus-4-9-20261201"),
+    ).toMatchObject({ pattern: "opus", in: 5, out: 25 });
+    // Negative (first rejected value): bare opus 5 is unpriced.
+    expect(lookupRate("anthropic", "claude-opus-5")).toBeNull();
+  });
+
+  it("keeps the documented opus-5-5 priced but rejects a non-documented opus-5-5 variant", () => {
+    // Positive: the documented opus-5-5 resolves via its exact catalog rate.
+    expect(
+      lookupRate("anthropic", "claude-opus-5-5"),
+    ).toMatchObject({ pattern: "claude-opus-5-5", in: 4, out: 20 });
+    // Negative: a suffixed id is not the documented exact model and must not
+    // fall back to the generic opus $5/$25 either.
+    expect(lookupRate("anthropic", "claude-opus-5-5-custom")).toBeNull();
+  });
+
+  it("estimateCost surfaces the unknown new family as matched:false / rate:null (unpriced)", () => {
+    // Positive: a known model is matched and billed.
+    const priced = estimateCost({
+      provider: "anthropic",
+      model: "claude-opus-4-5",
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    });
+    expect(priced.matched).toBe(true);
+    expect(priced.rate).toMatchObject({ in: 5, out: 25 });
+    expect(priced.totalCost).toBe(30);
+    // Negative: the unknown opus 6 is never guessed at a price.
+    const unpriced = estimateCost({
+      provider: "anthropic",
+      model: "claude-opus-6",
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    });
+    expect(unpriced.matched).toBe(false);
+    expect(unpriced.free).toBe(false);
+    expect(unpriced.rate).toBeNull();
+    expect(unpriced.totalCost).toBe(0);
+  });
+});

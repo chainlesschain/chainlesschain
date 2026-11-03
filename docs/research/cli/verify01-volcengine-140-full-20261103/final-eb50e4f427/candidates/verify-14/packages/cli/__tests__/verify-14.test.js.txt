@@ -1,0 +1,80 @@
+// verify-14 — 图片逐项错误 (per-item image error handling).
+//
+// Coverage: mixing valid images and a damaged input must retain accurate
+// success/rejection info and must not silently skip any item. resolveImages
+// resolves each path in order into { mediaType, data(base64) } and wraps any
+// per-item failure as `Image <n>: <message>` with the 1-based item index.
+import { describe, it, expect } from "vitest";
+import { resolveImages } from "../src/lib/image-input.js";
+import {
+  imageFsFixture,
+  PNG_BYTES,
+  imageHeader,
+} from "./helpers/image-file-fixtures.js";
+
+// Valid fixture fs for every image; override a named path so its header bytes
+// are invalid, forcing the per-item boundary to reject that single item.
+function fsWithCorrupt(corruptFile) {
+  const base = imageFsFixture();
+  return {
+    ...base,
+    openSync(file) {
+      if (file === corruptFile) return Buffer.from("not-a-real-image-header");
+      return base.openSync(file);
+    },
+  };
+}
+
+describe("resolveImages — accurate success/rejection with damaged input", () => {
+  it("resolves every valid image with accurate mediaType and base64 data (positive control)", () => {
+    const resolved = resolveImages(
+      ["one.png", "two.gif", "three.webp"],
+      { fs: imageFsFixture() },
+    );
+
+    expect(resolved).toEqual([
+      { mediaType: "image/png", data: PNG_BYTES.toString("base64") },
+      { mediaType: "image/gif", data: imageHeader("gif").toString("base64") },
+      { mediaType: "image/webp", data: imageHeader("webp").toString("base64") },
+    ]);
+  });
+
+  it("rejects a mixed list loudly at the damaged item instead of silently skipping (negative control)", () => {
+    // Valid item at index 0 stays resolvable; the damaged item at index 1 must
+    // reject the whole call with its own per-item message, not vanish silently.
+    expect(() =>
+      resolveImages(["ok.png", "bad.png"], { fs: fsWithCorrupt("bad.png") }),
+    ).toThrow(/Image 2:/);
+  });
+
+  it("reports the per-item index for a damaged middle item among valid neighbors", () => {
+    let caught;
+    try {
+      resolveImages(["a.png", "bad.png", "c.gif"], {
+        fs: fsWithCorrupt("bad.png"),
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(Error);
+    expect(caught.message).toMatch(/Image 2:/);
+  });
+
+  it("distinguishes the damaged item's actual position from another valid position", () => {
+    // Damaged at position 3 must be reported as Image 3, not Image 2 — proving
+    // the reported index is tied to the real failing item, not a fixed value.
+    let caught;
+    try {
+      resolveImages(["a.png", "b.gif", "bad.png"], {
+        fs: fsWithCorrupt("bad.png"),
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(Error);
+    expect(caught.message).toMatch(/Image 3:/);
+    expect(caught.message).not.toMatch(/Image 2:/);
+  });
+});

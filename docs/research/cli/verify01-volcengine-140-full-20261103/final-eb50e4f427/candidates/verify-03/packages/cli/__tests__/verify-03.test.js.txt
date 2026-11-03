@@ -1,0 +1,111 @@
+import { describe, it, expect } from "vitest";
+import {
+  lookupRate,
+  estimateCost,
+  priceRollup,
+  mergePricing,
+} from "../src/lib/llm-pricing.js";
+
+// verify-03 — "新家族未知计价" regression coverage.
+//
+// Contract: an unrecognized model from a *new* family must be reported as
+// unpriced (lookupRate null / estimateCost matched:false, zero cost) instead of
+// silently inheriting an older family's list price. Known models must keep
+// pricing. Independent of the existing llm-pricing / model-release suites.
+
+describe("verify-03 — new family must not inherit an older family's price", () => {
+  it("prices a known model in an older family (positive control)", () => {
+    // gpt-5 is the openai catch-all base rate ($1.25 / $10 per 1M).
+    expect(lookupRate("openai", "gpt-5")).toMatchObject({ in: 1.25, out: 10 });
+    const c = estimateCost({
+      provider: "openai",
+      model: "gpt-5",
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    });
+    expect(c.matched).toBe(true);
+    expect(c.rate).toMatchObject({ in: 1.25, out: 10 });
+    expect(c.totalCost).toBeCloseTo(11.25, 9);
+  });
+
+  it("prices a known documented new model (positive control)", () => {
+    // claude-opus-5-5 is a documented, explicitly-priced Anthropic model.
+    expect(lookupRate("anthropic", "claude-opus-5-5")).toMatchObject({
+      in: 4,
+      out: 20,
+    });
+    const c = estimateCost({
+      provider: "anthropic",
+      model: "claude-opus-5-5",
+      inputTokens: 1000,
+      outputTokens: 1000,
+    });
+    expect(c.matched).toBe(true);
+    expect(c.totalCost).toBeCloseTo(0.024, 9);
+  });
+
+  it("reports an unknown new family model as unpriced, not mis-priced", () => {
+    // "gpt-7x-nano" deliberately shares tokens with the old gpt-5 family
+    // (-nano) and the gpt-* prefix, but is not a documented / listed model.
+    expect(lookupRate("openai", "gpt-7x-nano")).toBeNull();
+    const c = estimateCost({
+      provider: "openai",
+      model: "gpt-7x-nano",
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    });
+    expect(c.matched).toBe(false);
+    expect(c.rate).toBeNull();
+    expect(c.totalCost).toBe(0);
+  });
+
+  it("a new Opus version does not fall back to the bare opus rate", () => {
+    // The bare "opus" pattern ($5/$25) must not price an unrecognized
+    // claude-opus-6 / claude-opus-9 — they stay unpriced.
+    expect(lookupRate("anthropic", "claude-opus-6")).toBeNull();
+    expect(lookupRate("anthropic", "claude-opus-9")).toBeNull();
+  });
+
+  it("an explicit user override stays authoritative over the guard", () => {
+    // Explicit overrides bypass the new-version guard, so an operator can
+    // still price an unknown Opus version deliberately.
+    const table = mergePricing({
+      anthropic: [{ match: "opus", in: 4, out: 20 }],
+    });
+    expect(lookupRate("anthropic", "claude-opus-10", table)).toMatchObject({
+      in: 4,
+      out: 20,
+    });
+  });
+
+  it("priceRollup lists the unknown new family row as unpriced and prices only known", () => {
+    const r = priceRollup({
+      total: {},
+      byModel: [
+        {
+          provider: "anthropic",
+          model: "claude-opus-6",
+          inputTokens: 1_000_000,
+          outputTokens: 0,
+          totalTokens: 1_000_000,
+          calls: 1,
+        },
+        {
+          provider: "openai",
+          model: "gpt-5",
+          inputTokens: 1_000_000,
+          outputTokens: 0,
+          totalTokens: 1_000_000,
+          calls: 1,
+        },
+      ],
+    });
+    expect(r.cost.totalCost).toBeCloseTo(1.25, 9); // only the known gpt-5 row
+    expect(r.cost.unpricedCount).toBe(1);
+    expect(r.unpriced).toEqual([
+      { provider: "anthropic", model: "claude-opus-6", totalTokens: 1_000_000 },
+    ]);
+    expect(r.byModel[0].matched).toBe(false);
+    expect(r.byModel[1].matched).toBe(true);
+  });
+});

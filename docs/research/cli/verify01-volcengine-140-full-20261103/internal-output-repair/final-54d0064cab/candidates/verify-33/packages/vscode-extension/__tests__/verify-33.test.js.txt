@@ -1,0 +1,87 @@
+import { describe, expect, it } from "vitest";
+import {
+  checkImageEnvelope,
+  MAX_IMAGE_BYTES,
+  MAX_TURN_BYTES,
+} from "../src/chat/image-attachments.js";
+
+/**
+ * Rapid multi-image add budget: the envelope gate rejects exactly the item
+ * whose addition pushes the cumulative turn total past the shared 20 MiB cap,
+ * without consuming or invalidating the attachments already accepted below it.
+ *
+ * Each control image is built with `makeDataUrl`, which yields a data URL whose
+ * envelope-decoded byte size equals `targetSize` exactly, so the accepted
+ * boundary and the first rejected value can be exercised precisely.
+ */
+
+// Choose the smallest padding 0..2 making `targetSize + padding` divisible by
+// 3, so the base64 body length is an integer and (once divided) divisible by 4.
+// The envelope's decoded size then equals targetSize: (L*3)/4 - padding.
+function makeDataUrl(targetSize) {
+  for (let padding = 0; padding <= 2; padding += 1) {
+    if ((targetSize + padding) % 3 !== 0) continue;
+    const bodyLength = ((targetSize + padding) * 4) / 3;
+    const body = "A".repeat(bodyLength - padding) + "=".repeat(padding);
+    return `data:image/png;base64,${body}`;
+  }
+  throw new Error(`cannot represent ${targetSize} bytes`);
+}
+
+const half = makeDataUrl(MAX_TURN_BYTES / 2); // ~10 MiB each
+const overByOne = makeDataUrl(MAX_TURN_BYTES / 2 + 1); // tips a pair over budget
+const six = makeDataUrl(6 * 1024 * 1024); // ~6 MiB
+
+describe("rapid multi-image add budget (verify-33)", () => {
+  it("accepts attachments up to the exact cumulative 20 MiB turn total", () => {
+    // half + half == MAX_TURN_BYTES exactly; the boundary is accepted.
+    expect(() => checkImageEnvelope([half, half])).not.toThrow();
+  });
+
+  it("rejects the exact item that pushes the turn total over budget and keeps prior items usable", () => {
+    expect(() => checkImageEnvelope([half, half])).not.toThrow(); // 20 MiB
+    const input = [half, half, overByOne]; // cumulative 20 MiB + 1
+    let err;
+    try {
+      checkImageEnvelope(input);
+    } catch (error) {
+      err = error;
+    }
+    expect(err).toBeTruthy();
+    expect(err.message).toMatch(/Image 3:/); // the offending attachment
+    expect(err.message).toMatch(/total attachments exceed 20 MiB/);
+    // Rejection does not consume or mutate the submitted attachments...
+    expect(input).toEqual([half, half, overByOne]);
+    // ...so the earlier accepted attachments remain usable.
+    expect(() => checkImageEnvelope([half, half])).not.toThrow();
+  });
+
+  it("attributes a single over-limit image to the per-image guard, not the aggregate one", () => {
+    const singleOver = makeDataUrl(MAX_IMAGE_BYTES + 1); // > 20 MiB alone
+    let err;
+    try {
+      checkImageEnvelope([singleOver]);
+    } catch (error) {
+      err = error;
+    }
+    expect(err).toBeTruthy();
+    expect(err.message).toMatch(/Image 1: exceeds the 20 MiB limit/);
+    // Distinct message confirms the aggregate guard did not cause this rejection.
+    expect(err.message).not.toMatch(/total attachments exceed/);
+  });
+
+  it("tracks a cumulative total across repeated additions and rejects only the crossing one", () => {
+    expect(() => checkImageEnvelope([six])).not.toThrow(); // 6 MiB
+    expect(() => checkImageEnvelope([six, six])).not.toThrow(); // 12 MiB
+    expect(() => checkImageEnvelope([six, six, six])).not.toThrow(); // 18 MiB
+    let err;
+    try {
+      checkImageEnvelope([six, six, six, six]); // 24 MiB
+    } catch (error) {
+      err = error;
+    }
+    expect(err).toBeTruthy();
+    expect(err.message).toMatch(/Image 4:/); // the item that crossed the cap
+    expect(err.message).toMatch(/total attachments exceed 20 MiB/);
+  });
+});

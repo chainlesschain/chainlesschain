@@ -1,0 +1,1205 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000,
+    "connectionAttemptTimeoutMs": 10000,
+    "parallelToolCalls": null,
+    "preserveExplicitOutputLimits": true
+  },
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.140",
+    "vscode": "0.37.176",
+    "jetbrains": "0.4.193",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:cea1a2ff4e14a002be1700446ebe97bc7640a79ad6d778839f71bb938a2d25af",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+  "actualPlatform": "darwin",
+  "actualArch": "arm64",
+  "actualEntry": "vscode",
+  "changeReview": {
+    "requested": true,
+    "observed": false
+  },
+  "startedAt": "2026-11-03T14:46:38.511Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "first-run-darwin-vscode",
+      "taskId": "verify-08",
+      "kind": "first-run",
+      "runId": "b3a938e5-7390-45d4-a619-375bb5c904e0",
+      "stratum": "darwin-vscode-volcengine",
+      "declaredActualEntry": {
+        "platform": "darwin",
+        "entry": "vscode"
+      },
+      "actualPlatform": "darwin",
+      "actualEntry": "vscode",
+      "changeReview": {
+        "requested": true,
+        "observed": false,
+        "reminderCount": 0,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.140",
+        "vscode": "0.37.176",
+        "jetbrains": "0.4.193",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:83478667dd4b339d4e03dc9e6126cf680f84ad43e06b0f34fb46d79e1b665344",
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-08.test.js"
+      ],
+      "startedAt": "2026-11-03T14:46:38.513Z",
+      "deadline": "2026-11-03T15:46:38.513Z",
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-08.test.js",
+          "path": "first-run-darwin-vscode/candidate/packages/cli/__tests__/verify-08.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [],
+      "unexpectedChanges": [],
+      "generationPassed": false,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T14:46:43.201Z",
+        "finishedAt": "2026-11-03T14:47:05.901Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "first-run-darwin-vscode",
+        "locked": {
+          "version": "0.166.140",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+          "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": false,
+        "failure": "CLI model task failed: unsuccessful terminal result",
+        "restartRequired": true
+      },
+      "capturePath": "first-run-darwin-vscode/capture",
+      "model": {
+        "pass": false,
+        "terminal": {
+          "terminalVerified": false,
+          "observedFallback": false,
+          "usage": null,
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": false,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-db0d915b-71fc-4a42-8466-ef272f77ed47",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "944812e6-bc74-41d3-b023-0eb3d8aa3ea5",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_q0d71t5k0hfrl0xmupmqs90c",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/session-branch-history.js"
+            },
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_l7d0yyi13h40waaeye7fc2n5",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/session-branch.test.js"
+            },
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 8
+          },
+          {
+            "type": "tool_use",
+            "id": "call_40wmz6pm03csldz1o1047d33",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/session-transcript-history.test.js"
+            },
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 12
+          },
+          {
+            "type": "tool_use",
+            "id": "call_kwzm8gbeexcbjeqn76sco745",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/session-message-provenance.js"
+            },
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 14
+          },
+          {
+            "type": "tool_use",
+            "id": "call_8w0tid1r7j0kq7cwpito4ie7",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/session-branch-history.js"
+            },
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 20
+          },
+          {
+            "type": "tool_use",
+            "id": "call_bccuy3pvdwoi5iy6tielzgzg",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/session-branch.test.js"
+            },
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 22
+          },
+          {
+            "type": "tool_use",
+            "id": "call_wzh26izp3spzhzvol69ojijv",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/session-branch-history.js",
+              "offset": 81,
+              "limit": 80
+            },
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 28
+          },
+          {
+            "type": "tool_use",
+            "id": "call_zytrw7rs93bg557mukqn6aqy",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/session-branch.test.js",
+              "offset": 81,
+              "limit": 80
+            },
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 30
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_q0d71t5k0hfrl0xmupmqs90c",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-pCO5TV/b3a938e5-7390-45d4-a619-375bb5c904e0/workspace/packages/cli/src/lib/session-branch-history.js",
+              "fileVersion": "8425:1791108223000:1793717201688.392",
+              "readSpan": {
+                "start": 0,
+                "end": 8425,
+                "total": 8425
+              },
+              "hashed": false,
+              "content": "import { canonicalDigest } from \"@chainlesschain/context-memory-kernel\";\nimport { createHash } from \"node:crypto\";\nimport { SESSION_GENERATION_AUTHORITY_FIELD } from \"../harness/session-list-index.js\";\nimport {\n  encodePersistedMessage,\n  decodeVerifiedPersistedMessage,\n  getDurableSystemMessageProvenance,\n  projectCanonicalResumeMessages,\n} from \"./session-message-provenance.js\";\n\nexport const BRANCH_HISTORY_SCHEMA = \"chainlesschain.session-branch-history/v1\";\nexport const BRANCH_HISTORY_SYSTEM_ORIGINS_SCHEMA =\n  \"chainlesschain.session-branch-history/v2\";\nexport const BRANCH_HISTORY_MESSAGE = \"session_history_message\";\nexport const BRANCH_HISTORY_ORIGIN = \"session_history_origin\";\nconst capabilities = new WeakMap();\n\nexport const branchContextDigest = (messages) =>\n  canonicalDigest(\n    projectCanonicalResumeMessages(messages, { strict: true }).map(\n      encodePersistedMessage,\n    ),\n    \"chainlesschain.branch-history-context/v1\",\n  );\nexport const branchMessageDigest = (message) =>\n  canonicalDigest(message, \"chainlesschain.branch-history-message/v1\");\n\n// A caller cannot smuggle JSON-shaped history into a new authority chain. The\n// capability exists only inside a verified source projection's synchronous lock.\nexport function withSessionBranchHistory(plan, task) {\n  if (typeof task !== \"function\" || task.constructor?.name === \"AsyncFunction\")\n    throw new TypeError(\"Branch history consumer must be synchronous\");\n  const capability = Object.freeze({});\n  capabilities.set(capability, plan);\n  try {\n    const result = task(capability);\n    if (result && typeof result.then === \"function\")\n      throw new TypeError(\"Branch history consumer must be synchronous\");\n    return result;\n  } finally {\n    capabilities.delete(capability);\n  }\n}\n\nexport function resolveSessionBranchHistory(\n  capability,\n  parentSessionId,\n  messages,\n) {\n  if (capability == null) return null;\n  const plan = capabilities.get(capability);\n  if (\n    !plan ||\n    plan.parentSessionId !== parentSessionId ||\n    plan.contextDigest !== branchContextDigest(messages)\n  ) {\n    throw new Error(\n      \"Branch history capability is expired or does not match the branch\",\n    );\n  }\n  return plan;\n}\n\nexport function createBranchHistoryImport() {\n  let start = null;\n  let index = 0;\n  let active = null;\n  const hash = (value) =>\n    typeof value === \"string\" && /^[a-f0-9]{64}$/u.test(value);\n  const integer = (value) => Number.isSafeInteger(value) && value >= 0;\n  const invalid = () => {\n    const error = new Error(\n      \"Branch display history is incomplete or inconsistent\",\n    );\n    error.code = \"SESSION_BRANCH_HISTORY_INVALID\";\n    throw error;\n  };\n  const require = (condition) => {\n    if (!condition) invalid();\n  };\n  return {\n    accept(event) {\n      index += 1;\n      if (index === 1 && event.type === \"session_start\") {\n        const data = { ...event.data };\n        delete data[SESSION_GENERATION_AUTHORITY_FIELD];\n        start = { type: event.type, data };\n      }\n      if (event.type === \"session_branch\" && event.data?.history != null) {\n        const descriptor = event.data.history;\n        require(\n          index === 2 &&\n            start &&\n            !active &&\n            [\n              BRANCH_HISTORY_SCHEMA,\n              BRANCH_HISTORY_SYSTEM_ORIGINS_SCHEMA,\n            ].includes(descriptor.schema) &&\n            hash(descriptor.sourceGeneration) &&\n            integer(descriptor.totalMessages) &&\n            integer(descriptor.contextMessageCount) &&\n            descriptor.contextMessageCount <= 32768,\n        );\n        const coverage = descriptor.coverage;\n        require(\n          coverage?.kind === \"from-origin\"\n            ? coverage.boundaryEvent === null && coverage.reason === null\n            : coverage?.kind === \"snapshot-boundary\" &&\n                hash(coverage.boundaryEvent) &&\n                [\n                  \"timeline-replacement\",\n                  \"context-snapshot\",\n                  \"branch-snapshot\",\n                ].includes(coverage.reason),\n        );\n        const digest = createHash(\"sha256\").update(\n          `[${JSON.stringify(start)},${JSON.stringify({ type: event.type, data: event.data })}`,\n        );\n        active = {\n          descriptor,\n          digest,\n          rows: 0,\n          contexts: 0,\n          pending: null,\n          textParts: [],\n          textBytes: 0,\n          textIdentity: null,\n          contextStarted: false,\n        };\n        return { kind: \"start\", coverage };\n      }\n      if (!active) {\n        if (\n          [BRANCH_HISTORY_MESSAGE, BRANCH_HISTORY_ORIGIN].includes(\n            event.type,\n          ) ||\n          (event.type === \"session_branch_complete\" &&\n            event.data?.schemaVersion === 2)\n        )\n          invalid();\n        return null;\n      }\n      const state = active;\n      if (event.type === \"session_branch_complete\") {\n        require(\n          !state.pending &&\n            state.textParts.length === 0 &&\n            state.rows === state.descriptor.totalMessages &&\n            state.contexts === state.descriptor.contextMessageCount &&\n            event.data?.schemaVersion === 2 &&\n            event.data.messageCount === state.contexts &&\n            event.data.inputDigest ===\n              `sha256:${state.digest.update(\"]\").digest(\"hex\")}`,\n        );\n        active = null;\n        return { kind: \"complete\" };\n      }\n      state.digest.update(\n        `,${JSON.stringify({ type: event.type, data: event.data })}`,\n      );\n      if (event.type === BRANCH_HISTORY_MESSAGE) {\n        const row = event.data;\n        require(\n          !state.contextStarted &&\n            state.rows < state.descriptor.totalMessages &&\n            [\"user\", \"assistant\", \"tool\"].includes(row?.role) &&\n            typeof row.text === \"string\" &&\n            row.text.length <= 128 * 1024 &&\n            row.part === state.textParts.length &&\n            typeof row.last === \"boolean\" &&\n            hash(row.sourceEventId) &&\n            integer(row.sourceItemIndex),\n        );\n        const identity = `${row.role}:${row.sourceEventId}:${row.sourceItemIndex}`;\n        require(state.textIdentity === null || state.textIdentity === identity);\n        state.textIdentity = identity;\n        state.textBytes += Buffer.byteLength(row.text);\n        require(\n          state.textBytes <= 16 * 1024 * 1024 && state.textParts.length < 256,\n        );\n        state.textParts.push(row.text);\n        if (!row.last) return { kind: \"archive-part\" };\n        const message = { role: row.role, content: state.textParts.join(\"\") };\n        state.textParts = [];\n        state.textBytes = 0;\n        state.textIdentity = null;\n        state.rows += 1;\n        return { kind: \"archive\", message };\n      }\n      if (\n        [\"user_message\", \"assistant_message\", \"system\"].includes(event.type)\n      ) {\n        require(\n          !state.pending &&\n            state.textParts.length === 0 &&\n            state.rows === state.descriptor.totalMessages &&\n            state.contexts < state.descriptor.contextMessageCount &&\n            event.data?.role ===\n              {\n                user_message: \"user\",\n                assistant_message: \"assistant\",\n                system: \"system\",\n              }[event.type],\n        );\n        state.contextStarted = true;\n        state.pending = event.data;\n        return { kind: \"context\" };\n      }\n      if (event.type === BRANCH_HISTORY_ORIGIN) {\n        const message = state.pending;\n        const origin = event.data?.origin;\n        require(\n          message && event.data.messageDigest === branchMessageDigest(message),\n        );\n        require(\n          origin === null\n            ? message.role === \"system\"\n            : origin &&\n                integer(origin.first) &&\n                integer(origin.last) &&\n                origin.first <= origin.last &&\n                origin.last < state.rows &&\n                (message.role !== \"system\" ||\n                  (state.descriptor.schema ===\n                    BRANCH_HISTORY_SYSTEM_ORIGINS_SCHEMA &&\n                    getDurableSystemMessageProvenance(\n                      decodeVerifiedPersistedMessage(message),\n                    ))),\n        );\n        state.contexts += 1;\n        state.pending = null;\n        return { kind: \"origin\", message, origin };\n      }\n      invalid();\n    },\n    finish() {\n      if (active) invalid();\n    },\n  };\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793717246447,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/session-branch-history.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 5,
+                "sessionId": "panel-db0d915b-71fc-4a42-8466-ef272f77ed47",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/session-branch-history.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_q0d71t5k0hfrl0xmupmqs90c",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 7
+          },
+          {
+            "type": "tool_result",
+            "id": "call_l7d0yyi13h40waaeye7fc2n5",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-pCO5TV/b3a938e5-7390-45d4-a619-375bb5c904e0/workspace/packages/cli/__tests__/unit/session-branch.test.js",
+              "fileVersion": "7703:1791108223000:1793717201278.6287",
+              "readSpan": {
+                "start": 0,
+                "end": 7681,
+                "total": 7681
+              },
+              "hashed": false,
+              "content": "/**\n * Session branch planning (P0-3 \"从这里分支\" — the fourth restore action from\n * CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md). Pure module: no RNG,\n * clock, fs or git — deterministic plans + lineage integrity checks.\n */\nimport { describe, it, expect } from \"vitest\";\nimport { TURN_COVERAGE, TurnBindingLog } from \"../../src/lib/turn-binding.js\";\nimport {\n  deriveBranchId,\n  deriveBranchSessionId,\n  planSessionBranch,\n  validateBranchLineage,\n} from \"../../src/lib/session-branch.js\";\n\n/** A FULL-coverage turn: mutated files WITH a checkpoint, no side-effects. */\nfunction fullTurn() {\n  const log = new TurnBindingLog();\n  log.startTurn(\"turn-3\", { conversationOffset: 3 });\n  log.recordToolCall(\"turn-3\", \"tc-1\", { name: \"write_file\" });\n  log.bindCheckpoint(\"turn-3\", \"cp-abc\");\n  return log.get(\"turn-3\");\n}\n\ndescribe(\"deriveBranchId\", () => {\n  it(\"is deterministic — same inputs hash to the same id\", () => {\n    expect(deriveBranchId(\"s1\", \"turn-3\", 0)).toBe(\n      deriveBranchId(\"s1\", \"turn-3\", 0),\n    );\n  });\n  it(\"disambiguates two branches off the SAME turn via seq\", () => {\n    expect(deriveBranchId(\"s1\", \"turn-3\", 0)).not.toBe(\n      deriveBranchId(\"s1\", \"turn-3\", 1),\n    );\n  });\n  it(\"differs by parent session and by turn\", () => {\n    expect(deriveBranchId(\"s1\", \"turn-3\", 0)).not.toBe(\n      deriveBranchId(\"s2\", \"turn-3\", 0),\n    );\n    expect(deriveBranchId(\"s1\", \"turn-3\", 0)).not.toBe(\n      deriveBranchId(\"s1\", \"turn-4\", 0),\n    );\n  });\n});\n\ndescribe(\"deriveBranchSessionId\", () => {\n  it(\"derives a traversal-safe id (no path separators survive)\", () => {\n    const id = deriveBranchSessionId(\"../evil/id\", \"ab/cd\");\n    expect(id).not.toContain(\"/\");\n    expect(id).not.toContain(\"\\\\\");\n    expect(id).toMatch(/^[A-Za-z0-9._~-]+$/);\n  });\n  it(\"embeds the parent and branch id\", () => {\n    expect(deriveBranchSessionId(\"s1\", \"deadbeef\")).toBe(\"s1-b-deadbeef\");\n  });\n});\n\ndescribe(\"planSessionBranch\", () => {\n  it(\"targets a NEW session, preserves the parent, never inherits grants\", () => {\n    const plan = planSessionBranch({\n      parentSessionId: \"s1\",\n      turn: fullTurn(),\n    });\n    expect(plan.branchSessionId).not.toBe(\"s1\");\n    expect(plan.branchSessionId).toContain(\"s1-b-\");\n    expect(plan.preservesParent).toBe(true);\n    expect(plan.inheritSessionGrants).toBe(false);\n    expect(plan.parentTurnId).toBe(\"turn-3\");\n    expect(plan.parentSessionId).toBe(\"s1\");\n  });\n\n  it(\"keeps history up to the branch-point turn (truncate offset)\", () => {\n    const plan = planSessionBranch({ parentSessionId: \"s1\", turn: fullTurn() });\n    expect(plan.conversationTruncateTo).toBe(3);\n    expect(plan.fileCheckpointId).toBe(\"cp-abc\");\n    expect(plan.coverage).toBe(TURN_COVERAGE.FULL);\n  });\n\n  it(\"emits no warnings for a clean, read-only FULL branch point\", () => {\n    // FULL coverage AND no file mutation → nothing irreversible, no collision.\n    const log = new TurnBindingLog();\n    log.startTurn(\"turn-0\", { conversationOffset: 0 });\n    log.recordToolCall(\"turn-0\", \"r\", { name: \"read_file\" });\n    const plan = planSessionBranch({\n      parentSessionId: \"s1\",\n      turn: log.get(\"turn-0\"),\n    });\n    expect(plan.coverage).toBe(TURN_COVERAGE.FULL);\n    expect(plan.requiresWorktree).toBe(false);\n    expect(plan.warnings).toEqual([]);\n  });\n\n  it(\"requires a worktree when the branch intends to write\", () => {\n    const readOnlyLog = new TurnBindingLog();\n    readOnlyLog.startTurn(\"turn-1\", { conversationOffset: 1 });\n    readOnlyLog.recordToolCall(\"turn-1\", \"tc\", { name: \"read_file\" });\n    const turn = readOnlyLog.get(\"turn-1\");\n    expect(turn.coverage).toBe(TURN_COVERAGE.FULL);\n\n    const readPlan = planSessionBranch({ parentSessionId: \"s1\", turn });\n    expect(readPlan.requiresWorktree).toBe(false);\n\n    const writePlan = planSessionBranch({\n      parentSessionId: \"s1\",\n      turn,\n      writeIntent: true,\n    });\n    expect(writePlan.requiresWorktree).toBe(true);\n    expect(writePlan.warnings.join(\" \")).toContain(\"isolated worktree\");\n  });\n\n  it(\"requires a worktree when the branch point already mutated files\", () => {\n    // FULL turn that mutated files (has a checkpoint) → a divergent branch that\n    // also writes would collide, so default to an isolated worktree.\n    const plan = planSessionBranch({ parentSessionId: \"s1\", turn: fullTurn() });\n    expect(plan.requiresWorktree).toBe(true);\n  });\n\n  it(\"warns honestly on PARTIAL coverage (irreversible side-effects)\", () => {\n    const log = new TurnBindingLog();\n    log.startTurn(\"turn-2\", { conversationOffset: 2 });\n    log.recordToolCall(\"turn-2\", \"sh\", { name: \"run_shell\" });\n    log.bindCheckpoint(\"turn-2\", \"cp-x\");\n    const plan = planSessionBranch({\n      parentSessionId: \"s1\",\n      turn: log.get(\"turn-2\"),\n    });\n    expect(plan.coverage).toBe(TURN_COVERAGE.PARTIAL);\n    expect(plan.warnings.join(\" \")).toContain(\"irreversible side-effects\");\n  });\n\n  it(\"warns when there is no file checkpoint (NONE coverage)\", () => {\n    const log = new TurnBindingLog();\n    log.startTurn(\"turn-5\", { conversationOffset: 5 });\n    log.recordToolCall(\"turn-5\", \"ed\", { name: \"edit_file\" }); // mutated, no checkpoint\n    const turn = log.get(\"turn-5\");\n    expect(turn.coverage).toBe(TURN_COVERAGE.NONE);\n    const plan = planSessionBranch({ parentSessionId: \"s1\", turn });\n    expect(plan.warnings.join(\" \")).toContain(\"no file checkpoint\");\n    expect(plan.requiresWorktree).toBe(true); // NONE = mutated files at point\n  });\n\n  it(\"warns and still preserves the parent on a missing conversation offset\", () => {\n    const log = new TurnBindingLog();\n    log.startTurn(\"turn-9\"); // no offset\n    const plan = planSessionBranch({\n      parentSessionId: \"s1\",\n      turn: log.get(\"turn-9\"),\n    });\n    expect(plan.conversationTruncateTo).toBeNull();\n    expect(plan.warnings.join(\" \")).toContain(\"full parent history\");\n    expect(plan.preservesParent).toBe(true);\n  });\n\n  it(\"handles an unknown/absent turn without throwing\", () => {\n    const plan = planSessionBranch({ parentSessionId: \"s1\", turn: null });\n    expect(plan.branchId).toBeNull();\n    expect(plan.preservesParent).toBe(true);\n    expect(plan.inheritSessionGrants).toBe(false);\n    expect(plan.warnings.join(\" \")).toContain(\"nothing to branch from\");\n  });\n\n  it(\"honors an explicit branch session id\", () => {\n    const plan = planSessionBranch({\n      parentSessionId: \"s1\",\n      turn: fullTurn(),\n      branchSessionId: \"my-branch\",\n    });\n    expect(plan.branchSessionId).toBe(\"my-branch\");\n  });\n});\n\ndescribe(\"validateBranchLineage\", () => {\n  it(\"accepts a clean tree (root + children)\", () => {\n    const res = validateBranchLineage([\n      { sessionId: \"root\", parentSessionId: null },\n      { sessionId: \"b1\", parentSessionId: \"root\" },\n      { sessionId: \"b2\", parentSessionId: \"b1\" },\n    ]);\n    expect(res.ok).toBe(true);\n    expect(res.cycles).toEqual([]);\n    expect(res.orphans).toEqual([]);\n  });\n\n  it(\"flags an orphan (parent not present)\", () => {\n    const res = validateBranchLineage([\n      { sessionId: \"b1\", parentSessionId: \"ghost\" },\n    ]);\n    expect(res.ok).toBe(false);\n    expect(res.orphans).toContain(\"b1\");\n  });\n\n  it(\"detects a cycle — a branch cannot be its own ancestor\", () => {\n    const res = validateBranchLineage([\n      { sessionId: \"a\", parentSessionId: \"b\" },\n      { sessionId: \"b\", parentSessionId: \"a\" },\n    ]);\n    expect(res.ok).toBe(false);\n    expect(res.cycles.length).toBe(1);\n    expect(res.cycles[0].sort()).toEqual([\"a\", \"b\"]);\n  });\n\n  it(\"ignores malformed records\", () => {\n    const res = validateBranchLineage([null, { parentSessionId: \"x\" }, 42]);\n    expect(res.ok).toBe(true);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793717246594,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/session-branch.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 19,
+                "sessionId": "panel-db0d915b-71fc-4a42-8466-ef272f77ed47",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/session-branch.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_l7d0yyi13h40waaeye7fc2n5",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 9
+          },
+          {
+            "type": "tool_result",
+            "id": "call_40wmz6pm03csldz1o1047d33",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-pCO5TV/b3a938e5-7390-45d4-a619-375bb5c904e0/workspace/packages/cli/__tests__/unit/session-transcript-history.test.js",
+              "fileVersion": "42022:1791108223000:1793717201283.2864",
+              "readSpan": {
+                "start": 0,
+                "end": 42016,
+                "total": 42016
+              },
+              "hashed": false,
+              "content": "import { afterAll, describe, expect, it, vi } from \"vitest\";\nimport {\n  appendFileSync,\n  existsSync,\n  mkdtempSync,\n  readFileSync,\n  rmSync,\n  writeFileSync,\n} from \"node:fs\";\nimport { join } from \"node:path\";\nimport { tmpdir } from \"node:os\";\nimport { Command } from \"commander\";\nimport { ContextMemoryKernel } from \"@chainlesschain/context-memory-kernel\";\n\nconst root = mkdtempSync(join(tmpdir(), \"cc-history-\"));\nvi.mock(\"../../src/lib/paths.js\", () => ({\n  getHomeDir: () => join(root, \"home\"),\n  getClaudeProjectStorageDir: () => null,\n  getStatePath: () => join(root, \"home\", \"state\"),\n  getMachineSecurityAnchorDir: () => join(root, \"security\"),\n}));\nconst store = await import(\"../../src/harness/jsonl-session-store.js\");\nconst {\n  readSessionTranscriptHistory,\n  createSessionTranscriptHistoryProjection,\n  createSessionTranscriptBranchProjection,\n} = await import(\"../../src/lib/session-transcript-history.js\");\nconst { readSessionTranscriptPage } =\n  await import(\"../../src/lib/session-transcript-page.js\");\nconst { JsonlSessionContextPort } =\n  await import(\"../../src/lib/context-memory-kernel/jsonl-session-context-port.js\");\nconst { createSummaryContextItem } =\n  await import(\"../../src/lib/context-memory-kernel/message-adapter.js\");\nconst { HISTORY_PREFIX_SCHEMA } =\n  await import(\"../../src/lib/session-history-origins.js\");\nconst { HISTORY_SUMMARY_SCHEMA, projectCheckpointSummary } =\n  await import(\"../../src/lib/checkpoint-summary-projection.js\");\nconst { branchMessageDigest } =\n  await import(\"../../src/lib/session-branch-history.js\");\nconst { registerSessionShowSubcommand } =\n  await import(\"../../src/commands/session-show.js\");\nconst { parseTranscriptPage } =\n  await import(\"../../../vscode-extension/src/chat/transcript-cache.js\");\n\nafterAll(() => rmSync(root, { recursive: true, force: true }));\n\nasync function compact(sessionId, operationId, options = {}) {\n  const kernel = new ContextMemoryKernel({\n    sessionPort: new JsonlSessionContextPort({ sessionId }),\n  });\n  const result = await kernel.compactContext({\n    operationId,\n    sessionId,\n    modelWindowTokens: 150,\n    reservedOutputTokens: 20,\n    safetyMarginTokens: 10,\n    recoveryReserveTokens: 10,\n    sink: \"provider.local\",\n    scopeAdmissions: [{ scope: \"session\", scopeId: sessionId }],\n    policyVersion: \"test\",\n    modelProfile: \"test\",\n    now: \"2026-09-27T00:00:00.000Z\",\n    ...options,\n  });\n  expect(result.status).toBe(\"committed\");\n}\nfunction start(id, count = 8) {\n  store.startSession(id, { provider: \"test\", model: \"test\" });\n  for (let i = 0; i < count; i++) {\n    store.appendUserMessage(id, `question-${i}: ${\"x\".repeat(90)}`);\n    store.appendAssistantMessage(id, `answer-${i}: ${\"y\".repeat(90)}`);\n  }\n}\nfunction texts(page) {\n  return page.messages.map((m) => m.text);\n}\nfunction rewriteCursor(cursor, patch) {\n  return Buffer.from(\n    JSON.stringify({\n      ...JSON.parse(Buffer.from(cursor, \"base64url\").toString(\"utf8\")),\n      ...patch,\n    }),\n  ).toString(\"base64url\");\n}\nfunction rewind(id, retainedMessageCount, patch = {}) {\n  const messages = store.readVerifiedMessages(id);\n  const head = store.findLatestEvent(id, null).hash;\n  return store.withSessionAuthorityTransaction(id, head, (transaction) =>\n    transaction.appendAuthorityEvent(\"checkpoint_timeline_commit\", {\n      action: \"restore-conversation\",\n      messages: messages.slice(0, retainedMessageCount),\n      historyPrefix: {\n        schema: HISTORY_PREFIX_SCHEMA,\n        sourceHead: transaction.currentHeadHash(),\n        sourceMessageCount: messages.length,\n        retainedMessageCount,\n        ...patch,\n      },\n      binding: { turns: [] },\n    }),\n  );\n}\nfunction summarize(id, action, start, end, change = () => {}) {\n  const messages = store.readVerifiedMessages(id);\n  end ??= messages.length;\n  const head = store.findLatestEvent(id, null).hash;\n  return store.withSessionAuthorityTransaction(id, head, (transaction) => {\n    const data = {\n      action,\n      turnId: \"selected\",\n      messages: projectCheckpointSummary({\n        messages,\n        action,\n        start,\n        end,\n        turnId: \"selected\",\n      }).map(({ message }) => message),\n      historySummary: {\n        schema: HISTORY_SUMMARY_SCHEMA,\n        sourceHead: transaction.currentHeadHash(),\n        sourceMessageCount: messages.length,\n        start,\n        end,\n      },\n      binding: { turns: [] },\n    };\n    change(data);\n    return transaction.appendAuthorityEvent(\"checkpoint_timeline_commit\", data);\n  });\n}\nfunction historyBranch(parentSessionId, branchSessionId, retainedMessageCount) {\n  const messages = store\n    .readVerifiedMessages(parentSessionId)\n    .slice(0, retainedMessageCount);\n  const head = store.findLatestEvent(parentSessionId, null).hash;\n  return store.withSessionAuthorityTransaction(\n    parentSessionId,\n    head,\n    (transaction) =>\n      transaction.readProjection(() =>\n        createSessionTranscriptBranchProjection(\n          parentSessionId,\n          messages,\n          (history) =>\n            store.createBranchSession({\n              parentSessionId,\n              branchSessionId,\n              parentTurnId: \"selected\",\n              messages,\n              history,\n            }),\n        ),\n      ),\n  );\n}\n\ndescribe(\"canonical display history\", () => {\n  it.each([\"summary-from\", \"summary-to\"])(\n    \"keeps original row identities and old cursors after %s, then rewinds the correct path\",\n    (action) => {\n      const id = `history-timeline-${action}`;\n      start(id, 6);\n      const original = readSessionTranscriptHistory(id);\n      const oldPage = readSessionTranscriptHistory(id, { limit: 2 });\n      summarize(\n        id,\n        action,\n        action === \"summary-from\" ? 4 : 0,\n        action === \"summary-from\" ? 12 : 4,\n      );\n      const active = store.readVerifiedMessages(id);\n      expect(\n        active.some(\n          (message) =>\n            message.role === \"system\" &&\n            message.content.includes(\"Conversation Summary\"),\n        ),\n      ).toBe(true);\n      expect(active.length).toBeLessThan(original.totalMessages);\n      const page = readSessionTranscriptHistory(id);\n      expect(page.messages).toEqual(original.messages);\n      expect(page.coverage).toEqual(original.coverage);\n      expect(page.generation).toBe(original.generation);\n      expect(\n        readSessionTranscriptHistory(id, {\n          limit: 2,\n          cursor: oldPage.nextCursor,\n        }).messages,\n      ).toEqual(original.messages.slice(8, 10));\n      store.appendUserMessage(id, \"later question\");\n      store.appendAssistantMessage(id, \"later answer\");\n      rewind(id, action === \"summary-from\" ? 2 : 3);\n      expect(readSessionTranscriptHistory(id).messages).toEqual(\n        original.messages.slice(0, action === \"summary-from\" ? 2 : 6),\n      );\n      expect(() =>\n        readSessionTranscriptHistory(id, { cursor: oldPage.nextCursor }),\n      ).toThrow(\"changed\");\n    },\n  );\n\n  it(\"retains repeated summary dependencies through an independent branch, compaction and rewind\", async () => {\n    const id = \"history-repeated-timeline-summary\";\n    const child = \"history-repeated-timeline-summary-child\";\n    start(id, 4);\n    const original = readSessionTranscriptHistory(id);\n    summarize(id, \"summary-from\", 4);\n    summarize(id, \"summary-to\", 0, 2);\n    const context = store.readVerifiedMessages(id);\n    expect(context.map((message) => message.role)).toEqual([\n      \"system\",\n      \"user\",\n      \"assistant\",\n      \"system\",\n    ]);\n    store.appendUserMessage(id, \"branch here\");\n    historyBranch(id, child, context.length);\n    expect(historyBranch(id, child, context.length).created).toBe(false);\n    const events = store.readVerifiedEvents(child);\n    expect(events[1].data.history.schema).toBe(\n      \"chainlesschain.session-branch-history/v2\",\n    );\n    for (const change of [\n      (copy) => {\n        copy[1].data.history.schema =\n          \"chainlesschain.session-branch-history/v1\";\n      },\n      (copy) => {\n        const index = copy.findIndex((event) => event.type === \"system\");\n        copy[index + 1].data.origin.last = original.totalMessages;\n      },\n      (copy) => {\n        const index = copy.findIndex((event) => event.type === \"system\");\n        delete copy[index].data._cc_replay;\n        copy[index + 1].data.messageDigest = branchMessageDigest(\n          copy[index].data,\n        );\n      },\n    ]) {\n      const copy = structuredClone(events);\n      change(copy);\n      const projection = createSessionTranscriptHistoryProjection(child);\n      expect(() => copy.forEach((event) => projection.accept(event))).toThrow(\n        \"incomplete or inconsistent\",\n      );\n    }\n    store.deleteJsonlSession(id);\n    expect(texts(readSessionTranscriptHistory(child))).toEqual(texts(original));\n    expect(readSessionTranscriptHistory(child).coverage.kind).toBe(\n      \"from-origin\",\n    );\n    store.appendUserMessage(child, \"discard here\");\n    await compact(child, \"after-timeline-summary\", { modelWindowTokens: 2000 });\n    const active = store.readVerifiedMessages(child);\n    rewind(child, active.length - 1);\n    expect(texts(readSessionTranscriptHistory(child))).toEqual(texts(original));\n    const fork = store.forkSession(child, { requestId: \"summarized-fork\" });\n    const forkId = typeof fork === \"string\" ? fork : fork.id;\n    expect(texts(readSessionTranscriptHistory(forkId))).toEqual(\n      texts(original),\n    );\n  });\n\n  it(\"preserves pre-compaction display history when a later active suffix is summarized\", async () => {\n    const id = \"history-compact-then-timeline-summary\";\n    start(id, 4);\n    store.appendUserMessage(id, \"selected turn\");\n    const original = readSessionTranscriptHistory(id);\n    await compact(id, \"before-timeline-summary\");\n    const active = store.readVerifiedMessages(id);\n    expect(active.length).toBeLessThan(original.totalMessages);\n    summarize(id, \"summary-from\", active.length - 1);\n    const retained = store.readVerifiedMessages(id).length;\n    store.appendUserMessage(id, \"next turn\");\n    rewind(id, retained);\n    expect(readSessionTranscriptHistory(id).messages).toEqual(\n      original.messages,\n    );\n  });\n\n  it(\"preserves ancestry when summary-to moves durable systems ahead of its new summary\", () => {\n    const id = \"history-summary-moved-systems\";\n    start(id, 2);\n    summarize(id, \"summary-from\", 2);\n    store.appendUserMessage(id, \"more work\");\n    store.appendAssistantMessage(id, \"more answer\");\n    const original = readSessionTranscriptHistory(id);\n    const earlierSummary = store.readVerifiedMessages(id)[2];\n    summarize(id, \"summary-to\", 0);\n    const active = store.readVerifiedMessages(id);\n    expect(active.map((message) => message.role)).toEqual([\"system\", \"system\"]);\n    expect(active[0].content).toBe(earlierSummary.content);\n    store.appendUserMessage(id, \"discard\");\n    rewind(id, 2);\n    expect(readSessionTranscriptHistory(id).messages).toEqual(\n      original.messages,\n    );\n    expect(readSessionTranscriptHistory(id).coverage.kind).toBe(\"from-origin\");\n  });\n\n  it(\"retains snapshot coverage after a verified summary and later rewind\", () => {\n    const id = \"history-snapshot-then-timeline-summary\";\n    start(id, 2);\n    store.appendCompactEvent(id, {\n      messages: [\n        { role: \"user\", content: \"imported user\" },\n        { role: \"assistant\", content: \"imported answer\" },\n      ],\n    });\n    const original = readSessionTranscriptHistory(id);\n    summarize(id, \"summary-to\", 0);\n    store.appendUserMessage(id, \"later\");\n    rewind(id, 1);\n    const page = readSessionTranscriptHistory(id);\n    expect(page.messages).toEqual(original.messages);\n    expect(page.coverage).toEqual(original.coverage);\n  });\n\n  it.each([\"legacy\", \"wrong-head\", \"changed-output\"])(\n    \"retains an explicit boundary for a %s timeline summary\",\n    (problem) => {\n      const id = `history-summary-boundary-${problem}`;\n      start(id, 3);\n      const oldPage = readSessionTranscriptHistory(id, { limit: 2 });\n      summarize(id, \"summary-from\", 2, undefined, (data) => {\n        if (problem === \"legacy\") delete data.historySummary;\n        else if (problem === \"wrong-head\")\n          data.historySummary.sourceHead = \"f\".repeat(64);\n        else data.messages[0].content = \"changed retained output\";\n      });\n      const page = readSessionTranscriptHistory(id);\n      expect(page.totalMessages).toBe(2);\n      expect(page.coverage.reason).toBe(\"timeline-replacement\");\n      expect(() =>\n        readSessionTranscriptHistory(id, { cursor: oldPage.nextCursor }),\n      ).toThrow(\"changed\");\n    },\n  );\n\n  it(\"keeps interrupted archive copies unpublished, recovers the exact prefix and refuses rollback\", () => {\n    const parent = \"history-crash-parent\";\n    const child = \"history-crash-child\";\n    start(parent, 2);\n    const metaPath = join(root, \"home\", \"sessions\", `${child}.meta.json`);\n    process.env.CC_SESSION_SCALE_FAULT_INJECTION = \"1\";\n    store._sessionScaleFaultHooks.afterTranscriptAppend = ({\n      sessionId,\n      type,\n    }) => {\n      if (sessionId === child && type === \"session_history_message\")\n        throw new Error(\"archive crash\");\n    };\n    try {\n      expect(() => historyBranch(parent, child, 2)).toThrow(\"archive crash\");\n      expect(existsSync(metaPath)).toBe(false);\n      expect(() => readSessionTranscriptHistory(child)).toThrow();\n      store._sessionScaleFaultHooks.afterTranscriptAppend = null;\n      store._sessionScaleFaultHooks.beforeTranscriptAppend = ({\n        sessionId,\n        type,\n      }) => {\n        if (sessionId === child && type === \"session_history_message\")\n          throw new Error(\"retry before append\");\n      };\n      expect(() => historyBranch(parent, child, 2)).toThrow(\n        \"retry before append\",\n      );\n      expect(existsSync(metaPath)).toBe(false);\n      expect(() => store.readVerifiedMessages(child)).toThrow();\n    } finally {\n      store._sessionScaleFaultHooks.afterTranscriptAppend = null;\n      store._sessionScaleFaultHooks.beforeTranscriptAppend = null;\n      delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;\n    }\n    expect(historyBranch(parent, child, 2).created).toBe(true);\n    expect(texts(readSessionTranscriptHistory(child))).toEqual(\n      texts(readSessionTranscriptHistory(parent)).slice(0, 2),\n    );\n    store.appendUserMessage(child, \"later branch turn\");\n    const meta = readFileSync(metaPath, \"utf8\");\n    const file = join(root, \"home\", \"sessions\", `${child}.jsonl`);\n    const lines = readFileSync(file, \"utf8\").trimEnd().split(/\\r?\\n/u);\n    writeFileSync(file, lines.slice(0, -1).join(\"\\n\") + \"\\n\", \"utf8\");\n    expect(() => historyBranch(parent, child, 2)).toThrow();\n    expect(readFileSync(metaPath, \"utf8\")).toBe(meta);\n  });\n\n  it(\"does not publish a branch when its source changes during the copy\", () => {\n    const parent = \"history-source-mutated\";\n    const child = \"history-source-mutated-child\";\n    start(parent, 2);\n    let injected = false;\n    process.env.CC_SESSION_SCALE_FAULT_INJECTION = \"1\";\n    store._sessionScaleFaultHooks.afterTranscriptAppend = ({\n      sessionId,\n      type,\n    }) => {\n      if (\n        sessionId === child &&\n        type === \"session_history_message\" &&\n        !injected\n      ) {\n        injected = true;\n        appendFileSync(\n          join(root, \"home\", \"sessions\", `${parent}.jsonl`),\n          \"{}\\n\",\n        );\n      }\n    };\n    try {\n      expect(() => historyBranch(parent, child, 2)).toThrow();\n      expect(injected).toBe(true);\n      expect(\n        existsSync(join(root, \"home\", \"sessions\", `${child}.meta.json`)),\n      ).toBe(false);\n      expect(() => store.readVerifiedMessages(child)).toThrow();\n    } finally {\n      store._sessionScaleFaultHooks.afterTranscriptAppend = null;\n      delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;\n    }\n  });\n\n  it(\"preserves legacy branch idempotency and inherited snapshot coverage\", () => {\n    const id = \"history-legacy-import\";\n    start(id, 2);\n    const messages = store.readVerifiedMessages(id).slice(0, 2);\n    store.createBranchSession({\n      parentSessionId: id,\n      branchSessionId: \"legacy-child\",\n      parentTurnId: \"selected\",\n      messages,\n    });\n    const before = store.readVerifiedEvents(\"legacy-child\");\n    expect(historyBranch(id, \"legacy-child\", 2).created).toBe(false);\n    expect(store.readVerifiedEvents(\"legacy-child\")).toEqual(before);\n    expect(readSessionTranscriptHistory(\"legacy-child\").coverage.reason).toBe(\n      \"branch-snapshot\",\n    );\n    store.appendUserMessage(\"legacy-child\", \"new branch point\");\n    historyBranch(\"legacy-child\", \"legacy-grandchild\", 2);\n    expect(\n      readSessionTranscriptHistory(\"legacy-grandchild\").coverage.reason,\n    ).toBe(\"branch-snapshot\");\n  });\n\n  it(\"carries truncation through inheritance and keeps escaped text within a page\", () => {\n    const id = \"history-large-import\";\n    store.startSession(id, {});\n    store.appendUserMessage(id, \"\\u0001\".repeat(210000));\n    store.appendAssistantMessage(id, \"answer\");\n    store.appendUserMessage(id, \"branch point\");\n    const original = readSessionTranscriptHistory(id, { limit: 1 });\n    historyBranch(id, \"large-child\", 2);\n    const latest = readSessionTranscriptHistory(\"large-child\", { limit: 1 });\n    const older = readSessionTranscriptHistory(\"large-child\", {\n      limit: 1,\n      cursor: latest.nextCursor,\n    });\n    expect(older.messages).toHaveLength(1);\n    expect(older.messages[0].truncated).toBe(true);\n    expect(older.messages[0].text.length).toBeGreaterThan(100000);\n    expect(\n      Buffer.byteLength(JSON.stringify(older.messages[0])),\n    ).toBeLessThanOrEqual(1024 * 1024);\n    parseTranscriptPage(JSON.stringify(older), \"large-child\");\n    const fullInheritedText = (sessionId) =>\n      store\n        .readVerifiedEvents(sessionId)\n        .filter(\n          (event) =>\n            event.type === \"session_history_message\" &&\n            event.data.role === \"user\",\n        )\n        .map((event) => event.data.text)\n        .join(\"\");\n    expect(fullInheritedText(\"large-child\")).toBe(\"\\u0001\".repeat(210000));\n    store.appendUserMessage(\"large-child\", \"next branch point\");\n    historyBranch(\"large-child\", \"large-grandchild\", 2);\n    expect(fullInheritedText(\"large-grandchild\")).toBe(\"\\u0001\".repeat(210000));\n    expect(() =>\n      readSessionTranscriptHistory(\"large-child\", {\n        cursor: original.nextCursor,\n      }),\n    ).toThrow();\n  });\n\n  it(\"validates imported completion digests and context origins before returning a page\", () => {\n    const id = \"history-import-contract\";\n    start(id, 2);\n    historyBranch(id, \"history-import-contract-child\", 2);\n    const events = store.readVerifiedEvents(\"history-import-contract-child\");\n    for (const change of [\n      (copy) => {\n        copy.find(\n          (event) => event.type === \"session_history_message\",\n        ).data.text = \"changed\";\n      },\n      (copy) => {\n        copy.find(\n          (event) => event.type === \"session_history_origin\",\n        ).data.origin.last = 100;\n      },\n      (copy) => {\n        copy.pop();\n      },\n      (copy) => {\n        copy.find(\n          (event) => event.type === \"session_history_message\",\n        ).data.part = 1;\n      },\n      (copy) => {\n        copy.push(copy.at(-1));\n      },\n    ]) {\n      const copy = structuredClone(events);\n      change(copy);\n      const projection = createSessionTranscriptHistoryProjection(\n        \"history-import-contract-child\",\n      );\n      expect(() => {\n        copy.forEach((event) => projection.accept(event));\n        projection.finish({\n          headHash: copy.at(-1).hash,\n          eventCount: copy.length,\n        });\n      }).toThrow(\"incomplete or inconsistent\");\n    }\n  });\n\n  it(\"preserves emoji at archive chunk boundaries\", () => {\n    const id = \"history-emoji-chunks\";\n    store.startSession(id, {});\n    const text = \"a\".repeat(128 * 1024 - 1) + \"😀\" + \"b\".repeat(128 * 1024);\n    store.appendUserMessage(id, text);\n    store.appendAssistantMessage(id, \"answer\");\n    store.appendUserMessage(id, \"branch point\");\n    historyBranch(id, \"emoji-child\", 2);\n    const chunks = store\n      .readVerifiedEvents(\"emoji-child\")\n      .filter(\n        (event) =>\n          event.type === \"session_history_message\" &&\n          event.data.role === \"user\",\n      );\n    expect(chunks).toHaveLength(3);\n    expect(chunks.map((event) => event.data.text).join(\"\")).toBe(text);\n    expect(chunks[1].data.text.startsWith(\"😀\")).toBe(true);\n    expect(\n      readSessionTranscriptHistory(\"emoji-child\").messages[0].truncated,\n    ).toBe(true);\n  });\n  it(\"makes a compacted branch independent of its parent, without inheriting execution authority\", async () => {\n    const id = \"history-import-parent\";\n    start(id, 6);\n    store.appendUserMessage(id, \"selected turn\");\n    store.appendAuthorityEvent(id, \"permission_grant\", {\n      allow: \"all\",\n      marker: \"must-not-inherit\",\n    });\n    const original = readSessionTranscriptHistory(id);\n    await compact(id, \"branch-parent-compact\");\n    const active = store.readVerifiedMessages(id);\n    const parentEvents = store.readVerifiedEvents(id);\n    const branchId = \"history-import-child\";\n    expect(historyBranch(id, branchId, active.length - 1).created).toBe(true);\n    expect(store.readVerifiedEvents(id)).toEqual(parentEvents);\n    const branch = readSessionTranscriptHistory(branchId, { limit: 100 });\n    expect(texts(branch)).toEqual(texts(original).slice(0, -1));\n    expect(branch.coverage.kind).toBe(\"from-origin\");\n    expect(store.readVerifiedMessages(branchId)).toEqual(active.slice(0, -1));\n    expect(\n      store\n        .readVerifiedEvents(branchId)\n        .some((event) => event.type === \"permission_grant\"),\n    ).toBe(false);\n    expect(branch.messages[0].id).not.toBe(original.messages[0].id);\n    expect(historyBranch(id, branchId, active.length - 1).created).toBe(false);\n    store.appendUserMessage(branchId, \"branch turn\");\n    store.appendAssistantMessage(branchId, \"branch answer\");\n    expect(historyBranch(id, branchId, active.length - 1).created).toBe(false);\n    store.deleteJsonlSession(id);\n    const after = readSessionTranscriptHistory(branchId, { limit: 100 });\n    expect(texts(after)).toEqual([\n      ...texts(branch),\n      \"branch turn\",\n      \"branch answer\",\n    ]);\n    parseTranscriptPage(JSON.stringify(after), branchId);\n    const fork = store.forkSession(branchId, {\n      requestId: \"history-import-full-fork\",\n    });\n    expect(\n      texts(\n        readSessionTranscriptHistory(typeof fork === \"string\" ? fork : fork.id),\n      ),\n    ).toEqual(texts(after));\n  });\n\n  it(\"retains summary ancestry across nested branches and a later rewind\", async () => {\n    const id = \"history-nested-parent\";\n    store.startSession(id, {});\n    store.appendUserMessage(id, \"old \" + \"x\".repeat(2000));\n    store.appendAssistantMessage(id, \"answer \" + \"y\".repeat(2000));\n    store.appendUserMessage(id, \"branch point\");\n    const original = readSessionTranscriptHistory(id);\n    await compact(id, \"nested-summary\", {\n      modelWindowTokens: 400,\n      summarizer: async (parents, context) => ({\n        items: [\n          createSummaryContextItem({\n            messages: [{ role: \"assistant\", content: \"summary\" }],\n            parents,\n            operationId: context.operationId,\n            now: \"2026-09-27T00:00:00.000Z\",\n          }),\n        ],\n        usageReceipt: { outcome: \"settled\", callId: \"nested-summary\" },\n      }),\n    });\n    historyBranch(id, \"nested-child\", 1);\n    expect(texts(readSessionTranscriptHistory(\"nested-child\"))).toEqual(\n      texts(original).slice(0, -1),\n    );\n    store.appendUserMessage(\"nested-child\", \"new question\");\n    store.appendAssistantMessage(\"nested-child\", \"new answer\");\n    await compact(\"nested-child\", \"nested-child-compact\", {\n      modelWindowTokens: 900,\n    });\n    historyBranch(\"nested-child\", \"nested-grandchild\", 1);\n    expect(texts(readSessionTranscriptHistory(\"nested-grandchild\"))).toEqual(\n      texts(original).slice(0, -1),\n    );\n    rewind(\"nested-child\", 1);\n    expect(texts(readSessionTranscriptHistory(\"nested-child\"))).toEqual(\n      texts(original).slice(0, -1),\n    );\n    expect(store.readVerifiedMessages(\"nested-grandchild\")).toEqual([\n      { role: \"assistant\", content: \"summary\" },\n    ]);\n  });\n\n  it(\"expires source capabilities and prevents source writes inside a read projection\", () => {\n    const id = \"history-capability\";\n    start(id, 2);\n    const messages = store.readVerifiedMessages(id).slice(0, 2);\n    let capability;\n    let reader;\n    const head = store.findLatestEvent(id, null).hash;\n    store.withSessionAuthorityTransaction(id, head, (transaction) => {\n      reader = transaction.readProjection;\n      transaction.readProjection(() =>\n        createSessionTranscriptBranchProjection(id, messages, (history) => {\n          capability = history;\n          expect(() => transaction.appendAuthorityEvent(\"invalid\", {})).toThrow(\n            \"during\",\n          );\n          expect(() => transaction.readProjection(() => ({}))).toThrow(\n            \"closed\",\n          );\n        }),\n      );\n    });\n    expect(capability).toBeTruthy();\n    expect(() =>\n      createSessionTranscriptBranchProjection(id, messages, async () => {}),\n    ).toThrow(\"synchronous\");\n    expect(() => reader(() => ({}))).toThrow(\"closed\");\n    expect(() =>\n      store.createBranchSession({\n        branchSessionId: \"expired-child\",\n        parentSessionId: id,\n        messages,\n        history: capability,\n      }),\n    ).toThrow(\"expired\");\n    expect(() =>\n      store.createBranchSession({\n        branchSessionId: \"forged-child\",\n        parentSessionId: id,\n        messages,\n        history: {},\n      }),\n    ).toThrow(\"expired\");\n    expect(store.sessionExists(\"expired-child\")).toBe(false);\n  });\n  it(\"accepts the shared real CLI history fixture used by the JetBrains reader\", () => {\n    const page = parseTranscriptPage(\n      readFileSync(\n        new URL(\n          \"../fixtures/session-transcript-history-page-v2.json\",\n          import.meta.url,\n        ),\n        \"utf8\",\n      ),\n      \"fixture-history\",\n    );\n    expect(page.messages.map((row) => row.text)).toEqual([\n      \"answer one\",\n      \"question two\",\n    ]);\n    expect(page.nextCursor).toBeTruthy();\n  });\n  it(\"shows original messages once when the Kernel replaces them with a derived summary\", async () => {\n    const id = \"history-summary\";\n    store.startSession(id, { provider: \"test\", model: \"test\" });\n    store.appendUserMessage(id, \"old question \" + \"x\".repeat(2000));\n    store.appendAssistantMessage(id, \"old answer \" + \"y\".repeat(2000));\n    store.appendUserMessage(id, \"pending question\");\n    const original = readSessionTranscriptHistory(id);\n    await compact(id, \"with-summary\", {\n      modelWindowTokens: 400,\n      summarizer: async (parents, context) => ({\n        items: [\n          createSummaryContextItem({\n            messages: [{ role: \"assistant\", content: \"derived summary\" }],\n            parents,\n            operationId: context.operationId,\n            now: \"2026-09-27T00:00:00.000Z\",\n          }),\n        ],\n        usageReceipt: { outcome: \"settled\", callId: \"test-summary\" },\n      }),\n    });\n    expect(\n      store\n        .readVerifiedMessages(id)\n        .some((message) => message.content === \"derived summary\"),\n    ).toBe(true);\n    expect(readSessionTranscriptHistory(id).messages).toEqual(\n      original.messages,\n    );\n  });\n\n  it(\"keeps real Kernel compaction history, identities and old cursors through later appends\", async () => {\n    const id = \"history-compact\";\n    start(id);\n    const original = readSessionTranscriptHistory(id);\n    const tail = readSessionTranscriptHistory(id, { limit: 5 });\n    await compact(id, \"compact-1\");\n    expect(store.readVerifiedMessages(id).length).toBeLessThan(\n      original.totalMessages,\n    );\n    store.appendUserMessage(id, \"after compact\");\n    store.appendAssistantMessage(id, \"new final answer\");\n    await compact(id, \"compact-2\");\n    const current = readSessionTranscriptHistory(id);\n    expect(current.messages.slice(0, original.totalMessages)).toEqual(\n      original.messages,\n    );\n    expect(texts(current).slice(-2)).toEqual([\n      \"after compact\",\n      \"new final answer\",\n    ]);\n    expect(current.coverage.kind).toBe(\"from-origin\");\n    const pages = [tail];\n    let cursor = tail.nextCursor;\n    while (cursor) {\n      const page = readSessionTranscriptHistory(id, { limit: 5, cursor });\n      parseTranscriptPage(JSON.stringify(page), id);\n      pages.unshift(page);\n      cursor = page.nextCursor;\n    }\n    expect(pages.flatMap((page) => page.messages)).toEqual(original.messages);\n    // v1 callers still intentionally read only the model's current context.\n    expect(readSessionTranscriptPage(id).totalMessages).toBeLessThan(\n      current.totalMessages,\n    );\n    expect(() =>\n      readSessionTranscriptHistory(id, {\n        cursor: rewriteCursor(tail.nextCursor, { revision: \"f\".repeat(64) }),\n      }),\n    ).toThrow(\"history changed\");\n    expect(() =>\n      readSessionTranscriptHistory(id, {\n        cursor: rewriteCursor(tail.nextCursor, { before: 900 }),\n      }),\n    ).toThrow(\"history changed\");\n    expect(() =>\n      readSessionTranscriptHistory(id, {\n        cursor: rewriteCursor(tail.nextCursor, { eventCount: 900 }),\n      }),\n    ).toThrow(\"history changed\");\n  });\n\n  it(\"invalidates cursors on rewind and never revives discarded text after another compaction\", async () => {\n    const id = \"history-rewind\";\n    start(id);\n    await compact(id, \"before-rewind\");\n    const cursor = readSessionTranscriptHistory(id, { limit: 2 }).nextCursor;\n    store.appendAuthorityEvent(id, \"checkpoint_timeline_commit\", {\n      messages: [{ role: \"user\", content: \"retained question\" }],\n      binding: { turns: [] },\n    });\n    store.appendAssistantMessage(id, \"retained answer\");\n    await compact(id, \"after-rewind\");\n    expect(() => readSessionTranscriptHistory(id, { cursor })).toThrow(\n      \"history changed\",\n    );\n    const page = readSessionTranscriptHistory(id);\n    expect(texts(page)).toEqual([\"retained question\", \"retained answer\"]);\n    expect(page.coverage).toMatchObject({\n      kind: \"snapshot-boundary\",\n      reason: \"timeline-replacement\",\n    });\n  });\n\n  it(\"reconstructs a prefix older than the page buffer and keeps exact original identities\", () => {\n    const id = \"history-old-prefix\";\n    start(id, 80);\n    const oldPage = readSessionTranscriptHistory(id, { limit: 10 });\n    const events = store.readVerifiedEvents(id);\n    const originalIds = events\n      .filter((event) =>\n        [\"user_message\", \"assistant_message\"].includes(event.type),\n      )\n      .slice(0, 6)\n      .map((event) => `${id}:${event.hash}:0`);\n    rewind(id, 6);\n    expect(() =>\n      readSessionTranscriptHistory(id, { cursor: oldPage.nextCursor }),\n    ).toThrow(\"history changed\");\n    const latest = readSessionTranscriptHistory(id, { limit: 2 });\n    const pages = [latest];\n    let cursor = latest.nextCursor;\n    store.appendUserMessage(id, \"new path\");\n    store.appendAssistantMessage(id, \"new answer\");\n    while (cursor) {\n      const page = readSessionTranscriptHistory(id, { limit: 2, cursor });\n      parseTranscriptPage(JSON.stringify(page), id);\n      pages.unshift(page);\n      cursor = page.nextCursor;\n    }\n    expect(pages.flatMap((page) => page.messages.map((row) => row.id))).toEqual(\n      originalIds,\n    );\n    const current = readSessionTranscriptHistory(id);\n    expect(current.totalMessages).toBe(8);\n    expect(current.coverage.kind).toBe(\"from-origin\");\n    expect(texts(current).slice(-2)).toEqual([\"new path\", \"new answer\"]);\n  });\n\n  it(\"retains pre-summary ancestry, then cuts a second path without resurrecting the first\", async () => {\n    const id = \"history-ancestry-summary\";\n    store.startSession(id, {});\n    store.appendUserMessage(id, \"old question \" + \"x\".repeat(2000));\n    store.appendAssistantMessage(id, \"old answer \" + \"y\".repeat(2000));\n    store.appendUserMessage(id, \"same question\");\n    const originals = readSessionTranscriptHistory(id).messages;\n    await compact(id, \"ancestry-summary\", {\n      modelWindowTokens: 400,\n      summarizer: async (parents, context) => ({\n        items: [\n          createSummaryContextItem({\n            messages: [{ role: \"assistant\", content: \"derived summary\" }],\n            parents,\n            operationId: context.operationId,\n            now: \"2026-09-27T00:00:00.000Z\",\n          }),\n        ],\n        usageReceipt: { outcome: \"settled\", callId: \"ancestry-summary\" },\n      }),\n    });\n    const context = store.readVerifiedMessages(id);\n    expect(context.map((message) => message.content)).toEqual([\n      \"derived summary\",\n      \"same question\",\n    ]);\n    rewind(id, 1);\n    expect(readSessionTranscriptHistory(id).messages).toEqual(\n      originals.slice(0, 2),\n    );\n    store.appendUserMessage(id, \"same question\");\n    store.appendAssistantMessage(id, \"discard this answer\");\n    await compact(id, \"second-ancestry-compact\", { modelWindowTokens: 900 });\n    const next = store.readVerifiedMessages(id);\n    const index = next.findIndex((message) => message.role === \"user\");\n    expect(index).toBeGreaterThanOrEqual(0);\n    rewind(id, index);\n    const final = readSessionTranscriptHistory(id);\n    expect(final.messages).toEqual(originals.slice(0, 2));\n    expect(final.coverage.kind).toBe(\"from-origin\");\n    // A full-copy fork reads the same verified ancestry in its own namespace.\n    const fork = store.forkSession(id, { requestId: \"rewound-fork\" });\n    const forkId = typeof fork === \"string\" ? fork : fork.id;\n    expect(texts(readSessionTranscriptHistory(forkId))).toEqual(texts(final));\n    expect(readSessionTranscriptHistory(forkId).messages[0].id).toMatch(\n      new RegExp(`^${forkId}:`),\n    );\n  });\n\n  it(\"uses indexed provenance to distinguish identical messages across compaction\", async () => {\n    const id = \"history-equal-text\";\n    store.startSession(id, {});\n    for (let i = 0; i < 6; i++) {\n      store.appendUserMessage(id, \"identical \" + \"x\".repeat(90));\n      store.appendAssistantMessage(id, \"identical \" + \"y\".repeat(90));\n    }\n    store.appendUserMessage(id, \"identical \" + \"x\".repeat(90));\n    const original = readSessionTranscriptHistory(id);\n    await compact(id, \"equal-text-compact\");\n    const messages = store.readVerifiedMessages(id);\n    expect(messages.length).toBeLessThan(original.totalMessages);\n    rewind(id, messages.length - 1);\n    const page = readSessionTranscriptHistory(id);\n    expect(page.messages).toEqual(original.messages.slice(0, -1));\n    expect(new Set(page.messages.map((row) => row.id)).size).toBe(12);\n  });\n\n  it.each([\n    { sourceHead: \"f\".repeat(64) },\n    { sourceMessageCount: 999 },\n    { retainedMessageCount: -1 },\n    { retainedMessageCount: 999 },\n    { schema: \"unknown\" },\n  ])(\n    \"uses only the replacement snapshot for an invalid prefix %j\",\n    async (patch) => {\n      const id = `history-bad-prefix-${Object.keys(patch)[0]}-${String(Object.values(patch)[0]).slice(0, 4)}`;\n      start(id);\n      await compact(id, `${id}-compact`);\n      store.appendUserMessage(id, \"discarded\");\n      const messages = store.readVerifiedMessages(id);\n      const retained = messages.length - 1;\n      rewind(id, retained, patch);\n      const page = readSessionTranscriptHistory(id);\n      expect(page.totalMessages).toBe(retained);\n      expect(page.coverage.reason).toBe(\"timeline-replacement\");\n    },\n  );\n\n  it(\"keeps snapshot coverage across a later verified rewind\", () => {\n    const id = \"history-snapshot-then-rewind\";\n    start(id);\n    store.appendCompactEvent(id, {\n      messages: [\n        { role: \"user\", content: \"snapshot user\" },\n        { role: \"assistant\", content: \"snapshot answer\" },\n      ],\n    });\n    const snapshot = readSessionTranscriptHistory(id);\n    store.appendUserMessage(id, \"removed path\");\n    rewind(id, 2);\n    const page = readSessionTranscriptHistory(id);\n    expect(page.messages).toEqual(snapshot.messages);\n    expect(page.coverage).toEqual(snapshot.coverage);\n  });\n\n  it(\"revokes the rescan lease and rejects file changes during replay\", () => {\n    const id = \"history-replay-lease\";\n    start(id, 1);\n    let replay;\n    const hashes = store.readVerifiedProjection(id, () => ({\n      accept() {},\n      finish(authority) {\n        replay = authority.replayEvents;\n        const hashes = [];\n        replay((event) => {\n          hashes.push(event.hash);\n        });\n        expect(() => replay(async () => {})).toThrow(\"synchronous\");\n        expect(() => replay(() => Promise.resolve())).toThrow(\"synchronous\");\n        return hashes;\n      },\n    }));\n    expect(hashes).toEqual(\n      store.readVerifiedEvents(id).map((event) => event.hash),\n    );\n    expect(() => replay(() => {})).toThrow(\"closed\");\n    expect(() =>\n      store.readVerifiedProjection(id, () => ({\n        accept() {},\n        finish(authority) {\n          let changed = false;\n          authority.replayEvents(() => {\n            if (changed) return;\n            changed = true;\n            appendFileSync(\n              join(root, \"home\", \"sessions\", `${id}.jsonl`),\n              \"{}\\n\",\n            );\n          });\n        },\n      })),\n    ).toThrow();\n  });\n\n  it(\"isolates full-copy forks and reports snapshot branches without borrowing parent content\", async () => {\n    const id = \"history-parent\";\n    start(id);\n    await compact(id, \"parent-compact\");\n    const parent = readSessionTranscriptHistory(id);\n    const fork = store.forkSession(id, { requestId: \"history-fork\" });\n    const forkId = typeof fork === \"string\" ? fork : fork.id;\n    store.appendUserMessage(forkId, \"fork only\");\n    const child = readSessionTranscriptHistory(forkId);\n    expect(texts(child).slice(0, -1)).toEqual(texts(parent));\n    expect(child.messages[0].id).not.toBe(parent.messages[0].id);\n    expect(texts(readSessionTranscriptHistory(id))).toEqual(texts(parent));\n    expect(() =>\n      readSessionTranscriptHistory(forkId, {\n        cursor: readSessionTranscriptHistory(id, { limit: 1 }).nextCursor,\n      }),\n    ).toThrow(\"invalid transcript history cursor\");\n    store.createBranchSession({\n      branchSessionId: \"history-branch\",\n      parentSessionId: id,\n      messages: [{ role: \"user\", content: \"branch snapshot\" }],\n    });\n    const branch = readSessionTranscriptHistory(\"history-branch\");\n    expect(texts(branch)).toEqual([\"branch snapshot\"]);\n    expect(branch.coverage.reason).toBe(\"branch-snapshot\");\n  });\n\n  it.each([\"physical-store-import\", \"session-end\", \"unknown\"])(\n    \"treats %s snapshots as replacement boundaries\",\n    (reason) => {\n      const id = `history-${reason}`;\n      start(id, 1);\n      store.appendCompactEvent(id, {\n        reason,\n        messages: [{ role: \"assistant\", content: \"saved snapshot\" }],\n      });\n      const page = readSessionTranscriptHistory(id);\n      expect(texts(page)).toEqual([\"saved snapshot\"]);\n      expect(page.coverage.reason).toBe(\"context-snapshot\");\n    },\n  );\n\n  it(\"falls back to the explicit snapshot when a canonical payload is inconsistent\", async () => {\n    const id = \"history-invalid-compact\";\n    start(id);\n    await compact(id, \"valid-compact\");\n    const valid = store.readVerifiedEvents(id).at(-1).data;\n    store.appendCompactEvent(id, {\n      ...valid,\n      messages: [{ role: \"user\", content: \"replacement\" }],\n    });\n    expect(texts(readSessionTranscriptHistory(id))).toEqual([\"replacement\"]);\n    store.appendCompactEvent(id, {\n      ...valid,\n      canonical: { ...valid.canonical, digest: \"invalid\" },\n    });\n    expect(readSessionTranscriptHistory(id).coverage.reason).toBe(\n      \"context-snapshot\",\n    );\n  });\n\n  it(\"reads through the command without modifying authority and rejects a forged tail\", async () => {\n    const id = \"history-command\";\n    start(id, 2);\n    const before = store.readVerifiedEvents(id);\n    const program = new Command();\n    registerSessionShowSubcommand(program.command(\"session\"), program);\n    const output = vi.spyOn(console, \"log\").mockImplementation(() => {});\n    try {\n      await program.parseAsync(\n        [\n          \"session\",\n          \"show\",\n          \"--json\",\n          \"--history\",\n          \"--page-size\",\n          \"2\",\n          \"--\",\n          id,\n        ],\n        { from: \"user\" },\n      );\n      const page = parseTranscriptPage(output.mock.calls.at(-1)[0], id);\n      expect(page.messages).toHaveLength(2);\n      expect(store.readVerifiedEvents(id)).toEqual(before);\n    } finally {\n      output.mockRestore();\n    }\n    appendFileSync(\n      join(root, \"home\", \"sessions\", `${id}.jsonl`),\n      '{\"type\":\"assistant_message\",\"data\":{\"role\":\"assistant\",\"content\":\"forged\"}}\\n',\n    );\n    expect(() => readSessionTranscriptHistory(id)).toThrow();\n  });\n\n  it(\"bounds retained bytes and traverses oversized rows without dropping page identities\", () => {\n    const events = Array.from({ length: 12 }, (_, i) => ({\n      type: \"assistant_message\",\n      hash: (i + 1).toString(16).padStart(64, \"0\"),\n      data: { role: \"assistant\", content: \"中\".repeat(210000) },\n    }));\n    let cursor = null;\n    const rows = [];\n    do {\n      const projection = createSessionTranscriptHistoryProjection(\"large\", {\n        limit: 100,\n        cursor,\n      });\n      events.forEach((event) => projection.accept(event));\n      const page = projection.finish({\n        headHash: events.at(-1).hash,\n        eventCount: events.length,\n      });\n      expect(Buffer.byteLength(JSON.stringify(page))).toBeLessThan(\n        1024 * 1024 + 4096,\n      );\n      expect(\n        page.messages.every((m) => m.truncated && m.text.length === 200000),\n      ).toBe(true);\n      rows.unshift(...page.messages);\n      cursor = page.nextCursor;\n    } while (cursor);\n    expect(rows.map((row) => row.ordinal)).toEqual(\n      events.map((_, index) => index),\n    );\n    expect(new Set(rows.map((row) => row.id)).size).toBe(events.length);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793717252480,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/session-transcript-history.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-db0d915b-71fc-4a42-8466-ef272f77ed47",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/session-transcript-history.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_40wmz6pm03csldz1o1047d33",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 13
+          },
+          {
+            "type": "tool_result",
+            "id": "call_kwzm8gbeexcbjeqn76sco745",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-pCO5TV/b3a938e5-7390-45d4-a619-375bb5c904e0/workspace/packages/cli/src/lib/session-message-provenance.js",
+              "fileVersion": "13213:1791108223000:1793717201691.8804",
+              "readSpan": {
+                "start": 0,
+                "end": 13213,
+                "total": 13213
+              },
+              "hashed": false,
+              "content": "/**\n * Provenance for durable system messages that are safe to replay after a\n * fresh host system prompt.\n *\n * The JSONL wire tag is hash-chain protected, but it must never reach a model\n * provider. Runtime objects therefore carry the same tag in a private WeakMap;\n * message keys and provider serialization remain byte-for-byte unchanged.\n */\n\nimport { types as utilTypes } from \"node:util\";\n\nexport const SESSION_MESSAGE_PROVENANCE_FIELD = \"_cc_replay\";\nexport const SESSION_FORK_AUTHORITY_FIELD = \"_cc_fork_authority\";\nexport const SESSION_MESSAGE_PROVENANCE_SCHEMA =\n  \"chainlesschain.session-message-provenance/v1\";\n\nconst MICRO_COMPACTED_RUNTIME_FIELD = \"_microCompacted\";\n\nexport const DURABLE_SYSTEM_MESSAGE_KINDS = Object.freeze({\n  COMPACT_SUMMARY: \"compact-summary\",\n  COMPACT_TOOL_COLLAPSE: \"compact-tool-collapse\",\n  CHECKPOINT_SUMMARY: \"checkpoint-summary\",\n  MIGRATION_SUMMARY: \"migration-summary\",\n  FORK_LINEAGE: \"fork-lineage\",\n});\n\nconst DURABLE_KINDS = new Set(Object.values(DURABLE_SYSTEM_MESSAGE_KINDS));\nconst RUNTIME_PROVENANCE = new WeakMap();\nconst INVALID_DATA = Symbol(\"invalid-session-message-data\");\nconst MAX_DATA_DEPTH = 100;\nconst MAX_DATA_NODES = 100_000;\n\nfunction isObjectMessage(value) {\n  return (\n    Boolean(value) &&\n    typeof value === \"object\" &&\n    !utilTypes.isProxy(value) &&\n    !Array.isArray(value)\n  );\n}\n\n/**\n * Snapshot a JSON-shaped object without invoking user-controlled accessors or\n * Proxy traps. Session messages cross persistence and host-adapter trust\n * boundaries, so an accessor-bearing value is invalid rather than executable.\n */\nfunction plainDataSnapshot(value) {\n  if (!isObjectMessage(value) || utilTypes.isProxy(value)) return null;\n  let prototype;\n  let descriptors;\n  try {\n    prototype = Object.getPrototypeOf(value);\n    descriptors = Object.getOwnPropertyDescriptors(value);\n  } catch {\n    return null;\n  }\n  if (prototype !== Object.prototype && prototype !== null) return null;\n\n  const keys = Reflect.ownKeys(descriptors);\n  if (keys.some((key) => typeof key === \"symbol\")) return null;\n  for (const key of keys) {\n    const descriptor = descriptors[key];\n    if (\n      !Object.prototype.hasOwnProperty.call(descriptor, \"value\") ||\n      descriptor.enumerable !== true\n    ) {\n      return null;\n    }\n  }\n  return { value, descriptors, keys };\n}\n\nfunction plainDataArrayValues(value) {\n  if (utilTypes.isProxy(value) || !Array.isArray(value)) return null;\n  let descriptors;\n  try {\n    descriptors = Object.getOwnPropertyDescriptors(value);\n  } catch {\n    return null;\n  }\n  const lengthDescriptor = descriptors.length;\n  const length = lengthDescriptor?.value;\n  const keys = Reflect.ownKeys(descriptors);\n  if (\n    !Number.isSafeInteger(length) ||\n    length < 0 ||\n    keys.some((key) => typeof key === \"symbol\") ||\n    keys.length !== length + 1\n  ) {\n    return null;\n  }\n  const values = [];\n  for (let index = 0; index < length; index += 1) {\n    const descriptor = descriptors[String(index)];\n    if (\n      !descriptor ||\n      !Object.prototype.hasOwnProperty.call(descriptor, \"value\") ||\n      descriptor.enumerable !== true\n    ) {\n      return null;\n    }\n    values.push(descriptor.value);\n  }\n  return values;\n}\n\nfunction dataValue(snapshot, key) {\n  const descriptor = snapshot?.descriptors?.[key];\n  return descriptor && Object.prototype.hasOwnProperty.call(descriptor, \"value\")\n    ? descriptor.value\n    : undefined;\n}\n\nfunction ownDataMessageRole(value) {\n  if (!isObjectMessage(value)) return null;\n  let descriptors;\n  try {\n    descriptors = Object.getOwnPropertyDescriptors(value);\n  } catch {\n    return null;\n  }\n  const descriptor = descriptors.role;\n  if (\n    !descriptor ||\n    !Object.prototype.hasOwnProperty.call(descriptor, \"value\") ||\n    descriptor.enumerable !== true ||\n    typeof descriptor.value !== \"string\"\n  ) {\n    return null;\n  }\n  return descriptor.value;\n}\n\nfunction cloneJsonDataValue(value, state, depth) {\n  if (\n    value === null ||\n    typeof value === \"string\" ||\n    typeof value === \"boolean\" ||\n    (typeof value === \"number\" && Number.isFinite(value))\n  ) {\n    return value;\n  }\n  if (!value || typeof value !== \"object\" || depth > MAX_DATA_DEPTH) {\n    return INVALID_DATA;\n  }\n  if (utilTypes.isProxy(value)) return INVALID_DATA;\n  state.remaining -= 1;\n  if (state.remaining < 0 || state.ancestors.has(value)) return INVALID_DATA;\n  state.ancestors.add(value);\n  try {\n    if (Array.isArray(value)) {\n      const values = plainDataArrayValues(value);\n      if (!values) return INVALID_DATA;\n      const clean = [];\n      for (const item of values) {\n        const cloned = cloneJsonDataValue(item, state, depth + 1);\n        if (cloned === INVALID_DATA) return INVALID_DATA;\n        clean.push(cloned);\n      }\n      return clean;\n    }\n\n    const snapshot = plainDataSnapshot(value);\n    if (!snapshot) return INVALID_DATA;\n    const clean = {};\n    for (const key of snapshot.keys) {\n      const cloned = cloneJsonDataValue(\n        snapshot.descriptors[key].value,\n        state,\n        depth + 1,\n      );\n      if (cloned === INVALID_DATA) return INVALID_DATA;\n      Object.defineProperty(clean, key, {\n        value: cloned,\n        enumerable: true,\n        configurable: true,\n        writable: true,\n      });\n    }\n    return clean;\n  } finally {\n    state.ancestors.delete(value);\n  }\n}\n\nfunction cloneWithoutWireTag(snapshot) {\n  const clean = {};\n  const state = {\n    ancestors: new WeakSet([snapshot.value]),\n    remaining: MAX_DATA_NODES - 1,\n  };\n  for (const key of snapshot.keys) {\n    if (\n      key === SESSION_MESSAGE_PROVENANCE_FIELD ||\n      key === SESSION_FORK_AUTHORITY_FIELD ||\n      key === MICRO_COMPACTED_RUNTIME_FIELD\n    ) {\n      continue;\n    }\n    const cloned = cloneJsonDataValue(\n      snapshot.descriptors[key].value,\n      state,\n      1,\n    );\n    if (cloned === INVALID_DATA) return null;\n    Object.defineProperty(clean, key, {\n      value: cloned,\n      enumerable: true,\n      configurable: true,\n      writable: true,\n    });\n  }\n  return clean;\n}\n\nfunction canonicalTag(kind) {\n  if (!DURABLE_KINDS.has(kind)) {\n    throw new TypeError(`Unsupported durable system message kind: ${kind}`);\n  }\n  return Object.freeze({\n    schema: SESSION_MESSAGE_PROVENANCE_SCHEMA,\n    kind,\n  });\n}\n\nfunction validWireTag(value) {\n  const snapshot = plainDataSnapshot(value);\n  return Boolean(\n    snapshot &&\n    snapshot.keys.length === 2 &&\n    snapshot.keys.includes(\"schema\") &&\n    snapshot.keys.includes(\"kind\") &&\n    dataValue(snapshot, \"schema\") === SESSION_MESSAGE_PROVENANCE_SCHEMA &&\n    DURABLE_KINDS.has(dataValue(snapshot, \"kind\")),\n  );\n}\n\nfunction attachRuntimeTag(message, tag) {\n  RUNTIME_PROVENANCE.set(message, tag);\n  return message;\n}\n\nexport function markDurableSystemMessage(message, kind) {\n  const snapshot = plainDataSnapshot(message);\n  if (!snapshot || dataValue(snapshot, \"role\") !== \"system\") {\n    throw new TypeError(\"Only system messages can carry durable provenance\");\n  }\n  return attachRuntimeTag(message, canonicalTag(kind));\n}\n\nexport function getDurableSystemMessageProvenance(message) {\n  const snapshot = plainDataSnapshot(message);\n  if (!snapshot || dataValue(snapshot, \"role\") !== \"system\") return null;\n  const tag = RUNTIME_PROVENANCE.get(message);\n  return validWireTag(tag) ? tag : null;\n}\n\n/**\n * Preserve an existing runtime capability across one explicitly trusted clone.\n * Generic object spread, structuredClone and JSON round-trips intentionally do\n * not preserve this WeakMap authority.\n */\nexport function preserveDurableSystemMessageProvenance(source, clone) {\n  const tag = getDurableSystemMessageProvenance(source);\n  if (!tag) return clone;\n  const snapshot = plainDataSnapshot(clone);\n  if (!snapshot || dataValue(snapshot, \"role\") !== \"system\") {\n    throw new TypeError(\"Durable system provenance clone is invalid\");\n  }\n  return attachRuntimeTag(clone, canonicalTag(tag.kind));\n}\n\n/** Convert a runtime-only marker to the transcript wire representation. */\nexport function encodePersistedMessage(message) {\n  if (!message || typeof message !== \"object\") return message;\n  if (!isObjectMessage(message)) {\n    throw new TypeError(\"Session message must be a plain data object\");\n  }\n  const snapshot = plainDataSnapshot(message);\n  if (!snapshot) {\n    throw new TypeError(\"Session message must be a plain data object\");\n  }\n  const clean = cloneWithoutWireTag(snapshot);\n  if (!clean) {\n    throw new TypeError(\"Session message must contain JSON-safe data\");\n  }\n  const tag = getDurableSystemMessageProvenance(message);\n  if (!tag) return clean;\n  return {\n    ...clean,\n    [SESSION_MESSAGE_PROVENANCE_FIELD]: tag,\n  };\n}\n\n/**\n * Decode provenance only after the caller has verified the JSONL hash chain\n * and its independent head/count anchor while holding the session lock.\n */\nexport function decodeVerifiedPersistedMessage(message) {\n  if (!message || typeof message !== \"object\") return message;\n  if (!isObjectMessage(message)) return null;\n  const snapshot = plainDataSnapshot(message);\n  if (!snapshot) return null;\n  const wireTag = dataValue(snapshot, SESSION_MESSAGE_PROVENANCE_FIELD);\n  const clean = cloneWithoutWireTag(snapshot);\n  if (!clean) return null;\n  if (dataValue(snapshot, \"role\") === \"system\" && validWireTag(wireTag)) {\n    const tagSnapshot = plainDataSnapshot(wireTag);\n    return attachRuntimeTag(\n      clean,\n      canonicalTag(dataValue(tagSnapshot, \"kind\")),\n    );\n  }\n  return clean;\n}\n\n/** Strip an untrusted wire field without granting runtime replay authority. */\nexport function sanitizePersistedMessage(message) {\n  if (!message || typeof message !== \"object\") return message;\n  if (!isObjectMessage(message)) return null;\n  const snapshot = plainDataSnapshot(message);\n  return snapshot ? cloneWithoutWireTag(snapshot) : null;\n}\n\n/** Deep-sanitize an untrusted persisted message array without granting replay. */\nexport function sanitizePersistedMessages(messages, options = {}) {\n  const strict = options?.strict === true;\n  const rawMessages = plainDataArrayValues(messages);\n  if (!rawMessages) {\n    if (strict) {\n      throw new TypeError(\n        \"Persisted messages must be a plain dense data array\",\n      );\n    }\n    return [];\n  }\n  const clean = [];\n  for (const raw of rawMessages) {\n    const message = sanitizePersistedMessage(raw);\n    if (!message || typeof message !== \"object\" || Array.isArray(message)) {\n      if (strict) {\n        throw new TypeError(\"Persisted message must contain JSON-safe data\");\n      }\n      continue;\n    }\n    clean.push(message);\n  }\n  return clean;\n}\n\n/**\n * Deep-sanitize only conversation messages. The role is inspected through its\n * own data descriptor before the full message is cloned, so a host-owned\n * system notice may carry a private Symbol marker and still be skipped without\n * executing any accessor or Proxy trap. Non-system messages remain strict\n * plain JSON data.\n */\nexport function sanitizePersistedNonSystemMessages(messages, options = {}) {\n  const strict = options?.strict === true;\n  const rawMessages = plainDataArrayValues(messages);\n  if (!rawMessages) {\n    if (strict) {\n      throw new TypeError(\n        \"Persisted messages must be a plain dense data array\",\n      );\n    }\n    return [];\n  }\n  const clean = [];\n  for (const raw of rawMessages) {\n    const role = ownDataMessageRole(raw);\n    if (!role) {\n      if (strict) {\n        throw new TypeError(\"Persisted message role must be plain string data\");\n      }\n      continue;\n    }\n    if (role === \"system\") continue;\n    const message = sanitizePersistedMessage(raw);\n    if (!message || typeof message !== \"object\" || Array.isArray(message)) {\n      if (strict) {\n        throw new TypeError(\"Persisted message must contain JSON-safe data\");\n      }\n      continue;\n    }\n    clean.push(message);\n  }\n  return clean;\n}\n\n/**\n * Canonical host resume projection: conversation messages always replay;\n * system messages replay only when their durable provenance is explicit.\n */\nexport function projectCanonicalResumeMessages(messages, options = {}) {\n  const strict = options?.strict === true;\n  const invalid = (message) => {\n    if (strict) throw new TypeError(message);\n    return null;\n  };\n  const rawMessages = plainDataArrayValues(messages);\n  if (!rawMessages) {\n    invalid(\"Canonical resume messages must be a plain dense data array\");\n    return [];\n  }\n  const projected = [];\n  for (const raw of rawMessages) {\n    const snapshot = plainDataSnapshot(raw);\n    if (!snapshot) {\n      invalid(\"Canonical resume message must be a plain data object\");\n      continue;\n    }\n    const role = dataValue(snapshot, \"role\");\n    if (typeof role !== \"string\") {\n      invalid(\"Canonical resume message role must be a string\");\n      continue;\n    }\n\n    const runtimeTag = getDurableSystemMessageProvenance(raw);\n    const clean = cloneWithoutWireTag(snapshot);\n    if (!clean) {\n      invalid(\"Canonical resume message must contain JSON-safe data\");\n      continue;\n    }\n    if (role !== \"system\") {\n      projected.push(clean);\n    } else if (runtimeTag) {\n      projected.push(attachRuntimeTag(clean, canonicalTag(runtimeTag.kind)));\n    }\n  }\n  return projected;\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793717252583,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/session-message-provenance.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-db0d915b-71fc-4a42-8466-ef272f77ed47",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/session-message-provenance.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_kwzm8gbeexcbjeqn76sco745",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 15
+          },
+          {
+            "type": "tool_result",
+            "id": "call_8w0tid1r7j0kq7cwpito4ie7",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-pCO5TV/b3a938e5-7390-45d4-a619-375bb5c904e0/workspace/packages/cli/src/lib/session-branch-history.js",
+              "fileVersion": "8425:1791108223000:1793717201688.392",
+              "range": {
+                "startLine": 1,
+                "endLine": 80,
+                "totalLines": 241
+              },
+              "nextRead": {
+                "path": "packages/cli/src/lib/session-branch-history.js",
+                "offset": 81,
+                "limit": 80
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 0,
+                "end": 2739,
+                "total": 8425
+              },
+              "hashed": false,
+              "content": "import { canonicalDigest } from \"@chainlesschain/context-memory-kernel\";\nimport { createHash } from \"node:crypto\";\nimport { SESSION_GENERATION_AUTHORITY_FIELD } from \"../harness/session-list-index.js\";\nimport {\n  encodePersistedMessage,\n  decodeVerifiedPersistedMessage,\n  getDurableSystemMessageProvenance,\n  projectCanonicalResumeMessages,\n} from \"./session-message-provenance.js\";\n\nexport const BRANCH_HISTORY_SCHEMA = \"chainlesschain.session-branch-history/v1\";\nexport const BRANCH_HISTORY_SYSTEM_ORIGINS_SCHEMA =\n  \"chainlesschain.session-branch-history/v2\";\nexport const BRANCH_HISTORY_MESSAGE = \"session_history_message\";\nexport const BRANCH_HISTORY_ORIGIN = \"session_history_origin\";\nconst capabilities = new WeakMap();\n\nexport const branchContextDigest = (messages) =>\n  canonicalDigest(\n    projectCanonicalResumeMessages(messages, { strict: true }).map(\n      encodePersistedMessage,\n    ),\n    \"chainlesschain.branch-history-context/v1\",\n  );\nexport const branchMessageDigest = (message) =>\n  canonicalDigest(message, \"chainlesschain.branch-history-message/v1\");\n\n// A caller cannot smuggle JSON-shaped history into a new authority chain. The\n// capability exists only inside a verified source projection's synchronous lock.\nexport function withSessionBranchHistory(plan, task) {\n  if (typeof task !== \"function\" || task.constructor?.name === \"AsyncFunction\")\n    throw new TypeError(\"Branch history consumer must be synchronous\");\n  const capability = Object.freeze({});\n  capabilities.set(capability, plan);\n  try {\n    const result = task(capability);\n    if (result && typeof result.then === \"function\")\n      throw new TypeError(\"Branch history consumer must be synchronous\");\n    return result;\n  } finally {\n    capabilities.delete(capability);\n  }\n}\n\nexport function resolveSessionBranchHistory(\n  capability,\n  parentSessionId,\n  messages,\n) {\n  if (capability == null) return null;\n  const plan = capabilities.get(capability);\n  if (\n    !plan ||\n    plan.parentSessionId !== parentSessionId ||\n    plan.contextDigest !== branchContextDigest(messages)\n  ) {\n    throw new Error(\n      \"Branch history capability is expired or does not match the branch\",\n    );\n  }\n  return plan;\n}\n\nexport function createBranchHistoryImport() {\n  let start = null;\n  let index = 0;\n  let active = null;\n  const hash = (value) =>\n    typeof value === \"string\" && /^[a-f0-9]{64}$/u.test(value);\n  const integer = (value) => Number.isSafeInteger(value) && value >= 0;\n  const invalid = () => {\n    const error = new Error(\n      \"Branch display history is incomplete or inconsistent\",\n    );\n    error.code = \"SESSION_BRANCH_HISTORY_INVALID\";\n    throw error;\n  };\n  const require = (condition) => {\n    if (!condition) invalid();\n  };",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "8425:1791108223000:1793717201688.392"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793717262305,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/session-branch-history.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-db0d915b-71fc-4a42-8466-ef272f77ed47",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/session-branch-history.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_8w0tid1r7j0kq7cwpito4ie7",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 21
+          },
+          {
+            "type": "tool_result",
+            "id": "call_bccuy3pvdwoi5iy6tielzgzg",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-pCO5TV/b3a938e5-7390-45d4-a619-375bb5c904e0/workspace/packages/cli/__tests__/unit/session-branch.test.js",
+              "fileVersion": "7703:1791108223000:1793717201278.6287",
+              "range": {
+                "startLine": 1,
+                "endLine": 80,
+                "totalLines": 207
+              },
+              "nextRead": {
+                "path": "packages/cli/__tests__/unit/session-branch.test.js",
+                "offset": 81,
+                "limit": 80
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 0,
+                "end": 2944,
+                "total": 7681
+              },
+              "hashed": false,
+              "content": "/**\n * Session branch planning (P0-3 \"从这里分支\" — the fourth restore action from\n * CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md). Pure module: no RNG,\n * clock, fs or git — deterministic plans + lineage integrity checks.\n */\nimport { describe, it, expect } from \"vitest\";\nimport { TURN_COVERAGE, TurnBindingLog } from \"../../src/lib/turn-binding.js\";\nimport {\n  deriveBranchId,\n  deriveBranchSessionId,\n  planSessionBranch,\n  validateBranchLineage,\n} from \"../../src/lib/session-branch.js\";\n\n/** A FULL-coverage turn: mutated files WITH a checkpoint, no side-effects. */\nfunction fullTurn() {\n  const log = new TurnBindingLog();\n  log.startTurn(\"turn-3\", { conversationOffset: 3 });\n  log.recordToolCall(\"turn-3\", \"tc-1\", { name: \"write_file\" });\n  log.bindCheckpoint(\"turn-3\", \"cp-abc\");\n  return log.get(\"turn-3\");\n}\n\ndescribe(\"deriveBranchId\", () => {\n  it(\"is deterministic — same inputs hash to the same id\", () => {\n    expect(deriveBranchId(\"s1\", \"turn-3\", 0)).toBe(\n      deriveBranchId(\"s1\", \"turn-3\", 0),\n    );\n  });\n  it(\"disambiguates two branches off the SAME turn via seq\", () => {\n    expect(deriveBranchId(\"s1\", \"turn-3\", 0)).not.toBe(\n      deriveBranchId(\"s1\", \"turn-3\", 1),\n    );\n  });\n  it(\"differs by parent session and by turn\", () => {\n    expect(deriveBranchId(\"s1\", \"turn-3\", 0)).not.toBe(\n      deriveBranchId(\"s2\", \"turn-3\", 0),\n    );\n    expect(deriveBranchId(\"s1\", \"turn-3\", 0)).not.toBe(\n      deriveBranchId(\"s1\", \"turn-4\", 0),\n    );\n  });\n});\n\ndescribe(\"deriveBranchSessionId\", () => {\n  it(\"derives a traversal-safe id (no path separators survive)\", () => {\n    const id = deriveBranchSessionId(\"../evil/id\", \"ab/cd\");\n    expect(id).not.toContain(\"/\");\n    expect(id).not.toContain(\"\\\\\");\n    expect(id).toMatch(/^[A-Za-z0-9._~-]+$/);\n  });\n  it(\"embeds the parent and branch id\", () => {\n    expect(deriveBranchSessionId(\"s1\", \"deadbeef\")).toBe(\"s1-b-deadbeef\");\n  });\n});\n\ndescribe(\"planSessionBranch\", () => {\n  it(\"targets a NEW session, preserves the parent, never inherits grants\", () => {\n    const plan = planSessionBranch({\n      parentSessionId: \"s1\",\n      turn: fullTurn(),\n    });\n    expect(plan.branchSessionId).not.toBe(\"s1\");\n    expect(plan.branchSessionId).toContain(\"s1-b-\");\n    expect(plan.preservesParent).toBe(true);\n    expect(plan.inheritSessionGrants).toBe(false);\n    expect(plan.parentTurnId).toBe(\"turn-3\");\n    expect(plan.parentSessionId).toBe(\"s1\");\n  });\n\n  it(\"keeps history up to the branch-point turn (truncate offset)\", () => {\n    const plan = planSessionBranch({ parentSessionId: \"s1\", turn: fullTurn() });\n    expect(plan.conversationTruncateTo).toBe(3);\n    expect(plan.fileCheckpointId).toBe(\"cp-abc\");\n    expect(plan.coverage).toBe(TURN_COVERAGE.FULL);\n  });\n\n  it(\"emits no warnings for a clean, read-only FULL branch point\", () => {\n    // FULL coverage AND no file mutation → nothing irreversible, no collision.\n    const log = new TurnBindingLog();",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "7703:1791108223000:1793717201278.6287"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793717262467,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/session-branch.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-db0d915b-71fc-4a42-8466-ef272f77ed47",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/session-branch.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_bccuy3pvdwoi5iy6tielzgzg",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 23
+          },
+          {
+            "type": "tool_result",
+            "id": "call_wzh26izp3spzhzvol69ojijv",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-pCO5TV/b3a938e5-7390-45d4-a619-375bb5c904e0/workspace/packages/cli/src/lib/session-branch-history.js",
+              "fileVersion": "8425:1791108223000:1793717201688.392",
+              "range": {
+                "startLine": 81,
+                "endLine": 160,
+                "totalLines": 241
+              },
+              "nextRead": {
+                "path": "packages/cli/src/lib/session-branch-history.js",
+                "offset": 161,
+                "limit": 80
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 2739,
+                "end": 5505,
+                "total": 8425
+              },
+              "hashed": false,
+              "content": "  return {\n    accept(event) {\n      index += 1;\n      if (index === 1 && event.type === \"session_start\") {\n        const data = { ...event.data };\n        delete data[SESSION_GENERATION_AUTHORITY_FIELD];\n        start = { type: event.type, data };\n      }\n      if (event.type === \"session_branch\" && event.data?.history != null) {\n        const descriptor = event.data.history;\n        require(\n          index === 2 &&\n            start &&\n            !active &&\n            [\n              BRANCH_HISTORY_SCHEMA,\n              BRANCH_HISTORY_SYSTEM_ORIGINS_SCHEMA,\n            ].includes(descriptor.schema) &&\n            hash(descriptor.sourceGeneration) &&\n            integer(descriptor.totalMessages) &&\n            integer(descriptor.contextMessageCount) &&\n            descriptor.contextMessageCount <= 32768,\n        );\n        const coverage = descriptor.coverage;\n        require(\n          coverage?.kind === \"from-origin\"\n            ? coverage.boundaryEvent === null && coverage.reason === null\n            : coverage?.kind === \"snapshot-boundary\" &&\n                hash(coverage.boundaryEvent) &&\n                [\n                  \"timeline-replacement\",\n                  \"context-snapshot\",\n                  \"branch-snapshot\",\n                ].includes(coverage.reason),\n        );\n        const digest = createHash(\"sha256\").update(\n          `[${JSON.stringify(start)},${JSON.stringify({ type: event.type, data: event.data })}`,\n        );\n        active = {\n          descriptor,\n          digest,\n          rows: 0,\n          contexts: 0,\n          pending: null,\n          textParts: [],\n          textBytes: 0,\n          textIdentity: null,\n          contextStarted: false,\n        };\n        return { kind: \"start\", coverage };\n      }\n      if (!active) {\n        if (\n          [BRANCH_HISTORY_MESSAGE, BRANCH_HISTORY_ORIGIN].includes(\n            event.type,\n          ) ||\n          (event.type === \"session_branch_complete\" &&\n            event.data?.schemaVersion === 2)\n        )\n          invalid();\n        return null;\n      }\n      const state = active;\n      if (event.type === \"session_branch_complete\") {\n        require(\n          !state.pending &&\n            state.textParts.length === 0 &&\n            state.rows === state.descriptor.totalMessages &&\n            state.contexts === state.descriptor.contextMessageCount &&\n            event.data?.schemaVersion === 2 &&\n            event.data.messageCount === state.contexts &&\n            event.data.inputDigest ===\n              `sha256:${state.digest.update(\"]\").digest(\"hex\")}`,\n        );\n        active = null;\n        return { kind: \"complete\" };\n      }\n      state.digest.update(\n        `,${JSON.stringify({ type: event.type, data: event.data })}`,\n      );",
+              "readRecovery": {
+                "action": "targeted-review"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793717267949,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/session-branch-history.js",
+                    "offset": 81,
+                    "limit": 80
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 23,
+                "sessionId": "panel-db0d915b-71fc-4a42-8466-ef272f77ed47",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/session-branch-history.js",
+                    "offset": 81,
+                    "limit": 80
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_wzh26izp3spzhzvol69ojijv",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 29
+          },
+          {
+            "type": "tool_result",
+            "id": "call_zytrw7rs93bg557mukqn6aqy",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-pCO5TV/b3a938e5-7390-45d4-a619-375bb5c904e0/workspace/packages/cli/__tests__/unit/session-branch.test.js",
+              "fileVersion": "7703:1791108223000:1793717201278.6287",
+              "range": {
+                "startLine": 81,
+                "endLine": 160,
+                "totalLines": 207
+              },
+              "nextRead": {
+                "path": "packages/cli/__tests__/unit/session-branch.test.js",
+                "offset": 161,
+                "limit": 80
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 2944,
+                "end": 6280,
+                "total": 7681
+              },
+              "hashed": false,
+              "content": "    log.startTurn(\"turn-0\", { conversationOffset: 0 });\n    log.recordToolCall(\"turn-0\", \"r\", { name: \"read_file\" });\n    const plan = planSessionBranch({\n      parentSessionId: \"s1\",\n      turn: log.get(\"turn-0\"),\n    });\n    expect(plan.coverage).toBe(TURN_COVERAGE.FULL);\n    expect(plan.requiresWorktree).toBe(false);\n    expect(plan.warnings).toEqual([]);\n  });\n\n  it(\"requires a worktree when the branch intends to write\", () => {\n    const readOnlyLog = new TurnBindingLog();\n    readOnlyLog.startTurn(\"turn-1\", { conversationOffset: 1 });\n    readOnlyLog.recordToolCall(\"turn-1\", \"tc\", { name: \"read_file\" });\n    const turn = readOnlyLog.get(\"turn-1\");\n    expect(turn.coverage).toBe(TURN_COVERAGE.FULL);\n\n    const readPlan = planSessionBranch({ parentSessionId: \"s1\", turn });\n    expect(readPlan.requiresWorktree).toBe(false);\n\n    const writePlan = planSessionBranch({\n      parentSessionId: \"s1\",\n      turn,\n      writeIntent: true,\n    });\n    expect(writePlan.requiresWorktree).toBe(true);\n    expect(writePlan.warnings.join(\" \")).toContain(\"isolated worktree\");\n  });\n\n  it(\"requires a worktree when the branch point already mutated files\", () => {\n    // FULL turn that mutated files (has a checkpoint) → a divergent branch that\n    // also writes would collide, so default to an isolated worktree.\n    const plan = planSessionBranch({ parentSessionId: \"s1\", turn: fullTurn() });\n    expect(plan.requiresWorktree).toBe(true);\n  });\n\n  it(\"warns honestly on PARTIAL coverage (irreversible side-effects)\", () => {\n    const log = new TurnBindingLog();\n    log.startTurn(\"turn-2\", { conversationOffset: 2 });\n    log.recordToolCall(\"turn-2\", \"sh\", { name: \"run_shell\" });\n    log.bindCheckpoint(\"turn-2\", \"cp-x\");\n    const plan = planSessionBranch({\n      parentSessionId: \"s1\",\n      turn: log.get(\"turn-2\"),\n    });\n    expect(plan.coverage).toBe(TURN_COVERAGE.PARTIAL);\n    expect(plan.warnings.join(\" \")).toContain(\"irreversible side-effects\");\n  });\n\n  it(\"warns when there is no file checkpoint (NONE coverage)\", () => {\n    const log = new TurnBindingLog();\n    log.startTurn(\"turn-5\", { conversationOffset: 5 });\n    log.recordToolCall(\"turn-5\", \"ed\", { name: \"edit_file\" }); // mutated, no checkpoint\n    const turn = log.get(\"turn-5\");\n    expect(turn.coverage).toBe(TURN_COVERAGE.NONE);\n    const plan = planSessionBranch({ parentSessionId: \"s1\", turn });\n    expect(plan.warnings.join(\" \")).toContain(\"no file checkpoint\");\n    expect(plan.requiresWorktree).toBe(true); // NONE = mutated files at point\n  });\n\n  it(\"warns and still preserves the parent on a missing conversation offset\", () => {\n    const log = new TurnBindingLog();\n    log.startTurn(\"turn-9\"); // no offset\n    const plan = planSessionBranch({\n      parentSessionId: \"s1\",\n      turn: log.get(\"turn-9\"),\n    });\n    expect(plan.conversationTruncateTo).toBeNull();\n    expect(plan.warnings.join(\" \")).toContain(\"full parent history\");\n    expect(plan.preservesParent).toBe(true);\n  });\n\n  it(\"handles an unknown/absent turn without throwing\", () => {\n    const plan = planSessionBranch({ parentSessionId: \"s1\", turn: null });\n    expect(plan.branchId).toBeNull();\n    expect(plan.preservesParent).toBe(true);\n    expect(plan.inheritSessionGrants).toBe(false);\n    expect(plan.warnings.join(\" \")).toContain(\"nothing to branch from\");\n  });",
+              "readRecovery": {
+                "action": "targeted-review"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793717268097,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/session-branch.test.js",
+                    "offset": 81,
+                    "limit": 80
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-db0d915b-71fc-4a42-8466-ef272f77ed47",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/session-branch.test.js",
+                    "offset": 81,
+                    "limit": 80
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "vscode-extension",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_zytrw7rs93bg557mukqn6aqy",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 31
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2735,
+              "output_tokens": 99,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 9688,
+              "output_tokens": 162,
+              "cache_read_input_tokens": 4352,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 11
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 21172,
+              "output_tokens": 186,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 19
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 7946,
+              "output_tokens": 191,
+              "cache_read_input_tokens": 10240,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+            "seq": 27
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 41541,
+          "output_tokens": 638,
+          "cache_read_input_tokens": 20736
+        },
+        "usageComplete": false,
+        "failureCategory": "agent-error",
+        "modelUsageRecordCount": 4,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "error",
+          "is_error": true,
+          "error": "volcengine API error: HTTP 403 — DIAGNOSTIC_NON_200_NO_RETRY.",
+          "turn": 1,
+          "trace_id": "tr-df4d1555-dddf-40b6-9f03-efcc04139556",
+          "seq": 35
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 5,
+        "usageCompleteRequests": 4,
+        "passed": false,
+        "poisoned": "DIAGNOSTIC_NON_200_NO_RETRY",
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 5,
+        "usageCompleteRequests": 4,
+        "tasks": [
+          {
+            "taskId": "first-run-darwin-vscode",
+            "requests": 5,
+            "errorCode": null
+          }
+        ],
+        "poisoned": "DIAGNOSTIC_NON_200_NO_RETRY",
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": null,
+        "knownTokenOnlyEstimateCny": 0.13243860000000002,
+        "fxRate": null
+      },
+      "changedPaths": [],
+      "finishedAt": "2026-11-03T14:48:00.539Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "first-run-darwin-vscode"
+  ],
+  "generationPassed": false,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 40 model turns, 48 requests, 180 second request timeout, model maximum 393216 output tokens (8192 test cap removed), 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:3185a92e57bc89a9f9c1283aeff4823c409e1bebd48b8d20da509814fded8b29",
+  "group": "darwin-vscode",
+  "entry": "vscode",
+  "platform": "darwin",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:3ca5c1bfa5bffdee860665eeb757c24004dfaf0f3075f2a63e1a2600b3f6d600"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:487ed1e27103348c920988130954ec6449a81e66f7973e81ed02e1befd126da3"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:be2edf8e1ced537796d5819e458e4b56f2c1638eab8880b09c2c7fea4a4245fd"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+      "digest": "sha256:82becb2b0b551916e312131bcca48736d9e3f462aed4ea2a89ec00f907457eed"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
+      "digest": "sha256:d2cbc2dee63e7f53c622d61ad314143d6bd4d59a679d9aea29579cb034a829fb"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-public140-full.mjs",
+      "digest": "sha256:4c8b323e6c28b2dafb2f2e71ec2e7825d6b321d2998e3ef5f6ace3c2a10acdb9"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:3e515efc1cff606e2cbbfa977b5674abe6a73c142caa1b0539c0a2698978f8e4"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/verify01-run.cjs",
+      "digest": "sha256:7843460e829832d36768c90036414a1ceba5b3a03cca674f981b7e2fa3fdae44"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/verify01.cjs",
+      "digest": "sha256:a4a8a1d3d0e83227f22943e36920883d234fcdc847fb0f9faa08a969abf0c177"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/verify01-composer.cjs",
+      "digest": "sha256:3309c665f3bcb2941a27941ab4a096047869dd85deab78052c4932bf8f425554"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/noop.cjs",
+      "digest": "sha256:06a84182b7e81818c35b47c64170139b572a665645dbf9561de7fd521517bbb6"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/failure-receipt.cjs",
+      "digest": "sha256:802abcf31cb2dcbfb4e3873e29a440e9b1e8a5399ba6e8bb05883d1a36494c84"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/cdp-journey.cjs",
+      "digest": "sha256:31d467277d6eee1f7ecbe5551ae20e318d9ead0363b692a1ab106e64e388cfd0"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/run.cjs",
+      "digest": "sha256:761393469af5d77dea596dffe0fff8e984e93445949796474a281f3f68b635f1"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T14:46:43.201Z",
+    "finishedAt": "2026-11-03T14:47:05.901Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "first-run-darwin-vscode",
+    "locked": {
+      "version": "0.166.140",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.140.tgz",
+      "integrity": "sha512-Wg1JYu/c6QuR0xoVl/G0Xw0lwpzf3UPYUUfzGfoCCWzC0Lr+qUWA8g+7hh5FaQ9jIc6eJ90YF8lCSp0+PYYVPQ==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T14:48:00.545Z"
+}

@@ -1,0 +1,107 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  assessBackgroundLaunchProfileCompatibility,
+  buildArgvFromBackgroundLaunchProfile,
+  canonicalBackgroundLaunchProfileJson,
+  captureBackgroundLaunchProfile,
+  normalizeBackgroundLaunchProfile,
+} from "../src/lib/background-launch-profile.js";
+
+let dir;
+let previousHome;
+
+beforeEach(() => {
+  dir = realpathSync.native(mkdtempSync(join(tmpdir(), "cc-verify-36-")));
+  previousHome = process.env.CHAINLESSCHAIN_HOME;
+  process.env.CHAINLESSCHAIN_HOME = join(dir, "home");
+});
+
+afterEach(() => {
+  if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+  else process.env.CHAINLESSCHAIN_HOME = previousHome;
+  rmSync(dir, { recursive: true, force: true });
+});
+
+function capture(argv) {
+  return captureBackgroundLaunchProfile({
+    argv,
+    cwd: dir,
+    governance: {
+      permissionMode: "manual",
+      resourceBudget: { maxTurns: 12, maxCostUsd: 4.5 },
+    },
+  });
+}
+
+describe("launch profile identity fidelity (verify-36)", () => {
+  it("preserves policy identity across a save/restore round-trip", () => {
+    const profile = capture([
+      "agent",
+      "--model",
+      "m1",
+      "--permission-mode",
+      "manual",
+      "--allowed-tools",
+      "read_file,run_shell",
+      "--disallowed-tools",
+      "delete_file",
+      "--sandbox-mode",
+      "workspace-write",
+      "--max-turns",
+      "5",
+    ]);
+
+    // Positive control: save then restore yields the same canonical policy identity.
+    const restored = capture(
+      buildArgvFromBackgroundLaunchProfile(profile),
+    );
+    expect(canonicalBackgroundLaunchProfileJson(restored)).toBe(
+      canonicalBackgroundLaunchProfileJson(profile),
+    );
+
+    // Negative control: relax only one persisted policy condition (drop a
+    // disallowed tool) and the restored identity must differ.
+    const drifted = structuredClone(profile);
+    drifted.tools.disallowed = [];
+    expect(canonicalBackgroundLaunchProfileJson(drifted)).not.toBe(
+      canonicalBackgroundLaunchProfileJson(profile),
+    );
+  });
+
+  it("rejects a loosened proposed config instead of relaxing the persisted one", () => {
+    const profile = capture(["agent", "task", "--permission-mode", "manual"]);
+
+    // Positive control: an identical proposal is accepted as compatible.
+    expect(
+      assessBackgroundLaunchProfileCompatibility(profile, profile),
+    ).toMatchObject({ compatible: true, reasons: [] });
+
+    // Negative control: loosen only the permission mode (manual -> acceptEdits).
+    const loosened = structuredClone(profile);
+    loosened.permission.mode = "acceptEdits";
+    expect(
+      assessBackgroundLaunchProfileCompatibility(profile, loosened),
+    ).toMatchObject({
+      compatible: false,
+      reasons: ["permission-mode-loosened"],
+    });
+  });
+
+  it("rejects an unsupported profile version rather than relaxing it", () => {
+    const valid = capture(["agent", "task", "--model", "m1"]);
+
+    // Positive control: the current version is accepted unchanged.
+    expect(normalizeBackgroundLaunchProfile(valid).version).toBe(1);
+
+    // Negative control: only the version field differs; must be rejected.
+    const future = { ...valid, version: 2 };
+    expect(() => normalizeBackgroundLaunchProfile(future)).toThrowError(
+      expect.objectContaining({
+        message: /Unsupported background launch profile version/,
+      }),
+    );
+  });
+});

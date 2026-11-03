@@ -1,0 +1,117 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-20",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 129,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 3162,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":4,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793719176609,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"PermissionDecision\"],\"fullName\":\"PermissionDecision normalizes an approval chain into a stable protocol record\",\"status\":\"passed\",\"title\":\"normalizes an approval chain into a stable protocol record\",\"duration\":3.1421070000001237,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision\"],\"fullName\":\"PermissionDecision redacts and bounds user-controlled explanations\",\"status\":\"passed\",\"title\":\"redacts and bounds user-controlled explanations\",\"duration\":0.3808610000000954,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision\"],\"fullName\":\"PermissionDecision returns null for an ordinary non-policy tool result\",\"status\":\"passed\",\"title\":\"returns null for an ordinary non-policy tool result\",\"duration\":0.17005999999992127,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision\"],\"fullName\":\"PermissionDecision is emitted by the real agent loop for a gated tool call\",\"status\":\"passed\",\"title\":\"is emitted by the real agent loop for a gated tool call\",\"duration\":107.57912799999986,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793719179240,\"endTime\":1793719179350.579,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/permission-decision.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 593,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793719179784,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"deny decisions are not downgraded to allow\"],\"fullName\":\"deny decisions are not downgraded to allow keeps an explicit deny from policy even when the chain fallback says allow\",\"status\":\"passed\",\"title\":\"keeps an explicit deny from policy even when the chain fallback says allow\",\"duration\":2.5997879999999896,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decisions are not downgraded to allow\"],\"fullName\":\"deny decisions are not downgraded to allow mirrors an explicit allow instead of reversing it toward deny\",\"status\":\"passed\",\"title\":\"mirrors an explicit allow instead of reversing it toward deny\",\"duration\":0.4084519999999827,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decisions are not downgraded to allow\"],\"fullName\":\"deny decisions are not downgraded to allow preserves an unknown policy decision instead of defaulting it to allow\",\"status\":\"passed\",\"title\":\"preserves an unknown policy decision instead of defaulting it to allow\",\"duration\":0.2535039999999924,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decisions are not downgraded to allow\"],\"fullName\":\"deny decisions are not downgraded to allow returns null rather than inventing an allow decision when nothing is present\",\"status\":\"passed\",\"title\":\"returns null rather than inventing an allow decision when nothing is present\",\"duration\":0.2684859999999958,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decisions are not downgraded to allow\"],\"fullName\":\"deny decisions are not downgraded to allow keeps an explicit deny from the approval source\",\"status\":\"passed\",\"title\":\"keeps an explicit deny from the approval source\",\"duration\":0.3401110000000074,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decisions are not downgraded to allow\"],\"fullName\":\"deny decisions are not downgraded to allow keeps an explicit allow from the approval source (mirror of the deny case)\",\"status\":\"passed\",\"title\":\"keeps an explicit allow from the approval source (mirror of the deny case)\",\"duration\":0.19380500000002598,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793719179972,\"endTime\":1793719179976.34,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-20.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/permission-decision.js"
+      ],
+      "setup": false,
+      "ms": 154,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 605,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793719180534,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"deny decisions are not downgraded to allow\"],\"fullName\":\"deny decisions are not downgraded to allow keeps an explicit deny from policy even when the chain fallback says allow\",\"status\":\"passed\",\"title\":\"keeps an explicit deny from policy even when the chain fallback says allow\",\"duration\":2.5734600000000114,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decisions are not downgraded to allow\"],\"fullName\":\"deny decisions are not downgraded to allow mirrors an explicit allow instead of reversing it toward deny\",\"status\":\"passed\",\"title\":\"mirrors an explicit allow instead of reversing it toward deny\",\"duration\":0.4239549999999781,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decisions are not downgraded to allow\"],\"fullName\":\"deny decisions are not downgraded to allow preserves an unknown policy decision instead of defaulting it to allow\",\"status\":\"passed\",\"title\":\"preserves an unknown policy decision instead of defaulting it to allow\",\"duration\":0.25734900000000493,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decisions are not downgraded to allow\"],\"fullName\":\"deny decisions are not downgraded to allow returns null rather than inventing an allow decision when nothing is present\",\"status\":\"passed\",\"title\":\"returns null rather than inventing an allow decision when nothing is present\",\"duration\":0.24174600000000623,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decisions are not downgraded to allow\"],\"fullName\":\"deny decisions are not downgraded to allow keeps an explicit deny from the approval source\",\"status\":\"passed\",\"title\":\"keeps an explicit deny from the approval source\",\"duration\":0.3853780000000029,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decisions are not downgraded to allow\"],\"fullName\":\"deny decisions are not downgraded to allow keeps an explicit allow from the approval source (mirror of the deny case)\",\"status\":\"passed\",\"title\":\"keeps an explicit allow from the approval source (mirror of the deny case)\",\"duration\":0.19236300000000028,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793719180726,\"endTime\":1793719180730.3855,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-20.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate tests did not reject the behavioral mutant"
+}

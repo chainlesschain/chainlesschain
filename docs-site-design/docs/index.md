@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "CLI 0.166.138 / Open VSX 0.37.174 已公开；JetBrains 0.4.191 商店已批准上架；源码交付与原始任务保留"
+  tagline: "CLI 0.166.140 / Open VSX 0.37.176 已公开；JetBrains 0.4.193 已上传待公开核验；客户端 v5.0.3.144"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,16 +21,16 @@ hero:
 
 features:
   - icon: 🛡️
-    title: 源码交付与原始任务保留
-    details: "CLI .138 在源码实际送入模型后确认读取覆盖，并在压缩中保留原始任务；主分支独立 WebSocket 策略修复尚未发行。"
-    link: /release-runtime-update-2026-11-02-138
+    title: 损坏工具参数恢复与可信摘要
+    details: "CLI .140 在执行前拒绝损坏参数，唯一配对的未执行调用可续接；投影 v10 保留可信图片与推理摘要，权限、脱敏与预算校验继续生效。"
+    link: /release-runtime-update-2026-11-03-140
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
-    details: 历史产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；当前 .143 独立发行，记忆不自动注入模型。
+    details: 历史产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；当前 .144 独立发行，记忆不自动注入模型。
     link: /governance-runtime-update-2026-10-08
   - icon: 🎯
     title: 持久项目目标与独立验收（主线）
-    details: 历史产品 .140 包含个人与组织目标、原生动作、独立验收、记忆面板和站内通知；当前 .143 按独立发行证据核验。
+    details: 历史产品 .140 包含个人与组织目标、原生动作、独立验收、记忆面板和站内通知；当前 .144 按独立发行证据核验。
     link: /project-goals-rrsi-update-2026-10-07
   - icon: 🧪
     title: RRSI 五池与质量回执（主线）
@@ -41,8 +41,8 @@ features:
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面、Personal Data Hub、iOS Phase 1-6、远程操控 Plan A/B/C、MTC v0.11 联邦等全部子系统的详细设计
 
   - icon: 🏗️
-    title: Agent Platform 0.166.128 与验收边界
-    details: CLI .138 精确提交三平台门禁与公开包核验通过；本轮四项复验 2/4、前轮 .137 0/5、历史累计 41/45 分别保留。NOT_PAID_READY、NOT_ADMITTED、HOLD 保留。
+    title: Agent Platform .140 与验收边界
+    details: CLI .140 精确提交三平台门禁与公开包核验通过；.140 全量复测最终成绩未核验，历史 .138 2/4 与原冻结项目 41/45 单列。NOT_PAID_READY、NOT_ADMITTED、HOLD 保留。
     link: /cli-runtime-current
   - icon: 📝
     title: IDE 任务记录与新会话交接
@@ -61,7 +61,7 @@ features:
 
   - icon: 🧠
     title: Context/Memory Kernel
-    details: 模块 108 定义统一上下文预算、压缩状态机、记忆生命周期、删除对账与跨端 authority；CLI 固定 Kernel 0.1.10，产品面仍按各自 writer/cutover 证据判断
+    details: 模块 108 定义统一上下文预算、压缩状态机、记忆生命周期、删除对账与跨端 authority；CLI 固定 Kernel 0.1.11，产品面仍按各自 writer/cutover 证据判断
     link: /modules/m108-context-memory-kernel
 
   - icon: 🔐
@@ -81,11 +81,11 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-## 2026-11-02 当前代码与公开发行
+## 2026-11-03 当前代码与公开发行
 
-2026-11-02 核对：CLI **0.166.138** / Agent SDK **0.2.17** 已公开；Open VSX **0.37.174** 正式发布与公开 VSIX 核验通过，JetBrains **0.4.191** 商店已批准上架，公开包负载核验待完成，两个新 IDE 推荐 CLI .138。发行源 `e42ea07b6d` 的三系统 CLI CI / Strict Sandbox、OIDC 与公共包核验通过。公开 .138 四项复验 **2/4**，verify-08、verify-36 因作者阶段 20/20 轮耗尽仍失败；前轮 .137 **0/5**、历史累计 **41/45** 各自保留。主分支 `2e97ce3d79` 的独立 WebSocket 模型策略修复尚未发布。PC / mobile **v5.0.3.143** 独立，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+2026-11-03 按 `main@d62866538c` 核对：CLI **0.166.140** / Open VSX **0.37.176** 已公开核验，修复损坏工具参数续接与可信传输摘要误判。JetBrains **0.4.193** 已上传，公开可用性未核验；商店已核验公开版 **0.4.192** 的推荐标记仍为 CLI **0.166.139**。PC / mobile **v5.0.3.144** 已独立公开。火山 .140 全量 **36+9** 最终成绩尚未核验；历史 .138 **2/4**、原冻结项目 **41/45** 和含修复项目的 Sol 跨版本 **45/45** 分别保留。后续读取恢复提示与 Web Panel bundle 修复不在 CLI .140 发行源中。**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
-[最新设计](/release-runtime-update-2026-11-02-138) · [升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-02-138.html) · [发行证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release138-public/README.md) · [复验记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/verify01-openai-138/README.md)
+[最新设计](/release-runtime-update-2026-11-03-140) · [升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-03-140.html) · [发行证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release140-public/README.md) · [复验记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/verify01-openai-138/README.md)
 
 ### 按任务查阅当前参考
 
@@ -114,7 +114,7 @@ CLI .108 在会话恢复与压缩时保留完整工具轮次，提供有界重�
 
 已公开的 Open VSX 0.37.153 与 JetBrains Marketplace 0.4.170 均推荐已公开 CLI 0.166.108。三个渠道均通过精确提交发行门与公开制品回读验证。
 
-当前安装见[CLI / IDE 升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-02-138.html)。下方带日期内容保留原始历史范围。
+当前安装见[CLI / IDE 升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-03-140.html)。下方带日期内容保留原始历史范围。
 
 > 2026-10-17 核对：CLI **0.166.104**、Open VSX **0.37.149** 与 JetBrains **0.4.166** 已公开，均配对 CLI `.104`。CLI 与 VS Code 发行提交 `93792f6520`，JetBrains `4c3e5cfd56`。Kernel **0.1.10**、PDH **0.4.65** 与产品 **v5.0.3.140** 保持独立版本。预算仍 **NOT_PAID_READY**；正式 36+9 **NOT_RUN**、完整 native review **NOT_ADMITTED**、自动晋升 **HOLD**。详见[本轮设计](/release-runtime-update-2026-10-17)。
 

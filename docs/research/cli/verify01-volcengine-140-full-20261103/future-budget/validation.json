@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-03T16:49:36.387552+00:00",
+  "scope": "Future bounded diagnostic policy and user hold; no retest generation dispatched",
+  "tests": {
+    "files": 30,
+    "passed": 203,
+    "failed": 0,
+    "skipped": 0,
+    "tap": {
+      "path": "docs/research/cli/verify01-volcengine-140-full-20261103/future-budget/contracts.tap.txt",
+      "digest": "sha256:8b93f15b5fb46df8f95ed61d662a83488084713b7c73666133ac4387d457355f"
+    }
+  },
+  "sourceSnapshot": "Working tree bytes bound individually; not claiming the prior HEAD includes these uncommitted changes",
+  "sourceFiles": [
+    {
+      "path": "packages/cli/scripts/verify01-sol-relative-token-budget.mjs",
+      "digest": "sha256:444009973916e63b099182cf46757e7eb30718ec84222af682300381b7f6de21"
+    },
+    {
+      "path": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:279842d30cdf18741eff37e863db86e99605a3631e37c79eb9b29a58dd0bba4d"
+    },
+    {
+      "path": "packages/cli/scripts/verify01-volcengine-public140-generation-recovery.mjs",
+      "digest": "sha256:00017737b67c4d5e7985688ebe826b900566ecd5b54adca5b7218cdc3acfdd99"
+    },
+    {
+      "path": "packages/cli/test-node/verify01-sol-relative-token-budget.node-test.mjs",
+      "digest": "sha256:03fc807e528946b35289bbc02d46f3c1733ce87ece6164a7148f6ed8e74845ea"
+    },
+    {
+      "path": "packages/cli/test-node/verify01-volcengine-generation-recovery.node-test.mjs",
+      "digest": "sha256:8fa2fd20585fc9756ff9d5de71107e4adb0b183b9ec67af3b6ccc0f27302bbb2"
+    },
+    {
+      "path": ".github/workflows/verify01-native-task-campaign.yml",
+      "digest": "sha256:6cae8a62e0da033a3dbab8bd54de7153db489a05f10e1655811e00e3ecbaad38"
+    },
+    {
+      "path": "packages/cli/scripts/budget-egress-reviewed-sources.json",
+      "digest": "sha256:cb22822cb21302e35abf6856a472b4625046a63a6e58585789b67f157d24d72b"
+    },
+    {
+      "path": "docs/research/cli/verify01-volcengine-140-full-20261103/execution-policy.json",
+      "digest": "sha256:df4ef1fb375af11ac015fe297e80a90e8ba9243559f73ed6e31b2f7984d65da4"
+    }
+  ],
+  "userPolicy": {
+    "schema": 1,
+    "updatedAt": "2026-11-03T15:17:00Z",
+    "provider": "volcengine",
+    "newRetestsHeld": true,
+    "currentDispatchedFullRoundsContinue": [
+      41630636517,
+      41638188839
+    ],
+    "continueIndependentAcceptanceOfExistingDeliveries": true,
+    "futureSolTokenBudgetMultiple": 2,
+    "futureInternalSummaryTokenBudgetMultiple": 2,
+    "futurePerRequestOutputTokens": 16384,
+    "futureInternalSummaryMaximumOutputTokens": 4096,
+    "preserveCallerInternalReservation": true,
+    "futureMaximumTaskOutputTokens": 393216,
+    "futureMaximumTaskInputPlusOutputTokens": 1966080,
+    "futureMaximumModelTurns": 40,
+    "futureMaximumPhysicalRequests": 48,
+    "referenceDefinition": "Sol configuration reference:24 requests,32768 planning tokens and8192 output tokens per request; internal summaries2048. Future Volcengine allowance is2x this configured reference, not2x historical spend. Each dispatch reserves conservative input framing plus output; known usage settles it. Unknown usage retains its reservation and blocks further dispatch. No automatic budget increases or new attempts.",
+    "userInstructions": [
+      "\u4ee5\u540e\u706b\u5c71\u5f15\u64cetoken\u9884\u7b97\u6bd4openai\u7684sol\u63d0\u9ad8\u4e24\u500d\u4f46\u4e0d\u8981\u65e0\u9650\uff0c\u8fd9\u6837\u592a\u6d88\u8017token\u4e86\u3002",
+      "\u5185\u90e8\u6458\u8981\u76f8\u5bf9openai\u7684sol\u4e5f\u53ef\u4ee5\u63d0\u9ad82\u500d",
+      "\u5df2\u6d4b\u8bd5\u7684\u6682\u65f6\u4e0d\u8981\u91cd\u6d4b"
+    ],
+    "interpretation": "Use Sol's configured token allowances multiplied by2 for future new tests; both normal output and internal summaries remain bounded. Retain current dispatched rounds and independently accept existing deliveries. No additional model generation for already tested samples until the user explicitly resumes retesting."
+  },
+  "egress": {
+    "capturedAt": "2026-11-03T16:47:51.396Z",
+    "sourceTreeDigest": "sha256:f985e9ea4a4d57f3f3947a8eda514089aeb82d15a02c56c8efb8f3ac6b964ea9",
+    "sourceReviewPassed": true,
+    "candidateFiles": 88,
+    "parseErrors": 0,
+    "reviewIssues": [],
+    "formalPaidReady": false
+  },
+  "providerGenerationRequests": 0,
+  "existingPublic140FullRoundPoliciesUnchanged": true,
+  "newRetestsHeld": true,
+  "testsExercise": [
+    "loopback captures16384 task output and explicitly reserved4096 summary; caller-owned2048 and ordinary explicit1024 remain unchanged",
+    "cumulative output is393216, not786432 from multiplying both48 requests and16384 output",
+    "input/output reservation blocks before a new physical slot if remaining total is insufficient",
+    "unknown dispatched usage retains its reservation and prevents another request",
+    "reported input beyond its conservative reservation is rejected",
+    "user hold rejects an otherwise valid future recovery dispatch",
+    "historical policies, identity and complete45 selectors retain their contracts"
+  ],
+  "localRuntime": {
+    "platform": "Windows",
+    "node": "v22.22.2"
+  },
+  "integratedMainCommit": "508935adc8402b75dacc5c6174bed77ca2658363",
+  "cliCiRegistration": {
+    "path": ".github/workflows/cli-ci.yml",
+    "digest": "sha256:2983928c0735dff2aa1d5eb3094cc565ad4dbe52497967988614a07297b6cb5a",
+    "yamlParsed": true,
+    "prettierChecked": true,
+    "cloudRunNotClaimedByThisLocalCheck": true
+  }
+}

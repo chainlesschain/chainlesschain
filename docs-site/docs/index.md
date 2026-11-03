@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "CLI 0.166.138 / Open VSX 0.37.174 已公开；JetBrains 0.4.191 商店已批准上架；客户端 v5.0.3.143"
+  tagline: "CLI 0.166.140 / Open VSX 0.37.176 已公开；JetBrains 0.4.193 已上传待公开核验；客户端 v5.0.3.144"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,12 +21,12 @@ hero:
 
 features:
   - icon: ⚠️
-    title: CLI .138 与 IDE 配套升级
-    details: "CLI 0.166.138 / SDK 0.2.17 已公开并核验；Open VSX 0.37.174 已公开，JetBrains 0.4.191 商店已批准上架，均推荐 CLI .138。产品 v5.0.3.143 独立发行。"
+    title: CLI .140 与 IDE 配套升级
+    details: "CLI 0.166.140 / Open VSX 0.37.176 已公开核验；JetBrains 0.4.193 已上传，公开可用性未核验，商店公开版 0.4.192 仍推荐 CLI .139。产品 v5.0.3.144 独立公开。"
     link: /chainlesschain/agent-platform-release
   - icon: 🔗
     title: CLI / IDE 与桌面目标草稿
-    details: "公开 CLI .138 / Open VSX .174 与官方待审 JetBrains .191 构建用于本轮复验。桌面目标草稿互通仍需匹配客户端构建、显式授权及原生确认；CLI 或插件发布不能替代产品验收。"
+    details: "CLI .140 修复损坏工具参数恢复与可信摘要；桌面目标草稿互通仍需匹配客户端构建、显式授权及原生确认，CLI 或插件发布不能替代产品验收。"
     link: /chainlesschain/goal-drafts-current
   - icon: 🛡️
     title: 输入、图片预算与恢复边界
@@ -34,11 +34,11 @@ features:
     link: /chainlesschain/agent-input-and-recovery
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
-    details: 历史产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；当前 .143 独立发行，记忆不自动注入模型。
+    details: 历史产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；当前 .144 独立发行，记忆不自动注入模型。
     link: /chainlesschain/organization-project-current
   - icon: 🎯
     title: 持久项目目标与独立验收（主线）
-    details: 历史产品 .140 包含个人目标、巡检、动作、独立验收、记忆面板和站内通知；当前 .143 按独立发行证据核验。
+    details: 历史产品 .140 包含个人目标、巡检、动作、独立验收、记忆面板和站内通知；当前 .144 按独立发行证据核验。
     link: /chainlesschain/project-goals-current
   - icon: 🧪
     title: RRSI 五池与质量回执（主线）
@@ -46,7 +46,7 @@ features:
     link: /chainlesschain/rrsi-current
   - icon: 🧩
     title: Agent Platform 当前验收范围
-    details: 公开 .138 四项复验 2/4，作者轮次耗尽两项仍失败；前轮 .137 为 0/5，历史累计 41/45 分别保留。NOT_PAID_READY、NOT_ADMITTED 与 HOLD 不变。
+    details: .140 火山全量 36+9 最终成绩尚未核验；历史 .138 四项复验 2/4、原冻结项目 41/45 与跨版本修复项目 Sol 45/45 分别保留。NOT_PAID_READY、NOT_ADMITTED 与 HOLD 不变。
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
@@ -74,7 +74,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 当前公开配对
-    details: "Open VSX .174 已公开，JetBrains .191 商店已批准上架，公开包负载核验待完成，两者推荐 CLI .138。Microsoft Marketplace 暂缓。"
+    details: "Open VSX .176 公开并推荐 CLI .140；JetBrains .193 已上传待公开核验，商店公开版 .192 仍推荐 CLI .139。Microsoft Marketplace 暂缓。"
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -87,11 +87,11 @@ features:
     details: "CLI 与 IDE 的精确提交门禁、公共制品回读、模型任务验收具有不同证据范围。原生产品 .143 已独立公开，五平台构建及 22 个资产通过核验；完整 native review 仍保持 NOT_ADMITTED。"
 ---
 
-## 当前公开版本（2026-11-02）
+## 当前公开版本（2026-11-03）
 
-2026-11-02 核对：CLI **0.166.138** / Agent SDK **0.2.17** 已公开；Open VSX **0.37.174** 正式发布与公开 VSIX 核验通过，JetBrains **0.4.191** 商店已批准上架，公开包负载核验待完成，两个新 IDE 推荐 CLI .138。发行源 `e42ea07b6d` 的三系统 CLI CI / Strict Sandbox、OIDC 与公共包核验通过。公开 .138 四项复验 **2/4**，verify-08、verify-36 因作者阶段 20/20 轮耗尽仍失败；前轮 .137 **0/5**、历史累计 **41/45** 各自保留。主分支 `2e97ce3d79` 的独立 WebSocket 模型策略修复尚未发布。PC / mobile **v5.0.3.143** 独立，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+2026-11-03 按 `main@d62866538c` 核对：CLI **0.166.140** / Open VSX **0.37.176** 已公开核验，修复损坏工具参数续接与可信传输摘要误判。JetBrains **0.4.193** 已上传，公开可用性未核验；商店已核验公开版 **0.4.192** 的推荐标记仍为 CLI **0.166.139**。PC / mobile **v5.0.3.144** 已独立公开。火山 .140 全量 **36+9** 最终成绩尚未核验；历史 .138 **2/4**、原冻结项目 **41/45** 和含修复项目的 Sol 跨版本 **45/45** 分别保留。后续读取恢复提示与 Web Panel bundle 修复不在 CLI .140 发行源中。**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
-[当前升级指南](/chainlesschain/cli-ide-update-2026-11-02-138) · [最新设计](https://design.chainlesschain.com/release-runtime-update-2026-11-02-138.html) · [公开包复验记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/verify01-openai-138/README.md)
+[当前升级指南](/chainlesschain/cli-ide-update-2026-11-03-140) · [最新设计](https://design.chainlesschain.com/release-runtime-update-2026-11-03-140.html) · [公开包复验记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/verify01-openai-138/README.md)
 
 ### 按任务查阅当前参考
 
@@ -128,7 +128,7 @@ JetBrains Marketplace **0.4.170**: 已公开，精确提交发行门与公开制
 
 本轮没有新的模型任务补测。历史 `.105/.150/.167` 轮生成和独立验收各 **20/20**，新增通过 **6** 项；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项；这不是 .109 单轮成功率。**NOT_PAID_READY**、**NOT_ADMITTED** 与自动晋升 **HOLD** 保留。Microsoft Marketplace 未发行。原生产品 **v5.0.3.140** 独立发行；桌面互通仍需匹配构建、桌面授权和原生确认。
 
-CLI .109 修复 Web Panel Quick Ask 对已保存 LLM 设置的路由。IDE .154 / .171 配对 CLI .109。仓库 Python 调度诊断不包含在 npm 包中。子包版本不变：Agent SDK 0.2.15、Session Core 0.3.20、Context/Memory Kernel 0.1.10、Personal Data Hub 0.4.65。
+CLI .109 修复 Web Panel Quick Ask 对已保存 LLM 设置的路由。IDE .154 / .171 配对 CLI .109。仓库 Python 调度诊断不包含在 npm 包中。子包版本不变：Agent SDK 0.2.15、Session Core 0.3.20、Context/Memory Kernel 0.1.11、Personal Data Hub 0.4.65。
 
 已公开的 Open VSX 0.37.154 与 JetBrains Marketplace 0.4.171 均推荐已公开 CLI 0.166.109。三个渠道均通过精确提交发行门与公开制品回读验证。
 

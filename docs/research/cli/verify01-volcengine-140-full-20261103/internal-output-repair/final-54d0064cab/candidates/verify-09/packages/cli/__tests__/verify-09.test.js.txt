@@ -1,0 +1,118 @@
+import { describe, expect, it } from "vitest";
+import {
+  createSessionHistoryOrigins,
+  HISTORY_PREFIX_SCHEMA,
+} from "../src/lib/session-history-origins.js";
+import {
+  HISTORY_SUMMARY_SCHEMA,
+  projectCheckpointSummary,
+} from "../src/lib/checkpoint-summary-projection.js";
+import { encodePersistedMessage } from "../src/lib/session-message-provenance.js";
+
+const HEAD = "a".repeat(64);
+
+function rewindEvent(messages, retainedMessageCount, patch) {
+  const event = {
+    prevHash: HEAD,
+    data: {
+      action: "restore-conversation",
+      messages: messages.slice(0, retainedMessageCount),
+      historyPrefix: {
+        schema: HISTORY_PREFIX_SCHEMA,
+        sourceHead: HEAD,
+        sourceMessageCount: messages.length,
+        retainedMessageCount,
+      },
+    },
+  };
+  if (patch) patch(event);
+  return event;
+}
+
+function summaryEvent(messages, action, start, end, patch) {
+  const event = {
+    prevHash: HEAD,
+    data: {
+      action,
+      turnId: "selected",
+      historySummary: {
+        schema: HISTORY_SUMMARY_SCHEMA,
+        sourceHead: HEAD,
+        sourceMessageCount: messages.length,
+        start,
+        end,
+      },
+      messages: projectCheckpointSummary({
+        messages,
+        action,
+        start,
+        end,
+        turnId: "selected",
+      }).map(({ message }) => encodePersistedMessage(message)),
+    },
+  };
+  if (patch) patch(event);
+  return event;
+}
+
+const baseMessages = [
+  { role: "user", content: "first" },
+  { role: "assistant", content: "answer" },
+  { role: "user", content: "selected" },
+];
+
+describe("verify-09: history source tampering is rejected", () => {
+  it("reads a correct rewind source (positive control)", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(baseMessages);
+    // Only the source identity is correct here: valid prefix sourceHead and
+    // sourceMessageCount with a matching retained fingerprint.
+    expect(origins.rewind(rewindEvent(baseMessages, 2), 3)).toBe(2);
+  });
+
+  it("rejects a rewind whose sourceHead names a different session", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(baseMessages);
+    const event = rewindEvent(baseMessages, 2, (value) => {
+      value.data.historyPrefix.sourceHead = "b".repeat(64);
+    });
+    // Fingerprint and every other prerequisite stay valid; only the session
+    // source head was changed, so only the sourceHead guard can reject this.
+    expect(origins.rewind(event, 3)).toBeNull();
+  });
+
+  it("rejects a rewind whose sourceMessageCount claims a different history length", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(baseMessages);
+    const event = rewindEvent(baseMessages, 2, (value) => {
+      value.data.historyPrefix.sourceMessageCount = baseMessages.length - 1;
+    });
+    expect(origins.rewind(event, 3)).toBeNull();
+  });
+
+  it("reads a correct summary source (positive control)", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(baseMessages);
+    expect(
+      origins.summarize(summaryEvent(baseMessages, "summary-from", 0)),
+    ).toBe(true);
+  });
+
+  it("rejects a summary whose sourceHead names a different session", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(baseMessages);
+    const event = summaryEvent(baseMessages, "summary-from", 0, (value) => {
+      value.data.historySummary.sourceHead = "b".repeat(64);
+    });
+    expect(origins.summarize(event)).toBe(false);
+  });
+
+  it("rejects a summary whose sourceMessageCount claims a different history length", () => {
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(baseMessages);
+    const event = summaryEvent(baseMessages, "summary-from", 0, (value) => {
+      value.data.historySummary.sourceMessageCount = baseMessages.length - 1;
+    });
+    expect(origins.summarize(event)).toBe(false);
+  });
+});
