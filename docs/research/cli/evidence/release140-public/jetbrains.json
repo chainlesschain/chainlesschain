@@ -1,0 +1,180 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-03T11:42:31.329Z",
+  "releaseSource": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+  "version": "0.4.193",
+  "recommendedCliVersion": "0.166.140",
+  "status": "uploaded-pending-review",
+  "workflow": {
+    "id": 41614441190,
+    "attempt": 2,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "id": 125881031349,
+        "name": "JetBrains real host (windows-latest, 2025.2)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881031349"
+      },
+      {
+        "id": 125881031490,
+        "name": "Public IDE capability manifest (drift gate)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881031490"
+      },
+      {
+        "id": 125881032482,
+        "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881032482"
+      },
+      {
+        "id": 125881032768,
+        "name": "JetBrains real host (windows-latest, 2024.2)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881032768"
+      },
+      {
+        "id": 125881032806,
+        "name": "Browser evidence (macos)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881032806"
+      },
+      {
+        "id": 125881032849,
+        "name": "JetBrains real host (macos-latest, 2025.2)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881032849"
+      },
+      {
+        "id": 125881032866,
+        "name": "Browser evidence (windows)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881032866"
+      },
+      {
+        "id": 125881032900,
+        "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881032900"
+      },
+      {
+        "id": 125881033146,
+        "name": "VS Code extension (macOS host gate)",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881033146"
+      },
+      {
+        "id": 125881033274,
+        "name": "JetBrains real host (macos-latest, 2024.2)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881033274"
+      },
+      {
+        "id": 125881033435,
+        "name": "IDE roadmap evidence (trusted scoped aggregate)",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881033435"
+      },
+      {
+        "id": 125881034166,
+        "name": "VS Code extension (Windows host gate)",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881034166"
+      },
+      {
+        "id": 125881034379,
+        "name": "Browser evidence (three-OS required aggregate)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881034379"
+      },
+      {
+        "id": 125881034515,
+        "name": "VS Code extension (Linux host gate + publish)",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881034515"
+      },
+      {
+        "id": 125881077740,
+        "name": "Browser evidence (linux)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881077740"
+      },
+      {
+        "id": 125881085968,
+        "name": "VS Code Remote-SSH container (scoped trusted cell)",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881085968"
+      },
+      {
+        "id": 125881086197,
+        "name": "VS Code extension (immutable candidate)",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125881086197"
+      },
+      {
+        "id": 125889877360,
+        "name": "JetBrains plugin (build + publish)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125889877360"
+      },
+      {
+        "id": 125893013703,
+        "name": "JetBrains Marketplace (post-publish verification)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441190/job/125893013703"
+      }
+    ]
+  },
+  "uploadVerified": true,
+  "publishedAfterCliPublicVerification": true,
+  "officialArtifact": {
+    "sha256": "02835c272e2ab701724fa99845a7eb8968a5a757ab8d6655bbf10ce52a02aa75",
+    "bytes": 1555501,
+    "version": "0.4.193",
+    "recommendedCliVersion": "0.166.140",
+    "payloads": [
+      {
+        "path": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.193-searchableOptions.jar",
+        "bytes": 1263,
+        "sha256": "e62bd3deab54ec4663e605209fd70bf01a48669e6fe3739f5382cdab128dc8ca"
+      },
+      {
+        "path": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.193.jar",
+        "bytes": 1650374,
+        "sha256": "f998b62f1e0e4cd39821b17d1376638a972c5ce3f276a95098c3bd87670cdf4b"
+      }
+    ]
+  },
+  "marketplace": {
+    "channel": "jetbrains",
+    "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+    "status": "pending",
+    "version": "0.4.193",
+    "approve": null,
+    "listed": null,
+    "hidden": null,
+    "reason": "version-not-visible",
+    "attempts": 12,
+    "approvalStatus": "not-observed",
+    "updateId": null
+  },
+  "publicPayloadComparison": null,
+  "firstFailure": {
+    "jobId": 125844485801,
+    "httpStatus": 504,
+    "artifactId": 13221325052,
+    "originalLogSha256": "03e41f0f4d668bb8709e7d8533c5fc87a82250626ba896afb77ee26724d91048",
+    "retryJobId": 125881031349,
+    "stage": "Gradle distribution download before IDE launch",
+    "productAssertionsStarted": false,
+    "wholeHostJobRetriedOnce": true,
+    "sourceOrTimeoutsChanged": false
+  },
+  "scope": {
+    "modelTaskAcceptanceAdded": false,
+    "microsoftMarketplace": "deferred",
+    "pcMobile": "independent-public-v5.0.3.144"
+  }
+}

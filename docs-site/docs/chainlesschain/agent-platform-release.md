@@ -1,30 +1,32 @@
 # Agent Platform 发布与升级指南
 
-<!-- release140-candidate:start -->
+<!-- release140-current:start -->
 
-## CLI 0.166.140 / IDE 恢复补丁准备（2026-11-03）
+## 当前公开 CLI：0.166.140 / IDE 恢复补丁
 
-计划配套 CLI **0.166.140**、Open VSX **0.37.176**、JetBrains **0.4.193**。新版本完成准确源码检查和 OIDC 发布前，已核验公开 CLI 仍为 **0.166.139**。
+截至 **2026-11-03T11:42:31.329Z**，CLI **0.166.140** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/41610020835) 公开发布，准确发行源码为 `e2a91bf54332ff3d252c40ecc25c5887e0f0430d`。公开 npm 字节、来源签名、安装与启动均已核验；同一源码的 Linux、Windows、macOS CLI CI / CLI Strict Sandbox 全部配置作业通过。
+
+Open VSX **0.37.176** 已公开列出且可下载，VSIX 与正式构建逐字节一致。JetBrains **0.4.193** 已上传，等待商店审核或公开索引；公开可用性未核验。上一已核验公开版仍为 **0.4.192**，其推荐标记为 CLI **0.166.139**。 两个新 IDE 版本均推荐 CLI **0.166.140**。
+
+[发行与各渠道回执](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release140-public/publication.json) · [准确源码门禁](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release140-public/gates.json) · [CLI 公开回读](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release140-public/cli.json) · [Open VSX 回读](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release140-public/open-vsx.json) · [JetBrains 状态](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release140-public/jetbrains.json)
+
+安装：`npm i -g chainlesschain@0.166.140 --registry https://registry.npmjs.org`，重启 CLI 与 IDE 聊天宿主，再运行 `cc --version`、`cc doctor`。
 
 修复模型返回损坏工具参数后自进化解析退出的问题：非法参数在执行前被拒绝，后续请求只为唯一配对、明确未执行的记录生成临时占位；原始会话历史保持完整，旧版失败调用不会被重放。有效对象、重复键与嵌套 JSON 校验、脱敏和预算边界继续生效。
 
-本地相关检查 **129 项通过**；两条真实火山模型恢复路径通过，共 **5 次请求 / 6,401 tokens**，其中新请求场景明确注入了日志中的损坏参数。这些结果仅验证本缺陷，不增加历史大任务验收成绩。SDK **0.2.17**、Protocol **0.1.12**、Kernel **0.1.11** 和其他子包版本不变。
+内部投影规则 v10 同时修复图片及推理传输块的内部 SHA-256 摘要被手机号扫描误判的问题。仅可信传输元数据使用扫描视图，原始摘要与字节长度绑定不变。真实手机号、用户文本中的摘要样字符串和伪造标记继续接受原有检查，v1–v9 历史规则保留。
 
-同一发行提交必须通过 Linux、Windows、macOS 的 CLI CI / Strict Sandbox，再由 GitHub Actions OIDC 发布并验证公开 CLI，随后发布并核验两款 IDE。JetBrains 上传、商店审核和公开可下载状态分别记录。Microsoft Marketplace 与独立 PC/移动产品不在本补丁范围。
+Windows 聚焦检查 **129 项通过**。较早 v9 恢复实测共 **5 次真实火山请求 / 6,401 tokens**，首个场景明确向一次模型响应注入日志中的损坏参数，见[原始实测](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine.json)。独立 v10 复测再次通过两条恢复路径，共 **5 次请求 / 6,501 tokens**，运行时源码哈希与本次发行一致，见[追加实测](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine-v10.json)。完整相关投影测试 **393/393 通过**。两轮实测独立记录，不合并为历史大任务验收成绩。
 
-发布后安装：`npm i -g chainlesschain@0.166.140 --registry https://registry.npmjs.org`，重启 CLI 与 IDE Agent，运行 `cc --version`、`cc doctor`。
+旧候选 `eb0fe7a8a1` 曾在 Windows ArtifactStore post-index 完整性组合校验处失败，随后完整三平台回环复测通过；具体拒绝子条件仍未知，校验继续生效。[原始失败](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt1-failure.json)与[完整复测](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt2-aggregate.json)保留历史源码范围。最终发行源码另有三平台各 100 次回环通过，共 300 次仅覆盖结构封套，不代表付费模型任务验收，也不替代 CLI CI / Strict Sandbox。本地 composition 在 v10 源码与较早基线上均出现超时，未计为通过。
 
-[本次恢复实测证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine.json)。
+Agent SDK **0.2.17**、Protocol **0.1.12**、Kernel **0.1.11** 和其他子包沿用已公开版本；CLI 发布前已回读必需上游包并核验依赖对齐。Microsoft Marketplace 继续暂缓。PC/移动端 **v5.0.3.144** 已独立公开，本次 CLI/IDE 后续不重复发布客户端。历史 .138 **2/4**、.137 **0/5**、累计 **41/45** 各自范围保留。
 
-同时修复图片及推理传输块的内部 SHA-256 摘要被手机号扫描误判的问题。内部投影规则 v10 仅为可信传输元数据生成扫描视图，原始摘要与字节长度绑定保持不变。真实手机号、用户文本中的摘要样字符串和伪造标记继续接受原有检查，v1–v9 历史规则保留。
+<!-- release140-current:end -->
 
-v10 候选已追加两条真实火山恢复复测，**5 次请求 / 6,501 tokens**；运行时源码哈希与当前候选一致。见[追加实测](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine-v10.json)。
+<!-- release139-previous:start -->
 
-<!-- release140-candidate:end -->
-
-<!-- release139-current:start -->
-
-## 当前公开 CLI：0.166.139（2026-11-02）
+## 历史公开 CLI：0.166.139（2026-11-02）
 
 CLI **0.166.139** 已通过 [GitHub Actions OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/41431711290)，准确源码为 `eec8b97b6040d19004670bfead0bec1b8a27b71b`。同一提交的 CLI CI **76/76**、Strict Sandbox **6/6** 覆盖全部配置平台并通过；公开 npm 归档字节、来源签名和安装启动均已核验。安装：`npm i -g chainlesschain@0.166.139 --registry https://registry.npmjs.org`，升级后重启 CLI 与 IDE 聊天宿主，再运行 `cc --version`、`cc doctor`。
 
@@ -34,7 +36,7 @@ CLI **0.166.139** 已通过 [GitHub Actions OIDC 发布](https://github.com/chai
 
 [发行证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release139-public/publication.json) · [准确源码门禁](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release139-public/gates.json) · [Open VSX 公开核验](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release139-public/open-vsx.json)。
 
-<!-- release139-current:end -->
+<!-- release139-previous:end -->
 
 <!-- release138-current:start -->
 

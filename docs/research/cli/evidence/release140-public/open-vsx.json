@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-03T11:14:45.065Z",
+  "releaseSource": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+  "version": "0.37.176",
+  "recommendedCliVersion": "0.166.140",
+  "status": "verified-public",
+  "tag": "ide-vscode-v0.37.176",
+  "workflow": {
+    "id": 41614441062,
+    "attempt": 1,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "id": 125844242417,
+        "name": "Public IDE capability manifest (drift gate)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062/job/125844242417"
+      },
+      {
+        "id": 125844497084,
+        "name": "Browser evidence (macos)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062/job/125844497084"
+      },
+      {
+        "id": 125844497085,
+        "name": "Browser evidence (linux)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062/job/125844497085"
+      },
+      {
+        "id": 125844497222,
+        "name": "Browser evidence (windows)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062/job/125844497222"
+      },
+      {
+        "id": 125844497256,
+        "name": "VS Code extension (immutable candidate)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062/job/125844497256"
+      },
+      {
+        "id": 125844499110,
+        "name": "JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062/job/125844499110"
+      },
+      {
+        "id": 125844864807,
+        "name": "VS Code extension (Windows host gate)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062/job/125844864807"
+      },
+      {
+        "id": 125844864876,
+        "name": "VS Code extension (macOS host gate)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062/job/125844864876"
+      },
+      {
+        "id": 125844865088,
+        "name": "VS Code Remote-SSH container (scoped trusted cell)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062/job/125844865088"
+      },
+      {
+        "id": 125845438085,
+        "name": "IDE roadmap evidence (trusted scoped aggregate)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062/job/125845438085"
+      },
+      {
+        "id": 125847003571,
+        "name": "Browser evidence (three-OS required aggregate)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062/job/125847003571"
+      },
+      {
+        "id": 125849065210,
+        "name": "JetBrains plugin (build + publish)",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062/job/125849065210"
+      },
+      {
+        "id": 125849066079,
+        "name": "JetBrains Marketplace (post-publish verification)",
+        "conclusion": "skipped",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062/job/125849066079"
+      },
+      {
+        "id": 125851265511,
+        "name": "VS Code extension (Linux host gate + publish)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062/job/125851265511"
+      }
+    ]
+  },
+  "publicReadback": {
+    "channel": "open-vsx",
+    "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide",
+    "status": "ready",
+    "version": "0.37.176",
+    "latest": "0.37.176",
+    "downloadable": true,
+    "listed": true,
+    "registryArchiveSha256": "38c22fc843876c2cbc67d28af19ed21f917a2499705075ca492388e8162f0807",
+    "localArchiveSha256": "38c22fc843876c2cbc67d28af19ed21f917a2499705075ca492388e8162f0807",
+    "contentSha256": "c243f33880825147cfe85a89435e7af584ebeec466e3f50721393e234707795a",
+    "downloadUrl": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.176/file/chainlesschain.chainlesschain-ide-0.37.176.vsix",
+    "sha256": "38c22fc843876c2cbc67d28af19ed21f917a2499705075ca492388e8162f0807",
+    "versionAndRecommendedCliInspected": true,
+    "versionInspection": "Official VSIX metadata; public archive byte-identical to that VSIX"
+  },
+  "officialManifest": {
+    "schema": 1,
+    "artifact": "chainlesschain-ide.vsix",
+    "bytes": 749356,
+    "sha256": "38c22fc843876c2cbc67d28af19ed21f917a2499705075ca492388e8162f0807",
+    "sha512": "35f36c9e6552f6a6802c993d826033ab2476bd657be0dc0bad2f225f25d949b29b83714bdf3b9fdda2745b8b87a5bdda99cc38925ad38f5aa429604dfa00754b",
+    "package": "chainlesschain-ide",
+    "publisher": "chainlesschain",
+    "version": "0.37.176",
+    "vsixmanifestIdentity": {
+      "id": "chainlesschain-ide",
+      "publisher": "chainlesschain",
+      "version": "0.37.176"
+    },
+    "commit": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+    "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062",
+    "createdAt": "2026-11-03T09:53:02.251Z"
+  },
+  "publishedAfterCliPublicVerification": true,
+  "microsoftMarketplace": "deferred-not-published"
+}
