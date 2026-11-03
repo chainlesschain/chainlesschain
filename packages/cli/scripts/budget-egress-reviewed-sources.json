@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.budget-egress-source-review/v1",
-  "reviewedAt": "2026-11-03",
+  "reviewedAt": "2026-11-04",
   "scope": [
     "packages/cli/src",
     "packages/cli/scripts"
@@ -126,6 +126,12 @@
       "digest": "sha256:ad112a4dec04206d46822200ad4442395ccf8dabd3c40bf2421b43bb66dac5d3",
       "category": "DISTRIBUTION",
       "rationale": "Inspected operator preflight: fixed public npm/Open VSX/JetBrains GETs and authenticated same-repository gh release/artifact GETs; verifies source, exact version, ZIP/archive/payload hashes and successful official publication. Reads only injected VOLCENGINE_API_KEY for fixed authenticated GET https://ark.cn-beijing.volces.com/api/v3/models, saves selected non-secret metadata and verifies maximum393216. Downloaded bytes are parsed, not executed. Uses existing gh account for read-only release metadata; child processes inherit operator environment. Writes local immutable full45 package manifest/proof. No chat/completions, inference, workflow dispatch, publishing or formal financial admission. HTTPS redirects and post-buffer size checks remain external distribution boundaries. Final inspected GET-only retry wrapper makes at most three fetch attempts for network failures, never retries rejected HTTP authentication and never invokes inference. JetBrains artifact is explicitly pinned to successful official attempt2; no release retry or publication is triggered."
+    },
+    {
+      "path": "packages/cli/scripts/verify01-public140-preflight.mjs",
+      "digest": "sha256:5408f9e5ae1b3df862e52c48cef807f781631d31af7945ce83af95877d121a43",
+      "category": "DISTRIBUTION",
+      "rationale": "2026-11-04 independent Astra source inspection: reads public npm/Open VSX/JetBrains metadata and packages, fetches the declared GitHub Actions artifact through gh, compares archive/payload hashes and writes local public-readback evidence. No model inference, workflow dispatch, publication or execution of downloaded packages. Package URLs come from remote metadata and fetch follows redirects; gh inherits host configuration, proxy and process environment rather than forcing a GitHub hostname. This byte-bound source-purpose classification does not attest those runtime boundaries, establish task success or grant paid/financial/release admission."
     },
     {
       "path": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",

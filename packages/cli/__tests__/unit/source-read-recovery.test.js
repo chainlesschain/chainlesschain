@@ -31,6 +31,37 @@ const read = (content, args = {}, maxChars = 12000, version = "v1") =>
   );
 
 describe("complete source recovery from the current read snapshot", () => {
+  it.each([
+    'const page = expectRestored(id, ["ancestor question", "ancestor answer", ...body]);',
+    'const expected = new Map([["left", [...common, ...expectedPair("left body", "left answer")]], [parent, [...common, ...second]]]);',
+  ])("preserves complete source with spread expressions: %s", (snapshot) => {
+    const page = read(snapshot, { offset: 1, limit: 80 });
+    const visible = JSON.parse(
+      boundedToolResultText(
+        JSON.stringify(safeHostToolResultForModel("read_file", page)),
+        12000,
+      ),
+    );
+    expect(visible.contentOmitted).toBeUndefined();
+    expect(visible.content).toBe(snapshot);
+    const guard = new ReadFileLoopGuard();
+    guard.observeVisibleMessages([]);
+    guard.read(
+      { offset: 1, limit: 80 },
+      { filePath: page.path, fileVersion: page.fileVersion },
+      () => page,
+      () => {
+        throw new Error("Unexpected continuation of a complete source file");
+      },
+    );
+    guard.observeVisibleMessages([
+      { role: "tool", content: JSON.stringify(visible) },
+    ]);
+    const entry = [...guard.progress.values()][0];
+    expect(entry.confirmedSpans).toEqual([[0, snapshot.length]]);
+    expect(entry.undeliveredReads).toBe(0);
+  });
+
   it("delivers the surrounding call without a second read when a page cuts its callback", () => {
     const page = read(source);
     const visible = safeHostToolResultForModel("read_file", page);

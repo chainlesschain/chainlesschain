@@ -1,0 +1,810 @@
+{
+  "schema": 1,
+  "executionSource": "802c51a9f20568d06268b12c0326087eca697278",
+  "projectSource": "e2a91bf54332ff3d252c40ecc25c5887e0f0430d",
+  "artifactId": 13247456004,
+  "artifactDigest": "sha256:6171f4c2d7a193937aa1af7c6e76fda5e84f7ba6925130a9162f8de18bdf6e6d",
+  "archiveDigestVerified": true,
+  "summaryDigestVerified": true,
+  "externalModelRequests": 0,
+  "samples": [
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "requestBindings": [
+        {
+          "request": 1,
+          "originalDigest": "sha256:75a16304dfd9ffa7606c94457a5a4ba0a3370fdc1b042667a88e788782f6e72f",
+          "effectiveDigest": "sha256:d08597fbfbe35f0482e944a28c66a95ba894ca771942de092a1313f5b8a2e9dd",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 2,
+          "originalDigest": "sha256:11704511fa89ed566b30123007b84cf8e60ca13a1c39dc3925d0f11f4968a370",
+          "effectiveDigest": "sha256:71e0a0b454f481a83d8484987e85a3e04bdc1d765bb2d0fe86db7007f6598c3c",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 3,
+          "originalDigest": "sha256:af37ddfbf770d2866f00631c352566f3cd2fe2deb8c2a49f9f69c2d4a6549a0a",
+          "effectiveDigest": "sha256:84652a49dc9b8a41a7e2a3f4390870d2637612c038e400d3993f95060eef0c1a",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 4,
+          "originalDigest": "sha256:9940793be680c27a5c93937d3b508e4d0b89abd085ad17f625c117430205aba5",
+          "effectiveDigest": "sha256:18216f2e89db815a1e70aafccdd504337bd0426d218877bed2455d30f3207b3d",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 5,
+          "originalDigest": "sha256:cd41383dd44ae93359eadf19e48743c6efbb69c97a162380a42aef1a263612cc",
+          "effectiveDigest": "sha256:d1ed55f15a52325a5776480232b11c0d6790df7189e61077f0b91d3a529a1961",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 6,
+          "originalDigest": "sha256:182f9b4bae3e814aebf6ac7ff66d194aac8ae621db4140ace16620e5088ad6a9",
+          "effectiveDigest": "sha256:15090ba61d25942354dd2bb4ebeda82eef1f5d12d1c56e1edc132eb0cb3d9132",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 7,
+          "originalDigest": "sha256:89b697aec759dbe500b093dcb93592c1bacf931d91dcc3a5ec20f4147fc18bb3",
+          "effectiveDigest": "sha256:de48fe7b3726d6469cb41fcc85c46ed29838037887e45e132232f88aabf6c702",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 8,
+          "originalDigest": "sha256:4e85e0ce34347f46053e009a97169b43e5a14a41e4babb6f38a010185d7bdbcc",
+          "effectiveDigest": "sha256:e03a16fed6a35193c561b628011bbebe2ec707901a7375e24b52c016c69b2e65",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 9,
+          "originalDigest": "sha256:1fda2378bd1f70593830e4bf64f5a596b2744b7c7fee8c534b3e0fdedb214c1f",
+          "effectiveDigest": "sha256:56d20371b80635e3349355ae51fbdac34e92e19834d6dadb419723d0f732e5f6",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 10,
+          "originalDigest": "sha256:bb87aba0063b67a0472f26b7f6b56f60a0058e7e7b0247edbb75c70e4b711eb9",
+          "effectiveDigest": "sha256:99df5f50b748a73fd4807069203743e3530ce8a8514a74cc35851dbd9fed331c",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 11,
+          "originalDigest": "sha256:93400977062a97b2f77818ef9e5505a1036dd8e8c6f295ce1d380fd739d5a3e7",
+          "effectiveDigest": "sha256:84f310fa5bf2e304b4feacc16548ae6648bec2210384c5567775aafe5b44d806",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 12,
+          "originalDigest": "sha256:f361dc0d3bb9f135eca826dd1933713fdd993e169e9b62b2c17deb33e9651c8b",
+          "effectiveDigest": "sha256:e93bd342f2d23debf4c89d81024a97cde12abde89918d7fd5b4eabade5d95661",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 13,
+          "originalDigest": "sha256:de73bdb5a6124375edbf078c92d0929439f0daa792de52d35b3f457bbb79aa2b",
+          "effectiveDigest": "sha256:5abafb8f01f66c83b0f8fa9af04ff945d91b80a4c389c04e3abb170c61a1b767",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 14,
+          "originalDigest": "sha256:3a7375ac96774304b5bfcbebaf81bf5b8c59db711fa9d92f6ecb7e315aa91f8c",
+          "effectiveDigest": "sha256:18d1e6b54d9236b0f1a4ab316e0069ed3c8d1fa8ed43f8e49874c77e3f19ccde",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 15,
+          "originalDigest": "sha256:35de38d2a7d47728584045211e22b8b5b681a125c12252b81faf437f53eab359",
+          "effectiveDigest": "sha256:cdf2c83947ff7f7764b4e3fb5f64267d63c5830c58b033448607fe4849e49b3a",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 16,
+          "originalDigest": "sha256:67a7c80bb23e805260ea84c7f430b53db6ee13bac2074173167c74f8d69ad780",
+          "effectiveDigest": "sha256:37879862fa3d7470b66df2dbd8724cb66fdcf018a78cba4f7b3f1d08c25f8033",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 17,
+          "originalDigest": "sha256:556b1bbf5a82db7ed2fd76557dc53fa9f8b4626f562db65b989d87bd16a55b33",
+          "effectiveDigest": "sha256:295216c02bdbee063ee6571b28416c5034b4f92dfbce9a0a1dfb3ceb43588784",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 18,
+          "originalDigest": "sha256:c0704bb5151cca727ad6797ae31cd7bd650ee69f5dd68f5e8cd7a7d4ec7b6531",
+          "effectiveDigest": "sha256:6959c9c5178dd6393e7abb15f2d22ecb95495b17ec72dbe2c12bb74c90387550",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 19,
+          "originalDigest": "sha256:25c74d5b03de2b9ede22fbecbb9bd9169ee65bc1e931f695bc4969d2258a4535",
+          "effectiveDigest": "sha256:de21687ed4e1bc26e6e54864594f150b3dc628685aa60c17494b1747d527ce7e",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 20,
+          "originalDigest": "sha256:7965a61219ae95c64d271943983512652654cec3d6fdc2f204bebb94b6e41873",
+          "effectiveDigest": "sha256:04b56cc203146002da7c3d9af74372fbce97755b942c2ff602d591280c4db8ac",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 21,
+          "originalDigest": "sha256:f5d0c3ddd6f87f28e41e419e1ceb5b6cce38aa4390ec993652462a8e32684122",
+          "effectiveDigest": "sha256:27a7590fa3875bd442c06c91c15c4daba58592ad195b517275917c3dd4e5c4c3",
+          "inputUnchangedByBroker": true
+        }
+      ],
+      "candidateReadbacks": [
+        {
+          "callId": "call_H55WwkwwLqTUCNHBQYe2Pxi1",
+          "requests": [
+            2,
+            3
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/42aa51d4-ba4f-4721-8084-ee052273e2b9/workspace/packages/cli/__tests__/repair137-verify-08.test.js",
+          "fileVersion": "27:1793720930888.451:1793720930888.451",
+          "range": {
+            "startLine": 1,
+            "endLine": 2,
+            "totalLines": 2
+          },
+          "readSpan": {
+            "start": 0,
+            "end": 27,
+            "total": 27
+          },
+          "outboundChars": 27,
+          "outboundContentDigest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "outboundContentOmitted": false,
+          "outboundOmissionText": null,
+          "rawHostChars": 27,
+          "rawHostContentDigest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "budgetNoticeFollowsJson": false
+        },
+        {
+          "callId": "call_DSL2leGPzqlB02tdDE8NjCXS",
+          "requests": [
+            5,
+            6,
+            7
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/42aa51d4-ba4f-4721-8084-ee052273e2b9/workspace/packages/cli/__tests__/repair137-verify-08.test.js",
+          "fileVersion": null,
+          "range": {
+            "startLine": 1,
+            "endLine": 2,
+            "totalLines": 2
+          },
+          "readSpan": null,
+          "outboundChars": 0,
+          "outboundContentDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "outboundContentOmitted": false,
+          "outboundOmissionText": null,
+          "rawHostChars": 27,
+          "rawHostContentDigest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "budgetNoticeFollowsJson": false
+        },
+        {
+          "callId": "call_Zq3QHBqkuwXcEjx1Suqv3BH2",
+          "requests": [
+            10,
+            12
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/42aa51d4-ba4f-4721-8084-ee052273e2b9/workspace/packages/cli/__tests__/repair137-verify-08.test.js",
+          "fileVersion": "1671:1793721018020.345:1793721018020.345",
+          "range": {
+            "startLine": 1,
+            "endLine": 41,
+            "totalLines": 41
+          },
+          "readSpan": {
+            "start": 0,
+            "end": 1671,
+            "total": 1671
+          },
+          "outboundChars": 1671,
+          "outboundContentDigest": "sha256:77c9f93fbc3a9497f83079ed4e3815d103af73e75cc75f9bb1144364a5593030",
+          "outboundContentOmitted": false,
+          "outboundOmissionText": null,
+          "rawHostChars": 1671,
+          "rawHostContentDigest": "sha256:77c9f93fbc3a9497f83079ed4e3815d103af73e75cc75f9bb1144364a5593030",
+          "budgetNoticeFollowsJson": false
+        },
+        {
+          "callId": "call_cnrwGzEmZwlDb705LrPoKblx",
+          "requests": [
+            12,
+            13
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/42aa51d4-ba4f-4721-8084-ee052273e2b9/workspace/packages/cli/__tests__/repair137-verify-08.test.js",
+          "fileVersion": null,
+          "range": {
+            "startLine": 1,
+            "endLine": 41,
+            "totalLines": 41
+          },
+          "readSpan": null,
+          "outboundChars": 0,
+          "outboundContentDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "outboundContentOmitted": false,
+          "outboundOmissionText": null,
+          "rawHostChars": 1671,
+          "rawHostContentDigest": "sha256:77c9f93fbc3a9497f83079ed4e3815d103af73e75cc75f9bb1144364a5593030",
+          "budgetNoticeFollowsJson": false
+        },
+        {
+          "callId": "call_aRG1Rn5ism3sTiFO3IkP3ixd",
+          "requests": [
+            14,
+            15,
+            16,
+            17
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/42aa51d4-ba4f-4721-8084-ee052273e2b9/workspace/packages/cli/__tests__/repair137-verify-08.test.js",
+          "fileVersion": "1671:1793721018020.345:1793721018020.345",
+          "range": {
+            "startLine": 1,
+            "endLine": 41,
+            "totalLines": 41
+          },
+          "readSpan": {
+            "start": 0,
+            "end": 1999,
+            "total": 1999
+          },
+          "outboundChars": 1999,
+          "outboundContentDigest": "sha256:daf4c2395ed7d21aa82f08039caa0adc9448a03eb3f5fdf1906469babe3d1077",
+          "outboundContentOmitted": false,
+          "outboundOmissionText": null,
+          "rawHostChars": 1999,
+          "rawHostContentDigest": "sha256:daf4c2395ed7d21aa82f08039caa0adc9448a03eb3f5fdf1906469babe3d1077",
+          "budgetNoticeFollowsJson": false
+        },
+        {
+          "callId": "call_6OLkPPEcYTelXBiSfAR2o9ib",
+          "requests": [
+            19,
+            20,
+            21
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/42aa51d4-ba4f-4721-8084-ee052273e2b9/workspace/packages/cli/__tests__/repair137-verify-08.test.js",
+          "fileVersion": "5661:1793721098249.797:1793721098249.797",
+          "range": {
+            "startLine": 1,
+            "endLine": 113,
+            "totalLines": 113
+          },
+          "readSpan": {
+            "start": 0,
+            "end": 5661,
+            "total": 5661
+          },
+          "outboundChars": 245,
+          "outboundContentDigest": "sha256:5ed2a81ffcb1ef8719789621f3a6ad10848a68ab7a61dec64a17891016e6b475",
+          "outboundContentOmitted": true,
+          "outboundOmissionText": "Text omitted (5661 chars); this excerpt could not be safely projected. Read a complete surrounding statement or container; expand the range or read the full file within existing size limits when necessary. Omitted content has not been inspected.",
+          "rawHostChars": 5661,
+          "rawHostContentDigest": "sha256:0fe00f5d20ffd1067b1e86f11ca39cbdc4b459d97337af5c7a2708b709073843",
+          "budgetNoticeFollowsJson": true
+        },
+        {
+          "callId": "call_3RihcR1xDl7A4cuIcTycixz4",
+          "requests": [
+            20,
+            21
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/42aa51d4-ba4f-4721-8084-ee052273e2b9/workspace/packages/cli/__tests__/repair137-verify-08.test.js",
+          "fileVersion": "5661:1793721098249.797:1793721098249.797",
+          "range": {
+            "startLine": 1,
+            "endLine": 41,
+            "totalLines": 113
+          },
+          "readSpan": {
+            "start": 0,
+            "end": 1672,
+            "total": 5661
+          },
+          "outboundChars": 1671,
+          "outboundContentDigest": "sha256:77c9f93fbc3a9497f83079ed4e3815d103af73e75cc75f9bb1144364a5593030",
+          "outboundContentOmitted": false,
+          "outboundOmissionText": null,
+          "rawHostChars": 1671,
+          "rawHostContentDigest": "sha256:77c9f93fbc3a9497f83079ed4e3815d103af73e75cc75f9bb1144364a5593030",
+          "budgetNoticeFollowsJson": true
+        },
+        {
+          "callId": "call_3bsnba4eikX0SHerdfA91Tzg",
+          "requests": [
+            20,
+            21
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/42aa51d4-ba4f-4721-8084-ee052273e2b9/workspace/packages/cli/__tests__/repair137-verify-08.test.js",
+          "fileVersion": "5661:1793721098249.797:1793721098249.797",
+          "range": {
+            "startLine": 42,
+            "endLine": 113,
+            "totalLines": 113
+          },
+          "readSpan": {
+            "start": 1672,
+            "end": 5661,
+            "total": 5661
+          },
+          "outboundChars": 245,
+          "outboundContentDigest": "sha256:d1a733a047a5f68c8d07eb1f8f218218bec29ed138a577813991395fc0cfb19e",
+          "outboundContentOmitted": true,
+          "outboundOmissionText": "Text omitted (3989 chars); this excerpt could not be safely projected. Read a complete surrounding statement or container; expand the range or read the full file within existing size limits when necessary. Omitted content has not been inspected.",
+          "rawHostChars": 3989,
+          "rawHostContentDigest": "sha256:7d48193c0a9f17dcb2a8a7c3493249a2a66ad267855187b440e40c82f9627958",
+          "budgetNoticeFollowsJson": true
+        }
+      ],
+      "visibleSourceFacts": [
+        {
+          "fact": "correctSessionInitializer",
+          "callId": "call_zinpthKQvBwwldh8DWeydi4f",
+          "requests": [
+            3,
+            4
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/42aa51d4-ba4f-4721-8084-ee052273e2b9/workspace/packages/cli/__tests__/unit/session-transcript-history.test.js",
+          "excerpt": "onId).length).toBeGreaterThan(0);\n}\nfunction start(id, count = 8) {\n  store.startSession(id, { provider: \"test\", model: \"test\" });\n  for (let i = 0; i < count; i++) {\n    store.appendUserMessage(id, `question-${i}: ${\"x\".repeat(90)}`);\n    store.appe"
+        },
+        {
+          "fact": "correctSessionInitializer",
+          "callId": "call_xv3xYI6OcjoNu2AC8JEp1uwx",
+          "requests": [
+            4,
+            5
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/42aa51d4-ba4f-4721-8084-ee052273e2b9/workspace/packages/cli/__tests__/unit/session-transcript-history.test.js",
+          "excerpt": "chunk boundaries\", () => {\n    const id = \"history-emoji-chunks\";\n    store.startSession(id, {});\n    const text = \"a\".repeat(128 * 1024 - 1) + \"😀\" + \"b\".repeat(128 * 1024);\n    store.appendUserMessage(id, text);\n    store.appendAssistantMessage(id, "
+        },
+        {
+          "fact": "correctSessionInitializer",
+          "callId": "call_uFPXKGZMUxfWLdL9W3qEnuMi",
+          "requests": [
+            6,
+            7
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/42aa51d4-ba4f-4721-8084-ee052273e2b9/workspace/packages/cli/__tests__/unit/session-transcript-history.test.js",
+          "excerpt": "onId).length).toBeGreaterThan(0);\n}\nfunction start(id, count = 8) {\n  store.startSession(id, { provider: \"test\", model: \"test\" });\n  for (let i = 0; i < count; i++) {\n    store.appendUserMessage(id, `question-${i}: ${\"x\".repeat(90)}`);\n    store.appe"
+        },
+        {
+          "fact": "correctSessionInitializer",
+          "callId": "call_y70SAv3AvtwVJFzKv1cQc9H2",
+          "requests": [
+            10,
+            12
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/42aa51d4-ba4f-4721-8084-ee052273e2b9/workspace/packages/cli/__tests__/unit/session-transcript-history.test.js",
+          "excerpt": "onId).length).toBeGreaterThan(0);\n}\nfunction start(id, count = 8) {\n  store.startSession(id, { provider: \"test\", model: \"test\" });\n  for (let i = 0; i < count; i++) {\n    store.appendUserMessage(id, `question-${i}: ${\"x\".repeat(90)}`);\n    store.appe"
+        },
+        {
+          "fact": "correctSessionInitializer",
+          "callId": "call_XO54WAv2Hx8iaQqKSyhnbHgT",
+          "requests": [
+            11
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/42aa51d4-ba4f-4721-8084-ee052273e2b9/workspace/packages/cli/__tests__/unit/session-transcript-history.test.js",
+          "excerpt": "chunk boundaries\", () => {\n    const id = \"history-emoji-chunks\";\n    store.startSession(id, {});\n    const text = \"a\".repeat(128 * 1024 - 1) + \"😀\" + \"b\".repeat(128 * 1024);\n    store.appendUserMessage(id, text);\n    store.appendAssistantMessage(id, "
+        },
+        {
+          "fact": "correctSessionInitializer",
+          "callId": "call_YTrfdfV0MGVatKzac55hur4r",
+          "requests": [
+            12,
+            13
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/42aa51d4-ba4f-4721-8084-ee052273e2b9/workspace/packages/cli/__tests__/unit/session-transcript-history.test.js",
+          "excerpt": "onId).length).toBeGreaterThan(0);\n}\nfunction start(id, count = 8) {\n  store.startSession(id, { provider: \"test\", model: \"test\" });\n  for (let i = 0; i < count; i++) {\n    store.appendUserMessage(id, `question-${i}: ${\"x\".repeat(90)}`);\n    store.appe"
+        },
+        {
+          "fact": "correctSessionInitializer",
+          "callId": "call_q2fQBJGaphoXr6UXH4jZj0sO",
+          "requests": [
+            13,
+            14
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/42aa51d4-ba4f-4721-8084-ee052273e2b9/workspace/packages/cli/__tests__/unit/session-transcript-history.test.js",
+          "excerpt": "chunk boundaries\", () => {\n    const id = \"history-emoji-chunks\";\n    store.startSession(id, {});\n    const text = \"a\".repeat(128 * 1024 - 1) + \"😀\" + \"b\".repeat(128 * 1024);\n    store.appendUserMessage(id, text);\n    store.appendAssistantMessage(id, "
+        }
+      ],
+      "uniqueCandidateReadsOmitted": 2,
+      "rawHostReadIsNotProofOfOutboundVisibility": true,
+      "reviewMetadata": {
+        "requested": true,
+        "observed": true,
+        "reminderCount": 1,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "modelFinalAccount": "已修改唯一授权文件：\n`packages/cli/__tests__/repair137-verify-08.test.js`，未修改生产源码。\n\n新增覆盖意图：\n- 在不同祖先前缀创建两个真实分支，分别追加正文；通过恢复消息和 transcript 的完整序列断言，排除父分支后续内容及兄弟分支正文串入。\n- 对 history capability 的父会话身份、正文匹配、有效期分别设置正负对照。\n\n**交付尚未完成验证，不能宣称通过。** 静态审查发现并修正了部分 fixture 使用不存在的 `createSession` API，但另一处 `store.createSession({ sessionId: other })` 仍未修正，会阻断第二个测试。最终文件的部分回读也被工具省略，未完成完整审计。\n\n当前仅有文件持久化及相对导入检查记录；环境没有执行工具，因此未运行 Vitest。尚无证据证明冻结实现存在缺陷，不能据此报告实现问题。"
+    },
+    {
+      "sampleId": "verify-08",
+      "requestBindings": [
+        {
+          "request": 1,
+          "originalDigest": "sha256:7add61610fb0e24746ee168d0cceaf92e60146d99972ae85be826e5587470576",
+          "effectiveDigest": "sha256:bd876b3edbd2381a5c462a6ed6fb0887e5ae49d8635f93e9a99e521d762c8b1c",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 2,
+          "originalDigest": "sha256:b17c7d02764c9c7b7c21bd05b1f0e370ad382b1c0e586ad4f6a3835984ec3b54",
+          "effectiveDigest": "sha256:eebc3d1d4b2abe463c69fb7311ffea59fd821212dd5b6981a47131dec7255099",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 3,
+          "originalDigest": "sha256:67ddafa08b7f43c2b50274a7939d110602dfcd91c7248ba0537cf3284fe4b22b",
+          "effectiveDigest": "sha256:d2b58434c0036b27e0654a847deb03e915d1021ed691d409ff027e925561d524",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 4,
+          "originalDigest": "sha256:8a2eb0a9b837ed1f61d12ec59ba30563ff46b17d21ed34b25adc3e0e78de0f40",
+          "effectiveDigest": "sha256:238f13f650dafc9e26dcd2e7e61c1f1b5af586fea79991c73fbd913310d9caf5",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 5,
+          "originalDigest": "sha256:5e4d4267acf95e4c3ece5181accaad1a65f554eca7cdcf560800977f1bca6045",
+          "effectiveDigest": "sha256:5dfc78d2fd231da14e0371c726a07206ecf483d6580690c2decfe303320b0c99",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 6,
+          "originalDigest": "sha256:af5198b1351da0c0dfd55c72720c115fe1891b9c8168340d0d80774436d9ef1b",
+          "effectiveDigest": "sha256:9ded63828dc28531f6471561a939a6665c568ea0e0b34ecabcd78465adc3ceae",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 7,
+          "originalDigest": "sha256:0fbd80d7e518e94c1f3bdece43ab41e7d063fde8e626c3071afd393b2bf8a78f",
+          "effectiveDigest": "sha256:bc843836afbb4f064ed5391fcc00ca16729cad986d67d13b5a6d2fe3f2e9293f",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 8,
+          "originalDigest": "sha256:144ec5433aa6675d91af2df6b9afc4ed907bc6eb77578b36994aa604f68cec48",
+          "effectiveDigest": "sha256:edce827e384ba273d0f0f6bcf2025ed7da8199ec22e72bcb97a30d0430585d32",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 9,
+          "originalDigest": "sha256:ac87cd2b8d2b9218dee32a2a31fbe6e3d5c983015e3ee07acb5ef7922b0a5bb7",
+          "effectiveDigest": "sha256:12457ede7ff6dca3fa7c44bd638fc289c4e54a4650892fee2bd13889df282630",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 10,
+          "originalDigest": "sha256:646b735ad5aad5895781b19bc197c180ee10dd303416b811f8b5a4458c1da86d",
+          "effectiveDigest": "sha256:78891195f262ef5424abb5d5f53331a326563a18aea26fdaac918c9e1bf948b4",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 11,
+          "originalDigest": "sha256:747691ffced0c0143ccac431d44836e7b5fe80d50bd7338f675d7f6d54a146eb",
+          "effectiveDigest": "sha256:facb5efdb7579bcaef351eef9a0043f28f5d4a85d5cefb5e72d652c11f8c11ed",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 12,
+          "originalDigest": "sha256:646171193d25e181bf3997c6037476efd47e75a1dcc1a0b35d968bf991475a73",
+          "effectiveDigest": "sha256:a6afc3e06ff4fd18dc7d2ec4ecc35ab18187798c3113dafad7bc3cb9efb3cc45",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 13,
+          "originalDigest": "sha256:d9d68e4bac4817d2ee36623d2239edbe7c4450aff73d26a24ce886f3b5e9dfa1",
+          "effectiveDigest": "sha256:a2df35f433f50437db37ef3a2a2b371901b5f2fa84fe6dde4b7381961b6fe497",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 14,
+          "originalDigest": "sha256:834b7bc5eabf30a10bbe7571444ee679383fe9123ca70f7f6331ce8c0ec2aca6",
+          "effectiveDigest": "sha256:e4c50d9bcbcd824442827c2d7b9ee5730c19455e34994548f0351e6b35faa4b2",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 15,
+          "originalDigest": "sha256:2f9cc6f2860052599d7e0e26a259d2d6a5d1f2950dbd51ad72bbd919c911f880",
+          "effectiveDigest": "sha256:c7143b4cf637b89320ff8e8aeb57ca5702d8d26b9969f11756c0fcd0fcd7ebf2",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 16,
+          "originalDigest": "sha256:72f855582699c355a2977b0d07e7cba1ac4debab73cb5d8d33e8f60667e8c93a",
+          "effectiveDigest": "sha256:e5d89765947d9044d35ff25282339afc06ef6af0fcadb1f7e6770202ce1c2e85",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 17,
+          "originalDigest": "sha256:37db0f2914498d71461a2f992dac6b80e71dc92a8c75280ea2db8d315580421d",
+          "effectiveDigest": "sha256:61f038310dd6b341970dc4b4fc67eb495470c9682e49d19d34c2176c20d4b4d8",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 18,
+          "originalDigest": "sha256:9da2bf27b482482dc9b3f7a6c5501e309b075a1cf878d3a0bd66c30a20a3c525",
+          "effectiveDigest": "sha256:4a3dcdbafdbd2f018c4c3d09fd36843a97f26666614323c1bc13a24f129894d6",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 19,
+          "originalDigest": "sha256:b7bca1ffe896429c05aaa408c12c262de077119fe96c9ccf29c29f1026580887",
+          "effectiveDigest": "sha256:ef10ed78c8daeedc72c895fe5da30c55c23d0d80ecfd85f4d13377a83d0f853b",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 20,
+          "originalDigest": "sha256:231af1909b75d8e8b502d74466fbc7fedd3c4e27cfba5d6b0713dbcc3812ebb3",
+          "effectiveDigest": "sha256:d30aeacf1d717666ded7fd12cb921a4487689439a2c6bdf51bad66266aed933e",
+          "inputUnchangedByBroker": true
+        },
+        {
+          "request": 21,
+          "originalDigest": "sha256:64754c3ff2933d794e5cfbcd95ba0715dda61f4c8f354bfed2c1a8a81aa1925e",
+          "effectiveDigest": "sha256:57b3e2be4e4bd6ac2af497b0db641be99782edff6fb922f6186979eb3712b6ad",
+          "inputUnchangedByBroker": true
+        }
+      ],
+      "candidateReadbacks": [
+        {
+          "callId": "call_70nrnrDYHnyro7fhyrZSXHRA",
+          "requests": [
+            2
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/adf7f71c-f568-47ba-9a8e-bb2da7b06610/workspace/packages/cli/__tests__/repair137-verify-08.test.js",
+          "fileVersion": "27:1793721137980.1238:1793721137980.1238",
+          "range": {
+            "startLine": 1,
+            "endLine": 2,
+            "totalLines": 2
+          },
+          "readSpan": {
+            "start": 0,
+            "end": 27,
+            "total": 27
+          },
+          "outboundChars": 27,
+          "outboundContentDigest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "outboundContentOmitted": false,
+          "outboundOmissionText": null,
+          "rawHostChars": 27,
+          "rawHostContentDigest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "budgetNoticeFollowsJson": false
+        },
+        {
+          "callId": "call_InFXP86I2V7KkM8SnR1W07tb",
+          "requests": [
+            7,
+            8
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/adf7f71c-f568-47ba-9a8e-bb2da7b06610/workspace/packages/cli/__tests__/repair137-verify-08.test.js",
+          "fileVersion": "27:1793721137980.1238:1793721137980.1238",
+          "range": {
+            "startLine": 1,
+            "endLine": 2,
+            "totalLines": 2
+          },
+          "readSpan": {
+            "start": 0,
+            "end": 27,
+            "total": 27
+          },
+          "outboundChars": 27,
+          "outboundContentDigest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "outboundContentOmitted": false,
+          "outboundOmissionText": null,
+          "rawHostChars": 27,
+          "rawHostContentDigest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "budgetNoticeFollowsJson": false
+        },
+        {
+          "callId": "call_16WRYnE6JBe3aPKh3ZPaI0oW",
+          "requests": [
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/adf7f71c-f568-47ba-9a8e-bb2da7b06610/workspace/packages/cli/__tests__/repair137-verify-08.test.js",
+          "fileVersion": "3617:1793721238684.8381:1793721238684.8381",
+          "range": {
+            "startLine": 1,
+            "endLine": 86,
+            "totalLines": 86
+          },
+          "readSpan": {
+            "start": 0,
+            "end": 3617,
+            "total": 3617
+          },
+          "outboundChars": 245,
+          "outboundContentDigest": "sha256:903b59c1bf67b5ba9c3e51d7f34e419368c2b9db20d9dc524aacce37429d0420",
+          "outboundContentOmitted": true,
+          "outboundOmissionText": "Text omitted (3617 chars); this excerpt could not be safely projected. Read a complete surrounding statement or container; expand the range or read the full file within existing size limits when necessary. Omitted content has not been inspected.",
+          "rawHostChars": 3617,
+          "rawHostContentDigest": "sha256:2921bcd3dba62e35d7e4e0f819d798eb86134c4749d37835645c6ca76ee74e12",
+          "budgetNoticeFollowsJson": true
+        },
+        {
+          "callId": "call_01RPLc7X2OvRkqLzzYyQPhk9",
+          "requests": [
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/adf7f71c-f568-47ba-9a8e-bb2da7b06610/workspace/packages/cli/__tests__/repair137-verify-08.test.js",
+          "fileVersion": "3617:1793721238684.8381:1793721238684.8381",
+          "range": {
+            "startLine": 1,
+            "endLine": 86,
+            "totalLines": 86
+          },
+          "readSpan": {
+            "start": 0,
+            "end": 4305,
+            "total": 4305
+          },
+          "outboundChars": 245,
+          "outboundContentDigest": "sha256:ce105e5f5497ce39c2ceec2275ccead49dd00ae232af7f2af9ad28194b4d9f61",
+          "outboundContentOmitted": true,
+          "outboundOmissionText": "Text omitted (4305 chars); this excerpt could not be safely projected. Read a complete surrounding statement or container; expand the range or read the full file within existing size limits when necessary. Omitted content has not been inspected.",
+          "rawHostChars": 4305,
+          "rawHostContentDigest": "sha256:6070631a11abad3e44a3c07c41f081fcf5745df59b34257b98c339288a94c611",
+          "budgetNoticeFollowsJson": true
+        },
+        {
+          "callId": "call_vYATFIO75tgZElGLEXBYCijz",
+          "requests": [
+            18,
+            19,
+            20,
+            21
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/adf7f71c-f568-47ba-9a8e-bb2da7b06610/workspace/packages/cli/__tests__/repair137-verify-08.test.js",
+          "fileVersion": "3617:1793721238684.8381:1793721238684.8381",
+          "range": {
+            "startLine": 56,
+            "endLine": 86,
+            "totalLines": 86
+          },
+          "readSpan": {
+            "start": 2150,
+            "end": 3617,
+            "total": 3617
+          },
+          "outboundChars": 245,
+          "outboundContentDigest": "sha256:50cf991158aceda368dcee3e676badb8a94ac28410abcd055ae90759e94b7709",
+          "outboundContentOmitted": true,
+          "outboundOmissionText": "Text omitted (1467 chars); this excerpt could not be safely projected. Read a complete surrounding statement or container; expand the range or read the full file within existing size limits when necessary. Omitted content has not been inspected.",
+          "rawHostChars": 1467,
+          "rawHostContentDigest": "sha256:4e2b46e98544e6183c2d904dc10ff41f336751b2f353edacd22ec05f6d61a1ab",
+          "budgetNoticeFollowsJson": true
+        },
+        {
+          "callId": "call_mLlCl4nB6bnaHMhg1EoZVSdX",
+          "requests": [
+            19,
+            20,
+            21
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/adf7f71c-f568-47ba-9a8e-bb2da7b06610/workspace/packages/cli/__tests__/repair137-verify-08.test.js",
+          "fileVersion": "3617:1793721238684.8381:1793721238684.8381",
+          "range": {
+            "startLine": 56,
+            "endLine": 86,
+            "totalLines": 86
+          },
+          "readSpan": {
+            "start": 2150,
+            "end": 3617,
+            "total": 3617
+          },
+          "outboundChars": 245,
+          "outboundContentDigest": "sha256:50cf991158aceda368dcee3e676badb8a94ac28410abcd055ae90759e94b7709",
+          "outboundContentOmitted": true,
+          "outboundOmissionText": "Text omitted (1467 chars); this excerpt could not be safely projected. Read a complete surrounding statement or container; expand the range or read the full file within existing size limits when necessary. Omitted content has not been inspected.",
+          "rawHostChars": 1467,
+          "rawHostContentDigest": "sha256:4e2b46e98544e6183c2d904dc10ff41f336751b2f353edacd22ec05f6d61a1ab",
+          "budgetNoticeFollowsJson": true
+        }
+      ],
+      "visibleSourceFacts": [
+        {
+          "fact": "correctSessionInitializer",
+          "callId": "call_mhXxBPj0qCpIpmFTZzwRYaKU",
+          "requests": [
+            3,
+            4
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/adf7f71c-f568-47ba-9a8e-bb2da7b06610/workspace/packages/cli/__tests__/unit/session-transcript-history.test.js",
+          "excerpt": "onId).length).toBeGreaterThan(0);\n}\nfunction start(id, count = 8) {\n  store.startSession(id, { provider: \"test\", model: \"test\" });\n  for (let i = 0; i < count; i++) {\n    store.appendUserMessage(id, `question-${i}: ${\"x\".repeat(90)}`);\n    store.appe"
+        },
+        {
+          "fact": "correctSessionInitializer",
+          "callId": "call_7w66sdVyaxdgIYEg9UASP1eq",
+          "requests": [
+            7,
+            8
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/adf7f71c-f568-47ba-9a8e-bb2da7b06610/workspace/packages/cli/__tests__/unit/session-transcript-history.test.js",
+          "excerpt": "onId).length).toBeGreaterThan(0);\n}\nfunction start(id, count = 8) {\n  store.startSession(id, { provider: \"test\", model: \"test\" });\n  for (let i = 0; i < count; i++) {\n    store.appendUserMessage(id, `question-${i}: ${\"x\".repeat(90)}`);\n    store.appe"
+        },
+        {
+          "fact": "correctSessionInitializer",
+          "callId": "call_7xRceEaITnW2UtYQN2qBG4EN",
+          "requests": [
+            8,
+            9
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/adf7f71c-f568-47ba-9a8e-bb2da7b06610/workspace/packages/cli/__tests__/unit/session-transcript-history.test.js",
+          "excerpt": "xt within a page\", () => {\n    const id = \"history-large-import\";\n    store.startSession(id, {});\n    store.appendUserMessage(id, \"\\u0001\".repeat(210000));\n    store.appendAssistantMessage(id, \"answer\");\n    store.appendUserMessage(id, \"branch point\""
+        },
+        {
+          "fact": "correctSessionInitializer",
+          "callId": "call_FieOFsdqLPt6VGtgPemx6668",
+          "requests": [
+            11,
+            12,
+            13,
+            16,
+            17,
+            19,
+            20
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/adf7f71c-f568-47ba-9a8e-bb2da7b06610/workspace/packages/cli/__tests__/unit/session-transcript-history.test.js",
+          "excerpt": "onId).length).toBeGreaterThan(0);\n}\nfunction start(id, count = 8) {\n  store.startSession(id, { provider: \"test\", model: \"test\" });\n  for (let i = 0; i < count; i++) {\n    store.appendUserMessage(id, `question-${i}: ${\"x\".repeat(90)}`);\n    store.appe"
+        },
+        {
+          "fact": "targetSessionDisplayId",
+          "callId": "call_OotRB2mDUh1yWQhj4aLHUZ5d",
+          "requests": [
+            13,
+            14,
+            15
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/adf7f71c-f568-47ba-9a8e-bb2da7b06610/workspace/packages/cli/src/lib/session-transcript-history.js",
+          "excerpt": "ssage, event, index, ordinal) {\n    return boundTranscriptRow({\n      id: `${sessionId}:${event.hash}:${index}`,\n      eventId: event.hash,\n      itemIndex: index,\n      ordinal,\n      role: message.role,\n      ...displayTranscriptText(message.conten"
+        },
+        {
+          "fact": "correctSessionInitializer",
+          "callId": "call_BdU8KnJJHhmu8KnjXebLpkRc",
+          "requests": [
+            14,
+            15,
+            16,
+            17,
+            18
+          ],
+          "path": "/private/tmp/cc-native-DpB4Mk/adf7f71c-f568-47ba-9a8e-bb2da7b06610/workspace/packages/cli/__tests__/unit/session-transcript-history.test.js",
+          "excerpt": "xt within a page\", () => {\n    const id = \"history-large-import\";\n    store.startSession(id, {});\n    store.appe\nhistoryBranch(\nt id = \"history-legacy-import\";\n    start(id, 2);\n    const messages = store.readVerifiedMessages(id).slice(0, 2);\n    sto"
+        }
+      ],
+      "uniqueCandidateReadsOmitted": 4,
+      "rawHostReadIsNotProofOfOutboundVisibility": true,
+      "reviewMetadata": {
+        "requested": true,
+        "observed": true,
+        "reminderCount": 1,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "modelFinalAccount": "指定测试文件已包含真实存储回归用例，未修改生产源码。\n\n已核对的覆盖：\n- 从同一父会话创建两个分支，分别追加独立正文。\n- 同时检查 `readVerifiedMessages` 与历史投影的精确内容和数量，验证有效祖先与各自正文恢复。\n- 父会话中截点后的内容、父会话后续追加内容及另一分支正文作为排除对照；均使用正常持久化消息，不依赖异常拒绝路径。\n- 导入路径使用 `../src/...`，从指定测试文件所在目录解析到 `packages/cli/src/...`。\n\n**验证仍不完整**：文件读取工具多次省略测试文件内容，未能完成末尾断言及祖先来源身份断言的完整回读审计，因此不能宣称所有验收项均已覆盖。当前无执行工具，未运行 Vitest，也未获得独立评测结果。没有证据证明冻结实现存在缺陷。"
+    }
+  ],
+  "causalLimit": "Actual read projection failures are proven; effect on a new model task outcome remains unmeasured. Original candidate mistakes and failed scores remain."
+}
