@@ -287,7 +287,7 @@
   "documentationReview": {
     "reviewedSourceCommit": "d62866538c1988258b93998f9705c2cdd76ee105",
     "checkedAt": "2026-11-03",
-    "evidenceUrl": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/documentation-review-2026-11-03.json",
+    "evidenceUrl": "https://github.com/chainlesschain/chainlesschain/blob/3d763f2f18f3ecf35daf1a46205c01985ac785a7/docs/research/cli/evidence/documentation-review-2026-11-03.json",
     "uncommittedRetestsIncluded": false,
     "postReleaseRetestCommit": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
     "postReleaseRetestStatus": "FULL45_FINAL_RECEIPTS_NOT_VERIFIED"
