@@ -1,5 +1,7 @@
 # 修复内部摘要预算后的完整 45 项复测
 
+执行：[Actions 41638188839](https://github.com/chainlesschain/chainlesschain/actions/runs/41638188839)，不可变提交 `54d0064cab09ac1fe291d4d8b83bcb689a9c7d97`，标签 `verify01-volc140-fixed45-54d0064cab`。已确认仅创建这一份修正轮；两次提交前连接失败及按提交查询的核对记录保存在 `dispatch.json`。当前成绩待45项生成和独立验收完成。
+
 原轮 [41630636517](https://github.com/chainlesschain/chainlesschain/actions/runs/41630636517) 的实际请求证明：CLI 的无工具摘要调用显式设置 `max_tokens:2048`，火山测试转发器却改成 `393216`。Sol 转发器原有逻辑为 `min(调用方限制,测试最大值)`，会保留较小的内部预算。这是明确的测试适配器差异；不能把两边差异全部归因于模型能力。
 
 见[原始请求与用量未知记录](../diagnostics-output-limits/proof.json)。这个修改本身不能证明提供方超时由更大输出预算造成。旧轮候选中的语义覆盖缺口、错误断言等仍按独立验收结果保留。
