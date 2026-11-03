@@ -690,6 +690,7 @@ export async function runNativeCampaign(options) {
     "packages/cli/scripts/verify01-native-provider-profile.mjs",
     "packages/cli/scripts/verify01-native-execution-budgets.mjs",
     "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
+    "packages/cli/scripts/verify01-volcengine-public140-full.mjs",
     "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
     "packages/cli/scripts/verify01-openai-transport-preload.mjs",
     "packages/cli/scripts/verify01-review-specs.mjs",
@@ -788,7 +789,10 @@ export async function runNativeCampaign(options) {
       basePlanDigest: DIAGNOSTIC.planDigest,
     });
   validateNativeProjectSelection(revisionBinding, sampleIds);
-  if (packageManifest?.volcengineBudgetRetry) {
+  if (
+    packageManifest?.volcengineBudgetRetry ||
+    packageManifest?.volcengineFullRound
+  ) {
     assert.equal(
       reviewChanges,
       true,
@@ -850,7 +854,8 @@ export async function runNativeCampaign(options) {
     planDigest,
     ...revisionMetadata,
     ...(runtimeRepair ? { runtimeRepair } : {}),
-    ...(packageManifest?.volcengineBudgetRetry
+    ...(packageManifest?.volcengineBudgetRetry ||
+    packageManifest?.volcengineFullRound
       ? { executionBudgets: budgets }
       : {}),
     frozenArchiveDigest: hash(fs.readFileSync(archive)),

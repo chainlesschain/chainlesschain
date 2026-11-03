@@ -8,7 +8,7 @@ Checked at 2026-11-03T11:42:31.329Z. Exact published release source: e2a91bf5433
 | Open VSX  | 0.37.176  | Public/listed/downloadable; VSIX byte-identical to official artifact; recommends CLI 0.166.140                                                                                       |
 | JetBrains | 0.4.193   | Upload verified; awaiting Marketplace review or public indexing. Public availability is not verified. An unobserved approval is not asserted to be pending. Recommends CLI 0.166.140 |
 
-[Publication summary](./publication.json) · [Exact-source gates](./gates.json) · [CLI receipts](./cli.json) · [Open VSX receipts](./open-vsx.json) · [JetBrains receipts](./jetbrains.json). publication.json records SHA-256 hashes of these four source receipt files.
+[Publication summary](./publication-readback.json) · [Exact-source gates](./gates.json) · [CLI receipts](./cli.json) · [Open VSX receipts](./open-vsx.json) · [JetBrains receipts](./jetbrains.json). publication-readback.json records SHA-256 hashes of these four source receipt files.
 
 ## Release order and public verification
 
@@ -37,3 +37,5 @@ Historical .138 acceptance **2/4**, .137 **0/5**, and cumulative **41/45** retai
 ## Independent channels
 
 Microsoft Marketplace remains deferred. PC/mobile **v5.0.3.144** is [already independently public](../release144-public/publication.json); this follow-up does not republish clients or roll them back to .143.
+
+The [full45 generator publication proof](./publication.json) retains its original bytes for the digest-bound Volcengine package sets. The detailed readback is preserved separately in publication-readback.json.

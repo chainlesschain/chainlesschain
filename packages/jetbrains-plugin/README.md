@@ -8,7 +8,7 @@ As checked at **2026-11-03T11:42:31.329Z**, CLI **0.166.140** is verified public
 
 Open VSX **0.37.176** is public, listed and downloadable; its VSIX matches the official build byte for byte. JetBrains **0.4.193** has been uploaded and awaits Marketplace review or public indexing; public availability has not been verified. The previously verified public JetBrains release remains **0.4.192**, whose recommendation is CLI **0.166.139**. Both new IDE versions recommend CLI **0.166.140**.
 
-[Publication and channel receipts](../../docs/research/cli/evidence/release140-public/publication.json) · [Exact-source gates](../../docs/research/cli/evidence/release140-public/gates.json) · [CLI public readback](../../docs/research/cli/evidence/release140-public/cli.json) · [Open VSX readback](../../docs/research/cli/evidence/release140-public/open-vsx.json) · [JetBrains status](../../docs/research/cli/evidence/release140-public/jetbrains.json)
+[Publication and channel receipts](../../docs/research/cli/evidence/release140-public/publication-readback.json) · [Exact-source gates](../../docs/research/cli/evidence/release140-public/gates.json) · [CLI public readback](../../docs/research/cli/evidence/release140-public/cli.json) · [Open VSX readback](../../docs/research/cli/evidence/release140-public/open-vsx.json) · [JetBrains status](../../docs/research/cli/evidence/release140-public/jetbrains.json)
 
 Install `npm i -g chainlesschain@0.166.140 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, then run `cc --version` and `cc doctor`.
 

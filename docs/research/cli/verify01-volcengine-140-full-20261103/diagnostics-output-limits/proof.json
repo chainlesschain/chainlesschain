@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "runId": 41630636517,
+  "sampleId": "first-run-linux-vscode",
+  "executionSource": "eb50e4f42778d6be457595cc0f39fcada025d5f0",
+  "originalInternalOutputBudget": 2048,
+  "effectiveOutputBudgetBeforeFix": 393216,
+  "originalToolCount": 0,
+  "requestKind": "internal text-only compaction request",
+  "sourceBindings": {
+    "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs": "sha256:7bf33df63888e550ac1ebd6a469d99e56ea1bb54f1d094b359b0c7fa1da1ffa6",
+    "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+  },
+  "files": {
+    "request-3.original.json": "sha256:d891c41025d8998ccd50cb9e547196c2ea5d1996f62b2425c92165d2d0f54df6",
+    "request-3.effective.json": "sha256:b633dea7b6802c1ed902b98354492887e774a5cfdd912c0907d0e93c850fa097",
+    "request-3.dispatch.json": "sha256:cb89f7ba13e11e602e58a0cf6a2a7595ba72d4f2a8238759ae86c43f6c1d55ad",
+    "request-3.receipt.json": "sha256:ee2af07c9a979e0aa9ba6b7d65373ce404dd178eab9fa4a471a697cbe27e4f68",
+    "policy.json": "sha256:23893a88a299a2dd33f26d6c51f476a766e77d64636df6af208e086d2aa2e86f"
+  },
+  "physicalDispatchSlots": 3,
+  "usageCompleteRequests": 2,
+  "unresolvedDispatchedRequestIds": [
+    3
+  ],
+  "brokerFailure": "DIAGNOSTIC_TIMEOUT_USAGE_UNKNOWN",
+  "directFinding": "The diagnostic Volcengine broker replaced the explicit2048-token internal compaction limit with393216. OpenAI broker uses min(requested,max) and preserves smaller explicit limits. Agent requests in this round have no explicit max_tokens, so retaining smaller explicit limits leaves their model-maximum output unchanged.",
+  "causalLimits": [
+    "The original request timed out after dispatch and has unknown usage. Do not claim zero charge or complete settlement.",
+    "Budget substitution is proven; it does not by itself prove the timeout was caused by the larger allowed output.",
+    "Candidate semantic coverage failures remain separate observations."
+  ],
+  "repair": "Opt-in preserveExplicitOutputLimits policy preserves and validates explicit positive caller limits and rejects provider output above the effective request limit. Historical policies remain unchanged."
+}

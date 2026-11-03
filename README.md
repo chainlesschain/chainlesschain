@@ -8,7 +8,7 @@
 
 Open VSX **0.37.176** 已公开列出且可下载，VSIX 与正式构建逐字节一致。JetBrains **0.4.193** 已上传，等待商店审核或公开索引；公开可用性未核验。上一已核验公开版仍为 **0.4.192**，其推荐标记为 CLI **0.166.139**。 两个新 IDE 版本均推荐 CLI **0.166.140**。
 
-[发行与各渠道回执](docs/research/cli/evidence/release140-public/publication.json) · [准确源码门禁](docs/research/cli/evidence/release140-public/gates.json) · [CLI 公开回读](docs/research/cli/evidence/release140-public/cli.json) · [Open VSX 回读](docs/research/cli/evidence/release140-public/open-vsx.json) · [JetBrains 状态](docs/research/cli/evidence/release140-public/jetbrains.json)
+[发行与各渠道回执](docs/research/cli/evidence/release140-public/publication-readback.json) · [准确源码门禁](docs/research/cli/evidence/release140-public/gates.json) · [CLI 公开回读](docs/research/cli/evidence/release140-public/cli.json) · [Open VSX 回读](docs/research/cli/evidence/release140-public/open-vsx.json) · [JetBrains 状态](docs/research/cli/evidence/release140-public/jetbrains.json)
 
 安装：`npm i -g chainlesschain@0.166.140 --registry https://registry.npmjs.org`，重启 CLI 与 IDE 聊天宿主，再运行 `cc --version`、`cc doctor`。
 

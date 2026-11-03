@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-03T11:39:08.029261+00:00",
+  "workflowContractTests": {
+    "files": 26,
+    "passed": 183,
+    "failed": 0,
+    "logDigest": "sha256:7f92387b8fff0eb45ae6c16c6678c2c9fbc9f9644d3c39dc80ca5bb97f3bd689"
+  },
+  "networkInventory": {
+    "passed": true,
+    "candidates": 88,
+    "unclassified": 0,
+    "parseErrors": 0,
+    "formalPaidAdmissionGranted": false
+  },
+  "modelGenerationRequests": 0,
+  "note": "Offline/configuration checks are not native task successes; exact-source GitHub validation still runs before live dispatch cells."
+}

@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-03T12:37:36.524840+00:00",
+  "workflowContractTests": {
+    "files": 28,
+    "passed": 191,
+    "failed": 0,
+    "logDigest": "sha256:55de8a523f013b56aafb266c873bc4b92afe862be9f0858aa4622eb111071d61"
+  },
+  "networkInventory": {
+    "candidates": 88,
+    "unclassified": 0,
+    "parseErrors": 0,
+    "passed": true,
+    "formalPaidAdmissionGranted": false
+  },
+  "repair": "Opt-in explicit per-call output budget preservation; uncapped agent requests retain393216. Historical public140 policy digest matches the recorded real pre-repair delivery.",
+  "sourceDigest": "sha256:487ed1e27103348c920988130954ec6449a81e66f7973e81ed02e1befd126da3",
+  "preparationModelGenerationRequests": 0,
+  "note": "The actual exact-source GitHub gate reruns these contracts before any corrected full-round generation."
+}

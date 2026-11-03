@@ -1,0 +1,41 @@
+{
+  "id": 3,
+  "taskId": "first-run-linux-vscode",
+  "startedAt": "2026-11-03T12:15:26.099Z",
+  "usage": null,
+  "tokenOnlyEstimateCny": null,
+  "actualBilledCostCny": null,
+  "errorCode": "DIAGNOSTIC_TIMEOUT_USAGE_UNKNOWN",
+  "responseMode": "json",
+  "finishedAt": "2026-11-03T12:18:26.120Z",
+  "transport": {
+    "socketAssignedMs": 1,
+    "dnsLookupMs": 74,
+    "tcpConnectedMs": 328,
+    "tlsConnectedMs": 1340,
+    "dispatchStartedMs": 1340,
+    "requestFinishedMs": 1340,
+    "responseStartedMs": null,
+    "dispatchStarted": true,
+    "failureCategory": "DIAGNOSTIC_TIMEOUT_USAGE_UNKNOWN",
+    "connectionAttempts": [
+      {
+        "event": "start",
+        "family": 4,
+        "elapsedMs": 74,
+        "errorCode": null
+      }
+    ],
+    "nestedErrorCodes": [],
+    "errorCode": null,
+    "errorSyscall": null
+  },
+  "response": {
+    "storedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "storedBytes": 0,
+    "status": null,
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "originalBytes": 0,
+    "sensitiveValueRedacted": false
+  }
+}
