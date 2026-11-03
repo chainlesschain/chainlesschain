@@ -4,7 +4,19 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming
 chat, inline assistance, governed review, sessions, automation, and a localhost
 MCP bridge.
 
-## Current extension release: 0.37.176
+## Current release
+
+<!-- release176-status -->
+
+Open VSX version **0.37.176** pairs with public CLI `0.166.140`.
+
+| Component                 | Current public status                                          |
+| ------------------------- | -------------------------------------------------------------- |
+| VS Code extension         | **0.37.176**; verified public Open VSX release                 |
+| Recommended CLI           | **`chainlesschain@0.166.140`**; verified public npm package    |
+| Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI |
+
+CLI `0.166.140` is the recommended public CLI. Using `@0.166.140` selects this verified pairing.
 
 <!-- release140-current:start -->
 
@@ -32,7 +44,7 @@ Immutable tag `ide-vscode-v0.37.176` identifies source `e2a91bf54332ff3d252c40ec
 
 <!-- release140-current:end -->
 
-## Previous public release: 0.37.175
+### Previous verified release (.175 / .139)
 
 <!-- release175-status -->
 

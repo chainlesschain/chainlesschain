@@ -607,6 +607,9 @@ describe("CLI release workflow contracts", () => {
       "packages/cli/test-node/verify01-vscode-composer.node-test.mjs",
       "packages/cli/test-node/verify01-ide-terminal.node-test.mjs",
       "packages/cli/test-node/verify01-volcengine-diagnostic-broker.node-test.mjs",
+      "packages/cli/test-node/verify01-volcengine-output-limits.node-test.mjs",
+      "packages/cli/test-node/verify01-volcengine-generation-recovery.node-test.mjs",
+      "packages/cli/test-node/verify01-sol-relative-token-budget.node-test.mjs",
       "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.test.mjs",
     ]);
     expect(
