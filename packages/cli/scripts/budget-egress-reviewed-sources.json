@@ -125,28 +125,28 @@
       "rationale": "Shared bounded diagnostic capture and HTTPS dispatch support fixed operator-owned Volcengine and OpenAI Responses policies. Physical dispatch is TLS-gated and journaled before HTTP bytes; raw responses and validated receipts persist before forwarding success. Per-task request, size, time, tool and output limits remain; unknown usage poisons further dispatch and truncated output fails its task. OpenAI preserves reasoning and native Responses items, validates model/tier/usage identity, and uses scoped child capabilities rather than the account key. The constructor, task start and direct dispatch reject formal scope. Token estimates exclude unreported charges and are not provider quotas, reconciled liabilities or formal admission."
     },
     {
-      "path": "packages/cli/src/assets/web-panel/assets/Artifacts-BuJgG5jf.js",
-      "digest": "sha256:65ec82da860e6a8f628ebfeecaff75f7eee6e1e4d6ef71509a97482bc446800c",
+      "path": "packages/cli/src/assets/web-panel/assets/Artifacts-CE66rTTZ.js",
+      "digest": "sha256:268f3b543c8eb898a95f43d178a6d17f424c351e07ece419bcb9eac697e62968",
       "category": "SERVICE_API",
-      "rationale": "Production artifact panel downloads stored files with an authenticated same-origin GET to /api/artifacts/:id/download and delegates list, preview, removal and expiry cleanup through the shared CLI WebSocket service. This is artifact service traffic, not direct model inference; server-side authorization, storage effects and any downstream costs remain separate checks."
+      "rationale": "Production artifact panel downloads stored files with an authenticated same-origin GET to /api/artifacts/:id/download and delegates list, preview, removal and expiry cleanup through the shared CLI WebSocket service. This is artifact service traffic, not direct model inference; server-side authorization, storage effects and any downstream costs remain separate checks. 2026-11-03 independent rebuilt-asset review: after normalizing only eight-character build hashes in same-basename relative JavaScript/CSS resource references, this asset is byte-identical to the previously reviewed asset; network candidate calls and positions are unchanged. Review covers this asset, not referenced chunks or paid admission."
     },
     {
-      "path": "packages/cli/src/assets/web-panel/assets/MtcAudit-D3aa8XP4.js",
-      "digest": "sha256:71ec7c966989a451b00b90b19a5a5852f241502aea01e11aca6e424b873e3e8f",
+      "path": "packages/cli/src/assets/web-panel/assets/MtcAudit-Cx7BR5sz.js",
+      "digest": "sha256:c01a9e11f8a7c83f19173ea954bcbdf8018569df3f9be81f75bde59b38cd5432",
       "category": "REMOTE_EXECUTION_CONTROL",
-      "rationale": "Production MTC audit panel delegates envelope queries, archive push/restore, governance, trust and automatic archive controls to desktop-host WebSocket topics. The flagged s.fetch call is the envelope composable method forwarding mtc.envelope.get, not global HTTP fetch. Delegated operations may cause storage or WebDAV/network effects; their authorization and costs are outside this byte-bound source classification."
+      "rationale": "Production MTC audit panel delegates envelope queries, archive push/restore, governance, trust and automatic archive controls to desktop-host WebSocket topics. The flagged s.fetch call is the envelope composable method forwarding mtc.envelope.get, not global HTTP fetch. Delegated operations may cause storage or WebDAV/network effects; their authorization and costs are outside this byte-bound source classification. 2026-11-03 independent rebuilt-asset review: after normalizing only eight-character build hashes in same-basename relative JavaScript/CSS resource references, this asset is byte-identical to the previously reviewed asset; network candidate calls and positions are unchanged. Review covers this asset, not referenced chunks or paid admission."
     },
     {
-      "path": "packages/cli/src/assets/web-panel/assets/RemoteSession-BGGzPdS5.js",
-      "digest": "sha256:628e2e097e37dfaff675d4e3d76b708084594e96cab76289580957856ed62f42",
+      "path": "packages/cli/src/assets/web-panel/assets/RemoteSession-DM74lufU.js",
+      "digest": "sha256:a7d2d1265d82e21bd687a8d949434b821fa85544a1df268e13a7c17e54f63d27",
       "category": "REMOTE_EXECUTION_CONTROL",
-      "rationale": "Production remote-session client opens WebSockets to the configured relay or paired direct host and sends authenticated or encrypted prompts, approvals and interruption controls. Conservative alias candidates also match local cryptographic constructors, interruption-result callbacks, option-label formatting and approval UI callbacks; the actual network constructors remain the relay and direct WebSocket launches. Encryption and command deduplication do not establish remote model budget containment or paid readiness."
+      "rationale": "Production remote-session client opens WebSockets to the configured relay or paired direct host and sends authenticated or encrypted prompts, approvals and interruption controls. Conservative alias candidates also match local cryptographic constructors, interruption-result callbacks, option-label formatting and approval UI callbacks; the actual network constructors remain the relay and direct WebSocket launches. Encryption and command deduplication do not establish remote model budget containment or paid readiness. 2026-11-03 independent rebuilt-asset review: after normalizing only eight-character build hashes in same-basename relative JavaScript/CSS resource references, this asset is byte-identical to the previously reviewed asset; network candidate calls and positions are unchanged. Review covers this asset, not referenced chunks or paid admission."
     },
     {
-      "path": "packages/cli/src/assets/web-panel/assets/index-3RqDry-K.js",
-      "digest": "sha256:c3663d64f949ad7a6250d13276c99421cecc52d53ad75605cf5eb22113226488",
+      "path": "packages/cli/src/assets/web-panel/assets/index-Cs66y4oC.js",
+      "digest": "sha256:41af0078b1142dabc85cdd3fe2b22710d6e3631b3ce6ab18b11070071367691d",
       "category": "REMOTE_EXECUTION_CONTROL",
-      "rationale": "Production application entry includes the modulepreload fetch polyfill and a configurable CLI gateway WebSocket carrying authentication, session creation, commands and model/chat requests. Conservative alias candidates M(...) also match UI render callbacks and are not additional WebSocket launches. Remote execution and provider costs require the serving host's own budget authority; source review does not attest that authority."
+      "rationale": "Production application entry includes the modulepreload fetch polyfill and a configurable CLI gateway WebSocket carrying authentication, session creation, commands and model/chat requests. Conservative alias candidates M(...) also match UI render callbacks and are not additional WebSocket launches. Remote execution and provider costs require the serving host's own budget authority; source review does not attest that authority. 2026-11-03 independent rebuilt-asset review: after normalizing only eight-character build hashes in same-basename relative JavaScript/CSS resource references, this asset is byte-identical to the previously reviewed asset; network candidate calls and positions are unchanged. Review covers this asset, not referenced chunks or paid admission."
     },
     {
       "path": "packages/cli/src/commands/agenda.js",
