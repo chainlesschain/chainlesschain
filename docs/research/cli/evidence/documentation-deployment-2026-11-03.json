@@ -1,0 +1,343 @@
+{
+  "schema": "chainlesschain.documentation-deployment/v2",
+  "status": "verified",
+  "checkedAt": "2026-11-03T13:33:03.265Z",
+  "stamp": "20261103-132830-bed1e16cc7-docs",
+  "sourceCommit": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+  "sourceStatus": "clean-commit",
+  "reviewedCodeCommit": "d62866538c1988258b93998f9705c2cdd76ee105",
+  "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/525",
+  "server": {
+    "host": "47.111.5.128",
+    "root": "/www/wwwroot",
+    "transport": "existing SSH key; strict host checking; no password or host-key policy change"
+  },
+  "builds": {
+    "docs": {
+      "command": "npm run build",
+      "buildSourceCommit": "3d763f2f18f3ecf35daf1a46205c01985ac785a7",
+      "durationSeconds": 398.64,
+      "exitCode": 0,
+      "status": "success",
+      "buildLog": ".work/docs-sites-140-build-docs.log",
+      "buildLogSha256": "4b68b4392366a651d63c0cc1838e0595ac275f20133d129ec0bbe6304997c52b",
+      "htmlPages": 672,
+      "files": 2043,
+      "renderInputsUnchangedAtDeployment": true
+    },
+    "design": {
+      "command": "npm run build",
+      "buildSourceCommit": "3d763f2f18f3ecf35daf1a46205c01985ac785a7",
+      "durationSeconds": 208.14,
+      "exitCode": 0,
+      "status": "success",
+      "buildLog": ".work/docs-sites-140-build-design.log",
+      "buildLogSha256": "f3ed9b25618f41a9b39e6d1ceefac0196c1a449bffec398014e3671473244284",
+      "htmlPages": 294,
+      "files": 908,
+      "renderInputsUnchangedAtDeployment": true
+    },
+    "www": {
+      "command": "npm exec --offline -- astro build",
+      "buildSourceCommit": "d93d4976399957793cfc090214475db1a3b1ef4d",
+      "durationSeconds": 6.64,
+      "exitCode": 0,
+      "status": "success",
+      "buildLog": ".work/docs-sites-140-build-www.log",
+      "buildLogSha256": "a9f23074c4de27961c634844598f66d8ba2dc2f756b6c1350e1a07fb6874b078",
+      "htmlPages": 20,
+      "files": 45,
+      "renderInputsUnchangedAtDeployment": true
+    }
+  },
+  "sourceInputEquivalence": {
+    "vitePress": "git diff 3d763f2f18..bed1e16cc7 -- docs-site docs-site-design docs/design docs/internal package.json: no differences",
+    "astro": "git diff d93d497639..bed1e16cc7 -- docs-website-v2 docs/internal package.json: no differences",
+    "laterCommits": "only snapshot workflow, immutable review-evidence link and PowerShell SSH logging; static inputs checked per build"
+  },
+  "sourceInputs": [
+    {
+      "path": "README.md",
+      "gitSource": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+      "sha256": "5f301d0350c0d0e4ff5b024abae969b1d6e292ba644ffb7cc2a4a28fd88d25a1"
+    },
+    {
+      "path": "README_EN.md",
+      "gitSource": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+      "sha256": "162fee3a896143af78ff6b7719295bcc68170677eb2ea32c136397ec2dc377c2"
+    },
+    {
+      "path": "packages/cli/README.md",
+      "gitSource": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+      "sha256": "04bff498034228ba9c31abf081d0d3fbe58b05e3bf771d138d0cd528f561dc0b"
+    },
+    {
+      "path": "docs/design/release-runtime-update-2026-11-03-140.md",
+      "gitSource": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+      "sha256": "71b92460cafc00814ced4b6dbf0596e781fb9f5af9ec26b84c6b69e7828ec427"
+    },
+    {
+      "path": "docs/design/cli-runtime-current.md",
+      "gitSource": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+      "sha256": "41dd25faeed848fac37a6cbcdf0dc88f8bddef944b112c8b473d1fc53c58b358"
+    },
+    {
+      "path": "docs-site/docs/chainlesschain/cli-ide-update-2026-11-03-140.md",
+      "gitSource": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+      "sha256": "b285e5b26c6c4b396bd37f3c18a0ff24d4d16474ebf8671126eb2e3d06ec316e"
+    },
+    {
+      "path": "docs-site/docs/index.md",
+      "gitSource": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+      "sha256": "a59d4695aee3b88b5c7c69448dc622eae93985d44205b02cb7f85297e263e747"
+    },
+    {
+      "path": "docs-site-design/docs/index.md",
+      "gitSource": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+      "sha256": "48d816fef8949dcd2b7f1c18a8a226d8f34116c45993f2e8160eb8397dba41ee"
+    },
+    {
+      "path": "docs-website-v2/src/data/release-status.json",
+      "gitSource": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+      "sha256": "94840a1467860e43d3f6881d818f7c0ca6c54f32eec60482aabfac75367eab5c"
+    },
+    {
+      "path": "docs-website-v2/src/data/release-sizes.json",
+      "gitSource": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+      "sha256": "475388d5db80a9407c57b654445d0af555cce2025334733da026eb8758abbd67"
+    },
+    {
+      "path": ".github/workflows/docs-snapshot-build.yml",
+      "gitSource": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+      "sha256": "a9e040483c5a560d998a03eb53f70993d44ad9d2da002f3f8995f366dc896953"
+    },
+    {
+      "path": "scripts/deploy-docs-snapshot.sh",
+      "gitSource": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+      "sha256": "e311751c76b31a2cdcc1d0482cbe650b3f72a06becd2b9a852e44dfcc90cc762"
+    },
+    {
+      "path": "scripts/deploy-docs-snapshot.ps1",
+      "gitSource": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+      "sha256": "b6564fcd6caaff80af8e81be3674b4d9c4954b9faf36fd244be2cd9c68dbc95f"
+    }
+  ],
+  "archives": [
+    {
+      "site": "docs",
+      "archiveSha256": "af59509534c302431fab7a486827705f59bc4fbffbdedf04eeeba9f67719c171",
+      "bytes": 43778242,
+      "newHtmlPages": 672,
+      "newFiles": 2043
+    },
+    {
+      "site": "design",
+      "archiveSha256": "8b45093f0a656cbefc54bc63aa2d7fa088509c2c3af0913fb0669726ed46514e",
+      "bytes": 17178116,
+      "newHtmlPages": 294,
+      "newFiles": 908
+    },
+    {
+      "site": "www",
+      "archiveSha256": "e17a2faa0ce16dce940b567f463e32da0d2e7c77cd70778cddaf041b031fa4d9",
+      "bytes": 2265352,
+      "newHtmlPages": 20,
+      "newFiles": 45
+    }
+  ],
+  "validation": {
+    "userDocumentation": {
+      "files": 332,
+      "requiredSections": 11,
+      "status": "passed"
+    },
+    "updatedLocalPages": 11,
+    "brokenLocalOrCrossSiteLinks": 0,
+    "prettier": "passed for new design, release JSON, review receipt and navigation configs",
+    "shellSyntax": "bash -n passed",
+    "publicHtmlPagesVerified": 11,
+    "publicStaticAssetsVerified": 5,
+    "matchedNewFileHashes": 2996,
+    "serverFileVerification": "full deployment-files.sha256 verified on disk before switching; all three origin HTTPS checks passed",
+    "browserScreenshots": false
+  },
+  "backups": [
+    "/www/wwwroot/docs.chainlesschain.com.bak-20261103-132830-bed1e16cc7-docs",
+    "/www/wwwroot/design.chainlesschain.com.bak-20261103-132830-bed1e16cc7-docs",
+    "/www/wwwroot/www.chainlesschain.com.bak-20261103-132830-bed1e16cc7-docs"
+  ],
+  "firstAttempt": {
+    "stamp": "20261103-132617-d93d497639-docs",
+    "sourceCommit": "d93d4976399957793cfc090214475db1a3b1ef4d",
+    "result": "stopped in SSH read-only preflight before upload or live-directory switch",
+    "cause": "Windows PowerShell treated an informational OpenSSH stderr warning as terminating NativeCommandError",
+    "repairCommit": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+    "repair": "LogLevel=ERROR retains SSH authentication, strict host-key verification and nonzero exit-code checks"
+  },
+  "deploymentLog": {
+    "localPath": ".work/docs-sites-140-deployment-final.log",
+    "sha256": "7f0f7936f13749591b27c4ba8d57fc149f0bbd9640e1c49cbae7f6af5fb21704"
+  },
+  "cloudGate": {
+    "pullRequest": 525,
+    "verified": false,
+    "conclusion": null,
+    "note": "GitHub PR checks are pending; no successful CI claim or package release is made."
+  },
+  "scope": {
+    "newPaidModelCalls": false,
+    "newNpmOrIdeOrClientPublication": false,
+    "modelAcceptanceScoresChanged": false,
+    "unrelatedConcurrentCommitExcluded": "eee2f4d5ea39d3e25344e462c91e6f93f8b0ed1e"
+  },
+  "publicReadback": {
+    "checkedAt": "2026-11-03T13:32:15.564Z",
+    "sourceCommit": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+    "status": "verified",
+    "sites": {
+      "www.chainlesschain.com": {
+        "metadata": {
+          "schema": "chainlesschain.site-deployment/v1",
+          "stamp": "20261103-132830-bed1e16cc7-docs",
+          "sourceHeadCommit": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+          "sourceStatus": "clean-commit",
+          "site": "www",
+          "archiveSha256": "e17a2faa0ce16dce940b567f463e32da0d2e7c77cd70778cddaf041b031fa4d9",
+          "newHtmlPages": 20,
+          "newFiles": 45
+        },
+        "manifestSha256": "c4bd3ee5c15670c0ff596937f45e6bc4b2cf6cdacfee036cf3439a491c80dbc8",
+        "matchedNewFileHashes": 45
+      },
+      "design.chainlesschain.com": {
+        "metadata": {
+          "schema": "chainlesschain.site-deployment/v1",
+          "stamp": "20261103-132830-bed1e16cc7-docs",
+          "sourceHeadCommit": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+          "sourceStatus": "clean-commit",
+          "site": "design",
+          "archiveSha256": "8b45093f0a656cbefc54bc63aa2d7fa088509c2c3af0913fb0669726ed46514e",
+          "newHtmlPages": 294,
+          "newFiles": 908
+        },
+        "manifestSha256": "8759689b0091f762e985d92c43fe62de7f5b10e00d7f288356e45eb5aa8e56f2",
+        "matchedNewFileHashes": 908
+      },
+      "docs.chainlesschain.com": {
+        "metadata": {
+          "schema": "chainlesschain.site-deployment/v1",
+          "stamp": "20261103-132830-bed1e16cc7-docs",
+          "sourceHeadCommit": "bed1e16cc7d898e9316c9ac755541a480996b2bb",
+          "sourceStatus": "clean-commit",
+          "site": "docs",
+          "archiveSha256": "af59509534c302431fab7a486827705f59bc4fbffbdedf04eeeba9f67719c171",
+          "newHtmlPages": 672,
+          "newFiles": 2043
+        },
+        "manifestSha256": "d25ca79f268154fbcb668c08783b906488bb8711be3cc207ccf981a1f56075e5",
+        "matchedNewFileHashes": 2043
+      }
+    },
+    "pages": [
+      {
+        "url": "https://www.chainlesschain.com/",
+        "status": 200,
+        "sha256": "9019c79aeca8223817cf3334a667b3690a5aea7eabc23d506453097a746e4b18",
+        "matchesBuild": true
+      },
+      {
+        "url": "https://design.chainlesschain.com/release-runtime-update-2026-11-03-140.html",
+        "status": 200,
+        "sha256": "32f90654af3c85c35f8636098deca916b1a2758a0854df71d92ada4e70ba75a9",
+        "matchesBuild": true
+      },
+      {
+        "url": "https://docs.chainlesschain.com/",
+        "status": 200,
+        "sha256": "c58ab985869bf6c78ca89474b76743a6eff84adee2c1d577f238339c72cb9743",
+        "matchesBuild": true
+      },
+      {
+        "url": "https://design.chainlesschain.com/",
+        "status": 200,
+        "sha256": "d1cc96e4de1e420b0d42ac6c77d75feb026ff3ab12bb46d97f135838b28a12ac",
+        "matchesBuild": true
+      },
+      {
+        "url": "https://www.chainlesschain.com/ide/",
+        "status": 200,
+        "sha256": "db8ba24a3918dfe8c64ed15ff3748b841de4a1a8cc1b5992f4c162d4c010fa7a",
+        "matchesBuild": true
+      },
+      {
+        "url": "https://www.chainlesschain.com/en/ide/",
+        "status": 200,
+        "sha256": "4e3428b31a9d0fa67d08abe6c651e844a728183d61957bc0d499d6862c8bea8c",
+        "matchesBuild": true
+      },
+      {
+        "url": "https://www.chainlesschain.com/en/",
+        "status": 200,
+        "sha256": "5d46306332c99214e885b7f05f8034ffd6a4306cdadc65d022b4f3fa26af8a5a",
+        "matchesBuild": true
+      },
+      {
+        "url": "https://docs.chainlesschain.com/design/release-runtime-update-2026-11-03-140.html",
+        "status": 200,
+        "sha256": "4187159a3bf694af95ace2694c49af8634969bdf20a647b253364a54807a4da0",
+        "matchesBuild": true
+      },
+      {
+        "url": "https://docs.chainlesschain.com/chainlesschain/cli-agent.html",
+        "status": 200,
+        "sha256": "9b2504b20924980cb2a0bb943d89e6b0a3c79b37cb294927abd15004a44e02b5",
+        "matchesBuild": true
+      },
+      {
+        "url": "https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-03-140.html",
+        "status": 200,
+        "sha256": "ccbe9da254165a112a52938e2e483c9e9fad35ded869851e9245f3690f57a2a2",
+        "matchesBuild": true
+      },
+      {
+        "url": "https://docs.chainlesschain.com/chainlesschain/ide-plugin.html",
+        "status": 200,
+        "sha256": "da4bae46a4adaa3d5020dbb18dd6ee528da9823e60e450055dea11b4a540cc6a",
+        "matchesBuild": true
+      }
+    ],
+    "assets": [
+      {
+        "url": "https://www.chainlesschain.com/assets/about.ciFbCEc9.css",
+        "status": 200,
+        "sha256": "d91e4f0137c8ff8e537d7674cb69c64b41f088f243b6078dfbaf84108f35710e",
+        "matchesBuild": true
+      },
+      {
+        "url": "https://docs.chainlesschain.com/assets/app.C7h-i4lD.js",
+        "status": 200,
+        "sha256": "fea5fd704c3a04ef41e72ba2372614b4c3691b3a0d873811543749529c1f404e",
+        "matchesBuild": true
+      },
+      {
+        "url": "https://docs.chainlesschain.com/assets/style.CPgXNXD4.css",
+        "status": 200,
+        "sha256": "f8449548a2584f768de035192725799c5a2a28815656c58a2908db5c1626762e",
+        "matchesBuild": true
+      },
+      {
+        "url": "https://design.chainlesschain.com/assets/app.DJsQMKkI.js",
+        "status": 200,
+        "sha256": "86041664d899ee0b12228e7bc569ab2a106c6cb897f6de2c7471504acfc508f3",
+        "matchesBuild": true
+      },
+      {
+        "url": "https://design.chainlesschain.com/assets/style.DOXrfiz4.css",
+        "status": 200,
+        "sha256": "3e0d6896b5ceca379fdec0938720369a810a456e24bc51c4d750e341b81bc66f",
+        "matchesBuild": true
+      }
+    ],
+    "stamp": "20261103-132830-bed1e16cc7-docs"
+  }
+}
