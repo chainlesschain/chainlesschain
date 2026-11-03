@@ -27,12 +27,21 @@ export function public139RoundDirectory(
     [
       "docs/research/cli/verify01-openai-139",
       "docs/research/cli/verify01-openai-139-r2-20261103",
+      "docs/research/cli/verify01-openai-139-r3-20261103",
     ].includes(value),
     "Unknown public139 round directory",
   );
   return value;
 }
+export function public139RoundSampleIds(directory) {
+  return public139RoundDirectory(directory).endsWith("-r3-20261103")
+    ? ["verify-08"]
+    : [...ids];
+}
 function refPrefix(directory) {
+  if (public139RoundDirectory(directory).endsWith("-r3-20261103")) {
+    return "verify01-native139-r3-";
+  }
   return public139RoundDirectory(directory).endsWith("-r2-20261103")
     ? "verify01-native139-r2-"
     : "verify01-public139-run-";
@@ -41,6 +50,7 @@ export function assertAuthorizedPublic139Dispatch(
   plan,
   { source, ref, credentialPresent, runAttempt, roundDirectory },
 ) {
+  const selectedIds = public139RoundSampleIds(roundDirectory);
   assert.match(source, /^[a-f0-9]{40}$/u);
   assert.ok(
     ref.startsWith(refPrefix(roundDirectory)) &&
@@ -56,7 +66,7 @@ export function assertAuthorizedPublic139Dispatch(
     true,
     "Repository OpenAI credential is missing; no model dispatch allowed",
   );
-  assert.deepEqual(plan.selectedSampleIds, ids);
+  assert.deepEqual(plan.selectedSampleIds, selectedIds);
   assert.match(
     plan.projectRevisionFile,
     /^docs\/research\/cli\/verify01-openai-137\/[A-Za-z0-9._-]+\.json$/u,
@@ -66,21 +76,27 @@ export function assertAuthorizedPublic139Dispatch(
   assert.equal(plan.model, "gpt-6.1-sol");
   assert.equal(plan.reviewChanges, true);
   assert.deepEqual(plan.requestBudgets, budgets);
-  assert.equal(plan.maximumPhysicalRequestsAcrossSelectedSamples, 48);
-  assert.deepEqual(plan.dispatches, [
-    {
-      group: "darwin-vscode",
-      hosts: "macos",
-      entries: "vscode",
-      sampleIds: ["verify-08"],
-    },
-    {
-      group: "darwin-jetbrains",
-      hosts: "macos",
-      entries: "jetbrains",
-      sampleIds: ["verify-36"],
-    },
-  ]);
+  assert.equal(
+    plan.maximumPhysicalRequestsAcrossSelectedSamples,
+    selectedIds.length * budgets.physicalRequests,
+  );
+  assert.deepEqual(
+    plan.dispatches,
+    [
+      {
+        group: "darwin-vscode",
+        hosts: "macos",
+        entries: "vscode",
+        sampleIds: ["verify-08"],
+      },
+      {
+        group: "darwin-jetbrains",
+        hosts: "macos",
+        entries: "jetbrains",
+        sampleIds: ["verify-36"],
+      },
+    ].filter((row) => row.sampleIds.every((id) => selectedIds.includes(id))),
+  );
   assert.deepEqual(plan.versions, {
     cli: "0.166.139",
     vscode: "0.37.175",
@@ -185,9 +201,10 @@ async function main() {
       JSON.stringify({
         authorizedScopeValidated: true,
         publicationProofSource,
-        samples: ids,
-        workflowDispatches: 2,
-        maximumPhysicalRequests: 48,
+        samples: plan.selectedSampleIds,
+        workflowDispatches: plan.dispatches.length,
+        maximumPhysicalRequests:
+          plan.maximumPhysicalRequestsAcrossSelectedSamples,
         modelRequests: 0,
       }),
     );

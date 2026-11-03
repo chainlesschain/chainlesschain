@@ -5,18 +5,22 @@ import os from "node:os";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { public139RoundDirectory } from "./verify01-public139-dispatch.mjs";
+import {
+  public139RoundDirectory,
+  public139RoundSampleIds,
+} from "./verify01-public139-dispatch.mjs";
 
 const roundOption = process.argv.indexOf("--round-directory");
 const directory = public139RoundDirectory(
   roundOption === -1 ? undefined : process.argv[roundOption + 1],
 );
+const expectedIds = public139RoundSampleIds(directory);
 
 const dispatch = JSON.parse(
   fs.readFileSync(`${directory}/dispatch.json`, "utf8"),
 );
 assert.equal(dispatch.allSubmitted, true);
-assert.deepEqual(dispatch.selectedSampleIds, ["verify-08", "verify-36"]);
+assert.deepEqual(dispatch.selectedSampleIds, expectedIds);
 assert.equal(dispatch.provider, "openai");
 const source = dispatch.source;
 assert.match(source, /^[a-f0-9]{40}$/u);
@@ -54,8 +58,8 @@ const selections = dispatch.dispatches.map((d) => ({
   group: d.entries === "jetbrains" ? `${d.group}-${d.sampleIds[0]}` : d.group,
   samples: d.sampleIds,
 }));
-assert.equal(selections.length, 2);
-assert.equal(new Set(selections.map((s) => s.id)).size, 2);
+assert.equal(selections.length, expectedIds.length);
+assert.equal(new Set(selections.map((s) => s.id)).size, expectedIds.length);
 const hash = (bytes) =>
   "sha256:" + createHash("sha256").update(bytes).digest("hex");
 const request = (route) =>
@@ -229,8 +233,11 @@ for (const selection of selections) {
     });
   }
 }
-assert.equal(rows.length, 2);
-assert.equal(new Set(rows.map((r) => r.sampleId)).size, 2);
+assert.equal(rows.length, expectedIds.length);
+assert.deepEqual(
+  rows.map((row) => row.sampleId).sort(),
+  [...expectedIds].sort(),
+);
 const sumIfComplete = (field) =>
   rows.every((row) => Number.isFinite(row.broker?.[field]))
     ? rows.reduce((total, row) => total + row.broker[field], 0)
@@ -245,11 +252,12 @@ const report = {
   }).trim(),
   collectorTriggerSource: process.env.GITHUB_SHA ?? null,
   complete: true,
-  expected: 2,
+  expected: expectedIds.length,
   accepted: rows.filter((r) => r.accepted).length,
   failed: rows.filter((r) => !r.accepted).length,
-  skippedHistoricalPass:
-    "verify-19 at CLI136; verify-13 and first-run-darwin-vscode at CLI138; none counted as CLI139 acceptance",
+  skippedHistoricalPass: dispatch.skippedSamples
+    .map((row) => `${row.sampleId} at ${row.acceptedCliVersion}`)
+    .join("; "),
   historical45Unchanged: true,
   previous137r3Unchanged: "0/5",
   previous138Unchanged: "2/4",
