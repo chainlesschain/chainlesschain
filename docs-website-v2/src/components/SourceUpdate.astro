@@ -2,6 +2,7 @@
 import releaseStatus from "../data/release-status.json";
 const { lang = "zh" } = Astro.props;
 const english = lang === "en";
+const solCoverage = releaseStatus.solTaskCoverage;
 const jetBrainsPending = [
   "pending-review",
   "pending-approval",
@@ -50,6 +51,34 @@ const items = english
         </article>
       ))}
     </div>
+    <aside id="sol-verification" class="mt-8 rounded-xl border border-line bg-paper p-6" aria-labelledby="sol-verification-title">
+      <p class="font-mono text-sm text-ember">OpenAI / {solCoverage.model}</p>
+      <h3 id="sol-verification-title" class="mt-2 text-2xl font-bold">
+        {english ? "Sol: all 36+9 tasks have accepted results" : "Sol：36+9 项任务累计全部通过"}
+      </h3>
+      <dl class="mt-6 grid grid-cols-3 gap-4">
+        <div>
+          <dt class="text-sm text-muted">{english ? "Project tasks" : "项目维护任务"}</dt>
+          <dd class="mt-2 text-3xl font-bold">{solCoverage.tasks.accepted}/{solCoverage.tasks.total}</dd>
+        </div>
+        <div>
+          <dt class="text-sm text-muted">{english ? "Independent first runs" : "独立首次安装"}</dt>
+          <dd class="mt-2 text-3xl font-bold">{solCoverage.firstRuns.accepted}/{solCoverage.firstRuns.total}</dd>
+        </div>
+        <div>
+          <dt class="text-sm text-muted">{english ? "Cumulative task coverage" : "累计任务覆盖"}</dt>
+          <dd class="mt-2 text-3xl font-bold">{solCoverage.accepted}/{solCoverage.total}</dd>
+        </div>
+      </dl>
+      <p class="mt-5 text-sm text-muted leading-relaxed">
+        {english
+          ? "All 45 sample IDs have a model-native result that completed generation and passed independent acceptance; manually assisted repairs are excluded. This is cumulative coverage across versions, including retests on repaired project sources. The original frozen-project record remains 41/45; this is not a single same-version, same-source 45-task run."
+          : "45 个样本均已有模型原生候选正常完成生成并通过独立验收的记录，未混入人工辅助修复。该成绩为跨版本累计覆盖，包含修复项目源码后的补测；原冻结项目历史记录仍为 41/45，不等同于同版本、同源码的一次全量通过。"}
+      </p>
+      <a class="mt-4 inline-block text-sm text-ember hover:underline" href={solCoverage.evidenceUrl}>
+        {english ? "View the 45-sample ledger and original evidence ↗" : "查看 45 项累计账本与原始证据 ↗"}
+      </a>
+    </aside>
     <p class="mt-6 text-sm text-muted">
       {english
         ? `Public .138 retest: 2/4 accepted. verify-08 and verify-36 passed candidate tests but exhausted 20/20 author turns before review. All 80/80 physical requests have complete usage records. Historical ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}, previous .137 0/5 and the image follow-up 0/1 retain separate scopes. Accepted samples are skipped in later retests; engineering checks and publication add no model acceptance.`
