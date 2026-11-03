@@ -12,6 +12,8 @@ Open VSX **0.37.176** 已公开列出且可下载，VSIX 与正式构建逐字�
 
 <!-- release140-guide-status:end -->
 
+文档于 **2026-11-03** 按 `main@d62866538c` 核对。后续主线读取恢复提示与 Web Panel bundle 修复晚于 .140 发行源；当前 npm 包不包含这些后续改动。[最新运行时设计](/design/release-runtime-update-2026-11-03-140)。
+
 ## 核心特性
 
 修复模型返回损坏工具参数后，自进化输入解析失败并退出的问题。非法 JSON、null、数组和其他非对象参数会在执行前被拒绝，模型可以在原权限和预算内重新发出正确调用。
@@ -59,6 +61,8 @@ Windows 相关回归检查 **129 项通过**。两条真实火山模型恢复路
 准确发行源码 `e2a91bf54332ff3d252c40ecc25c5887e0f0430d` 的 Linux、Windows、macOS **CLI CI** 与 **CLI Strict Sandbox** 全部配置作业通过，GitHub Actions OIDC 发布及公开 CLI 回读已核验；两款 IDE 的准确源码宿主门禁通过，各渠道公开状态见概述。工程和恢复实测不增加历史大任务验收成绩。
 
 同一发行源码三平台各 100 次回环通过，共 300 次仅覆盖结构封套，不是付费模型任务验收，也不替代 CLI CI / Strict Sandbox。本地 composition 在 v10 源码与较早基线上均出现超时，未计为通过。
+
+火山 .140 全量 **36+9** 已启动，但完整最终成绩尚未归档核验；内部摘要显式输出限制的适配器修复与原轮分别记录，不将调度或离线测试计为任务通过。原冻结项目历史 **41/45**、.138 **2/4** 和含修复任务的 Sol 跨版本 **45/45** 不混算。见[全量复测记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/verify01-volcengine-140-full-20261103/README.md)。
 
 ## 安全考虑
 

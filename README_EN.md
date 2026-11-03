@@ -22,6 +22,9 @@ Earlier candidate `eb0fe7a8a1` failed at the Windows ArtifactStore post-index in
 
 Agent SDK **0.2.17**, Protocol **0.1.12**, Kernel **0.1.11** and the other child packages retain their published versions; required upstream packages were fetched and dependency alignment verified before CLI publication. Microsoft Marketplace remains deferred. PC/mobile **v5.0.3.144** is already public as an independent release; this CLI/IDE follow-up does not republish clients. Historical .138 **2/4**, .137 **0/5** and cumulative **41/45** retain separate scopes.
 
+
+Documentation reviewed against `main@d62866538c` on **2026-11-03**. The later read-recovery hint and Web Panel bundle fixes are outside the immutable CLI .140 release source. The .140 full 36+9 Volcengine campaign has no verified final score yet; the internal-output-limit adapter repair is tracked separately. Historical original-project **41/45**, .138 **2/4**, and Sol cross-revision coverage **45/45** (including repaired project sources) retain separate scopes. [Current design](docs/design/release-runtime-update-2026-11-03-140.md) · [Upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-03-140.html).
+
 <!-- release140-current:end -->
 
 <!-- release139-previous:start -->

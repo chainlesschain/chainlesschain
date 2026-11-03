@@ -137,6 +137,10 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
+            text: "CLI .140 工具参数恢复与可信摘要",
+            link: "/release-runtime-update-2026-11-03-140",
+          },
+          {
             text: "CLI .138 源码交付、任务保留与复验",
             link: "/release-runtime-update-2026-11-02-138",
           },
@@ -1126,6 +1130,10 @@ export default defineConfig({
               text: "运行时设计记录",
               collapsed: true,
               items: [
+                {
+                  text: "CLI .140 工具参数恢复与可信摘要",
+                  link: "/release-runtime-update-2026-11-03-140",
+                },
                 {
                   text: "CLI .138 源码交付、任务保留与复验",
                   link: "/release-runtime-update-2026-11-02-138",
